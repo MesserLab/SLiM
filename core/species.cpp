@@ -7684,6 +7684,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 {
 	// We will keep track of all pedigree IDs used, and check at the end that they do not collide; faster than checking as we go
 	// This could be done with a hash table, but I imagine that would be slower until the number of individuals becomes very large
+	// Also, I'm a bit nervous about putting a large number of consecutive integers into a hash table, re: edge-case performance
 	std::vector<slim_pedigreeid_t> pedigree_id_check;
 	
 	gSLiM_next_pedigree_id = 0;
@@ -7809,12 +7810,12 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 		}
 	}
 	
-	// Check for pedigree ID collisions by sorting and looking for duplicates
+	// Check for individual pedigree ID collisions by sorting and looking for duplicates
 	std::sort(pedigree_id_check.begin(), pedigree_id_check.end());
 	const auto duplicate = std::adjacent_find(pedigree_id_check.begin(), pedigree_id_check.end());
 	
 	if (duplicate != pedigree_id_check.end())
-		EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): the pedigree ID value " << *duplicate << " was used more than once; pedigree IDs must be unique." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): the individual pedigree ID value " << *duplicate << " was used more than once; individual pedigree IDs must be unique." << EidosTerminate();
 }
 
 void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter)
@@ -8398,6 +8399,61 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	free(variant);
 }
 
+void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
+{
+	// Make sure our next pedigree ID is safe; right now it only accounts for pedigree IDs used by individuals, but maybe there
+	// could be nodes in the node table with genome pedigree IDs greater than those in use by individuals, in nonWF models.
+	// See https://github.com/MesserLab/SLiM/pull/420 for an example model that does this very easily.
+	
+	// Also, check for duplicate pedigree IDs, just in case.  __CreateSubpopulationsFromTabulation() does this for individual
+	// pedigree IDs; we do it for node pedigree IDs.  I decided to use a vector with std::sort() to check even though it is
+	// O(n log n), rather than a hash table for O(n), because I'm nervous about hitting a bad edge case with the hash table
+	// due to the nature of the values being inserted.  Shouldn't be a big deal in the grand scheme of things.
+	tsk_node_table_t &node_table = tables_.nodes;
+	tsk_size_t node_count = node_table.num_rows;
+	std::vector<slim_genomeid_t> genome_id_check;
+	
+	for (tsk_size_t j = 0; (size_t)j < node_count; j++)
+	{
+		tsk_size_t offset1 = node_table.metadata_offset[j];
+		tsk_size_t offset2 = node_table.metadata_offset[j + 1];
+		tsk_size_t length = (offset2 - offset1);
+		
+		// allow nodes with other types of metadata; but if the metadata length metches ours, we have to assume it's ours
+		if (length == sizeof(GenomeMetadataRec))
+		{
+			// get the metadata record and check the genome pedigree ID
+			GenomeMetadataRec *metadata_rec = (GenomeMetadataRec *)(node_table.metadata + offset1);
+			slim_genomeid_t genome_id = metadata_rec->genome_id_;
+			
+			genome_id_check.emplace_back(genome_id);	// we will test for collisions below
+			
+			slim_pedigreeid_t pedigree_id = genome_id / 2;			// rounds down to integer
+			
+			if (pedigree_id >= gSLiM_next_pedigree_id)
+			{
+				static bool been_here = false;
+				
+				if (!been_here)
+				{
+					// decided to keep this as a warning; this circumstance is not necessarily pathological, but it probably usually is...
+					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a genome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
+					been_here = true;
+				}
+				
+				gSLiM_next_pedigree_id = pedigree_id + 1;
+			}
+		}
+	}
+	
+	// Check for genome pedigree ID collisions by sorting and looking for duplicates
+	std::sort(genome_id_check.begin(), genome_id_check.end());
+	const auto duplicate = std::adjacent_find(genome_id_check.begin(), genome_id_check.end());
+	
+	if (duplicate != genome_id_check.end())
+		EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): the genome pedigree ID value " << *duplicate << " was used more than once; genome pedigree IDs must be unique." << EidosTerminate();
+}
+
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
 {
 	// set the tick and cycle from the provenance data
@@ -8463,6 +8519,10 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	ret = tsk_treeseq_free(ts);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
 	free(ts);
+	
+	// Ensure that the next pedigree ID used will not cause a collision with any existing nodes in the node table,
+	// and that there are no duplicate node pedigree IDs in the input file (whether in use or not).
+	__CheckNodePedigreeIDs(p_interpreter);
 	
 	// Set up the remembered genomes by looking though the list of nodes and their individuals
 	if (remembered_genomes_.size() != 0)
