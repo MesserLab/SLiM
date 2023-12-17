@@ -1444,7 +1444,11 @@ const EidosClass *Species::Class(void) const
 
 void Species::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<" << species_id_ << ":" << avatar_ << ">";
+	// Show the avatar in multispecies models (or any explicit species model)
+	if (community_.is_explicit_species_)
+		p_ostream << Class()->ClassName() << "<" << species_id_ << ":" << avatar_ << ">";
+	else
+		p_ostream << Class()->ClassName() << "<" << species_id_ << ">";
 }
 
 EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
