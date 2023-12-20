@@ -2041,8 +2041,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 		else
 		{
 			// non-singleton, direct access
-			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
-			const int64_t *int_data = int_vec->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 		}
@@ -2052,13 +2051,13 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 		if (sequence_value_count != 1)
 		{
 			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_data = sequence_value->StringData();
 			
-			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, string_data);
 		}
 		else	// sequence_value_count == 1
 		{
-			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &sequence_string = sequence_value->StringData()[0];
 			bool contains_only_nuc = true;
 			
 			// OK, we do a weird thing here.  We want to try to construct a NucleotideArray

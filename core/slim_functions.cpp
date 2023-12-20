@@ -610,7 +610,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 	}
 	else
 	{
-		const int64_t *int_data = codons_value->IntVector()->data();
+		const int64_t *int_data = codons_value->IntData();
 		
 		if (integer_result)
 		{
@@ -639,7 +639,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 				{
 					// pasting: "Aaa-Bbb-Ccc"
 					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-					std::string &aa_string = string_result->StringValue_Mutable();
+					std::string &aa_string = string_result->StringData_Mutable()[0];
 					
 					aa_string.resize(codons_length * 4 - 1);	// create space for all the amino acids we will generate, including hyphens
 					
@@ -669,7 +669,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 				{
 					// pasting: "ABC"
 					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-					std::string &aa_string = string_result->StringValue_Mutable();
+					std::string &aa_string = string_result->StringData_Mutable()[0];
 					
 					aa_string.resize(codons_length);	// create space for all the amino acids we will generate
 					
@@ -726,7 +726,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		{
 			// singleton string case
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &string_ref = sequence_value->StringData()[0];
 			int64_t length = (int64_t)string_ref.length();
 			
 			if (length % 3 != 0)
@@ -770,15 +770,15 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		{
 			// string vector case
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_vec = sequence_value->StringData();
 			
 			for (int value_index = 0; value_index < length_3; ++value_index)
 			{
 				int64_t codon_base = (size_t)value_index * 3;
 				
-				const std::string &nucstring1 = (*string_vec)[codon_base];
-				const std::string &nucstring2 = (*string_vec)[codon_base + 1];
-				const std::string &nucstring3 = (*string_vec)[codon_base + 2];
+				const std::string &nucstring1 = string_vec[codon_base];
+				const std::string &nucstring2 = string_vec[codon_base + 1];
+				const std::string &nucstring3 = string_vec[codon_base + 2];
 				
 				if ((nucstring1.length() != 1) || (nucstring2.length() != 1) || (nucstring3.length() != 1))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -798,7 +798,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		else // sequence_type == EidosValueType::kValueInt
 		{
 			// int vector case
-			const int64_t *int_data = sequence_value->IntVector()->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			for (int value_index = 0; value_index < length_3; ++value_index)
 			{
@@ -841,7 +841,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		else // sequence_type == EidosValueType::kValueString
 		{
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &string_ref = sequence_value->StringData()[0];
 			std::size_t length = string_ref.length();
 			
 			for (std::size_t i = 0; i < length; ++i)
@@ -861,7 +861,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		// Vector case, optimized for speed
 		if (sequence_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int_data = sequence_value->IntVector()->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
@@ -876,11 +876,11 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		else // sequence_type == EidosValueType::kValueString
 		{
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_vec = sequence_value->StringData();
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
-				const std::string &nuc_string = (*string_vec)[value_index];
+				const std::string &nuc_string = string_vec[value_index];
 				
 				if (nuc_string.length() != 1)
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -1165,7 +1165,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	{
 		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
 		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
+		std::string &nuc_string = string_result->StringData_Mutable()[0];
 		
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		
@@ -1269,7 +1269,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	{
 		// return a singleton string for the whole sequence, "TATACG"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
 		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
+		std::string &nuc_string = string_result->StringData_Mutable()[0];
 		
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		

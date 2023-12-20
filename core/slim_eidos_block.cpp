@@ -1731,7 +1731,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 			// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
 			EidosValue *cached_value = p_arg_node->cached_literal_value_.get();
 			
-			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
+			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->Count() == 1))
 			{
 				int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
 				

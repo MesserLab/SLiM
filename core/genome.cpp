@@ -570,7 +570,7 @@ void Genome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Genome *)(p_values[value_index]))->tag_value_ = source_data[value_index];
@@ -767,7 +767,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 			EidosValue_SP result(logical_result);
 			int64_t result_index = 0;
 			
-			EidosObject * const *mutations_data = mutations_value->ObjectElementVector()->data();
+			EidosObject * const *mutations_data = mutations_value->ObjectData();
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
@@ -1181,7 +1181,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		else
 		{
 			// vector case: replace the appropriate element in char_value
-			std::vector<std::string> *char_vec = ((EidosValue_String_vector *)(char_value.get()))->StringVector_Mutable();
+			std::string &char_vec = char_value->StringData_Mutable()[0];
 			GenomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
@@ -1198,7 +1198,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 				int8_t nuc = mut->nucleotide_;
 				
 				if (nuc != -1)
-					(*char_vec)[pos - start] = gSLiM_Nucleotides[nuc];
+					char_vec[pos - start] = gSLiM_Nucleotides[nuc];
 				
 				walker.NextMutation();
 			}

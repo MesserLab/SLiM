@@ -116,7 +116,7 @@ void EidosTestElement::SetProperty_Accelerated__yolk(EidosObject **p_elements, s
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_data[element_index];

@@ -86,7 +86,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 	if (vec_type == EidosValueType::kValueInt)
 	{
 		// Get a raw pointer to vec's values
-		const int64_t *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Int_singleton *)arg_vec)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_vec)->data();
+		const int64_t *vec_data = arg_vec->IntData();
 		
 		// Check that vec is sorted
 		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
@@ -96,7 +96,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 		// Branch on the type of arg_x
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			const int64_t *x_data = arg_x->IntData();
 			
 			// Find intervals for integer vec, integer x
 			
@@ -143,7 +143,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 		}
 		else	// (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			const double *x_data = arg_x->FloatData();
 			
 			// Find intervals for integer vec, float x
 			
@@ -192,7 +192,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 	else // (vec_type == EidosValueType::kValueFloat))
 	{
 		// Get a raw pointer to vec's values
-		const double *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Float_singleton *)arg_vec)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_vec)->data();
+		const double *vec_data = arg_vec->FloatData();
 		
 		// Check that vec is sorted
 		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
@@ -202,7 +202,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 		// Branch on the type of arg_x
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			const int64_t *x_data = arg_x->IntData();
 			
 			// Find intervals for float vec, integer x
 			
@@ -249,7 +249,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 		}
 		else	// (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			const double *x_data = arg_x->FloatData();
 			
 			// Find intervals for float vec, float x
 			
@@ -412,7 +412,7 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): (internal error) an unknown error with code " << gsl_err << " occurred inside the GNU Scientific Library's gsl_linalg_cholesky_decomp1() function." << EidosTerminate(nullptr);
 	}
 	
-	const double *float_data = arg_x->FloatVector()->data();
+	const double *float_data = arg_x->FloatData();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 	result_SP = EidosValue_SP(float_result);
 	
@@ -486,7 +486,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		}
 		else
 		{
-			const double *float_data = arg_quantile->FloatVector()->data();
+			const double *float_data = arg_quantile->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -498,7 +498,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		const double *float_data = arg_quantile->FloatVector()->data();
+		const double *float_data = arg_quantile->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -566,7 +566,7 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_ar
 		}
 		else
 		{
-			const double *float_data = arg_prob->FloatVector()->data();
+			const double *float_data = arg_prob->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_probs);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -579,7 +579,7 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		const double *float_data = arg_prob->FloatVector()->data();
+		const double *float_data = arg_prob->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_probs);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -636,7 +636,7 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_ar
 		}
 		else
 		{
-			const double *float_data = arg_quantile->FloatVector()->data();
+			const double *float_data = arg_quantile->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -646,7 +646,7 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		const double *float_data = arg_quantile->FloatVector()->data();
+		const double *float_data = arg_quantile->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -702,7 +702,7 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_ar
 		}
 		else
 		{
-			const double *float_data = arg_quantile->FloatVector()->data();
+			const double *float_data = arg_quantile->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -712,7 +712,7 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		const double *float_data = arg_quantile->FloatVector()->data();
+		const double *float_data = arg_quantile->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -1129,7 +1129,7 @@ EidosValue_SP Eidos_ExecuteFunction_dexp(const std::vector<EidosValue_SP> &p_arg
 		}
 		else
 		{
-			const double *float_data = arg_quantile->FloatVector()->data();
+			const double *float_data = arg_quantile->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -1139,7 +1139,7 @@ EidosValue_SP Eidos_ExecuteFunction_dexp(const std::vector<EidosValue_SP> &p_arg
 	}
 	else
 	{
-		const double *float_data = arg_quantile->FloatVector()->data();
+		const double *float_data = arg_quantile->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -1325,7 +1325,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_a
 		}
 		else
 		{
-			const double *float_data = arg_quantile->FloatVector()->data();
+			const double *float_data = arg_quantile->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
@@ -1337,7 +1337,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_a
 	}
 	else
 	{
-		const double *float_data = arg_quantile->FloatVector()->data();
+		const double *float_data = arg_quantile->FloatData();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		

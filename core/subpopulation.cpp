@@ -3897,14 +3897,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = cached_child_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
-					int vec_size = (int)vec_direct->size();
+					const EidosObject * const *vec_direct = cached_child_genomes_value_->ObjectData();
+					int vec_size = cached_child_genomes_value_->Count();
 					
 					if (vec_size == (int)child_genomes_.size())
 					{
 						for (int i = 0; i < vec_size; ++i)
-							if ((*vec_direct)[i] != &(child_genomes_[i]))
+							if (vec_direct[i] != child_genomes_[i])
 								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << EidosTerminate();
 					}
 					else
@@ -3928,14 +3927,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = cached_parent_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
-					int vec_size = (int)vec_direct->size();
+					const EidosObject * const *vec_direct = cached_parent_genomes_value_->ObjectData();
+					int vec_size = cached_parent_genomes_value_->Count();
 					
 					if (vec_size == (int)parent_genomes_.size())
 					{
 						for (int i = 0; i < vec_size; ++i)
-							if ((*vec_direct)[i] != &(parent_genomes_[i]))
+							if (vec_direct[i] != parent_genomes_[i])
 								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << EidosTerminate();
 					}
 					else
@@ -4296,7 +4294,7 @@ void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Subpopulation *)(p_values[value_index]))->tag_value_ = source_data[value_index];
@@ -4317,7 +4315,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_value
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -5858,9 +5856,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	
 	EidosValue *point_value = p_arguments[1].get();
 	int point_count = point_value->Count();
-	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
-	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
-	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
 	if (point_count % dimensionality != 0)
@@ -6220,8 +6216,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		return ((x >= bounds_x0_) && (x <= bounds_x1_)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 	}
 	
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
+	const double *point_buf = point_value->FloatData();
 	
 	if (point_count == 1)
 	{
@@ -6351,8 +6346,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
+	const double *point_buf = point_value->FloatData();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
@@ -6478,8 +6472,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
+	const double *point_buf = point_value->FloatData();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
@@ -6583,8 +6576,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
+	const double *point_buf = point_value->FloatData();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	

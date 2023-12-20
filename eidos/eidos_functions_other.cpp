@@ -59,7 +59,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 	
 	// determine whether the assertions vector is all true
 	int assertions_count = assertions_value->Count();
-	const eidos_logical_t *logical_data = assertions_value->LogicalVector()->data();
+	const eidos_logical_t *logical_data = assertions_value->LogicalData();
 	bool any_false = false;
 	
 	for (int assertions_index = 0; assertions_index < assertions_count; ++assertions_index)
@@ -1468,7 +1468,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		}
 		else
 		{
-			const std::vector<std::string> &string_vec = *input_value->StringVector();
+			const std::string *string_vec = input_value->StringData();
 			
 			for (int value_index = 0; value_index < input_count; ++value_index)
 			{

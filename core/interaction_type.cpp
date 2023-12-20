@@ -3698,7 +3698,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	}
 	else
 	{
-		receivers_data = (Individual * const *)receivers_value->ObjectElementVector()->data();
+		receivers_data = (Individual * const *)receivers_value->ObjectData();
 	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receivers_data[0]->subpopulation_);
@@ -6159,7 +6159,7 @@ EidosValue_SP InteractionType::ExecuteMethod_testConstraints(EidosGlobalStringID
 	else
 	{
 		// non-singleton case
-		Individual * const *inds = (Individual * const *)individuals_value->ObjectElementVector()->data();
+		Individual * const *inds = (Individual * const *)individuals_value->ObjectData();
 		
 		if (returnIndividuals)
 		{

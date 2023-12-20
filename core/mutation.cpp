@@ -669,7 +669,7 @@ void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Mutation *)(p_values[value_index]))->subpop_index_ = SLiMCastToObjectidTypeOrRaise(source_data[value_index]);
@@ -688,7 +688,7 @@ void Mutation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_valu
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Mutation *)(p_values[value_index]))->tag_value_ = source_data[value_index];

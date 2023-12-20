@@ -1245,7 +1245,7 @@ void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_va
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->tag_value_ = source_data[value_index];
@@ -1266,7 +1266,7 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->tagF_value_ = source_data[value_index];
@@ -1277,9 +1277,11 @@ void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_
 {
 	s_any_individual_tagL_set_ = true;
 	
+	const eidos_logical_t *source_data = p_source.LogicalData();
+	
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = source_data[0];
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1291,7 +1293,6 @@ void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1307,9 +1308,11 @@ void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_
 {
 	s_any_individual_tagL_set_ = true;
 	
+	const eidos_logical_t *source_data = p_source.LogicalData();
+	
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = source_data[0];
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1321,8 +1324,6 @@ void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
-		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *individual = ((Individual *)(p_values[value_index]));
@@ -1337,9 +1338,11 @@ void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_
 {
 	s_any_individual_tagL_set_ = true;
 	
+	const eidos_logical_t *source_data = p_source.LogicalData();
+	
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = source_data[0];
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1351,8 +1354,6 @@ void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
-		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *individual = ((Individual *)(p_values[value_index]));
@@ -1367,9 +1368,11 @@ void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_
 {
 	s_any_individual_tagL_set_ = true;
 	
+	const eidos_logical_t *source_data = p_source.LogicalData();
+	
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = source_data[0];
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1381,8 +1384,6 @@ void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
-		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *individual = ((Individual *)(p_values[value_index]));
@@ -1397,9 +1398,11 @@ void Individual::SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_
 {
 	s_any_individual_tagL_set_ = true;
 	
+	const eidos_logical_t *source_data = p_source.LogicalData();
+	
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = source_data[0];
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -1411,8 +1414,6 @@ void Individual::SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
-		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *individual = ((Individual *)(p_values[value_index]));
@@ -1478,7 +1479,7 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, 
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		needs_raise = _SetFitnessScaling_N(source_data, p_values, p_values_size);
 	}
@@ -1498,7 +1499,7 @@ void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_valu
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_x_ = source_data[value_index];
@@ -1516,7 +1517,7 @@ void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_valu
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_y_ = source_data[value_index];
@@ -1534,7 +1535,7 @@ void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_valu
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_z_ = source_data[value_index];
@@ -1573,12 +1574,12 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const std::vector<std::string> *source_data = p_source.StringVector();
+		const std::string *source_data = p_source.StringData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
 			Individual *individual = ((Individual *)(p_values[value_index]));
-			const std::string &source_value = (*source_data)[value_index];
+			const std::string &source_value = source_data[value_index];
 			
 			if (source_value.empty())
 			{
@@ -1606,7 +1607,7 @@ void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_va
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->age_ = SLiMCastToAgeTypeOrRaise(source_data[value_index]);
@@ -2282,8 +2283,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	}
 	else if (target_size > 1)
 	{
-		const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
-		Individual * const *targets = (Individual * const *)(target_vec->data());
+		Individual * const *targets = (Individual * const *)(p_target->ObjectData());
 		
 		dimensionality = targets[0]->subpopulation_->species_.SpatialDimensionality();
 		
@@ -2333,8 +2333,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 		else if (target_size > 1)
 		{
 			// Vector target case, one point
-			const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
-			Individual * const *targets = (Individual * const *)(target_vec->data());
+			Individual * const *targets = (Individual * const *)(p_target->ObjectData());
 			
 			switch (dimensionality)
 			{
@@ -2391,10 +2390,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	else if (value_count == dimensionality * target_size)
 	{
 		// Vector target case, one point per target (so the point vector has to be non-singleton too)
-		const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
-		Individual * const *targets = (Individual * const *)(target_vec->data());
-		const EidosValue_Float_vector *position_vec = position_value->FloatVector();
-		const double *positions = position_vec->data();
+		Individual * const *targets = (Individual * const *)(p_target->ObjectData());
+		const double *positions = position_value->FloatData();
 		
 #ifdef _OPENMP
 		if (((dimensionality == 1) && (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2_1D)) ||

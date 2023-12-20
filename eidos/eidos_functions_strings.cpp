@@ -234,7 +234,7 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(int_result);
@@ -278,7 +278,7 @@ EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP>
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -321,7 +321,7 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(int_result);
@@ -364,7 +364,7 @@ EidosValue_SP Eidos_ExecuteFunction_strprefix(const std::vector<EidosValue_SP> &
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -452,7 +452,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsuffix(const std::vector<EidosValue_SP> &
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -529,7 +529,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 	}
 	else
 	{
-		const std::vector<std::string> &string_vec = *x_value->StringVector();
+		const std::string *string_vec = x_value->StringData();
 		EidosValue *arg_first = p_arguments[1].get();
 		int arg_first_count = arg_first->Count();
 		bool first_singleton = (arg_first_count == 1);

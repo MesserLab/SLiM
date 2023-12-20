@@ -688,7 +688,7 @@ void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObject **p
 	}
 	else
 	{
-		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		const eidos_logical_t *source_data = p_source.LogicalData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((MutationType *)(p_values[value_index]))->convert_to_substitution_ = source_data[value_index];
@@ -707,7 +707,7 @@ void MutationType::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((MutationType *)(p_values[value_index]))->tag_value_ = source_data[value_index];

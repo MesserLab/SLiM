@@ -82,8 +82,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 		else
 		{
 			// non-singleton, direct access
-			const EidosValue_Int_vector *int_vec = sequence_value->IntVector();
-			const int64_t *int_data = int_vec->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 		}
@@ -93,13 +92,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 		if (sequence_value_count != 1)
 		{
 			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_data = sequence_value->StringData();
 			
-			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, *string_vec);
+			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, string_data);
 		}
 		else	// sequence_value_count == 1
 		{
-			const std::string &sequence_string = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &sequence_string = sequence_value->StringData()[0];
 			bool contains_only_nuc = true;
 			
 			// OK, we do a weird thing here.  We want to try to construct a NucleotideArray
@@ -1623,7 +1622,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_cycle:
 		{
-			if (cached_value_cycle_ && (((EidosValue_Int_singleton *)cached_value_cycle_.get())->IntValue() != cycle_))
+			if (cached_value_cycle_ && (cached_value_cycle_->IntData()[0] != cycle_))
 				cached_value_cycle_.reset();
 			if (!cached_value_cycle_)
 				cached_value_cycle_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle_));
@@ -1879,7 +1878,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	else
 	{
 		// Non-singleton case: vectorized access to the pedigree IDs
-		const int64_t *pedigree_id_data = pedigreeIDs_value->IntVector()->data();
+		const int64_t *pedigree_id_data = pedigreeIDs_value->IntData();
 		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
 		
 		if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
@@ -3294,8 +3293,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	}
 	else
 	{
-		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
-		EidosObject * const *oe_buffer = ind_vector->data();
+		EidosObject * const *oe_buffer = individuals_value->ObjectData();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
 		AddIndividualsToTable(ind_buffer, ind_count, &tables_, &tabled_individuals_hash_, flag);
 	}

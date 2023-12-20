@@ -291,7 +291,7 @@ void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue
 		if (!red_components_ || !green_components_ || !blue_components_)
 			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
-		const std::string *colors_vec_ptr = p_colors->StringVector()->data();
+		const std::string *colors_vec_ptr = p_colors->StringData();
 		
 		for (int colors_index = 0; colors_index < n_colors_; ++colors_index)
 			Eidos_GetColorComponents(colors_vec_ptr[colors_index], red_components_ + colors_index, green_components_ + colors_index, blue_components_ + colors_index);
@@ -338,8 +338,8 @@ void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, const std::strin
 		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	// Take the values we were passed in
-	const double *values_float_vec_ptr = (p_values->Type() == EidosValueType::kValueFloat) ? p_values->FloatVector()->data() : nullptr;
-	const int64_t *values_integer_vec_ptr = (p_values->Type() == EidosValueType::kValueInt) ? p_values->IntVector()->data() : nullptr;
+	const double *values_float_vec_ptr = (p_values->Type() == EidosValueType::kValueFloat) ? p_values->FloatData() : nullptr;
+	const int64_t *values_integer_vec_ptr = (p_values->Type() == EidosValueType::kValueInt) ? p_values->IntData() : nullptr;
 	
 	if (spatiality_ == 1)
 	{
@@ -2148,9 +2148,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	
 	bool periodic = periodic_a_;	// now guaranteed to apply to all dimensions
 	
-	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
-	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
-	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);
@@ -2378,9 +2376,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	
 	bool periodic = periodic_a_;	// now guaranteed to apply to all dimensions
 	
-	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
-	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
-	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);

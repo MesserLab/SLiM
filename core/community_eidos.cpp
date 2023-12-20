@@ -417,7 +417,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_tick:
 		{
-			if (cached_value_tick_ && (((EidosValue_Int_singleton *)cached_value_tick_.get())->IntValue() != tick_))
+			if (cached_value_tick_ && (cached_value_tick_->IntData()[0] != tick_))
 				cached_value_tick_.reset();
 			if (!cached_value_tick_)
 				cached_value_tick_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick_));

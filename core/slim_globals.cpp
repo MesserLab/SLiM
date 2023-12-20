@@ -780,7 +780,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 	}
 }
 
-NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector) : length_(p_length)
+NucleotideArray::NucleotideArray(std::size_t p_length, const std::string p_string_vector[]) : length_(p_length)
 {
 	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
 	if (!buffer_)

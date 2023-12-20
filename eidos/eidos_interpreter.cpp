@@ -396,7 +396,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 						else if (second_child_count)
 						{
 							// fast vector access for the non-singleton case
-							const int64_t *second_child_data = second_child_value->IntVector()->data();
+							const int64_t *second_child_data = second_child_value->IntData();
 							
 							for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 							{
@@ -479,7 +479,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 						if (subset_count != dim_size)
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): the '[]' operator requires that the size() of a logical index operand must match the corresponding dimension of the indexed operand." << EidosTerminate(parent_token);
 						
-						const eidos_logical_t *logical_index_data = subset_value->LogicalVector()->data();
+						const eidos_logical_t *logical_index_data = subset_value->LogicalData();
 						
 						for (int dim_index = 0; dim_index < dim_size; dim_index++)
 							if (logical_index_data[dim_index])
@@ -1750,7 +1750,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				if (subset_count != dim_size)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): the '[]' operator requires that the size() of a logical index operand must match the corresponding dimension of the indexed operand." << EidosTerminate(operator_token);
 				
-				const eidos_logical_t *logical_index_data = subset_value->LogicalVector()->data();
+				const eidos_logical_t *logical_index_data = subset_value->LogicalData();
 				
 				for (int dim_index = 0; dim_index < dim_size; dim_index++)
 					if (logical_index_data[dim_index])
@@ -2019,8 +2019,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				}
 				else
 				{
-					const int64_t *first_child_data = first_child_value->IntVector()->data();
-					const int64_t *second_child_data = second_child_value->IntVector()->data();
+					const int64_t *first_child_data = first_child_value->IntData();
+					const int64_t *second_child_data = second_child_value->IntData();
 					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
 					
@@ -2046,7 +2046,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *second_child_data = second_child_value->IntData();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_child_count);
 				
@@ -2069,7 +2069,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			}
 			else if (second_child_count == 1)
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
@@ -2115,24 +2115,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					
 					if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 					{
-						const double *first_child_data = first_child_value->FloatVector()->data();
-						const double *second_child_data = second_child_value->FloatVector()->data();
+						const double *first_child_data = first_child_value->FloatData();
+						const double *second_child_data = second_child_value->FloatData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
 					}
 					else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 					{
-						const double *first_child_data = first_child_value->FloatVector()->data();
-						const int64_t *second_child_data = second_child_value->IntVector()->data();
+						const double *first_child_data = first_child_value->FloatData();
+						const int64_t *second_child_data = second_child_value->IntData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
 					}
 					else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 					{
-						const int64_t *first_child_data = first_child_value->IntVector()->data();
-						const double *second_child_data = second_child_value->FloatVector()->data();
+						const int64_t *first_child_data = first_child_value->IntData();
+						const double *second_child_data = second_child_value->FloatData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
@@ -2149,14 +2149,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				
 				if (second_child_type == EidosValueType::kValueInt)
 				{
-					const int64_t *second_child_data = second_child_value->IntVector()->data();
+					const int64_t *second_child_data = second_child_value->IntData();
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						float_result->set_float_no_check(singleton_float + second_child_data[value_index], value_index);
 				}
 				else	// (second_child_type == EidosValueType::kValueFloat)
 				{
-					const double *second_child_data = second_child_value->FloatVector()->data();
+					const double *second_child_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						float_result->set_float_no_check(singleton_float + second_child_data[value_index], value_index);
@@ -2172,14 +2172,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				
 				if (first_child_type == EidosValueType::kValueInt)
 				{
-					const int64_t *first_child_data = first_child_value->IntVector()->data();
+					const int64_t *first_child_data = first_child_value->IntData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] + singleton_float, value_index);
 				}
 				else	// (first_child_type == EidosValueType::kValueFloat)
 				{
-					const double *first_child_data = first_child_value->FloatVector()->data();
+					const double *first_child_data = first_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] + singleton_float, value_index);
@@ -2238,7 +2238,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
@@ -2268,7 +2268,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 				
@@ -2322,8 +2322,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				}
 				else
 				{
-					const int64_t *first_child_data = first_child_value->IntVector()->data();
-					const int64_t *second_child_data = second_child_value->IntVector()->data();
+					const int64_t *first_child_data = first_child_value->IntData();
+					const int64_t *second_child_data = second_child_value->IntData();
 					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 					EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
 					
@@ -2349,7 +2349,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			else if (first_child_count == 1)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex(0, operator_token);
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *second_child_data = second_child_value->IntData();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_child_count);
 				
@@ -2372,7 +2372,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else if (second_child_count == 1)
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
 				int64_t singleton_int = second_child_value->IntAtIndex(0, operator_token);
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
@@ -2415,24 +2415,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					
 					if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 					{
-						const double *first_child_data = first_child_value->FloatVector()->data();
-						const double *second_child_data = second_child_value->FloatVector()->data();
+						const double *first_child_data = first_child_value->FloatData();
+						const double *second_child_data = second_child_value->FloatData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
 					}
 					else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 					{
-						const double *first_child_data = first_child_value->FloatVector()->data();
-						const int64_t *second_child_data = second_child_value->IntVector()->data();
+						const double *first_child_data = first_child_value->FloatData();
+						const int64_t *second_child_data = second_child_value->IntData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
 					}
 					else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 					{
-						const int64_t *first_child_data = first_child_value->IntVector()->data();
-						const double *second_child_data = second_child_value->FloatVector()->data();
+						const int64_t *first_child_data = first_child_value->IntData();
+						const double *second_child_data = second_child_value->FloatData();
 						
 						for (int value_index = 0; value_index < first_child_count; ++value_index)
 							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
@@ -2449,14 +2449,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				
 				if (second_child_type == EidosValueType::kValueInt)
 				{
-					const int64_t *second_child_data = second_child_value->IntVector()->data();
+					const int64_t *second_child_data = second_child_value->IntData();
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						float_result->set_float_no_check(singleton_float - second_child_data[value_index], value_index);
 				}
 				else	// (second_child_type == EidosValueType::kValueFloat)
 				{
-					const double *second_child_data = second_child_value->FloatVector()->data();
+					const double *second_child_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						float_result->set_float_no_check(singleton_float - second_child_data[value_index], value_index);
@@ -2472,14 +2472,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				
 				if (first_child_type == EidosValueType::kValueInt)
 				{
-					const int64_t *first_child_data = first_child_value->IntVector()->data();
+					const int64_t *first_child_data = first_child_value->IntData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] - singleton_float, value_index);
 				}
 				else	// (first_child_type == EidosValueType::kValueFloat)
 				{
-					const double *first_child_data = first_child_value->FloatVector()->data();
+					const double *first_child_data = first_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] - singleton_float, value_index);
@@ -2549,32 +2549,32 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 			
 			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
@@ -2591,14 +2591,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 		
 		if (second_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *second_child_data = second_child_value->IntVector()->data();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(fmod(singleton_float, second_child_data[value_index]), value_index);
 		}
 		else	// (second_child_type == EidosValueType::kValueFloat)
 		{
-			const double *second_child_data = second_child_value->FloatVector()->data();
+			const double *second_child_data = second_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(fmod(singleton_float, second_child_data[value_index]), value_index);
@@ -2614,14 +2614,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 		
 		if (first_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *first_child_data = first_child_value->IntVector()->data();
+			const int64_t *first_child_data = first_child_value->IntData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(fmod(first_child_data[value_index], singleton_float), value_index);
 		}
 		else	// (first_child_type == EidosValueType::kValueFloat)
 		{
-			const double *first_child_data = first_child_value->FloatVector()->data();
+			const double *first_child_data = first_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(fmod(first_child_data[value_index], singleton_float), value_index);
@@ -2694,8 +2694,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			}
 			else
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
@@ -2731,24 +2731,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
-					const double *first_child_data = first_child_value->FloatVector()->data();
-					const double *second_child_data = second_child_value->FloatVector()->data();
+					const double *first_child_data = first_child_value->FloatData();
+					const double *second_child_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
 				}
 				else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 				{
-					const double *first_child_data = first_child_value->FloatVector()->data();
-					const int64_t *second_child_data = second_child_value->IntVector()->data();
+					const double *first_child_data = first_child_value->FloatData();
+					const int64_t *second_child_data = second_child_value->IntData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
 				}
 				else	// ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 				{
-					const int64_t *first_child_data = first_child_value->IntVector()->data();
-					const double *second_child_data = second_child_value->FloatVector()->data();
+					const int64_t *first_child_data = first_child_value->IntData();
+					const double *second_child_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
@@ -2783,7 +2783,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
-			const int64_t *any_count_data = any_count_child->IntVector()->data();
+			const int64_t *any_count_data = any_count_child->IntData();
 			int64_t singleton_int = one_count_child->IntAtIndex(0, operator_token);
 			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(any_count);
@@ -2807,7 +2807,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		}
 		else if (any_type == EidosValueType::kValueInt)
 		{
-			const int64_t *any_count_data = any_count_child->IntVector()->data();
+			const int64_t *any_count_data = any_count_child->IntData();
 			double singleton_float = one_count_child->FloatAtIndex(0, operator_token);
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(any_count);
@@ -2819,7 +2819,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		}
 		else	// (any_type == EidosValueType::kValueFloat)
 		{
-			const double *any_count_data = any_count_child->FloatVector()->data();
+			const double *any_count_data = any_count_child->FloatData();
 			double singleton_float = one_count_child->FloatAtIndex(0, operator_token);
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(any_count);
@@ -2894,32 +2894,32 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 			
 			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
 			}
 			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(first_child_data[value_index] / (double)second_child_data[value_index], value_index);
@@ -2936,14 +2936,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 		
 		if (second_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *second_child_data = second_child_value->IntVector()->data();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(singleton_float / second_child_data[value_index], value_index);
 		}
 		else	// (second_child_type == EidosValueType::kValueFloat)
 		{
-			const double *second_child_data = second_child_value->FloatVector()->data();
+			const double *second_child_data = second_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(singleton_float / second_child_data[value_index], value_index);
@@ -2959,14 +2959,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 		
 		if (first_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *first_child_data = first_child_value->IntVector()->data();
+			const int64_t *first_child_data = first_child_value->IntData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(first_child_data[value_index] / singleton_float, value_index);
 		}
 		else	// (first_child_type == EidosValueType::kValueFloat)
 		{
-			const double *first_child_data = first_child_value->FloatVector()->data();
+			const double *first_child_data = first_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(first_child_data[value_index] / singleton_float, value_index);
@@ -3071,32 +3071,32 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 			
 			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const double *first_child_data = first_child_value->FloatVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const double *first_child_data = first_child_value->FloatData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const double *second_child_data = second_child_value->FloatVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const double *second_child_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 			{
-				const int64_t *first_child_data = first_child_value->IntVector()->data();
-				const int64_t *second_child_data = second_child_value->IntVector()->data();
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
@@ -3113,14 +3113,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		
 		if (second_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *second_child_data = second_child_value->IntVector()->data();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(pow(singleton_float, second_child_data[value_index]), value_index);
 		}
 		else	// (second_child_type == EidosValueType::kValueFloat)
 		{
-			const double *second_child_data = second_child_value->FloatVector()->data();
+			const double *second_child_data = second_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < second_child_count; ++value_index)
 				float_result->set_float_no_check(pow(singleton_float, second_child_data[value_index]), value_index);
@@ -3136,14 +3136,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 		
 		if (first_child_type == EidosValueType::kValueInt)
 		{
-			const int64_t *first_child_data = first_child_value->IntVector()->data();
+			const int64_t *first_child_data = first_child_value->IntData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(pow(first_child_data[value_index], singleton_float), value_index);
 		}
 		else	// (first_child_type == EidosValueType::kValueFloat)
 		{
-			const double *first_child_data = first_child_value->FloatVector()->data();
+			const double *first_child_data = first_child_value->FloatData();
 			
 			for (int value_index = 0; value_index < first_child_count; ++value_index)
 				float_result->set_float_no_check(pow(first_child_data[value_index], singleton_float), value_index);
@@ -3648,21 +3648,21 @@ EidosValue_SP EidosInterpreter::Evaluate_Not(const EidosASTNode *p_node)
 			
 			if (first_child_type == EidosValueType::kValueLogical)
 			{
-				const eidos_logical_t *child_data = first_child_value->LogicalVector()->data();
+				const eidos_logical_t *child_data = first_child_value->LogicalData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					result->set_logical_no_check(!child_data[value_index], value_index);
 			}
 			else if (first_child_type == EidosValueType::kValueInt)
 			{
-				const int64_t *child_data = first_child_value->IntVector()->data();
+				const int64_t *child_data = first_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					result->set_logical_no_check(child_data[value_index] == 0, value_index);
 			}
 			else if (first_child_type == EidosValueType::kValueString)
 			{
-				const std::vector<std::string> &child_vec = (*first_child_value->StringVector());
+				const std::string *child_vec = first_child_value->StringData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					result->set_logical_no_check(child_vec[value_index].length() == 0, value_index);
@@ -3735,7 +3735,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 						{
 							case EidosTokenType::kTokenPlus:
 							{
-								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
 								bool overflow = Eidos_add_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
@@ -3744,7 +3744,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							}
 							case EidosTokenType::kTokenMinus:
 							{
-								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
 								bool overflow = Eidos_sub_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
@@ -3753,7 +3753,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							}
 							case EidosTokenType::kTokenMult:
 							{
-								int64_t &operand1_value = int_singleton->IntValue_Mutable();
+								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
 								bool overflow = Eidos_mul_overflow(operand1_value, operand2_value, &operand1_value);
 								
 								if (overflow)
@@ -3766,7 +3766,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 					}
 					else
 					{
-						int64_t *int_data = lvalue->IntVector_Mutable()->data();
+						int64_t *int_data = lvalue->IntData_Mutable();
 						
 						switch (compound_operator)
 						{
@@ -3827,24 +3827,24 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 					switch (compound_operator)
 					{
 						case EidosTokenType::kTokenPlus:
-							float_singleton->FloatValue_Mutable() += operand2_value;
+							float_singleton->FloatData_Mutable()[0] += operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMinus:
-							float_singleton->FloatValue_Mutable() -= operand2_value;
+							float_singleton->FloatData_Mutable()[0] -= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMult:
-							float_singleton->FloatValue_Mutable() *= operand2_value;
+							float_singleton->FloatData_Mutable()[0] *= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenDiv:
-							float_singleton->FloatValue_Mutable() /= operand2_value;
+							float_singleton->FloatData_Mutable()[0] /= operand2_value;
 							goto compoundAssignmentSuccess;
 							
 						case EidosTokenType::kTokenMod:
 						{
-							double &operand1_value = float_singleton->FloatValue_Mutable();
+							double &operand1_value = float_singleton->FloatData_Mutable()[0];
 							
 							operand1_value = fmod(operand1_value, operand2_value);
 							goto compoundAssignmentSuccess;
@@ -3852,7 +3852,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 							
 						case EidosTokenType::kTokenExp:
 						{
-							double &operand1_value = float_singleton->FloatValue_Mutable();
+							double &operand1_value = float_singleton->FloatData_Mutable()[0];
 							
 							operand1_value = pow(operand1_value, operand2_value);
 							goto compoundAssignmentSuccess;
@@ -3866,7 +3866,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				}
 				else
 				{
-					double *float_data = lvalue->FloatVector_Mutable()->data();
+					double *float_data = lvalue->FloatData_Mutable();
 					
 					switch (compound_operator)
 					{
@@ -4054,8 +4054,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
 					// Direct float-to-float compare can be optimized through vector access
-					const double *float1_data = first_child_value->FloatVector()->data();
-					const double *float2_data = second_child_value->FloatVector()->data();
+					const double *float1_data = first_child_value->FloatData();
+					const double *float2_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(float1_data[value_index] == float2_data[value_index], value_index);
@@ -4063,8 +4063,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 				{
 					// Direct int-to-int compare can be optimized through vector access
-					const int64_t *int1_data = first_child_value->IntVector()->data();
-					const int64_t *int2_data = second_child_value->IntVector()->data();
+					const int64_t *int1_data = first_child_value->IntData();
+					const int64_t *int2_data = second_child_value->IntData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(int1_data[value_index] == int2_data[value_index], value_index);
@@ -4072,8 +4072,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					EidosObject * const *obj1_vec = first_child_value->ObjectElementVector()->data();
-					EidosObject * const *obj2_vec = second_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj1_vec = first_child_value->ObjectData();
+					EidosObject * const *obj2_vec = second_child_value->ObjectData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(obj1_vec[value_index] == obj2_vec[value_index], value_index);
@@ -4111,7 +4111,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
-				const double *float_data = second_child_value->FloatVector()->data();
+				const double *float_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(float1 == float_data[value_index], value_index);
@@ -4120,7 +4120,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
-				const int64_t *int_data = second_child_value->IntVector()->data();
+				const int64_t *int_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(int1 == int_data[value_index], value_index);
@@ -4129,7 +4129,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObject *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObject * const *obj_vec = second_child_value->ObjectElementVector()->data();
+				EidosObject * const *obj_vec = second_child_value->ObjectData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj1 == obj_vec[value_index], value_index);
@@ -4166,7 +4166,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
-				const double *float_data = first_child_value->FloatVector()->data();
+				const double *float_data = first_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(float_data[value_index] == float2, value_index);
@@ -4175,7 +4175,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
-				const int64_t *int_data = first_child_value->IntVector()->data();
+				const int64_t *int_data = first_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(int_data[value_index] == int2, value_index);
@@ -4184,7 +4184,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObject *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObject * const *obj_vec = first_child_value->ObjectElementVector()->data();
+				EidosObject * const *obj_vec = first_child_value->ObjectData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj_vec[value_index] == obj2, value_index);
@@ -4880,8 +4880,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
 					// Direct float-to-float compare can be optimized through vector access
-					const double *float1_data = first_child_value->FloatVector()->data();
-					const double *float2_data = second_child_value->FloatVector()->data();
+					const double *float1_data = first_child_value->FloatData();
+					const double *float2_data = second_child_value->FloatData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(float1_data[value_index] != float2_data[value_index], value_index);
@@ -4889,8 +4889,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 				{
 					// Direct int-to-int compare can be optimized through vector access
-					const int64_t *int1_data = first_child_value->IntVector()->data();
-					const int64_t *int2_data = second_child_value->IntVector()->data();
+					const int64_t *int1_data = first_child_value->IntData();
+					const int64_t *int2_data = second_child_value->IntData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(int1_data[value_index] != int2_data[value_index], value_index);
@@ -4898,8 +4898,8 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 				else if ((first_child_type == EidosValueType::kValueObject) && (second_child_type == EidosValueType::kValueObject))
 				{
 					// Direct object-to-object compare can be optimized through vector access
-					EidosObject * const *obj1_vec = first_child_value->ObjectElementVector()->data();
-					EidosObject * const *obj2_vec = second_child_value->ObjectElementVector()->data();
+					EidosObject * const *obj1_vec = first_child_value->ObjectData();
+					EidosObject * const *obj2_vec = second_child_value->ObjectData();
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						logical_result->set_logical_no_check(obj1_vec[value_index] != obj2_vec[value_index], value_index);
@@ -4937,7 +4937,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float1 = first_child_value->FloatAtIndex(0, operator_token);
-				const double *float_data = second_child_value->FloatVector()->data();
+				const double *float_data = second_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(float1 != float_data[value_index], value_index);
@@ -4946,7 +4946,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int1 = first_child_value->IntAtIndex(0, operator_token);
-				const int64_t *int_data = second_child_value->IntVector()->data();
+				const int64_t *int_data = second_child_value->IntData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(int1 != int_data[value_index], value_index);
@@ -4955,7 +4955,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObject *obj1 = first_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObject * const *obj_vec = second_child_value->ObjectElementVector()->data();
+				EidosObject * const *obj_vec = second_child_value->ObjectData();
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj1 != obj_vec[value_index], value_index);
@@ -4992,7 +4992,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct float-to-float compare can be optimized through vector access; note the singleton might get promoted to float
 				double float2 = second_child_value->FloatAtIndex(0, operator_token);
-				const double *float_data = first_child_value->FloatVector()->data();
+				const double *float_data = first_child_value->FloatData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(float_data[value_index] != float2, value_index);
@@ -5001,7 +5001,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct int-to-int compare can be optimized through vector access; note the singleton might get promoted to int
 				int64_t int2 = second_child_value->IntAtIndex(0, operator_token);
-				const int64_t *int_data = first_child_value->IntVector()->data();
+				const int64_t *int_data = first_child_value->IntData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(int_data[value_index] != int2, value_index);
@@ -5010,7 +5010,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 			{
 				// Direct object-to-object compare can be optimized through vector access
 				EidosObject *obj2 = second_child_value->ObjectElementAtIndex(0, operator_token);
-				EidosObject * const *obj_vec = first_child_value->ObjectElementVector()->data();
+				EidosObject * const *obj_vec = first_child_value->ObjectData();
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					logical_result->set_logical_no_check(obj_vec[value_index] != obj2, value_index);
@@ -5809,7 +5809,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				// EidosValue that we stick new values into – much, much faster.
 				if (range_type == EidosValueType::kValueInt)
 				{
-					const int64_t *range_data = range_value->IntVector()->data();
+					const int64_t *range_data = range_value->IntData();
 					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
@@ -5842,7 +5842,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueFloat)
 				{
-					const double *range_data = range_value->FloatVector()->data();
+					const double *range_data = range_value->FloatData();
 					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0));
 					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
@@ -5875,7 +5875,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueString)
 				{
-					const std::vector<std::string> &range_vec = *range_value->StringVector();
+					const std::string *range_vec = range_value->StringData();
 					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
 					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
@@ -5908,7 +5908,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueObject)
 				{
-					EidosObject * const *range_vec = range_value->ObjectElementVector()->data();
+					EidosObject * const *range_vec = range_value->ObjectData();
 					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
@@ -5941,7 +5941,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				}
 				else if (range_type == EidosValueType::kValueLogical)
 				{
-					const eidos_logical_t *range_data = range_value->LogicalVector()->data();
+					const eidos_logical_t *range_data = range_value->LogicalData();
 					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 					EidosValue_Logical *index_value = index_value_SP->resize_no_initialize(1);
 					

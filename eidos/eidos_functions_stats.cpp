@@ -46,7 +46,7 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *y_value = p_arguments[1].get();
 	int count = x_value->Count();
 	
-	if (x_value->IsArray() || y_value->IsArray())
+	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
 	if (count != y_value->Count())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
@@ -100,7 +100,7 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *y_value = p_arguments[1].get();
 	int count = x_value->Count();
 	
-	if (x_value->IsArray() || y_value->IsArray())
+	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
 	if (count != y_value->Count())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
@@ -186,20 +186,11 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
+			const eidos_logical_t *logical_data = arg_value->LogicalData();
 			
-			if (arg_count == 1)
-			{
-				if (arg_value->LogicalAtIndex(0, nullptr) == true)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
+				if (logical_data[value_index] == true)
 					return gStaticEidosValue_LogicalT;
-			}
-			else
-			{
-				const eidos_logical_t *logical_data = arg_value->LogicalVector()->data();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-					if (logical_data[value_index] == true)
-						return gStaticEidosValue_LogicalT;
-			}
 		}
 		
 		result_SP = gStaticEidosValue_LogicalF;
@@ -221,7 +212,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			}
 			else if (arg_count > 1)
 			{
-				const int64_t *int_data = arg_value->IntVector()->data();
+				const int64_t *int_data = arg_value->IntData();
 				int64_t loop_max = INT64_MIN;
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MAX_INT);
@@ -262,7 +253,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			}
 			else
 			{
-				const double *float_data = arg_value->FloatVector()->data();
+				const double *float_data = arg_value->FloatData();
 				double loop_max = -std::numeric_limits<double>::infinity();
 				bool saw_NAN = false;
 				
@@ -307,7 +298,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			}
 			else
 			{
-				const std::vector<std::string> &string_vec = *arg_value->StringVector();
+				const std::string *string_vec = arg_value->StringData();
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
@@ -401,20 +392,11 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
+			const eidos_logical_t *logical_data = arg_value->LogicalData();
 			
-			if (arg_count == 1)
-			{
-				if (arg_value->LogicalAtIndex(0, nullptr) == false)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
+				if (logical_data[value_index] == false)
 					return gStaticEidosValue_LogicalF;
-			}
-			else
-			{
-				const eidos_logical_t *logical_data = arg_value->LogicalVector()->data();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-					if (logical_data[value_index] == false)
-						return gStaticEidosValue_LogicalF;
-			}
 		}
 		
 		result_SP = gStaticEidosValue_LogicalT;
@@ -436,7 +418,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			}
 			else if (arg_count > 1)
 			{
-				const int64_t *int_data = arg_value->IntVector()->data();
+				const int64_t *int_data = arg_value->IntData();
 				int64_t loop_min = INT64_MAX;
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MIN_INT);
@@ -477,7 +459,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			}
 			else
 			{
-				const double *float_data = arg_value->FloatVector()->data();
+				const double *float_data = arg_value->FloatData();
 				double loop_min = std::numeric_limits<double>::infinity();
 				bool saw_NAN = false;
 				
@@ -522,7 +504,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			}
 			else
 			{
-				const std::vector<std::string> &string_vec = *arg_value->StringVector();
+				const std::string *string_vec = arg_value->StringData();
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
@@ -602,7 +584,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		// Then split up by type
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			const eidos_logical_t *logical0_data = x_value->LogicalVector()->data();
+			const eidos_logical_t *logical0_data = x_value->LogicalData();
 			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex(0, nullptr);
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
@@ -612,7 +594,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
@@ -638,7 +620,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double * __restrict__ float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatData();
 			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
@@ -658,7 +640,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::vector<std::string> &string0_vec = *x_value->StringVector();
+			const std::string *string0_vec = x_value->StringData();
 			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex(0, nullptr);
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
@@ -672,8 +654,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		// We know the type is not NULL or object, that x_count == y_count, and that they are not singletons; we split up by type and handle fast
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			const eidos_logical_t *logical0_data = x_value->LogicalVector()->data();
-			const eidos_logical_t *logical1_data = y_value->LogicalVector()->data();
+			const eidos_logical_t *logical0_data = x_value->LogicalData();
+			const eidos_logical_t *logical1_data = y_value->LogicalData();
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
 			
@@ -682,8 +664,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
-			const int64_t * __restrict__ int1_data = y_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntData();
+			const int64_t * __restrict__ int1_data = y_value->IntData();
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
@@ -699,8 +681,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double * __restrict__ float0_data = x_value->FloatVector()->data();
-			const double * __restrict__ float1_data = y_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatData();
+			const double * __restrict__ float1_data = y_value->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
@@ -720,8 +702,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::vector<std::string> &string0_vec = *x_value->StringVector();
-			const std::vector<std::string> &string1_vec = *y_value->StringVector();
+			const std::string *string0_vec = x_value->StringData();
+			const std::string *string1_vec = y_value->StringData();
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
@@ -800,7 +782,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		// Then split up by type
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			const eidos_logical_t *logical0_data = x_value->LogicalVector()->data();
+			const eidos_logical_t *logical0_data = x_value->LogicalData();
 			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex(0, nullptr);
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
@@ -810,7 +792,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
@@ -826,7 +808,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double * __restrict__ float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatData();
 			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
@@ -846,7 +828,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::vector<std::string> &string0_vec = *x_value->StringVector();
+			const std::string *string0_vec = x_value->StringData();
 			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex(0, nullptr);
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
@@ -860,8 +842,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		// We know the type is not NULL or object, that x_count == y_count, and that they are not singletons; we split up by type and handle fast
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			const eidos_logical_t *logical0_data = x_value->LogicalVector()->data();
-			const eidos_logical_t *logical1_data = y_value->LogicalVector()->data();
+			const eidos_logical_t *logical0_data = x_value->LogicalData();
+			const eidos_logical_t *logical1_data = y_value->LogicalData();
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
 			
@@ -870,8 +852,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
-			const int64_t * __restrict__ int1_data = y_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntData();
+			const int64_t * __restrict__ int1_data = y_value->IntData();
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
@@ -887,8 +869,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double * __restrict__ float0_data = x_value->FloatVector()->data();
-			const double * __restrict__ float1_data = y_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatData();
+			const double * __restrict__ float1_data = y_value->FloatData();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
@@ -908,8 +890,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::vector<std::string> &string0_vec = *x_value->StringVector();
-			const std::vector<std::string> &string1_vec = *y_value->StringVector();
+			const std::string *string0_vec = x_value->StringData();
+			const std::string *string1_vec = y_value->StringData();
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
@@ -988,7 +970,7 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 		
 		if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float_data = x_value->FloatVector()->data();
+			const double *float_data = x_value->FloatData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				if (std::isnan(float_data[value_index]))
@@ -999,9 +981,9 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 		std::vector<int64_t> order;
 		
 		if (x_type == EidosValueType::kValueInt)
-			order = EidosSortIndexes(x_value->IntVector()->data(), x_count, true);
+			order = EidosSortIndexes(x_value->IntData(), x_count, true);
 		else if (x_type == EidosValueType::kValueFloat)
-			order = EidosSortIndexes(x_value->FloatVector()->data(), x_count, true);
+			order = EidosSortIndexes(x_value->FloatData(), x_count, true);
 		
 		// Now loop over the requested probabilities and calculate them
 		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
@@ -1087,7 +1069,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 			}
 			else
 			{
-				const int64_t *int_data = arg_value->IntVector()->data();
+				const int64_t *int_data = arg_value->IntData();
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
@@ -1135,7 +1117,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 			}
 			else
 			{
-				const double *float_data = arg_value->FloatVector()->data();
+				const double *float_data = arg_value->FloatData();
 				
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
@@ -1223,7 +1205,7 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_ar
 	if (x_count <= 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in x to compute variance." << EidosTerminate(nullptr);
 	
-	const double *vec1 = x_value->FloatVector()->data();
+	const double *vec1 = x_value->FloatData();
 	double pvalue = 0.0;
 	
 	if (y_type != EidosValueType::kValueNULL)
@@ -1232,7 +1214,7 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_ar
 		if (y_count <= 1)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ttest): function ttest() requires enough elements in y to compute variance." << EidosTerminate(nullptr);
 		
-		const double *vec2 = y_value->FloatVector()->data();
+		const double *vec2 = y_value->FloatData();
 		
 		// Right now this function only provides a two-sample t-test; we could add an optional mu argument and make y optional in order to allow a one-sample test as well
 		// If we got into that, we'd probably want to provide one-sided t-tests as well, yada yada...
@@ -1259,7 +1241,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_value->IsArray())
+	if (x_value->IsMatrixOrArray())
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not currently support a matrix/array argument." << EidosTerminate(nullptr);
 	
 	if (x_count > 1)

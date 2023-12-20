@@ -311,7 +311,7 @@ EidosValue_SP Eidos_ExecuteFunction_array(const std::vector<EidosValue_SP> &p_ar
 	// construct the array from the data and dimensions
 	result_SP = data_value->CopyValues();
 	
-	result_SP->SetDimensions(dim_count, dim_value->IntVector()->data());
+	result_SP->SetDimensions(dim_count, dim_value->IntData());
 	
 	return result_SP;
 }
@@ -659,7 +659,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		if (x_type == EidosValueType::kValueInt)
 		{
 			int64_t x_singleton = x_value->IntAtIndex(0, nullptr);
-			const int64_t *y_data = y_value->IntVector()->data();
+			const int64_t *y_data = y_value->IntData();
 			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
@@ -678,7 +678,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		else // (x_type == EidosValueType::kValueFloat)
 		{
 			double x_singleton = x_value->FloatAtIndex(0, nullptr);
-			const double *y_data = y_value->FloatVector()->data();
+			const double *y_data = y_value->FloatData();
 			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
@@ -691,7 +691,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// a column vector multiplied by a 1x1 vector
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = x_value->IntVector()->data();
+			const int64_t *x_data = x_value->IntData();
 			int64_t y_singleton = y_value->IntAtIndex(0, nullptr);
 			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
@@ -710,7 +710,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = x_value->FloatVector()->data();
+			const double *x_data = x_value->FloatData();
 			double y_singleton = y_value->FloatAtIndex(0, nullptr);
 			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
@@ -724,8 +724,8 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// this is the general case; we have non-singleton matrices for both x and y, so we can divide by integer/float and use direct access
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = x_value->IntVector()->data();
-			const int64_t *y_data = y_value->IntVector()->data();
+			const int64_t *x_data = x_value->IntData();
+			const int64_t *y_data = y_value->IntData();
 			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
@@ -767,8 +767,8 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = x_value->FloatVector()->data();
-			const double *y_data = y_value->FloatVector()->data();
+			const double *x_data = x_value->FloatData();
+			const double *y_data = y_value->FloatData();
 			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			

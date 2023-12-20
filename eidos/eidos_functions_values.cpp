@@ -144,7 +144,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const std::vector<EidosValue_SP> &p_
 		}
 		else
 		{
-			const int64_t *positions_data = fill2Indices_value->IntVector()->data();
+			const int64_t *positions_data = fill2Indices_value->IntData();
 			
 			for (int positions_index = 0; positions_index < positions_count; ++positions_index)
 			{
@@ -347,16 +347,16 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			case EidosValueType::kValueVOID: break;			// NOLINT(*-branch-clone) : intentional consecutive branches
 			case EidosValueType::kValueNULL: break;
 			case EidosValueType::kValueLogical:
-				Eidos_ran_shuffle(main_thread_rng, result->LogicalVector_Mutable()->data(), x_count);
+				Eidos_ran_shuffle(main_thread_rng, result->LogicalData_Mutable(), x_count);
 				break;
 			case EidosValueType::kValueInt:
-				Eidos_ran_shuffle(main_thread_rng, result->IntVector_Mutable()->data(), x_count);
+				Eidos_ran_shuffle(main_thread_rng, result->IntData_Mutable(), x_count);
 				break;
 			case EidosValueType::kValueFloat:
-				Eidos_ran_shuffle(main_thread_rng, result->FloatVector_Mutable()->data(), x_count);
+				Eidos_ran_shuffle(main_thread_rng, result->FloatData_Mutable(), x_count);
 				break;
 			case EidosValueType::kValueObject:
-				Eidos_ran_shuffle(main_thread_rng, result->ObjectElementVector_Mutable()->data(), x_count);
+				Eidos_ran_shuffle(main_thread_rng, result->ObjectData_Mutable(), x_count);
 				break;
 			default:
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
@@ -413,7 +413,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			
 			if (weights_type == EidosValueType::kValueFloat)
 			{
-				weights_float = weights_value->FloatVector()->data();
+				weights_float = weights_value->FloatData();
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -427,7 +427,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else	// EidosValueType::kValueInt : convert the weights to doubles
 			{
-				const int64_t *weights_int = weights_value->IntVector()->data();
+				const int64_t *weights_int = weights_value->IntData();
 				
 				weights_float_malloced = (double *)malloc(x_count * sizeof(double));
 				
@@ -461,7 +461,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			// now treat each type separately
 			if (x_type == EidosValueType::kValueInt)
 			{
-				const int64_t *int_data = x_value->IntVector()->data();
+				const int64_t *int_data = x_value->IntData();
 				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(sample_size);
 				int64_t *int_result_data = int_result->data();
 				result_SP = EidosValue_SP(int_result);
@@ -482,7 +482,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (x_type == EidosValueType::kValueFloat)
 			{
-				const double *float_data = x_value->FloatVector()->data();
+				const double *float_data = x_value->FloatData();
 				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
@@ -503,7 +503,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (x_type == EidosValueType::kValueObject)
 			{
-				EidosObject * const *object_data = x_value->ObjectElementVector()->data();
+				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
 				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
 				EidosObject **object_result_data = object_result->data();
@@ -556,7 +556,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		// handle the weights vector with separate cases for float and integer, so we can access it directly for speed
 		else if (weights_type == EidosValueType::kValueFloat)
 		{
-			const double *weights_float = weights_value->FloatVector()->data();
+			const double *weights_float = weights_value->FloatData();
 			double weights_sum = 0.0;
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -651,7 +651,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		}
 		else if (weights_type == EidosValueType::kValueInt)
 		{
-			const int64_t *weights_int = weights_value->IntVector()->data();
+			const int64_t *weights_int = weights_value->IntData();
 			int64_t weights_sum = 0;
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -778,7 +778,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (x_type == EidosValueType::kValueInt)
 			{
-				const int64_t *int_data = x_value->IntVector()->data();
+				const int64_t *int_data = x_value->IntData();
 				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(sample_size);
 				int64_t *int_result_data = int_result->data();
 				result_SP = EidosValue_SP(int_result);
@@ -798,7 +798,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (x_type == EidosValueType::kValueFloat)
 			{
-				const double *float_data = x_value->FloatVector()->data();
+				const double *float_data = x_value->FloatData();
 				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
@@ -818,7 +818,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (x_type == EidosValueType::kValueObject)
 			{
-				EidosObject * const *object_data = x_value->ObjectElementVector()->data();
+				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
 				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
 				EidosObject **object_result_data = object_result->data();
@@ -1131,7 +1131,7 @@ EidosValue_SP Eidos_ExecuteFunction_all(const std::vector<EidosValue_SP> &p_argu
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_all): function all() requires that all arguments be of type logical." << EidosTerminate(nullptr);
 		
 		int arg_count = arg_value->Count();
-		const eidos_logical_t *logical_data = arg_value->LogicalVector()->data();
+		const eidos_logical_t *logical_data = arg_value->LogicalData();
 		
 		for (int value_index = 0; value_index < arg_count; ++value_index)
 			if (!logical_data[value_index])
@@ -1163,7 +1163,7 @@ EidosValue_SP Eidos_ExecuteFunction_any(const std::vector<EidosValue_SP> &p_argu
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_any): function any() requires that all arguments be of type logical." << EidosTerminate(nullptr);
 		
 		int arg_count = arg_value->Count();
-		const eidos_logical_t *logical_data = arg_value->LogicalVector()->data();
+		const eidos_logical_t *logical_data = arg_value->LogicalData();
 		
 		for (int value_index = 0; value_index < arg_count; ++value_index)
 			if (logical_data[value_index])
@@ -1481,7 +1481,7 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue *test_value = p_arguments[0].get();
 	int test_count = test_value->Count();
-	const eidos_logical_t *logical_vec = (*test_value->LogicalVector()).data();
+	const eidos_logical_t *logical_vec = test_value->LogicalData();
 	
 	EidosValue *trueValues_value = p_arguments[1].get();
 	EidosValueType trueValues_type = trueValues_value->Type();
@@ -1502,8 +1502,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			// Use direct access to make this fast
 			if (trueValues_type == EidosValueType::kValueLogical)
 			{
-				const eidos_logical_t *true_vec = trueValues_value->LogicalVector()->data();
-				const eidos_logical_t *false_vec = falseValues_value->LogicalVector()->data();
+				const eidos_logical_t *true_vec = trueValues_value->LogicalData();
+				const eidos_logical_t *false_vec = falseValues_value->LogicalData();
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(test_count);
 				
@@ -1514,8 +1514,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueInt)
 			{
-				const int64_t *true_data = trueValues_value->IntVector()->data();
-				const int64_t *false_data = falseValues_value->IntVector()->data();
+				const int64_t *true_data = trueValues_value->IntData();
+				const int64_t *false_data = falseValues_value->IntData();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(test_count);
 				
@@ -1526,8 +1526,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueFloat)
 			{
-				const double *true_data = trueValues_value->FloatVector()->data();
-				const double *false_data = falseValues_value->FloatVector()->data();
+				const double *true_data = trueValues_value->FloatData();
+				const double *false_data = falseValues_value->FloatData();
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(test_count);
 				
@@ -1538,8 +1538,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueString)
 			{
-				const std::vector<std::string> &true_vec = (*trueValues_value->StringVector());
-				const std::vector<std::string> &false_vec = (*falseValues_value->StringVector());
+				const std::string *true_vec = trueValues_value->StringData();
+				const std::string *false_vec = falseValues_value->StringData();
 				EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 				EidosValue_String_vector *string_result = string_result_SP->Reserve(test_count);
 				
@@ -1556,8 +1556,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				if (trueValues_class != falseValues_class)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
-				EidosObject * const *true_vec = trueValues_value->ObjectElementVector()->data();
-				EidosObject * const *false_vec = falseValues_value->ObjectElementVector()->data();
+				EidosObject * const *true_vec = trueValues_value->ObjectData();
+				EidosObject * const *false_vec = falseValues_value->ObjectData();
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
 				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
@@ -1780,7 +1780,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		if (x_type == EidosValueType::kValueLogical)
 		{
 			eidos_logical_t value0 = x_value->LogicalAtIndex(0, nullptr);
-			const eidos_logical_t *logical_data1 = table_value->LogicalVector()->data();
+			const eidos_logical_t *logical_data1 = table_value->LogicalData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 				if (value0 == logical_data1[table_index])
@@ -1792,7 +1792,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueInt)
 		{
 			int64_t value0 = x_value->IntAtIndex(0, nullptr);
-			const int64_t *int_data1 = table_value->IntVector()->data();
+			const int64_t *int_data1 = table_value->IntData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 				if (value0 == int_data1[table_index])
@@ -1804,7 +1804,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			double value0 = x_value->FloatAtIndex(0, nullptr);
-			const double *float_data1 = table_value->FloatVector()->data();
+			const double *float_data1 = table_value->FloatData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 			{
@@ -1820,7 +1820,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueString)
 		{
 			const std::string &value0 = ((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
-			const std::vector<std::string> &string_vec1 = *table_value->StringVector();
+			const std::string *string_vec1 = table_value->StringData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 				if (value0 == string_vec1[table_index])
@@ -1832,7 +1832,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else // if (x_type == EidosValueType::kValueObject)
 		{
 			EidosObject *value0 = x_value->ObjectElementAtIndex(0, nullptr);
-			EidosObject * const *objelement_vec1 = table_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec1 = table_value->ObjectData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
 				if (value0 == objelement_vec1[table_index])
@@ -1853,7 +1853,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		if (x_type == EidosValueType::kValueLogical)
 		{
 			eidos_logical_t value1 = table_value->LogicalAtIndex(0, nullptr);
-			const eidos_logical_t *logical_data0 = x_value->LogicalVector()->data();
+			const eidos_logical_t *logical_data0 = x_value->LogicalData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				int_result->set_int_no_check(logical_data0[value_index] == value1 ? 0 : -1, value_index);
@@ -1861,7 +1861,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueInt)
 		{
 			int64_t value1 = table_value->IntAtIndex(0, nullptr);
-			const int64_t *int_data0 = x_value->IntVector()->data();
+			const int64_t *int_data0 = x_value->IntData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				int_result->set_int_no_check(int_data0[value_index] == value1 ? 0 : -1, value_index);
@@ -1869,7 +1869,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			double value1 = table_value->FloatAtIndex(0, nullptr);
-			const double *float_data0 = x_value->FloatVector()->data();
+			const double *float_data0 = x_value->FloatData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
@@ -1881,7 +1881,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueString)
 		{
 			const std::string &value1 = ((EidosValue_String *)table_value)->StringRefAtIndex(0, nullptr);
-			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
+			const std::string *string_vec0 = x_value->StringData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				int_result->set_int_no_check(string_vec0[value_index] == value1 ? 0 : -1, value_index);
@@ -1889,7 +1889,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		else if (x_type == EidosValueType::kValueObject)
 		{
 			EidosObject *value1 = table_value->ObjectElementAtIndex(0, nullptr);
-			EidosObject * const *objelement_vec0 = x_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec0 = x_value->ObjectData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				int_result->set_int_no_check(objelement_vec0[value_index] == value1 ? 0 : -1, value_index);
@@ -1906,8 +1906,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			const eidos_logical_t *logical_data0 = x_value->LogicalVector()->data();
-			const eidos_logical_t *logical_data1 = table_value->LogicalVector()->data();
+			const eidos_logical_t *logical_data0 = x_value->LogicalData();
+			const eidos_logical_t *logical_data1 = table_value->LogicalData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
@@ -1920,8 +1920,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int_data0 = x_value->IntVector()->data();
-			const int64_t *int_data1 = table_value->IntVector()->data();
+			const int64_t *int_data0 = x_value->IntData();
+			const int64_t *int_data1 = table_value->IntData();
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
@@ -1966,8 +1966,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float_data0 = x_value->FloatVector()->data();
-			const double *float_data1 = table_value->FloatVector()->data();
+			const double *float_data0 = x_value->FloatData();
+			const double *float_data1 = table_value->FloatData();
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
@@ -2018,8 +2018,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::vector<std::string> &string_vec0 = *x_value->StringVector();
-			const std::vector<std::string> &string_vec1 = *table_value->StringVector();
+			const std::string *string_vec0 = x_value->StringData();
+			const std::string *string_vec1 = table_value->StringData();
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
@@ -2065,8 +2065,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObject * const *objelement_vec0 = x_value->ObjectElementVector()->data();
-			EidosObject * const *objelement_vec1 = table_value->ObjectElementVector()->data();
+			EidosObject * const *objelement_vec0 = x_value->ObjectData();
+			EidosObject * const *objelement_vec1 = table_value->ObjectData();
 			
 			if ((x_count >= 500) && (table_count >= 5))		// a guess based on timing data; will be platform-dependent and dataset-dependent
 			{
@@ -2142,13 +2142,13 @@ EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_ar
 		std::vector<int64_t> order;
 		
 		if (x_type == EidosValueType::kValueLogical)
-			order = EidosSortIndexes(x_value->LogicalVector()->data(), x_count, ascending);
+			order = EidosSortIndexes(x_value->LogicalData(), x_count, ascending);
 		else if (x_type == EidosValueType::kValueInt)
-			order = EidosSortIndexes(x_value->IntVector()->data(), x_count, ascending);
+			order = EidosSortIndexes(x_value->IntData(), x_count, ascending);
 		else if (x_type == EidosValueType::kValueFloat)
-			order = EidosSortIndexes(x_value->FloatVector()->data(), x_count, ascending);
+			order = EidosSortIndexes(x_value->FloatData(), x_count, ascending);
 		else if (x_type == EidosValueType::kValueString)
-			order = EidosSortIndexes(*x_value->StringVector(), ascending);
+			order = EidosSortIndexes(x_value->StringData(), x_count, ascending);
 		
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(order));
 		result_SP = EidosValue_SP(int_result);
@@ -2337,7 +2337,7 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 			
 			{
 				// construct our vector of pairs: std::pair<original x value, index in x>
-				const int64_t *int_data = x_value->IntVector()->data();
+				const int64_t *int_data = x_value->IntData();
 				
 				for (int index = 0; index < x_count; ++index)
 					pairs.emplace_back(int_data[index], index);
@@ -2417,7 +2417,7 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 			
 			{
 				// construct our vector of pairs: std::pair<original x value, index in x>
-				const double *float_data = x_value->FloatVector()->data();
+				const double *float_data = x_value->FloatData();
 				
 				for (int index = 0; index < x_count; ++index)
 					pairs.emplace_back(float_data[index], index);
@@ -2606,7 +2606,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	
 	// set up to work with either a singleton or a non-singleton vector
 	int64_t singleton_value = (value_count == 1) ? bin_value->IntAtIndex(0, nullptr) : 0;
-	const int64_t *int_data = (value_count == 1) ? &singleton_value : bin_value->IntVector()->data();
+	const int64_t *int_data = (value_count == 1) ? &singleton_value : bin_value->IntData();
 	
 	// determine maxbin
 	int64_t maxbin;
@@ -2709,7 +2709,7 @@ EidosValue_SP Eidos_ExecuteFunction_which(const std::vector<EidosValue_SP> &p_ar
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
-	const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
+	const eidos_logical_t *logical_data = x_value->LogicalData();
 	EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
 	result_SP = EidosValue_SP(int_result);
 	
@@ -2746,7 +2746,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-				const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
+				const eidos_logical_t *logical_data = x_value->LogicalData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2762,7 +2762,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-				const int64_t *int_data = x_value->IntVector()->data();
+				const int64_t *int_data = x_value->IntData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2778,7 +2778,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-				const double *float_data = x_value->FloatVector()->data();
+				const double *float_data = x_value->FloatData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2794,7 +2794,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_String_vector; we can use the fast API
-				const std::vector<std::string> &string_vec = *x_value->StringVector();
+				const std::string *string_vec = x_value->StringData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2836,7 +2836,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-				const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
+				const eidos_logical_t *logical_data = x_value->LogicalData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2852,7 +2852,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-				const int64_t *int_data = x_value->IntVector()->data();
+				const int64_t *int_data = x_value->IntData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2868,7 +2868,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-				const double *float_data = x_value->FloatVector()->data();
+				const double *float_data = x_value->FloatData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{
@@ -2884,7 +2884,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 			if (x_count > 1)
 			{
 				// We have x_count != 1, so the type of x_value must be EidosValue_String_vector; we can use the fast API
-				const std::vector<std::string> &string_vec = *x_value->StringVector();
+				const std::string *string_vec = x_value->StringData();
 				
 				for (int value_index = 1; value_index < x_count; ++value_index)
 				{

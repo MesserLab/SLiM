@@ -826,13 +826,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 								weights_modified = true;
 							}
 							
-							// We really want to use EidosValue_Float_vector's FloatVector() method to get the values;
-							// if we have an EidosValue_Float_singleton we have to get its value with FloatAtIndex.
-							// BCH 1/18/2018: IsSingleton() should be much faster than the dynamic_cast<> used here before
-							if (!result->IsSingleton())
-								memcpy(current_weights, ((EidosValue_Float_vector *)result)->FloatVector()->data(), sizeof(double) * weights_length);
-							else
-								current_weights[0] = result->FloatAtIndex(0, nullptr);
+							// use FloatData() to get the values, copy them with memcpy()
+							memcpy(current_weights, result->FloatData(), sizeof(double) * weights_length);
 							
 							// remember this callback for error attribution below
 							last_interventionist_mate_choice_callback = mate_choice_callback;
@@ -2512,8 +2507,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 			p_crossovers[0] = (slim_position_t)local_crossovers_ptr->IntAtIndex(0, nullptr);
 		else
 		{
-			const EidosValue_Int_vector *new_crossover_vector = local_crossovers_ptr->IntVector();
-			const int64_t *new_crossover_data = new_crossover_vector->data();
+			const int64_t *new_crossover_data = local_crossovers_ptr->IntData();
 			slim_position_t *p_crossovers_data = p_crossovers.data();
 			
 			for (int value_index = 0; value_index < count; ++value_index)

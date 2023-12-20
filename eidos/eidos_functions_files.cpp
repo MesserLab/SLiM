@@ -397,7 +397,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			}
 			else
 			{
-				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				const std::string *string_vec = contents_value->StringData();
 				
 				for (int value_index = 0; value_index < contents_count; ++value_index)
 					outstream << string_vec[value_index] << std::endl;
@@ -458,7 +458,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			}
 			else
 			{
-				const std::vector<std::string> &string_vec = *contents_value->StringVector();
+				const std::string *string_vec = contents_value->StringData();
 				
 				for (int value_index = 0; value_index < contents_count; ++value_index)
 				{

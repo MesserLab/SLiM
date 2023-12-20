@@ -662,7 +662,7 @@ public:
 	// should therefore generally be called from a try/catch block.
 	NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer);
 	NucleotideArray(std::size_t p_length, const char *p_char_buffer);
-	NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector);
+	NucleotideArray(std::size_t p_length, const std::string p_string_vector[]);
 	
 	std::size_t size() const { return length_; }
 	

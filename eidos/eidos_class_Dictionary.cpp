@@ -239,15 +239,13 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_String_vector *string_vec = dynamic_cast<EidosValue_String_vector *>(all_keys.get());
+		int all_keys_count = all_keys->Count();
+		const std::string *all_key_strings = all_keys->StringData();
 		
-		if (!string_vec)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_SLiM): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
-		
-		const std::vector<std::string> *all_key_strings = string_vec->StringVector();
-		
-		for (const std::string &key : *all_key_strings)
+		for (int key_index = 0; key_index < all_keys_count; ++key_index)
 		{
+			const std::string key = all_key_strings[key_index];
+			
 			// emit the key; note that we now always quote stringkeys, to distinguish them from the integer-key case easily
 			ss << Eidos_string_escaped(key, EidosStringQuoting::kDoubleQuotes) << "=";
 			
@@ -446,15 +444,13 @@ nlohmann::json EidosDictionaryUnretained::JSONRepresentation(void) const
 	
 	// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 	EidosValue_SP all_keys = AllKeys();
-	EidosValue_String_vector *string_vec = dynamic_cast<EidosValue_String_vector *>(all_keys.get());
+	int all_keys_count = all_keys->Count();
+	const std::string *all_key_strings = all_keys->StringData();
 	
-	if (!string_vec)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::JSONRepresentation): (internal error) allKeys did not return a string vector." << EidosTerminate(nullptr);
-	
-	const std::vector<std::string> *all_key_strings = string_vec->StringVector();
-	
-	for (const std::string &key : *all_key_strings)
+	for (int key_index = 0; key_index < all_keys_count; ++key_index)
 	{
+		const std::string key = all_key_strings[key_index];
+		
 		// get the value
 		auto hash_iter = symbols->find(key);
 		
