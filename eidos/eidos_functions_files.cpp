@@ -47,7 +47,7 @@ EidosValue_SP Eidos_ExecuteFunction_createDirectory(const std::vector<EidosValue
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *path_value = p_arguments[0].get();
-	std::string base_path = path_value->StringAtIndex(0, nullptr);
+	std::string base_path = path_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string error_string;
 	bool success = Eidos_CreateDirectory(base_path, &error_string);
 	
@@ -67,7 +67,7 @@ EidosValue_SP Eidos_ExecuteFunction_deleteFile(const std::vector<EidosValue_SP> 
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	result_SP = ((remove(file_path.c_str()) == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -83,7 +83,7 @@ EidosValue_SP Eidos_ExecuteFunction_fileExists(const std::vector<EidosValue_SP> 
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	struct stat file_info;
@@ -102,11 +102,11 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const std::vector<EidosValue_SP>
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *path_value = p_arguments[0].get();
-	std::string base_path = path_value->StringAtIndex(0, nullptr);
+	std::string base_path = path_value->StringAtIndex_NOCAST(0, nullptr);
 	int base_path_length = (int)base_path.length();
 	bool base_path_ends_in_slash = (base_path_length > 0) && (base_path[base_path_length-1] == '/');
 	std::string path = Eidos_ResolvedPath(base_path);
-	bool fullPaths = p_arguments[1]->LogicalAtIndex(0, nullptr);
+	bool fullPaths = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// this code modified from GNU: http://www.gnu.org/software/libc/manual/html_node/Simple-Directory-Lister.html#Simple-Directory-Lister
 	// I'm not sure if it works on Windows... sigh...
@@ -179,7 +179,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	// read the contents in
@@ -225,7 +225,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 	
 	// Now set the path
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string final_path = Eidos_ResolvedPath(base_path);
 	
 	errno = 0;
@@ -249,7 +249,7 @@ EidosValue_SP Eidos_ExecuteFunction_flushFile(const std::vector<EidosValue_SP> &
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	// note that writeFile() adds ".gz" to the filename if compression is specified and it is not already present; we don't,
@@ -267,7 +267,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	// the second argument is the file contents to write, which we put into a vector
@@ -278,13 +278,13 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	contents_buffer.reserve(contents_count);
 	
 	for (int value_index = 0; value_index < contents_count; ++value_index)
-		contents_buffer.emplace_back(&contents_value->StringRefAtIndex(value_index, nullptr));
+		contents_buffer.emplace_back(&contents_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 	
 	// the third argument is an optional append flag, F by default
-	bool append = p_arguments[2]->LogicalAtIndex(0, nullptr);
+	bool append = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// and then there is a flag for optional gzip compression
-	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	bool do_compress = p_arguments[3]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (do_compress && !Eidos_string_hasSuffix(file_path, ".gz"))
 		file_path.append(".gz");
@@ -325,16 +325,16 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), the temporary directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
 	
 	EidosValue *prefix_value = p_arguments[0].get();
-	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
+	std::string prefix = prefix_value->StringAtIndex_NOCAST(0, nullptr);
 	EidosValue *suffix_value = p_arguments[1].get();
-	std::string suffix = suffix_value->StringAtIndex(0, nullptr);
+	std::string suffix = suffix_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// the third argument is the file contents to write
 	EidosValue_String *contents_value = (EidosValue_String *)p_arguments[2].get();
 	int contents_count = contents_value->Count();
 	
 	// and then there is a flag for optional gzip compression
-	bool do_compress = p_arguments[3]->LogicalAtIndex(0, nullptr);
+	bool do_compress = p_arguments[3]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (do_compress && !Eidos_string_hasSuffix(suffix, ".gz"))
 		suffix.append(".gz");
@@ -393,7 +393,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			
 			if (contents_count == 1)
 			{
-				outstream << contents_value->StringAtIndex(0, nullptr);
+				outstream << contents_value->StringAtIndex_NOCAST(0, nullptr);
 			}
 			else
 			{
@@ -454,7 +454,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		{
 			if (contents_count == 1)
 			{
-				file_stream << contents_value->StringAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+				file_stream << contents_value->StringAtIndex_NOCAST(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
 			}
 			else
 			{

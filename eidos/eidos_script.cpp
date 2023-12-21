@@ -2405,12 +2405,12 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 					
 					if (numeric_value->Type() == EidosValueType::kValueFloat)
 					{
-						double float_value = numeric_value->FloatAtIndex(0, current_token_);
+						double float_value = numeric_value->FloatAtIndex_NOCAST(0, current_token_);
 						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-float_value));
 					}
 					else if (numeric_value->Type() == EidosValueType::kValueInt)
 					{
-						int64_t int_value = numeric_value->IntAtIndex(0, current_token_);
+						int64_t int_value = numeric_value->IntAtIndex_NOCAST(0, current_token_);
 						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-int_value));	// note that overflow is not possible
 					}
 					else

@@ -404,18 +404,18 @@ bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value, bool p_compa
 		// Handle singleton comparison separately, to allow the use of the fast vector API below
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			if (x_value->LogicalAtIndex(0, nullptr) != y_value->LogicalAtIndex(0, nullptr))
+			if (x_value->LogicalAtIndex_NOCAST(0, nullptr) != y_value->LogicalAtIndex_NOCAST(0, nullptr))
 				return false;
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			if (x_value->IntAtIndex(0, nullptr) != y_value->IntAtIndex(0, nullptr))
+			if (x_value->IntAtIndex_NOCAST(0, nullptr) != y_value->IntAtIndex_NOCAST(0, nullptr))
 				return false;
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double xv = x_value->FloatAtIndex(0, nullptr);
-			double yv = y_value->FloatAtIndex(0, nullptr);
+			double xv = x_value->FloatAtIndex_NOCAST(0, nullptr);
+			double yv = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			
 			if (!std::isnan(xv) || !std::isnan(yv))
 				if (xv != yv)
@@ -423,15 +423,15 @@ bool IdenticalEidosValues(EidosValue *x_value, EidosValue *y_value, bool p_compa
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string &x_string = ((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
-			const std::string &y_string = ((EidosValue_String *)y_value)->StringRefAtIndex(0, nullptr);
+			const std::string &x_string = ((EidosValue_String *)x_value)->StringRefAtIndex_NOCAST(0, nullptr);
+			const std::string &y_string = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (x_string != y_string)
 				return false;
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			if (x_value->ObjectElementAtIndex(0, nullptr) != y_value->ObjectElementAtIndex(0, nullptr))
+			if (x_value->ObjectElementAtIndex_NOCAST(0, nullptr) != y_value->ObjectElementAtIndex_NOCAST(0, nullptr))
 				return false;
 		}
 	}
@@ -624,7 +624,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			
 			if (arg_value_count == 1)
 			{
-				result->set_int_no_check(arg_value->IntAtIndex(0, nullptr), result_set_index++);
+				result->set_int_no_check(arg_value->IntAtIndex_CAST(0, nullptr), result_set_index++);
 			}
 			else if (arg_value_count)
 			{
@@ -645,7 +645,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 				else
 				{
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result->set_int_no_check(arg_value->IntAtIndex(value_index, nullptr), result_set_index++);
+						result->set_int_no_check(arg_value->IntAtIndex_CAST(value_index, nullptr), result_set_index++);
 				}
 			}
 		}
@@ -665,7 +665,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			
 			if (arg_value_count == 1)
 			{
-				result->set_float_no_check(arg_value->FloatAtIndex(0, nullptr), result_set_index++);
+				result->set_float_no_check(arg_value->FloatAtIndex_CAST(0, nullptr), result_set_index++);
 			}
 			else if (arg_value_count)
 			{
@@ -686,7 +686,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 				else
 				{
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result->set_float_no_check(arg_value->FloatAtIndex(value_index, nullptr), result_set_index++);
+						result->set_float_no_check(arg_value->FloatAtIndex_CAST(value_index, nullptr), result_set_index++);
 				}
 			}
 		}
@@ -705,7 +705,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			
 			if (arg_value_count == 1)
 			{
-				result->PushString(arg_value->StringAtIndex(0, nullptr));
+				result->PushString(arg_value->StringAtIndex_CAST(0, nullptr));
 			}
 			else if (arg_value_count)
 			{
@@ -720,7 +720,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 				else
 				{
 					for (int value_index = 0; value_index < arg_value_count; ++value_index)
-						result->PushString(arg_value->StringAtIndex(value_index, nullptr));
+						result->PushString(arg_value->StringAtIndex_CAST(value_index, nullptr));
 				}
 			}
 		}
@@ -741,9 +741,9 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 			if (arg_value_count == 1)
 			{
 				if (result->UsesRetainRelease())
-					result->set_object_element_no_check_no_previous_RR(arg_value->ObjectElementAtIndex(0, nullptr), result_set_index++);
+					result->set_object_element_no_check_no_previous_RR(arg_value->ObjectElementAtIndex_NOCAST(0, nullptr), result_set_index++);
 				else
-					result->set_object_element_no_check_NORR(arg_value->ObjectElementAtIndex(0, nullptr), result_set_index++);
+					result->set_object_element_no_check_NORR(arg_value->ObjectElementAtIndex_NOCAST(0, nullptr), result_set_index++);
 			}
 			else if (arg_value_count)
 			{
@@ -1128,7 +1128,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 		{
 			// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
 			// This is guaranteed to return a singleton value (when available)
-			int index_value = (int)p_indices->IntAtIndex(0, p_error_token);
+			int index_value = (int)p_indices->IntAtIndex_CAST(0, p_error_token);
 			
 			if ((index_value < 0) || (index_value >= original_value_count))
 			{
@@ -1150,7 +1150,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			
 			for (int value_idx = 0; value_idx < indices_count; value_idx++)
 			{
-				int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+				int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 				
 				if ((index_value < 0) || (index_value >= original_value_count))
 				{
@@ -1194,7 +1194,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					// float indices; we use IntAtIndex() since it has complex behavior
 					for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					{
-						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
 						{
@@ -1238,7 +1238,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					// float indices; we use IntAtIndex() since it has complex behavior
 					for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					{
-						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
 						{
@@ -1282,7 +1282,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					// float indices; we use IntAtIndex() since it has complex behavior
 					for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					{
-						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
 						{
@@ -1326,7 +1326,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					// float indices; we use IntAtIndex() since it has complex behavior
 					for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					{
-						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
 						{
@@ -1370,7 +1370,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					// float indices; we use IntAtIndex() since it has complex behavior
 					for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					{
-						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+						int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
 						{
@@ -1394,7 +1394,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 				{
-					int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
+					int64_t index_value = p_indices->IntAtIndex_CAST(value_idx, p_error_token);
 					
 					if ((index_value < 0) || (index_value >= original_value_count))
 					{

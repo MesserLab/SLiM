@@ -73,8 +73,8 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 	if (vec_count == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be of length > 0." << EidosTerminate(nullptr);
 	
-	bool rightmostClosed = arg_rightmostClosed->LogicalAtIndex(0, nullptr);
-	bool allInside = arg_allInside->LogicalAtIndex(0, nullptr);
+	bool rightmostClosed = arg_rightmostClosed->LogicalAtIndex_NOCAST(0, nullptr);
+	bool allInside = arg_allInside->LogicalAtIndex_NOCAST(0, nullptr);
 	
 #if !(EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH)
 	// Used by the old linear-search algorithm
@@ -357,13 +357,13 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_
 	
 	try {
 		for (int dim_index = 0; dim_index < d; ++dim_index)
-			gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
+			gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex_CAST(dim_index, nullptr));
 		
 		for (int row_index = 0; row_index < d; ++row_index)
 		{
 			for (int col_index = 0; col_index < d; ++col_index)
 			{
-				double value = arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr);
+				double value = arg_sigma->FloatAtIndex_CAST(row_index + col_index * d, nullptr);
 				
 				if (std::isnan(value))
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
@@ -468,8 +468,8 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 	if (!sigma_singleton && (arg_sigma_count != num_quantiles))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
 	
-	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
-	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	
 	if (mu_singleton && sigma_singleton)
 	{
@@ -482,7 +482,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		if (num_quantiles == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gaussian_pdf(arg_quantile->FloatAtIndex(0, nullptr) - mu0, sigma0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gaussian_pdf(arg_quantile->FloatAtIndex_NOCAST(0, nullptr) - mu0, sigma0)));
 		}
 		else
 		{
@@ -508,8 +508,8 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 #pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2) num_threads(thread_count)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
-			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
-			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex_CAST(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex_CAST(value_index, nullptr));
 			
 			if (sigma <= 0.0)
 			{
@@ -548,8 +548,8 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_ar
 	if (!sigma_singleton && (arg_sigma_count != num_probs))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires sd to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
 	
-	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
-	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	
 	if (mu_singleton && sigma_singleton)
 	{
@@ -558,7 +558,7 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		if (num_probs == 1)
 		{
-			const double float_prob = arg_prob->FloatAtIndex(0, nullptr);
+			const double float_prob = arg_prob->FloatAtIndex_NOCAST(0, nullptr);
 			if (float_prob < 0.0 || float_prob > 1.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_prob) << " supplied)." << EidosTerminate(nullptr);
 
@@ -585,8 +585,8 @@ EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int value_index = 0; value_index < num_probs; ++value_index)
 		{
-			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
-			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex_CAST(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex_CAST(value_index, nullptr));
 		  if (float_data[value_index] < 0.0 || float_data[value_index] > 1.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_qnorm): function qnorm() requires 0.0 <= p <= 1.0 (" << EidosStringForFloat(float_data[value_index]) << " supplied)." << EidosTerminate(nullptr);
 			
@@ -622,8 +622,8 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_ar
 	if (!sigma_singleton && (arg_sigma_count != num_quantiles))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd to be of length 1 or equal in length to q." << EidosTerminate(nullptr);
 	
-	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
-	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	
 	if (mu_singleton && sigma_singleton)
 	{
@@ -632,7 +632,7 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		if (num_quantiles == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_cdf_gaussian_P(arg_quantile->FloatAtIndex(0, nullptr) - mu0, sigma0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_cdf_gaussian_P(arg_quantile->FloatAtIndex_NOCAST(0, nullptr) - mu0, sigma0)));
 		}
 		else
 		{
@@ -652,8 +652,8 @@ EidosValue_SP Eidos_ExecuteFunction_pnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
-			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
-			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
+			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex_CAST(value_index, nullptr));
+			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex_CAST(value_index, nullptr));
 			
 			if (sigma <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_pnorm): function pnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
@@ -686,8 +686,8 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_ar
 	if (!beta_singleton && (arg_beta_count != num_quantiles))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires beta to be of length 1 or equal in length to x." << EidosTerminate(nullptr);
 	
-	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex(0, nullptr) : 0.0);
-	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex(0, nullptr) : 0.0);
+	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	
 	if (alpha_singleton && beta_singleton)
 	{
@@ -698,7 +698,7 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_ar
 		
 		if (num_quantiles == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_beta_pdf(arg_quantile->FloatAtIndex(0, nullptr), alpha0, beta0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_beta_pdf(arg_quantile->FloatAtIndex_NOCAST(0, nullptr), alpha0, beta0)));
 		}
 		else
 		{
@@ -718,8 +718,8 @@ EidosValue_SP Eidos_ExecuteFunction_dbeta(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
-			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex(value_index, nullptr));
-			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex(value_index, nullptr));
+			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex_CAST(value_index, nullptr));
+			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex_CAST(value_index, nullptr));
 			
 			if (!(alpha > 0.0))		// true for NaN
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dbeta): function dbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha) << " supplied)." << EidosTerminate(nullptr);
@@ -741,7 +741,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbeta(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_alpha = p_arguments[1].get();
 	EidosValue *arg_beta = p_arguments[2].get();
 	int arg_alpha_count = arg_alpha->Count();
@@ -756,8 +756,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbeta(const std::vector<EidosValue_SP> &p_ar
 	if (!beta_singleton && (arg_beta_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbeta): function rbeta() requires beta to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex(0, nullptr) : 0.0);
-	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex(0, nullptr) : 0.0);
+	double alpha0 = (arg_alpha_count ? arg_alpha->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double beta0 = (arg_beta_count ? arg_beta->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (alpha_singleton && beta_singleton)
@@ -787,8 +787,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbeta(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex(draw_index, nullptr));
-			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex(draw_index, nullptr));
+			double alpha = (alpha_singleton ? alpha0 : arg_alpha->FloatAtIndex_CAST(draw_index, nullptr));
+			double beta = (beta_singleton ? beta0 : arg_beta->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			if (alpha <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbeta): function rbeta() requires alpha > 0.0 (" << EidosStringForFloat(alpha) << " supplied)." << EidosTerminate(nullptr);
@@ -810,7 +810,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_size = p_arguments[1].get();
 	EidosValue *arg_prob = p_arguments[2].get();
 	int arg_size_count = arg_size->Count();
@@ -825,8 +825,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 	if (!prob_singleton && (arg_prob_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	int size0 = (int)arg_size->IntAtIndex(0, nullptr);
-	double probability0 = arg_prob->FloatAtIndex(0, nullptr);
+	int size0 = (int)arg_size->IntAtIndex_NOCAST(0, nullptr);
+	double probability0 = arg_prob->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if (size_singleton && prob_singleton)
 	{
@@ -896,8 +896,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex((int)draw_index, nullptr));
-				double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex((int)draw_index, nullptr));
+				int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex_NOCAST((int)draw_index, nullptr));
+				double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex_NOCAST((int)draw_index, nullptr));
 				
 				if (size < 0)
 				{
@@ -933,7 +933,7 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const std::vector<EidosValue_SP> &p_
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_location = p_arguments[1].get();
 	EidosValue *arg_scale = p_arguments[2].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_location_count = arg_location->Count();
 	int arg_scale_count = arg_scale->Count();
 	bool location_singleton = (arg_location_count == 1);
@@ -946,8 +946,8 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const std::vector<EidosValue_SP> &p_
 	if (!scale_singleton && (arg_scale_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double location0 = (arg_location_count ? arg_location->FloatAtIndex(0, nullptr) : 0.0);
-	double scale0 = (arg_scale_count ? arg_scale->FloatAtIndex(0, nullptr) : 1.0);
+	double location0 = (arg_location_count ? arg_location->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double scale0 = (arg_scale_count ? arg_scale->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (location_singleton && scale_singleton)
@@ -975,8 +975,8 @@ EidosValue_SP Eidos_ExecuteFunction_rcauchy(const std::vector<EidosValue_SP> &p_
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double location = (location_singleton ? location0 : arg_location->FloatAtIndex(draw_index, nullptr));
-			double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex(draw_index, nullptr));
+			double location = (location_singleton ? location0 : arg_location->FloatAtIndex_CAST(draw_index, nullptr));
+			double scale = (scale_singleton ? scale0 : arg_scale->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			if (scale <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rcauchy): function rcauchy() requires scale > 0.0 (" << EidosStringForFloat(scale) << " supplied)." << EidosTerminate(nullptr);
@@ -998,7 +998,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_min = p_arguments[1].get();
 	EidosValue *arg_max = p_arguments[2].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_min_count = arg_min->Count();
 	int arg_max_count = arg_max->Count();
 	bool min_singleton = (arg_min_count == 1);
@@ -1011,8 +1011,8 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 	if (!max_singleton && (arg_max_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires max to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	int64_t min_value0 = (arg_min_count ? arg_min->IntAtIndex(0, nullptr) : 0);
-	int64_t max_value0 = (arg_max_count ? arg_max->IntAtIndex(0, nullptr) : 1);
+	int64_t min_value0 = (arg_min_count ? arg_min->IntAtIndex_NOCAST(0, nullptr) : 0);
+	int64_t max_value0 = (arg_max_count ? arg_max->IntAtIndex_NOCAST(0, nullptr) : 1);
 	
 	if (min_singleton && max_singleton)
 	{
@@ -1082,8 +1082,8 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex((int)draw_index, nullptr));
-				int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex((int)draw_index, nullptr));
+				int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex_NOCAST((int)draw_index, nullptr));
+				int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex_NOCAST((int)draw_index, nullptr));
 				int64_t count = (max_value - min_value) + 1;
 				
 				if (max_value < min_value)
@@ -1121,11 +1121,11 @@ EidosValue_SP Eidos_ExecuteFunction_dexp(const std::vector<EidosValue_SP> &p_arg
 	
 	if (mu_singleton)
 	{
-		double mu0 = arg_mu->FloatAtIndex(0, nullptr);
+		double mu0 = arg_mu->FloatAtIndex_CAST(0, nullptr);
 		
 		if (num_quantiles == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential_pdf(arg_quantile->FloatAtIndex(0, nullptr), mu0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential_pdf(arg_quantile->FloatAtIndex_NOCAST(0, nullptr), mu0)));
 		}
 		else
 		{
@@ -1145,7 +1145,7 @@ EidosValue_SP Eidos_ExecuteFunction_dexp(const std::vector<EidosValue_SP> &p_arg
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
-			double mu = arg_mu->FloatAtIndex(value_index, nullptr);
+			double mu = arg_mu->FloatAtIndex_CAST(value_index, nullptr);
 			
 			float_result->set_float_no_check(gsl_ran_exponential_pdf(float_data[value_index], mu), value_index);
 		}
@@ -1163,7 +1163,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_mu = p_arguments[1].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_mu_count = arg_mu->Count();
 	bool mu_singleton = (arg_mu_count == 1);
 	
@@ -1174,7 +1174,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	
 	if (mu_singleton)
 	{
-		double mu0 = arg_mu->FloatAtIndex(0, nullptr);
+		double mu0 = arg_mu->FloatAtIndex_CAST(0, nullptr);
 		
 		if (num_draws == 1)
 		{
@@ -1211,7 +1211,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 #pragma omp for schedule(static) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				double mu = arg_mu->FloatAtIndex((int)draw_index, nullptr);
+				double mu = arg_mu->FloatAtIndex_CAST((int)draw_index, nullptr);
 				
 				float_result->set_float_no_check(gsl_ran_exponential(rng, mu), draw_index);
 			}
@@ -1229,7 +1229,7 @@ EidosValue_SP Eidos_ExecuteFunction_rf(const std::vector<EidosValue_SP> &p_argum
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_d1 = p_arguments[1].get();
 	EidosValue *arg_d2 = p_arguments[2].get();
 	int arg_d1_count = arg_d1->Count();
@@ -1244,8 +1244,8 @@ EidosValue_SP Eidos_ExecuteFunction_rf(const std::vector<EidosValue_SP> &p_argum
 	if (!d2_singleton && (arg_d2_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d2 to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double d1_0 = (arg_d1_count ? arg_d1->FloatAtIndex(0, nullptr) : 0.0);
-	double d2_0 = (arg_d2_count ? arg_d2->FloatAtIndex(0, nullptr) : 0.0);
+	double d1_0 = (arg_d1_count ? arg_d1->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double d2_0 = (arg_d2_count ? arg_d2->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (d1_singleton && d2_singleton)
@@ -1275,8 +1275,8 @@ EidosValue_SP Eidos_ExecuteFunction_rf(const std::vector<EidosValue_SP> &p_argum
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double d1 = (d1_singleton ? d1_0 : arg_d1->FloatAtIndex(draw_index, nullptr));
-			double d2 = (d2_singleton ? d2_0 : arg_d2->FloatAtIndex(draw_index, nullptr));
+			double d1 = (d1_singleton ? d1_0 : arg_d1->FloatAtIndex_CAST(draw_index, nullptr));
+			double d2 = (d2_singleton ? d2_0 : arg_d2->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			if (d1 <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rf): function rf() requires d1 > 0.0 (" << EidosStringForFloat(d1) << " supplied)." << EidosTerminate(nullptr);
@@ -1311,8 +1311,8 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_a
 	if (!shape_singleton && (arg_shape_count != num_quantiles))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
-	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
+	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex_CAST(0, nullptr) : 1.0);
+	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	
 	if (mean_singleton && shape_singleton)
 	{
@@ -1321,7 +1321,7 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_a
 		
 		if (num_quantiles == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma_pdf(arg_quantile->FloatAtIndex(0, nullptr), shape0, mean0/shape0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_gamma_pdf(arg_quantile->FloatAtIndex_NOCAST(0, nullptr), shape0, mean0/shape0)));
 		}
 		else
 		{
@@ -1343,8 +1343,8 @@ EidosValue_SP Eidos_ExecuteFunction_dgamma(const std::vector<EidosValue_SP> &p_a
 		
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
-			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(value_index, nullptr));
-			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(value_index, nullptr));
+			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex_CAST(value_index, nullptr));
+			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex_CAST(value_index, nullptr));
 			
 			if (!(shape > 0.0))		// true for NaN
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dgamma): function dgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
@@ -1364,7 +1364,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_mean = p_arguments[1].get();
 	EidosValue *arg_shape = p_arguments[2].get();
 	int arg_mean_count = arg_mean->Count();
@@ -1379,8 +1379,8 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const std::vector<EidosValue_SP> &p_a
 	if (!shape_singleton && (arg_shape_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex(0, nullptr) : 1.0);
-	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex(0, nullptr) : 0.0);
+	double mean0 = (arg_mean_count ? arg_mean->FloatAtIndex_CAST(0, nullptr) : 1.0);
+	double shape0 = (arg_shape_count ? arg_shape->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (mean_singleton && shape_singleton)
@@ -1410,8 +1410,8 @@ EidosValue_SP Eidos_ExecuteFunction_rgamma(const std::vector<EidosValue_SP> &p_a
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex(draw_index, nullptr));
-			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex(draw_index, nullptr));
+			double mean = (mean_singleton ? mean0 : arg_mean->FloatAtIndex_CAST(draw_index, nullptr));
+			double shape = (shape_singleton ? shape0 : arg_shape->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			if (shape <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgamma): function rgamma() requires shape > 0.0 (" << EidosStringForFloat(shape) << " supplied)." << EidosTerminate(nullptr);
@@ -1431,7 +1431,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_p = p_arguments[1].get();
 	int arg_p_count = arg_p->Count();
 	bool p_singleton = (arg_p_count == 1);
@@ -1450,7 +1450,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	
 	if (p_singleton)
 	{
-		double p0 = arg_p->FloatAtIndex(0, nullptr);
+		double p0 = arg_p->FloatAtIndex_NOCAST(0, nullptr);
 		
 		if ((p0 <= 0.0) || (p0 > 1.0) || std::isnan(p0))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << EidosStringForFloat(p0) << " supplied)." << EidosTerminate(nullptr);
@@ -1482,7 +1482,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double p = arg_p->FloatAtIndex(draw_index, nullptr);
+			double p = arg_p->FloatAtIndex_NOCAST(draw_index, nullptr);
 			
 			if ((p <= 0.0) || (p >= 1.0) || std::isnan(p))
 			{
@@ -1512,7 +1512,7 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_meanlog = p_arguments[1].get();
 	EidosValue *arg_sdlog = p_arguments[2].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_meanlog_count = arg_meanlog->Count();
 	int arg_sdlog_count = arg_sdlog->Count();
 	bool meanlog_singleton = (arg_meanlog_count == 1);
@@ -1525,8 +1525,8 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 	if (!sdlog_singleton && (arg_sdlog_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rlnorm): function rlnorm() requires sdlog to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double meanlog0 = (arg_meanlog_count ? arg_meanlog->FloatAtIndex(0, nullptr) : 0.0);
-	double sdlog0 = (arg_sdlog_count ? arg_sdlog->FloatAtIndex(0, nullptr) : 1.0);
+	double meanlog0 = (arg_meanlog_count ? arg_meanlog->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double sdlog0 = (arg_sdlog_count ? arg_sdlog->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (meanlog_singleton && sdlog_singleton)
@@ -1551,8 +1551,8 @@ EidosValue_SP Eidos_ExecuteFunction_rlnorm(const std::vector<EidosValue_SP> &p_a
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double meanlog = (meanlog_singleton ? meanlog0 : arg_meanlog->FloatAtIndex(draw_index, nullptr));
-			double sdlog = (sdlog_singleton ? sdlog0 : arg_sdlog->FloatAtIndex(draw_index, nullptr));
+			double meanlog = (meanlog_singleton ? meanlog0 : arg_meanlog->FloatAtIndex_CAST(draw_index, nullptr));
+			double sdlog = (sdlog_singleton ? sdlog0 : arg_sdlog->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			float_result->set_float_no_check(gsl_ran_lognormal(rng, meanlog, sdlog), draw_index);
 		}
@@ -1569,7 +1569,7 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_
 	EidosValue *arg_n = p_arguments[0].get();
 	EidosValue *arg_mu = p_arguments[1].get();
 	EidosValue *arg_sigma = p_arguments[2].get();
-	int64_t num_draws = arg_n->IntAtIndex(0, nullptr);
+	int64_t num_draws = arg_n->IntAtIndex_NOCAST(0, nullptr);
 	int mu_count = arg_mu->Count();
 	int mu_dimcount = arg_mu->DimensionCount();
 	int sigma_dimcount = arg_sigma->DimensionCount();
@@ -1588,7 +1588,7 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_
 	
 	for (int row_index = 0; row_index < d; ++row_index)
 		for (int col_index = 0; col_index < d; ++col_index)
-			if (std::isnan(arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr)))
+			if (std::isnan(arg_sigma->FloatAtIndex_CAST(row_index + col_index * d, nullptr)))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): function rmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
 	
 	// Set up the GSL vectors
@@ -1601,11 +1601,11 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	for (int dim_index = 0; dim_index < d; ++dim_index)
-		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
+		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex_CAST(dim_index, nullptr));
 	
 	for (int row_index = 0; row_index < d; ++row_index)
 		for (int col_index = 0; col_index < d; ++col_index)
-			gsl_matrix_set(gsl_Sigma, row_index, col_index, arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr));
+			gsl_matrix_set(gsl_Sigma, row_index, col_index, arg_sigma->FloatAtIndex_CAST(row_index + col_index * d, nullptr));
 	
 	gsl_matrix_memcpy(gsl_L, gsl_Sigma);
 	
@@ -1680,7 +1680,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_size = p_arguments[1].get();
 	EidosValue *arg_prob = p_arguments[2].get();
 	int arg_size_count = arg_size->Count();
@@ -1695,8 +1695,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 	if (!prob_singleton && (arg_prob_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double size0 = arg_size->FloatAtIndex(0, nullptr);
-	double probability0 = arg_prob->FloatAtIndex(0, nullptr);
+	double size0 = arg_size->FloatAtIndex_CAST(0, nullptr);
+	double probability0 = arg_prob->FloatAtIndex_NOCAST(0, nullptr);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (size_singleton && prob_singleton)
@@ -1726,8 +1726,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double size = (size_singleton ? size0 : arg_size->FloatAtIndex(draw_index, nullptr));
-			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
+			double size = (size_singleton ? size0 : arg_size->FloatAtIndex_CAST(draw_index, nullptr));
+			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex_NOCAST(draw_index, nullptr));
 			
 			if ((size < 0) || std::isnan(size))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);
@@ -1751,7 +1751,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_mu = p_arguments[1].get();
 	EidosValue *arg_sigma = p_arguments[2].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_mu_count = arg_mu->Count();
 	int arg_sigma_count = arg_sigma->Count();
 	bool mu_singleton = (arg_mu_count == 1);
@@ -1764,8 +1764,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	if (!sigma_singleton && (arg_sigma_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex(0, nullptr) : 0.0);
-	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex(0, nullptr) : 1.0);
+	double mu0 = (arg_mu_count ? arg_mu->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double sigma0 = (arg_sigma_count ? arg_sigma->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	
 	if (sigma_singleton && (sigma0 < 0.0))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnorm): function rnorm() requires sd >= 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
@@ -1802,7 +1802,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 #pragma omp for schedule(static) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				double mu = arg_mu->FloatAtIndex((int)draw_index, nullptr);
+				double mu = arg_mu->FloatAtIndex_CAST((int)draw_index, nullptr);
 				
 				float_result->set_float_no_check(gsl_ran_gaussian(rng, sigma0) + mu, draw_index);
 			}
@@ -1820,8 +1820,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 #pragma omp for schedule(static) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex((int)draw_index, nullptr));
-				double sigma = arg_sigma->FloatAtIndex((int)draw_index, nullptr);
+				double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex_CAST((int)draw_index, nullptr));
+				double sigma = arg_sigma->FloatAtIndex_CAST((int)draw_index, nullptr);
 				
 				if (sigma < 0.0)
 				{
@@ -1848,7 +1848,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_lambda = p_arguments[1].get();
 	int arg_lambda_count = arg_lambda->Count();
 	bool lambda_singleton = (arg_lambda_count == 1);
@@ -1864,7 +1864,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 	
 	if (lambda_singleton)
 	{
-		double lambda0 = arg_lambda->FloatAtIndex(0, nullptr);
+		double lambda0 = arg_lambda->FloatAtIndex_CAST(0, nullptr);
 		
 		if ((lambda0 <= 0.0) || std::isnan(lambda0))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << EidosStringForFloat(lambda0) << " supplied)." << EidosTerminate(nullptr);
@@ -1906,7 +1906,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				double lambda = arg_lambda->FloatAtIndex((int)draw_index, nullptr);
+				double lambda = arg_lambda->FloatAtIndex_CAST((int)draw_index, nullptr);
 				
 				if ((lambda <= 0.0) || std::isnan(lambda))
 				{
@@ -1935,7 +1935,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 	EidosValue *n_value = p_arguments[0].get();
 	EidosValue *arg_min = p_arguments[1].get();
 	EidosValue *arg_max = p_arguments[2].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	int arg_min_count = arg_min->Count();
 	int arg_max_count = arg_max->Count();
 	bool min_singleton = (arg_min_count == 1);
@@ -1948,8 +1948,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 	if (!max_singleton && (arg_max_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires max to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double min_value0 = (arg_min_count ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
-	double max_value0 = (arg_max_count ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
+	double min_value0 = (arg_min_count ? arg_min->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double max_value0 = (arg_max_count ? arg_max->FloatAtIndex_CAST(0, nullptr) : 1.0);
 	
 	if (min_singleton && max_singleton && (min_value0 == 0.0) && (max_value0 == 1.0))
 	{
@@ -2022,8 +2022,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 #pragma omp for schedule(static) nowait
 				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
-					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex((int)draw_index, nullptr));
-					double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex((int)draw_index, nullptr));
+					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex_CAST((int)draw_index, nullptr));
+					double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex_CAST((int)draw_index, nullptr));
 					double range = max_value - min_value;
 					
 					if (range < 0.0)
@@ -2052,7 +2052,7 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	EidosValue *arg_lambda = p_arguments[1].get();
 	EidosValue *arg_k = p_arguments[2].get();
 	int arg_lambda_count = arg_lambda->Count();
@@ -2067,8 +2067,8 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p
 	if (!k_singleton && (arg_k_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires k to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	double lambda0 = (arg_lambda_count ? arg_lambda->FloatAtIndex(0, nullptr) : 0.0);
-	double k0 = (arg_k_count ? arg_k->FloatAtIndex(0, nullptr) : 0.0);
+	double lambda0 = (arg_lambda_count ? arg_lambda->FloatAtIndex_CAST(0, nullptr) : 0.0);
+	double k0 = (arg_k_count ? arg_k->FloatAtIndex_CAST(0, nullptr) : 0.0);
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (lambda_singleton && k_singleton)
@@ -2098,8 +2098,8 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double lambda = (lambda_singleton ? lambda0 : arg_lambda->FloatAtIndex(draw_index, nullptr));
-			double k = (k_singleton ? k0 : arg_k->FloatAtIndex(draw_index, nullptr));
+			double lambda = (lambda_singleton ? lambda0 : arg_lambda->FloatAtIndex_CAST(draw_index, nullptr));
+			double k = (k_singleton ? k0 : arg_k->FloatAtIndex_CAST(draw_index, nullptr));
 			
 			if (lambda <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rweibull): function rweibull() requires lambda > 0.0 (" << EidosStringForFloat(lambda) << " supplied)." << EidosTerminate(nullptr);

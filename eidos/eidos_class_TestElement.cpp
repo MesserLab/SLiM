@@ -96,7 +96,7 @@ void EidosTestElement::SetProperty(EidosGlobalStringID p_property_id, const Eido
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 	{
-		yolk_ = p_value.IntAtIndex(0, nullptr);
+		yolk_ = p_value.IntAtIndex_NOCAST(0, nullptr);
 		return;
 	}
 	
@@ -109,7 +109,7 @@ void EidosTestElement::SetProperty_Accelerated__yolk(EidosObject **p_elements, s
 {
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_value;
@@ -175,7 +175,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *yolk_value = p_arguments[0].get();
-	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex(0, nullptr));
+	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex_NOCAST(0, nullptr));
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElement_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
@@ -293,7 +293,7 @@ void EidosTestElementNRR::SetProperty(EidosGlobalStringID p_property_id, const E
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 	{
-		yolk_ = p_value.IntAtIndex(0, nullptr);
+		yolk_ = p_value.IntAtIndex_NOCAST(0, nullptr);
 		return;
 	}
 	
@@ -318,7 +318,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *yolk_value = p_arguments[0].get();
-	EidosTestElementNRR *objectElement = new EidosTestElementNRR(yolk_value->IntAtIndex(0, nullptr));
+	EidosTestElementNRR *objectElement = new EidosTestElementNRR(yolk_value->IntAtIndex_NOCAST(0, nullptr));
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElementNRR_Class));
 	
 	// Note that since these are not under retain/release, and Eidos has no logic to keep track of them and release them, they just leak

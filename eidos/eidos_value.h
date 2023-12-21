@@ -179,8 +179,8 @@ public:
 	virtual ~EidosValue(void);
 	
 	// methods that raise due to various causes, used to avoid duplication and allow efficient inlining
-	void RaiseForUnimplementedVectorCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
-	void RaiseForUnsupportedConversionCall(const EidosToken *p_blame_token) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
+	void RaiseForIncorrectTypeCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
+	void RaiseForImmutabilityCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	void RaiseForCapacityViolation(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	void RaiseForRangeViolation(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
 	void RaiseForRetainReleaseViolation(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
@@ -204,12 +204,19 @@ public:
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
-	// fetching individual values; these convert type if necessary, and (base class behavior) raise if impossible
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual EidosObject *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;
+	// fetching individual values; the CAST versions convert type if necessary, and (base class behavior) raise if impossible
+	// these are relatively slow convenience accessors; to get values across a large vector, the XData() methods below are preferred
+	virtual eidos_logical_t LogicalAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	virtual std::string StringAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	virtual int64_t IntAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	virtual double FloatAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	virtual EidosObject *ObjectElementAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
+	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
 	
 	// methods to allow type-agnostic manipulation of EidosValues
 	virtual EidosValue_SP VectorBasedCopy(void) const;				// just calls CopyValues() by default, but guarantees a mutable copy
@@ -222,16 +229,16 @@ public:
 	// accessing the values without changing them, or changing them but not changing the length of the vector.  You must
 	// explicitly request mutability.  If you want to change the length of the vector, you will want to actually get the
 	// type-specific vector subclass using dynamic_cast, but it is rare not to already have that pointer in such cases.
-	virtual const eidos_logical_t *LogicalData(void) const { RaiseForUnimplementedVectorCall(); }
-	virtual eidos_logical_t *LogicalData_Mutable(void) { RaiseForUnimplementedVectorCall(); }
-	virtual const std::string *StringData(void) const { RaiseForUnimplementedVectorCall(); }
-	virtual std::string *StringData_Mutable(void) { RaiseForUnimplementedVectorCall(); }
-	virtual const int64_t *IntData(void) const { RaiseForUnimplementedVectorCall(); }
-	virtual int64_t *IntData_Mutable(void) { RaiseForUnimplementedVectorCall(); }
-	virtual const double *FloatData(void) const { RaiseForUnimplementedVectorCall(); }
-	virtual double *FloatData_Mutable(void) { RaiseForUnimplementedVectorCall(); }
-	virtual EidosObject * const *ObjectData(void) const { RaiseForUnimplementedVectorCall(); }
-	virtual EidosObject **ObjectData_Mutable(void) { RaiseForUnimplementedVectorCall(); }
+	virtual const eidos_logical_t *LogicalData(void) const { RaiseForIncorrectTypeCall(); }
+	virtual eidos_logical_t *LogicalData_Mutable(void) { RaiseForIncorrectTypeCall(); }
+	virtual const std::string *StringData(void) const { RaiseForIncorrectTypeCall(); }
+	virtual std::string *StringData_Mutable(void) { RaiseForIncorrectTypeCall(); }
+	virtual const int64_t *IntData(void) const { RaiseForIncorrectTypeCall(); }
+	virtual int64_t *IntData_Mutable(void) { RaiseForIncorrectTypeCall(); }
+	virtual const double *FloatData(void) const { RaiseForIncorrectTypeCall(); }
+	virtual double *FloatData_Mutable(void) { RaiseForIncorrectTypeCall(); }
+	virtual EidosObject * const *ObjectData(void) const { RaiseForIncorrectTypeCall(); }
+	virtual EidosObject **ObjectData_Mutable(void) { RaiseForIncorrectTypeCall(); }
 	
 	// Dimension support, for matrices and arrays
 	inline __attribute__((always_inline)) bool IsMatrixOrArray(void) const { return !!dim_; }					// true if we have a dimensions buffer
@@ -357,12 +364,6 @@ public:
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
-	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -405,12 +406,6 @@ public:
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 
-	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -467,11 +462,12 @@ public:
 	virtual const eidos_logical_t *LogicalData(void) const override { return values_; }
 	virtual eidos_logical_t *LogicalData_Mutable(void) override { return values_; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual eidos_logical_t LogicalAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -530,7 +526,7 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	
 	// prohibited actions because this subclass represents only truly immutable objects
-	virtual eidos_logical_t *LogicalData_Mutable(void) override { RaiseForUnimplementedVectorCall(); }
+	virtual eidos_logical_t *LogicalData_Mutable(void) override { RaiseForImmutabilityCall(); }
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
@@ -568,7 +564,8 @@ public:
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
-	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
+	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
+	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
@@ -609,12 +606,13 @@ public:
 	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { values_.emplace_back(p_string); }
 	inline __attribute__((always_inline)) EidosValue_String_vector *Reserve(int p_reserved_size) { values_.reserve(p_reserved_size); return this; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -648,12 +646,13 @@ public:
 	virtual std::string *StringData_Mutable(void) override { delete cached_script_; cached_script_ = nullptr; return &value_; }			// very dangerous; do not use
 	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { delete cached_script_; cached_script_ = nullptr; value_ = p_string; }	// very dangerous; used only in Evaluate_For()
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual const std::string &StringRefAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosValue_SP CopyValues(void) const override;
@@ -702,6 +701,7 @@ public:
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
+	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
@@ -738,11 +738,12 @@ public:
 	virtual const int64_t *IntData(void) const override { return values_; }
 	virtual int64_t *IntData_Mutable(void) override { return values_; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -801,11 +802,12 @@ public:
 	virtual int64_t *IntData_Mutable(void) override { return &value_; }	// very dangerous; used only in Evaluate_Assign()
 	inline __attribute__((always_inline)) void SetValue(int64_t p_int) { value_ = p_int; }		// very dangerous; used only in Evaluate_For()
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosValue_SP CopyValues(void) const override;
@@ -850,6 +852,7 @@ public:
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
+	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
@@ -884,11 +887,12 @@ public:
 	virtual const double *FloatData(void) const override { return values_; }
 	virtual double *FloatData_Mutable(void) override { return values_; }
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
@@ -947,11 +951,12 @@ public:
 	virtual double *FloatData_Mutable(void) override { return &value_; }	// very dangerous; used only in Evaluate_Assign()
 	inline __attribute__((always_inline)) void SetValue(double p_float) { value_ = p_float; }	// very dangerous; used only in Evaluate_For()
 	
-	virtual eidos_logical_t LogicalAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosObject *ObjectElementAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
+	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosValue_SP CopyValues(void) const override;
@@ -1029,6 +1034,8 @@ public:
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
+	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
+	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
@@ -1071,11 +1078,9 @@ public:
 	explicit EidosValue_Object_vector(EidosObject **p_values, size_t p_count, const EidosClass *p_class);
 	virtual ~EidosValue_Object_vector(void) override;
 	
-	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual EidosObject *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosObject * const *ObjectData(void) const override { return values_; }
 	virtual EidosObject **ObjectData_Mutable(void) override { return values_; }
@@ -1322,11 +1327,9 @@ public:
 	explicit EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class, bool p_register_for_patching);	// a variant for self-pointer EidosValues; not for general use
 	virtual ~EidosValue_Object_singleton(void) override;
 	
-	virtual eidos_logical_t LogicalAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual std::string StringAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual int64_t IntAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual double FloatAtIndex(__attribute__((unused)) int p_idx, const EidosToken *p_blame_token) const override { RaiseForUnsupportedConversionCall(p_blame_token); };
-	virtual EidosObject *ObjectElementAtIndex(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	
+	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosObject * const *ObjectData(void) const override { return &value_; }
 	virtual EidosObject **ObjectData_Mutable(void) override { return &value_; }		// very dangerous; do not use

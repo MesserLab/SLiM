@@ -84,7 +84,7 @@ EidosValue_SP Eidos_ExecuteFunction_float(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *length_value = p_arguments[0].get();
-	int64_t element_count = length_value->IntAtIndex(0, nullptr);
+	int64_t element_count = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_float): function float() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
@@ -112,8 +112,8 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const std::vector<EidosValue_SP> &p_
 	EidosValue *fill1_value = p_arguments[1].get();
 	EidosValue *fill2_value = p_arguments[2].get();
 	EidosValue *fill2Indices_value = p_arguments[3].get();
-	int64_t element_count = length_value->IntAtIndex(0, nullptr);
-	int64_t fill1 = fill1_value->IntAtIndex(0, nullptr);
+	int64_t element_count = length_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t fill1 = fill1_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
@@ -129,13 +129,13 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const std::vector<EidosValue_SP> &p_
 	
 	if (fill2Indices_value->Type() == EidosValueType::kValueInt)
 	{
-		int64_t fill2 = fill2_value->IntAtIndex(0, nullptr);
+		int64_t fill2 = fill2_value->IntAtIndex_NOCAST(0, nullptr);
 		int64_t *result_data = int_result->data();
 		int positions_count = fill2Indices_value->Count();
 		
 		if (positions_count == 1)
 		{
-			int64_t position = fill2Indices_value->IntAtIndex(0, nullptr);
+			int64_t position = fill2Indices_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if ((position < 0) || (position >= element_count))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integer): function integer() requires positions in fill2Indices to be between 0 and length - 1 (" << position << " supplied)." << EidosTerminate(nullptr);
@@ -169,7 +169,7 @@ EidosValue_SP Eidos_ExecuteFunction_logical(const std::vector<EidosValue_SP> &p_
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *length_value = p_arguments[0].get();
-	int64_t element_count = length_value->IntAtIndex(0, nullptr);
+	int64_t element_count = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_logical): function logical() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
@@ -209,7 +209,7 @@ EidosValue_SP Eidos_ExecuteFunction_rep(const std::vector<EidosValue_SP> &p_argu
 	int x_count = x_value->Count();
 	EidosValue *count_value = p_arguments[1].get();
 	
-	int64_t rep_count = count_value->IntAtIndex(0, nullptr);
+	int64_t rep_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (rep_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rep): function rep() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
@@ -243,7 +243,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const std::vector<EidosValue_SP> &p_
 	
 	if (count_count == 1)
 	{
-		int64_t rep_count = count_value->IntAtIndex(0, nullptr);
+		int64_t rep_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (rep_count < 0)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
@@ -256,7 +256,7 @@ EidosValue_SP Eidos_ExecuteFunction_repEach(const std::vector<EidosValue_SP> &p_
 	{
 		for (int value_idx = 0; value_idx < x_count; value_idx++)
 		{
-			int64_t rep_count = count_value->IntAtIndex(value_idx, nullptr);
+			int64_t rep_count = count_value->IntAtIndex_NOCAST(value_idx, nullptr);
 			
 			if (rep_count < 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_repEach): function repEach() requires all elements of count to be greater than or equal to 0 (" << rep_count << " supplied)." << EidosTerminate(nullptr);
@@ -282,8 +282,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValueType x_type = x_value->Type();
-	int64_t sample_size = p_arguments[1]->IntAtIndex(0, nullptr);
-	bool replace = p_arguments[2]->LogicalAtIndex(0, nullptr);
+	int64_t sample_size = p_arguments[1]->IntAtIndex_NOCAST(0, nullptr);
+	bool replace = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	EidosValue *weights_value = p_arguments[3].get();
 	int x_count = x_value->Count();
 	
@@ -316,7 +316,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		
 		if (weights_count == 1)
 		{
-			double weight = weights_value->FloatAtIndex(0, nullptr);
+			double weight = weights_value->FloatAtIndex_CAST(0, nullptr);
 			
 			if ((weight < 0.0) || std::isnan(weight))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
@@ -904,9 +904,9 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *length_value = p_arguments[3].get();
 	EidosValueType length_type = length_value->Type();
 	
-	if ((from_type == EidosValueType::kValueFloat) && !std::isfinite(from_value->FloatAtIndex(0, nullptr)))
+	if ((from_type == EidosValueType::kValueFloat) && !std::isfinite(from_value->FloatAtIndex_NOCAST(0, nullptr)))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'from' parameter." << EidosTerminate(nullptr);
-	if ((to_type == EidosValueType::kValueFloat) && !std::isfinite(to_value->FloatAtIndex(0, nullptr)))
+	if ((to_type == EidosValueType::kValueFloat) && !std::isfinite(to_value->FloatAtIndex_NOCAST(0, nullptr)))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'to' parameter." << EidosTerminate(nullptr);
 	if ((by_type != EidosValueType::kValueNULL) && (length_type != EidosValueType::kValueNULL))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() may be supplied with either 'by' or 'length', but not both." << EidosTerminate(nullptr);
@@ -914,7 +914,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 	if (length_type != EidosValueType::kValueNULL)
 	{
 		// A length value has been supplied, so we guarantee a vector of that length even if from==to
-		int64_t length = length_value->IntAtIndex(0, nullptr);
+		int64_t length = length_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (length <= 0)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires that length, if supplied, must be > 0." << EidosTerminate(nullptr);
@@ -924,8 +924,8 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		if ((from_type == EidosValueType::kValueFloat) || (to_type == EidosValueType::kValueFloat))
 		{
 			// a float value was given, so we will generate a float sequence in all cases
-			double first_value = from_value->FloatAtIndex(0, nullptr);
-			double second_value = to_value->FloatAtIndex(0, nullptr);
+			double first_value = from_value->FloatAtIndex_CAST(0, nullptr);
+			double second_value = to_value->FloatAtIndex_CAST(0, nullptr);
 			
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
 			result_SP = EidosValue_SP(float_result);
@@ -943,8 +943,8 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		else
 		{
 			// int values were given, so whether we generate a float sequence or an int sequence depends on whether length divides evenly
-			int64_t first_value = from_value->IntAtIndex(0, nullptr);
-			int64_t second_value = to_value->IntAtIndex(0, nullptr);
+			int64_t first_value = from_value->IntAtIndex_NOCAST(0, nullptr);
+			int64_t second_value = to_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (length == 1)
 			{
@@ -986,10 +986,10 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		if ((from_type == EidosValueType::kValueFloat) || (to_type == EidosValueType::kValueFloat) || (by_type == EidosValueType::kValueFloat))
 		{
 			// float return case
-			double first_value = from_value->FloatAtIndex(0, nullptr);
-			double second_value = to_value->FloatAtIndex(0, nullptr);
+			double first_value = from_value->FloatAtIndex_CAST(0, nullptr);
+			double second_value = to_value->FloatAtIndex_CAST(0, nullptr);
 			double default_by = ((first_value < second_value) ? 1 : -1);
-			double by = ((by_type != EidosValueType::kValueNULL) ? by_value->FloatAtIndex(0, nullptr) : default_by);
+			double by = ((by_type != EidosValueType::kValueNULL) ? by_value->FloatAtIndex_CAST(0, nullptr) : default_by);
 			
 			if (by == 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
@@ -1011,10 +1011,10 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		else
 		{
 			// int return case
-			int64_t first_value = from_value->IntAtIndex(0, nullptr);
-			int64_t second_value = to_value->IntAtIndex(0, nullptr);
+			int64_t first_value = from_value->IntAtIndex_NOCAST(0, nullptr);
+			int64_t second_value = to_value->IntAtIndex_NOCAST(0, nullptr);
 			int64_t default_by = ((first_value < second_value) ? 1 : -1);
-			int64_t by = ((by_type != EidosValueType::kValueNULL) ? by_value->IntAtIndex(0, nullptr) : default_by);
+			int64_t by = ((by_type != EidosValueType::kValueNULL) ? by_value->IntAtIndex_NOCAST(0, nullptr) : default_by);
 			
 			if (by == 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
@@ -1063,7 +1063,7 @@ EidosValue_SP Eidos_ExecuteFunction_seqLen(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *length_value = p_arguments[0].get();
-	int64_t length = length_value->IntAtIndex(0, nullptr);
+	int64_t length = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (length < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seqLen): function seqLen() requires length to be greater than or equal to 0 (" << length << " supplied)." << EidosTerminate(nullptr);
@@ -1085,7 +1085,7 @@ EidosValue_SP Eidos_ExecuteFunction_string(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *length_value = p_arguments[0].get();
-	int64_t element_count = length_value->IntAtIndex(0, nullptr);
+	int64_t element_count = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (element_count < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_string): function string() requires length to be greater than or equal to 0 (" << element_count << " supplied)." << EidosTerminate(nullptr);
@@ -1185,8 +1185,8 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
-	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
-	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex(0, nullptr);
+	std::string separator = p_arguments[1]->StringAtIndex_NOCAST(0, nullptr);
+	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1195,9 +1195,9 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const std::vector<EidosValue_SP> &p_argu
 			output_stream << separator;
 		
 		if (x_type == EidosValueType::kValueObject)
-			output_stream << *x_value->ObjectElementAtIndex(value_index, nullptr);
+			output_stream << *x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 		else
-			output_stream << x_value->StringAtIndex(value_index, nullptr);
+			output_stream << x_value->StringAtIndex_CAST(value_index, nullptr);
 	}
 	
 	return gStaticEidosValueVOID;
@@ -1212,8 +1212,8 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const std::vector<EidosValue_SP> &p_arg
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	EidosValueType x_type = x_value->Type();
-	std::string separator = p_arguments[1]->StringAtIndex(0, nullptr);
-	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex(0, nullptr);
+	std::string separator = p_arguments[1]->StringAtIndex_NOCAST(0, nullptr);
+	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1222,9 +1222,9 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const std::vector<EidosValue_SP> &p_arg
 			output_stream << separator;
 		
 		if (x_type == EidosValueType::kValueObject)
-			output_stream << *x_value->ObjectElementAtIndex(value_index, nullptr);
+			output_stream << *x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 		else
-			output_stream << x_value->StringAtIndex(value_index, nullptr);
+			output_stream << x_value->StringAtIndex_CAST(value_index, nullptr);
 	}
 	
 	output_stream << std::endl;
@@ -1240,7 +1240,7 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *format_value = p_arguments[0].get();
-	std::string format = format_value->StringAtIndex(0, nullptr);
+	std::string format = format_value->StringAtIndex_NOCAST(0, nullptr);
 	EidosValue *x_value = p_arguments[1].get();
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
@@ -1438,9 +1438,9 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 		std::string result_string;
 		
 		if (x_type == EidosValueType::kValueInt)
-			result_string = EidosStringFormat(format, x_value->IntAtIndex(0, nullptr));
+			result_string = EidosStringFormat(format, x_value->IntAtIndex_NOCAST(0, nullptr));
 		else if (x_type == EidosValueType::kValueFloat)
-			result_string = EidosStringFormat(format, x_value->FloatAtIndex(0, nullptr));
+			result_string = EidosStringFormat(format, x_value->FloatAtIndex_NOCAST(0, nullptr));
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(result_string));
 	}
@@ -1453,12 +1453,12 @@ EidosValue_SP Eidos_ExecuteFunction_format(const std::vector<EidosValue_SP> &p_a
 		if (x_type == EidosValueType::kValueInt)
 		{
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				string_result->PushString(EidosStringFormat(format, x_value->IntAtIndex(value_index, nullptr)));
+				string_result->PushString(EidosStringFormat(format, x_value->IntAtIndex_NOCAST(value_index, nullptr)));
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				string_result->PushString(EidosStringFormat(format, x_value->FloatAtIndex(value_index, nullptr)));
+				string_result->PushString(EidosStringFormat(format, x_value->FloatAtIndex_NOCAST(value_index, nullptr)));
 		}
 	}
 	
@@ -1599,8 +1599,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			// Use direct access to make this fast
 			if (trueValues_type == EidosValueType::kValueLogical)
 			{
-				eidos_logical_t true_value = trueValues_value->LogicalAtIndex(0, nullptr);
-				eidos_logical_t false_value = falseValues_value->LogicalAtIndex(0, nullptr);
+				eidos_logical_t true_value = trueValues_value->LogicalAtIndex_NOCAST(0, nullptr);
+				eidos_logical_t false_value = falseValues_value->LogicalAtIndex_NOCAST(0, nullptr);
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 				EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(test_count);
 				
@@ -1611,8 +1611,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueInt)
 			{
-				int64_t true_value = trueValues_value->IntAtIndex(0, nullptr);
-				int64_t false_value = falseValues_value->IntAtIndex(0, nullptr);
+				int64_t true_value = trueValues_value->IntAtIndex_NOCAST(0, nullptr);
+				int64_t false_value = falseValues_value->IntAtIndex_NOCAST(0, nullptr);
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(test_count);
 				
@@ -1623,8 +1623,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueFloat)
 			{
-				double true_value = trueValues_value->FloatAtIndex(0, nullptr);
-				double false_value = falseValues_value->FloatAtIndex(0, nullptr);
+				double true_value = trueValues_value->FloatAtIndex_NOCAST(0, nullptr);
+				double false_value = falseValues_value->FloatAtIndex_NOCAST(0, nullptr);
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(test_count);
 				
@@ -1635,8 +1635,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			}
 			else if (trueValues_type == EidosValueType::kValueString)
 			{
-				const std::string &true_value = ((EidosValue_String *)trueValues_value)->StringRefAtIndex(0, nullptr);
-				const std::string &false_value = ((EidosValue_String *)falseValues_value)->StringRefAtIndex(0, nullptr);
+				const std::string &true_value = ((EidosValue_String *)trueValues_value)->StringRefAtIndex_NOCAST(0, nullptr);
+				const std::string &false_value = ((EidosValue_String *)falseValues_value)->StringRefAtIndex_NOCAST(0, nullptr);
 				EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 				EidosValue_String_vector *string_result = string_result_SP->Reserve(test_count);
 				
@@ -1653,8 +1653,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				if (trueValues_class != falseValues_class)
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_ifelse): objects of different types cannot be mixed in function ifelse()." << EidosTerminate(nullptr);
 				
-				EidosObject *true_value = trueValues_value->ObjectElementAtIndex(0, nullptr);
-				EidosObject *false_value = falseValues_value->ObjectElementAtIndex(0, nullptr);
+				EidosObject *true_value = trueValues_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+				EidosObject *false_value = falseValues_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
 				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
@@ -1756,22 +1756,22 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 	{
 		// Handle singleton matching separately, to allow the use of the fast vector API below
 		if (x_type == EidosValueType::kValueLogical)
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->LogicalAtIndex(0, nullptr) == table_value->LogicalAtIndex(0, nullptr) ? 0 : -1));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->LogicalAtIndex_NOCAST(0, nullptr) == table_value->LogicalAtIndex_NOCAST(0, nullptr) ? 0 : -1));
 		else if (x_type == EidosValueType::kValueInt)
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr) == table_value->IntAtIndex(0, nullptr) ? 0 : -1));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex_NOCAST(0, nullptr) == table_value->IntAtIndex_NOCAST(0, nullptr) ? 0 : -1));
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double f0 = x_value->FloatAtIndex(0, nullptr), f1 = table_value->FloatAtIndex(0, nullptr);
+			double f0 = x_value->FloatAtIndex_NOCAST(0, nullptr), f1 = table_value->FloatAtIndex_NOCAST(0, nullptr);
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(((std::isnan(f0) && std::isnan(f1)) || (f0 == f1)) ? 0 : -1));
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string &s0 = ((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
-			const std::string &s1 = ((EidosValue_String *)table_value)->StringRefAtIndex(0, nullptr);
+			const std::string &s0 = ((EidosValue_String *)x_value)->StringRefAtIndex_NOCAST(0, nullptr);
+			const std::string &s1 = ((EidosValue_String *)table_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(s0 == s1 ? 0 : -1));
 		}
 		else if (x_type == EidosValueType::kValueObject)
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->ObjectElementAtIndex(0, nullptr) == table_value->ObjectElementAtIndex(0, nullptr) ? 0 : -1));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->ObjectElementAtIndex_NOCAST(0, nullptr) == table_value->ObjectElementAtIndex_NOCAST(0, nullptr) ? 0 : -1));
 	}
 	else if (x_count == 1)	// && (table_count != 1)
 	{
@@ -1779,7 +1779,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			eidos_logical_t value0 = x_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t value0 = x_value->LogicalAtIndex_NOCAST(0, nullptr);
 			const eidos_logical_t *logical_data1 = table_value->LogicalData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
@@ -1791,7 +1791,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t value0 = x_value->IntAtIndex(0, nullptr);
+			int64_t value0 = x_value->IntAtIndex_NOCAST(0, nullptr);
 			const int64_t *int_data1 = table_value->IntData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
@@ -1803,7 +1803,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double value0 = x_value->FloatAtIndex(0, nullptr);
+			double value0 = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			const double *float_data1 = table_value->FloatData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
@@ -1819,7 +1819,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string &value0 = ((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
+			const std::string &value0 = ((EidosValue_String *)x_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			const std::string *string_vec1 = table_value->StringData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
@@ -1831,7 +1831,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else // if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObject *value0 = x_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *value0 = x_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 			EidosObject * const *objelement_vec1 = table_value->ObjectData();
 			
 			for (table_index = 0; table_index < table_count; ++table_index)
@@ -1852,7 +1852,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			eidos_logical_t value1 = table_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t value1 = table_value->LogicalAtIndex_NOCAST(0, nullptr);
 			const eidos_logical_t *logical_data0 = x_value->LogicalData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1860,7 +1860,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t value1 = table_value->IntAtIndex(0, nullptr);
+			int64_t value1 = table_value->IntAtIndex_NOCAST(0, nullptr);
 			const int64_t *int_data0 = x_value->IntData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1868,7 +1868,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double value1 = table_value->FloatAtIndex(0, nullptr);
+			double value1 = table_value->FloatAtIndex_NOCAST(0, nullptr);
 			const double *float_data0 = x_value->FloatData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1880,7 +1880,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string &value1 = ((EidosValue_String *)table_value)->StringRefAtIndex(0, nullptr);
+			const std::string &value1 = ((EidosValue_String *)table_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			const std::string *string_vec0 = x_value->StringData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -1888,7 +1888,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 		}
 		else if (x_type == EidosValueType::kValueObject)
 		{
-			EidosObject *value1 = table_value->ObjectElementAtIndex(0, nullptr);
+			EidosObject *value1 = table_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 			EidosObject * const *objelement_vec0 = x_value->ObjectData();
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -2138,7 +2138,7 @@ EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_ar
 	{
 		// Here we handle the vector cases, which can be done with direct access
 		EidosValueType x_type = x_value->Type();
-		bool ascending = p_arguments[1]->LogicalAtIndex(0, nullptr);
+		bool ascending = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 		std::vector<int64_t> order;
 		
 		if (x_type == EidosValueType::kValueLogical)
@@ -2164,7 +2164,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_ar
 	
 	// SYNCH WITH paste0() BELOW!
 	size_t argument_count = p_arguments.size();
-	std::string separator = p_arguments[argument_count - 1]->StringAtIndex(0, nullptr);
+	std::string separator = p_arguments[argument_count - 1]->StringAtIndex_NOCAST(0, nullptr);
 	std::string result_string;
 	
 	// SLiM 3.5 breaks backward compatibility for paste() because the second argument, which would have been interpreted as "sep="
@@ -2173,7 +2173,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_ar
 	if ((argument_count == 3) && (separator == " ") &&
 		((p_arguments[1]->Type() == EidosValueType::kValueString) && (p_arguments[1]->Count() == 1)))
 	{
-		std::string pseudosep = p_arguments[1]->StringAtIndex(0, nullptr);	// perhaps intended as sep, and now sep=" " has been used as a default?
+		std::string pseudosep = p_arguments[1]->StringAtIndex_NOCAST(0, nullptr);	// perhaps intended as sep, and now sep=" " has been used as a default?
 		
 		if ((pseudosep == "") || (pseudosep == " ") || (pseudosep == "\t") || (pseudosep == "\n") || (pseudosep == ",") || (pseudosep == ", ") || (pseudosep == " , ") || (pseudosep == ";") || (pseudosep == "; ") || (pseudosep == " ; "))
 		{
@@ -2197,12 +2197,12 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_ar
 			{
 				std::ostringstream oss;
 				
-				oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
+				oss << *x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 				
 				result_string.append(oss.str());
 			}
 			else
-				result_string.append(x_value->StringAtIndex(value_index, nullptr));
+				result_string.append(x_value->StringAtIndex_CAST(value_index, nullptr));
 		}
 	}
 	
@@ -2230,12 +2230,12 @@ EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_a
 			{
 				std::ostringstream oss;
 				
-				oss << *x_value->ObjectElementAtIndex(value_index, nullptr);
+				oss << *x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 				
 				result_string.append(oss.str());
 			}
 			else
-				result_string.append(x_value->StringAtIndex(value_index, nullptr));
+				result_string.append(x_value->StringAtIndex_CAST(value_index, nullptr));
 		}
 	}
 	
@@ -2246,7 +2246,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_a
 EidosValue_SP Eidos_ExecuteFunction_print(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
-	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex(0, nullptr);
+	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
 	output_stream << *x_value << std::endl;
@@ -2275,7 +2275,7 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 		kTiesMin
 	} TiesMethod;
 	
-	std::string tiesMethod_string = tiesMethod_value->StringAtIndex(0, nullptr);
+	std::string tiesMethod_string = tiesMethod_value->StringAtIndex_NOCAST(0, nullptr);
 	TiesMethod tiesMethod;
 	
 	if (tiesMethod_string == "average")
@@ -2546,7 +2546,7 @@ EidosValue_SP Eidos_ExecuteFunction_sort(const std::vector<EidosValue_SP> &p_arg
 	for (int value_index = 0; value_index < x_count; ++value_index)
 		result->PushValueFromIndexOfEidosValue(value_index, *x_value, nullptr);
 	
-	result->Sort(p_arguments[1]->LogicalAtIndex(0, nullptr));
+	result->Sort(p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr));
 	
 	return result_SP;
 }
@@ -2566,15 +2566,15 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_a
 	if (object_result->UsesRetainRelease())
 	{
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			object_result->set_object_element_no_check_no_previous_RR(x_value->ObjectElementAtIndex(value_index, nullptr), value_index);
+			object_result->set_object_element_no_check_no_previous_RR(x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr), value_index);
 	}
 	else
 	{
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			object_result->set_object_element_no_check_NORR(x_value->ObjectElementAtIndex(value_index, nullptr), value_index);
+			object_result->set_object_element_no_check_NORR(x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr), value_index);
 	}
 	
-	object_result->SortBy(p_arguments[1]->StringAtIndex(0, nullptr), p_arguments[2]->LogicalAtIndex(0, nullptr));
+	object_result->SortBy(p_arguments[1]->StringAtIndex_NOCAST(0, nullptr), p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr));
 	
 	return result_SP;
 }
@@ -2583,7 +2583,7 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_a
 EidosValue_SP Eidos_ExecuteFunction_str(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
-	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex(0, nullptr);
+	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
 	x_value->PrintStructure(output_stream, 2);
@@ -2604,9 +2604,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	EidosValue *maxbin_value = p_arguments[1].get();
 	EidosValueType maxbin_type = maxbin_value->Type();
 	
-	// set up to work with either a singleton or a non-singleton vector
-	int64_t singleton_value = (value_count == 1) ? bin_value->IntAtIndex(0, nullptr) : 0;
-	const int64_t *int_data = (value_count == 1) ? &singleton_value : bin_value->IntData();
+	const int64_t *int_data = bin_value->IntData();
 	
 	// determine maxbin
 	int64_t maxbin;
@@ -2628,7 +2626,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	}
 	else
 	{
-		maxbin = maxbin_value->IntAtIndex(0, nullptr);
+		maxbin = maxbin_value->IntAtIndex_NOCAST(0, nullptr);
 	}
 	
 	if (maxbin < 0)
@@ -2697,7 +2695,7 @@ EidosValue_SP Eidos_ExecuteFunction_unique(const std::vector<EidosValue_SP> &p_a
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	return UniqueEidosValue(p_arguments[0].get(), false, p_arguments[1]->LogicalAtIndex(0, nullptr));
+	return UniqueEidosValue(p_arguments[0].get(), false, p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr));
 }
 
 //	(integer)which(logical x)
@@ -2741,7 +2739,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 		
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			eidos_logical_t max = x_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t max = x_value->LogicalAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2757,7 +2755,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t max = x_value->IntAtIndex(0, nullptr);
+			int64_t max = x_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2773,7 +2771,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double max = x_value->FloatAtIndex(0, nullptr);
+			double max = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2789,7 +2787,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMax(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string *max = &((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
+			const std::string *max = &((EidosValue_String *)x_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2831,7 +2829,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 		
 		if (x_type == EidosValueType::kValueLogical)
 		{
-			eidos_logical_t min = x_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t min = x_value->LogicalAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2847,7 +2845,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t min = x_value->IntAtIndex(0, nullptr);
+			int64_t min = x_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2863,7 +2861,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			double min = x_value->FloatAtIndex(0, nullptr);
+			double min = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2879,7 +2877,7 @@ EidosValue_SP Eidos_ExecuteFunction_whichMin(const std::vector<EidosValue_SP> &p
 		}
 		else if (x_type == EidosValueType::kValueString)
 		{
-			const std::string *min = &((EidosValue_String *)x_value)->StringRefAtIndex(0, nullptr);
+			const std::string *min = &((EidosValue_String *)x_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (x_count > 1)
 			{
@@ -2920,7 +2918,7 @@ EidosValue_SP Eidos_ExecuteFunction_asFloat(const std::vector<EidosValue_SP> &p_
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_value->FloatAtIndex(0, nullptr)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_value->FloatAtIndex_CAST(0, nullptr)));
 	}
 	else
 	{
@@ -2928,7 +2926,7 @@ EidosValue_SP Eidos_ExecuteFunction_asFloat(const std::vector<EidosValue_SP> &p_
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(x_value->FloatAtIndex(value_index, nullptr), value_index);
+			float_result->set_float_no_check(x_value->FloatAtIndex_CAST(value_index, nullptr), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -2946,7 +2944,7 @@ EidosValue_SP Eidos_ExecuteFunction_asInteger(const std::vector<EidosValue_SP> &
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex_CAST(0, nullptr)));
 	}
 	else
 	{
@@ -2954,7 +2952,7 @@ EidosValue_SP Eidos_ExecuteFunction_asInteger(const std::vector<EidosValue_SP> &
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			int_result->set_int_no_check(x_value->IntAtIndex(value_index, nullptr), value_index);
+			int_result->set_int_no_check(x_value->IntAtIndex_CAST(value_index, nullptr), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -2973,7 +2971,7 @@ EidosValue_SP Eidos_ExecuteFunction_asLogical(const std::vector<EidosValue_SP> &
 	if ((x_count == 1) && (x_value->DimensionCount() == 1))
 	{
 		// Use the global constants, but only if we do not have to impose a dimensionality upon the value below
-		result_SP = (x_value->LogicalAtIndex(0, nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		result_SP = (x_value->LogicalAtIndex_CAST(0, nullptr) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
@@ -2981,7 +2979,7 @@ EidosValue_SP Eidos_ExecuteFunction_asLogical(const std::vector<EidosValue_SP> &
 		result_SP = EidosValue_SP(logical_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			logical_result->set_logical_no_check(x_value->LogicalAtIndex(value_index, nullptr), value_index);
+			logical_result->set_logical_no_check(x_value->LogicalAtIndex_CAST(value_index, nullptr), value_index);
 		
 		result_SP->CopyDimensionsFromValue(x_value);
 	}
@@ -3003,7 +3001,7 @@ EidosValue_SP Eidos_ExecuteFunction_asString(const std::vector<EidosValue_SP> &p
 	}
 	else if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(x_value->StringAtIndex(0, nullptr)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(x_value->StringAtIndex_CAST(0, nullptr)));
 	}
 	else
 	{
@@ -3011,7 +3009,7 @@ EidosValue_SP Eidos_ExecuteFunction_asString(const std::vector<EidosValue_SP> &p
 		result_SP = EidosValue_SP(string_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			string_result->PushString(x_value->StringAtIndex(value_index, nullptr));
+			string_result->PushString(x_value->StringAtIndex_CAST(value_index, nullptr));
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);

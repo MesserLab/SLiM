@@ -58,8 +58,8 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			mean_x += x_value->FloatAtIndex(value_index, nullptr);
-			mean_y += y_value->FloatAtIndex(value_index, nullptr);
+			mean_x += x_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean_y += y_value->FloatAtIndex_CAST(value_index, nullptr);
 		}
 		
 		mean_x /= count;
@@ -70,8 +70,8 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			double dx = x_value->FloatAtIndex(value_index, nullptr) - mean_x;
-			double dy = y_value->FloatAtIndex(value_index, nullptr) - mean_y;
+			double dx = x_value->FloatAtIndex_CAST(value_index, nullptr) - mean_x;
+			double dy = y_value->FloatAtIndex_CAST(value_index, nullptr) - mean_y;
 			
 			ss_x += dx * dx;
 			ss_y += dy * dy;
@@ -112,8 +112,8 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			mean_x += x_value->FloatAtIndex(value_index, nullptr);
-			mean_y += y_value->FloatAtIndex(value_index, nullptr);
+			mean_x += x_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean_y += y_value->FloatAtIndex_CAST(value_index, nullptr);
 		}
 		
 		mean_x /= count;
@@ -124,8 +124,8 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			double temp_x = (x_value->FloatAtIndex(value_index, nullptr) - mean_x);
-			double temp_y = (y_value->FloatAtIndex(value_index, nullptr) - mean_y);
+			double temp_x = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean_x);
+			double temp_y = (y_value->FloatAtIndex_CAST(value_index, nullptr) - mean_y);
 			cov += temp_x * temp_y;
 		}
 		
@@ -197,7 +197,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
-		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
+		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex_NOCAST(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -206,7 +206,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->IntAtIndex(0, nullptr);
+				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
 				if (max < temp)
 					max = temp;
 			}
@@ -233,7 +233,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
+		double max = p_arguments[first_nonempty_argument]->FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -242,7 +242,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				double temp = arg_value->FloatAtIndex(0, nullptr);
+				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
 				
 				// if there is a NAN the result is always NAN, so we don't need to scan further
 				if (std::isnan(temp))
@@ -283,7 +283,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueString)
 	{
-		const std::string *max = &(((EidosValue_String *)(p_arguments[first_nonempty_argument].get()))->StringRefAtIndex(0, nullptr));
+		const std::string *max = &(((EidosValue_String *)(p_arguments[first_nonempty_argument].get()))->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -292,7 +292,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				const std::string &temp = arg_value->StringRefAtIndex(0, nullptr);
+				const std::string &temp = arg_value->StringRefAtIndex_NOCAST(0, nullptr);
 				if (*max < temp)
 					max = &temp;
 			}
@@ -331,14 +331,14 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arg
 	}
 	else if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_value->FloatAtIndex(0, nullptr)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_value->FloatAtIndex_CAST(0, nullptr)));
 	}
 	else
 	{
 		// Call sum() to do the addition for us, since it takes exactly the same arguments; it will return numeric$ which we treat as float$
 		// Note this means we inherit the parallelization/vectorization behavior of sum(); we have no separate benchmarks for mean()
 		EidosValue_SP sum_value = Eidos_ExecuteFunction_sum(p_arguments, p_interpreter);
-		double sum = sum_value->FloatAtIndex(0, nullptr);
+		double sum = sum_value->FloatAtIndex_CAST(0, nullptr);
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum / x_count));
 	}
@@ -403,7 +403,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
-		int64_t min = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
+		int64_t min = p_arguments[first_nonempty_argument]->IntAtIndex_NOCAST(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -412,7 +412,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->IntAtIndex(0, nullptr);
+				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
 				if (min > temp)
 					min = temp;
 			}
@@ -439,7 +439,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		double min = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
+		double min = p_arguments[first_nonempty_argument]->FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -448,7 +448,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				double temp = arg_value->FloatAtIndex(0, nullptr);
+				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
 				
 				// if there is a NAN the result is always NAN, so we don't need to scan further
 				if (std::isnan(temp))
@@ -489,7 +489,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueString)
 	{
-		const std::string *min = &(((EidosValue_String *)(p_arguments[first_nonempty_argument].get()))->StringRefAtIndex(0, nullptr));
+		const std::string *min = &(((EidosValue_String *)(p_arguments[first_nonempty_argument].get()))->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
 		{
@@ -498,7 +498,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				const std::string &temp = arg_value->StringRefAtIndex(0, nullptr);
+				const std::string &temp = arg_value->StringRefAtIndex_NOCAST(0, nullptr);
 				if (*min > temp)
 					min = &temp;
 			}
@@ -562,7 +562,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		
 		// if there is a NAN the result is always NAN
 		if (x_type == EidosValueType::kValueFloat)
-			if (std::isnan(x_value->FloatAtIndex(0, nullptr)) || std::isnan(y_value->FloatAtIndex(0, nullptr)))
+			if (std::isnan(x_value->FloatAtIndex_NOCAST(0, nullptr)) || std::isnan(y_value->FloatAtIndex_NOCAST(0, nullptr)))
 				return gStaticEidosValue_FloatNAN;
 		
 		if (CompareEidosValues(*x_value, 0, *y_value, 0, EidosComparisonOperator::kLess, nullptr))
@@ -585,7 +585,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		if (x_type == EidosValueType::kValueLogical)
 		{
 			const eidos_logical_t *logical0_data = x_value->LogicalData();
-			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex_NOCAST(0, nullptr);
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
 			
@@ -595,7 +595,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueInt)
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
-			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
+			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
@@ -621,7 +621,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			const double * __restrict__ float0_data = x_value->FloatData();
-			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
+			double y_singleton_value = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
@@ -641,7 +641,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueString)
 		{
 			const std::string *string0_vec = x_value->StringData();
-			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex(0, nullptr);
+			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
@@ -760,7 +760,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		
 		// if there is a NAN the result is always NAN
 		if (x_type == EidosValueType::kValueFloat)
-			if (std::isnan(x_value->FloatAtIndex(0, nullptr)) || std::isnan(y_value->FloatAtIndex(0, nullptr)))
+			if (std::isnan(x_value->FloatAtIndex_NOCAST(0, nullptr)) || std::isnan(y_value->FloatAtIndex_NOCAST(0, nullptr)))
 				return gStaticEidosValue_FloatNAN;
 		
 		if (CompareEidosValues(*x_value, 0, *y_value, 0, EidosComparisonOperator::kGreater, nullptr))
@@ -783,7 +783,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		if (x_type == EidosValueType::kValueLogical)
 		{
 			const eidos_logical_t *logical0_data = x_value->LogicalData();
-			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t y_singleton_value = y_value->LogicalAtIndex_NOCAST(0, nullptr);
 			EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(logical_result);
 			
@@ -793,7 +793,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueInt)
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
-			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
+			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
@@ -809,7 +809,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueFloat)
 		{
 			const double * __restrict__ float0_data = x_value->FloatData();
-			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
+			double y_singleton_value = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
@@ -829,7 +829,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		else if (x_type == EidosValueType::kValueString)
 		{
 			const std::string *string0_vec = x_value->StringData();
-			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex(0, nullptr);
+			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
@@ -939,7 +939,7 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 	{
 		for (int probs_index = 0; probs_index < probs_count; ++probs_index)
 		{
-			double prob = probs_value->FloatAtIndex(probs_index, nullptr);
+			double prob = probs_value->FloatAtIndex_NOCAST(probs_index, nullptr);
 			
 			if ((prob < 0.0) || (prob > 1.0))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): function quantile() requires probabilities to be in [0, 1]." << EidosTerminate(nullptr);
@@ -954,7 +954,7 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 	if (x_count == 1)
 	{
 		// All quantiles of a singleton are the value of the singleton; the probabilities don't matter as long as they're in range (checked above)
-		double x_singleton = x_value->FloatAtIndex(0, nullptr);
+		double x_singleton = x_value->FloatAtIndex_CAST(0, nullptr);
 		
 		if (std::isnan(x_singleton))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): quantiles of NAN are undefined." << EidosTerminate(nullptr);
@@ -993,11 +993,11 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 			int64_t lo = (int64_t)std::floor(index);
 			int64_t hi = (int64_t)std::ceil(index);
 			
-			double quantile = x_value->FloatAtIndex((int)order[lo], nullptr);
+			double quantile = x_value->FloatAtIndex_CAST((int)order[lo], nullptr);
 			if (lo != hi) {
 				double h = index - lo;
 				quantile *= (1.0 - h);
-				quantile += h * x_value->FloatAtIndex((int)order[hi], nullptr);
+				quantile += h * x_value->FloatAtIndex_CAST((int)order[hi], nullptr);
 			}
 			
 			float_result->set_float_no_check(quantile, probs_index);
@@ -1051,7 +1051,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
 		result_SP = EidosValue_SP(int_result);
 		
-		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex(0, nullptr);
+		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex_NOCAST(0, nullptr);
 		int64_t min = max;
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
@@ -1061,7 +1061,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->IntAtIndex(0, nullptr);
+				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
 				if (max < temp)
 					max = temp;
 				else if (min > temp)
@@ -1090,7 +1090,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(2);
 		result_SP = EidosValue_SP(float_result);
 		
-		double max = p_arguments[first_nonempty_argument]->FloatAtIndex(0, nullptr);
+		double max = p_arguments[first_nonempty_argument]->FloatAtIndex_NOCAST(0, nullptr);
 		double min = max;
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
@@ -1100,7 +1100,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 			
 			if (arg_count == 1)
 			{
-				double temp = arg_value->FloatAtIndex(0, nullptr);
+				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
 				
 				// if there is a NAN, the range is always (NAN,NAN); short-circuit
 				if (std::isnan(temp))
@@ -1162,13 +1162,13 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_argum
 		double sd = 0;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->FloatAtIndex(value_index, nullptr);
+			mean += x_value->FloatAtIndex_CAST(value_index, nullptr);
 		
 		mean /= x_count;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			double temp = (x_value->FloatAtIndex(value_index, nullptr) - mean);
+			double temp = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean);
 			sd += temp * temp;
 		}
 		
@@ -1223,7 +1223,7 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_ar
 	else if (mu_type != EidosValueType::kValueNULL)
 	{
 		// This is the x & mu case, which is a one-sample t-test
-		double mu = mu_value->FloatAtIndex(0, nullptr);
+		double mu = mu_value->FloatAtIndex_NOCAST(0, nullptr);
 		
 		pvalue = Eidos_TTest_OneSample(vec1, x_count, mu, nullptr);
 	}
@@ -1250,7 +1250,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 		double mean = 0;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->FloatAtIndex(value_index, nullptr);
+			mean += x_value->FloatAtIndex_CAST(value_index, nullptr);
 		
 		mean /= x_count;
 		
@@ -1259,7 +1259,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			double temp = (x_value->FloatAtIndex(value_index, nullptr) - mean);
+			double temp = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean);
 			var += temp * temp;
 		}
 		

@@ -76,7 +76,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 		
 		if (message_value->Type() != EidosValueType::kValueNULL)
 		{
-			std::string &&stop_string = message_value->StringAtIndex(0, nullptr);
+			std::string &&stop_string = message_value->StringAtIndex_NOCAST(0, nullptr);
 			
 			p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 			
@@ -99,7 +99,7 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arg
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *soundName_value = p_arguments[0].get();
-	std::string name_string = ((soundName_value->Type() == EidosValueType::kValueString) ? soundName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string name_string = ((soundName_value->Type() == EidosValueType::kValueString) ? soundName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	
 	std::string beep_error = Eidos_Beep(name_string);
 	
@@ -144,7 +144,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *string_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &type_name = string_value->StringRefAtIndex(0, nullptr);
+	const std::string &type_name = string_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (type_name == "cpu")
 	{
@@ -205,7 +205,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &symbol_name = symbol_value->StringRefAtIndex(0, nullptr);
+	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -231,7 +231,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &symbol_name = symbol_value->StringRefAtIndex(0, nullptr);
+	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -261,7 +261,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue_String *functionName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &function_name = functionName_value->StringRefAtIndex(0, nullptr);
+	const std::string &function_name = functionName_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	// Copy the argument list; this is a little slow, but not a big deal, and it provides protection against re-entrancy
 	std::vector<EidosValue_SP> arguments;
@@ -341,7 +341,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambdaSource_value->StringAtIndex(0, nullptr), -1);
+		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr), -1);
 		
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
@@ -382,12 +382,12 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	
 	if (timed_value_type == EidosValueType::kValueLogical)
 	{
-		if (timed_value->LogicalAtIndex(0, nullptr))
+		if (timed_value->LogicalAtIndex_NOCAST(0, nullptr))
 			timed = true;
 	}
 	else if (timed_value_type == EidosValueType::kValueString)
 	{
-		const std::string &timed_string = timed_value->StringRefAtIndex(0, nullptr);
+		const std::string &timed_string = timed_value->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (timed_string == "cpu")
 		{
@@ -504,7 +504,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 	if ((symbol_count == 1) && (symbol_value->DimensionCount() == 1))
 	{
 		// Use the global constants, but only if we do not have to impose a dimensionality upon the value below
-		EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex(0, nullptr));
+		EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		result_SP = (symbols.ContainsSymbol(symbol_id) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
@@ -515,7 +515,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 		
 		for (int value_index = 0; value_index < symbol_count; ++value_index)
 		{
-			EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex(value_index, nullptr));
+			EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 			
 			logical_result->set_logical_no_check(symbols.ContainsSymbol(symbol_id), value_index);
 		}
@@ -534,7 +534,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool function_name_specified = (functionName_value->Type() == EidosValueType::kValueString);
-	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
 	// function_map_ is already alphabetized since maps keep sorted order
@@ -580,7 +580,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 	
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
-	std::string match_string = functionName_value->StringAtIndex(0, nullptr);
+	std::string match_string = functionName_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
@@ -674,7 +674,7 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	bool showSymbolTables = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	bool showSymbolTables = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	std::ostream &outstream = p_interpreter.ExecutionOutputStream();
 	EidosSymbolTable &current_symbol_table = p_interpreter.SymbolTable();
@@ -869,7 +869,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	if (numThreads_value->Type() == EidosValueType::kValueInt)
 	{
 		// An explicit override has been requested, even if numThreads == gEidosMaxThreads
-		numThreads = numThreads_value->IntAtIndex(0, nullptr);
+		numThreads = numThreads_value->IntAtIndex_NOCAST(0, nullptr);
 		gEidosNumThreadsOverride = true;
 	}
 	else
@@ -909,7 +909,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
 		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
 		if (!source)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
@@ -928,7 +928,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 					
 					if ((value->Type() == EidosValueType::kValueInt) && (value->Count() == 1))
 					{
-						int64_t value_int64 = value->IntAtIndex(0, nullptr);
+						int64_t value_int64 = value->IntAtIndex_NOCAST(0, nullptr);
 						
 						if ((value_int64 < 1) || (value_int64 > EIDOS_OMP_MAX_THREADS))
 							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() requires thread counts to be in [1, " << EIDOS_OMP_MAX_THREADS << "]." << EidosTerminate(nullptr);
@@ -1103,7 +1103,7 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_argum
 		int variableNames_count = variableNames_value->Count();
 		
 		for (int value_index = 0; value_index < variableNames_count; ++value_index)
-			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex(value_index, nullptr));
+			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex_NOCAST(value_index, nullptr));
 	}
 	
 	for (std::string &symbol : symbols_to_remove)
@@ -1127,7 +1127,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Determine the simplification mode requested
 	EidosValue_String *simplify_value = (EidosValue_String *)p_arguments[2].get();
-	const std::string &simplify_string = simplify_value->StringRefAtIndex(0, nullptr);
+	const std::string &simplify_string = simplify_value->StringRefAtIndex_NOCAST(0, nullptr);
 	int simplify;
 	
 	if (simplify_string == "vector")		simplify = 0;
@@ -1151,7 +1151,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
 		
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
@@ -1287,7 +1287,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const std::vector<EidosValue_SP> &p_
 	
 	EidosValue *seed_value = p_arguments[0].get();
 	
-	Eidos_SetRNGSeed(seed_value->IntAtIndex(0, nullptr));
+	Eidos_SetRNGSeed(seed_value->IntAtIndex_NOCAST(0, nullptr));
 	
 	return gStaticEidosValueVOID;
 }
@@ -1303,7 +1303,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 	
 	if (message_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string &&stop_string = p_arguments[0]->StringAtIndex(0, nullptr);
+		std::string &&stop_string = p_arguments[0]->StringAtIndex_NOCAST(0, nullptr);
 		
 		p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 		
@@ -1322,7 +1322,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *suppress_value = p_arguments[0].get();
-	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex(0, nullptr);
+	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex_NOCAST(0, nullptr);
 	eidos_logical_t old_suppress = gEidosSuppressWarnings;
 	
 	gEidosSuppressWarnings = new_suppress;
@@ -1334,7 +1334,7 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValu
 EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *key_value = p_arguments[0].get();
-	std::string key = key_value->StringAtIndex(0, nullptr);
+	std::string key = key_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (key == "os")
 	{
@@ -1422,15 +1422,15 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 	EidosValue_String *command_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue_String *args_value = (EidosValue_String *)p_arguments[1].get();
 	int arg_count = args_value->Count();
-	bool has_args = ((arg_count > 1) || ((arg_count == 1) && (args_value->StringRefAtIndex(0, nullptr).length() > 0)));
+	bool has_args = ((arg_count > 1) || ((arg_count == 1) && (args_value->StringRefAtIndex_NOCAST(0, nullptr).length() > 0)));
 	EidosValue_String *input_value = (EidosValue_String *)p_arguments[2].get();
 	int input_count = input_value->Count();
-	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringRefAtIndex(0, nullptr).length() > 0)));
-	bool redirect_stderr = p_arguments[3]->LogicalAtIndex(0, nullptr);
-	bool wait = p_arguments[4]->LogicalAtIndex(0, nullptr);
+	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringRefAtIndex_NOCAST(0, nullptr).length() > 0)));
+	bool redirect_stderr = p_arguments[3]->LogicalAtIndex_NOCAST(0, nullptr);
+	bool wait = p_arguments[4]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Construct the command string
-	std::string command_string = command_value->StringRefAtIndex(0, nullptr);
+	std::string command_string = command_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (command_string.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): a non-empty command string must be supplied to system()." << EidosTerminate(nullptr);
@@ -1440,7 +1440,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		for (int value_index = 0; value_index < arg_count; ++value_index)
 		{
 			command_string.append(" ");
-			command_string.append(args_value->StringRefAtIndex(value_index, nullptr));
+			command_string.append(args_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 		}
 	}
 	
@@ -1464,7 +1464,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		
 		if (input_count == 1)
 		{
-			file_stream << input_value->StringRefAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+			file_stream << input_value->StringRefAtIndex_NOCAST(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
 		}
 		else
 		{
@@ -1577,14 +1577,14 @@ EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vec
 	if (type_value->Type() == EidosValueType::kValueLogical)
 	{
 		// old-style API, through SLiM 4.0.1 (but still supported): logical value, F == current RSS, T == peak RSS
-		bool peak = type_value->LogicalAtIndex(0, nullptr);
+		bool peak = type_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		usage = (peak ? Eidos_GetPeakRSS() : Eidos_GetCurrentRSS());
 	}
 	else
 	{
 		// new-style API, after SLiM 4.0.1: string value, "rss" == current RSS, "rss_peak" = peak RSS, "vm" = current VM
-		std::string type = type_value->StringAtIndex(0, nullptr);
+		std::string type = type_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (type == "rss")
 			usage = Eidos_GetCurrentRSS();
@@ -1609,7 +1609,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	bool print = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	bool print = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (print)
 	{
@@ -1644,7 +1644,7 @@ EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_
 	if (gEidosBenchmarkType != EidosBenchmarkType::kNone)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__startBenchmark): benchmarking has already been started." << EidosTerminate();
 	
-	std::string type = type_value->StringAtIndex(0, nullptr);
+	std::string type = type_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (type == "SAMPLE_INDEX")				gEidosBenchmarkType = EidosBenchmarkType::k_SAMPLE_INDEX;
 	else if (type == "TABULATE_MAXBIN")		gEidosBenchmarkType = EidosBenchmarkType::k_TABULATE_MAXBIN;

@@ -409,19 +409,19 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(const std::string &p_
 					case EidosValueType::kValueObject:
 						EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_CSV): cannot serialize values of type object to CSV/TSV." << EidosTerminate(nullptr);
 						
-					case EidosValueType::kValueLogical: ss << (value->LogicalAtIndex(row_index, nullptr) ? "TRUE" : "FALSE"); break;
-					case EidosValueType::kValueInt: ss << value->IntAtIndex(row_index, nullptr); break;
+					case EidosValueType::kValueLogical: ss << (value->LogicalAtIndex_NOCAST(row_index, nullptr) ? "TRUE" : "FALSE"); break;
+					case EidosValueType::kValueInt: ss << value->IntAtIndex_NOCAST(row_index, nullptr); break;
 					case EidosValueType::kValueFloat:
 					{
 						int old_precision = gEidosFloatOutputPrecision;
 						gEidosFloatOutputPrecision = EIDOS_DBL_DIGS - 2;	// try to avoid ugly values that exhibit the precision limits
-						ss << EidosStringForFloat(value->FloatAtIndex(row_index, nullptr));
+						ss << EidosStringForFloat(value->FloatAtIndex_NOCAST(row_index, nullptr));
 						gEidosFloatOutputPrecision = old_precision;
 						break;
 					}
 					case EidosValueType::kValueString:
 					{
-						ss << Eidos_string_escaped_CSV(value->StringAtIndex(row_index, nullptr));
+						ss << Eidos_string_escaped_CSV(value->StringAtIndex_NOCAST(row_index, nullptr));
 						break;
 					}
 				}
@@ -1081,7 +1081,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 	// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 	// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
 	// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-	EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+	EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 	
 	if (!source)
 		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom): addKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
@@ -1104,7 +1104,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom(E
 	// Loop through elements in source and handle them sequentially
 	for (int value_index = 0; value_index < source_count; ++value_index)
 	{
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(value_index, nullptr));
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 		
 		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
@@ -1138,7 +1138,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_compactIndices(EidosGloba
 {
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *preserveOrder_value = p_arguments[0].get();
-	bool preserveOrder = preserveOrder_value->LogicalAtIndex(0, nullptr);
+	bool preserveOrder = preserveOrder_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (!KeysAreIntegers())
 		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_compactIndices): compactIndices() can only be called on a dictionary that uses integer keys." << EidosTerminate(nullptr);
@@ -1235,7 +1235,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	{
 		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 		const std::vector<std::string> keys = SortedKeys_StringKeys();
-		bool drop = drop_value->LogicalAtIndex(0, nullptr);
+		bool drop = drop_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		for (const std::string &key : keys)
 		{
@@ -1254,7 +1254,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	{
 		const EidosDictionaryHashTable_IntegerKeys *symbols = DictionarySymbols_IntegerKeys();
 		const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
-		bool drop = drop_value->LogicalAtIndex(0, nullptr);
+		bool drop = drop_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		for (int64_t key : keys)
 		{
@@ -1294,7 +1294,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 		if (key_value->Type() != EidosValueType::kValueString)
 			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_getValue): an integer key was supplied to getValue(), but the target dictionary uses string keys." << EidosTerminate(nullptr);
 		
-		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex(0, nullptr);
+		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 		
 		auto found_iter = symbols->find(key);
@@ -1309,7 +1309,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 		if (key_value->Type() != EidosValueType::kValueInt)
 			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_getValue): a string key was supplied to getValue(), but the target dictionary uses integer keys." << EidosTerminate(nullptr);
 		
-		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex(0, nullptr);
+		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
 		const EidosDictionaryHashTable_IntegerKeys *symbols = DictionarySymbols_IntegerKeys();
 		
 		auto found_iter = symbols->find(key);
@@ -1327,7 +1327,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_identicalContents(EidosGl
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
-	EidosObject *x_object = x_value->ObjectElementAtIndex(0, nullptr);
+	EidosObject *x_object = x_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	EidosDictionaryUnretained *x_dict = dynamic_cast<EidosDictionaryUnretained *>(x_object);
 	
 	if (!x_dict)
@@ -1429,13 +1429,13 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 		// targets.  That made me nervous, and was hard to reconcile with DataFrame, so I removed it.
 		if (key_value->Type() == EidosValueType::kValueString)
 		{
-			const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex(0, nullptr);
+			const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			element->SetKeyValue_StringKeys(key, value);
 		}
 		else
 		{
-			int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex(0, nullptr);
+			int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
 			
 			element->SetKeyValue_IntegerKeys(key, value);
 		}
@@ -1452,7 +1452,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 {
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue_String *string_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &format_name = string_value->StringRefAtIndex(0, nullptr);
+	const std::string &format_name = string_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (format_name == "slim")
 	{
@@ -1580,7 +1580,7 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 		if (source_value->Type() == EidosValueType::kValueString)
 		{
 			// Construct from a JSON string
-			std::string json_string = source_value->StringAtIndex(0, nullptr);
+			std::string json_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 			nlohmann::json json_rep;
 			
 			try {
@@ -1594,7 +1594,7 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 		else
 		{
 			// Construct from a Dictionary or Dictionary subclass
-			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
 			if (!source)
 				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary)." << EidosTerminate(nullptr);
@@ -1624,13 +1624,13 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 			{
 				EidosValue_String *key_string_value = (EidosValue_String *)key;
 				
-				SetKeyValue_StringKeys(key_string_value->StringRefAtIndex(0, nullptr), value);
+				SetKeyValue_StringKeys(key_string_value->StringRefAtIndex_NOCAST(0, nullptr), value);
 			}
 			else if (key->Type() == EidosValueType::kValueInt)
 			{
 				EidosValue_Int *key_integer_value = (EidosValue_Int *)key;
 				
-				SetKeyValue_IntegerKeys(key_integer_value->IntAtIndex(0, nullptr), value);
+				SetKeyValue_IntegerKeys(key_integer_value->IntAtIndex_NOCAST(0, nullptr), value);
 			}
 			else
 			{

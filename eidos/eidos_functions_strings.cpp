@@ -47,14 +47,14 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 	EidosValue_Logical *invert_value = (EidosValue_Logical *)(p_arguments[6].get());
 	
 	// Figure out our parameters
-	const std::string &pattern = pattern_value->StringRefAtIndex(0, nullptr);
+	const std::string &pattern = pattern_value->StringRefAtIndex_NOCAST(0, nullptr);
 	size_t pattern_length = pattern.length();
 	int x_count = x_value->Count();
-	bool ignoreCase = ignoreCase_value->LogicalAtIndex(0, nullptr);
-	const std::string &grammar = grammar_value->StringRefAtIndex(0, nullptr);
-	const std::string &value = value_value->StringRefAtIndex(0, nullptr);
-	bool fixed = fixed_value->LogicalAtIndex(0, nullptr);
-	bool invert = invert_value->LogicalAtIndex(0, nullptr);
+	bool ignoreCase = ignoreCase_value->LogicalAtIndex_NOCAST(0, nullptr);
+	const std::string &grammar = grammar_value->StringRefAtIndex_NOCAST(0, nullptr);
+	const std::string &value = value_value->StringRefAtIndex_NOCAST(0, nullptr);
+	bool fixed = fixed_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool invert = invert_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (pattern_length == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): function grep() requires pattern to be of length >= 1." << EidosTerminate(nullptr);
@@ -117,7 +117,7 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 		// pattern is a fixed string, so use basic C++ string searching, honoring ignoreCase and invert
 		for (int i = 0; i < x_count; ++i)
 		{
-			const std::string &x_element = x_value->StringRefAtIndex(i, nullptr);
+			const std::string &x_element = x_value->StringRefAtIndex_NOCAST(i, nullptr);
 			size_t match_pos = std::string::npos;	// not valid when invert==T, which is why "match" is disallowed then
 			bool is_match = false;
 			
@@ -181,7 +181,7 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 		
 		for (int i = 0; i < x_count; ++i)
 		{
-			const std::string &x_element = x_value->StringRefAtIndex(i, nullptr);
+			const std::string &x_element = x_value->StringRefAtIndex_NOCAST(i, nullptr);
 			std::smatch match_info;
 			bool is_match = std::regex_search(x_element, match_info, pattern_regex);
 			
@@ -230,7 +230,7 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_ar
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->StringRefAtIndex(0, nullptr).size()));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->StringRefAtIndex_NOCAST(0, nullptr).size()));
 	}
 	else
 	{
@@ -258,8 +258,8 @@ EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP>
 	EidosValue_Int *pos_value = (EidosValue_Int *)(p_arguments[2].get());
 	
 	int x_count = x_value->Count();
-	const std::string &s = s_value->StringRefAtIndex(0, nullptr);
-	int64_t pos = pos_value->IntAtIndex(0, nullptr);
+	const std::string &s = s_value->StringRefAtIndex_NOCAST(0, nullptr);
+	int64_t pos = pos_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (s.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_strcontains): function strcontains() requires s to be of length >= 1." << EidosTerminate(nullptr);
@@ -268,7 +268,7 @@ EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP>
 	
 	if (x_count == 1)
 	{
-		const std::string &x = x_value->StringRefAtIndex(0, nullptr);
+		const std::string &x = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		size_t index = x.find(s, pos);
 		
 		if (x_value ->DimensionCount() == 1)
@@ -305,8 +305,8 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 	EidosValue_Int *pos_value = (EidosValue_Int *)(p_arguments[2].get());
 	
 	int x_count = x_value->Count();
-	const std::string &s = s_value->StringRefAtIndex(0, nullptr);
-	int64_t pos = pos_value->IntAtIndex(0, nullptr);
+	const std::string &s = s_value->StringRefAtIndex_NOCAST(0, nullptr);
+	int64_t pos = pos_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (s.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_strfind): function strfind() requires s to be of length >= 1." << EidosTerminate(nullptr);
@@ -315,7 +315,7 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 	
 	if (x_count == 1)
 	{
-		const std::string &x = x_value->StringRefAtIndex(0, nullptr);
+		const std::string &x = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		size_t index = x.find(s, pos);
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(index == std::string::npos ? -1 : (int64_t)index));
 	}
@@ -347,14 +347,14 @@ EidosValue_SP Eidos_ExecuteFunction_strprefix(const std::vector<EidosValue_SP> &
 	EidosValue_String *s_value = (EidosValue_String *)(p_arguments[1].get());
 	
 	int x_count = x_value->Count();
-	const std::string &s = s_value->StringRefAtIndex(0, nullptr);
+	const std::string &s = s_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (s.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_strprefix): function strprefix() requires s to be of length >= 1." << EidosTerminate(nullptr);
 	
 	if (x_count == 1)
 	{
-		const std::string &x = x_value->StringRefAtIndex(0, nullptr);
+		const std::string &x = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		bool has_prefix = Eidos_string_hasPrefix(x, s);
 		
 		if (x_value ->DimensionCount() == 1)
@@ -393,8 +393,8 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p
 	EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
 	result_SP = EidosValue_SP(string_result);
 	
-	const std::string &joined_string = x_value->StringRefAtIndex(0, nullptr);
-	const std::string &separator = sep_value->StringAtIndex(0, nullptr);
+	const std::string &joined_string = x_value->StringRefAtIndex_NOCAST(0, nullptr);
+	const std::string &separator = sep_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string::size_type start_idx = 0, sep_idx;
 	
 	if (separator.length() == 0)
@@ -435,14 +435,14 @@ EidosValue_SP Eidos_ExecuteFunction_strsuffix(const std::vector<EidosValue_SP> &
 	EidosValue_String *s_value = (EidosValue_String *)(p_arguments[1].get());
 	
 	int x_count = x_value->Count();
-	const std::string &s = s_value->StringRefAtIndex(0, nullptr);
+	const std::string &s = s_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (s.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_strsuffix): function strsuffix() requires s to be of length >= 1." << EidosTerminate(nullptr);
 	
 	if (x_count == 1)
 	{
-		const std::string &x = x_value->StringRefAtIndex(0, nullptr);
+		const std::string &x = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		bool has_prefix = Eidos_string_hasSuffix(x, s);
 		
 		if (x_value ->DimensionCount() == 1)
@@ -483,7 +483,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 	
 	if (x_count == 1)
 	{
-		const std::string &string_value = x_value->StringRefAtIndex(0, nullptr);
+		const std::string &string_value = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		int64_t len = (int64_t)string_value.size();
 		EidosValue *arg_first = p_arguments[1].get();
 		int arg_first_count = arg_first->Count();
@@ -491,7 +491,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 		if (arg_first_count != x_count)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 		
-		int64_t first0 = arg_first->IntAtIndex(0, nullptr);
+		int64_t first0 = arg_first->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (arg_last_type != EidosValueType::kValueNULL)
 		{
@@ -501,7 +501,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 			if (arg_last_count != x_count)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 			
-			int64_t last0 = arg_last->IntAtIndex(0, nullptr);
+			int64_t last0 = arg_last->IntAtIndex_NOCAST(0, nullptr);
 			
 			int64_t clamped_first = (int)first0;
 			int64_t clamped_last = (int)last0;
@@ -540,7 +540,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
 		result_SP = EidosValue_SP(string_result);
 		
-		int64_t first0 = arg_first->IntAtIndex(0, nullptr);
+		int64_t first0 = arg_first->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (arg_last_type != EidosValueType::kValueNULL)
 		{
@@ -551,14 +551,14 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 			if (!last_singleton && (arg_last_count != x_count))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of last to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 			
-			int64_t last0 = arg_last->IntAtIndex(0, nullptr);
+			int64_t last0 = arg_last->IntAtIndex_NOCAST(0, nullptr);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				const std::string &str = string_vec[value_index];
 				int64_t len = (int64_t)str.size();
-				int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
-				int64_t clamped_last = (last_singleton ? last0 : arg_last->IntAtIndex(value_index, nullptr));
+				int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex_NOCAST(value_index, nullptr));
+				int64_t clamped_last = (last_singleton ? last0 : arg_last->IntAtIndex_NOCAST(value_index, nullptr));
 				
 				if (clamped_first < 0) clamped_first = 0;
 				if (clamped_last >= len) clamped_last = (int)len - 1;
@@ -576,7 +576,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 			{
 				const std::string &str = string_vec[value_index];
 				int64_t len = (int64_t)str.size();
-				int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex(value_index, nullptr));
+				int64_t clamped_first = (first_singleton ? first0 : arg_first->IntAtIndex_NOCAST(value_index, nullptr));
 				
 				if (clamped_first < 0) clamped_first = 0;
 				
