@@ -888,12 +888,6 @@ EidosValue_SP EidosValue_VOID::GetValueAtIndex(const int p_idx, const EidosToken
 	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::GetValueAtIndex): (internal error) illegal on void." << EidosTerminate(p_blame_token);
 }
 
-void EidosValue_VOID::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::SetValueAtIndex): (internal error) illegal on void." << EidosTerminate(p_blame_token);
-}
-
 EidosValue_SP EidosValue_VOID::CopyValues(void) const
 {
 	EIDOS_TERMINATION << "ERROR (EidosValue_VOID::CopyValues): (internal error) illegal on void." << EidosTerminate(nullptr);
@@ -964,12 +958,6 @@ EidosValue_SP EidosValue_NULL::GetValueAtIndex(const int p_idx, const EidosToken
 {
 #pragma unused(p_idx, p_blame_token)
 	return gStaticEidosValueNULL;
-}
-
-void EidosValue_NULL::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_NULL::SetValueAtIndex): operand type " << this->Type() << " does not support setting values with the subscript operator ('[]')." << EidosTerminate(p_blame_token);
 }
 
 EidosValue_SP EidosValue_NULL::CopyValues(void) const
@@ -1108,14 +1096,6 @@ EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, const EidosTo
 	return (values_[p_idx] ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 }
 
-void EidosValue_Logical::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)count_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Logical::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	values_[p_idx] = p_value.LogicalAtIndex_CAST(0, p_blame_token);
-}
-
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));
@@ -1224,12 +1204,6 @@ EidosValue_Logical_const::~EidosValue_Logical_const(void)
 EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
 {
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));	// same as EidosValue_Logical::, but let's not rely on that
-}
-
-void EidosValue_Logical_const::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::SetValueAtIndex): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Logical_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -1373,14 +1347,6 @@ EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, const E
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(values_[p_idx]));
 }
 
-void EidosValue_String_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)values_.size()))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	values_[p_idx] = p_value.StringAtIndex_CAST(0, p_blame_token);
-}
-
 EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 {
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_))->CopyDimensionsFromValue(this));
@@ -1481,12 +1447,6 @@ EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
-}
-
-void EidosValue_String_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::SetValueAtIndex): (internal error) EidosValue_String_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_String_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -1638,14 +1598,6 @@ EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, const Eido
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(values_[p_idx]));
 }
 
-void EidosValue_Int_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)count_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	values_[p_idx] = p_value.IntAtIndex_CAST(0, p_blame_token);
-}
-
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_, count_))->CopyDimensionsFromValue(this));
@@ -1782,12 +1734,6 @@ EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
-}
-
-void EidosValue_Int_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::SetValueAtIndex): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Int_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -1929,14 +1875,6 @@ EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, const Ei
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(values_[p_idx]));
-}
-
-void EidosValue_Float_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)count_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	values_[p_idx] = p_value.FloatAtIndex_CAST(0, p_blame_token);
 }
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
@@ -2090,12 +2028,6 @@ EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
-}
-
-void EidosValue_Float_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::SetValueAtIndex): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Float_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
@@ -2362,25 +2294,6 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, const E
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::GetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(values_[p_idx], Class()));
-}
-
-void EidosValue_Object_vector::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-	if ((p_idx < 0) || (p_idx >= (int)count_))
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetValueAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
-	
-	EidosObject *new_value = p_value.ObjectElementAtIndex_CAST(0, p_blame_token);
-	
-	DeclareClassFromElement(new_value);
-	
-	if (class_uses_retain_release_)
-	{
-		static_cast<EidosDictionaryRetained *>(new_value)->Retain();				// unsafe cast to avoid virtual function overhead
-		if (values_[p_idx])
-			static_cast<EidosDictionaryRetained *>(values_[p_idx])->Release();		// unsafe cast to avoid virtual function overhead
-	}
-	
-	values_[p_idx] = new_value;
 }
 
 EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
@@ -3256,12 +3169,6 @@ EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 	new_vec->CopyDimensionsFromValue(this);
 	
 	return new_vec;
-}
-
-void EidosValue_Object_singleton::SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetValueAtIndex): (internal error) EidosValue_Object_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Object_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)

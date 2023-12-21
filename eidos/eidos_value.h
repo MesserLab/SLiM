@@ -202,7 +202,6 @@ public:
 	
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) = 0;
 	
 	// fetching individual values; the CAST versions convert type if necessary, and (base class behavior) raise if impossible
 	// these are relatively slow convenience accessors; to get values across a large vector, the XData() methods below are preferred
@@ -362,7 +361,6 @@ public:
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -404,7 +402,6 @@ public:
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -470,7 +467,6 @@ public:
 	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -527,7 +523,6 @@ public:
 	
 	// prohibited actions because this subclass represents only truly immutable objects
 	virtual eidos_logical_t *LogicalData_Mutable(void) override { RaiseForImmutabilityCall(); }
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
 };
@@ -567,7 +562,6 @@ public:
 	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const override = 0;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -615,7 +609,6 @@ public:
 	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -660,7 +653,6 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
 	
@@ -703,7 +695,6 @@ public:
 	
 	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const override = 0;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -746,7 +737,6 @@ public:
 	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -815,7 +805,6 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
 };
@@ -854,7 +843,6 @@ public:
 	
 	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const override = 0;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -895,7 +883,6 @@ public:
 	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -964,7 +951,6 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
 };
@@ -1037,7 +1023,6 @@ public:
 	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override = 0;
 	
 	virtual EidosValue_SP CopyValues(void) const override = 0;
 	virtual EidosValue_SP NewMatchingType(void) const override;
@@ -1086,7 +1071,6 @@ public:
 	virtual EidosObject **ObjectData_Mutable(void) override { return values_; }
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	
 	virtual EidosValue_SP CopyValues(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
@@ -1341,7 +1325,6 @@ public:
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	
 	// prohibited actions because there is no backing vector
-	virtual void SetValueAtIndex(const int p_idx, const EidosValue &p_value, const EidosToken *p_blame_token) override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
@@ -1354,7 +1337,27 @@ public:
 	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
 	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference) override;
 	virtual void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference) override;
+	
+	// We support just this method, from EidosValue_Object_vector's suite of setters, for now
+	void set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index);		// checks for retain/release
 };
+
+inline __attribute__((always_inline)) void EidosValue_Object_singleton::set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index)
+{
+#if DEBUG
+	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
+	if (p_index >= 1) RaiseForRangeViolation();
+	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
+#endif
+	if (class_uses_retain_release_)
+	{
+		static_cast<EidosDictionaryRetained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
+		if (value_)
+			static_cast<EidosDictionaryRetained *>(value_)->Release();	// unsafe cast to avoid virtual function overhead
+	}
+	
+	value_ = p_object;
+}
 
 
 #endif /* defined(__Eidos__eidos_value__) */

@@ -273,14 +273,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bo
 // A subscript has been encountered as the top-level operation on the left-hand side of an assignment – x[5] = y, x.foo[5] = y, or more
 // complex cases like x[3:10].foo[2:5][1:2] = y.  The job of this function is to determine the identity of the symbol host (x, x, and
 // x[3:10], respectively), the name of the property within the symbol host (none, foo, and foo, respectively), and the indices of the final
-// subscript operation (5, 5, and {3,4}, respectively), and return them to the caller, who will assign into those subscripts.  Note that
-// complex cases work only because of several other aspects of Eidos.  Notably, subscripting of an object creates a new object, but
-// the new object refers to the same elements as the parent object, by pointer; this means that x[5].foo = y works, because x[5] refers to
-// the same element, by pointer, as x does.  If Eidos did not have these shared-value semantics, assignment would be much trickier,
-// since Eidos cannot use a symbol table to store values, in general (since many values accessible through script are stored in private
-// representations kept by external classes in the Context).  In other words, assignment relies upon the fact that a temporary object
-// constructed by Evaluate_Node() refers to the same underlying element objects as the original source of the elements does, and thus
-// assigning into the temporary also assigns into the original.
+// subscript operation (5, 5, and {3,4}, respectively), and return them to the caller, who will assign into those subscripts.
 void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr, EidosGlobalStringID *p_property_string_id_ptr, std::vector<int> *p_indices_ptr, const EidosASTNode *p_parent_node)
 {
 	// The left operand is the thing we're subscripting.  If it is an identifier or a dot operator, then we are the deepest (i.e. first)
@@ -597,22 +590,22 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubsetAssignment", 0, parent_token);
 			
-			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode(p_parent_node);
+			bool identifier_is_const = false;
+			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(p_parent_node, &identifier_is_const);
 			EidosValue *identifier_value = identifier_value_SP.get();
 			
-			// OK, a little bit of trickiness here.  We've got the base value from the symbol table.  The problem is that it
-			// could be one of our singleton subclasses, for speed.  We almost never change EidosValue instances once
-			// they are constructed, which is why we can use singleton subclasses so pervasively.  But this is one place –
-			// the only place, in fact, I think – where that can bite us, because we do in fact need to modify the original
-			// EidosValue.  The fix is to detect that we have a singleton value, and actually replace it in the symbol table
-			// with a vector-based copy that we can manipulate.  A little gross, but this is the price we pay for speed...
-			if (identifier_value->IsSingleton())
+			if (identifier_is_const)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_parent_node->cached_stringID_) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+			
+			// BCH 12/21/2023: We used to munge singletons into vectors here, because we didn't have the tools to modify the
+			// element in a singleton value.  That limitation has now been fixed, so this munging is no longer necessary.
+			/*if (identifier_value->IsSingleton())
 			{
 				identifier_value_SP = identifier_value->VectorBasedCopy();
 				identifier_value = identifier_value_SP.get();
 				
 				global_symbols_->SetValueForSymbolNoCopy(p_parent_node->cached_stringID_, identifier_value_SP);
-			}
+			}*/
 			
 			*p_base_value_ptr = std::move(identifier_value_SP);
 			
@@ -664,88 +657,142 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			int index_count = (int)indices.size();
 			int rvalue_count = p_rvalue->Count();
 			
-			if (rvalue_count == 1)
-			{
-				if (property_string_id == gEidosID_none)
-				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << EidosTerminate(nullptr);
-					
-					// we have a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10
-					for (int value_idx = 0; value_idx < index_count; value_idx++)
-						base_value->SetValueAtIndex(indices[value_idx], *p_rvalue, nullptr);
-				}
-				else
-				{
-					// we have a multiplex assignment of one value to (maybe) more than one index in a property of a symbol host: x.foo[5:10] = 10
-					// here we use the guarantee that the member operator returns one result per element, and that elements following sharing semantics,
-					// to rearrange this assignment from host.property[indices] = rvalue to host[indices].property = rvalue; this must be equivalent!
-					
-					// BCH 12/8/2017: We used to allow assignments of the form host.property[indices] = rvalue.  I have decided to change Eidos policy
-					// to disallow that form of assignment.  Conceptually, it sort of doesn't make sense, because it implies fetching the property
-					// values and assigning into a subset of those fetched values; but the fetched values are not an lvalue at that point.  We did it
-					// anyway through a semantic rearrangement, but I now think that was a bad idea.  The conceptual problem became more stark with the
-					// addition of matrices and arrays; if host is a matrix/array, host[i,j,...] is too, and so assigning into a host with that form of
-					// subset makes conceptual sense, and host[i,j,...].property = rvalue makes sense as well – fetch the indexed values and assign
-					// into their property.  But host.property[i,j,...] = rvalue does not make sense, because host.property is always a vector, and
-					// cannot be subset in that way!  So the underlying contradiction in the old policy is exposed.  Time for it to change.
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(nullptr);
-					
-					/*
-					for (int value_idx = 0; value_idx < index_count; value_idx++)
-					{
-						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
-						
-						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
-						
-						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *p_rvalue);
-					}*/
-				}
-			}
-			else if (index_count == rvalue_count)
-			{
-				if (property_string_id == gEidosID_none)
-				{
-					if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << EidosTerminate(nullptr);
-					
-					// we have a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10
-					for (int value_idx = 0; value_idx < index_count; value_idx++)
-					{
-						EidosValue_SP temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
-						
-						base_value->SetValueAtIndex(indices[value_idx], *temp_rvalue, nullptr);
-					}
-				}
-				else
-				{
-					// we have a one-to-one assignment of values to indices in a property of a symbol host: x.foo[5:10] = 5:10
-					// as above, we rearrange this assignment from host.property[indices1] = rvalue[indices2] to host[indices1].property = rvalue[indices2]
-					
-					// BCH 12/8/2017: As above, this form of assignment is no longer legal in Eidos.  See the longer comment above.
-					
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(nullptr);
-					
-					/*
-					for (int value_idx = 0; value_idx < index_count; value_idx++)
-					{
-						EidosValue_SP temp_lvalue = base_value->GetValueAtIndex(indices[value_idx], nullptr);
-						EidosValue_SP temp_rvalue = p_rvalue->GetValueAtIndex(value_idx, nullptr);
-						
-						if (temp_lvalue->Type() != EidosValueType::kValueObject)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) dot operator used with non-object value." << EidosTerminate(nullptr);
-						
-						static_cast<EidosValue_Object *>(temp_lvalue.get())->SetPropertyOfElements(property_string_id, *temp_rvalue);
-					}*/
-				}
-			}
-			else
-			{
+			if ((rvalue_count != 1) && (rvalue_count != index_count))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): assignment to a subscript requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
+			
+			if (property_string_id != gEidosID_none)
+			{
+				// This would be a multiplex assignment of one value to (maybe) more than one index in a property of a symbol host: x.foo[5:10] = 10,
+				// or a one-to-one assignment of values to indices in a property of a symbol host: x.foo[5:10] = 5:10
+				
+				// BCH 12/8/2017: We used to allow assignments of the form host.property[indices] = rvalue.  I have decided to change Eidos policy
+				// to disallow that form of assignment.  Conceptually, it sort of doesn't make sense, because it implies fetching the property
+				// values and assigning into a subset of those fetched values; but the fetched values are not an lvalue at that point.  We did it
+				// anyway through a semantic rearrangement, but I now think that was a bad idea.  The conceptual problem became more stark with the
+				// addition of matrices and arrays; if host is a matrix/array, host[i,j,...] is too, and so assigning into a host with that form of
+				// subset makes conceptual sense, and host[i,j,...].property = rvalue makes sense as well – fetch the indexed values and assign
+				// into their property.  But host.property[i,j,...] = rvalue does not make sense, because host.property is always a vector, and
+				// cannot be subset in that way!  So the underlying contradiction in the old policy is exposed.  Time for it to change.
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(nullptr);
 			}
 			
+			if (!TypeCheckAssignmentOfEidosValueIntoEidosValue(*p_rvalue, *base_value))
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): type mismatch in assignment (" << p_rvalue->Type() << " versus " << base_value->Type() << ")." << EidosTerminate(nullptr);
+			
+			// Assignments like x[logical(0)] = y, where y is zero-length, are no-ops as long as they're not errors
+			if (index_count == 0)
+				return;
+			
+			// At this point, we have either a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10, when
+			// (rvalue_count == 1), or a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10, when (rvalue_count == index_count)
+			// We handle them both together, as far as we can.  BCH 12/21/2023: This used to be done with SetValueAtIndex(); that method has been removed.
+			switch (base_value->Type())
+			{
+				case EidosValueType::kValueLogical:
+				{
+					eidos_logical_t *base_value_data = base_value->LogicalData_Mutable();
+					
+					if (rvalue_count == 1)
+					{
+						eidos_logical_t rvalue = p_rvalue->LogicalAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = rvalue;
+					}
+					else
+					{
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = p_rvalue->LogicalAtIndex_CAST(value_idx, nullptr);
+					}
+					break;
+				}
+				case EidosValueType::kValueInt:
+				{
+					int64_t *base_value_data = base_value->IntData_Mutable();
+					
+					if (rvalue_count == 1)
+					{
+						int64_t rvalue = p_rvalue->IntAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = rvalue;
+					}
+					else
+					{
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = p_rvalue->IntAtIndex_CAST(value_idx, nullptr);
+					}
+					break;
+				}
+				case EidosValueType::kValueFloat:
+				{
+					double *base_value_data = base_value->FloatData_Mutable();
+					
+					if (rvalue_count == 1)
+					{
+						double rvalue = p_rvalue->FloatAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = rvalue;
+					}
+					else
+					{
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = p_rvalue->FloatAtIndex_CAST(value_idx, nullptr);
+					}
+					break;
+				}
+				case EidosValueType::kValueString:
+				{
+					std::string *base_value_data = base_value->StringData_Mutable();
+					
+					if (rvalue_count == 1)
+					{
+						std::string rvalue = p_rvalue->StringAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = rvalue;
+					}
+					else
+					{
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_value_data[indices[value_idx]] = p_rvalue->StringAtIndex_CAST(value_idx, nullptr);
+					}
+					break;
+				}
+				case EidosValueType::kValueObject:
+				{
+					EidosValue_Object_vector *base_object_vector = dynamic_cast<EidosValue_Object_vector *>(base_value.get());
+					
+					if (base_object_vector)
+					{
+						if (rvalue_count == 1)
+						{
+							EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
+							
+							for (int value_idx = 0; value_idx < index_count; value_idx++)
+								base_object_vector->set_object_element_no_check_CRR(rvalue, indices[value_idx]);
+						}
+						else
+						{
+							for (int value_idx = 0; value_idx < index_count; value_idx++)
+								base_object_vector->set_object_element_no_check_CRR(p_rvalue->ObjectElementAtIndex_CAST(value_idx, nullptr), indices[value_idx]);
+						}
+					}
+					else
+					{
+						// true singleton case; we can't use set_object_element_no_check_CRR() to set the element
+						// note (rvalue_count == 1) must be true here, so there is only one case to handle
+						EidosValue_Object_singleton *base_object_singleton = dynamic_cast<EidosValue_Object_singleton *>(base_value.get());
+						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
+						
+						base_object_singleton->set_object_element_no_check_CRR(rvalue, 0);
+					}
+					break;
+				}
+				default:
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): cannot do subset assignment into type " << base_value->Type() << ")." << EidosTerminate(nullptr);
+			}
 			break;
 		}
 		case EidosTokenType::kTokenDot:

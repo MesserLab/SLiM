@@ -219,6 +219,11 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 1:5; x[NAN] = 3;", 10, "cannot be converted");
 	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)] = c(5, 7, 3);", 10, "cannot be converted");
 	
+	EidosAssertScriptSuccess_I("x = _Test(9); x = _Test(7); x._yolk;", 7);
+	EidosAssertScriptSuccess_I("x = _Test(9); x[0] = _Test(7); x._yolk;", 7);
+	EidosAssertScriptSuccess_IV("x = c(_Test(9), _Test(5)); x[0] = _Test(7); x._yolk;", {7, 5});
+	EidosAssertScriptSuccess_IV("x = c(_Test(9), _Test(5)); x[1] = _Test(7); x._yolk;", {9, 7});
+	
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0)] = 3;", 10, "matrix or array index operand is not supported");
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)] = 3;", 10, "matrix or array index operand is not supported");
 	EidosAssertScriptRaise("x = 5:9; x[matrix(T)] = 3;", 10, "matrix or array index operand is not supported");
@@ -237,10 +242,10 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess_L("x = matrix(5:9); x[c(T,F,T,T,F)] = 3; identical(x, matrix(c(3,6,3,3,9)));", true);
 	
 	// operator = (especially in conjunction with matrix/array-style subsetting with operator [])
-	EidosAssertScriptSuccess_VOID("NULL[logical(0)] = NULL;");			// technically legal, as no assignment is done
-	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 4, "too many subset arguments");
-	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 4, "too many subset arguments");
-	EidosAssertScriptRaise("NULL[,] = NULL;", 4, "too many subset arguments");
+	EidosAssertScriptRaise("NULL[logical(0)] = NULL;", 17, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 18, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 28, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[,] = NULL;", 8, "cannot be redefined because it is a constant");
 	EidosAssertScriptSuccess_VOID("x = NULL; x[logical(0)] = NULL;");	// technically legal, as no assignment is done
 	EidosAssertScriptRaise("x = NULL; x[logical(0),] = NULL;", 11, "too many subset arguments");
 	EidosAssertScriptRaise("x = NULL; x[logical(0),logical(0)] = NULL;", 11, "too many subset arguments");
