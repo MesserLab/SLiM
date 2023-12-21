@@ -1558,6 +1558,15 @@ int64_t EidosValue_Int_vector::IntAtIndex_NOCAST(int p_idx, const EidosToken *p_
 	return values_[p_idx];
 }
 
+double EidosValue_Int_vector::NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const
+{
+	// casts integer to float, otherwise does not cast; considered _NOCAST
+	if ((p_idx < 0) || (p_idx >= (int)count_))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::NumericAtIndex_NOCAST): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return values_[p_idx];
+}
+
 eidos_logical_t EidosValue_Int_vector::LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)count_))
@@ -1676,6 +1685,15 @@ int64_t EidosValue_Int_singleton::IntAtIndex_NOCAST(int p_idx, const EidosToken 
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::IntAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return value_;
+}
+
+double EidosValue_Int_singleton::NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const
+{
+	// casts integer to float, otherwise does not cast; considered _NOCAST
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::NumericAtIndex_NOCAST): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return value_;
 }
@@ -1821,6 +1839,15 @@ double EidosValue_Float_vector::FloatAtIndex_NOCAST(int p_idx, const EidosToken 
 	return values_[p_idx];
 }
 
+double EidosValue_Float_vector::NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const
+{
+	// casts integer to float, otherwise does not cast; considered _NOCAST
+	if ((p_idx < 0) || (p_idx >= (int)count_))
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::NumericAtIndex_NOCAST): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return values_[p_idx];
+}
+
 eidos_logical_t EidosValue_Float_vector::LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const
 {
 	if ((p_idx < 0) || (p_idx >= (int)count_))
@@ -1958,6 +1985,15 @@ double EidosValue_Float_singleton::FloatAtIndex_NOCAST(int p_idx, const EidosTok
 {
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::FloatAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
+	
+	return value_;
+}
+
+double EidosValue_Float_singleton::NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const
+{
+	// casts integer to float, otherwise does not cast; considered _NOCAST
+	if (p_idx != 0)
+		EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::NumericAtIndex_NOCAST): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
 	return value_;
 }

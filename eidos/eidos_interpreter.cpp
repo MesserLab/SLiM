@@ -991,8 +991,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 	}
 	else
 	{
-		double first_float = p_first_child_value.FloatAtIndex_CAST(0, operator_token);
-		double second_float = p_second_child_value.FloatAtIndex_CAST(0, operator_token);
+		double first_float = p_first_child_value.NumericAtIndex_NOCAST(0, operator_token);
+		double second_float = p_second_child_value.NumericAtIndex_NOCAST(0, operator_token);
 		
 		if (std::isnan(first_float) || std::isnan(second_float))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): operands of the ':' operator must not be NAN." << EidosTerminate(operator_token);
@@ -2153,7 +2153,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex_CAST(0, operator_token) + second_child_value->FloatAtIndex_CAST(0, operator_token)));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->NumericAtIndex_NOCAST(0, operator_token) + second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
 				}
 				else
 				{
@@ -2190,7 +2190,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			}
 			else if (first_child_count == 1)
 			{
-				double singleton_float = first_child_value->FloatAtIndex_CAST(0, operator_token);
+				double singleton_float = first_child_value->NumericAtIndex_NOCAST(0, operator_token);
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(second_child_count);
 				
@@ -2213,7 +2213,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			}
 			else if (second_child_count == 1)
 			{
-				double singleton_float = second_child_value->FloatAtIndex_CAST(0, operator_token);
+				double singleton_float = second_child_value->NumericAtIndex_NOCAST(0, operator_token);
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 				
@@ -2453,7 +2453,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				if (first_child_count == 1)
 				{
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex_CAST(0, operator_token) - second_child_value->FloatAtIndex_CAST(0, operator_token)));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->NumericAtIndex_NOCAST(0, operator_token) - second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
 				}
 				else
 				{
@@ -2490,7 +2490,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else if (first_child_count == 1)
 			{
-				double singleton_float = first_child_value->FloatAtIndex_CAST(0, operator_token);
+				double singleton_float = first_child_value->NumericAtIndex_NOCAST(0, operator_token);
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(second_child_count);
 				
@@ -2513,7 +2513,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			}
 			else if (second_child_count == 1)
 			{
-				double singleton_float = second_child_value->FloatAtIndex_CAST(0, operator_token);
+				double singleton_float = second_child_value->NumericAtIndex_NOCAST(0, operator_token);
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 				
@@ -2587,7 +2587,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fmod(first_child_value->FloatAtIndex_CAST(0, operator_token), second_child_value->FloatAtIndex_CAST(0, operator_token))));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fmod(first_child_value->NumericAtIndex_NOCAST(0, operator_token), second_child_value->NumericAtIndex_NOCAST(0, operator_token))));
 		}
 		else
 		{
@@ -2632,7 +2632,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	}
 	else if (first_child_count == 1)
 	{
-		double singleton_float = first_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = first_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(second_child_count);
 		
@@ -2655,7 +2655,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	}
 	else if (second_child_count == 1)
 	{
-		double singleton_float = second_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = second_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 		
@@ -2769,7 +2769,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		{
 			if (first_child_count == 1)
 			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex_CAST(0, operator_token) * second_child_value->FloatAtIndex_CAST(0, operator_token)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->NumericAtIndex_NOCAST(0, operator_token) * second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
 			}
 			else
 			{
@@ -2855,7 +2855,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		else if (any_type == EidosValueType::kValueInt)
 		{
 			const int64_t *any_count_data = any_count_child->IntData();
-			double singleton_float = one_count_child->FloatAtIndex_CAST(0, operator_token);
+			double singleton_float = one_count_child->NumericAtIndex_NOCAST(0, operator_token);
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(any_count);
 			
@@ -2867,7 +2867,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		else	// (any_type == EidosValueType::kValueFloat)
 		{
 			const double *any_count_data = any_count_child->FloatData();
-			double singleton_float = one_count_child->FloatAtIndex_CAST(0, operator_token);
+			double singleton_float = one_count_child->NumericAtIndex_NOCAST(0, operator_token);
 			EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 			EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(any_count);
 			
@@ -2932,7 +2932,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->FloatAtIndex_CAST(0, operator_token) / second_child_value->FloatAtIndex_CAST(0, operator_token)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(first_child_value->NumericAtIndex_NOCAST(0, operator_token) / second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
 		}
 		else
 		{
@@ -2977,7 +2977,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	}
 	else if (first_child_count == 1)
 	{
-		double singleton_float = first_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = first_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(second_child_count);
 		
@@ -3000,7 +3000,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	}
 	else if (second_child_count == 1)
 	{
-		double singleton_float = second_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = second_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 		
@@ -3109,7 +3109,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	{
 		if (first_child_count == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pow(first_child_value->FloatAtIndex_CAST(0, operator_token), second_child_value->FloatAtIndex_CAST(0, operator_token))));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(pow(first_child_value->NumericAtIndex_NOCAST(0, operator_token), second_child_value->NumericAtIndex_NOCAST(0, operator_token))));
 		}
 		else
 		{
@@ -3154,7 +3154,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	}
 	else if (first_child_count == 1)
 	{
-		double singleton_float = first_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = first_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(second_child_count);
 		
@@ -3177,7 +3177,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	}
 	else if (second_child_count == 1)
 	{
-		double singleton_float = second_child_value->FloatAtIndex_CAST(0, operator_token);
+		double singleton_float = second_child_value->NumericAtIndex_NOCAST(0, operator_token);
 		EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(first_child_count);
 		
@@ -3865,7 +3865,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				EidosASTNode *rvalue_node = p_node->children_[1];										// the operator node
 				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_literal_value_.get();	// the numeric constant
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
-				double operand2_value = cached_operand2->FloatAtIndex_CAST(0, nullptr);				// might be an int64_t and get converted
+				double operand2_value = cached_operand2->NumericAtIndex_NOCAST(0, nullptr);				// might be an int64_t and get converted
 				
 				if ((lvalue_count == 1) && lvalue->IsSingleton())
 				{

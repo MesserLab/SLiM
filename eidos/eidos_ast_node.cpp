@@ -391,14 +391,14 @@ bool EidosASTNode::HasCachedNumericValue(void) const
 double EidosASTNode::CachedNumericValue(void) const
 {
 	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_literal_value_ && (cached_literal_value_->Count() == 1))
-		return cached_literal_value_->FloatAtIndex_CAST(0, nullptr);
+		return cached_literal_value_->NumericAtIndex_NOCAST(0, nullptr);
 	
 	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
 	{
 		const EidosASTNode *minus_child = children_[0];
 		
 		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_literal_value_ && (minus_child->cached_literal_value_->Count() == 1))
-			return -minus_child->cached_literal_value_->FloatAtIndex_CAST(0, nullptr);
+			return -minus_child->cached_literal_value_->NumericAtIndex_NOCAST(0, nullptr);
 	}
 	
 	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << EidosTerminate(nullptr);

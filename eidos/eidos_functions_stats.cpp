@@ -58,8 +58,8 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			mean_x += x_value->FloatAtIndex_CAST(value_index, nullptr);
-			mean_y += y_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		}
 		
 		mean_x /= count;
@@ -70,8 +70,8 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			double dx = x_value->FloatAtIndex_CAST(value_index, nullptr) - mean_x;
-			double dy = y_value->FloatAtIndex_CAST(value_index, nullptr) - mean_y;
+			double dx = x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x;
+			double dy = y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y;
 			
 			ss_x += dx * dx;
 			ss_y += dy * dy;
@@ -112,8 +112,8 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			mean_x += x_value->FloatAtIndex_CAST(value_index, nullptr);
-			mean_y += y_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		}
 		
 		mean_x /= count;
@@ -124,8 +124,8 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < count; ++value_index)
 		{
-			double temp_x = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean_x);
-			double temp_y = (y_value->FloatAtIndex_CAST(value_index, nullptr) - mean_y);
+			double temp_x = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x);
+			double temp_y = (y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y);
 			cov += temp_x * temp_y;
 		}
 		
@@ -954,7 +954,7 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 	if (x_count == 1)
 	{
 		// All quantiles of a singleton are the value of the singleton; the probabilities don't matter as long as they're in range (checked above)
-		double x_singleton = x_value->FloatAtIndex_CAST(0, nullptr);
+		double x_singleton = x_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		if (std::isnan(x_singleton))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_quantile): quantiles of NAN are undefined." << EidosTerminate(nullptr);
@@ -993,11 +993,11 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 			int64_t lo = (int64_t)std::floor(index);
 			int64_t hi = (int64_t)std::ceil(index);
 			
-			double quantile = x_value->FloatAtIndex_CAST((int)order[lo], nullptr);
+			double quantile = x_value->NumericAtIndex_NOCAST((int)order[lo], nullptr);
 			if (lo != hi) {
 				double h = index - lo;
 				quantile *= (1.0 - h);
-				quantile += h * x_value->FloatAtIndex_CAST((int)order[hi], nullptr);
+				quantile += h * x_value->NumericAtIndex_NOCAST((int)order[hi], nullptr);
 			}
 			
 			float_result->set_float_no_check(quantile, probs_index);
@@ -1162,13 +1162,13 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_argum
 		double sd = 0;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		
 		mean /= x_count;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			double temp = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean);
+			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
 			sd += temp * temp;
 		}
 		
@@ -1250,7 +1250,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 		double mean = 0;
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->FloatAtIndex_CAST(value_index, nullptr);
+			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		
 		mean /= x_count;
 		
@@ -1259,7 +1259,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			double temp = (x_value->FloatAtIndex_CAST(value_index, nullptr) - mean);
+			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
 			var += temp * temp;
 		}
 		

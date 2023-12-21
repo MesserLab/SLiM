@@ -316,7 +316,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		
 		if (weights_count == 1)
 		{
-			double weight = weights_value->FloatAtIndex_CAST(0, nullptr);
+			double weight = weights_value->NumericAtIndex_NOCAST(0, nullptr);
 			
 			if ((weight < 0.0) || std::isnan(weight))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
@@ -924,8 +924,8 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		if ((from_type == EidosValueType::kValueFloat) || (to_type == EidosValueType::kValueFloat))
 		{
 			// a float value was given, so we will generate a float sequence in all cases
-			double first_value = from_value->FloatAtIndex_CAST(0, nullptr);
-			double second_value = to_value->FloatAtIndex_CAST(0, nullptr);
+			double first_value = from_value->NumericAtIndex_NOCAST(0, nullptr);
+			double second_value = to_value->NumericAtIndex_NOCAST(0, nullptr);
 			
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
 			result_SP = EidosValue_SP(float_result);
@@ -986,10 +986,10 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 		if ((from_type == EidosValueType::kValueFloat) || (to_type == EidosValueType::kValueFloat) || (by_type == EidosValueType::kValueFloat))
 		{
 			// float return case
-			double first_value = from_value->FloatAtIndex_CAST(0, nullptr);
-			double second_value = to_value->FloatAtIndex_CAST(0, nullptr);
+			double first_value = from_value->NumericAtIndex_NOCAST(0, nullptr);
+			double second_value = to_value->NumericAtIndex_NOCAST(0, nullptr);
 			double default_by = ((first_value < second_value) ? 1 : -1);
-			double by = ((by_type != EidosValueType::kValueNULL) ? by_value->FloatAtIndex_CAST(0, nullptr) : default_by);
+			double by = ((by_type != EidosValueType::kValueNULL) ? by_value->NumericAtIndex_NOCAST(0, nullptr) : default_by);
 			
 			if (by == 0.0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);

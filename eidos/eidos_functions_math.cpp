@@ -135,7 +135,7 @@ EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(acos(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(acos(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -143,7 +143,7 @@ EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arg
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(acos(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(acos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -161,7 +161,7 @@ EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(asin(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(asin(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -169,7 +169,7 @@ EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arg
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(asin(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(asin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -187,7 +187,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(atan(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(atan(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -195,7 +195,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arg
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(atan(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(atan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -226,7 +226,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan2(const std::vector<EidosValue_SP> &p_ar
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(atan2(x_value->FloatAtIndex_CAST(0, nullptr), y_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(atan2(x_value->NumericAtIndex_NOCAST(0, nullptr), y_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -234,7 +234,7 @@ EidosValue_SP Eidos_ExecuteFunction_atan2(const std::vector<EidosValue_SP> &p_ar
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(atan2(x_value->FloatAtIndex_CAST(value_index, nullptr), y_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(atan2(x_value->NumericAtIndex_NOCAST(value_index, nullptr), y_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	// Copy dimensions from whichever operand we chose at the beginning
@@ -284,7 +284,7 @@ EidosValue_SP Eidos_ExecuteFunction_cos(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cos(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cos(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -292,7 +292,7 @@ EidosValue_SP Eidos_ExecuteFunction_cos(const std::vector<EidosValue_SP> &p_argu
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(cos(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(cos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -437,7 +437,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(exp(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(exp(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
@@ -445,7 +445,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(exp(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(exp(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -805,7 +805,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
@@ -813,7 +813,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(log(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(log(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -844,7 +844,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log10(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log10(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
@@ -852,7 +852,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(log10(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(log10(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -883,7 +883,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log2(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log2(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
@@ -891,7 +891,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(log2(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(log2(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -2532,7 +2532,7 @@ EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sin(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sin(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -2540,7 +2540,7 @@ EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_argu
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(sin(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(sin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -2559,7 +2559,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sqrt(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sqrt(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
@@ -2567,7 +2567,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(sqrt(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(sqrt(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -2733,7 +2733,7 @@ EidosValue_SP Eidos_ExecuteFunction_tan(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tan(x_value->FloatAtIndex_CAST(0, nullptr))));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tan(x_value->NumericAtIndex_NOCAST(0, nullptr))));
 	}
 	else
 	{
@@ -2741,7 +2741,7 @@ EidosValue_SP Eidos_ExecuteFunction_tan(const std::vector<EidosValue_SP> &p_argu
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(tan(x_value->FloatAtIndex_CAST(value_index, nullptr)), value_index);
+			float_result->set_float_no_check(tan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);

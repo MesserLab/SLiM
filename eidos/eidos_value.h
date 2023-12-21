@@ -203,14 +203,26 @@ public:
 	// basic subscript access; abstract here since we want to force subclasses to define this
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const = 0;
 	
-	// fetching individual values; the CAST versions convert type if necessary, and (base class behavior) raise if impossible
-	// these are relatively slow convenience accessors; to get values across a large vector, the XData() methods below are preferred
+	// fetching individual values WITHOUT casting; the base class behavior is to raise if the type does not match
+	// these are convenience accessors; to get values across a large vector, the XData() methods below are preferred
+	// note that NumericAtIndex_NOCAST() accesses "numeric" values (integer or float), casting them to float,
+	// so it is technically a casting method, but "numeric" is privileged and is not considered full casting
 	virtual eidos_logical_t LogicalAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	virtual std::string StringAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	virtual int64_t IntAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	virtual double FloatAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
+	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }	// casts integer to float, otherwise does not cast; considered _NOCAST
 	virtual EidosObject *ObjectElementAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	
+	// fetching individual values WITH a cast to the requested type; this is not general-purpose
+	// behavior for Eidos, but is limited to specific places in the language: CompareEidosValues(),
+	// _ProcessSubsetAssignment() to allow float indices for subsetting, _AssignRValueToLValue() to
+	// put a value of one type into a specific index in an existing vector, Evaluate_Subset() again
+	// for float subsetting indices, string + in EvaluatePlus(), Evaluate_Conditional() to cast any
+	// value to logical for the condition (and likewise for EvaluateIf(), Evaluate_Do(), and
+	// Evaluate_While()), Evaluate_And() / Evaluate_Or() / Evaluate_Not() to cast values to logical,
+	// and Evaluate_Eq() and the other comparison operators, == < <= > >= !=
+	// BCH 12/21/2023: FIXME: float indices for subsetting should be reconsidered, it is a bad idea
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
@@ -730,6 +742,7 @@ public:
 	virtual int64_t *IntData_Mutable(void) override { return values_; }
 	
 	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
 	
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
@@ -793,6 +806,7 @@ public:
 	inline __attribute__((always_inline)) void SetValue(int64_t p_int) { value_ = p_int; }		// very dangerous; used only in Evaluate_For()
 	
 	virtual int64_t IntAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
 	
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
@@ -876,6 +890,7 @@ public:
 	virtual double *FloatData_Mutable(void) override { return values_; }
 	
 	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
 	
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
@@ -939,6 +954,7 @@ public:
 	inline __attribute__((always_inline)) void SetValue(double p_float) { value_ = p_float; }	// very dangerous; used only in Evaluate_For()
 	
 	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
 	
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
