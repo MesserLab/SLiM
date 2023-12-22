@@ -215,14 +215,17 @@ public:
 	virtual EidosObject *ObjectElementAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	
 	// fetching individual values WITH a cast to the requested type; this is not general-purpose
-	// behavior for Eidos, but is limited to specific places in the language: CompareEidosValues(),
-	// _ProcessSubsetAssignment() to allow float indices for subsetting, _AssignRValueToLValue() to
-	// put a value of one type into a specific index in an existing vector, Evaluate_Subset() again
-	// for float subsetting indices, string + in EvaluatePlus(), Evaluate_Conditional() to cast any
-	// value to logical for the condition (and likewise for EvaluateIf(), Evaluate_Do(), and
-	// Evaluate_While()), Evaluate_And() / Evaluate_Or() / Evaluate_Not() to cast values to logical,
-	// and Evaluate_Eq() and the other comparison operators, == < <= > >= !=
-	// BCH 12/21/2023: FIXME: float indices for subsetting should be reconsidered, it is a bad idea
+	// behavior for Eidos, but is limited to specific places in the language:
+	//
+	//	 -- CompareEidosValues(), which is now used only by pmax()/pmin() and only for identical types
+	//	 -- _AssignRValueToLValue() to put a value of one type into a specific index in an existing vector that might be a different type
+	//	 -- string + in EvaluatePlus(), which coerces everything that isn't a string into a string, and cat() / catn() / paste() / paste0() / print()
+	//	 -- Evaluate_Conditional() / Evaluate_If() / Evaluate_Do() / Evaluate_While() to cast their condition to logical
+	//	 -- Evaluate_And() / Evaluate_Or() / Evaluate_Not() to cast values used with operators & | ^ to logical
+	//	 -- Evaluate_Eq() and the other comparison operators, == < <= > >= !=, which compare on the basis of promoting up to a common type
+	//	 -- ConcatenateEidosValues() for c() / apply() / sapply() / AppendKeysAndValuesFrom(), and property accesses / method calls
+	//	 -- the asLogical() / asInteger() / asFloat() / asString() methods, which explicitly coerce one type into another
+	//
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;
 	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const;

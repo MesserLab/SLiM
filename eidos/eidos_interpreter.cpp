@@ -319,7 +319,9 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 					EidosValue_SP child_value = FastEvaluateNode(subset_index_node);
 					EidosValueType child_type = child_value->Type();
 					
-					if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
+					if (child_type == EidosValueType::kValueFloat)
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): it is no longer legal to subset with float indices; use asInteger() to cast the indices to integer." << EidosTerminate(parent_token);
+					if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
 					if (child_value->DimensionCount() != 1)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
@@ -351,8 +353,6 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 				EidosValue_SP second_child_value = subset_indices[0];
 				EidosValueType second_child_type = second_child_value->Type();
 				
-				if ((second_child_type != EidosValueType::kValueInt) && (second_child_type != EidosValueType::kValueFloat) && (second_child_type != EidosValueType::kValueLogical))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): index operand type " << second_child_type << " is not supported by the '[]' operator." << EidosTerminate(parent_token);
 				if (second_child_value->DimensionCount() != 1)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(parent_token);
 				
@@ -372,43 +372,26 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 							p_indices_ptr->emplace_back(base_indices[value_idx]);
 					}
 				}
-				else
+				else	// (second_child_type == EidosValueType::kValueInt)
 				{
-					// A numeric vector can be of any length; each number selects the index at that index in base_indices
-					if (second_child_type == EidosValueType::kValueInt)
+					// An integer vector can be of any length; each number selects the index at that index in base_indices
+					if (second_child_count == 1)
 					{
-						if (second_child_count == 1)
-						{
-							int64_t index_value = second_child_value->IntAtIndex_NOCAST(0, parent_token);
-							
-							if ((index_value < 0) || (index_value >= base_indices_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
-							else
-								p_indices_ptr->emplace_back(base_indices[index_value]);
-						}
-						else if (second_child_count)
-						{
-							// fast vector access for the non-singleton case
-							const int64_t *second_child_data = second_child_value->IntData();
-							
-							for (int value_idx = 0; value_idx < second_child_count; value_idx++)
-							{
-								int64_t index_value = second_child_data[value_idx];
-								
-								if ((index_value < 0) || (index_value >= base_indices_count))
-									EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
-								else
-									p_indices_ptr->emplace_back(base_indices[index_value]);
-							}
-						}
+						int64_t index_value = second_child_value->IntAtIndex_NOCAST(0, parent_token);
+						
+						if ((index_value < 0) || (index_value >= base_indices_count))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
+						else
+							p_indices_ptr->emplace_back(base_indices[index_value]);
 					}
-					else // (second_child_type == EidosValueType::kValueFloat))
+					else if (second_child_count)
 					{
-						// We do not optimize the float case with direct vector access, because IntAtIndex() has complex behavior
-						// for EidosValue_Float that we want to get here; subsetting with float vectors is slow, don't do it.
+						// fast vector access for the non-singleton case
+						const int64_t *second_child_data = second_child_value->IntData();
+						
 						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 						{
-							int64_t index_value = second_child_value->IntAtIndex_CAST(value_idx, parent_token);
+							int64_t index_value = second_child_data[value_idx];
 							
 							if ((index_value < 0) || (index_value >= base_indices_count))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
@@ -438,7 +421,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 					EidosTokenType left_token_type = left_token->token_type_;
 					
 					if (left_token_type == EidosTokenType::kTokenLBracket)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): chaining of matrix/array-style subsets in assignments is not currently supported (although it is permitted by the Eidos language definition)." << EidosTerminate(parent_token);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): chaining of matrix/array-style subsets in assignments is not supported." << EidosTerminate(parent_token);
 					if (left_token_type == EidosTokenType::kTokenDot)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): cannot assign into a subset of a property; not an lvalue." << EidosTerminate(parent_token);
 				}
@@ -478,12 +461,12 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 							if (logical_index_data[dim_index])
 								indices.emplace_back(dim_index);
 					}
-					else
+					else	// (subset_type == EidosValueType::kValueInt)
 					{
-						// We have a float or integer subset, which selects indices within inclusion_indices
+						// We have an integer subset, which selects indices within inclusion_indices
 						for (int index_index = 0; index_index < subset_count; index_index++)
 						{
-							int64_t index_value = subset_value->IntAtIndex_CAST(index_index, parent_token);
+							int64_t index_value = subset_value->IntAtIndex_NOCAST(index_index, parent_token);
 							
 							if ((index_value < 0) || (index_value >= dim_size))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
@@ -1725,7 +1708,9 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				return result_SP;
 			}
 			
-			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueFloat) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
+			if (child_type == EidosValueType::kValueFloat)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): it is no longer legal to subset with float indices; use asInteger() to cast the indices to integer." << EidosTerminate(operator_token);
+			if ((child_type != EidosValueType::kValueInt) && (child_type != EidosValueType::kValueLogical) && (child_type != EidosValueType::kValueNULL))
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): index operand type " << child_type << " is not supported by the '[]' operator." << EidosTerminate(operator_token);
 			if (child_value->DimensionCount() != 1)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): a matrix or array index operand is not supported by the '[]' operator." << EidosTerminate(operator_token);
@@ -1805,10 +1790,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			}
 			else
 			{
-				// We have a float or integer subset, which selects indices within inclusion_indices
+				// We have an integer subset, which selects indices within inclusion_indices
 				for (int index_index = 0; index_index < subset_count; index_index++)
 				{
-					int64_t index_value = subset_value->IntAtIndex_CAST(index_index, operator_token);
+					int64_t index_value = subset_value->IntAtIndex_NOCAST(index_index, operator_token);
 					
 					if ((index_value < 0) || (index_value >= dim_size))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
