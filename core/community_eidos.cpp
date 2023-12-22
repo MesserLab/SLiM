@@ -205,7 +205,7 @@ EidosValue_SP Community::ExecuteContextFunction_initializeSLiMModelType(const st
 	
 	{
 		// string$ modelType
-		std::string model_type = arg_modelType_value->StringAtIndex(0, nullptr);
+		std::string model_type = arg_modelType_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (model_type == "WF")
 			SetModelType(SLiMModelType::kModelTypeWF);
@@ -249,10 +249,10 @@ EidosValue_SP Community::ExecuteContextFunction_initializeInteractionType(const 
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeInteractionType): in multispecies models, initializeInteractionType() may only be called from a non-species-specific (`species all`) initialize() callback." << EidosTerminate();
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'i');
-	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
-	bool reciprocal = reciprocal_value->LogicalAtIndex(0, nullptr);		// UNUSED
-	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
-	std::string sex_string = sexSegregation_value->StringAtIndex(0, nullptr);
+	std::string spatiality_string = spatiality_value->StringAtIndex_NOCAST(0, nullptr);
+	bool reciprocal = reciprocal_value->LogicalAtIndex_NOCAST(0, nullptr);		// UNUSED
+	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
+	std::string sex_string = sexSegregation_value->StringAtIndex_NOCAST(0, nullptr);
 	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 	
 	if (InteractionTypeWithID(map_identifier))
@@ -454,7 +454,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 	{
 		case gID_tick:
 		{
-			int64_t value = p_value.IntAtIndex(0, nullptr);
+			int64_t value = p_value.IntAtIndex_NOCAST(0, nullptr);
 			slim_tick_t old_tick = tick_;
 			slim_tick_t new_tick = SLiMCastToTickTypeOrRaise(value);
 			
@@ -522,7 +522,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -530,7 +530,7 @@ void Community::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 			
 		case gID_verbosity:
 		{
-			int64_t value = p_value.IntAtIndex(0, nullptr);
+			int64_t value = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			SLiM_verbosity_level = value;	// at the command line we bounds-check this, but here I see no need
 			return;
@@ -581,11 +581,11 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	EidosValue *flushInterval_value = p_arguments[6].get();
 	
 	// process parameters
-	const std::string &filePath = filePath_value->StringRefAtIndex(0, nullptr);
+	const std::string &filePath = filePath_value->StringRefAtIndex_NOCAST(0, nullptr);
 	std::vector<const std::string *> initialContents;
-	bool append = append_value->LogicalAtIndex(0, nullptr);
-	bool do_compress = compress_value->LogicalAtIndex(0, nullptr);
-	const std::string &sep = sep_value->StringRefAtIndex(0, nullptr);
+	bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool do_compress = compress_value->LogicalAtIndex_NOCAST(0, nullptr);
+	const std::string &sep = sep_value->StringRefAtIndex_NOCAST(0, nullptr);
 	bool autologging = false, explicitFlushing = false;
 	int64_t logInterval = 0, flushInterval = 0;
 	
@@ -595,7 +595,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 		int ic_count = initialContents_value->Count();
 		
 		for (int ic_index = 0; ic_index < ic_count; ++ic_index)
-			initialContents.emplace_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
+			initialContents.emplace_back(&ic_string_value->StringRefAtIndex_NOCAST(ic_index, nullptr));
 	}
 	
 	if (logInterval_value->Type() == EidosValueType::kValueNULL)
@@ -607,7 +607,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	else
 	{
 		autologging = true;
-		logInterval = logInterval_value->IntAtIndex(0, nullptr);
+		logInterval = logInterval_value->IntAtIndex_NOCAST(0, nullptr);
 	}
 	
 	if (flushInterval_value->Type() == EidosValueType::kValueNULL)
@@ -619,7 +619,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	else
 	{
 		explicitFlushing = true;
-		flushInterval = flushInterval_value->IntAtIndex(0, nullptr);
+		flushInterval = flushInterval_value->IntAtIndex_NOCAST(0, nullptr);
 	}
 	
 	// Create the LogFile object
@@ -724,7 +724,7 @@ EidosValue_SP Community::ExecuteMethod_genomicElementTypesWithIDs(EidosGlobalStr
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		GenomicElementType *object = GenomicElementTypeWithID(id);
 		
 		if (!object)
@@ -739,7 +739,7 @@ EidosValue_SP Community::ExecuteMethod_genomicElementTypesWithIDs(EidosGlobalStr
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			GenomicElementType *object = GenomicElementTypeWithID(id);
 			
 			if (!object)
@@ -763,7 +763,7 @@ EidosValue_SP Community::ExecuteMethod_interactionTypesWithIDs(EidosGlobalString
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		InteractionType *object = InteractionTypeWithID(id);
 		
 		if (!object)
@@ -778,7 +778,7 @@ EidosValue_SP Community::ExecuteMethod_interactionTypesWithIDs(EidosGlobalString
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			InteractionType *object = InteractionTypeWithID(id);
 			
 			if (!object)
@@ -802,7 +802,7 @@ EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID 
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		MutationType *object = MutationTypeWithID(id);
 		
 		if (!object)
@@ -817,7 +817,7 @@ EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID 
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			MutationType *object = MutationTypeWithID(id);
 			
 			if (!object)
@@ -841,7 +841,7 @@ EidosValue_SP Community::ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		SLiMEidosBlock *object = ScriptBlockWithID(id);
 		
 		if (!object)
@@ -856,7 +856,7 @@ EidosValue_SP Community::ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			SLiMEidosBlock *object = ScriptBlockWithID(id);
 			
 			if (!object)
@@ -880,7 +880,7 @@ EidosValue_SP Community::ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_meth
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		Species *object = SpeciesWithID(id);
 		
 		if (!object)
@@ -895,7 +895,7 @@ EidosValue_SP Community::ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_meth
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			Species *object = SpeciesWithID(id);
 			
 			if (!object)
@@ -919,7 +919,7 @@ EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID
 	if (ids_count == 1)
 	{
 		// Singleton case
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(0, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(0, nullptr));
 		Subpopulation *object = SubpopulationWithID(id);
 		
 		if (!object)
@@ -934,7 +934,7 @@ EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID
 		
 		for (int id_index = 0; id_index < ids_count; id_index++)
 		{
-			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex(id_index, nullptr));
+			slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
 			Subpopulation *object = SubpopulationWithID(id);
 			
 			if (!object)
@@ -1083,9 +1083,9 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	EidosValue *ticksSpec_value = p_arguments[4].get();
 	
 	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
@@ -1115,7 +1115,7 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	else
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFirstEarlyLateEvent): (internal error) unrecognized target_type." << EidosTerminate();
 	
-	Species *ticksSpec = ((ticksSpec_value->Type() != EidosValueType::kValueNULL) ? (Species *)ticksSpec_value->ObjectElementAtIndex(0, nullptr) : nullptr);
+	Species *ticksSpec = ((ticksSpec_value->Type() != EidosValueType::kValueNULL) ? (Species *)ticksSpec_value->ObjectElementAtIndex_NOCAST(0, nullptr) : nullptr);
 	
 	if (ticksSpec && !is_explicit_species_)
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFirstEarlyLateEvent): ticksSpec must be NULL in models without explicit species declarations." << EidosTerminate();
@@ -1142,17 +1142,17 @@ EidosValue_SP Community::ExecuteMethod_registerInteractionCallback(EidosGlobalSt
 	EidosValue *end_value = p_arguments[5].get();
 	
 	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
-	slim_objectid_t int_type_id = (intType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(intType_value->IntAtIndex(0, nullptr)) : ((InteractionType *)intType_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
+	slim_objectid_t int_type_id = (intType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(intType_value->IntAtIndex_NOCAST(0, nullptr)) : ((InteractionType *)intType_value->ObjectElementAtIndex_NOCAST(0, nullptr))->interaction_type_id_;
 	slim_objectid_t subpop_id = -1;
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
@@ -1245,8 +1245,8 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	{
 		// start/end case; this is simple
 		
-		slim_tick_t start = (start_null ? 1 : SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)));
-		slim_tick_t end = (end_null ? SLIM_MAX_TICK + 1 : SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
+		slim_tick_t start = (start_null ? 1 : SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)));
+		slim_tick_t end = (end_null ? SLIM_MAX_TICK + 1 : SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)));
 		
 		if (start > end)
 			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires start <= end." << EidosTerminate();
@@ -1281,7 +1281,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		ticks.reserve(tick_count);
 		
 		for (int tick_index = 0; tick_index < tick_count; ++tick_index)
-			ticks.emplace_back(SLiMCastToTickTypeOrRaise(ticks_value->IntAtIndex(tick_index, nullptr)));
+			ticks.emplace_back(SLiMCastToTickTypeOrRaise(ticks_value->IntAtIndex_NOCAST(tick_index, nullptr)));
 		
 		// next, sort the tick list and check that the first scheduling it requests is not in the past
 		std::sort(ticks.begin(), ticks.end());

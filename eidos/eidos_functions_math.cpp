@@ -63,7 +63,7 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 		if (x_count == 1)
 		{
 			// This is an overflow-safe version of:
-			//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(llabs(x_value->IntAtIndex(0, nullptr)));
+			//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(llabs(x_value->IntAtIndex_NOCAST(0, nullptr)));
 			
 			int64_t operand = x_value->IntAtIndex_NOCAST(0, nullptr);
 			

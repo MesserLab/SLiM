@@ -1119,7 +1119,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	{
 		case gEidosID_color:		// ACCELERATED
 		{
-			const std::string &color_string = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
+			const std::string &color_string = ((EidosValue_String &)p_value).StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (color_string.empty())
 			{
@@ -1135,7 +1135,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tag:				// ACCELERATED
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			s_any_individual_tag_set_ = true;
@@ -1143,13 +1143,13 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tagF:				// ACCELERATED
 		{
-			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
+			tagF_value_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			s_any_individual_tagF_set_ = true;
 			return;
 		}
 		case gID_tagL0:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			tagL0_set_ = true;
 			tagL0_value_ = value;
@@ -1158,7 +1158,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tagL1:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			tagL1_set_ = true;
 			tagL1_value_ = value;
@@ -1167,7 +1167,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tagL2:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			tagL2_set_ = true;
 			tagL2_value_ = value;
@@ -1176,7 +1176,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tagL3:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			tagL3_set_ = true;
 			tagL3_value_ = value;
@@ -1185,7 +1185,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_tagL4:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			tagL4_set_ = true;
 			tagL4_value_ = value;
@@ -1194,7 +1194,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			fitness_scaling_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			Individual::s_any_individual_fitness_scaling_set_ = true;
 			
 			if ((fitness_scaling_ < 0.0) || (std::isnan(fitness_scaling_)))
@@ -1204,22 +1204,22 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 		}
 		case gEidosID_x:			// ACCELERATED
 		{
-			spatial_x_ = p_value.FloatAtIndex(0, nullptr);
+			spatial_x_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			return;
 		}
 		case gEidosID_y:			// ACCELERATED
 		{
-			spatial_y_ = p_value.FloatAtIndex(0, nullptr);
+			spatial_y_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			return;
 		}
 		case gEidosID_z:			// ACCELERATED
 		{
-			spatial_z_ = p_value.FloatAtIndex(0, nullptr);
+			spatial_z_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			return;
 		}
 		case gID_age:				// ACCELERATED
 		{
-			slim_age_t value = SLiMCastToAgeTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_age_t value = SLiMCastToAgeTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			age_ = value;
 			return;
@@ -1238,7 +1238,7 @@ void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_va
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->tag_value_ = source_value;
@@ -1259,7 +1259,7 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->tagF_value_ = source_value;
@@ -1473,7 +1473,7 @@ void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, 
 	
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		needs_raise = _SetFitnessScaling_1(source_value, p_values, p_values_size);
 	}
@@ -1492,7 +1492,7 @@ void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_valu
 {
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_x_ = source_value;
@@ -1510,7 +1510,7 @@ void Individual::SetProperty_Accelerated_y(EidosObject **p_values, size_t p_valu
 {
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_y_ = source_value;
@@ -1528,7 +1528,7 @@ void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_valu
 {
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->spatial_z_ = source_value;
@@ -1546,7 +1546,7 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 {
 	if (p_source_size == 1)
 	{
-		const std::string &source_value = ((EidosValue_String &)p_source).StringRefAtIndex(0, nullptr);
+		const std::string &source_value = ((EidosValue_String &)p_source).StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (source_value.empty())
 		{
@@ -1599,7 +1599,7 @@ void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_va
 {
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		slim_age_t source_age = SLiMCastToAgeTypeOrRaise(source_value);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1659,7 +1659,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	
 	if (mutations_count == 1)
 	{
-		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr)))->BlockIndex();
+		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr)))->BlockIndex();
 		
 		if ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)))
 			return gStaticEidosValue_LogicalT;
@@ -1672,7 +1672,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex(value_index, nullptr)))->BlockIndex();
+			MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr)))->BlockIndex();
 			bool contains_mut = ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)));
 			
 			logical_result->set_logical_no_check(contains_mut, value_index);
@@ -1774,7 +1774,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	
 	if (individuals_count == 1)
 	{
-		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
+		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		double relatedness;
 		
 		if (pedigree_tracking_enabled)
@@ -1796,7 +1796,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 #pragma omp parallel for schedule(dynamic, 128) default(none) shared(individuals_count, individuals_value) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS) num_threads(thread_count)
 			for (int value_index = 0; value_index < individuals_count; ++value_index)
 			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 				double relatedness = RelatednessToIndividual(*ind);
 				
 				float_result->set_float_no_check(relatedness, value_index);
@@ -1806,7 +1806,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 		{
 			for (int value_index = 0; value_index < individuals_count; ++value_index)
 			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 				double relatedness = (ind == this) ? 1.0 : 0.0;
 				
 				float_result->set_float_no_check(relatedness, value_index);
@@ -1840,7 +1840,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	
 	if (individuals_count == 1)
 	{
-		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
+		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		int shared_count;
 		
 		if (pedigree_tracking_enabled)
@@ -1859,7 +1859,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 			// FIXME needs parallelization, see relatedness()
 			for (int value_index = 0; value_index < individuals_count; ++value_index)
 			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 				int shared_count = SharedParentCountWithIndividual(*ind);
 				
 				int_result->set_int_no_check(shared_count, value_index);
@@ -1869,7 +1869,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 		{
 			for (int value_index = 0; value_index < individuals_count; ++value_index)
 			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 				int shared_count = (ind == this) ? 2.0 : 0.0;
 				
 				int_result->set_int_no_check(shared_count, value_index);
@@ -2277,7 +2277,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	// Determine the spatiality of the individuals involved, and make sure it is the same for all
 	if (target_size == 1)
 	{
-		Individual *target = (Individual *)p_target->ObjectElementAtIndex(0, nullptr);
+		Individual *target = (Individual *)p_target->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		dimensionality = target->subpopulation_->species_.SpatialDimensionality();
 	}
@@ -2310,21 +2310,21 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 		if (target_size == 1)
 		{
 			// Handle the singleton target case separately so we can handle the vector target case faster
-			Individual *target = (Individual *)p_target->ObjectElementAtIndex(0, nullptr);
+			Individual *target = (Individual *)p_target->ObjectElementAtIndex_NOCAST(0, nullptr);
 			
 			switch (dimensionality)
 			{
 				case 1:
-					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
+					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
 					break;
 				case 2:
-					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
-					target->spatial_y_ = position_value->FloatAtIndex(1, nullptr);
+					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
+					target->spatial_y_ = position_value->FloatAtIndex_NOCAST(1, nullptr);
 					break;
 				case 3:
-					target->spatial_x_ = position_value->FloatAtIndex(0, nullptr);
-					target->spatial_y_ = position_value->FloatAtIndex(1, nullptr);
-					target->spatial_z_ = position_value->FloatAtIndex(2, nullptr);
+					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
+					target->spatial_y_ = position_value->FloatAtIndex_NOCAST(1, nullptr);
+					target->spatial_z_ = position_value->FloatAtIndex_NOCAST(2, nullptr);
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) dimensionality out of range." << EidosTerminate(nullptr);
@@ -2339,7 +2339,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 			{
 				case 1:
 				{
-					double x = position_value->FloatAtIndex(0, nullptr);
+					double x = position_value->FloatAtIndex_NOCAST(0, nullptr);
 					
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_1D);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_1D) num_threads(thread_count)
@@ -2352,8 +2352,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				}
 				case 2:
 				{
-					double x = position_value->FloatAtIndex(0, nullptr);
-					double y = position_value->FloatAtIndex(1, nullptr);
+					double x = position_value->FloatAtIndex_NOCAST(0, nullptr);
+					double y = position_value->FloatAtIndex_NOCAST(1, nullptr);
 					
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_2D);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_2D) num_threads(thread_count)
@@ -2367,9 +2367,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				}
 				case 3:
 				{
-					double x = position_value->FloatAtIndex(0, nullptr);
-					double y = position_value->FloatAtIndex(1, nullptr);
-					double z = position_value->FloatAtIndex(2, nullptr);
+					double x = position_value->FloatAtIndex_NOCAST(0, nullptr);
+					double y = position_value->FloatAtIndex_NOCAST(1, nullptr);
+					double z = position_value->FloatAtIndex_NOCAST(2, nullptr);
 					
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_3D);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y, z) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_3D) num_threads(thread_count)

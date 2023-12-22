@@ -320,7 +320,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Subpopulation *element = (Subpopulation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Subpopulation *element = (Subpopulation *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->species_ == this)
 							{
@@ -333,7 +333,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->individual_->subpopulation_->species_ == this)
 							{
@@ -346,7 +346,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Individual *element = (Individual *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Individual *element = (Individual *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->subpopulation_->species_ == this)
 							{
@@ -359,7 +359,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Mutation *element = (Mutation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Mutation *element = (Mutation *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->mutation_type_ptr_->species_ == this)
 							{
@@ -372,7 +372,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Substitution *element = (Substitution *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Substitution *element = (Substitution *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->mutation_type_ptr_->species_ == this)
 							{

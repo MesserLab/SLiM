@@ -74,7 +74,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 		if (sequence_value_count == 1)
 		{
 			// singleton case
-			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
+			int64_t int_value = sequence_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(1);
 			chromosome_->ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
@@ -217,8 +217,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 	for (int element_index = 0; element_index < element_count; ++element_index)
 	{
 		genomic_element_type_ptr = ((type_count == 1) ? genomic_element_type_ptr_0 : SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, element_index, &community_, this, "initializeGenomicElement()"));	// SPECIES CONSISTENCY CHECK
-		start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex(element_index, nullptr));
-		end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex(element_index, nullptr));
+		start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex_NOCAST(element_index, nullptr));
+		end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex_NOCAST(element_index, nullptr));
 		
 		if (end_position < start_position)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
@@ -296,7 +296,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, &community_, this, "initializeGenomicElementType()");		// SPECIES CONSISTENCY CHECK
-		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
+		double proportion = proportions_value->NumericAtIndex_NOCAST(mut_type_index, nullptr);
 		
 		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() proportions must be greater than or equal to zero (" << EidosStringForFloat(proportion) << " supplied)." << EidosTerminate();
@@ -358,7 +358,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 			
 			output_stream << ((mut_type_id_count > 1) ? ", c(" : ", ");
 			for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
-				output_stream << (mut_type_index > 0 ? ", " : "") << proportions_value->FloatAtIndex(mut_type_index, nullptr);
+				output_stream << (mut_type_index > 0 ? ", " : "") << proportions_value->NumericAtIndex_NOCAST(mut_type_index, nullptr);
 			output_stream << ((mut_type_id_count > 1) ? ")" : "");
 			
 			output_stream << ");" << std::endl;
@@ -387,8 +387,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'm');
-	double dominance_coeff = dominanceCoeff_value->FloatAtIndex(0, nullptr);
-	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
+	double dominance_coeff = dominanceCoeff_value->NumericAtIndex_NOCAST(0, nullptr);
+	std::string dfe_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (community_.MutationTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() mutation type m" << map_identifier << " already defined." << EidosTerminate();
@@ -466,7 +466,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex;
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -500,7 +500,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
+		double recombination_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
@@ -523,11 +523,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double recombination_rate = rates_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double recombination_rate = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (recombination_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
@@ -540,8 +540,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double recombination_rate = rates_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double recombination_rate = rates_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			rates.emplace_back(recombination_rate);
 			positions.emplace_back(recombination_end_position);
@@ -615,11 +615,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	if (num_gene_conversions_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << EidosTerminate();
 	
-	double non_crossover_fraction = nonCrossoverFraction_value->FloatAtIndex(0, nullptr);
-	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
-	double simple_conversion_fraction = simpleConversionFraction_value->FloatAtIndex(0, nullptr);
-	double bias = bias_value->FloatAtIndex(0, nullptr);
-	bool redraw_lengths_on_failure = redrawLengthsOnFailure_value->LogicalAtIndex(0, nullptr);
+	double non_crossover_fraction = nonCrossoverFraction_value->NumericAtIndex_NOCAST(0, nullptr);
+	double gene_conversion_avg_length = meanLength_value->NumericAtIndex_NOCAST(0, nullptr);
+	double simple_conversion_fraction = simpleConversionFraction_value->NumericAtIndex_NOCAST(0, nullptr);
+	double bias = bias_value->NumericAtIndex_NOCAST(0, nullptr);
+	bool redraw_lengths_on_failure = redrawLengthsOnFailure_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if ((non_crossover_fraction < 0.0) || (non_crossover_fraction > 1.0) || std::isnan(non_crossover_fraction))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() nonCrossoverFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(non_crossover_fraction) << " supplied)." << EidosTerminate();
@@ -672,7 +672,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex;
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -705,7 +705,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 		if (multipliers_count != 1)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double multiplier = multipliers_value->FloatAtIndex(0, nullptr);
+		double multiplier = multipliers_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
@@ -728,11 +728,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double multiplier = multipliers_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double multiplier = multipliers_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (multiplier_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (multiplier_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
@@ -745,8 +745,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double multiplier = multipliers_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double multiplier = multipliers_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t multiplier_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			multipliers.emplace_back(multiplier);
 			positions.emplace_back(multiplier_end_position);
@@ -822,7 +822,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex;
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -856,7 +856,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
+		double mutation_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))
@@ -879,11 +879,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double mutation_rate = rates_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double mutation_rate = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (mutation_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
@@ -896,8 +896,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double mutation_rate = rates_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double mutation_rate = rates_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			rates.emplace_back(mutation_rate);
 			positions.emplace_back(mutation_end_position);
@@ -967,7 +967,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	if (num_sex_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << EidosTerminate();
 	
-	std::string chromosome_type = chromosomeType_value->StringAtIndex(0, nullptr);
+	std::string chromosome_type = chromosomeType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (chromosome_type.compare(gStr_A) == 0)
 		modeled_chromosome_type_ = GenomeType::kAutosome;
@@ -1013,7 +1013,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [logical$ keepPedigrees = F]
-		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex(0, nullptr);
+		bool keep_pedigrees = arg_keepPedigrees_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		if (keep_pedigrees)
 		{
@@ -1039,7 +1039,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [string$ dimensionality = ""]
-		std::string space = arg_dimensionality_value->StringAtIndex(0, nullptr);
+		std::string space = arg_dimensionality_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (space.length() != 0)
 		{
@@ -1056,7 +1056,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [string$ periodicity = ""]
-		std::string periodicity = arg_periodicity_value->StringAtIndex(0, nullptr);
+		std::string periodicity = arg_periodicity_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (periodicity.length() != 0)
 		{
@@ -1087,7 +1087,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [integer$ mutationRuns = 0]
-		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex(0, nullptr);
+		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (mutrun_count != 0)
 		{
@@ -1100,21 +1100,21 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	
 	{
 		// [logical$ preventIncidentalSelfing = F]
-		bool prevent_selfing = arg_preventIncidentalSelfing_value->LogicalAtIndex(0, nullptr);
+		bool prevent_selfing = arg_preventIncidentalSelfing_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		prevent_incidental_selfing_ = prevent_selfing;
 	}
 	
 	{
 		// [logical$ nucleotideBased = F]
-		bool nucleotide_based = arg_nucleotideBased_value->LogicalAtIndex(0, nullptr);
+		bool nucleotide_based = arg_nucleotideBased_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		nucleotide_based_ = nucleotide_based;
 	}
 	
 	{
 		// [logical$ randomizeCallbacks = T]
-		bool randomize_callbacks = arg_randomizeCallbacks_value->LogicalAtIndex(0, nullptr);
+		bool randomize_callbacks = arg_randomizeCallbacks_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		shuffle_buf_is_enabled_ = randomize_callbacks;
 	}
@@ -1214,23 +1214,23 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	if (num_species_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may be called only once per species." << EidosTerminate();
 	
-	int64_t tickModulo = arg_tickModulo_value->IntAtIndex(0, nullptr);
+	int64_t tickModulo = arg_tickModulo_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((tickModulo < 1) || (tickModulo >= SLIM_MAX_TICK))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() requires a tickModulo value >= 1." << EidosTerminate();
 	
 	tick_modulo_ = (slim_tick_t)tickModulo;
 	
-	int64_t tickPhase = arg_tickPhase_value->IntAtIndex(0, nullptr);
+	int64_t tickPhase = arg_tickPhase_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((tickPhase < 1) || (tickModulo >= SLIM_MAX_TICK))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() requires a tickPhase value >= 1." << EidosTerminate();
 	
 	tick_phase_ = (slim_tick_t)tickPhase;
 	
-	avatar_ = arg_avatar_value->StringAtIndex(0, nullptr);
+	avatar_ = arg_avatar_value->StringAtIndex_NOCAST(0, nullptr);
 	
-	color_ = arg_color_value->StringAtIndex(0, nullptr);
+	color_ = arg_color_value->StringAtIndex_NOCAST(0, nullptr);
 	if (!color_.empty())
 		Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 	
@@ -1299,10 +1299,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	// if the code here changes, that method should probably be updated too.
 	
 	recording_tree_ = true;
-	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex(0, nullptr);
-	running_coalescence_checks_ = arg_checkCoalescence_value->LogicalAtIndex(0, nullptr);
-	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex(0, nullptr);
-	retain_coalescent_only_ = arg_retainCoalescentOnly_value->LogicalAtIndex(0, nullptr);
+	recording_mutations_ = arg_recordMutations_value->LogicalAtIndex_NOCAST(0, nullptr);
+	running_coalescence_checks_ = arg_checkCoalescence_value->LogicalAtIndex_NOCAST(0, nullptr);
+	running_treeseq_crosschecks_ = arg_runCrosschecks_value->LogicalAtIndex_NOCAST(0, nullptr);
+	retain_coalescent_only_ = arg_retainCoalescentOnly_value->LogicalAtIndex_NOCAST(0, nullptr);
 	treeseq_crosschecks_interval_ = 1;		// this interval is presently not exposed in the Eidos API
 	
 	if ((arg_simplificationRatio_value->Type() == EidosValueType::kValueNULL) && (arg_simplificationInterval_value->Type() == EidosValueType::kValueNULL))
@@ -1315,7 +1315,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	else if (arg_simplificationRatio_value->Type() != EidosValueType::kValueNULL)
 	{
 		// The ratio is non-NULL; using the specified ratio
-		simplification_ratio_ = arg_simplificationRatio_value->FloatAtIndex(0, nullptr);
+		simplification_ratio_ = arg_simplificationRatio_value->NumericAtIndex_NOCAST(0, nullptr);
 		simplification_interval_ = -1;
 		
 		if (std::isnan(simplification_ratio_) || (simplification_ratio_ < 0))
@@ -1325,7 +1325,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		if (arg_simplificationInterval_value->Type() != EidosValueType::kValueNULL)
 		{
 			// Both ratio and interval are non-NULL; the interval is thus interpreted as the *initial* interval
-			simplify_interval_ = arg_simplificationInterval_value->IntAtIndex(0, nullptr);
+			simplify_interval_ = arg_simplificationInterval_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (simplify_interval_ <= 0)
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
@@ -1343,7 +1343,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	{
 		// The ratio is NULL, interval is not; using the specified interval
 		simplification_ratio_ = 0.0;
-		simplification_interval_ = arg_simplificationInterval_value->IntAtIndex(0, nullptr);
+		simplification_interval_ = arg_simplificationInterval_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (simplification_interval_ <= 0)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires simplificationInterval to be > 0." << EidosTerminate();
@@ -1365,7 +1365,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	}
 	else
 	{
-		community_.treeseq_time_unit_ = arg_timeUnit_value->StringAtIndex(0, nullptr);
+		community_.treeseq_time_unit_ = arg_timeUnit_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if ((community_.treeseq_time_unit_.length() == 0) || (community_.treeseq_time_unit_.find('"') != std::string::npos) || (community_.treeseq_time_unit_.find('\'') != std::string::npos))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires the timeUnit to be non-zero length, and it may not contain a quote character." << EidosTerminate();
@@ -1394,7 +1394,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		if (arg_simplificationInterval_value->Type() != EidosValueType::kValueNULL)
 		{
 			if (previous_params) output_stream << ", ";
-			output_stream << "simplificationInterval = " << arg_simplificationInterval_value->IntAtIndex(0, nullptr);
+			output_stream << "simplificationInterval = " << arg_simplificationInterval_value->IntAtIndex_NOCAST(0, nullptr);
 			previous_params = true;
 		}
 		
@@ -1651,7 +1651,7 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 	{
 		case gID_description:
 		{
-			std::string description = p_value.StringAtIndex(0, nullptr);
+			std::string description = p_value.StringAtIndex_NOCAST(0, nullptr);
 			
 			// there are no restrictions on descriptions at all
 			
@@ -1660,7 +1660,7 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		}
 		case gID_cycle:
 		{
-			int64_t value = p_value.IntAtIndex(0, nullptr);
+			int64_t value = p_value.IntAtIndex_NOCAST(0, nullptr);
 			slim_tick_t old_cycle = cycle_;
 			slim_tick_t new_cycle = SLiMCastToTickTypeOrRaise(value);
 			
@@ -1671,7 +1671,7 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1741,14 +1741,14 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	EidosValue *haploid_value = p_arguments[3].get();
 	
 	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex_NOCAST(0, nullptr));
 	
-	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() sex ratio supplied in non-sexual simulation." << EidosTerminate();
 	
-	bool haploid = haploid_value->LogicalAtIndex(0, nullptr);
+	bool haploid = haploid_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (haploid)
 	{
@@ -1796,10 +1796,10 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	EidosValue *sexRatio_value = p_arguments[3].get();
 	
 	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex_NOCAST(0, nullptr));
 	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, &community_, this, "addSubpopSplit()");		// SPECIES CONSISTENCY CHECK
 	
-	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if ((sex_ratio != 0.5) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() sex ratio supplied in non-sexual simulation." << EidosTerminate();
@@ -1859,7 +1859,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	if (pedigreeIDs_count == 1)
 	{
 		// Singleton case, to allow efficiency in the non-singleton case
-		slim_pedigreeid_t pedigree_id = pedigreeIDs_value->IntAtIndex(0, nullptr);
+		slim_pedigreeid_t pedigree_id = pedigreeIDs_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		for (Subpopulation *subpop : subpops_to_search)
 		{
@@ -2027,7 +2027,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	// free the objects now, so we move them to a temporary "graveyard" which we dispose of between tick cycle stages
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
-		Individual *doomed = (Individual *)individuals_value->ObjectElementAtIndex(individual_index, nullptr);
+		Individual *doomed = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(individual_index, nullptr);
 		slim_popsize_t source_subpop_index = doomed->index_;
 		
 		if (source_subpop_index < 0)
@@ -2384,8 +2384,8 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	if (filePath_value->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
-		bool append = append_value->LogicalAtIndex(0, nullptr);
+		outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
+		bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
@@ -2467,11 +2467,11 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		}
 	}
 	
-	bool use_binary = binary_value->LogicalAtIndex(0, nullptr);
-	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex(0, nullptr);
-	bool output_ages = ages_value->LogicalAtIndex(0, nullptr);
-	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex(0, nullptr);
-	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex(0, nullptr);
+	bool use_binary = binary_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_ages = ages_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (output_pedigree_ids && !PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputFull): outputFull() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
@@ -2493,8 +2493,8 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	}
 	else
 	{
-		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
-		bool append = append_value->LogicalAtIndex(0, nullptr);
+		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
+		bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
 		std::ofstream outfile;
 		
 		if (use_binary && append)
@@ -2564,8 +2564,8 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (filePath_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
-		bool append = append_value->LogicalAtIndex(0, nullptr);
+		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
+		bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
@@ -2604,7 +2604,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		
 		for (int mut_index = 0; mut_index < mutations_count; mut_index++)
 		{
-			Mutation *mut = (Mutation *)(mutations_object->ObjectElementAtIndex(mut_index, nullptr));
+			Mutation *mut = (Mutation *)(mutations_object->ObjectElementAtIndex_NOCAST(mut_index, nullptr));
 			mut->scratch_ = 1;
 		}
 		
@@ -2693,7 +2693,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	}
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	
 	EidosValue *subpopMap_value = p_arguments[1].get();
 	SUBPOP_REMAP_HASH subpopRemap;
@@ -2702,7 +2702,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	{
 		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
 		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
-		EidosObject *subpopMap_element = subpopMap_value->ObjectElementAtIndex(0, nullptr);
+		EidosObject *subpopMap_element = subpopMap_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		if (!subpopMap_element->IsKindOfClass(gEidosDictionaryUnretained_Class))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() requires that subpopMap be a Dictionary or a subclass of Dictionary." << EidosTerminate();
@@ -2726,7 +2726,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 			if ((table_id_value->Type() != EidosValueType::kValueInt) || (table_id_value->Count() != 1))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap values must be singleton integers." << EidosTerminate();
 			
-			int64_t table_id = table_id_value->IntAtIndex(0, nullptr);
+			int64_t table_id = table_id_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if ((table_id < 0) || (table_id > SLIM_MAX_ID_VALUE))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap value (" << table_id << ") is out of range." << EidosTerminate();
@@ -2766,7 +2766,7 @@ EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 	// Trigger a fitness recalculation.  This is suggested after making a change that would modify fitness values, such as altering
 	// a selection coefficient or dominance coefficient, changing the mutation type for a mutation, etc.  It will have the side
 	// effect of calling mutationEffect() callbacks, so this is quite a heavyweight operation.
-	slim_tick_t tick = (tick_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(tick_value->IntAtIndex(0, nullptr)) : community_.Tick();
+	slim_tick_t tick = (tick_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(tick_value->IntAtIndex_NOCAST(0, nullptr)) : community_.Tick();
 	
 	population_.RecalculateFitness(tick);
 	
@@ -2788,16 +2788,16 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessEffectCallback(EidosGlobalSt
 	EidosValue *end_value = p_arguments[4].get();
 	
 	slim_objectid_t script_id = -1;		// used if id_value is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerFitnessEffectCallback): registerFitnessEffectCallback() requires start <= end." << EidosTerminate();
@@ -2837,16 +2837,16 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 	EidosValue *end_value = p_arguments[4].get();
 	
 	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 	slim_objectid_t subpop_id = -1;
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires start <= end." << EidosTerminate();
@@ -2885,20 +2885,20 @@ EidosValue_SP Species::ExecuteMethod_registerMutationCallback(EidosGlobalStringI
 	EidosValue *end_value = p_arguments[5].get();
 	
 	slim_objectid_t script_id = -1;		// used if id_value is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 	slim_objectid_t mut_type_id = -1;	// used if mutType_value is NULL, to indicate applicability to all mutation types
 	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (mutType_value->Type() != EidosValueType::kValueNULL)
-		mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
+		mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex_NOCAST(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_id_;
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMutationCallback): registerMutationCallback() requires start <= end." << EidosTerminate();
@@ -2929,19 +2929,19 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	EidosValue *end_value = p_arguments[5].get();
 	
 	slim_objectid_t script_id = -1;		// used if id_value is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 	slim_objectid_t mut_type_id = -1;
 	slim_objectid_t subpop_id = -1;		// used if subpop_value is NULL, to indicate applicability to all subpops
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
-	mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex(0, nullptr))->mutation_type_id_;
+	mut_type_id = (mutType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(mutType_value->IntAtIndex_NOCAST(0, nullptr)) : ((MutationType *)mutType_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_id_;
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMutationEffectCallback): registerMutationEffectCallback() requires start <= end." << EidosTerminate();
@@ -2976,21 +2976,21 @@ EidosValue_SP Species::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	EidosValue *end_value = p_arguments[5].get();
 	
 	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
-	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	std::string script_string = source_value->StringAtIndex_NOCAST(0, nullptr);
 	slim_objectid_t subpop_id = -1;
 	IndividualSex sex_specificity = IndividualSex::kUnspecified;
-	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
-	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex_NOCAST(0, nullptr)) : SLIM_MAX_TICK + 1);
 	
 	if (id_value->Type() != EidosValueType::kValueNULL)
 		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
 	
 	if (subpop_value->Type() != EidosValueType::kValueNULL)
-		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_id_;
 	
 	if (sex_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+		std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (sex_string == "M")			sex_specificity = IndividualSex::kMale;
 		else if (sex_string == "F")		sex_specificity = IndividualSex::kFemale;
@@ -3076,14 +3076,14 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	EidosValue *id_value = p_arguments[5].get();
 	
 	// parse our arguments
-	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex(0, nullptr);
+	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	MutationType *mutation_type_ptr = (mutType_value->Type() == EidosValueType::kValueNULL) ? nullptr : SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "subsetMutations()");	// SPECIES CONSISTENCY CHECK
-	slim_position_t position = (position_value->Type() == EidosValueType::kValueNULL) ? -1 : SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
+	slim_position_t position = (position_value->Type() == EidosValueType::kValueNULL) ? -1 : SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(0, nullptr));
 	int8_t nucleotide = -1;
 	bool has_tag = !(tag_value->Type() == EidosValueType::kValueNULL);
-	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex(0, nullptr) : 0);
+	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
-	slim_mutationid_t id = (has_id ? id_value->IntAtIndex(0, nullptr) : 0);
+	slim_mutationid_t id = (has_id ? id_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	
 	// SPECIES CONSISTENCY CHECK
 	if (exclude && (&exclude->mutation_type_ptr_->species_ != this))
@@ -3091,7 +3091,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	
 	if (nucleotide_value->Type() == EidosValueType::kValueInt)
 	{
-		int64_t nuc_int = nucleotide_value->IntAtIndex(0, nullptr);
+		int64_t nuc_int = nucleotide_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if ((nuc_int < 0) || (nuc_int > 3))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires integer nucleotide values to be in [0,3]." << EidosTerminate();
@@ -3100,7 +3100,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	}
 	else if (nucleotide_value->Type() == EidosValueType::kValueString)
 	{
-		const std::string &nuc_string = ((EidosValue_String *)nucleotide_value)->StringRefAtIndex(0, nullptr);
+		const std::string &nuc_string = ((EidosValue_String *)nucleotide_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (nuc_string == "A")		nucleotide = 0;
 		else if (nuc_string == "C")	nucleotide = 1;
@@ -3274,7 +3274,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 		if ((community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback for the currently executing species." << EidosTerminate();
 	
-	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
+	bool permanent = permanent_value->LogicalAtIndex_NOCAST(0, nullptr); 
 	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
 	
 	if (ind_count == 0)
@@ -3288,7 +3288,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	if (ind_count == 1)
 	{
-		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		AddIndividualsToTable(&ind, 1, &tables_, &tabled_individuals_hash_, flag);
 	}
 	else
@@ -3327,18 +3327,18 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 		(community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
 	
-	std::string path_string = path_value->StringAtIndex(0, nullptr);
-	bool binary = binary_value->LogicalAtIndex(0, nullptr);
-	bool simplify = simplify_value->LogicalAtIndex(0, nullptr);
+	std::string path_string = path_value->StringAtIndex_NOCAST(0, nullptr);
+	bool binary = binary_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool simplify = simplify_value->LogicalAtIndex_NOCAST(0, nullptr);
 	EidosDictionaryUnretained *metadata_dict = nullptr;
-	bool includeModel = includeModel_value->LogicalAtIndex(0, nullptr);
+	bool includeModel = includeModel_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (metadata_value->Type() == EidosValueType::kValueObject)
 	{
 		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
 		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
 		// The JSON serialization would raise anyway, I think, but this gives a better error message.
-		EidosObject *metadata_object = metadata_value->ObjectElementAtIndex(0, nullptr);
+		EidosObject *metadata_object = metadata_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		if (!metadata_object->IsKindOfClass(gEidosDictionaryUnretained_Class))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() requires that the metadata parameter be a Dictionary or a subclass of Dictionary." << EidosTerminate();

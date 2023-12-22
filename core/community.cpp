@@ -1324,7 +1324,7 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForIndividuals): (internal error) value is not of class Individual." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Individual *)object_value->ObjectElementAtIndex(0, nullptr))->subpopulation_->species_;
+		return &((Individual *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_->species_;
 	
 	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
 	Individual **individuals = (Individual **)object_vector_value->data();
@@ -1369,7 +1369,7 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Genome *)object_value->ObjectElementAtIndex(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
 	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
 	Genome **genomes = (Genome **)object_vector_value->data();
@@ -1414,7 +1414,7 @@ Species *Community::SpeciesForMutations(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForMutations): (internal error) value is not of class Mutation." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Mutation *)object_value->ObjectElementAtIndex(0, nullptr))->mutation_type_ptr_->species_;
+		return &((Mutation *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_ptr_->species_;
 	
 	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
 	Mutation **mutations = (Mutation **)object_vector_value->data();

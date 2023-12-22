@@ -1517,7 +1517,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	{
 		case gID_active:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			// cannot activate a block if it has been deactivated by its association with an inactive species
 			if (value && ((species_spec_ && !species_spec_->Active()) || (ticks_spec_ && !ticks_spec_->Active())))
@@ -1530,7 +1530,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1733,7 +1733,7 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 			
 			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->Count() == 1))
 			{
-				int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
+				int64_t cached_int = cached_value->IntAtIndex_NOCAST(0, nullptr);
 				
 				if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
 				{

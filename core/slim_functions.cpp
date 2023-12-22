@@ -571,7 +571,7 @@ static int codon2aa_int[64] = {
 #pragma mark Nucleotide utilities
 #pragma mark -
 
-//	(string)codonsToAminoAcids(integer codons, [li$ long = F])
+//	(string)codonsToAminoAcids(integer codons, [li$ long = F], [l$ paste = T])
 EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
@@ -580,11 +580,11 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 	int codons_length = codons_value->Count();
 	
 	bool integer_result = (long_value->Type() == EidosValueType::kValueInt);
-	eidos_logical_t long_strings = (integer_result ? false : long_value->LogicalAtIndex(0, nullptr));
+	eidos_logical_t long_strings = (integer_result ? false : long_value->LogicalAtIndex_NOCAST(0, nullptr));
 	
 	if (integer_result)
 	{
-		int64_t long_intval = long_value->IntAtIndex(0, nullptr);
+		int64_t long_intval = long_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (long_intval != 0)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires 'long' to be T, F, or 0." << EidosTerminate(nullptr);
@@ -592,7 +592,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 	
 	if (codons_length == 1)
 	{
-		int64_t codon = codons_value->IntAtIndex(0, nullptr);
+		int64_t codon = codons_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if ((codon < 0) || (codon > 63))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
@@ -631,7 +631,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 		else
 		{
 			EidosValue *paste_value = p_arguments[2].get();
-			eidos_logical_t paste = paste_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t paste = paste_value->LogicalAtIndex_NOCAST(0, nullptr);
 			
 			if (paste)
 			{
@@ -831,7 +831,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		// Singleton case
 		if (sequence_type == EidosValueType::kValueInt)
 		{
-			uint64_t nuc = sequence_value->IntAtIndex(0, nullptr);
+			uint64_t nuc = sequence_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nuc > 3)
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
@@ -913,7 +913,7 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p
 	{
 		int ancestral_nucleotide = ((i / 4) % 4);
 		int derived_nucleotide = (i / 64);
-		double value = mutationMatrix16_value->FloatAtIndex(ancestral_nucleotide + derived_nucleotide * 4, nullptr);
+		double value = mutationMatrix16_value->FloatAtIndex_NOCAST(ancestral_nucleotide + derived_nucleotide * 4, nullptr);
 		
 		float_result->set_float_no_check(value, i);
 	}
@@ -928,7 +928,7 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p
 EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *alpha_value = p_arguments[0].get();
-	double alpha = alpha_value->FloatAtIndex(0, nullptr);
+	double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if (alpha < 0.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires alpha >= 0.0." << EidosTerminate(nullptr);
@@ -969,8 +969,8 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_
 	EidosValue *alpha_value = p_arguments[0].get();
 	EidosValue *beta_value = p_arguments[1].get();
 	
-	double alpha = alpha_value->FloatAtIndex(0, nullptr);
-	double beta = beta_value->FloatAtIndex(0, nullptr);
+	double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
+	double beta = beta_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if ((alpha < 0.0) || (alpha > 1.0))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmKimura): function mmKimura() requires alpha to be in [0.0, 1.0]." << EidosTerminate(nullptr);
@@ -1054,7 +1054,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
 	
 	// Get the sequence length to generate
-	int64_t length = length_value->IntAtIndex(0, nullptr);
+	int64_t length = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((length < 0) || (length > 2000000000L))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [0, 2e9]." << EidosTerminate(nullptr);
@@ -1067,10 +1067,10 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		if (basis_value->Count() != 4)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis to be either NULL, or an integer or float vector of length 4 (with relative probabilities for A/C/G/T)." << EidosTerminate(nullptr);
 		
-		pA = basis_value->FloatAtIndex(0, nullptr);
-		pC = basis_value->FloatAtIndex(1, nullptr);
-		pG = basis_value->FloatAtIndex(2, nullptr);
-		pT = basis_value->FloatAtIndex(3, nullptr);
+		pA = basis_value->NumericAtIndex_NOCAST(0, nullptr);
+		pC = basis_value->NumericAtIndex_NOCAST(1, nullptr);
+		pG = basis_value->NumericAtIndex_NOCAST(2, nullptr);
+		pT = basis_value->NumericAtIndex_NOCAST(3, nullptr);
 		
 		if (!std::isfinite(pA) || !std::isfinite(pC) || !std::isfinite(pG) || !std::isfinite(pT) || (pA < 0.0) || (pC < 0.0) || (pG < 0.0) || (pT < 0.0))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis values to be finite and >= 0.0." << EidosTerminate(nullptr);
@@ -1093,7 +1093,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	pC += pA;
 	
 	// Generate a result in the requested format
-	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if ((format != "string") && (format != "char") && (format != "integer"))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
@@ -1196,7 +1196,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	
 	int codons_length = codons_value->Count();
 	int length = codons_length * 3;
-	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (format == "char")
 	{
@@ -1205,7 +1205,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1249,7 +1249,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1277,7 +1277,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1410,7 +1410,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (individuals_count == 1)
 	{
-		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		individuals_buffer = &singleton_ind;
 	}
 	else
@@ -1466,7 +1466,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	}
 	else
 	{
-		std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+		std::string spatiality_string = spatiality_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (spatiality_string.compare(gEidosStr_x) == 0)		{ spatiality = 1; required_dimensionality = 1; component0 = 0; }
 		else if (spatiality_string.compare(gEidosStr_y) == 0)	{ spatiality = 1; required_dimensionality = 2; component0 = 1; }
@@ -1495,22 +1495,22 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (spatiality >= 1)
 	{
-		spatialBounds[0] = spatialBounds_value->FloatAtIndex(component0, nullptr);
-		spatialBounds[1] = spatialBounds_value->FloatAtIndex(component0 + spatiality, nullptr);
+		spatialBounds[0] = spatialBounds_value->NumericAtIndex_NOCAST(component0, nullptr);
+		spatialBounds[1] = spatialBounds_value->NumericAtIndex_NOCAST(component0 + spatiality, nullptr);
 		if (spatialBounds[0] >= spatialBounds[1])
 			invalid_bounds = true;
 	}
 	if (spatiality >= 2)
 	{
-		spatialBounds[2] = spatialBounds_value->FloatAtIndex(component1, nullptr);
-		spatialBounds[3] = spatialBounds_value->FloatAtIndex(component1 + spatiality, nullptr);
+		spatialBounds[2] = spatialBounds_value->NumericAtIndex_NOCAST(component1, nullptr);
+		spatialBounds[3] = spatialBounds_value->NumericAtIndex_NOCAST(component1 + spatiality, nullptr);
 		if (spatialBounds[2] >= spatialBounds[3])
 			invalid_bounds = true;
 	}
 	if (spatiality >= 3)
 	{
-		spatialBounds[4] = spatialBounds_value->FloatAtIndex(component2, nullptr);
-		spatialBounds[5] = spatialBounds_value->FloatAtIndex(component2 + spatiality, nullptr);
+		spatialBounds[4] = spatialBounds_value->NumericAtIndex_NOCAST(component2, nullptr);
+		spatialBounds[5] = spatialBounds_value->NumericAtIndex_NOCAST(component2 + spatiality, nullptr);
 		if (spatialBounds[4] >= spatialBounds[5])
 			invalid_bounds = true;
 	}
@@ -1519,12 +1519,12 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatialBounds are invalid; it is required that x0 < x1, y0 < y1, and z0 < z1." << EidosTerminate();
 	
 	// Get the operation lambda string and the empty-cell value (NULL to execute the lambda for empty cells too)
-	std::string operation_string = operation_value->StringAtIndex(0, nullptr);
+	std::string operation_string = operation_value->StringAtIndex_NOCAST(0, nullptr);
 	bool uses_empty = (empty_value->Type() != EidosValueType::kValueNULL);
-	double empty = uses_empty ? empty_value->FloatAtIndex(0, nullptr) : 0.0;	// handles logical, integer, and float
+	double empty = uses_empty ? empty_value->FloatAtIndex_CAST(0, nullptr) : 0.0;	// handles logical, integer, and float
 	
 	// Get the edgeScale value, which is used to postprocess vaues at the very end
-	bool perUnitArea = perUnitArea_value->LogicalAtIndex(0, nullptr);
+	bool perUnitArea = perUnitArea_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (perUnitArea && std::isfinite(empty) && (empty != 0.0))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires that when perUnitArea is T, empty is F, 0, 0.0, INF, -INF, or NAN (so that the empty value does not get scaled, which presumably does not make sense)." << EidosTerminate();
@@ -1540,7 +1540,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	for (int dim_index = 0; dim_index < dim_count; ++dim_index)
 	{
-		dims[dim_index] = dim_value->IntAtIndex(dim_index, nullptr);
+		dims[dim_index] = dim_value->IntAtIndex_NOCAST(dim_index, nullptr);
 		
 		if ((dims[dim_index] < 2) || (dims[dim_index] > 10000))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires dimensions in dim to be in the range [2, 10000]." << EidosTerminate();
@@ -1710,7 +1710,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 					
 					if ((return_value_SP->Count() == 1) && ((return_value_SP->Type() == EidosValueType::kValueFloat) || (return_value_SP->Type() == EidosValueType::kValueInt) || (return_value_SP->Type() == EidosValueType::kValueLogical)))
 					{
-						result_data[bin_index] = return_value_SP->FloatAtIndex(0, nullptr);
+						result_data[bin_index] = return_value_SP->FloatAtIndex_CAST(0, nullptr);
 					}
 					else
 					{
@@ -1824,7 +1824,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	
 	tsk_table_collection_t temp_tables;
 	
@@ -1874,7 +1874,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	}
 	
 	EidosValue *userData_value = p_arguments[1].get();
-	bool userData = userData_value->LogicalAtIndex(0, nullptr);
+	bool userData = userData_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (userData)
 	{

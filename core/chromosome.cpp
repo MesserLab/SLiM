@@ -912,11 +912,11 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 						
 						if ((resultType == EidosValueType::kValueLogical) && (resultCount == 1))
 						{
-							mutation_accepted = result->LogicalAtIndex(0, nullptr);
+							mutation_accepted = result->LogicalAtIndex_NOCAST(0, nullptr);
 						}
 						else if ((resultType == EidosValueType::kValueObject) && (((EidosValue_Object *)result)->Class() == gSLiM_Mutation_Class) && (resultCount == 1))
 						{
-							Mutation *replacementMutation = (Mutation *)result->ObjectElementAtIndex(0, mutation_callback->identifier_token_);
+							Mutation *replacementMutation = (Mutation *)result->ObjectElementAtIndex_NOCAST(0, mutation_callback->identifier_token_);
 							
 							if (replacementMutation == p_mut)
 							{
@@ -1823,14 +1823,14 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	{
 		case gID_colorSubstitution:
 		{
-			color_sub_ = p_value.StringAtIndex(0, nullptr);
+			color_sub_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			if (!color_sub_.empty())
 				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1870,8 +1870,8 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 	EidosValue *start_value = p_arguments[0].get();
 	EidosValue *end_value = p_arguments[1].get();
 	
-	int64_t start = (start_value->Type() == EidosValueType::kValueNULL) ? 0 : start_value->IntAtIndex(0, nullptr);
-	int64_t end = (end_value->Type() == EidosValueType::kValueNULL) ? last_position_ : end_value->IntAtIndex(0, nullptr);
+	int64_t start = (start_value->Type() == EidosValueType::kValueNULL) ? 0 : start_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t end = (end_value->Type() == EidosValueType::kValueNULL) ? last_position_ : end_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((start < 0) || (end < 0) || (start > last_position_) || (end > last_position_) || (start > end))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): start and end must be within the chromosome's extent, and start must be <= end." << EidosTerminate();
@@ -1884,7 +1884,7 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
 	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
-	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (format == "codon")
 		return sequence->NucleotidesAsCodonVector(start, end, /* p_force_vector */ false);
@@ -1918,7 +1918,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	Individual *parent = nullptr;
 	
 	if (parent_value->Type() != EidosValueType::kValueNULL)
-		parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
+		parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	if (!parent && !single_recombination_map_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires a non-NULL parent parameter in sexual models with sex-specific recombination maps." << EidosTerminate();
@@ -1949,7 +1949,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		num_breakpoints = DrawBreakpointCount(parent_sex);
 	else
 	{
-		int64_t n = n_value->IntAtIndex(0, nullptr);
+		int64_t n = n_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if ((n < 0) || (n > 1000000L))
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires 0 <= n <= 1000000." << EidosTerminate();
@@ -2033,7 +2033,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 		if (sequence_value_count == 1)
 		{
 			// singleton case
-			int64_t int_value = sequence_value->IntAtIndex(0, nullptr);
+			int64_t int_value = sequence_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			ancestral_seq_buffer_ = new NucleotideArray(1);
 			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
@@ -2152,10 +2152,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setGeneConversion(EidosGlobalStringID p_
 	EidosValue *simpleConversionFraction_value = p_arguments[2].get();
 	EidosValue *bias_value = p_arguments[3].get();
 	
-	double non_crossover_fraction = nonCrossoverFraction_value->FloatAtIndex(0, nullptr);
-	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
-	double simple_conversion_fraction = simpleConversionFraction_value->FloatAtIndex(0, nullptr);
-	double bias = bias_value->FloatAtIndex(0, nullptr);
+	double non_crossover_fraction = nonCrossoverFraction_value->NumericAtIndex_NOCAST(0, nullptr);
+	double gene_conversion_avg_length = meanLength_value->NumericAtIndex_NOCAST(0, nullptr);
+	double simple_conversion_fraction = simpleConversionFraction_value->NumericAtIndex_NOCAST(0, nullptr);
+	double bias = bias_value->NumericAtIndex_NOCAST(0, nullptr);
 	
 	if ((non_crossover_fraction < 0.0) || (non_crossover_fraction > 1.0) || std::isnan(non_crossover_fraction))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setGeneConversion): setGeneConversion() nonCrossoverFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(non_crossover_fraction) << " supplied)." << EidosTerminate();
@@ -2196,7 +2196,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 	
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex = IndividualSex::kUnspecified;
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -2224,7 +2224,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		if (multipliers_count != 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requires multipliers to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double multiplier = multipliers_value->FloatAtIndex(0, nullptr);
+		double multiplier = multipliers_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
@@ -2248,11 +2248,11 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double multiplier = multipliers_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double multiplier = multipliers_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (mutation_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
@@ -2262,7 +2262,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-		int64_t new_last_position = ends_value->IntAtIndex(end_count - 1, nullptr);
+		int64_t new_last_position = ends_value->IntAtIndex_NOCAST(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
@@ -2273,8 +2273,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double multiplier = multipliers_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double multiplier = multipliers_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			multipliers.emplace_back(multiplier);
 			positions.emplace_back(mutation_end_position);
@@ -2306,7 +2306,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex = IndividualSex::kUnspecified;
 	
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -2334,7 +2334,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
+		double mutation_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
@@ -2358,11 +2358,11 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double mutation_rate = rates_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double mutation_rate = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (mutation_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (mutation_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((mutation_rate < 0.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
@@ -2372,7 +2372,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-		int64_t new_last_position = ends_value->IntAtIndex(end_count - 1, nullptr);
+		int64_t new_last_position = ends_value->IntAtIndex_NOCAST(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
@@ -2383,8 +2383,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double mutation_rate = rates_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double mutation_rate = rates_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t mutation_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			rates.emplace_back(mutation_rate);
 			positions.emplace_back(mutation_end_position);
@@ -2413,7 +2413,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 	// Figure out what sex we are being given a map for
 	IndividualSex requested_sex = IndividualSex::kUnspecified;
 	
-	std::string sex_string = sex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = sex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -2441,7 +2441,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		if (rate_count != 1)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires rates to be a singleton if ends is not supplied." << EidosTerminate();
 		
-		double recombination_rate = rates_value->FloatAtIndex(0, nullptr);
+		double recombination_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
 		if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
@@ -2465,11 +2465,11 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		// check values
 		for (int value_index = 0; value_index < end_count; ++value_index)
 		{
-			double recombination_rate = rates_value->FloatAtIndex(value_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(value_index, nullptr));
+			double recombination_rate = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (value_index > 0)
-				if (recombination_end_position <= ends_value->IntAtIndex(value_index - 1, nullptr))
+				if (recombination_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
@@ -2479,7 +2479,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
 		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
-		int64_t new_last_position = ends_value->IntAtIndex(end_count - 1, nullptr);
+		int64_t new_last_position = ends_value->IntAtIndex_NOCAST(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
@@ -2490,8 +2490,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
-			double recombination_rate = rates_value->FloatAtIndex(interval_index, nullptr);
-			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex(interval_index, nullptr));
+			double recombination_rate = rates_value->NumericAtIndex_NOCAST(interval_index, nullptr);
+			slim_position_t recombination_end_position = SLiMCastToPositionTypeOrRaise(ends_value->IntAtIndex_NOCAST(interval_index, nullptr));
 			
 			rates.emplace_back(recombination_rate);
 			positions.emplace_back(recombination_end_position);

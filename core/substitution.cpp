@@ -309,7 +309,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	{
 		case gID_nucleotide:
 		{
-			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
+			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotide is only defined for nucleotide-based substitutions." << EidosTerminate();
@@ -323,7 +323,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		}
 		case gID_nucleotideValue:
 		{
-			int64_t nucleotide = p_value.IntAtIndex(0, nullptr);
+			int64_t nucleotide = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotideValue is only defined for nucleotide-based substitutions." << EidosTerminate();
@@ -335,14 +335,14 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		}
 		case gID_subpopID:
 		{
-			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			subpop_index_ = value;
 			return;
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;

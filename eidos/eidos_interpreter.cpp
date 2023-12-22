@@ -2037,7 +2037,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) + second_child_value->IntAtIndex(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) + second_child_value->IntAtIndex_NOCAST(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2059,7 +2059,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
 						// This is an overflow-safe version of:
-						//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) + second_child_value->IntAtIndex(value_index, operator_token));
+						//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) + second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 						
 						int64_t first_operand = first_child_data[value_index];
 						int64_t second_operand = second_child_data[value_index];
@@ -2085,7 +2085,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->PushInt(singleton_int + second_child_value->IntAtIndex(value_index, operator_token));
+					//int_result->PushInt(singleton_int + second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 					
 					int64_t second_operand = second_child_data[value_index];
 					int64_t add_result;
@@ -2109,7 +2109,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->PushInt(first_child_value->IntAtIndex(value_index, operator_token) + singleton_int);
+					//int_result->PushInt(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) + singleton_int);
 					
 					int64_t first_operand = first_child_data[value_index];
 					int64_t add_result;
@@ -2257,7 +2257,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-first_child_value->IntAtIndex(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-first_child_value->IntAtIndex_NOCAST(0, operator_token));
 				
 				int64_t operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				int64_t subtract_result;
@@ -2277,7 +2277,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(-first_child_value->IntAtIndex(value_index, operator_token), value_index);
+					//int_result->set_int_no_check(-first_child_value->IntAtIndex_NOCAST(value_index, operator_token), value_index);
 					
 					int64_t operand = first_child_data[value_index];
 					int64_t subtract_result;
@@ -2340,7 +2340,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) - second_child_value->IntAtIndex(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) - second_child_value->IntAtIndex_NOCAST(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2362,7 +2362,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
 						// This is an overflow-safe version of:
-						//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) - second_child_value->IntAtIndex(value_index, operator_token));
+						//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) - second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 						
 						int64_t first_operand = first_child_data[value_index];
 						int64_t second_operand = second_child_data[value_index];
@@ -2388,7 +2388,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(singleton_int - second_child_value->IntAtIndex(value_index, operator_token));
+					//int_result->set_int_no_check(singleton_int - second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 					
 					int64_t second_operand = second_child_data[value_index];
 					int64_t subtract_result;
@@ -2412,7 +2412,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) - singleton_int);
+					//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) - singleton_int);
 					
 					int64_t first_operand = first_child_data[value_index];
 					int64_t subtract_result;
@@ -2712,7 +2712,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex(0, operator_token) * second_child_value->IntAtIndex(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) * second_child_value->IntAtIndex_NOCAST(0, operator_token));
 				
 				int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2734,7 +2734,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(first_child_value->IntAtIndex(value_index, operator_token) * second_child_value->IntAtIndex(value_index, operator_token));
+					//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) * second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 					
 					int64_t first_operand = first_child_data[value_index];
 					int64_t second_operand = second_child_data[value_index];
@@ -5266,7 +5266,7 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
 		(condition_result->Count() == 1))
 	{
-		eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
+		eidos_logical_t condition_logical = condition_result->LogicalAtIndex_CAST(0, operator_token);
 		
 		// the above might raise, but if it does, it will be the same error as produced below
 		ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG IF (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<
@@ -5430,7 +5430,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
 			(condition_result->Count() == 1))
 		{
-			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
+			eidos_logical_t condition_logical = condition_result->LogicalAtIndex_CAST(0, operator_token);
 			
 			// the above might raise, but if it does, it will be the same error as produced below
 			indenter.outdent();
@@ -5492,7 +5492,7 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 			(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()) &&
 			(condition_result->Count() == 1))
 		{
-			eidos_logical_t condition_logical = condition_result->LogicalAtIndex(0, operator_token);
+			eidos_logical_t condition_logical = condition_result->LogicalAtIndex_CAST(0, operator_token);
 			
 			// the above might raise, but if it does, it will be the same error as produced below
 			ErrorOutputStream() << EidosDebugPointIndent::Indent() << "#DEBUG WHILE (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): condition == " <<

@@ -241,7 +241,7 @@ Community &SLiM_GetCommunityFromInterpreter(EidosInterpreter &p_interpreter)
 
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char)
 {
-	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);
+	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex_NOCAST(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex_NOCAST(p_index, nullptr), p_prefix_char, nullptr);
 }
 
 MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
@@ -250,7 +250,7 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
-		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex_NOCAST(p_index, nullptr));
 		
 		if (p_species)
 		{
@@ -280,9 +280,9 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		found_muttype = dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #else
-		found_muttype = (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = (MutationType *)(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #endif
 		
 		if (!found_muttype)
@@ -301,7 +301,7 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
-		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex_NOCAST(p_index, nullptr));
 		
 		if (p_species)
 		{
@@ -331,9 +331,9 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		found_getype = dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #else
-		found_getype = (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = (GenomicElementType *)(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #endif
 		
 		if (!found_getype)
@@ -352,7 +352,7 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
-		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex_NOCAST(p_index, nullptr));
 		
 		if (p_species)
 		{
@@ -382,9 +382,9 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		found_subpop = dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #else
-		found_subpop = (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = (Subpopulation *)(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #endif
 		
 		if (!found_subpop)
@@ -403,7 +403,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
-		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
+		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex_NOCAST(p_index, nullptr));
 		std::vector<SLiMEidosBlock*> &script_blocks = p_community->AllScriptBlocks();
 		
 		for (SLiMEidosBlock *temp_found_block : script_blocks)
@@ -421,9 +421,9 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		found_block = dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #else
-		found_block = (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = (SLiMEidosBlock *)(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #endif
 		
 		if (!found_block)
@@ -455,9 +455,9 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		found_species = dynamic_cast<Species *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_species = dynamic_cast<Species *>(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #else
-		found_species = (Species *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_species = (Species *)(p_value->ObjectElementAtIndex_NOCAST(p_index, nullptr));
 #endif
 		
 		if (!found_species)

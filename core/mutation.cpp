@@ -612,7 +612,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 	{
 		case gID_nucleotide:
 		{
-			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
+			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
@@ -626,7 +626,7 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 		}
 		case gID_nucleotideValue:
 		{
-			int64_t nucleotide = p_value.IntAtIndex(0, nullptr);
+			int64_t nucleotide = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Mutation::SetProperty): property nucleotideValue is only defined for nucleotide-based mutations." << EidosTerminate();
@@ -638,14 +638,14 @@ void Mutation::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &
 		}
 		case gID_subpopID:			// ACCELERATED
 		{
-			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			subpop_index_ = value;
 			return;
 		}
 		case gID_tag:				// ACCELERATED
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -662,7 +662,7 @@ void Mutation::SetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p
 {
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Mutation *)(p_values[value_index]))->subpop_index_ = SLiMCastToObjectidTypeOrRaise(source_value);
@@ -681,7 +681,7 @@ void Mutation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_valu
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Mutation *)(p_values[value_index]))->tag_value_ = source_value;
@@ -712,7 +712,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *selectionCoeff_value = p_arguments[0].get();
 	
-	double value = selectionCoeff_value->FloatAtIndex(0, nullptr);
+	double value = selectionCoeff_value->FloatAtIndex_NOCAST(0, nullptr);
 	slim_selcoeff_t old_coeff = selection_coeff_;
 	
 	selection_coeff_ = static_cast<slim_selcoeff_t>(value);

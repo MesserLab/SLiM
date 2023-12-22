@@ -170,14 +170,14 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
 				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type numeric (integer or float)." << EidosTerminate();
 			
-			p_dfe_parameters->emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
+			p_dfe_parameters->emplace_back(dfe_param_value->NumericAtIndex_NOCAST(0, nullptr));
 		}
 		else
 		{
 			if (dfe_param_type != EidosValueType::kValueString)
 				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type string." << EidosTerminate();
 			
-			p_dfe_strings->emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
+			p_dfe_strings->emplace_back(dfe_param_value->StringAtIndex_NOCAST(0, nullptr));
 		}
 	}
 	
@@ -325,9 +325,9 @@ double MutationType::DrawSelectionCoefficient(void) const
 				int result_count = result->Count();
 				
 				if ((result_type == EidosValueType::kValueFloat) && (result_count == 1))
-					sel_coeff = result->FloatAtIndex(0, nullptr);
+					sel_coeff = result->FloatAtIndex_NOCAST(0, nullptr);
 				else if ((result_type == EidosValueType::kValueInt) && (result_count == 1))
-					sel_coeff = result->IntAtIndex(0, nullptr);
+					sel_coeff = result->IntAtIndex_NOCAST(0, nullptr);
 				else
 					EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): type 's' DFE callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
 			}
@@ -579,7 +579,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	{
 		case gEidosID_color:
 		{
-			color_ = p_value.StringAtIndex(0, nullptr);
+			color_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			if (!color_.empty())
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			return;
@@ -587,7 +587,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_colorSubstitution:
 		{
-			color_sub_ = p_value.StringAtIndex(0, nullptr);
+			color_sub_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			if (!color_sub_.empty())
 				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 			return;
@@ -595,7 +595,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_convertToSubstitution:				// ACCELERATED
 		{
-			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			eidos_logical_t value = p_value.LogicalAtIndex_NOCAST(0, nullptr);
 			
 			convert_to_substitution_ = value;
 			return;
@@ -603,7 +603,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_dominanceCoeff:
 		{
-			double value = p_value.FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
 			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			
@@ -617,7 +617,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_haploidDominanceCoeff:
 		{
-			double value = p_value.FloatAtIndex(0, nullptr);
+			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
 			haploid_dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			
@@ -631,7 +631,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_mutationStackGroup:
 		{
-			int64_t new_group = p_value.IntAtIndex(0, nullptr);
+			int64_t new_group = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_based_ && (new_group != -1))
 				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be -1 for nucleotide-based mutation types." << EidosTerminate();
@@ -644,7 +644,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_mutationStackPolicy:
 		{
-			std::string value = p_value.StringAtIndex(0, nullptr);
+			std::string value = p_value.StringAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_based_ && (value != gStr_l))
 				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 'l' for nucleotide-based mutation types." << EidosTerminate();
@@ -664,7 +664,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			
 		case gID_tag:				// ACCELERATED
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -681,7 +681,7 @@ void MutationType::SetProperty_Accelerated_convertToSubstitution(EidosObject **p
 {
 	if (p_source_size == 1)
 	{
-		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		eidos_logical_t source_value = p_source.LogicalAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((MutationType *)(p_values[value_index]))->convert_to_substitution_ = source_value;
@@ -700,7 +700,7 @@ void MutationType::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((MutationType *)(p_values[value_index]))->tag_value_ = source_value;
@@ -731,7 +731,7 @@ EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalSt
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_SP result_SP(nullptr);
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (num_draws < 0)
 		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawSelectionCoefficient): drawSelectionCoefficient() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
@@ -758,7 +758,7 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *distributionType_value = p_arguments[0].get();
-	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
+	std::string dfe_type_string = distributionType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// Parse the DFE type and parameters, and do various sanity checks
 	DFEType dfe_type;

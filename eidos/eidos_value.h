@@ -211,7 +211,7 @@ public:
 	virtual std::string StringAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	virtual int64_t IntAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	virtual double FloatAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
-	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }	// casts integer to float, otherwise does not cast; considered _NOCAST
+	virtual double NumericAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }	// casts integer to float, otherwise does not cast; considered _NOCAST
 	virtual EidosObject *ObjectElementAtIndex_NOCAST(__attribute__((unused)) int p_idx, __attribute__((unused)) const EidosToken *p_blame_token) const { RaiseForIncorrectTypeCall(); }
 	
 	// fetching individual values WITH a cast to the requested type; this is not general-purpose
@@ -1361,7 +1361,7 @@ public:
 	void set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index);		// checks for retain/release
 };
 
-inline __attribute__((always_inline)) void EidosValue_Object_singleton::set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index)
+inline __attribute__((always_inline)) void EidosValue_Object_singleton::set_object_element_no_check_CRR(EidosObject *p_object, __attribute__((unused)) size_t p_index)
 {
 #if DEBUG
 	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
