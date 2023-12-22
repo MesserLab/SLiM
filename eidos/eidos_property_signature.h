@@ -74,7 +74,7 @@ public:
 	EidosPropertySignature(const std::string &p_property_name, bool p_read_only, EidosValueMask p_value_mask, const EidosClass *p_value_class);
 	
 	// check arguments and returns
-	bool CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object; true is exact match, false is implicit type conversion
+	void CheckAssignedValue(const EidosValue &p_value) const;	// checks a vector being assigned into a whole object; raises on mismatch
 	void CheckResultValue(const EidosValue &p_value) const;	// checks the result from a single element
 	void CheckAggregateResultValue(const EidosValue &p_value, size_t p_expected_size) const;	// checks the result from a vector
 	

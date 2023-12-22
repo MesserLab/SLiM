@@ -2647,7 +2647,7 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 	if (!signature)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(p_property_token);
 	
-	bool exact_match = signature->CheckAssignedValue(p_value);
+	signature->CheckAssignedValue(p_value);		// will raise if the type being assigned in is not an exact match
 	
 	// We have to check the count ourselves; the signature does not do that for us
 	size_t p_value_count = p_value.Count();
@@ -2659,8 +2659,6 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 		if (signature->accelerated_set_)
 		{
 			// Accelerated property writing is enabled for this property, so we call the setter directly
-			// Unlike the vector case below, this should work with implicit promotion, because accelerated
-			// setters will get the singleton value safely, not by direct vector access
 			signature->accelerated_setter(values_, values_size, p_value, p_value_count);
 		}
 		else
@@ -2676,21 +2674,17 @@ void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_prope
 			if (signature->accelerated_set_)
 			{
 				// Accelerated property writing is enabled for this property, so we call the setter directly
-				// However, accelerated setting of vectors requires that the value type matches the property
-				// type, without promotion, so we check that condition first and fall through if not
-				if (exact_match)
-				{
-					signature->accelerated_setter(values_, values_size, p_value, p_value_count);
-					return;
-				}
+				signature->accelerated_setter(values_, values_size, p_value, p_value_count);
 			}
-			
-			// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
-			for (size_t value_idx = 0; value_idx < p_value_count; value_idx++)
+			else
 			{
-				EidosValue_SP temp_rvalue = p_value.GetValueAtIndex((int)value_idx, nullptr);
-				
-				values_[value_idx]->SetProperty(p_property_id, *temp_rvalue);
+				// we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
+				for (size_t value_idx = 0; value_idx < p_value_count; value_idx++)
+				{
+					EidosValue_SP temp_rvalue = p_value.GetValueAtIndex((int)value_idx, nullptr);
+					
+					values_[value_idx]->SetProperty(p_property_id, *temp_rvalue);
+				}
 			}
 		}
 	}
@@ -3243,7 +3237,7 @@ void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_pr
 	if (!signature)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(p_property_token);
 	
-	signature->CheckAssignedValue(p_value);
+	signature->CheckAssignedValue(p_value);		// will raise if the type being assigned in is not an exact match
 	
 	// We have to check the count ourselves; the signature does not do that for us
 	if (p_value.Count() == 1)
