@@ -654,8 +654,8 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	}
 	else if (highest_type == EidosValueType::kValueFloat)
 	{
-		EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(reserve_size);
-		EidosValue_Float_vector_SP result_SP = EidosValue_Float_vector_SP(result);
+		EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(reserve_size);
+		EidosValue_Float_SP result_SP = EidosValue_Float_SP(result);
 		int result_set_index = 0;
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
@@ -885,7 +885,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	{
 		// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
 		const double *float_data = x_value->FloatData();
-		EidosValue_Float_vector *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+		EidosValue_Float *float_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Float();
 		result_SP = EidosValue_SP(float_result);
 		
 		if (p_preserve_order)
@@ -1091,8 +1091,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			else if (original_value_type == EidosValueType::kValueFloat)
 			{
 				const double *first_child_data = p_original_value->FloatData();
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-				EidosValue_Float_vector *float_result = float_result_SP->reserve(indices_count);
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					if (logical_index_data[value_idx])
@@ -1153,8 +1153,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			{
 				// result type is float; optimize for that
 				const double *first_child_data = p_original_value->FloatData();
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-				EidosValue_Float_vector *float_result = float_result_SP->reserve(indices_count);
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 				{

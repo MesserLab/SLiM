@@ -1086,9 +1086,9 @@ EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (spatiality_)
 			{
-				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_a0_, bounds_a1_});
-				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_a0_, bounds_b0_, bounds_a1_, bounds_b1_});
-				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_a0_, bounds_b0_, bounds_c0_, bounds_a1_, bounds_b1_, bounds_c1_});
+				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_a0_, bounds_a1_});
+				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_a0_, bounds_b0_, bounds_a1_, bounds_b1_});
+				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_a0_, bounds_b0_, bounds_c0_, bounds_a1_, bounds_b1_, bounds_c1_});
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
@@ -1525,7 +1525,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_metho
 EidosValue_SP SpatialMap::ExecuteMethod_gridValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(values_size_);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(values_size_);
 	
 	if (spatiality_ == 1)
 	{
@@ -1992,8 +1992,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point = p_arguments[0].get();
 	
-	EidosValue_Float_vector *float_result = nullptr;
-	EidosValue_Float_singleton *float_singleton_result = nullptr;
+	EidosValue_Float *float_result = nullptr;
 	
 	// Note that point is required to already be in terms of our spatiality; if we are an "xz" map, it must contain "xz" values
 	int x_count;
@@ -2001,12 +2000,12 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 	if (point->Count() == spatiality_)
 	{
 		x_count = 1;
-		float_singleton_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.0));
+		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0.0));
 	}
 	else if (point->Count() % spatiality_ == 0)
 	{
 		x_count = point->Count() / spatiality_;
-		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_mapValue): mapValue() length of point must match spatiality of map " << name_ << ", or be a multiple thereof." << EidosTerminate();
@@ -2066,16 +2065,10 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 			}
 		}
 		
-		if (float_result)
-			float_result->set_float_no_check(map_value, value_index);
-		else
-			float_singleton_result->SetValue(map_value);
+		float_result->set_float_no_check(map_value, value_index);
 	}
 	
-	if (float_result)
-		return EidosValue_SP(float_result);
-	else
-		return EidosValue_SP(float_singleton_result);
+	return EidosValue_SP(float_result);
 }
 
 //	*********************	- (float)range(void)
@@ -2083,7 +2076,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 EidosValue_SP SpatialMap::ExecuteMethod_range(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(2);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(2);
 	
 	float_result->set_float_no_check(values_min_, 0);
 	float_result->set_float_no_check(values_max_, 1);
@@ -2151,7 +2144,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
 	double *result_ptr = float_result->data();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
@@ -2379,7 +2372,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
 	double *result_ptr = float_result->data();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	

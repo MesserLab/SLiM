@@ -907,7 +907,7 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p
 	if ((mutationMatrix16_value->DimensionCount() != 2) || (mutationMatrix16_value->Dimensions()[0] != 4) || (mutationMatrix16_value->Dimensions()[1] != 4))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mm16To256): function mm16To256() requires mutationMatrix16 to be a 4x4 matrix." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(256);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(256);
 	
 	for (int i = 0; i < 256; ++i)
 	{
@@ -935,7 +935,7 @@ EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const std::vector<EidosValue_SP
 	if (3 * alpha > 1.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires 3 * alpha <= 1.0." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(16);
 	
 	float_result->set_float_no_check(0.0, 0);
 	float_result->set_float_no_check(alpha, 1);
@@ -979,7 +979,7 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_
 	if (alpha + 2 * beta > 1.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmKimura): function mmKimura() requires alpha + 2 * beta to be <= 1.0." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(16);
 	
 	float_result->set_float_no_check(0.0, 0);
 	float_result->set_float_no_check(beta, 1);
@@ -1033,7 +1033,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const std::vector<Eidos
 	
 	CountNucleotides(sequence_value, total_ACGT, "nucleotideFrequencies");
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(4);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(4);
 	double total = total_ACGT[0] + total_ACGT[1] + total_ACGT[2] + total_ACGT[3];
 	
 	float_result->set_float_no_check(total_ACGT[0] / total, 0);
@@ -1552,7 +1552,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) calculated size for returned vector (" << result_count << ") is out of range for int32_t." << EidosTerminate();
 	
 	// Allocate our return value, set its dimensions, and get set up for using it
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_count);
+	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_count);
 	double *result_data = result_vec->data();
 	
 	if (dim_count > 1)

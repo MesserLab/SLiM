@@ -1412,7 +1412,7 @@ EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, co
 	
 	size_t usage = usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage;
 	double usage_MB = usage / (1024.0 * 1024.0);
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(usage_MB));
 	
 	return result_SP;
 }

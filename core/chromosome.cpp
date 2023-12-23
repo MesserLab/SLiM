@@ -1013,7 +1013,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	
 	if (genomic_element_type.mutation_matrix_)
 	{
-		EidosValue_Float_vector *mm = genomic_element_type.mutation_matrix_.get();
+		EidosValue_Float *mm = genomic_element_type.mutation_matrix_.get();
 		int mm_count = mm->Count();
 		
 		if (mm_count == 16)
@@ -1615,7 +1615,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliers is only defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliers is not defined since sex-specific hotspot maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hotspot_multipliers_H_));
 		}
 		case gID_hotspotMultipliersM:
 		{
@@ -1623,7 +1623,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersM is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersM is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hotspot_multipliers_M_));
 		}
 		case gID_hotspotMultipliersF:
 		{
@@ -1631,7 +1631,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersF is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersF is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(hotspot_multipliers_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hotspot_multipliers_F_));
 		}
 			
 		case gID_mutationEndPositions:
@@ -1665,7 +1665,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mutation_rates_H_));
 		}
 		case gID_mutationRatesM:
 		{
@@ -1673,7 +1673,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mutation_rates_M_));
 		}
 		case gID_mutationRatesF:
 		{
@@ -1681,7 +1681,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_rates_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mutation_rates_F_));
 		}
 			
 		case gID_overallMutationRate:
@@ -1690,7 +1690,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_H_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_mutation_rate_H_userlevel_));
 		}
 		case gID_overallMutationRateM:
 		{
@@ -1698,7 +1698,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_M_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_mutation_rate_M_userlevel_));
 		}
 		case gID_overallMutationRateF:
 		{
@@ -1706,26 +1706,26 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_mutation_rate_F_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_mutation_rate_F_userlevel_));
 		}
 			
 		case gID_overallRecombinationRate:
 		{
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRate is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_H_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_H_userlevel_));
 		}
 		case gID_overallRecombinationRateM:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_M_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_M_userlevel_));
 		}
 		case gID_overallRecombinationRateF:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(overall_recombination_rate_F_userlevel_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_F_userlevel_));
 		}
 			
 		case gID_recombinationEndPositions:
@@ -1751,19 +1751,19 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRates is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_H_));
 		}
 		case gID_recombinationRatesM:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_M_));
 		}
 		case gID_recombinationRatesF:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_F_));
 		}
 			
 		case gID_species:
@@ -1780,25 +1780,25 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionGCBias is not defined since the DSB recombination model is not being used." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(mismatch_repair_bias_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mismatch_repair_bias_));
 		}
 		case gID_geneConversionNonCrossoverFraction:
 		{
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionNonCrossoverFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(non_crossover_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(non_crossover_fraction_));
 		}
 		case gID_geneConversionMeanLength:
 		{
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionMeanLength is not defined since the DSB recombination model is not being used." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gene_conversion_avg_length_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gene_conversion_avg_length_));
 		}
 		case gID_geneConversionSimpleConversionFraction:
 		{
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionSimpleConversionFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(simple_conversion_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(simple_conversion_fraction_));
 		}
 		case gID_tag:
 		{

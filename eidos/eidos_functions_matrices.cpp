@@ -395,7 +395,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(result_length)); break;
+		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(result_length)); break;
 		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()); break;
 		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(result_class))->reserve(result_length)); break;
 	}
@@ -650,7 +650,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 			double x_singleton = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			double y_singleton = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_singleton * y_singleton));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_singleton * y_singleton));
 		}
 	}
 	else if (x_length == 1)
@@ -679,7 +679,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		{
 			double x_singleton = x_value->FloatAtIndex_NOCAST(0, nullptr);
 			const double *y_data = y_value->FloatData();
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t y_index = 0; y_index < y_length; ++y_index)
@@ -712,7 +712,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		{
 			const double *x_data = x_value->FloatData();
 			double y_singleton = y_value->FloatAtIndex_NOCAST(0, nullptr);
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t x_index = 0; x_index < x_length; ++x_index)
@@ -769,7 +769,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		{
 			const double *x_data = x_value->FloatData();
 			const double *y_data = y_value->FloatData();
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t result_col_index = 0; result_col_index < result_cols; ++result_col_index)
@@ -913,7 +913,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(result_length)); break;
+		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(result_length)); break;
 		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()); break;
 		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(result_class))->reserve(result_length)); break;
 	}

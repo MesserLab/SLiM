@@ -832,9 +832,7 @@ public:
 
 //	*********************************************************************************************************
 //
-//	EidosValue_Float represents floating-point (C++ double) values in Eidos.  The subclass
-//	EidosValue_Float_vector is the standard instance class, used to hold vectors of floats.
-//	EidosValue_Float_singleton is used for speed, to represent single values.
+//	EidosValue_Float represents floating-point (C++ double) values in Eidos.
 //
 
 class EidosValue_Float : public EidosValue
@@ -843,53 +841,32 @@ private:
 	typedef EidosValue super;
 
 protected:
-	explicit inline EidosValue_Float(bool p_singleton) : EidosValue(EidosValueType::kValueFloat, p_singleton) {}
-
-	virtual int Count_Virtual(void) const override = 0;
-	
-public:
-	EidosValue_Float(const EidosValue_Float &p_original) = delete;			// no copy-construct
-	EidosValue_Float(void) = delete;										// no default constructor
-	EidosValue_Float& operator=(const EidosValue_Float&) = delete;			// no copying
-	inline virtual ~EidosValue_Float(void) override { }
-	
-	virtual const std::string &ElementType(void) const override;
-	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
-	virtual nlohmann::json JSONRepresentation(void) const override;
-	
-	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	
-	virtual EidosValue_SP CopyValues(void) const override = 0;
-	virtual EidosValue_SP NewMatchingType(void) const override;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override = 0;
-	virtual void Sort(bool p_ascending) override = 0;
-};
-
-class EidosValue_Float_vector final : public EidosValue_Float
-{
-private:
-	typedef EidosValue_Float super;
-
-protected:
-	double *values_ = nullptr;
-	size_t count_ = 0, capacity_ = 0;
+	// singleton/vector design: values_ will either point to singleton_value_, or to a malloced buffer; it will never be nullptr
+	// in the case of a zero-length vector, note that values_ will point to singleton_value_ with count_ == 0 but capacity_ == 1
+	double singleton_value_;
+	double *values_;
+	size_t count_, capacity_;
 	
 	virtual int Count_Virtual(void) const override { return (int)count_; }
 	
 public:
-	EidosValue_Float_vector(const EidosValue_Float_vector &p_original) = delete;	// no copy-construct
-	EidosValue_Float_vector& operator=(const EidosValue_Float_vector&) = delete;	// no copying
+	EidosValue_Float(const EidosValue_Float &p_original) = delete;			// no copy-construct
+	EidosValue_Float& operator=(const EidosValue_Float&) = delete;			// no copying
 	
-	inline EidosValue_Float_vector(void) : EidosValue_Float(false) { }
-	explicit EidosValue_Float_vector(const std::vector<double> &p_doublevec);
-	//explicit EidosValue_Float_vector(double p_float1);		// disabled to encourage use of EidosValue_Float_singleton for this case
-	explicit EidosValue_Float_vector(std::initializer_list<double> p_init_list);
-	explicit EidosValue_Float_vector(const double *p_values, size_t p_count);
-	inline virtual ~EidosValue_Float_vector(void) override { free(values_); }
+	explicit inline EidosValue_Float(void) : EidosValue(EidosValueType::kValueFloat, false), values_(&singleton_value_), count_(0), capacity_(1) { }
+	explicit inline EidosValue_Float(double p_float1) : EidosValue(EidosValueType::kValueFloat, false), singleton_value_(p_float1), values_(&singleton_value_), count_(1), capacity_(1) { }
+	explicit EidosValue_Float(const std::vector<double> &p_doublevec);
+	explicit EidosValue_Float(std::initializer_list<double> p_init_list);
+	explicit EidosValue_Float(const double *p_values, size_t p_count);
+	inline virtual ~EidosValue_Float(void) override { if (values_ != &singleton_value_) free(values_); }
 	
 	virtual const double *FloatData(void) const override { return values_; }
 	virtual double *FloatData_Mutable(void) override { WILL_MODIFY(this); return values_; }
+	
+	virtual const std::string &ElementType(void) const override;
+	virtual EidosValue_SP NewMatchingType(void) const override;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
@@ -900,16 +877,36 @@ public:
 	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	
 	virtual EidosValue_SP CopyValues(void) const override;
+	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
+
+	// vector lookalike methods for speed; not virtual, only for clients with an EidosValue_Float*
+	EidosValue_Float *reserve(size_t p_reserved_size);				// as in std::vector
+	void erase_index(size_t p_index);								// a weak substitute for erase()
 	
-	// vector lookalike methods; not virtual, only for clients with a EidosValue_Int_vector*
-	EidosValue_Float_vector *reserve(size_t p_reserved_size);			// as in std::vector
-	EidosValue_Float_vector *resize_no_initialize(size_t p_new_size);	// does not zero-initialize, unlike std::vector!
-	void expand(void);													// expand to fit (at least) one new value
-	void erase_index(size_t p_index);									// a weak substitute for erase()
+	inline void expand(void)
+	{
+		// expand to fit (at least) one new value
+		WILL_MODIFY(this);
+		
+		if (capacity_ <= 8)
+			reserve(16);
+		else
+			reserve(capacity_ << 1);
+	}
+	
+	inline EidosValue_Float *resize_no_initialize(size_t p_new_size)
+	{
+		// resizes but does not zero-initialize, unlike std::vector!
+		WILL_MODIFY(this);
+		
+		reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+		
+		return this;
+	}
 	
 	inline __attribute__((always_inline)) double *data(void) { WILL_MODIFY(this); return values_; }
 	inline __attribute__((always_inline)) const double *data(void) const { return values_; }
@@ -935,45 +932,6 @@ public:
 #endif
 		values_[p_index] = p_float;
 	}
-};
-
-class EidosValue_Float_singleton final : public EidosValue_Float
-{
-private:
-	typedef EidosValue_Float super;
-
-protected:
-	double value_;
-	
-	virtual int Count_Virtual(void) const override { return 1; }
-	
-public:
-	EidosValue_Float_singleton(const EidosValue_Float_singleton &p_original) = delete;	// no copy-construct
-	EidosValue_Float_singleton& operator=(const EidosValue_Float_singleton&) = delete;	// no copying
-	EidosValue_Float_singleton(void) = delete;
-	explicit inline EidosValue_Float_singleton(double p_float1) : EidosValue_Float(true), value_(p_float1) { }
-	inline virtual ~EidosValue_Float_singleton(void) override { }
-	
-	virtual const double *FloatData(void) const override { return &value_; }
-	virtual double *FloatData_Mutable(void) override { WILL_MODIFY(this); return &value_; }	// very dangerous; used only in Evaluate_Assign()
-	inline __attribute__((always_inline)) void SetValue(double p_float) { WILL_MODIFY(this); value_ = p_float; }	// very dangerous; used only in Evaluate_For()
-	
-	virtual double FloatAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double NumericAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;	// casts integer to float, otherwise does not cast
-	
-	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosValue_SP CopyValues(void) const override;
-	
-	virtual EidosValue_SP VectorBasedCopy(void) const override;
-	
-	// prohibited actions because there is no backing vector
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
-	virtual void Sort(bool p_ascending) override;
 };
 
 

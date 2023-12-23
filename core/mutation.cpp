@@ -381,7 +381,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_position:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
 			
 			// variables
 		case gID_nucleotide:		// ACCELERATED
@@ -579,7 +579,7 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t
 
 EidosValue *Mutation::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{

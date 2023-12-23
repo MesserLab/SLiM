@@ -109,7 +109,7 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	return mutation_type_ptrs_[gsl_ran_discrete(rng, lookup_mutation_type_)];
 }
 
-void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_vector_SP &p_mutation_matrix)
+void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_SP &p_mutation_matrix)
 {
 	mutation_matrix_ = p_mutation_matrix;
 	
@@ -269,7 +269,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationFractions:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_fractions_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mutation_fractions_));
 		}
 		case gID_mutationMatrix:
 		{
@@ -432,7 +432,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	
 	EidosValue *mutationMatrix_value = p_arguments[0].get();
 	
-	SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
+	SetNucleotideMutationMatrix(EidosValue_Float_SP((EidosValue_Float *)(mutationMatrix_value)));
 	
 	// the change to the mutation matrix means everything downstream has to be recached
 	species_.CacheNucleotideMatrices();

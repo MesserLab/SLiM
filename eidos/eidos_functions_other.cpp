@@ -152,7 +152,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 		std::clock_t cpu_time = std::clock();
 		double cpu_time_d = static_cast<double>(cpu_time) / CLOCKS_PER_SEC;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cpu_time_d));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cpu_time_d));
 	}
 	else if (type_name == "mono")
 	{
@@ -161,7 +161,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 		std::chrono::steady_clock::duration clock_duration = ts - timebase;
 		double seconds = std::chrono::duration<double>(clock_duration).count();
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(seconds));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(seconds));
 	}
 	else
 	{
@@ -1597,7 +1597,7 @@ EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vec
 	}
 	
 	double usage_MB = usage / (1024.0 * 1024.0);
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(usage_MB));
 	
 	return result_SP;
 }
@@ -1622,7 +1622,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	}
 	
 	// Return the versions as floats
-	EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(2);
+	EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(2);
 	result_SP = EidosValue_SP(result);
 	
 	result->push_float_no_check(EIDOS_VERSION_FLOAT);
@@ -1686,7 +1686,7 @@ EidosValue_SP SLiM_ExecuteFunction__stopBenchmark(__attribute__((unused)) const 
 	
 	double benchmark_time = Eidos_ElapsedProfileTime(gEidosBenchmarkAccumulator);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(benchmark_time));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(benchmark_time));
 	
 	// reset so a new benchmark can be started
 	gEidosBenchmarkType = EidosBenchmarkType::kNone;

@@ -883,7 +883,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				else if (value.is_number_float())
 				{
 					double float_value = value;
-					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(float_value));
+					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(float_value));
 				}
 				else if (value.is_object())
 				{
@@ -939,7 +939,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 						}
 						else if (array_type == nlohmann::json::value_t::number_float)
 						{
-							EidosValue_Float_vector *float_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(array_count);
+							EidosValue_Float *float_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(array_count);
 							
 							for (size_t element_index = 0; element_index < array_count; ++element_index)
 							{

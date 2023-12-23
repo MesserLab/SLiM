@@ -2406,7 +2406,7 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 					if (numeric_value->Type() == EidosValueType::kValueFloat)
 					{
 						double float_value = numeric_value->FloatAtIndex_NOCAST(0, current_token_);
-						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-float_value));
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(-float_value));
 					}
 					else if (numeric_value->Type() == EidosValueType::kValueInt)
 					{

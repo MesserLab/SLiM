@@ -162,7 +162,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGenerator
 		}
 		
 		double sex_ratio = (total_individuals == 0) ? 0.0 : (total_males / (double)total_individuals);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sex_ratio));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sex_ratio));
 	}
 	else
 	{
@@ -193,7 +193,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGenera
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
 		double sex_ratio = (subpop_size == 0) ? 0.0 : ((subpop_size - first_male_index) / (double)subpop_size);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sex_ratio));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sex_ratio));
 	}
 	else
 	{

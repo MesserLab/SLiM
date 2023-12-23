@@ -92,7 +92,7 @@ EidosValue_SP Eidos_ExecuteFunction_float(const std::vector<EidosValue_SP> &p_ar
 	if (element_count == 0)
 		return gStaticEidosValue_Float_ZeroVec;
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(element_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(element_count);
 	result_SP = EidosValue_SP(float_result);
 	
 	for (int64_t value_index = 0; value_index < element_count; ++value_index)
@@ -483,7 +483,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			else if (x_type == EidosValueType::kValueFloat)
 			{
 				const double *float_data = x_value->FloatData();
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(sample_size);
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
 				
@@ -799,7 +799,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			else if (x_type == EidosValueType::kValueFloat)
 			{
 				const double *float_data = x_value->FloatData();
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(sample_size);
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
 				
@@ -927,7 +927,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 			double first_value = from_value->NumericAtIndex_NOCAST(0, nullptr);
 			double second_value = to_value->NumericAtIndex_NOCAST(0, nullptr);
 			
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
+			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length);
 			result_SP = EidosValue_SP(float_result);
 			
 			for (int64_t seq_index = 0; seq_index < length; ++seq_index)
@@ -965,7 +965,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 			{
 				// length does not divide evenly, so generate a float sequence
 				double by = (second_value - first_value) / (double)(length - 1);
-				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length);
+				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length);
 				result_SP = EidosValue_SP(float_result);
 				
 				for (int64_t seq_index = 0; seq_index < length; ++seq_index)
@@ -998,7 +998,7 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 			if (((first_value < second_value) && (by < 0)) || ((first_value > second_value) && (by > 0)))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			
-			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(int(1 + ceil((second_value - first_value) / by)));	// take a stab at a reserve size; might not be quite right, but no harm
+			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(int(1 + ceil((second_value - first_value) / by)));	// take a stab at a reserve size; might not be quite right, but no harm
 			result_SP = EidosValue_SP(float_result);
 			
 			if (by > 0)
@@ -1528,8 +1528,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			{
 				const double *true_data = trueValues_value->FloatData();
 				const double *false_data = falseValues_value->FloatData();
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(test_count);
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(test_count);
 				
 				for (int value_index = 0; value_index < test_count; ++value_index)
 					float_result->set_float_no_check(logical_vec[value_index] ? true_data[value_index] : false_data[value_index], value_index);
@@ -1625,8 +1625,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 			{
 				double true_value = trueValues_value->FloatAtIndex_NOCAST(0, nullptr);
 				double false_value = falseValues_value->FloatAtIndex_NOCAST(0, nullptr);
-				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(test_count);
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(test_count);
 				
 				for (int value_index = 0; value_index < test_count; ++value_index)
 					float_result->set_float_no_check(logical_vec[value_index] ? true_value : false_value, value_index);
@@ -2315,13 +2315,13 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 	else
 	{
 		// Here we handle the vector cases, which can be done with direct access
-		EidosValue_Float_vector *float_result = nullptr;
+		EidosValue_Float *float_result = nullptr;
 		EidosValue_Int_vector *int_result = nullptr;
 		EidosValueType x_type = x_value->Type();
 		
 		if (tiesMethod == TiesMethod::kTiesAverage)
 		{
-			float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 			result_SP = EidosValue_SP(float_result);
 		}
 		else
@@ -2918,11 +2918,11 @@ EidosValue_SP Eidos_ExecuteFunction_asFloat(const std::vector<EidosValue_SP> &p_
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_value->FloatAtIndex_CAST(0, nullptr)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_CAST(0, nullptr)));
 	}
 	else
 	{
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)

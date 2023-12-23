@@ -463,7 +463,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_distributionParams:
 		{
 			if (dfe_parameters_.size() > 0)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(dfe_parameters_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dfe_parameters_));
 			else
 				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(dfe_strings_));
 		}
@@ -480,9 +480,9 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_convertToSubstitution:
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(dominance_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
 		case gID_haploidDominanceCoeff:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(haploid_dominance_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(haploid_dominance_coeff_));
 		case gID_mutationStackGroup:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(stack_group_));
 		case gID_nucleotideBased:
@@ -563,7 +563,7 @@ EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObject **p_values, si
 
 EidosValue *MutationType::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -741,11 +741,11 @@ EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalSt
 	
 	if (num_draws == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(DrawSelectionCoefficient()));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DrawSelectionCoefficient()));
 	}
 	else
 	{
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)

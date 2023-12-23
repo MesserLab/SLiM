@@ -327,7 +327,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	GenomicElementType *new_genomic_element_type = new GenomicElementType(*this, map_identifier, mutation_types, mutation_fractions);
 	if (nucleotide_based_)
-		new_genomic_element_type->SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
+		new_genomic_element_type->SetNucleotideMutationMatrix(EidosValue_Float_SP((EidosValue_Float *)(mutationMatrix_value)));
 	
 	genomic_element_types_.emplace(map_identifier, new_genomic_element_type);
 	community_.genomic_element_types_changed_ = true;

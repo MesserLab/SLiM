@@ -1282,7 +1282,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 		}
 	}
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selcoeff_sum));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selcoeff_sum));
 }
 
 // print the sample represented by genomes, using SLiM's own format

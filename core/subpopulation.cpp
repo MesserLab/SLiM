@@ -2201,7 +2201,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 					EidosValue_Object_singleton local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Float_singleton local_effect(p_computed_fitness);
+					EidosValue_Float local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
@@ -3567,8 +3567,8 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 			{
 				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-				EidosValue_Float_singleton local_fitness(p_fitness);
-				EidosValue_Float_singleton local_draw(p_draw);
+				EidosValue_Float local_fitness(p_fitness);
+				EidosValue_Float local_draw(p_draw);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -4034,7 +4034,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopFractions is not available in nonWF models." << EidosTerminate();
 			
-			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+			EidosValue_Float *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair : migrant_fractions_)
@@ -4105,7 +4105,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property selfingRate is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selfing_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selfing_fraction_));
 		}
 		case gID_cloningRate:
 		{
@@ -4113,16 +4113,16 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property cloningRate is not available in nonWF models." << EidosTerminate();
 			
 			if (sex_enabled_)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_});
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{female_clone_fraction_, male_clone_fraction_});
 			else
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(female_clone_fraction_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(female_clone_fraction_));
 		}
 		case gID_sexRatio:
 		{
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		}
 		case gID_spatialBounds:
 		{
@@ -4131,9 +4131,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			switch (dimensionality)
 			{
 				case 0: return gStaticEidosValue_Float_ZeroVec;
-				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_x1_});
-				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_x1_, bounds_y1_});
-				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
+				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_x1_});
+				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_y0_, bounds_x1_, bounds_y1_});
+				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
@@ -4164,7 +4164,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
 		}
 		case gID_fitnessScaling:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(subpop_fitness_scaling_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(subpop_fitness_scaling_));
 			
 			// all others, including gID_none
 		default:
@@ -4234,7 +4234,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, s
 
 EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -5856,7 +5856,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	int64_t length_out = n * dimensionality;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
 	double *float_result_data = float_result->data();
 	double *float_result_ptr = float_result_data;
 	
@@ -6348,12 +6348,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 			else break;
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
 	}
 	
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
@@ -6474,12 +6474,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 		// Handle the singleton separately, so we can handle the non-singleton case more quickly
 		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::max(bounds_x0_, std::min(bounds_x1_, x))));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::max(bounds_x0_, std::min(bounds_x1_, x))));
 	}
 	
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
@@ -6578,12 +6578,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 			while (x > bounds_x1_)	x -= bounds_x1_;
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
 	}
 	
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
@@ -6698,7 +6698,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	int64_t length_out = point_count * dimensionality;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
 	double *float_result_data = float_result->data();
 	EidosValue_SP result_SP = EidosValue_SP(float_result);
 	
@@ -7033,11 +7033,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
 	}
 	else
 	{
-		EidosValue_Float_vector *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(index_count);
+		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
 		EidosValue_SP result_SP = EidosValue_SP(float_return);
 		
 		for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)

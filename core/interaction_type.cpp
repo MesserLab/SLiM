@@ -1330,8 +1330,8 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 			else
 			{
 				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-				EidosValue_Float_singleton local_distance(p_distance);
-				EidosValue_Float_singleton local_strength(p_strength);
+				EidosValue_Float local_distance(p_distance);
+				EidosValue_Float local_strength(p_strength);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -3496,7 +3496,7 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_maxDistance:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(max_distance_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(max_distance_));
 		case gID_tag:						// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -3669,7 +3669,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 			else // (spatiality_ == 3)
 				integral = 0.0;			// FIXME
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(integral));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(integral));
 		}
 		else
 		{
@@ -3693,7 +3693,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	// We do not try to create a singleton return value when passed a singleton receiver; too complicated to optimize for that here
 	const Individual * const *receivers_data = (Individual * const *)receivers_value->ObjectData();
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receivers_data[0]->subpopulation_);
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(receivers_count);
 
 	// Now treat cases according to spatiality
 	bool saw_error1 = false, saw_error2 = false;
@@ -3971,7 +3971,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	if (exerters_value_NULL)
 	{
 		// NULL means return distances from receiver (which must be singleton) to all individuals in its subpopulation
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerter_subpop_size);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerter_subpop_size);
 		
 		if (periodicity_enabled)
 		{
@@ -3997,7 +3997,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	else
 	{
 		// Otherwise, individuals1 is singleton, and individuals2 is any length, so we loop over individuals2
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 		
 		for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 		{
@@ -4076,7 +4076,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceFromPoint(EidosGlobalString
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceFromPoint): distanceFromPoint() requires that coordinates for periodic spatial dimensions fall inside spatial bounaries; use pointPeriodic() to ensure this if necessary." << EidosTerminate();
 	}
 	
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 	
 	if (periodicity_enabled)
 	{
@@ -4810,7 +4810,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		}
 		else
 		{
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(receivers_count);
 			
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 				result_vec->set_float_no_check(0, receiver_index);
@@ -4891,12 +4891,12 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		total_strength /= clipped_integrals->FloatAtIndex_NOCAST(0, nullptr);
 		
 		FreeSparseVector(sv);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(total_strength));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(total_strength));
 	}
 	else
 	{
 		// Loop over the requested individuals and get the totals
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOCALPOPDENSITY);
@@ -5034,7 +5034,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	if (exerters_value_NULL)
 		exerters_count = exerter_subpop_size;
 	
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 	
 	// Check constraints the receiver; if the individual is disqualified, the distance to each exerter is zero
 	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
@@ -5961,7 +5961,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	if (!CheckIndividualConstraints(receiver, receiver_constraints_) ||		// potentially raises
 		(!kd_root_EXERTERS && spatiality_))
 	{
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 		
 		EIDOS_BZERO(result_vec->data(), exerter_subpop_size * sizeof(double));
 		
@@ -5977,7 +5977,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		double *receiver_position = receiver_subpop_data.positions_ + (size_t)receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 		EidosValue_SP result_SP(result_vec);
 		
 		try {
@@ -6055,7 +6055,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		if (exerters_value->Type() == EidosValueType::kValueNULL)
 		{
 			// NULL means return strengths to individuals1 (which must be singleton) from all individuals in the subpopulation
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerter_subpop_size);
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerter_subpop_size);
 			
 			for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
 			{
@@ -6077,7 +6077,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		else
 		{
 			// Otherwise, individuals1 is singleton, and exerters_value is any length, so we loop over exerters_value
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 			
 			for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 			{
@@ -6220,7 +6220,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		}
 		else
 		{
-			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(receivers_count);
 			
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 				result_vec->set_float_no_check(0, receiver_index);
@@ -6267,12 +6267,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			total_strength += strengths[col_index];
 		
 		InteractionType::FreeSparseVector(sv);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(total_strength));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(total_strength));
 	}
 	else
 	{
 		// Loop over the requested individuals and get the totals
-		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(receivers_count);
 		EidosValue_SP result_SP(result_vec);
 #ifdef _OPENMP
 		bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);

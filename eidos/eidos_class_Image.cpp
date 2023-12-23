@@ -158,7 +158,7 @@ EidosValue_SP EidosImage::ValueForFloatChannel(EidosValue_SP &p_channel_cache, C
 		return p_channel_cache;
 	
 	int64_t pixel_stride = 0, pixel_suboffset = 0;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(height_ * width_);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(float_result);
 	
 	GetChannelMetrics(p_channel, pixel_stride, pixel_suboffset);
@@ -337,7 +337,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(width, height, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				EidosValue_Float_vector *float_values = (EidosValue_Float_vector *)p_arguments[0].get();
+				EidosValue_Float *float_values = (EidosValue_Float *)p_arguments[0].get();
 				const double *float_data = float_values->data();
 				
 				// translate the data from by-column to by-row, to match the in-memory format of images
