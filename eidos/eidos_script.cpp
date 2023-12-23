@@ -2433,6 +2433,7 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 				
 				node->AddChild(numeric_node);
 				node->cached_literal_value_ = negated_value;	// cache the negated value for fast default argument processing
+				node->cached_literal_value_->MarkAsConstant();
 			}
 			else
 			{

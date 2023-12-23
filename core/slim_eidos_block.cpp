@@ -788,6 +788,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	script_block_symbol_.second->MarkAsConstant();
+	
 	// NOTE: SLiMEidosBlock::BlockTypeForRootNode() above must be maintained in parallel with this method!
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -1118,6 +1122,10 @@ SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	script_block_symbol_.second->MarkAsConstant();
+	
 	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization
 }

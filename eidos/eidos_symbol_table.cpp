@@ -157,6 +157,12 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 			eConstant = new EidosSymbolTableEntry(gEidosID_E, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_E)));
 			infConstant = new EidosSymbolTableEntry(gEidosID_INF, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
 			nanConstant = new EidosSymbolTableEntry(gEidosID_NAN, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+			
+			// ensure that the constant_ flag is set on all of these values, to prevent modification in all code paths
+			piConstant->second->MarkAsConstant();
+			eConstant->second->MarkAsConstant();
+			infConstant->second->MarkAsConstant();
+			nanConstant->second->MarkAsConstant();
 		}
 		
 		// We can use InitializeConstantSymbolEntry() here since we obey its requirements (see header)
@@ -550,6 +556,9 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
 	if ((p_value->UseCount() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
+	
+	// Now we have a private value, which we can mark as constant
+	p_value->MarkAsConstant();
 	
 	// Then ask the defined constants table to add the constant
 	definedConstantsTable->InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value));

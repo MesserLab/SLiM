@@ -80,6 +80,9 @@ InteractionType::InteractionType(Community &p_community, slim_objectid_t p_inter
 	spatiality_string_(std::move(p_spatiality_string)), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), if_type_(SpatialKernelType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	community_(p_community), interaction_type_id_(p_interaction_type_id)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
 	if (spatiality_string_ == "")			{ spatiality_ = 0; required_dimensionality_ = 0; }
 	else if (spatiality_string_ == "x")		{ spatiality_ = 1; required_dimensionality_ = 1; }

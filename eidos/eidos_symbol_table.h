@@ -60,7 +60,7 @@ class EidosTypeTable;
 extern EidosSymbolTable *gEidosConstantsSymbolTable;
 
 
-// This is used by InitializeConstantSymbolEntry / ReinitializeConstantSymbolEntry for fast setup / teardown
+// This is used by InitializeConstantSymbolEntry() for fast setup / teardown
 typedef std::pair<EidosGlobalStringID, EidosValue_SP> EidosSymbolTableEntry;
 
 
@@ -172,7 +172,8 @@ public:
 	// Set as a global (raises if already defined as a constant); adds to the kGlobalVariablesTable, or raises if that does not exist
 	void DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	
-	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant
+	// Remove symbols; RemoveValueForSymbol() will raise if the symbol is a constant.  RemoveConstantForSymbol() is
+	// not used in Eidos itself, but SLiM uses it when script blocks, subpopulations, species, etc. cease to exist.
 	inline __attribute__((always_inline)) void RemoveValueForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, false); }
 	inline __attribute__((always_inline)) void RemoveConstantForSymbol(EidosGlobalStringID p_symbol_name) { _RemoveSymbol(p_symbol_name, true); }
 	
@@ -195,6 +196,17 @@ public:
 	// has infinite lifespan, and (2) that the EidosValue passed in is not invisible and is thus suitable for
 	// direct use in the symbol table; no copy will be made of the value.  These are not general-purpose methods,
 	// they are specifically for the very specialized init case of setting up a table with standard entries.
+	//
+	// Note that this method does *not* require that the value itself is marked as a constant, nor does this
+	// method mark it as such; this mechanism relies upon the table's designation as a constants table to
+	// enforce constness.  This provides a small window through which the user could potentially modify a value
+	// in a constants table, if (a) the value is not marked as a constant, and (b) it is set directly in the
+	// table through these methods, rather than through DefineConstantForSymbol().  If it is possible to do,
+	// I have not yet found the way to do it, though, because assignment and subset-assignment both check that
+	// the symbol table for the variable being modified is not a constants table.  If new methods are added
+	// that are also capable of modifying values in place, however, they will need to check the table type,
+	// not just the IsConstant() property of the value, which is not guaranteed to be set in all cases!  See
+	// eidos_value.h for further discussion of how EidosValue constness is managed internally.
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 	

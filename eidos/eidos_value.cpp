@@ -321,7 +321,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), cached_type_(p_value_type), invisible_(false), is_singleton_(p_singleton), dim_(nullptr)
+EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), is_singleton_(p_singleton), dim_(nullptr)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -396,6 +396,7 @@ void EidosValue::RaiseForRetainReleaseViolation(void) const
 
 EidosValue_SP EidosValue::VectorBasedCopy(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return CopyValues();
 }
 
@@ -425,6 +426,8 @@ bool EidosValue::MatchingDimensions(const EidosValue *p_value1, const EidosValue
 
 void EidosValue::_CopyDimensionsFromValue(const EidosValue *p_value)
 {
+	WILL_MODIFY(this);
+	
 	int64_t *source_dims = p_value->dim_;
 	
 	// First check that the source's dimensions will work for us; we assume they work for the source, so rather than
@@ -460,6 +463,8 @@ void EidosValue::_CopyDimensionsFromValue(const EidosValue *p_value)
 
 void EidosValue::SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer)
 {
+	WILL_MODIFY(this);
+	
 	if ((p_dim_count == 1) && !p_dim_buffer)
 	{
 		// Make the value a plain vector; throw out any dimensions we have.
@@ -861,7 +866,9 @@ void EidosValue::PrintStructure(std::ostream &p_ostream, int max_values) const
 	// this is a truly permanent constant object
 	static EidosValue_VOID_SP static_void = EidosValue_VOID_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_VOID());
 	
-	static_void->invisible_ = true;		// set every time, since we don't have a constructor to set invisibility
+	// set every time, since we don't have a constructor to set invisibility
+	static_void->SetInvisible(true);
+	static_void->MarkAsConstant();
 	
 	return static_void;
 }
@@ -923,6 +930,9 @@ void EidosValue_VOID::Sort(bool p_ascending)
 	// this is a truly permanent constant object
 	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
 	
+	// set every time, since we don't have a constructor to set invisibility
+	static_null->MarkAsConstant();
+	
 	return static_null;
 }
 
@@ -931,7 +941,9 @@ void EidosValue_VOID::Sort(bool p_ascending)
 	// this is a truly permanent constant object
 	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
 	
-	static_null->invisible_ = true;		// set every time, since we don't have a constructor to set invisibility
+	// set every time, since we don't have a constructor to set invisibility
+	static_null->SetInvisible(true);
+	static_null->MarkAsConstant();
 	
 	return static_null;
 }
@@ -973,6 +985,8 @@ EidosValue_SP EidosValue_NULL::NewMatchingType(void) const
 void EidosValue_NULL::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx)
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueNULL)
 		;	// NULL doesn't have values or indices, so this is a no-op
 	else
@@ -982,6 +996,8 @@ void EidosValue_NULL::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue
 void EidosValue_NULL::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
+	WILL_MODIFY(this);
+	
 	// nothing to do
 }
 
@@ -1023,6 +1039,28 @@ EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p
 	
 	for (size_t index = 0; index < p_count; ++index)
 		set_logical_no_check(p_values[index], index);
+}
+
+/* static */ EidosValue_Logical_SP EidosValue_Logical::Static_EidosValue_Logical_T(void)
+{
+	// this is a truly permanent constant object
+	static EidosValue_Logical_SP static_T = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(true));
+	
+	// set every time, since we don't have a constructor to set invisibility
+	static_T->MarkAsConstant();
+	
+	return static_T;
+}
+
+/* static */ EidosValue_Logical_SP EidosValue_Logical::Static_EidosValue_Logical_F(void)
+{
+	// this is a truly permanent constant object
+	static EidosValue_Logical_SP static_F = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(false));
+	
+	// set every time, since we don't have a constructor to set invisibility
+	static_F->MarkAsConstant();
+	
+	return static_F;
 }
 
 const std::string &EidosValue_Logical::ElementType(void) const
@@ -1098,6 +1136,7 @@ EidosValue_SP EidosValue_Logical::GetValueAtIndex(const int p_idx, const EidosTo
 
 EidosValue_SP EidosValue_Logical::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));
 }
 
@@ -1108,6 +1147,8 @@ EidosValue_SP EidosValue_Logical::NewMatchingType(void) const
 
 void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueLogical)
 		push_logical(p_source_script_value.LogicalAtIndex_NOCAST(p_idx, p_blame_token));
 	else
@@ -1116,6 +1157,8 @@ void EidosValue_Logical::PushValueFromIndexOfEidosValue(int p_idx, const EidosVa
 
 void EidosValue_Logical::Sort(bool p_ascending)
 {
+	WILL_MODIFY(this);
+	
 	if (p_ascending)
 		std::sort(values_, values_ + count_);
 	else
@@ -1124,6 +1167,8 @@ void EidosValue_Logical::Sort(bool p_ascending)
 
 EidosValue_Logical *EidosValue_Logical::reserve(size_t p_reserved_size)
 {
+	WILL_MODIFY(this);
+	
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (eidos_logical_t *)realloc(values_, p_reserved_size * sizeof(eidos_logical_t));
@@ -1138,6 +1183,8 @@ EidosValue_Logical *EidosValue_Logical::reserve(size_t p_reserved_size)
 
 EidosValue_Logical *EidosValue_Logical::resize_no_initialize(size_t p_new_size)
 {
+	WILL_MODIFY(this);
+	
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	
@@ -1146,6 +1193,8 @@ EidosValue_Logical *EidosValue_Logical::resize_no_initialize(size_t p_new_size)
 
 void EidosValue_Logical::expand(void)
 {
+	WILL_MODIFY(this);
+	
 	if (capacity_ == 0)
 		reserve(16);		// if no reserve() call was made, start out with a bit of room
 	else
@@ -1154,6 +1203,8 @@ void EidosValue_Logical::expand(void)
 
 void EidosValue_Logical::erase_index(size_t p_index)
 {
+	WILL_MODIFY(this);
+	
 	if (p_index >= count_)
 		RaiseForRangeViolation();
 	
@@ -1169,60 +1220,6 @@ void EidosValue_Logical::erase_index(size_t p_index)
 		memmove(element_ptr, next_element_ptr, element_copy_count * sizeof(eidos_logical_t));
 		
 		--count_;
-	}
-}
-
-// EidosValue_Logical_const
-#pragma mark EidosValue_Logical_const
-
-EidosValue_Logical_const::EidosValue_Logical_const(eidos_logical_t p_bool1) : EidosValue_Logical(p_bool1)
-{
-	is_singleton_ = true;	// because EidosValue_Logical has a different class structure from the other types, this has to be patched after construction; no harm done...
-}
-
-EidosValue_Logical_const::~EidosValue_Logical_const(void)
-{
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::~EidosValue_Logical_const): (internal error) global constant deallocated." << EidosTerminate(nullptr);
-}
-
-/* static */ EidosValue_Logical_SP EidosValue_Logical_const::Static_EidosValue_Logical_T(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_Logical_const_SP static_T = EidosValue_Logical_const_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical_const(true));
-	
-	return static_T;
-}
-
-/* static */ EidosValue_Logical_SP EidosValue_Logical_const::Static_EidosValue_Logical_F(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_Logical_const_SP static_F = EidosValue_Logical_const_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical_const(false));
-	
-	return static_F;
-}
-
-EidosValue_SP EidosValue_Logical_const::VectorBasedCopy(void) const
-{
-	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(values_, count_))->CopyDimensionsFromValue(this));	// same as EidosValue_Logical::, but let's not rely on that
-}
-
-void EidosValue_Logical_const::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
-{
-#pragma unused(p_idx, p_source_script_value)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(p_blame_token);
-}
-
-void EidosValue_Logical_const::Sort(bool p_ascending)
-{
-#pragma unused(p_ascending)
-	EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::Sort): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
-}
-
-void EidosValue_Logical_const::_CopyDimensionsFromValue(const EidosValue *p_value)
-{
-	if (p_value->DimensionCount() != 1)
-	{
-		EIDOS_TERMINATION << "ERROR (EidosValue_Logical_const::_CopyDimensionsFromValue): (internal error) EidosValue_Logical_const is not modifiable." << EidosTerminate(nullptr);
 	}
 }
 
@@ -1349,11 +1346,14 @@ EidosValue_SP EidosValue_String_vector::GetValueAtIndex(const int p_idx, const E
 
 EidosValue_SP EidosValue_String_vector::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(values_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueString)
 		values_.emplace_back(p_source_script_value.StringAtIndex_NOCAST(p_idx, p_blame_token));
 	else
@@ -1362,6 +1362,8 @@ void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 
 void EidosValue_String_vector::Sort(bool p_ascending)
 {
+	WILL_MODIFY(this);
+	
 	// This will sort in parallel if the task is large enough (and we're running parallel)
 	Eidos_ParallelSort(values_.data(), values_.size(), p_ascending);
 }
@@ -1436,11 +1438,13 @@ EidosValue_SP EidosValue_String_singleton::GetValueAtIndex(const int p_idx, cons
 
 EidosValue_SP EidosValue_String_singleton::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	EidosValue_String_vector_SP new_vec = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 	
 	new_vec->PushString(value_);
@@ -1452,12 +1456,16 @@ EidosValue_SP EidosValue_String_singleton::VectorBasedCopy(void) const
 void EidosValue_String_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_String_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_String_singleton::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::Sort): (internal error) EidosValue_String_singleton is not modifiable." << EidosTerminate(nullptr);
 }
 
@@ -1609,11 +1617,14 @@ EidosValue_SP EidosValue_Int_vector::GetValueAtIndex(const int p_idx, const Eido
 
 EidosValue_SP EidosValue_Int_vector::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(values_, count_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueInt)
 		push_int(p_source_script_value.IntAtIndex_NOCAST(p_idx, p_blame_token));
 	else
@@ -1622,12 +1633,16 @@ void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const Eido
 
 void EidosValue_Int_vector::Sort(bool p_ascending)
 {
+	WILL_MODIFY(this);
+	
 	// This will sort in parallel if the task is large enough (and we're running parallel)
 	Eidos_ParallelSort(values_, count_, p_ascending);
 }
 
 EidosValue_Int_vector *EidosValue_Int_vector::reserve(size_t p_reserved_size)
 {
+	WILL_MODIFY(this);
+	
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (int64_t *)realloc(values_, p_reserved_size * sizeof(int64_t));
@@ -1642,6 +1657,8 @@ EidosValue_Int_vector *EidosValue_Int_vector::reserve(size_t p_reserved_size)
 
 EidosValue_Int_vector *EidosValue_Int_vector::resize_no_initialize(size_t p_new_size)
 {
+	WILL_MODIFY(this);
+	
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	
@@ -1650,6 +1667,8 @@ EidosValue_Int_vector *EidosValue_Int_vector::resize_no_initialize(size_t p_new_
 
 void EidosValue_Int_vector::expand(void)
 {
+	WILL_MODIFY(this);
+	
 	if (capacity_ == 0)
 		reserve(16);		// if no reserve() call was made, start out with a bit of room
 	else
@@ -1658,6 +1677,8 @@ void EidosValue_Int_vector::expand(void)
 
 void EidosValue_Int_vector::erase_index(size_t p_index)
 {
+	WILL_MODIFY(this);
+	
 	if (p_index >= count_)
 		RaiseForRangeViolation();
 	
@@ -1740,12 +1761,14 @@ EidosValue_SP EidosValue_Int_singleton::GetValueAtIndex(const int p_idx, const E
 
 EidosValue_SP EidosValue_Int_singleton::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 {
 	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
+	// note that constness, invisibility, etc. do not get copied
 	EidosValue_Int_vector_SP new_vec = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
 	
 	new_vec->push_int(value_);
@@ -1757,12 +1780,16 @@ EidosValue_SP EidosValue_Int_singleton::VectorBasedCopy(void) const
 void EidosValue_Int_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Int_singleton::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::Sort): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(nullptr);
 }
 
@@ -1906,11 +1933,14 @@ EidosValue_SP EidosValue_Float_vector::GetValueAtIndex(const int p_idx, const Ei
 
 EidosValue_SP EidosValue_Float_vector::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(values_, count_))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueFloat)
 		push_float(p_source_script_value.FloatAtIndex_NOCAST(p_idx, p_blame_token));
 	else
@@ -1919,6 +1949,8 @@ void EidosValue_Float_vector::PushValueFromIndexOfEidosValue(int p_idx, const Ei
 
 void EidosValue_Float_vector::Sort(bool p_ascending)
 {
+	WILL_MODIFY(this);
+	
 	// Unfortunately a custom comparator is needed to make the sort order with NANs match that of R
 	if (p_ascending)
 		Eidos_ParallelSort_Comparator(values_, count_, [](const double& a, const double& b) { return std::isnan(b) || (a < b); });
@@ -1928,6 +1960,8 @@ void EidosValue_Float_vector::Sort(bool p_ascending)
 
 EidosValue_Float_vector *EidosValue_Float_vector::reserve(size_t p_reserved_size)
 {
+	WILL_MODIFY(this);
+	
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (double *)realloc(values_, p_reserved_size * sizeof(double));
@@ -1942,6 +1976,8 @@ EidosValue_Float_vector *EidosValue_Float_vector::reserve(size_t p_reserved_size
 
 EidosValue_Float_vector *EidosValue_Float_vector::resize_no_initialize(size_t p_new_size)
 {
+	WILL_MODIFY(this);
+	
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	
@@ -1950,6 +1986,8 @@ EidosValue_Float_vector *EidosValue_Float_vector::resize_no_initialize(size_t p_
 
 void EidosValue_Float_vector::expand(void)
 {
+	WILL_MODIFY(this);
+	
 	if (capacity_ == 0)
 		reserve(16);		// if no reserve() call was made, start out with a bit of room
 	else
@@ -1958,6 +1996,8 @@ void EidosValue_Float_vector::expand(void)
 
 void EidosValue_Float_vector::erase_index(size_t p_index)
 {
+	WILL_MODIFY(this);
+	
 	if (p_index >= count_)
 		RaiseForRangeViolation();
 	
@@ -2052,12 +2092,14 @@ EidosValue_SP EidosValue_Float_singleton::GetValueAtIndex(const int p_idx, const
 
 EidosValue_SP EidosValue_Float_singleton::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(value_))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 {
 	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
+	// note that constness, invisibility, etc. do not get copied
 	EidosValue_Float_vector_SP new_vec = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 	
 	new_vec->push_float(value_);
@@ -2069,12 +2111,16 @@ EidosValue_SP EidosValue_Float_singleton::VectorBasedCopy(void) const
 void EidosValue_Float_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 
 void EidosValue_Float_singleton::Sort(bool p_ascending)
 {
 #pragma unused(p_ascending)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_Float_singleton::Sort): (internal error) EidosValue_Float_singleton is not modifiable." << EidosTerminate(nullptr);
 }
 
@@ -2334,11 +2380,14 @@ EidosValue_SP EidosValue_Object_vector::GetValueAtIndex(const int p_idx, const E
 
 EidosValue_SP EidosValue_Object_vector::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(*this))->CopyDimensionsFromValue(this));
 }
 
 void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
+	WILL_MODIFY(this);
+	
 	if (p_source_script_value.Type() == EidosValueType::kValueObject)
 		push_object_element_CRR(p_source_script_value.ObjectElementAtIndex_NOCAST(p_idx, p_blame_token));
 	else
@@ -2359,6 +2408,8 @@ static bool CompareStringObjectSortPairsDescending(const std::pair<std::string, 
 
 void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)
 {
+	WILL_MODIFY(this);
+	
 	// At present this is called only by the sortBy() Eidos function, so we do not need a
 	// blame token; all errors will be attributed to that function automatically.
 	
@@ -3022,6 +3073,8 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 
 void EidosValue_Object_vector::clear(void)
 {
+	WILL_MODIFY(this);
+	
 	if (class_uses_retain_release_)
 	{
 		for (size_t index = 0; index < count_; ++index)
@@ -3038,6 +3091,8 @@ void EidosValue_Object_vector::clear(void)
 
 EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_size)
 {
+	WILL_MODIFY(this);
+	
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (EidosObject **)realloc(values_, p_reserved_size * sizeof(EidosObject *));
@@ -3052,6 +3107,8 @@ EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_si
 
 EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t p_new_size)
 {
+	WILL_MODIFY(this);
+	
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	
 	// deal with retain/release
@@ -3083,6 +3140,8 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize(size_t 
 
 EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize_RR(size_t p_new_size)
 {
+	WILL_MODIFY(this);
+	
 	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
 	
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
@@ -3092,6 +3151,8 @@ EidosValue_Object_vector *EidosValue_Object_vector::resize_no_initialize_RR(size
 
 void EidosValue_Object_vector::expand(void)
 {
+	WILL_MODIFY(this);
+	
 	if (capacity_ == 0)
 		reserve(16);		// if no reserve() call was made, start out with a bit of room
 	else
@@ -3100,6 +3161,8 @@ void EidosValue_Object_vector::expand(void)
 
 void EidosValue_Object_vector::erase_index(size_t p_index)
 {
+	WILL_MODIFY(this);
+	
 	if (p_index >= count_)
 		RaiseForRangeViolation();
 	
@@ -3171,6 +3234,8 @@ EidosValue_SP EidosValue_Object_singleton::GetValueAtIndex(const int p_idx, cons
 
 void EidosValue_Object_singleton::SetValue(EidosObject *p_element)
 {
+	WILL_MODIFY(this);
+	
 	DeclareClassFromElement(p_element);
 	
 	if (class_uses_retain_release_)
@@ -3187,12 +3252,14 @@ void EidosValue_Object_singleton::SetValue(EidosObject *p_element)
 
 EidosValue_SP EidosValue_Object_singleton::CopyValues(void) const
 {
+	// note that constness, invisibility, etc. do not get copied
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(value_, Class()))->CopyDimensionsFromValue(this));
 }
 
 EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 {
 	// We intentionally don't reserve a size of 1 here, on the assumption that further values are likely to be added
+	// note that constness, invisibility, etc. do not get copied
 	EidosValue_Object_vector_SP new_vec = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(Class()));
 	
 	new_vec->push_object_element_CRR(value_);
@@ -3204,6 +3271,8 @@ EidosValue_SP EidosValue_Object_singleton::VectorBasedCopy(void) const
 void EidosValue_Object_singleton::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 #pragma unused(p_idx, p_source_script_value)
+	WILL_MODIFY(this);
+	
 	EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::PushValueFromIndexOfEidosValue): (internal error) EidosValue_Object_singleton is not modifiable." << EidosTerminate(p_blame_token);
 }
 

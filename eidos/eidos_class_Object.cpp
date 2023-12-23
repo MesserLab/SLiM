@@ -104,7 +104,7 @@ void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValu
 	
 	bool readonly = signature->read_only_;
 	
-	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
+	// Check whether setting a read-only property was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
 		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
 	else

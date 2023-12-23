@@ -103,6 +103,9 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(p_name), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Species_Class))),
     x_experiments_enabled_(false), model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(p_name), species_id_(p_species_id)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 #ifdef SLIMGUI
 	// Pedigree recording is always enabled when running under SLiMgui, so that the various graphs all work
 	// However, as with tree-sequence recording, the fact that it is enabled is not user-visible unless the user enables it

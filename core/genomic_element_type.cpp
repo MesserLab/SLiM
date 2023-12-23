@@ -39,6 +39,9 @@ GenomicElementType::GenomicElementType(Species &p_species, slim_objectid_t p_gen
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class))),
 	species_(p_species), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(std::move(p_mutation_type_ptrs)), mutation_fractions_(std::move(p_mutation_fractions)), mutation_matrix_(nullptr)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	InitializeDraws();
 }
 

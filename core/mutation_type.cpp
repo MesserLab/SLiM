@@ -69,6 +69,9 @@ self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStr
 	, mutation_type_index_(p_mutation_type_index)
 #endif
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	// In WF models, convertToSubstitution defaults to T; in nonWF models it defaults to F as specified above
 	if (species_.community_.ModelType() == SLiMModelType::kModelTypeWF)
 		convert_to_substitution_ = true;

@@ -577,6 +577,8 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(p_parent_node, &identifier_is_const);
 			EidosValue *identifier_value = identifier_value_SP.get();
 			
+			// Check for a constant symbol table.  Note that _AssignRValueToLValue() will check for a constant EidosValue.
+			// The work of checking constness is divided between these methods for historical reasons.
 			if (identifier_is_const)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_parent_node->cached_stringID_) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
@@ -665,6 +667,11 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 			// Assignments like x[logical(0)] = y, where y is zero-length, are no-ops as long as they're not errors
 			if (index_count == 0)
 				return;
+			
+			// Check for a constant value.  Note that ProcessSubsetAssignment() already checked for a constant symbol table.
+			// The work of checking constness is divided between these methods for historical reasons.
+			if (base_value->IsConstant())
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): value cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
 			// At this point, we have either a multiplex assignment of one value to (maybe) more than one index in a symbol host: x[5:10] = 10, when
 			// (rvalue_count == 1), or a one-to-one assignment of values to indices in a symbol host: x[5:10] = 5:10, when (rvalue_count == index_count)
@@ -1064,7 +1071,10 @@ EidosValue_SP EidosInterpreter::Evaluate_RangeExpr(const EidosASTNode *p_node)
 		
 		// cache our range as a constant in the tree if we can
 		if (cacheable)
+		{
 			p_node->cached_range_value_ = result_SP;
+			p_node->cached_range_value_->MarkAsConstant();
+		}
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_RangeExpr()");
@@ -3734,7 +3744,10 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		bool is_const;
 		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
 		
-		if (is_const)
+		// Check for a constant value.  If either the EidosValue or the table it comes from is constant, there is an error.
+		// (I'm not sure the check on constness of the EidosValue itself is correct, but I can't think of a way that that
+		// could be true here without the table also being a constants table anyway... being cautious until proved wrong...)
+		if (is_const || lvalue_SP->IsConstant())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(p_node->token_);
 		
 		EidosValue *lvalue = lvalue_SP.get();
