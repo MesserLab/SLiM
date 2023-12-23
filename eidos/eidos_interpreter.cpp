@@ -5686,7 +5686,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
-				index_value->data()[0] = (counting_up ? start_int + range_index : start_int - range_index);
+				index_value->data_mutable()[0] = (counting_up ? start_int + range_index : start_int - range_index);
 				
 				EidosASTNode *statement_node = p_node->children_[2];
 				
@@ -5773,7 +5773,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
-						index_value->data()[0] = range_data[range_index];
+						index_value->data_mutable()[0] = range_data[range_index];
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
@@ -5806,7 +5806,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
-						index_value->data()[0] = range_data[range_index];
+						index_value->data_mutable()[0] = range_data[range_index];
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						

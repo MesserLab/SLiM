@@ -970,7 +970,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		
 		// patch the sequence with nucleotide mutations
 		// no singleton case; we force a vector return from NucleotidesAsCodonVector() for simplicity
-		int64_t *int_vec = ((EidosValue_Int *)(codon_value.get()))->data();
+		int64_t *int_vec = ((EidosValue_Int *)(codon_value.get()))->data_mutable();
 		GenomeWalker walker(this);
 		
 		walker.MoveToPosition(start);
@@ -1119,7 +1119,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		else
 		{
 			// vector case: replace the appropriate element in integer_value
-			int64_t *int_vec = ((EidosValue_Int *)(integer_value.get()))->data();
+			int64_t *int_vec = ((EidosValue_Int *)(integer_value.get()))->data_mutable();
 			GenomeWalker walker(this);
 			
 			walker.MoveToPosition(start);

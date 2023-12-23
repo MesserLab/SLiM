@@ -110,7 +110,7 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
 			const double *float_data = x_value->FloatData();
 			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double *float_result_data = float_result->data();
+			double *float_result_data = float_result->data_mutable();
 			result_SP = EidosValue_SP(float_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_ABS_FLOAT);
@@ -260,7 +260,7 @@ EidosValue_SP Eidos_ExecuteFunction_ceil(const std::vector<EidosValue_SP> &p_arg
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_CEIL);
@@ -451,7 +451,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 	{
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_EXP_FLOAT);
@@ -482,7 +482,7 @@ EidosValue_SP Eidos_ExecuteFunction_floor(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_FLOOR);
@@ -819,7 +819,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 	{
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG_FLOAT);
@@ -858,7 +858,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 	{
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG10_FLOAT);
@@ -897,7 +897,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 	{
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOG2_FLOAT);
@@ -1001,7 +1001,7 @@ EidosValue_SP Eidos_ExecuteFunction_round(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_ROUND);
@@ -2573,7 +2573,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 	{
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SQRT_FLOAT);
@@ -2766,7 +2766,7 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data();
+		double *float_result_data = float_result->data_mutable();
 		result_SP = EidosValue_SP(float_result);
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TRUNC);

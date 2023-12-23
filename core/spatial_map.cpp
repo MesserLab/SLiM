@@ -2145,7 +2145,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	const double *point_buf_ptr = point_buf;
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
-	double *result_ptr = float_result->data();
+	double *result_ptr = float_result->data_mutable();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	point_count /= spatiality_;
@@ -2373,7 +2373,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	const double *point_buf_ptr = point_buf;
 	
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
-	double *result_ptr = float_result->data();
+	double *result_ptr = float_result->data_mutable();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	point_count /= spatiality_;

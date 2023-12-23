@@ -597,7 +597,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
 			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			int64_t * __restrict__ int_result_data = int_result->data();
+			int64_t * __restrict__ int_result_data = int_result->data_mutable();
 			result_SP = EidosValue_SP(int_result);
 			
 			// BCH 12/27/2022: This and the corresponding loop in pmin() show an unusually high variance in execution time, for the same data.
@@ -623,7 +623,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			const double * __restrict__ float0_data = x_value->FloatData();
 			double y_singleton_value = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double * __restrict__ float_result_data = float_result->data();
+			double * __restrict__ float_result_data = float_result->data_mutable();
 			result_SP = EidosValue_SP(float_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_FLOAT_1);
@@ -667,7 +667,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			const int64_t * __restrict__ int1_data = y_value->IntData();
 			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			int64_t * __restrict__ int_result_data = int_result->data();
+			int64_t * __restrict__ int_result_data = int_result->data_mutable();
 			result_SP = EidosValue_SP(int_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_INT_2);
@@ -684,7 +684,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			const double * __restrict__ float0_data = x_value->FloatData();
 			const double * __restrict__ float1_data = y_value->FloatData();
 			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double * __restrict__ float_result_data = float_result->data();
+			double * __restrict__ float_result_data = float_result->data_mutable();
 			result_SP = EidosValue_SP(float_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_FLOAT_2);
@@ -795,7 +795,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
 			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			int64_t * __restrict__ int_result_data = int_result->data();
+			int64_t * __restrict__ int_result_data = int_result->data_mutable();
 			result_SP = EidosValue_SP(int_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_INT_1);
@@ -811,7 +811,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			const double * __restrict__ float0_data = x_value->FloatData();
 			double y_singleton_value = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double * __restrict__ float_result_data = float_result->data();
+			double * __restrict__ float_result_data = float_result->data_mutable();
 			result_SP = EidosValue_SP(float_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_FLOAT_1);
@@ -855,7 +855,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			const int64_t * __restrict__ int1_data = y_value->IntData();
 			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			int64_t * __restrict__ int_result_data = int_result->data();
+			int64_t * __restrict__ int_result_data = int_result->data_mutable();
 			result_SP = EidosValue_SP(int_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_INT_2);
@@ -872,7 +872,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			const double * __restrict__ float0_data = x_value->FloatData();
 			const double * __restrict__ float1_data = y_value->FloatData();
 			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double * __restrict__ float_result_data = float_result->data();
+			double * __restrict__ float_result_data = float_result->data_mutable();
 			result_SP = EidosValue_SP(float_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_FLOAT_2);

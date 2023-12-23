@@ -503,7 +503,7 @@ public:
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
-	inline __attribute__((always_inline)) eidos_logical_t *data(void) { WILL_MODIFY(this); return values_; }
+	inline __attribute__((always_inline)) eidos_logical_t *data_mutable(void) { WILL_MODIFY(this); return values_; }
 	inline __attribute__((always_inline)) const eidos_logical_t *data(void) const { return values_; }
 	inline __attribute__((always_inline)) void push_logical(eidos_logical_t p_logical)
 	{
@@ -680,7 +680,7 @@ public:
 		return this;
 	}
 	
-	inline __attribute__((always_inline)) int64_t *data(void) { WILL_MODIFY(this); return values_; }
+	inline __attribute__((always_inline)) int64_t *data_mutable(void) { WILL_MODIFY(this); return values_; }
 	inline __attribute__((always_inline)) const int64_t *data(void) const { return values_; }
 	inline __attribute__((always_inline)) void push_int(int64_t p_int)
 	{
@@ -787,7 +787,7 @@ public:
 		return this;
 	}
 	
-	inline __attribute__((always_inline)) double *data(void) { WILL_MODIFY(this); return values_; }
+	inline __attribute__((always_inline)) double *data_mutable(void) { WILL_MODIFY(this); return values_; }
 	inline __attribute__((always_inline)) const double *data(void) const { return values_; }
 	inline __attribute__((always_inline)) void push_float(double p_float)
 	{
@@ -925,7 +925,7 @@ public:
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
-	inline __attribute__((always_inline)) EidosObject **data(void) { WILL_MODIFY(this); return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
+	inline __attribute__((always_inline)) EidosObject **data_mutable(void) { WILL_MODIFY(this); return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
 	inline __attribute__((always_inline)) EidosObject * const *data(void) const { return values_; }
 	
 	// fast accessors; you can use the _RR or _NORR versions in a tight loop to avoid overhead, when you know

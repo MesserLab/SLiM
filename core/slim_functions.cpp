@@ -1553,7 +1553,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	// Allocate our return value, set its dimensions, and get set up for using it
 	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_count);
-	double *result_data = result_vec->data();
+	double *result_data = result_vec->data_mutable();
 	
 	if (dim_count > 1)
 		result_vec->SetDimensions(dim_count, dims);

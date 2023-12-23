@@ -5857,7 +5857,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	
 	int64_t length_out = n * dimensionality;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
-	double *float_result_data = float_result->data();
+	double *float_result_data = float_result->data_mutable();
 	double *float_result_ptr = float_result_data;
 	
 	EidosValue *point_value = p_arguments[1].get();
@@ -6257,7 +6257,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	
 	// multiple-point case, new in SLiM 3
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(point_count);
-	eidos_logical_t *logical_result_data = logical_result->data();
+	eidos_logical_t *logical_result_data = logical_result->data_mutable();
 	
 	switch (dimensionality)
 	{
@@ -6354,7 +6354,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
-	double *float_result_data = float_result->data();
+	double *float_result_data = float_result->data_mutable();
 	
 	switch (dimensionality)
 	{
@@ -6480,7 +6480,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
-	double *float_result_data = float_result->data();
+	double *float_result_data = float_result->data_mutable();
 	
 	switch (dimensionality)
 	{
@@ -6584,7 +6584,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
-	double *float_result_data = float_result->data();
+	double *float_result_data = float_result->data_mutable();
 	
 	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
 	// which is enforced when periodic boundary conditions are set, in setSpatialBounds().  Note also
@@ -6699,7 +6699,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	
 	int64_t length_out = point_count * dimensionality;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
-	double *float_result_data = float_result->data();
+	double *float_result_data = float_result->data_mutable();
 	EidosValue_SP result_SP = EidosValue_SP(float_result);
 	
 	switch (dimensionality)
@@ -7205,7 +7205,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			// with replacement, we can just do a series of independent draws
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 			EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
-			EidosObject **object_result_data = result->data();
+			EidosObject **object_result_data = result->data_mutable();
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(candidate_count, first_candidate_index, excluded_index, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_1) num_threads(thread_count)
@@ -7462,7 +7462,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		// do the sampling
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 		EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
-		EidosObject **object_result_data = result->data();
+		EidosObject **object_result_data = result->data_mutable();
 		
 		if (replace)
 		{

@@ -130,7 +130,7 @@ EidosValue_SP Eidos_ExecuteFunction_integer(const std::vector<EidosValue_SP> &p_
 	if (fill2Indices_value->Type() == EidosValueType::kValueInt)
 	{
 		int64_t fill2 = fill2_value->IntAtIndex_NOCAST(0, nullptr);
-		int64_t *result_data = int_result->data();
+		int64_t *result_data = int_result->data_mutable();
 		int positions_count = fill2Indices_value->Count();
 		
 		if (positions_count == 1)
@@ -463,7 +463,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				const int64_t *int_data = x_value->IntData();
 				EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(sample_size);
-				int64_t *int_result_data = int_result->data();
+				int64_t *int_result_data = int_result->data_mutable();
 				result_SP = EidosValue_SP(int_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_INT);
@@ -484,7 +484,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				const double *float_data = x_value->FloatData();
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(sample_size);
-				double *float_result_data = float_result->data();
+				double *float_result_data = float_result->data_mutable();
 				result_SP = EidosValue_SP(float_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_FLOAT);
@@ -506,7 +506,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
 				EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(object_class))->resize_no_initialize(sample_size);
-				EidosObject **object_result_data = object_result->data();
+				EidosObject **object_result_data = object_result->data_mutable();
 				result_SP = EidosValue_SP(object_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_OBJECT);
@@ -780,7 +780,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				const int64_t *int_data = x_value->IntData();
 				EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(sample_size);
-				int64_t *int_result_data = int_result->data();
+				int64_t *int_result_data = int_result->data_mutable();
 				result_SP = EidosValue_SP(int_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_INT);
@@ -800,7 +800,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				const double *float_data = x_value->FloatData();
 				EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(sample_size);
-				double *float_result_data = float_result->data();
+				double *float_result_data = float_result->data_mutable();
 				result_SP = EidosValue_SP(float_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_FLOAT);
@@ -821,7 +821,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
 				EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(object_class))->resize_no_initialize(sample_size);
-				EidosObject **object_result_data = object_result->data();
+				EidosObject **object_result_data = object_result->data_mutable();
 				result_SP = EidosValue_SP(object_result);
 				
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_OBJECT);
@@ -1899,7 +1899,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 	{
 		// We can use the fast vector API; we want match() to be very fast since it is a common bottleneck
 		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-		int64_t *int_result_data = int_result->data();
+		int64_t *int_result_data = int_result->data_mutable();
 		result_SP = EidosValue_SP(int_result);
 		
 		int table_index;
@@ -2635,7 +2635,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	// set up the result vector and zero it out
 	int64_t num_bins = maxbin + 1;
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_bins);
-	int64_t *result_data = int_result->data();
+	int64_t *result_data = int_result->data_mutable();
 	result_SP = EidosValue_SP(int_result);
 	
 	for (int bin_index = 0; bin_index < num_bins; ++bin_index)

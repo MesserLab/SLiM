@@ -603,7 +603,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 					
 					//for (int value_index = 0; value_index < arg_value_count; ++value_index)
 					//	result->set_logical_no_check(arg_data[value_index], result_set_index++);
-					memcpy(result->data() + result_set_index, arg_data, arg_value_count * sizeof(eidos_logical_t));
+					memcpy(result->data_mutable() + result_set_index, arg_data, arg_value_count * sizeof(eidos_logical_t));
 					result_set_index += arg_value_count;
 				}
 			}

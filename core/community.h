@@ -239,13 +239,13 @@ public:
 	
 	// Checking for species identity; these return nullptr if the objects do not all belong to the same species
 	// Calls to these methods, and other such species checks, should be labeled SPECIES CONSISTENCY CHECK to make them easier to find
-	static Species *SpeciesForIndividualsVector(Individual **individuals, int value_count);
+	static Species *SpeciesForIndividualsVector(const Individual * const *individuals, int value_count);
 	static Species *SpeciesForIndividuals(EidosValue *value);
 	
-	static Species *SpeciesForGenomesVector(Genome **genomes, int value_count);
+	static Species *SpeciesForGenomesVector(const Genome * const *genomes, int value_count);
 	static Species *SpeciesForGenomes(EidosValue *value);
 	
-	static Species *SpeciesForMutationsVector(Mutation **mutations, int value_count);
+	static Species *SpeciesForMutationsVector(const Mutation * const *mutations, int value_count);
 	static Species *SpeciesForMutations(EidosValue *value);
 	
 	// Running ticks

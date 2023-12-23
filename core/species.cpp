@@ -2702,7 +2702,7 @@ void Species::CacheNucleotideMatrices(void)
 		if (ge_type->mutation_matrix_)
 		{
 			EidosValue_Float *mm = ge_type->mutation_matrix_.get();
-			double *mm_data = mm->data();
+			const double *mm_data = mm->data();
 			
 			if (mm->Count() == 16)
 			{
@@ -2746,7 +2746,7 @@ void Species::CacheNucleotideMatrices(void)
 		if (ge_type->mutation_matrix_)
 		{
 			EidosValue_Float *mm = ge_type->mutation_matrix_.get();
-			double *mm_data = mm->data();
+			const double *mm_data = mm->data();
 			
 			if (mm->Count() == 16)
 			{

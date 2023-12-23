@@ -1290,7 +1290,7 @@ void Community::InvalidateInteractionsForSubpopulation(Subpopulation *p_invalid_
 		iter.second->InvalidateForSubpopulation(p_invalid_subpop);
 }
 
-Species *Community::SpeciesForIndividualsVector(Individual **individuals, int value_count)
+Species *Community::SpeciesForIndividualsVector(const Individual * const *individuals, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
@@ -1330,12 +1330,12 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 		return &((Individual *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	Individual **individuals = (Individual **)object_vector_value->data();
+	const Individual * const *individuals = (Individual **)object_vector_value->data();
 	
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
 }
 
-Species *Community::SpeciesForGenomesVector(Genome **genomes, int value_count)
+Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
@@ -1347,7 +1347,7 @@ Species *Community::SpeciesForGenomesVector(Genome **genomes, int value_count)
 	
 	for (int value_index = 1; value_index < value_count; ++value_index)
 	{
-		Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
+		const Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
 		
 		if (species != consensus_species)
 			return nullptr;
@@ -1375,12 +1375,12 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	Genome **genomes = (Genome **)object_vector_value->data();
+	const Genome * const *genomes = (Genome **)object_vector_value->data();
 	
 	return Community::SpeciesForGenomesVector(genomes, value_count);
 }
 
-Species *Community::SpeciesForMutationsVector(Mutation **mutations, int value_count)
+Species *Community::SpeciesForMutationsVector(const Mutation * const *mutations, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
@@ -1420,7 +1420,7 @@ Species *Community::SpeciesForMutations(EidosValue *value)
 		return &((Mutation *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_ptr_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	Mutation **mutations = (Mutation **)object_vector_value->data();
+	const Mutation * const *mutations = (Mutation **)object_vector_value->data();
 	
 	return Community::SpeciesForMutationsVector(mutations, value_count);
 }

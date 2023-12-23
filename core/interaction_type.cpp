@@ -5040,7 +5040,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
 	if (!CheckIndividualConstraints(receiver, receiver_constraints_) || !kd_root_EXERTERS)		// potentially raises
 	{
-		double *result_ptr = result_vec->data();
+		double *result_ptr = result_vec->data_mutable();
 		
 		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
 			*(result_ptr + exerter_index) = INFINITY;
@@ -5060,7 +5060,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	{
 		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
 		// We initialize the return vector to INFINITY, and fill in non-infinite values from the sparse vector
-		double *result_ptr = result_vec->data();
+		double *result_ptr = result_vec->data_mutable();
 		
 		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
 			*(result_ptr + exerter_index) = INFINITY;
@@ -5963,7 +5963,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	{
 		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
 		
-		EIDOS_BZERO(result_vec->data(), exerter_subpop_size * sizeof(double));
+		EIDOS_BZERO(result_vec->data_mutable(), exerter_subpop_size * sizeof(double));
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -5992,7 +5992,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 			{
 				// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
 				// We initialize the return vector to 0, and fill in non-zero values from the sparse vector
-				double *result_ptr = result_vec->data();
+				double *result_ptr = result_vec->data_mutable();
 				
 				EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
 				

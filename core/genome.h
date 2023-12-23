@@ -160,6 +160,7 @@ public:
 	inline __attribute__((always_inline)) slim_genomeid_t GenomeID(void)			{ return genome_id_; }
 	inline __attribute__((always_inline)) void SetGenomeID(slim_genomeid_t p_new_id){ genome_id_ = p_new_id; }	// should basically never be called
 	inline __attribute__((always_inline)) Individual *OwningIndividual(void)		{ return individual_; }
+	inline __attribute__((always_inline)) const Individual *OwningIndividual(void) const { return individual_; }
 	
 	void NullGenomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
