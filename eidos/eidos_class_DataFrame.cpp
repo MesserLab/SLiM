@@ -85,7 +85,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 			
 			for (int i = 0; i < index_count; ++i)
 			{
-				int64_t index = index_value->IntAtIndex(i, nullptr);
+				int64_t index = index_value->IntAtIndex_NOCAST(i, nullptr);
 				
 				if ((index < 0) || (index >= key_count))
 					EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): column index out of range (" << index << " not in [0, " << (key_count - 1) << "])." << EidosTerminate(nullptr);
@@ -103,7 +103,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		{
 			for (int i = 0; i < index_count; ++i)
 			{
-				const std::string &key = ((EidosValue_String *)index_value)->StringRefAtIndex(i, nullptr);
+				const std::string &key = ((EidosValue_String *)index_value)->StringRefAtIndex_NOCAST(i, nullptr);
 				
 				auto value_iter = symbols->find(key);
 				
@@ -122,7 +122,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 			
 			for (int i = 0; i < index_count; ++i)
 			{
-				bool selected = index_value->LogicalAtIndex(i, nullptr);
+				bool selected = index_value->LogicalAtIndex_NOCAST(i, nullptr);
 				
 				if (selected)
 				{
@@ -414,11 +414,11 @@ EidosValue_SP EidosDataFrame::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_colNames:
 			return AllKeys();
 		case gEidosID_dim:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{RowCount(), ColumnCount()});
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{RowCount(), ColumnCount()});
 		case gEidosID_ncol:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ColumnCount()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(ColumnCount()));
 		case gEidosID_nrow:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(RowCount()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(RowCount()));
 			
 			// all others, including gID_none
 		default:
@@ -535,7 +535,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_i
 		
 		for (int arg_index = 0; arg_index < arg_count; ++arg_index)
 		{
-			EidosObject *source_obj = arg->ObjectElementAtIndex(arg_index, nullptr);
+			EidosObject *source_obj = arg->ObjectElementAtIndex_NOCAST(arg_index, nullptr);
 			EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_obj);
 			
 			if (!source)
@@ -568,7 +568,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_i
 		
 		for (int arg_index = 0; arg_index < arg_count; ++arg_index)
 		{
-			EidosObject *source_obj = arg->ObjectElementAtIndex(arg_index, nullptr);
+			EidosObject *source_obj = arg->ObjectElementAtIndex_NOCAST(arg_index, nullptr);
 			EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_obj);
 			
 			if (!source)
@@ -634,7 +634,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 		else
 		{
 			// Note that this retains cols_subset, before the call to Release below
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(cols_subset, gEidosDataFrame_Class));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(cols_subset, gEidosDataFrame_Class));
 		}
 		
 		rows_subset->Release();
@@ -658,7 +658,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetColumns(EidosGlobalStringID p_
 	EidosDataFrame *objectElement = SubsetColumns(index_value);
 	objectElement->ContentsChanged("subsetColumns()");
 	
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -675,10 +675,10 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetRows(EidosGlobalStringID p_met
 	
 	EidosValue *index_value = p_arguments[0].get();
 	EidosValue *drop_value = p_arguments[1].get();
-	EidosDataFrame *objectElement = SubsetRows(index_value, drop_value->LogicalAtIndex(0, nullptr));
+	EidosDataFrame *objectElement = SubsetRows(index_value, drop_value->LogicalAtIndex_NOCAST(0, nullptr));
 	objectElement->ContentsChanged("subsetRows()");
 	
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -700,7 +700,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDataFrame(const std::vector<EidosVal
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosDataFrame *objectElement = new EidosDataFrame();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -724,7 +724,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	EidosValue *comment_value = p_arguments[6].get();
 	
 	// Start by opening the CSV data file; a little weird that we just warn and retunr NULL on a file I/O error, but this follows readFile()
-	std::string base_path = filePath_value->StringAtIndex(0, nullptr);
+	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
 	std::string file_path = Eidos_ResolvedPath(base_path);
 	
 	std::ifstream file_stream(file_path.c_str());
@@ -737,10 +737,10 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	}
 
 	// Figure out our various separators/delimiters
-	std::string sep_string = sep_value->StringAtIndex(0, nullptr);
-	std::string quote_string = quote_value->StringAtIndex(0, nullptr);
-	std::string dec_string = dec_value->StringAtIndex(0, nullptr);
-	std::string comment_string = comment_value->StringAtIndex(0, nullptr);
+	std::string sep_string = sep_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string quote_string = quote_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string dec_string = dec_value->StringAtIndex_NOCAST(0, nullptr);
+	std::string comment_string = comment_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sep_string.length() > 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that sep be a string of exactly one character, or the empty string \"\"." << EidosTerminate(nullptr);
@@ -966,7 +966,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	// If a header line is expected, this removes the first input line to act as the header
 	std::vector<std::string> columnNames;
 	
-	if ((colNames_value->Type() == EidosValueType::kValueLogical) && (colNames_value->Count() == 1) && (colNames_value->LogicalAtIndex(0, nullptr) == true))
+	if ((colNames_value->Type() == EidosValueType::kValueLogical) && (colNames_value->Count() == 1) && (colNames_value->LogicalAtIndex_NOCAST(0, nullptr) == true))
 	{
 		// colNames == T means "a header row is present, use it"
 		if (rows.size() == 0)
@@ -975,7 +975,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		columnNames = rows[0];
 		rows.erase(rows.begin());
 	}
-	else if ((colNames_value->Type() == EidosValueType::kValueLogical) && (colNames_value->Count() == 1) && (colNames_value->LogicalAtIndex(0, nullptr) == false))
+	else if ((colNames_value->Type() == EidosValueType::kValueLogical) && (colNames_value->Count() == 1) && (colNames_value->LogicalAtIndex_NOCAST(0, nullptr) == false))
 	{
 		// colNames == F means "autogenerate column names of the form X1, X2, ..."
 		for (int col_index = 0; col_index < ncols; ++col_index)
@@ -991,7 +991,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 			if (col_index < colNames_count)
 			{
 				// The name is provided by colNames
-				std::string colname = colNames_value->StringAtIndex(col_index, nullptr);
+				std::string colname = colNames_value->StringAtIndex_NOCAST(col_index, nullptr);
 				auto check_iter = std::find(columnNames.begin(), columnNames.end(), colname);
 				
 				if (check_iter != columnNames.end())
@@ -1033,7 +1033,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	
 	if (colTypes_value->Type() == EidosValueType::kValueString)
 	{
-		std::string colTypes_string = colTypes_value->StringAtIndex(0, nullptr);
+		std::string colTypes_string = colTypes_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		for (char ch : colTypes_string)
 		{
@@ -1132,7 +1132,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	// Make the DataFrame to return
 	EidosValue_SP result_SP(nullptr);
 	EidosDataFrame *objectElement = new EidosDataFrame();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	objectElement->Release();	// objectElement is now retained by result_SP, so we can release it
 	
@@ -1171,7 +1171,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		}
 		else if (coltype == EidosValueType::kValueInt)
 		{
-			EidosValue_Int_vector *integer_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(nrows);
+			EidosValue_Int *integer_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(nrows);
 			column_values = EidosValue_SP(integer_column);
 			
 			for (int row_index = 0; row_index < nrows; ++row_index)
@@ -1191,7 +1191,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		}
 		else if (coltype == EidosValueType::kValueFloat)
 		{
-			EidosValue_Float_vector *float_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(nrows);
+			EidosValue_Float *float_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(nrows);
 			column_values = EidosValue_SP(float_column);
 			
 			for (int row_index = 0; row_index < nrows; ++row_index)
@@ -1235,7 +1235,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		}
 		else if (coltype == EidosValueType::kValueString)
 		{
-			EidosValue_String_vector *string_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(nrows);
+			EidosValue_String *string_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(nrows);
 			column_values = EidosValue_SP(string_column);
 			
 			for (int row_index = 0; row_index < nrows; ++row_index)

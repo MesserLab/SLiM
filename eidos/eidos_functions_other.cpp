@@ -59,7 +59,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 	
 	// determine whether the assertions vector is all true
 	int assertions_count = assertions_value->Count();
-	const eidos_logical_t *logical_data = assertions_value->LogicalVector()->data();
+	const eidos_logical_t *logical_data = assertions_value->LogicalData();
 	bool any_false = false;
 	
 	for (int assertions_index = 0; assertions_index < assertions_count; ++assertions_index)
@@ -76,7 +76,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 		
 		if (message_value->Type() != EidosValueType::kValueNULL)
 		{
-			std::string &&stop_string = message_value->StringAtIndex(0, nullptr);
+			std::string &&stop_string = message_value->StringAtIndex_NOCAST(0, nullptr);
 			
 			p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 			
@@ -99,7 +99,7 @@ EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arg
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *soundName_value = p_arguments[0].get();
-	std::string name_string = ((soundName_value->Type() == EidosValueType::kValueString) ? soundName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string name_string = ((soundName_value->Type() == EidosValueType::kValueString) ? soundName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	
 	std::string beep_error = Eidos_Beep(name_string);
 	
@@ -144,7 +144,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *string_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &type_name = string_value->StringRefAtIndex(0, nullptr);
+	const std::string &type_name = string_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (type_name == "cpu")
 	{
@@ -152,7 +152,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 		std::clock_t cpu_time = std::clock();
 		double cpu_time_d = static_cast<double>(cpu_time) / CLOCKS_PER_SEC;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(cpu_time_d));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cpu_time_d));
 	}
 	else if (type_name == "mono")
 	{
@@ -161,7 +161,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 		std::chrono::steady_clock::duration clock_duration = ts - timebase;
 		double seconds = std::chrono::duration<double>(clock_duration).count();
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(seconds));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(seconds));
 	}
 	else
 	{
@@ -184,7 +184,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 	localtime_r(&rawtime, &timeinfo);
 	strftime(buffer, 25, "%d-%m-%Y", &timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(buffer)));
 	
 	return result_SP;
 }
@@ -193,7 +193,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 EidosValue_SP Eidos_ExecuteFunction_debugIndent(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 #if DEBUG_POINTS_ENABLED
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(EidosDebugPointIndent::Indent()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(EidosDebugPointIndent::Indent()));
 #else
 	return gStaticEidosValue_StringEmpty;
 #endif
@@ -205,7 +205,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &symbol_name = symbol_value->StringRefAtIndex(0, nullptr);
+	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -231,7 +231,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &symbol_name = symbol_value->StringRefAtIndex(0, nullptr);
+	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -261,7 +261,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue_String *functionName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &function_name = functionName_value->StringRefAtIndex(0, nullptr);
+	const std::string &function_name = functionName_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	// Copy the argument list; this is a little slow, but not a big deal, and it provides protection against re-entrancy
 	std::vector<EidosValue_SP> arguments;
@@ -328,7 +328,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *lambdaSource_value = p_arguments[0].get();
-	EidosValue_String_singleton *lambdaSource_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[0].get());
+	EidosValue_String *lambdaSource_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[0].get());
 	EidosScript *script = (lambdaSource_value_singleton ? lambdaSource_value_singleton->CachedScript() : nullptr);
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -341,7 +341,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambdaSource_value->StringAtIndex(0, nullptr), -1);
+		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr), -1);
 		
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
@@ -375,19 +375,19 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	}
 	
 	// Execute inside try/catch so we can handle errors well
-	EidosValue_String *timed_value = (EidosValue_String *)p_arguments[1].get();
+	EidosValue *timed_value = p_arguments[1].get();
 	EidosValueType timed_value_type = timed_value->Type();
 	bool timed = false;
 	int timer_type = 0;		// cpu by default, for legacy reasons
 	
 	if (timed_value_type == EidosValueType::kValueLogical)
 	{
-		if (timed_value->LogicalAtIndex(0, nullptr))
+		if (timed_value->LogicalAtIndex_NOCAST(0, nullptr))
 			timed = true;
 	}
 	else if (timed_value_type == EidosValueType::kValueString)
 	{
-		const std::string &timed_string = timed_value->StringRefAtIndex(0, nullptr);
+		const std::string &timed_string = ((EidosValue_String *)timed_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (timed_string == "cpu")
 		{
@@ -504,7 +504,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 	if ((symbol_count == 1) && (symbol_value->DimensionCount() == 1))
 	{
 		// Use the global constants, but only if we do not have to impose a dimensionality upon the value below
-		EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex(0, nullptr));
+		EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex_NOCAST(0, nullptr));
 		
 		result_SP = (symbols.ContainsSymbol(symbol_id) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
@@ -515,7 +515,7 @@ EidosValue_SP Eidos_ExecuteFunction_exists(const std::vector<EidosValue_SP> &p_a
 		
 		for (int value_index = 0; value_index < symbol_count; ++value_index)
 		{
-			EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex(value_index, nullptr));
+			EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 			
 			logical_result->set_logical_no_check(symbols.ContainsSymbol(symbol_id), value_index);
 		}
@@ -534,7 +534,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool function_name_specified = (functionName_value->Type() == EidosValueType::kValueString);
-	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex(0, nullptr) : gEidosStr_empty_string);
+	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
 	// function_map_ is already alphabetized since maps keep sorted order
@@ -580,7 +580,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 	
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
-	std::string match_string = functionName_value->StringAtIndex(0, nullptr);
+	std::string match_string = functionName_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
@@ -632,7 +632,7 @@ EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const std::v
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	EidosValue_SP result_SP(nullptr);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_seed));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_seed));
 	
 	return result_SP;
 }
@@ -674,7 +674,7 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	bool showSymbolTables = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	bool showSymbolTables = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	std::ostream &outstream = p_interpreter.ExecutionOutputStream();
 	EidosSymbolTable &current_symbol_table = p_interpreter.SymbolTable();
@@ -706,7 +706,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetNumThreads(__attribute__((unused)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidosNumThreads));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidosNumThreads));
 	
 	return result_SP;
 }
@@ -716,7 +716,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetMaxThreads(__attribute__((unused)
 {
 	EidosValue_SP result_SP(nullptr);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidosMaxThreads));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidosMaxThreads));
 	
 	return result_SP;
 }
@@ -725,134 +725,134 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetMaxThreads(__attribute__((unused)
 EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 #ifdef _OPENMP
-	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_ABS_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("CEIL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CEIL)));
-	objectElement->SetKeyValue_StringKeys("EXP_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_EXP_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("FLOOR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FLOOR)));
-	objectElement->SetKeyValue_StringKeys("LOG_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("LOG10_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG10_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("LOG2_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG2_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("ROUND", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_ROUND)));
-	objectElement->SetKeyValue_StringKeys("SQRT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SQRT_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("SUM_INTEGER", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_INTEGER)));
-	objectElement->SetKeyValue_StringKeys("SUM_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("SUM_LOGICAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_LOGICAL)));
-	objectElement->SetKeyValue_StringKeys("TRUNC", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TRUNC)));
+	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_ABS_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("CEIL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CEIL)));
+	objectElement->SetKeyValue_StringKeys("EXP_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_EXP_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("FLOOR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FLOOR)));
+	objectElement->SetKeyValue_StringKeys("LOG_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_LOG_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("LOG10_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_LOG10_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("LOG2_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_LOG2_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("ROUND", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_ROUND)));
+	objectElement->SetKeyValue_StringKeys("SQRT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SQRT_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SUM_INTEGER", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SUM_INTEGER)));
+	objectElement->SetKeyValue_StringKeys("SUM_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SUM_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SUM_LOGICAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SUM_LOGICAL)));
+	objectElement->SetKeyValue_StringKeys("TRUNC", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_TRUNC)));
 	
-	objectElement->SetKeyValue_StringKeys("MAX_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MAX_INT)));
-	objectElement->SetKeyValue_StringKeys("MAX_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MAX_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("MIN_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIN_INT)));
-	objectElement->SetKeyValue_StringKeys("MIN_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIN_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("PMAX_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_INT_1)));
-	objectElement->SetKeyValue_StringKeys("PMAX_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_INT_2)));
-	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_FLOAT_1)));
-	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_FLOAT_2)));
-	objectElement->SetKeyValue_StringKeys("PMIN_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_INT_1)));
-	objectElement->SetKeyValue_StringKeys("PMIN_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_INT_2)));
-	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_FLOAT_1)));
-	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_FLOAT_2)));
+	objectElement->SetKeyValue_StringKeys("MAX_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MAX_INT)));
+	objectElement->SetKeyValue_StringKeys("MAX_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MAX_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("MIN_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MIN_INT)));
+	objectElement->SetKeyValue_StringKeys("MIN_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MIN_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("PMAX_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMAX_INT_1)));
+	objectElement->SetKeyValue_StringKeys("PMAX_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMAX_INT_2)));
+	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMAX_FLOAT_1)));
+	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMAX_FLOAT_2)));
+	objectElement->SetKeyValue_StringKeys("PMIN_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMIN_INT_1)));
+	objectElement->SetKeyValue_StringKeys("PMIN_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMIN_INT_2)));
+	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMIN_FLOAT_1)));
+	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PMIN_FLOAT_2)));
 	
-	objectElement->SetKeyValue_StringKeys("MATCH_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_INT)));
-	objectElement->SetKeyValue_StringKeys("MATCH_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("MATCH_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_STRING)));
-	objectElement->SetKeyValue_StringKeys("MATCH_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_OBJECT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_INDEX", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDEX)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_R_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_INT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_R_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_R_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_OBJECT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_INT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_OBJECT)));
-	objectElement->SetKeyValue_StringKeys("TABULATE_MAXBIN", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TABULATE_MAXBIN)));
-	objectElement->SetKeyValue_StringKeys("TABULATE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TABULATE)));
+	objectElement->SetKeyValue_StringKeys("MATCH_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MATCH_INT)));
+	objectElement->SetKeyValue_StringKeys("MATCH_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MATCH_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("MATCH_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MATCH_STRING)));
+	objectElement->SetKeyValue_StringKeys("MATCH_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MATCH_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDEX", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_INDEX)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_R_INT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_R_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_R_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_WR_INT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_WR_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_WR_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("TABULATE_MAXBIN", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_TABULATE_MAXBIN)));
+	objectElement->SetKeyValue_StringKeys("TABULATE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_TABULATE)));
 	
-	objectElement->SetKeyValue_StringKeys("CONTAINS_MARKER_MUT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CONTAINS_MARKER_MUT)));
-	objectElement->SetKeyValue_StringKeys("I_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE)));
-	objectElement->SetKeyValue_StringKeys("G_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE)));
-	objectElement->SetKeyValue_StringKeys("INDS_W_PEDIGREE_IDS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS)));
-	objectElement->SetKeyValue_StringKeys("RELATEDNESS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RELATEDNESS)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1)));
-	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_2)));
-	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_FITNESS_SCALE_1)));
-	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_FITNESS_SCALE_2)));
-	objectElement->SetKeyValue_StringKeys("SUM_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE)));
+	objectElement->SetKeyValue_StringKeys("CONTAINS_MARKER_MUT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CONTAINS_MARKER_MUT)));
+	objectElement->SetKeyValue_StringKeys("I_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE)));
+	objectElement->SetKeyValue_StringKeys("G_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE)));
+	objectElement->SetKeyValue_StringKeys("INDS_W_PEDIGREE_IDS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS)));
+	objectElement->SetKeyValue_StringKeys("RELATEDNESS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RELATEDNESS)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_2)));
+	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_FITNESS_SCALE_1)));
+	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_FITNESS_SCALE_2)));
+	objectElement->SetKeyValue_StringKeys("SUM_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE)));
 	
-	objectElement->SetKeyValue_StringKeys("DNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DNORM_1)));
-	objectElement->SetKeyValue_StringKeys("DNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DNORM_2)));
-	objectElement->SetKeyValue_StringKeys("RBINOM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_1)));
-	objectElement->SetKeyValue_StringKeys("RBINOM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_2)));
-	objectElement->SetKeyValue_StringKeys("RBINOM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_3)));
-	objectElement->SetKeyValue_StringKeys("RDUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_1)));
-	objectElement->SetKeyValue_StringKeys("RDUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_2)));
-	objectElement->SetKeyValue_StringKeys("RDUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_3)));
-	objectElement->SetKeyValue_StringKeys("REXP_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_REXP_1)));
-	objectElement->SetKeyValue_StringKeys("REXP_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_REXP_2)));
-	objectElement->SetKeyValue_StringKeys("RNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_1)));
-	objectElement->SetKeyValue_StringKeys("RNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_2)));
-	objectElement->SetKeyValue_StringKeys("RNORM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_3)));
-	objectElement->SetKeyValue_StringKeys("RPOIS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RPOIS_1)));
-	objectElement->SetKeyValue_StringKeys("RPOIS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RPOIS_2)));
-	objectElement->SetKeyValue_StringKeys("RUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_1)));
-	objectElement->SetKeyValue_StringKeys("RUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_2)));
-	objectElement->SetKeyValue_StringKeys("RUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_3)));
+	objectElement->SetKeyValue_StringKeys("DNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_DNORM_1)));
+	objectElement->SetKeyValue_StringKeys("DNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_DNORM_2)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RBINOM_1)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RBINOM_2)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RBINOM_3)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RDUNIF_1)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RDUNIF_2)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RDUNIF_3)));
+	objectElement->SetKeyValue_StringKeys("REXP_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_REXP_1)));
+	objectElement->SetKeyValue_StringKeys("REXP_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_REXP_2)));
+	objectElement->SetKeyValue_StringKeys("RNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RNORM_1)));
+	objectElement->SetKeyValue_StringKeys("RNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RNORM_2)));
+	objectElement->SetKeyValue_StringKeys("RNORM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RNORM_3)));
+	objectElement->SetKeyValue_StringKeys("RPOIS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RPOIS_1)));
+	objectElement->SetKeyValue_StringKeys("RPOIS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RPOIS_2)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RUNIF_1)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RUNIF_2)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_RUNIF_3)));
 	
-	objectElement->SetKeyValue_StringKeys("SORT_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_INT)));
-	objectElement->SetKeyValue_StringKeys("SORT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_FLOAT)));
-	objectElement->SetKeyValue_StringKeys("SORT_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_STRING)));
+	objectElement->SetKeyValue_StringKeys("SORT_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SORT_INT)));
+	objectElement->SetKeyValue_StringKeys("SORT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SORT_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SORT_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SORT_STRING)));
 	
-	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_1D)));
-	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_2D)));
-	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_3D)));
-	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_1D)));
-	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_2D)));
-	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_3D)));
-	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_1D)));
-	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_2D)));
-	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_3D)));
-	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_1D)));
-	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_2D)));
-	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_3D)));
-	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_1D)));
-	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_2D)));
-	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_3D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_1D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_2D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_3D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_1D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_2D)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_3D)));
-	objectElement->SetKeyValue_StringKeys("SPATIAL_MAP_VALUE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SPATIAL_MAP_VALUE)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_IN_BOUNDS_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_IN_BOUNDS_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_IN_BOUNDS_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_PERIODIC_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_PERIODIC_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_PERIODIC_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_REFLECTED_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_REFLECTED_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_REFLECTED_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_STOPPED_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_STOPPED_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_STOPPED_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_UNIFORM_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_UNIFORM_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_POINT_UNIFORM_3D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_1_1D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_1_2D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_1_3D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_2_1D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_2_2D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SET_SPATIAL_POS_2_3D)));
+	objectElement->SetKeyValue_StringKeys("SPATIAL_MAP_VALUE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SPATIAL_MAP_VALUE)));
 	
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_2S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S)));
-	//objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_3S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_3S)));
-	objectElement->SetKeyValue_StringKeys("DRAWBYSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DRAWBYSTRENGTH)));
-	objectElement->SetKeyValue_StringKeys("INTNEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_INTNEIGHCOUNT)));
-	objectElement->SetKeyValue_StringKeys("LOCALPOPDENSITY", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOCALPOPDENSITY)));
-	objectElement->SetKeyValue_StringKeys("NEARESTINTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEARESTINTNEIGH)));
-	objectElement->SetKeyValue_StringKeys("NEARESTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEARESTNEIGH)));
-	objectElement->SetKeyValue_StringKeys("NEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEIGHCOUNT)));
-	objectElement->SetKeyValue_StringKeys("TOTNEIGHSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TOTNEIGHSTRENGTH)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_2S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S)));
+	//objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_3S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CLIPPEDINTEGRAL_3S)));
+	objectElement->SetKeyValue_StringKeys("DRAWBYSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_DRAWBYSTRENGTH)));
+	objectElement->SetKeyValue_StringKeys("INTNEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_INTNEIGHCOUNT)));
+	objectElement->SetKeyValue_StringKeys("LOCALPOPDENSITY", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_LOCALPOPDENSITY)));
+	objectElement->SetKeyValue_StringKeys("NEARESTINTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_NEARESTINTNEIGH)));
+	objectElement->SetKeyValue_StringKeys("NEARESTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_NEARESTNEIGH)));
+	objectElement->SetKeyValue_StringKeys("NEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_NEIGHCOUNT)));
+	objectElement->SetKeyValue_StringKeys("TOTNEIGHSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_TOTNEIGHSTRENGTH)));
 	
-	objectElement->SetKeyValue_StringKeys("AGE_INCR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_AGE_INCR)));
-	objectElement->SetKeyValue_StringKeys("DEFERRED_REPRO", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DEFERRED_REPRO)));
-	objectElement->SetKeyValue_StringKeys("WF_REPRO", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_WF_REPRO)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_1)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_2)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_3)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_1)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_2)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_3)));
-	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIGRANT_CLEAR)));
-	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_PRE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT_PRE)));
-	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT)));
-	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_POST", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT_POST)));
-	objectElement->SetKeyValue_StringKeys("PARENTS_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PARENTS_CLEAR)));
-	objectElement->SetKeyValue_StringKeys("UNIQUE_MUTRUNS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_UNIQUE_MUTRUNS)));
-	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SURVIVAL)));
+	objectElement->SetKeyValue_StringKeys("AGE_INCR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_AGE_INCR)));
+	objectElement->SetKeyValue_StringKeys("DEFERRED_REPRO", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_DEFERRED_REPRO)));
+	objectElement->SetKeyValue_StringKeys("WF_REPRO", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_WF_REPRO)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_ASEX_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_ASEX_2)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_ASEX_3)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_SEX_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_SEX_2)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_FITNESS_SEX_3)));
+	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_MIGRANT_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_PRE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SIMPLIFY_SORT_PRE)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SIMPLIFY_SORT)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_POST", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SIMPLIFY_SORT_POST)));
+	objectElement->SetKeyValue_StringKeys("PARENTS_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_PARENTS_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("UNIQUE_MUTRUNS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_UNIQUE_MUTRUNS)));
+	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_SURVIVAL)));
 #endif
 	
 	objectElement->ContentsChanged("parallelGetTaskThreadCounts()");
@@ -869,7 +869,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	if (numThreads_value->Type() == EidosValueType::kValueInt)
 	{
 		// An explicit override has been requested, even if numThreads == gEidosMaxThreads
-		numThreads = numThreads_value->IntAtIndex(0, nullptr);
+		numThreads = numThreads_value->IntAtIndex_NOCAST(0, nullptr);
 		gEidosNumThreadsOverride = true;
 	}
 	else
@@ -909,7 +909,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
 		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
 		if (!source)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
@@ -928,7 +928,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 					
 					if ((value->Type() == EidosValueType::kValueInt) && (value->Count() == 1))
 					{
-						int64_t value_int64 = value->IntAtIndex(0, nullptr);
+						int64_t value_int64 = value->IntAtIndex_NOCAST(0, nullptr);
 						
 						if ((value_int64 < 1) || (value_int64 > EIDOS_OMP_MAX_THREADS))
 							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() requires thread counts to be in [1, " << EIDOS_OMP_MAX_THREADS << "]." << EidosTerminate(nullptr);
@@ -1103,7 +1103,7 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_argum
 		int variableNames_count = variableNames_value->Count();
 		
 		for (int value_index = 0; value_index < variableNames_count; ++value_index)
-			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex(value_index, nullptr));
+			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex_NOCAST(value_index, nullptr));
 	}
 	
 	for (std::string &symbol : symbols_to_remove)
@@ -1127,7 +1127,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Determine the simplification mode requested
 	EidosValue_String *simplify_value = (EidosValue_String *)p_arguments[2].get();
-	const std::string &simplify_string = simplify_value->StringRefAtIndex(0, nullptr);
+	const std::string &simplify_string = simplify_value->StringRefAtIndex_NOCAST(0, nullptr);
 	int simplify;
 	
 	if (simplify_string == "vector")		simplify = 0;
@@ -1138,7 +1138,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
-	EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[1].get());
+	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[1].get());
 	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -1151,7 +1151,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
 		
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
@@ -1287,7 +1287,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSeed(const std::vector<EidosValue_SP> &p_
 	
 	EidosValue *seed_value = p_arguments[0].get();
 	
-	Eidos_SetRNGSeed(seed_value->IntAtIndex(0, nullptr));
+	Eidos_SetRNGSeed(seed_value->IntAtIndex_NOCAST(0, nullptr));
 	
 	return gStaticEidosValueVOID;
 }
@@ -1303,7 +1303,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 	
 	if (message_value->Type() != EidosValueType::kValueNULL)
 	{
-		std::string &&stop_string = p_arguments[0]->StringAtIndex(0, nullptr);
+		std::string &&stop_string = p_arguments[0]->StringAtIndex_NOCAST(0, nullptr);
 		
 		p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 		
@@ -1322,7 +1322,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *suppress_value = p_arguments[0].get();
-	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex(0, nullptr);
+	eidos_logical_t new_suppress = suppress_value->LogicalAtIndex_NOCAST(0, nullptr);
 	eidos_logical_t old_suppress = gEidosSuppressWarnings;
 	
 	gEidosSuppressWarnings = new_suppress;
@@ -1334,16 +1334,16 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValu
 EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *key_value = p_arguments[0].get();
-	std::string key = key_value->StringAtIndex(0, nullptr);
+	std::string key = key_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (key == "os")
 	{
 #if defined(__APPLE__)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("macOS"));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("macOS"));
 #elif defined(_WIN32) || (_WIN64)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Windows"));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("Windows"));
 #else
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Unix"));		// assumed if we are not macOS or Windows
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("Unix"));		// assumed if we are not macOS or Windows
 #endif
 	}
 	else if (key == "sysname")
@@ -1352,7 +1352,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.sysname));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.sysname));
 	}
 	else if (key == "release")
 	{
@@ -1360,7 +1360,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.release));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.release));
 	}
 	else if (key == "version")
 	{
@@ -1368,7 +1368,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.version));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.version));
 	}
 	else if (key == "nodename")
 	{
@@ -1376,7 +1376,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.nodename));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.nodename));
 	}
 	else if (key == "machine")
 	{
@@ -1384,7 +1384,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.machine));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.machine));
 	}
 #if 0
 	// "login" doesn't work on Windows, and "user" doesn't work on both Windows and Ubuntu 18.04; disabling both for now, nobody has asked for them anyway
@@ -1393,7 +1393,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		char *name = getlogin();
 		
 		if (name)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name));
 	}
 	else if (key == "user")
 	{
@@ -1401,12 +1401,12 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		struct passwd *pwd = getpwuid(uid);
 		
 		if (pwd && pwd->pw_name)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(pwd->pw_name));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(pwd->pw_name));
 	}
 #endif
 	
 	// if we fall through the here, the value is unknown
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("unknown"));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("unknown"));
 }
 
 //	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F], [logical$ wait = T])
@@ -1422,15 +1422,15 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 	EidosValue_String *command_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue_String *args_value = (EidosValue_String *)p_arguments[1].get();
 	int arg_count = args_value->Count();
-	bool has_args = ((arg_count > 1) || ((arg_count == 1) && (args_value->StringRefAtIndex(0, nullptr).length() > 0)));
+	bool has_args = ((arg_count > 1) || ((arg_count == 1) && (args_value->StringRefAtIndex_NOCAST(0, nullptr).length() > 0)));
 	EidosValue_String *input_value = (EidosValue_String *)p_arguments[2].get();
 	int input_count = input_value->Count();
-	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringRefAtIndex(0, nullptr).length() > 0)));
-	bool redirect_stderr = p_arguments[3]->LogicalAtIndex(0, nullptr);
-	bool wait = p_arguments[4]->LogicalAtIndex(0, nullptr);
+	bool has_input = ((input_count > 1) || ((input_count == 1) && (input_value->StringRefAtIndex_NOCAST(0, nullptr).length() > 0)));
+	bool redirect_stderr = p_arguments[3]->LogicalAtIndex_NOCAST(0, nullptr);
+	bool wait = p_arguments[4]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Construct the command string
-	std::string command_string = command_value->StringRefAtIndex(0, nullptr);
+	std::string command_string = command_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (command_string.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): a non-empty command string must be supplied to system()." << EidosTerminate(nullptr);
@@ -1440,7 +1440,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		for (int value_index = 0; value_index < arg_count; ++value_index)
 		{
 			command_string.append(" ");
-			command_string.append(args_value->StringRefAtIndex(value_index, nullptr));
+			command_string.append(args_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 		}
 	}
 	
@@ -1464,11 +1464,11 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		
 		if (input_count == 1)
 		{
-			file_stream << input_value->StringRefAtIndex(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+			file_stream << input_value->StringRefAtIndex_NOCAST(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
 		}
 		else
 		{
-			const std::vector<std::string> &string_vec = *input_value->StringVector();
+			const std::string *string_vec = input_value->StringData();
 			
 			for (int value_index = 0; value_index < input_count; ++value_index)
 			{
@@ -1524,7 +1524,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		
 		// Parse the result into lines and make a result vector
 		std::istringstream result_stream(result);
-		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 		result_SP = EidosValue_SP(string_result);
 		
 		std::string line;
@@ -1561,7 +1561,7 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const std::vect
 	localtime_r(&rawtime, &timeinfo);
 	strftime(buffer, 20, "%H:%M:%S", &timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(buffer)));
 	
 	return result_SP;
 }
@@ -1577,14 +1577,14 @@ EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vec
 	if (type_value->Type() == EidosValueType::kValueLogical)
 	{
 		// old-style API, through SLiM 4.0.1 (but still supported): logical value, F == current RSS, T == peak RSS
-		bool peak = type_value->LogicalAtIndex(0, nullptr);
+		bool peak = type_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		usage = (peak ? Eidos_GetPeakRSS() : Eidos_GetCurrentRSS());
 	}
 	else
 	{
 		// new-style API, after SLiM 4.0.1: string value, "rss" == current RSS, "rss_peak" = peak RSS, "vm" = current VM
-		std::string type = type_value->StringAtIndex(0, nullptr);
+		std::string type = type_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (type == "rss")
 			usage = Eidos_GetCurrentRSS();
@@ -1597,7 +1597,7 @@ EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vec
 	}
 	
 	double usage_MB = usage / (1024.0 * 1024.0);
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(usage_MB));
 	
 	return result_SP;
 }
@@ -1609,7 +1609,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	bool print = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	bool print = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (print)
 	{
@@ -1622,7 +1622,7 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	}
 	
 	// Return the versions as floats
-	EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(2);
+	EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(2);
 	result_SP = EidosValue_SP(result);
 	
 	result->push_float_no_check(EIDOS_VERSION_FLOAT);
@@ -1644,7 +1644,7 @@ EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_
 	if (gEidosBenchmarkType != EidosBenchmarkType::kNone)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__startBenchmark): benchmarking has already been started." << EidosTerminate();
 	
-	std::string type = type_value->StringAtIndex(0, nullptr);
+	std::string type = type_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (type == "SAMPLE_INDEX")				gEidosBenchmarkType = EidosBenchmarkType::k_SAMPLE_INDEX;
 	else if (type == "TABULATE_MAXBIN")		gEidosBenchmarkType = EidosBenchmarkType::k_TABULATE_MAXBIN;
@@ -1686,7 +1686,7 @@ EidosValue_SP SLiM_ExecuteFunction__stopBenchmark(__attribute__((unused)) const 
 	
 	double benchmark_time = Eidos_ElapsedProfileTime(gEidosBenchmarkAccumulator);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(benchmark_time));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(benchmark_time));
 	
 	// reset so a new benchmark can be started
 	gEidosBenchmarkType = EidosBenchmarkType::kNone;

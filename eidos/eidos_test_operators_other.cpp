@@ -34,18 +34,18 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptSuccess_IV("x = 1:5; x[2:3];", {3, 4});
 	EidosAssertScriptSuccess_IV("x = 1:5; x[c(0, 2, 4)];", {1, 3, 5});
 	EidosAssertScriptSuccess_IV("x = 1:5; x[0:4];", {1, 2, 3, 4, 5});
-	EidosAssertScriptSuccess("x = 1:5; x[float(0)];", gStaticEidosValue_Integer_ZeroVec);
-	EidosAssertScriptSuccess_I("x = 1:5; x[2.0];", 3);
-	EidosAssertScriptSuccess_IV("x = 1:5; x[2.0:3];", {3, 4});
-	EidosAssertScriptSuccess_IV("x = 1:5; x[c(0.0, 2, 4)];", {1, 3, 5});
-	EidosAssertScriptSuccess_IV("x = 1:5; x[0.0:4];", {1, 2, 3, 4, 5});
+	EidosAssertScriptRaise("x = 1:5; x[float(0)];", 10, "float indices");
+	EidosAssertScriptRaise("x = 1:5; x[2.0];", 10, "float indices");
+	EidosAssertScriptRaise("x = 1:5; x[2.0:3];", 10, "float indices");
+	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, 4)];", 10, "float indices");
+	EidosAssertScriptRaise("x = 1:5; x[0.0:4];", 10, "float indices");
 	EidosAssertScriptRaise("x = 1:5; x[c(7,8)];", 10, "out-of-range index");
 	EidosAssertScriptRaise("x = 1:5; x[logical(0)];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[T];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[c(T, T)];", 10, "operator requires that the size()");
 	EidosAssertScriptRaise("x = 1:5; x[c(T, F, T)];", 10, "operator requires that the size()");
-	EidosAssertScriptRaise("x = 1:5; x[NAN];", 10, "cannot be converted");
-	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)];", 10, "cannot be converted");
+	EidosAssertScriptRaise("x = 1:5; x[NAN];", 10, "float indices");
+	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)];", 10, "float indices");
 	EidosAssertScriptSuccess_IV("x = 1:5; x[c(T, F, T, F, T)];", {1, 3, 5});
 	EidosAssertScriptSuccess_IV("x = 1:5; x[c(T, T, T, T, T)];", {1, 2, 3, 4, 5});
 	EidosAssertScriptSuccess("x = 1:5; x[c(F, F, F, F, F)];", gStaticEidosValue_Integer_ZeroVec);
@@ -56,28 +56,18 @@ void _RunOperatorSubsetTests(void)
 	
 	EidosAssertScriptSuccess_LV("x = c(T,T,F,T,F); x[c(2,3)];", {false, true});
 	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2,3,7)];", 19, "out-of-range index");
-	EidosAssertScriptSuccess_LV("x = c(T,T,F,T,F); x[c(2.0,3)];", {false, true});
-	EidosAssertScriptRaise("x = c(T,T,F,T,F); x[c(2.0,3,7)];", 19, "out-of-range index");
 	
 	EidosAssertScriptSuccess_IV("x = 1:5; x[c(2,3)];", {3, 4});
 	EidosAssertScriptRaise("x = 1:5; x[c(2,3,7)];", 10, "out-of-range index");
-	EidosAssertScriptSuccess_IV("x = 1:5; x[c(2.0,3)];", {3, 4});
-	EidosAssertScriptRaise("x = 1:5; x[c(2.0,3,7)];", 10, "out-of-range index");
 	
 	EidosAssertScriptSuccess_FV("x = 1.0:5; x[c(2,3)];", {3.0, 4.0});
 	EidosAssertScriptRaise("x = 1.0:5; x[c(2,3,7)];", 12, "out-of-range index");
-	EidosAssertScriptSuccess_FV("x = 1.0:5; x[c(2.0,3)];", {3.0, 4.0});
-	EidosAssertScriptRaise("x = 1.0:5; x[c(2.0,3,7)];", 12, "out-of-range index");
 	
 	EidosAssertScriptSuccess_SV("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2,3)];", {"foobaz", "baz"});
 	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2,3,7)];", 48, "out-of-range index");
-	EidosAssertScriptSuccess_SV("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2.0,3)];", {"foobaz", "baz"});
-	EidosAssertScriptRaise("x = c('foo', 'bar', 'foobaz', 'baz', 'xyzzy'); x[c(2.0,3,7)];", 48, "out-of-range index");
 	
 	EidosAssertScriptSuccess_IV("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2,3)]; x._yolk;", {3, 4});
 	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2,3,7)]; x._yolk;", 62, "out-of-range index");
-	EidosAssertScriptSuccess_IV("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2.0,3)]; x._yolk;", {3, 4});
-	EidosAssertScriptRaise("x = c(_Test(1), _Test(2), _Test(3), _Test(4), _Test(5)); x = x[c(2.0,3,7)]; x._yolk;", 62, "out-of-range index");
 	
 	EidosAssertScriptSuccess_I("x = 5; x[T];", 5);
 	EidosAssertScriptSuccess_IV("x = 5; x[F];", {});
@@ -86,10 +76,6 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptRaise("x = 5; x[1];", 8, "out of range");
 	EidosAssertScriptRaise("x = 5; x[-1];", 8, "out of range");
 	EidosAssertScriptSuccess_IV("x = 5; x[integer(0)];", {});
-	EidosAssertScriptSuccess_I("x = 5; x[0.0];", 5);
-	EidosAssertScriptRaise("x = 5; x[1.0];", 8, "out-of-range");
-	EidosAssertScriptRaise("x = 5; x[-1.0];", 8, "out-of-range");
-	EidosAssertScriptSuccess_IV("x = 5; x[float(0)];", {});
 	
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0)];", 10, "matrix or array index operand is not supported");
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)];", 10, "matrix or array index operand is not supported");
@@ -214,10 +200,11 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 1:5; x[c(T,T,F,T,F,T)] = 7:9; x;", 10, "must match the size()");
 	EidosAssertScriptSuccess_IV("x = 1:5; x[c(2,3)] = c(9, 5); x;", {1, 2, 9, 5, 5});
 	EidosAssertScriptRaise("x = 1:5; x[c(7,8)] = 7; x;", 10, "out-of-range index");
-	EidosAssertScriptSuccess_IV("x = 1:5; x[c(2.0,3)] = c(9, 5); x;", {1, 2, 9, 5, 5});
-	EidosAssertScriptRaise("x = 1:5; x[c(7.0,8)] = 7; x;", 10, "out-of-range index");
-	EidosAssertScriptRaise("x = 1:5; x[NAN] = 3;", 10, "cannot be converted");
-	EidosAssertScriptRaise("x = 1:5; x[c(0.0, 2, NAN)] = c(5, 7, 3);", 10, "cannot be converted");
+	
+	EidosAssertScriptSuccess_I("x = _Test(9); x = _Test(7); x._yolk;", 7);
+	EidosAssertScriptSuccess_I("x = _Test(9); x[0] = _Test(7); x._yolk;", 7);
+	EidosAssertScriptSuccess_IV("x = c(_Test(9), _Test(5)); x[0] = _Test(7); x._yolk;", {7, 5});
+	EidosAssertScriptSuccess_IV("x = c(_Test(9), _Test(5)); x[1] = _Test(7); x._yolk;", {9, 7});
 	
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0)] = 3;", 10, "matrix or array index operand is not supported");
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0:2)] = 3;", 10, "matrix or array index operand is not supported");
@@ -237,10 +224,10 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptSuccess_L("x = matrix(5:9); x[c(T,F,T,T,F)] = 3; identical(x, matrix(c(3,6,3,3,9)));", true);
 	
 	// operator = (especially in conjunction with matrix/array-style subsetting with operator [])
-	EidosAssertScriptSuccess_VOID("NULL[logical(0)] = NULL;");			// technically legal, as no assignment is done
-	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 4, "too many subset arguments");
-	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 4, "too many subset arguments");
-	EidosAssertScriptRaise("NULL[,] = NULL;", 4, "too many subset arguments");
+	EidosAssertScriptRaise("NULL[logical(0)] = NULL;", 17, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[logical(0),] = NULL;", 18, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[logical(0),logical(0)] = NULL;", 28, "cannot be redefined because it is a constant");
+	EidosAssertScriptRaise("NULL[,] = NULL;", 8, "cannot be redefined because it is a constant");
 	EidosAssertScriptSuccess_VOID("x = NULL; x[logical(0)] = NULL;");	// technically legal, as no assignment is done
 	EidosAssertScriptRaise("x = NULL; x[logical(0),] = NULL;", 11, "too many subset arguments");
 	EidosAssertScriptRaise("x = NULL; x[logical(0),logical(0)] = NULL;", 11, "too many subset arguments");

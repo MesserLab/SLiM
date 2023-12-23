@@ -2405,13 +2405,13 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 					
 					if (numeric_value->Type() == EidosValueType::kValueFloat)
 					{
-						double float_value = numeric_value->FloatAtIndex(0, current_token_);
-						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(-float_value));
+						double float_value = numeric_value->FloatAtIndex_NOCAST(0, current_token_);
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(-float_value));
 					}
 					else if (numeric_value->Type() == EidosValueType::kValueInt)
 					{
-						int64_t int_value = numeric_value->IntAtIndex(0, current_token_);
-						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-int_value));	// note that overflow is not possible
+						int64_t int_value = numeric_value->IntAtIndex_NOCAST(0, current_token_);
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(-int_value));	// note that overflow is not possible
 					}
 					else
 					{
@@ -2433,6 +2433,7 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 				
 				node->AddChild(numeric_node);
 				node->cached_literal_value_ = negated_value;	// cache the negated value for fast default argument processing
+				node->cached_literal_value_->MarkAsConstant();
 			}
 			else
 			{

@@ -55,14 +55,14 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		
 		// Nucleotide utilities
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToNucleotides", SLiM_ExecuteFunction_codonsToNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToNucleotides", SLiM_ExecuteFunction_codonsToNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
 		
 		// Population genetics utilities (implemented with Eidos code)
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -571,7 +571,7 @@ static int codon2aa_int[64] = {
 #pragma mark Nucleotide utilities
 #pragma mark -
 
-//	(string)codonsToAminoAcids(integer codons, [li$ long = F])
+//	(string)codonsToAminoAcids(integer codons, [li$ long = F], [l$ paste = T])
 EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *codons_value = p_arguments[0].get();
@@ -580,11 +580,11 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 	int codons_length = codons_value->Count();
 	
 	bool integer_result = (long_value->Type() == EidosValueType::kValueInt);
-	eidos_logical_t long_strings = (integer_result ? false : long_value->LogicalAtIndex(0, nullptr));
+	eidos_logical_t long_strings = (integer_result ? false : long_value->LogicalAtIndex_NOCAST(0, nullptr));
 	
 	if (integer_result)
 	{
-		int64_t long_intval = long_value->IntAtIndex(0, nullptr);
+		int64_t long_intval = long_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (long_intval != 0)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires 'long' to be T, F, or 0." << EidosTerminate(nullptr);
@@ -592,29 +592,29 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 	
 	if (codons_length == 1)
 	{
-		int64_t codon = codons_value->IntAtIndex(0, nullptr);
+		int64_t codon = codons_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if ((codon < 0) || (codon > 63))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToAminoAcids): function codonsToAminoAcids() requires codons to be in [0, 63]." << EidosTerminate(nullptr);
 		
 		if (integer_result)
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(codon2aa_int[codon]));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(codon2aa_int[codon]));
 		}
 		else
 		{
 			std::string &aa = (long_strings ? codon2aa_long[codon] : codon2aa_short[codon]);
 		
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(aa));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(aa));
 		}
 	}
 	else
 	{
-		const int64_t *int_data = codons_value->IntVector()->data();
+		const int64_t *int_data = codons_value->IntData();
 		
 		if (integer_result)
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(codons_length);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(codons_length);
 			
 			for (int value_index = 0; value_index < codons_length; ++value_index)
 			{
@@ -631,15 +631,15 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 		else
 		{
 			EidosValue *paste_value = p_arguments[2].get();
-			eidos_logical_t paste = paste_value->LogicalAtIndex(0, nullptr);
+			eidos_logical_t paste = paste_value->LogicalAtIndex_NOCAST(0, nullptr);
 			
 			if (paste)
 			{
 				if (long_strings && (codons_length > 0))
 				{
 					// pasting: "Aaa-Bbb-Ccc"
-					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-					std::string &aa_string = string_result->StringValue_Mutable();
+					EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+					std::string &aa_string = string_result->StringData_Mutable()[0];
 					
 					aa_string.resize(codons_length * 4 - 1);	// create space for all the amino acids we will generate, including hyphens
 					
@@ -668,8 +668,8 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 				else
 				{
 					// pasting: "ABC"
-					EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-					std::string &aa_string = string_result->StringValue_Mutable();
+					EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+					std::string &aa_string = string_result->StringData_Mutable()[0];
 					
 					aa_string.resize(codons_length);	// create space for all the amino acids we will generate
 					
@@ -693,7 +693,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 			else
 			{
 				// no pasting: "A" "C" "C" or "Aaa" "Bbb" "Ccc"
-				EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(codons_length);
+				EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(codons_length);
 				
 				for (int value_index = 0; value_index < codons_length; ++value_index)
 				{
@@ -726,7 +726,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		{
 			// singleton string case
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &string_ref = sequence_value->StringData()[0];
 			int64_t length = (int64_t)string_ref.length();
 			
 			if (length % 3 != 0)
@@ -734,7 +734,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 			
 			int64_t length_3 = length / 3;
 			
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length_3);
 			
 			for (int64_t value_index = 0; value_index < length_3; ++value_index)
 			{
@@ -764,21 +764,21 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		
 		int64_t length_3 = sequence_count / 3;
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length_3);
 		
 		if (sequence_type == EidosValueType::kValueString)
 		{
 			// string vector case
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_vec = sequence_value->StringData();
 			
 			for (int value_index = 0; value_index < length_3; ++value_index)
 			{
 				int64_t codon_base = (size_t)value_index * 3;
 				
-				const std::string &nucstring1 = (*string_vec)[codon_base];
-				const std::string &nucstring2 = (*string_vec)[codon_base + 1];
-				const std::string &nucstring3 = (*string_vec)[codon_base + 2];
+				const std::string &nucstring1 = string_vec[codon_base];
+				const std::string &nucstring2 = string_vec[codon_base + 1];
+				const std::string &nucstring3 = string_vec[codon_base + 2];
 				
 				if ((nucstring1.length() != 1) || (nucstring2.length() != 1) || (nucstring3.length() != 1))
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_nucleotidesToCodons): function nucleotidesToCodons() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -798,7 +798,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		else // sequence_type == EidosValueType::kValueInt
 		{
 			// int vector case
-			const int64_t *int_data = sequence_value->IntVector()->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			for (int value_index = 0; value_index < length_3; ++value_index)
 			{
@@ -831,7 +831,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		// Singleton case
 		if (sequence_type == EidosValueType::kValueInt)
 		{
-			uint64_t nuc = sequence_value->IntAtIndex(0, nullptr);
+			uint64_t nuc = sequence_value->IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nuc > 3)
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires integer sequence values to be in [0,3]." << EidosTerminate(nullptr);
@@ -841,7 +841,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		else // sequence_type == EidosValueType::kValueString
 		{
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::string &string_ref = sequence_value->IsSingleton() ? ((EidosValue_String_singleton *)sequence_value)->StringValue() : (*sequence_value->StringVector())[0];
+			const std::string &string_ref = sequence_value->StringData()[0];
 			std::size_t length = string_ref.length();
 			
 			for (std::size_t i = 0; i < length; ++i)
@@ -861,7 +861,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		// Vector case, optimized for speed
 		if (sequence_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int_data = sequence_value->IntVector()->data();
+			const int64_t *int_data = sequence_value->IntData();
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
@@ -876,11 +876,11 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		else // sequence_type == EidosValueType::kValueString
 		{
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
-			const std::vector<std::string> *string_vec = sequence_value->StringVector();
+			const std::string *string_vec = sequence_value->StringData();
 			
 			for (int value_index = 0; value_index < sequence_count; ++value_index)
 			{
-				const std::string &nuc_string = (*string_vec)[value_index];
+				const std::string &nuc_string = string_vec[value_index];
 				
 				if (nuc_string.length() != 1)
 					EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_" << function_name << "): function " << function_name << "() requires string sequence values to be 'A', 'C', 'G', or 'T'." << EidosTerminate(nullptr);
@@ -907,13 +907,13 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p
 	if ((mutationMatrix16_value->DimensionCount() != 2) || (mutationMatrix16_value->Dimensions()[0] != 4) || (mutationMatrix16_value->Dimensions()[1] != 4))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mm16To256): function mm16To256() requires mutationMatrix16 to be a 4x4 matrix." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(256);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(256);
 	
 	for (int i = 0; i < 256; ++i)
 	{
 		int ancestral_nucleotide = ((i / 4) % 4);
 		int derived_nucleotide = (i / 64);
-		double value = mutationMatrix16_value->FloatAtIndex(ancestral_nucleotide + derived_nucleotide * 4, nullptr);
+		double value = mutationMatrix16_value->FloatAtIndex_NOCAST(ancestral_nucleotide + derived_nucleotide * 4, nullptr);
 		
 		float_result->set_float_no_check(value, i);
 	}
@@ -928,14 +928,14 @@ EidosValue_SP SLiM_ExecuteFunction_mm16To256(const std::vector<EidosValue_SP> &p
 EidosValue_SP SLiM_ExecuteFunction_mmJukesCantor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *alpha_value = p_arguments[0].get();
-	double alpha = alpha_value->FloatAtIndex(0, nullptr);
+	double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if (alpha < 0.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires alpha >= 0.0." << EidosTerminate(nullptr);
 	if (3 * alpha > 1.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmJukesCantor): function mmJukesCantor() requires 3 * alpha <= 1.0." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(16);
 	
 	float_result->set_float_no_check(0.0, 0);
 	float_result->set_float_no_check(alpha, 1);
@@ -969,8 +969,8 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_
 	EidosValue *alpha_value = p_arguments[0].get();
 	EidosValue *beta_value = p_arguments[1].get();
 	
-	double alpha = alpha_value->FloatAtIndex(0, nullptr);
-	double beta = beta_value->FloatAtIndex(0, nullptr);
+	double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
+	double beta = beta_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if ((alpha < 0.0) || (alpha > 1.0))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmKimura): function mmKimura() requires alpha to be in [0.0, 1.0]." << EidosTerminate(nullptr);
@@ -979,7 +979,7 @@ EidosValue_SP SLiM_ExecuteFunction_mmKimura(const std::vector<EidosValue_SP> &p_
 	if (alpha + 2 * beta > 1.0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_mmKimura): function mmKimura() requires alpha + 2 * beta to be <= 1.0." << EidosTerminate(nullptr);
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(16);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(16);
 	
 	float_result->set_float_no_check(0.0, 0);
 	float_result->set_float_no_check(beta, 1);
@@ -1015,7 +1015,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const std::vector<EidosValue
 	
 	CountNucleotides(sequence_value, total_ACGT, "nucleotideCounts");
 	
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(4);
 	
 	int_result->set_int_no_check(total_ACGT[0], 0);
 	int_result->set_int_no_check(total_ACGT[1], 1);
@@ -1033,7 +1033,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideFrequencies(const std::vector<Eidos
 	
 	CountNucleotides(sequence_value, total_ACGT, "nucleotideFrequencies");
 	
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(4);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(4);
 	double total = total_ACGT[0] + total_ACGT[1] + total_ACGT[2] + total_ACGT[3];
 	
 	float_result->set_float_no_check(total_ACGT[0] / total, 0);
@@ -1054,7 +1054,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
 	
 	// Get the sequence length to generate
-	int64_t length = length_value->IntAtIndex(0, nullptr);
+	int64_t length = length_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((length < 0) || (length > 2000000000L))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [0, 2e9]." << EidosTerminate(nullptr);
@@ -1067,10 +1067,10 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		if (basis_value->Count() != 4)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis to be either NULL, or an integer or float vector of length 4 (with relative probabilities for A/C/G/T)." << EidosTerminate(nullptr);
 		
-		pA = basis_value->FloatAtIndex(0, nullptr);
-		pC = basis_value->FloatAtIndex(1, nullptr);
-		pG = basis_value->FloatAtIndex(2, nullptr);
-		pT = basis_value->FloatAtIndex(3, nullptr);
+		pA = basis_value->NumericAtIndex_NOCAST(0, nullptr);
+		pC = basis_value->NumericAtIndex_NOCAST(1, nullptr);
+		pG = basis_value->NumericAtIndex_NOCAST(2, nullptr);
+		pT = basis_value->NumericAtIndex_NOCAST(3, nullptr);
 		
 		if (!std::isfinite(pA) || !std::isfinite(pC) || !std::isfinite(pG) || !std::isfinite(pT) || (pA < 0.0) || (pC < 0.0) || (pG < 0.0) || (pT < 0.0))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires basis values to be finite and >= 0.0." << EidosTerminate(nullptr);
@@ -1093,7 +1093,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	pC += pA;
 	
 	// Generate a result in the requested format
-	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if ((format != "string") && (format != "char") && (format != "integer"))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires a format of 'string', 'char', or 'integer'." << EidosTerminate();
@@ -1130,7 +1130,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	if (format == "char")
 	{
 		// return a vector of one-character strings, "T" "A" "T" "A"
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)length);
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
@@ -1147,7 +1147,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	else if (format == "integer")
 	{
 		// return a vector of integers, 3 0 3 0
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length);
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
@@ -1164,8 +1164,8 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	else if (format == "string")
 	{
 		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+		std::string &nuc_string = string_result->StringData_Mutable()[0];
 		
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		
@@ -1196,16 +1196,16 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	
 	int codons_length = codons_value->Count();
 	int length = codons_length * 3;
-	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
+	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (format == "char")
 	{
 		// return a vector of one-character strings, "T" "A" "T" "A" "C" "G"
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)length);
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1245,11 +1245,11 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	else if (format == "integer")
 	{
 		// return a vector of integers, 3 0 3 0 1 2
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length);
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1268,8 +1268,8 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	else if (format == "string")
 	{
 		// return a singleton string for the whole sequence, "TATACG"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+		std::string &nuc_string = string_result->StringData_Mutable()[0];
 		
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		
@@ -1277,7 +1277,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex(codon_index, nullptr);
+			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1410,12 +1410,12 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (individuals_count == 1)
 	{
-		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		individuals_buffer = &singleton_ind;
 	}
 	else
 	{
-		individuals_buffer = (Individual **)((EidosValue_Object_vector *)individuals_value)->data();
+		individuals_buffer = (Individual **)((EidosValue_Object *)individuals_value)->data();
 	}
 	
 	// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
@@ -1466,7 +1466,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	}
 	else
 	{
-		std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+		std::string spatiality_string = spatiality_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (spatiality_string.compare(gEidosStr_x) == 0)		{ spatiality = 1; required_dimensionality = 1; component0 = 0; }
 		else if (spatiality_string.compare(gEidosStr_y) == 0)	{ spatiality = 1; required_dimensionality = 2; component0 = 1; }
@@ -1495,22 +1495,22 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (spatiality >= 1)
 	{
-		spatialBounds[0] = spatialBounds_value->FloatAtIndex(component0, nullptr);
-		spatialBounds[1] = spatialBounds_value->FloatAtIndex(component0 + spatiality, nullptr);
+		spatialBounds[0] = spatialBounds_value->NumericAtIndex_NOCAST(component0, nullptr);
+		spatialBounds[1] = spatialBounds_value->NumericAtIndex_NOCAST(component0 + spatiality, nullptr);
 		if (spatialBounds[0] >= spatialBounds[1])
 			invalid_bounds = true;
 	}
 	if (spatiality >= 2)
 	{
-		spatialBounds[2] = spatialBounds_value->FloatAtIndex(component1, nullptr);
-		spatialBounds[3] = spatialBounds_value->FloatAtIndex(component1 + spatiality, nullptr);
+		spatialBounds[2] = spatialBounds_value->NumericAtIndex_NOCAST(component1, nullptr);
+		spatialBounds[3] = spatialBounds_value->NumericAtIndex_NOCAST(component1 + spatiality, nullptr);
 		if (spatialBounds[2] >= spatialBounds[3])
 			invalid_bounds = true;
 	}
 	if (spatiality >= 3)
 	{
-		spatialBounds[4] = spatialBounds_value->FloatAtIndex(component2, nullptr);
-		spatialBounds[5] = spatialBounds_value->FloatAtIndex(component2 + spatiality, nullptr);
+		spatialBounds[4] = spatialBounds_value->NumericAtIndex_NOCAST(component2, nullptr);
+		spatialBounds[5] = spatialBounds_value->NumericAtIndex_NOCAST(component2 + spatiality, nullptr);
 		if (spatialBounds[4] >= spatialBounds[5])
 			invalid_bounds = true;
 	}
@@ -1519,12 +1519,12 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatialBounds are invalid; it is required that x0 < x1, y0 < y1, and z0 < z1." << EidosTerminate();
 	
 	// Get the operation lambda string and the empty-cell value (NULL to execute the lambda for empty cells too)
-	std::string operation_string = operation_value->StringAtIndex(0, nullptr);
+	std::string operation_string = operation_value->StringAtIndex_NOCAST(0, nullptr);
 	bool uses_empty = (empty_value->Type() != EidosValueType::kValueNULL);
-	double empty = uses_empty ? empty_value->FloatAtIndex(0, nullptr) : 0.0;	// handles logical, integer, and float
+	double empty = uses_empty ? empty_value->FloatAtIndex_CAST(0, nullptr) : 0.0;	// handles logical, integer, and float
 	
 	// Get the edgeScale value, which is used to postprocess vaues at the very end
-	bool perUnitArea = perUnitArea_value->LogicalAtIndex(0, nullptr);
+	bool perUnitArea = perUnitArea_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (perUnitArea && std::isfinite(empty) && (empty != 0.0))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires that when perUnitArea is T, empty is F, 0, 0.0, INF, -INF, or NAN (so that the empty value does not get scaled, which presumably does not make sense)." << EidosTerminate();
@@ -1540,7 +1540,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	for (int dim_index = 0; dim_index < dim_count; ++dim_index)
 	{
-		dims[dim_index] = dim_value->IntAtIndex(dim_index, nullptr);
+		dims[dim_index] = dim_value->IntAtIndex_NOCAST(dim_index, nullptr);
 		
 		if ((dims[dim_index] < 2) || (dims[dim_index] > 10000))
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires dimensions in dim to be in the range [2, 10000]." << EidosTerminate();
@@ -1552,7 +1552,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) calculated size for returned vector (" << result_count << ") is out of range for int32_t." << EidosTerminate();
 	
 	// Allocate our return value, set its dimensions, and get set up for using it
-	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_count);
+	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_count);
 	double *result_data = result_vec->data();
 	
 	if (dim_count > 1)
@@ -1624,7 +1624,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// run the lambda on each bin, which does not depend upon the spatiality
 		THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
 		
-		EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(operation_value);
+		EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(operation_value);
 		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
 		
 		// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -1663,7 +1663,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// Execute inside try/catch so we can handle errors well
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
-		EidosValue_Object_vector individuals_vec(gSLiM_Individual_Class);
+		EidosValue_Object individuals_vec(gSLiM_Individual_Class);
 		individuals_vec.StackAllocated();
 		
 		try
@@ -1710,7 +1710,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 					
 					if ((return_value_SP->Count() == 1) && ((return_value_SP->Type() == EidosValueType::kValueFloat) || (return_value_SP->Type() == EidosValueType::kValueInt) || (return_value_SP->Type() == EidosValueType::kValueLogical)))
 					{
-						result_data[bin_index] = return_value_SP->FloatAtIndex(0, nullptr);
+						result_data[bin_index] = return_value_SP->FloatAtIndex_CAST(0, nullptr);
 					}
 					else
 					{
@@ -1824,7 +1824,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	
 	tsk_table_collection_t temp_tables;
 	
@@ -1845,7 +1845,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no metadata, return an empty dictionary
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosDictionaryRetained_Class));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosDictionaryRetained_Class));
 	}
 	
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
@@ -1874,7 +1874,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	}
 	
 	EidosValue *userData_value = p_arguments[1].get();
-	bool userData = userData_value->LogicalAtIndex(0, nullptr);
+	bool userData = userData_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (userData)
 	{
@@ -1894,7 +1894,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	}
 	
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 	objectElement->AddJSONFrom(metadata);
 	objectElement->ContentsChanged("treeSeqMetadata()");

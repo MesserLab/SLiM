@@ -100,9 +100,12 @@ static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, wit
 #pragma mark -
 
 Species::Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name) :
-	self_symbol_(EidosStringRegistry::GlobalStringIDForString(p_name), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Species_Class))),
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(p_name), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Species_Class))),
     x_experiments_enabled_(false), model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(p_name), species_id_(p_species_id)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 #ifdef SLIMGUI
 	// Pedigree recording is always enabled when running under SLiMgui, so that the various graphs all work
 	// However, as with tree-sequence recording, the fact that it is enabled is not user-visible unless the user enables it
@@ -320,7 +323,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Subpopulation *element = (Subpopulation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Subpopulation *element = (Subpopulation *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->species_ == this)
 							{
@@ -333,7 +336,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->individual_->subpopulation_->species_ == this)
 							{
@@ -346,7 +349,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Individual *element = (Individual *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Individual *element = (Individual *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->subpopulation_->species_ == this)
 							{
@@ -359,7 +362,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Mutation *element = (Mutation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Mutation *element = (Mutation *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->mutation_type_ptr_->species_ == this)
 							{
@@ -372,7 +375,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Substitution *element = (Substitution *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							Substitution *element = (Substitution *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->mutation_type_ptr_->species_ == this)
 							{
@@ -2698,7 +2701,7 @@ void Species::CacheNucleotideMatrices(void)
 		
 		if (ge_type->mutation_matrix_)
 		{
-			EidosValue_Float_vector *mm = ge_type->mutation_matrix_.get();
+			EidosValue_Float *mm = ge_type->mutation_matrix_.get();
 			double *mm_data = mm->data();
 			
 			if (mm->Count() == 16)
@@ -2742,7 +2745,7 @@ void Species::CacheNucleotideMatrices(void)
 		
 		if (ge_type->mutation_matrix_)
 		{
-			EidosValue_Float_vector *mm = ge_type->mutation_matrix_.get();
+			EidosValue_Float *mm = ge_type->mutation_matrix_.get();
 			double *mm_data = mm->data();
 			
 			if (mm->Count() == 16)

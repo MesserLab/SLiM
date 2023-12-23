@@ -81,8 +81,11 @@ extern "C" {
 #pragma mark Community
 #pragma mark -
 
-Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
+Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Community_Class)))
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	// BCH 3/16/2022: We used to allocate the Species object here, as the first thing we did.  In SLiM 4 there can
 	// be multiple species and they can have names other than "sim", so we delay species creation until parse time.
 	
@@ -1324,9 +1327,9 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForIndividuals): (internal error) value is not of class Individual." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Individual *)object_value->ObjectElementAtIndex(0, nullptr))->subpopulation_->species_;
+		return &((Individual *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Individual **individuals = (Individual **)object_vector_value->data();
 	
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
@@ -1369,9 +1372,9 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Genome *)object_value->ObjectElementAtIndex(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Genome **genomes = (Genome **)object_vector_value->data();
 	
 	return Community::SpeciesForGenomesVector(genomes, value_count);
@@ -1414,9 +1417,9 @@ Species *Community::SpeciesForMutations(EidosValue *value)
 		EIDOS_TERMINATION << "ERROR (Community::SpeciesForMutations): (internal error) value is not of class Mutation." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Mutation *)object_value->ObjectElementAtIndex(0, nullptr))->mutation_type_ptr_->species_;
+		return &((Mutation *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_ptr_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Mutation **mutations = (Mutation **)object_vector_value->data();
 	
 	return Community::SpeciesForMutationsVector(mutations, value_count);

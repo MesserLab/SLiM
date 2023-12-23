@@ -1080,36 +1080,18 @@ void Eidos_WarmUp(void)
 		// Make the shared EidosValue pool
 		size_t maxEidosValueSize = sizeof(EidosValue_NULL);
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Logical_const));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_singleton));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_singleton));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float_singleton));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_singleton));
 		
 //		std::cout << "sizeof(EidosValue) ==                  " << sizeof(EidosValue) << std::endl;
 //		std::cout << "sizeof(EidosValue_NULL) ==             " << sizeof(EidosValue_NULL) << std::endl;
 //		std::cout << "sizeof(EidosValue_Logical) ==          " << sizeof(EidosValue_Logical) << std::endl;
-//		std::cout << "sizeof(EidosValue_Logical_const) ==    " << sizeof(EidosValue_Logical_const) << std::endl;
 //		std::cout << "sizeof(EidosValue_String) ==           " << sizeof(EidosValue_String) << std::endl;
-//		std::cout << "sizeof(EidosValue_String_vector) ==    " << sizeof(EidosValue_String_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_String_singleton) == " << sizeof(EidosValue_String_singleton) << std::endl;
 //		std::cout << "sizeof(EidosValue_Int) ==              " << sizeof(EidosValue_Int) << std::endl;
-//		std::cout << "sizeof(EidosValue_Int_vector) ==       " << sizeof(EidosValue_Int_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_Int_singleton) ==    " << sizeof(EidosValue_Int_singleton) << std::endl;
 //		std::cout << "sizeof(EidosValue_Float) ==            " << sizeof(EidosValue_Float) << std::endl;
-//		std::cout << "sizeof(EidosValue_Float_vector) ==     " << sizeof(EidosValue_Float_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_Float_singleton) ==  " << sizeof(EidosValue_Float_singleton) << std::endl;
 //		std::cout << "sizeof(EidosValue_Object) ==           " << sizeof(EidosValue_Object) << std::endl;
-//		std::cout << "sizeof(EidosValue_Object_vector) ==    " << sizeof(EidosValue_Object_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_Object_singleton) == " << sizeof(EidosValue_Object_singleton) << std::endl;
 //		std::cout << "maxEidosValueSize ==                   " << maxEidosValueSize << std::endl;
 		
 		gEidosValuePool = new EidosObjectPool("EidosObjectPool(EidosValue)", maxEidosValueSize);
@@ -1117,44 +1099,101 @@ void Eidos_WarmUp(void)
 		// Make the shared EidosASTNode pool
 		gEidosASTNodePool = new EidosObjectPool("EidosObjectPool(EidosASTNode)", sizeof(EidosASTNode));
 		
-		// Allocate global permanents
-		gStaticEidosValueVOID = EidosValue_VOID::Static_EidosValue_VOID();
+		// Allocate global permanents.  All of these constants should be marked as constant here.
+		gStaticEidosValueVOID = EidosValue_VOID_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_VOID());
+		gStaticEidosValueVOID->SetInvisible(true);
+		gStaticEidosValueVOID->MarkAsConstant();
 		
-		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();
-		gStaticEidosValueNULLInvisible = EidosValue_NULL::Static_EidosValue_NULL_Invisible();
+		gStaticEidosValueNULL = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
+		gStaticEidosValueNULL->MarkAsConstant();
+		
+		gStaticEidosValueNULLInvisible = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
+		gStaticEidosValueNULLInvisible->SetInvisible(true);
+		gStaticEidosValueNULLInvisible->MarkAsConstant();
+		
+		gStaticEidosValue_LogicalT = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical({true}));
+		gStaticEidosValue_LogicalT->MarkAsConstant();
+		
+		gStaticEidosValue_LogicalF = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical({false}));
+		gStaticEidosValue_LogicalF->MarkAsConstant();
 		
 		gStaticEidosValue_Logical_ZeroVec = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
-		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-		gStaticEidosValue_Float_ZeroVec = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-		gStaticEidosValue_String_ZeroVec = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+		gStaticEidosValue_Logical_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_LogicalT = EidosValue_Logical_const::Static_EidosValue_Logical_T();
-		gStaticEidosValue_LogicalF = EidosValue_Logical_const::Static_EidosValue_Logical_F();
+		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+		gStaticEidosValue_Integer_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_Integer0 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
-		gStaticEidosValue_Integer1 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1));
-		gStaticEidosValue_Integer2 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2));
-		gStaticEidosValue_Integer3 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3));
+		gStaticEidosValue_Float_ZeroVec = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+		gStaticEidosValue_Float_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_Float0 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.0));
-		gStaticEidosValue_Float0Point5 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.5));
-		gStaticEidosValue_Float1 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(1.0));
-		gStaticEidosValue_Float10 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(10.0));
-		gStaticEidosValue_FloatINF = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity()));
-		gStaticEidosValue_FloatNAN = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN()));
-		gStaticEidosValue_FloatE = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_E));
-		gStaticEidosValue_FloatPI = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_PI));
+		gStaticEidosValue_String_ZeroVec = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String());
+		gStaticEidosValue_String_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_StringEmpty = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		gStaticEidosValue_StringSpace = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(" "));
-		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*"));
-		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
-		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(","));
-		gStaticEidosValue_StringPeriod = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("."));
-		gStaticEidosValue_StringDoubleQuote = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("\""));
-		gStaticEidosValue_String_ECMAScript = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("ECMAScript"));
-		gStaticEidosValue_String_indices = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("indices"));
-		gStaticEidosValue_String_average = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("average"));
+		gStaticEidosValue_Integer0 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
+		gStaticEidosValue_Integer0->MarkAsConstant();
+		
+		gStaticEidosValue_Integer1 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1));
+		gStaticEidosValue_Integer1->MarkAsConstant();
+		
+		gStaticEidosValue_Integer2 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(2));
+		gStaticEidosValue_Integer2->MarkAsConstant();
+		
+		gStaticEidosValue_Integer3 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(3));
+		gStaticEidosValue_Integer3->MarkAsConstant();
+		
+		gStaticEidosValue_Float0 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0.0));
+		gStaticEidosValue_Float0->MarkAsConstant();
+		
+		gStaticEidosValue_Float0Point5 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0.5));
+		gStaticEidosValue_Float0Point5->MarkAsConstant();
+		
+		gStaticEidosValue_Float1 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1.0));
+		gStaticEidosValue_Float1->MarkAsConstant();
+		
+		gStaticEidosValue_Float10 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10.0));
+		gStaticEidosValue_Float10->MarkAsConstant();
+		
+		gStaticEidosValue_FloatINF = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::numeric_limits<double>::infinity()));
+		gStaticEidosValue_FloatINF->MarkAsConstant();
+		
+		gStaticEidosValue_FloatNAN = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::numeric_limits<double>::quiet_NaN()));
+		gStaticEidosValue_FloatNAN->MarkAsConstant();
+		
+		gStaticEidosValue_FloatE = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(M_E));
+		gStaticEidosValue_FloatE->MarkAsConstant();
+		
+		gStaticEidosValue_FloatPI = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(M_PI));
+		gStaticEidosValue_FloatPI->MarkAsConstant();
+		
+		gStaticEidosValue_StringEmpty = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+		gStaticEidosValue_StringEmpty->MarkAsConstant();
+		
+		gStaticEidosValue_StringSpace = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(" "));
+		gStaticEidosValue_StringSpace->MarkAsConstant();
+		
+		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("*"));
+		gStaticEidosValue_StringAsterisk->MarkAsConstant();
+		
+		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("**"));
+		gStaticEidosValue_StringDoubleAsterisk->MarkAsConstant();
+		
+		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(","));
+		gStaticEidosValue_StringComma->MarkAsConstant();
+		
+		gStaticEidosValue_StringPeriod = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("."));
+		gStaticEidosValue_StringPeriod->MarkAsConstant();
+		
+		gStaticEidosValue_StringDoubleQuote = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("\""));
+		gStaticEidosValue_StringDoubleQuote->MarkAsConstant();
+		
+		gStaticEidosValue_String_ECMAScript = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("ECMAScript"));
+		gStaticEidosValue_String_ECMAScript->MarkAsConstant();
+		
+		gStaticEidosValue_String_indices = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("indices"));
+		gStaticEidosValue_String_indices->MarkAsConstant();
+		
+		gStaticEidosValue_String_average = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("average"));
+		gStaticEidosValue_String_average->MarkAsConstant();
 		
 		// Create the global class objects for all Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
@@ -1169,7 +1208,8 @@ void Eidos_WarmUp(void)
 		
 		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
 		// before that point, however, since properties and method signatures may use some of those global permanent values
-		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosObject_Class));
+		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosObject_Class));
+		gStaticEidosValue_Object_ZeroVec->MarkAsConstant();
 		
 		// Set up the built-in function map, which is immutable
 		EidosInterpreter::CacheBuiltInFunctionMap();
@@ -1287,6 +1327,7 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr);	// we're at the command line, so we assume we're using stdout/stderr
 	
 	value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
+	value->MarkAsConstant();
 	
 	return value;
 }

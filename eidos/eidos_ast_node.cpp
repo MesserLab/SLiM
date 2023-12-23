@@ -93,6 +93,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 	{
 		try {
 			cached_literal_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
+			cached_literal_value_->MarkAsConstant();
 		}
 		catch (...) {		// NOLINT(*-empty-catch) : intentional empty catch
 			// if EidosInterpreter::NumericValueForString() raises, we just don't cache the value
@@ -101,12 +102,14 @@ void EidosASTNode::_OptimizeConstants(void) const
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		cached_literal_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(token_->token_string_));
+		cached_literal_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(token_->token_string_));
+		cached_literal_value_->MarkAsConstant();
 	}
 	else if (token_type == EidosTokenType::kTokenIdentifier)
 	{
 		// Cache values for built-in constants; these can't be changed, so this should be safe, and
 		// should be much faster than having to scan up through all the symbol tables recursively
+		// Note that these values are all constants already, so MarkAsConstant() is not needed.
 		if (token_->token_string_ == gEidosStr_F)
 			cached_literal_value_ = gStaticEidosValue_LogicalF;
 		else if (token_->token_string_ == gEidosStr_T)
@@ -135,7 +138,10 @@ void EidosASTNode::_OptimizeConstants(void) const
 			const EidosASTNode *child = children_[0];
 			
 			if (child->cached_literal_value_)
+			{
 				cached_return_value_ = child->cached_literal_value_;
+				cached_return_value_->MarkAsConstant();			// should already be marked constant, actually
+			}
 		}
 	}
 	else if (token_type == EidosTokenType::kTokenLBrace)
@@ -150,7 +156,10 @@ void EidosASTNode::_OptimizeConstants(void) const
 			const EidosASTNode *child = children_[0];
 			
 			if (child->cached_return_value_ && (child->token_->token_type_ == EidosTokenType::kTokenReturn))
+			{
 				cached_return_value_ = child->cached_return_value_;
+				cached_return_value_->MarkAsConstant();			// should already be marked constant, actually
+			}
 		}
 	}
 }
@@ -391,14 +400,14 @@ bool EidosASTNode::HasCachedNumericValue(void) const
 double EidosASTNode::CachedNumericValue(void) const
 {
 	if ((token_->token_type_ == EidosTokenType::kTokenNumber) && cached_literal_value_ && (cached_literal_value_->Count() == 1))
-		return cached_literal_value_->FloatAtIndex(0, nullptr);
+		return cached_literal_value_->NumericAtIndex_NOCAST(0, nullptr);
 	
 	if ((token_->token_type_ == EidosTokenType::kTokenMinus) && (children_.size() == 1))
 	{
 		const EidosASTNode *minus_child = children_[0];
 		
 		if ((minus_child->token_->token_type_ == EidosTokenType::kTokenNumber) && minus_child->cached_literal_value_ && (minus_child->cached_literal_value_->Count() == 1))
-			return -minus_child->cached_literal_value_->FloatAtIndex(0, nullptr);
+			return -minus_child->cached_literal_value_->NumericAtIndex_NOCAST(0, nullptr);
 	}
 	
 	EIDOS_TERMINATION << "ERROR (EidosASTNode::CachedNumericValue): (internal error) no cached numeric value" << EidosTerminate(nullptr);

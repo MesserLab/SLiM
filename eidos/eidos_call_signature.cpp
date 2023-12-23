@@ -78,6 +78,14 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) an object element type may only be supplied for an argument of object type." << EidosTerminate(nullptr);
 	}
 	
+	// Default values should be marked constant, just to be safe.  We just make a copy here;
+	// it's not worth trying to avoid that, since this is just startup overhead.
+	if (p_default_value)
+	{
+		p_default_value = p_default_value->CopyValues();
+		p_default_value->MarkAsConstant();
+	}
+	
 	arg_masks_.emplace_back(p_arg_mask);
 	arg_names_.emplace_back(p_argument_name);
 	arg_name_IDs_.emplace_back(EidosStringRegistry::GlobalStringIDForString(p_argument_name));

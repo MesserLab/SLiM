@@ -7,7 +7,9 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 development head (in the master branch):
 	fix for #418, a crash involving null genomes in nonWF (has_null_genomes_ was not set correctly by addCloned() or takeMigrants() when putting a null genome into a subpop that previously had none)
-
+	policy change: float indices are no longer legal for subsetting, indices must be integer (or a logical vector, as usual); this was inherited from R and is a bad idea for Eidos
+	policy change: assignment into object properties must match the type of the property; no more promotion to integer/float from lower types
+	
 
 version 4.1 (Eidos version 3.1):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

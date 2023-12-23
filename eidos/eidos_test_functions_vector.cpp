@@ -67,9 +67,9 @@ void _RunFunctionVectorConstructionTests_a_through_r(void)
 	EidosAssertScriptSuccess_I("c(object(), _Test(7))._yolk;", 7);
 	EidosAssertScriptSuccess_I("c(_Test(7), object())._yolk;", 7);
 	EidosAssertScriptSuccess("c(object(), object());", gStaticEidosValue_Object_ZeroVec);
-	//EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));		// should fail
-	EidosAssertScriptSuccess("c(object(), _Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
-	EidosAssertScriptSuccess("c(_Test(7)[F], object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
+	//EidosAssertScriptSuccess("c(object(), object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosTestElement_Class)));		// should fail
+	EidosAssertScriptSuccess("c(object(), _Test(7)[F]);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosTestElement_Class)));
+	EidosAssertScriptSuccess("c(_Test(7)[F], object());", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosTestElement_Class)));
 	
 	// float()
 	EidosAssertScriptSuccess("float(0);", gStaticEidosValue_Float_ZeroVec);
@@ -129,7 +129,7 @@ void _RunFunctionVectorConstructionTests_a_through_r(void)
 	EidosAssertScriptSuccess("rep(3, 0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("rep(3.5, 0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rep('foo', 0);", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
+	EidosAssertScriptSuccess("rep(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosTestElement_Class)));
 	EidosAssertScriptSuccess_NULL("rep(NULL, 2);");
 	EidosAssertScriptSuccess_LV("rep(T, 2);", {true, true});
 	EidosAssertScriptSuccess_IV("rep(3, 2);", {3, 3});
@@ -161,7 +161,7 @@ void _RunFunctionVectorConstructionTests_a_through_r(void)
 	EidosAssertScriptSuccess("repEach(3, 0);", gStaticEidosValue_Integer_ZeroVec);
 	EidosAssertScriptSuccess("repEach(3.5, 0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("repEach('foo', 0);", gStaticEidosValue_String_ZeroVec);
-	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosTestElement_Class)));
+	EidosAssertScriptSuccess("repEach(_Test(7), 0);", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosTestElement_Class)));
 	EidosAssertScriptSuccess_NULL("repEach(NULL, 2);");
 	EidosAssertScriptSuccess_LV("repEach(T, 2);", {true, true});
 	EidosAssertScriptSuccess_IV("repEach(3, 2);", {3, 3});

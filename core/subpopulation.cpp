@@ -834,13 +834,16 @@ void Subpopulation::CheckIndividualIntegrity(void)
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
-	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Subpopulation_Class))), 
 	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
 #if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ -1.0F);
@@ -873,7 +876,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
 							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid) :
-	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Subpopulation_Class))),
 	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio), sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
@@ -881,6 +884,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ -1.0F);
@@ -1153,7 +1159,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
 					{
-						if (result->FloatAtIndex(0, nullptr) == 1.0)
+						if (result->FloatAtIndex_NOCAST(0, nullptr) == 1.0)
 						{
 							// we have a mutationEffect() callback that is neutral-making, so it could conceivably work;
 							// change our minds but keep checking
@@ -1193,7 +1199,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
 					{
-						if (result->FloatAtIndex(0, nullptr) == 1.0)
+						if (result->FloatAtIndex_NOCAST(0, nullptr) == 1.0)
 						{
 							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
 							slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
@@ -2168,7 +2174,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 					
-					p_computed_fitness = result->FloatAtIndex(0, nullptr);
+					p_computed_fitness = result->FloatAtIndex_NOCAST(0, nullptr);
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
@@ -2194,8 +2200,8 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-					EidosValue_Object_singleton local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Float_singleton local_effect(p_computed_fitness);
+					EidosValue_Object local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
+					EidosValue_Float local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
@@ -2245,7 +2251,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 							
-							p_computed_fitness = result->FloatAtIndex(0, nullptr);
+							p_computed_fitness = result->FloatAtIndex_NOCAST(0, nullptr);
 						}
 						catch (...)
 						{
@@ -2320,7 +2326,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				
-				computed_fitness *= result->FloatAtIndex(0, nullptr);
+				computed_fitness *= result->FloatAtIndex_NOCAST(0, nullptr);
 				
 				// the cached value is owned by the tree, so we do not dispose of it
 				// there is also no script output to handle
@@ -2376,7 +2382,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 						
-						computed_fitness *= result->FloatAtIndex(0, nullptr);
+						computed_fitness *= result->FloatAtIndex_NOCAST(0, nullptr);
 					}
 					catch (...)
 					{
@@ -3561,8 +3567,8 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 			{
 				// local variables for the callback parameters that we might need to allocate here, and thus need to free below
-				EidosValue_Float_singleton local_fitness(p_fitness);
-				EidosValue_Float_singleton local_draw(p_draw);
+				EidosValue_Float local_fitness(p_fitness);
+				EidosValue_Float local_draw(p_draw);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -3610,7 +3616,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 								 (result->Count() == 1))
 						{
 							// T or F means change the existing decision to that value
-							p_surviving = result->LogicalAtIndex(0, nullptr);
+							p_surviving = result->LogicalAtIndex_NOCAST(0, nullptr);
 							move_destination = nullptr;		// cancel a previously made move decision; T/F says "do not move"
 						}
 						else if ((result_type == EidosValueType::kValueObject) &&
@@ -3621,7 +3627,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 							// moving to one's current subpopulation is not-moving; it is equivalent to returning T (i.e., forces survival)
 							p_surviving = true;
 							
-							Subpopulation *destination = (Subpopulation *)result->ObjectElementAtIndex(0, survival_callback->identifier_token_);
+							Subpopulation *destination = (Subpopulation *)result->ObjectElementAtIndex_NOCAST(0, survival_callback->identifier_token_);
 							if (destination != this)
 								move_destination = destination;
 						}
@@ -3876,18 +3882,18 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:				// ACCELERATED
 		{
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpopulation_id_));
+				cached_value_subpop_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpopulation_id_));
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentFirstMaleIndex()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentFirstMaleIndex()));
 		case gID_genomes:
 		{
 			if (child_generation_valid_)
 			{
 				if (!cached_child_genomes_value_)
 				{
-					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(child_genomes_.size());
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : child_genomes_)
@@ -3897,14 +3903,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = cached_child_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
-					int vec_size = (int)vec_direct->size();
+					const EidosObject * const *vec_direct = cached_child_genomes_value_->ObjectData();
+					int vec_size = cached_child_genomes_value_->Count();
 					
 					if (vec_size == (int)child_genomes_.size())
 					{
 						for (int i = 0; i < vec_size; ++i)
-							if ((*vec_direct)[i] != &(child_genomes_[i]))
+							if (vec_direct[i] != child_genomes_[i])
 								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << EidosTerminate();
 					}
 					else
@@ -3918,7 +3923,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!cached_parent_genomes_value_)
 				{
-					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : parent_genomes_)
@@ -3928,14 +3933,13 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				else
 				{
 					// check that the cache is correct
-					EidosValue_Object_vector *vec = cached_parent_genomes_value_->ObjectElementVector_Mutable();
-					const std::vector<EidosObject *> *vec_direct = vec->ObjectElementVector();
-					int vec_size = (int)vec_direct->size();
+					const EidosObject * const *vec_direct = cached_parent_genomes_value_->ObjectData();
+					int vec_size = cached_parent_genomes_value_->Count();
 					
 					if (vec_size == (int)parent_genomes_.size())
 					{
 						for (int i = 0; i < vec_size; ++i)
-							if ((*vec_direct)[i] != &(parent_genomes_[i]))
+							if (vec_direct[i] != parent_genomes_[i])
 								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << EidosTerminate();
 					}
 					else
@@ -3950,7 +3954,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			if (child_generation_valid_)
 			{
-				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
+				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(child_genomes_.size());
 				
 				for (auto genome_iter : child_genomes_)
 					if (!genome_iter->IsNull())
@@ -3960,7 +3964,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			}
 			else
 			{
-				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
+				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 				
 				for (auto genome_iter : parent_genomes_)
 					if (!genome_iter->IsNull())
@@ -3979,10 +3983,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_child_individuals_value_ out of date." << EidosTerminate();
 				
-				// Build and return an EidosValue_Object_vector with the current set of individuals in it
+				// Build and return an EidosValue_Object with the current set of individuals in it
 				if (!cached_child_individuals_value_)
 				{
-					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(subpop_size);
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
@@ -3999,10 +4003,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
 				
-				// Build and return an EidosValue_Object_vector with the current set of individuals in it
+				// Build and return an EidosValue_Object with the current set of individuals in it
 				if (!cached_parent_individuals_value_)
 				{
-					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(subpop_size);
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
@@ -4017,7 +4021,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopIDs is not available in nonWF models." << EidosTerminate();
 			
-			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			EidosValue_Int *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair : migrant_fractions_)
@@ -4030,7 +4034,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopFractions is not available in nonWF models." << EidosTerminate();
 			
-			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
+			EidosValue_Float *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair : migrant_fractions_)
@@ -4047,7 +4051,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			std::vector<int32_t> &lifetime_rep_F = lifetime_reproductive_output_F_;
 			int lifetime_rep_count_M = (int)lifetime_rep_M.size();
 			int lifetime_rep_count_F = (int)lifetime_rep_F.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count_M + lifetime_rep_count_F);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count_M + lifetime_rep_count_F);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count_M; ++value_index)
 				int_result->set_int_no_check(lifetime_rep_M[value_index], value_index);
@@ -4065,7 +4069,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_MH_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
 				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
@@ -4081,7 +4085,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_F_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
 				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
@@ -4090,18 +4094,18 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_name:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name_));
 		}
 		case gID_description:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(description_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(description_));
 		}
 		case gID_selfingRate:
 		{
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property selfingRate is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selfing_fraction_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selfing_fraction_));
 		}
 		case gID_cloningRate:
 		{
@@ -4109,16 +4113,16 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property cloningRate is not available in nonWF models." << EidosTerminate();
 			
 			if (sex_enabled_)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{female_clone_fraction_, male_clone_fraction_});
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{female_clone_fraction_, male_clone_fraction_});
 			else
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(female_clone_fraction_));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(female_clone_fraction_));
 		}
 		case gID_sexRatio:
 		{
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		}
 		case gID_spatialBounds:
 		{
@@ -4127,15 +4131,15 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			switch (dimensionality)
 			{
 				case 0: return gStaticEidosValue_Float_ZeroVec;
-				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_x1_});
-				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_x1_, bounds_y1_});
-				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
+				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_x1_});
+				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_y0_, bounds_x1_, bounds_y1_});
+				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
 		case gID_spatialMaps:
 		{
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SpatialMap_Class))->reserve(spatial_maps_.size());
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_SpatialMap_Class))->reserve(spatial_maps_.size());
 			
 			for (const auto &spatialMapIter : spatial_maps_)
 				vec->push_object_element_no_check_RR(spatialMapIter.second);
@@ -4144,10 +4148,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_species:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 		case gID_individualCount:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentSubpopSize()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentSubpopSize()));
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -4157,10 +4161,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property tag accessed on subpopulation before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 		case gID_fitnessScaling:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(subpop_fitness_scaling_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(subpop_fitness_scaling_));
 			
 			// all others, including gID_none
 		default:
@@ -4170,7 +4174,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4184,7 +4188,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, si
 
 EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4198,7 +4202,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 
 EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4212,7 +4216,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 
 EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4230,7 +4234,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, s
 
 EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4248,14 +4252,14 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 	{
 		case gID_tag:				// ACCELERATED
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			subpop_fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			subpop_fitness_scaling_ = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
 			if ((subpop_fitness_scaling_ < 0.0) || std::isnan(subpop_fitness_scaling_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
@@ -4264,12 +4268,12 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 		}
 		case gID_name:
 		{
-			SetName(p_value.StringAtIndex(0, nullptr));
+			SetName(p_value.StringAtIndex_NOCAST(0, nullptr));
 			return;
 		}
 		case gID_description:
 		{
-			std::string description = p_value.StringAtIndex(0, nullptr);
+			std::string description = p_value.StringAtIndex_NOCAST(0, nullptr);
 			
 			// there are no restrictions on descriptions at all
 			
@@ -4289,14 +4293,14 @@ void Subpopulation::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Subpopulation *)(p_values[value_index]))->tag_value_ = source_value;
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Subpopulation *)(p_values[value_index]))->tag_value_ = source_data[value_index];
@@ -4307,7 +4311,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_value
 {
 	if (p_source_size == 1)
 	{
-		double source_value = p_source.FloatAtIndex(0, nullptr);
+		double source_value = p_source.FloatAtIndex_NOCAST(0, nullptr);
 		
 		if ((source_value < 0.0) || std::isnan(source_value))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
@@ -4317,7 +4321,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_value
 	}
 	else
 	{
-		const double *source_data = p_source.FloatVector()->data();
+		const double *source_data = p_source.FloatData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 		{
@@ -4394,7 +4398,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
 			// if a string is provided, it must be either "M" or "F"
-			std::string sex_string = p_sex_value->StringAtIndex(0, nullptr);
+			std::string sex_string = p_sex_value->StringAtIndex_NOCAST(0, nullptr);
 			
 			if (sex_string == "M")
 				sex = IndividualSex::kMale;
@@ -4405,7 +4409,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		}
 		else // if (sex_value_type == EidosValueType::kValueFloat)
 		{
-			double sex_prob = p_sex_value->FloatAtIndex(0, nullptr);
+			double sex_prob = p_sex_value->FloatAtIndex_NOCAST(0, nullptr);
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
 			{
@@ -4470,7 +4474,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
-	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
+	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
@@ -4484,12 +4488,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[1].get();
-	int64_t child_count = count_value->IntAtIndex(0, nullptr);
+	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
 	
-	EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
 	
 	if (child_count == 0)
 		return EidosValue_SP(result);
@@ -4516,7 +4520,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[2].get();
-	bool defer = defer_value->LogicalAtIndex(0, nullptr);
+	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (defer && parent_mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
@@ -4605,7 +4609,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
-	Individual *parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
+	Individual *parent1 = (Individual *)parent1_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	IndividualSex parent1_sex = parent1->sex_;
 	Subpopulation &parent1_subpop = *parent1->subpopulation_;
 	
@@ -4614,7 +4618,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Get and check the second parent (the father)
 	EidosValue *parent2_value = p_arguments[1].get();
-	Individual *parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
+	Individual *parent2 = (Individual *)parent2_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	IndividualSex parent2_sex = parent2->sex_;
 	Subpopulation &parent2_subpop = *parent2->subpopulation_;
 	
@@ -4634,12 +4638,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
-	int64_t child_count = count_value->IntAtIndex(0, nullptr);
+	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
 	
-	EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
 	
 	if (child_count == 0)
 		return EidosValue_SP(result);
@@ -4663,7 +4667,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[4].get();
-	bool defer = defer_value->LogicalAtIndex(0, nullptr);
+	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (defer && (parent1_recombination_callbacks || parent2_recombination_callbacks || parent1_mutation_callbacks || parent2_mutation_callbacks))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
@@ -4767,12 +4771,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
-	int64_t child_count = count_value->IntAtIndex(0, nullptr);
+	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
 	
-	EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
 	
 	if (child_count == 0)
 		return EidosValue_SP(result);
@@ -4797,15 +4801,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			genome2_null = true;
 			has_null_genomes_ = true;
 			
-			if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalAtIndex(0, nullptr)) ||
-				((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalAtIndex(0, nullptr)))
+			if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalAtIndex_NOCAST(0, nullptr)) ||
+				((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalAtIndex_NOCAST(0, nullptr)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): in a no-genetics species, null genomes are required." << EidosTerminate();
 		}
 		else
 		{
 			if (genome1Null_value->Type() != EidosValueType::kValueNULL)
 			{
-				bool requestedNull = genome1Null_value->LogicalAtIndex(0, nullptr);
+				bool requestedNull = genome1Null_value->LogicalAtIndex_NOCAST(0, nullptr);
 				
 				if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
@@ -4815,7 +4819,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			
 			if (genome2Null_value->Type() != EidosValueType::kValueNULL)
 			{
-				bool requestedNull = genome2Null_value->LogicalAtIndex(0, nullptr);
+				bool requestedNull = genome2Null_value->LogicalAtIndex_NOCAST(0, nullptr);
 				
 				if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
@@ -4923,12 +4927,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[10].get();
-	int64_t child_count = count_value->IntAtIndex(0, nullptr);
+	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
 	
-	EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
 	
 	if (child_count == 0)
 		return EidosValue_SP(result);
@@ -4951,10 +4955,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *sex_value = p_arguments[6].get();
 	
 	// Get the genomes for the supplied strands, or nullptr for NULL
-	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectElementAtIndex(0, nullptr));
-	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectElementAtIndex(0, nullptr));
-	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectElementAtIndex(0, nullptr));
-	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectElementAtIndex(0, nullptr));
+	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 	
 	// The parental strands must be visible in the subpopulation, and we need to be able to find them to check their sex
 	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
@@ -5005,8 +5009,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
 		
-		if (!static_sex_string_F) static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
-		if (!static_sex_string_M) static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
+		if (!static_sex_string_F) static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("F"));
+		if (!static_sex_string_M) static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("M"));
 		
 		if (strand3->Type() == GenomeType::kXChromosome)
 			sex_value = static_sex_string_F.get();
@@ -5024,9 +5028,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *parent2_value = p_arguments[8].get();
 	
 	if (parent1_value->Type() != EidosValueType::kValueNULL)
-		pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
+		pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	if (parent2_value->Type() != EidosValueType::kValueNULL)
-		pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
+		pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	if (pedigree_parent1 && !pedigree_parent2)
 		pedigree_parent2 = pedigree_parent1;
@@ -5043,10 +5047,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		mutation_callbacks = nullptr;
 	
 	EidosValue *randomizeStrands_value = p_arguments[9].get();
-	bool randomizeStrands = randomizeStrands_value->LogicalAtIndex(0, nullptr);
+	bool randomizeStrands = randomizeStrands_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	EidosValue *defer_value = p_arguments[11].get();
-	bool defer = defer_value->LogicalAtIndex(0, nullptr);
+	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (defer && mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
@@ -5136,7 +5140,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (breaks1count)
 		{
 			for (int break_index = 0; break_index < breaks1count; ++break_index)
-				breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex(break_index, nullptr)));
+				breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex_NOCAST(break_index, nullptr)));
 			
 			std::sort(breakvec1.begin(), breakvec1.end());
 			breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
@@ -5157,7 +5161,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (breaks2count)
 		{
 			for (int break_index = 0; break_index < breaks2count; ++break_index)
-				breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex(break_index, nullptr)));
+				breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex_NOCAST(break_index, nullptr)));
 			
 			std::sort(breakvec2.begin(), breakvec2.end());
 			breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
@@ -5493,7 +5497,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
-	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
+	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
@@ -5510,12 +5514,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[1].get();
-	int64_t child_count = count_value->IntAtIndex(0, nullptr);
+	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
 	
-	EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(child_count);	// reserve enough space for all results
 	
 	if (child_count == 0)
 		return EidosValue_SP(result);
@@ -5551,7 +5555,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[2].get();
-	bool defer = defer_value->LogicalAtIndex(0, nullptr);
+	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (defer && (parent_recombination_callbacks || parent_mutation_callbacks))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
@@ -5649,7 +5653,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	// Loop over the migrants and move them one by one
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
 	{
-		Individual *migrant = (Individual *)migrants_value->ObjectElementAtIndex(migrant_index, nullptr);
+		Individual *migrant = (Individual *)migrants_value->ObjectElementAtIndex_NOCAST(migrant_index, nullptr);
 		Subpopulation *source_subpop = migrant->subpopulation_;
 		
 		if (source_subpop != this)
@@ -5823,7 +5827,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 		if (std::find(subpops_seen.begin(), subpops_seen.end(), source_subpop_id) != subpops_seen.end())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() two rates set for subpopulation p" << source_subpop_id << "." << EidosTerminate();
 		
-		double migrant_fraction = rates_value->FloatAtIndex(value_index, nullptr);
+		double migrant_fraction = rates_value->NumericAtIndex_NOCAST(value_index, nullptr);
 		
 		population_.SetMigration(*this, source_subpop_id, migrant_fraction);
 		subpops_seen.emplace_back(source_subpop_id);
@@ -5844,7 +5848,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t n = n_value->IntAtIndex(0, nullptr);
+	int64_t n = n_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (n < 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires n >= 0." << EidosTerminate();
@@ -5852,15 +5856,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	int64_t length_out = n * dimensionality;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
 	double *float_result_data = float_result->data();
 	double *float_result_ptr = float_result_data;
 	
 	EidosValue *point_value = p_arguments[1].get();
 	int point_count = point_value->Count();
-	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
-	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
-	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
 	if (point_count % dimensionality != 0)
@@ -5872,7 +5874,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires point to be contain either a single spatial point (to be deviated n times) or n spatial points (each to be deviated once)." << EidosTerminate();
 	
 	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[2].get();
-	const std::string &boundary_str = boundary_value->StringRefAtIndex(0, nullptr);
+	const std::string &boundary_str = boundary_value->StringRefAtIndex_NOCAST(0, nullptr);
 	BoundaryCondition boundary;
 	
 	if (boundary_str.compare("none") == 0)
@@ -5902,7 +5904,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	}
 	
 	EidosValue *maxDistance_value = p_arguments[3].get();
-	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
 	
 	SpatialKernel kernel(dimensionality, max_distance, p_arguments, 4, /* p_expect_max_density */ false);	// uses our arguments starting at index 3
 	
@@ -6216,12 +6218,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	if ((point_count == 1) && (dimensionality == 1))
 	{
 		// singleton case, get it out of the way
-		double x = point_value->FloatAtIndex(0, nullptr);
+		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
 		return ((x >= bounds_x0_) && (x <= bounds_x1_)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
 	}
 	
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
+	const double *point_buf = point_value->FloatData();
 	
 	if (point_count == 1)
 	{
@@ -6338,7 +6339,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	if ((point_count == 1) && (dimensionality == 1))
 	{
 		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex(0, nullptr);
+		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
 		
 		while (true)
 		{
@@ -6347,13 +6348,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 			else break;
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	const double *point_buf = point_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
@@ -6472,15 +6472,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	if ((point_count == 1) && (dimensionality == 1))
 	{
 		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex(0, nullptr);
+		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::max(bounds_x0_, std::min(bounds_x1_, x))));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::max(bounds_x0_, std::min(bounds_x1_, x))));
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	const double *point_buf = point_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
@@ -6571,7 +6570,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	if ((point_count == 1) && (dimensionality == 1))
 	{
 		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex(0, nullptr);
+		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
 		
 		if (periodic_x)
 		{
@@ -6579,13 +6578,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 			while (x > bounds_x1_)	x -= bounds_x1_;
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
 	}
 	
 	// non-singleton general case
-	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
-	const double *point_buf = float_vec->data();
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
+	const double *point_buf = point_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data();
 	
 	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
@@ -6692,7 +6690,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() cannot be called in non-spatial simulations." << EidosTerminate();
 	
 	EidosValue *n_value = p_arguments[0].get();
-	int64_t point_count = n_value->IntAtIndex(0, nullptr);
+	int64_t point_count = n_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if (point_count < 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() requires n >= 0." << EidosTerminate();
@@ -6700,7 +6698,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	int64_t length_out = point_count * dimensionality;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
 	double *float_result_data = float_result->data();
 	EidosValue_SP result_SP = EidosValue_SP(float_result);
 	
@@ -6786,8 +6784,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		if ((value_count < 1) || (value_count > 2))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing either one or two values, in sexual simulations." << EidosTerminate();
 		
-		double female_cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
-		double male_cloning_fraction = (value_count == 2) ? rate_value->FloatAtIndex(1, nullptr) : female_cloning_fraction;
+		double female_cloning_fraction = rate_value->NumericAtIndex_NOCAST(0, nullptr);
+		double male_cloning_fraction = (value_count == 2) ? rate_value->NumericAtIndex_NOCAST(1, nullptr) : female_cloning_fraction;
 		
 		if ((female_cloning_fraction < 0.0) || (female_cloning_fraction > 1.0) || std::isnan(female_cloning_fraction))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << EidosStringForFloat(female_cloning_fraction) << " supplied)." << EidosTerminate();
@@ -6803,7 +6801,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 		if (value_count != 1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires a rate vector containing exactly one value, in asexual simulations.." << EidosTerminate();
 		
-		double cloning_fraction = rate_value->FloatAtIndex(0, nullptr);
+		double cloning_fraction = rate_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		if ((cloning_fraction < 0.0) || (cloning_fraction > 1.0) || std::isnan(cloning_fraction))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() requires cloning fractions within [0,1] (" << EidosStringForFloat(cloning_fraction) << " supplied)." << EidosTerminate();
@@ -6826,7 +6824,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	
 	EidosValue *rate_value = p_arguments[0].get();
 	
-	double selfing_fraction = rate_value->FloatAtIndex(0, nullptr);
+	double selfing_fraction = rate_value->NumericAtIndex_NOCAST(0, nullptr);
 	
 	if ((selfing_fraction != 0.0) && sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is limited to the hermaphroditic case, and cannot be called in sexual simulations." << EidosTerminate();
@@ -6859,7 +6857,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	if (!sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() is limited to the sexual case, and cannot be called in asexual simulations." << EidosTerminate();
 	
-	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
+	double sex_ratio = sexRatio_value->FloatAtIndex_NOCAST(0, nullptr);
 	
 	if ((sex_ratio < 0.0) || (sex_ratio > 1.0) || std::isnan(sex_ratio))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << EidosStringForFloat(sex_ratio) << " supplied)." << EidosTerminate();
@@ -6895,7 +6893,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	switch (dimensionality)
 	{
 		case 1:
-			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(1, nullptr);
+			bounds_x0_ = position_value->NumericAtIndex_NOCAST(0, nullptr);	bounds_x1_ = position_value->NumericAtIndex_NOCAST(1, nullptr);
 			
 			if (bounds_x1_ <= bounds_x0_)
 				bad_bounds = true;
@@ -6904,8 +6902,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			break;
 		case 2:
-			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(2, nullptr);
-			bounds_y0_ = position_value->FloatAtIndex(1, nullptr);	bounds_y1_ = position_value->FloatAtIndex(3, nullptr);
+			bounds_x0_ = position_value->NumericAtIndex_NOCAST(0, nullptr);	bounds_x1_ = position_value->NumericAtIndex_NOCAST(2, nullptr);
+			bounds_y0_ = position_value->NumericAtIndex_NOCAST(1, nullptr);	bounds_y1_ = position_value->NumericAtIndex_NOCAST(3, nullptr);
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_))
 				bad_bounds = true;
@@ -6914,9 +6912,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 			
 			break;
 		case 3:
-			bounds_x0_ = position_value->FloatAtIndex(0, nullptr);	bounds_x1_ = position_value->FloatAtIndex(3, nullptr);
-			bounds_y0_ = position_value->FloatAtIndex(1, nullptr);	bounds_y1_ = position_value->FloatAtIndex(4, nullptr);
-			bounds_z0_ = position_value->FloatAtIndex(2, nullptr);	bounds_z1_ = position_value->FloatAtIndex(5, nullptr);
+			bounds_x0_ = position_value->NumericAtIndex_NOCAST(0, nullptr);	bounds_x1_ = position_value->NumericAtIndex_NOCAST(3, nullptr);
+			bounds_y0_ = position_value->NumericAtIndex_NOCAST(1, nullptr);	bounds_y1_ = position_value->NumericAtIndex_NOCAST(4, nullptr);
+			bounds_z0_ = position_value->NumericAtIndex_NOCAST(2, nullptr);	bounds_z1_ = position_value->NumericAtIndex_NOCAST(5, nullptr);
 			
 			if ((bounds_x1_ <= bounds_x0_) || (bounds_y1_ <= bounds_y0_) || (bounds_z1_ <= bounds_z0_))
 				bad_bounds = true;
@@ -6959,7 +6957,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	
 	EidosValue *size_value = p_arguments[0].get();
 	
-	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
+	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex_NOCAST(0, nullptr));
 	
 	population_.SetSize(*this, subpop_size);
 	
@@ -7027,7 +7025,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		if (!do_all_indices)
 		{
-			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(0, nullptr));
+			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(0, nullptr));
 			
 			if (index >= parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
@@ -7035,11 +7033,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
 	}
 	else
 	{
-		EidosValue_Float_vector *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(index_count);
+		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
 		EidosValue_SP result_SP = EidosValue_SP(float_return);
 		
 		for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
@@ -7048,7 +7046,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 			
 			if (!do_all_indices)
 			{
-				index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex(value_index, nullptr));
+				index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(value_index, nullptr));
 				
 				if (index >= parent_subpop_size_)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
@@ -7071,14 +7069,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// This method is patterned closely upon Eidos_ExecuteFunction_sample(), but with no weights vector, and with various ways to narrow down the candidate pool
 	EidosValue_SP result_SP(nullptr);
 	
-	int64_t sample_size = p_arguments[0]->IntAtIndex(0, nullptr);
-	bool replace = p_arguments[1]->LogicalAtIndex(0, nullptr);
+	int64_t sample_size = p_arguments[0]->IntAtIndex_NOCAST(0, nullptr);
+	bool replace = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	int x_count = parent_subpop_size_;
 	
 	if (sample_size < 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): sampleIndividuals() requires a sample size >= 0 (" << sample_size << " supplied)." << EidosTerminate(nullptr);
 	if ((sample_size == 0) || (x_count == 0))
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 	
 	// a specific individual may be excluded
 	EidosValue *exclude_value = p_arguments[2].get();
@@ -7086,7 +7084,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	slim_popsize_t excluded_index = -1;
 	
 	if (exclude_value->Type() != EidosValueType::kValueNULL)
-		excluded_individual = (Individual *)exclude_value->ObjectElementAtIndex(0, nullptr);
+		excluded_individual = (Individual *)exclude_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	if (excluded_individual)
 	{
@@ -7106,7 +7104,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (sex_value->Type() != EidosValueType::kValueNULL)
 	{
-		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex(0, nullptr);
+		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (sex_string == "M")			sex = IndividualSex::kMale;
 		else if (sex_string == "F")		sex = IndividualSex::kFemale;
@@ -7120,15 +7118,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// a tag value may be specified; if so, tag values must be defined for all individuals
 	EidosValue *tag_value = p_arguments[4].get();
 	bool tag_specified = (tag_value->Type() != EidosValueType::kValueNULL);
-	slim_usertag_t tag = (tag_specified ? tag_value->IntAtIndex(0, nullptr) : 0);
+	slim_usertag_t tag = (tag_specified ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	
 	// an age min or max may be specified in nonWF models
 	EidosValue *ageMin_value = p_arguments[5].get();
 	EidosValue *ageMax_value = p_arguments[6].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
-	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
+	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex_NOCAST(0, nullptr) : -1);
+	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex_NOCAST(0, nullptr) : INT64_MAX);
 	
 	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
@@ -7136,24 +7134,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[7].get();
 	bool migrant_specified = (migrant_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t migrant = (migrant_specified ? migrant_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t migrant = (migrant_specified ? migrant_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	
 	// logical tag values, tagL0 - tagL4, may be specified; if so, those tagL values must be defined for all individuals
 	EidosValue *tagL0_value = p_arguments[8].get();
 	bool tagL0_specified = (tagL0_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL0 = (tagL0_specified ? tagL0_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL0 = (tagL0_specified ? tagL0_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL1_value = p_arguments[9].get();
 	bool tagL1_specified = (tagL1_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL1 = (tagL1_specified ? tagL1_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL1 = (tagL1_specified ? tagL1_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL2_value = p_arguments[10].get();
 	bool tagL2_specified = (tagL2_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL2 = (tagL2_specified ? tagL2_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL2 = (tagL2_specified ? tagL2_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL3_value = p_arguments[11].get();
 	bool tagL3_specified = (tagL3_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL3 = (tagL3_specified ? tagL3_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL3 = (tagL3_specified ? tagL3_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL4_value = p_arguments[12].get();
 	bool tagL4_specified = (tagL4_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL4 = (tagL4_specified ? tagL4_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL4 = (tagL4_specified ? tagL4_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	bool any_tagL_specified = (tagL0_specified || tagL1_specified || tagL2_specified || tagL3_specified || tagL4_specified);
 	
 	// determine the range the sample will be drawn from; this does not take into account tag, tagLX, or ageMin/ageMax
@@ -7187,7 +7185,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// we're in the simple case of no specifed tag/ageMin/ageMax/migrant/tagL, so maybe we can handle it quickly
 		if (candidate_count == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 		else if (!replace && (candidate_count < sample_size))
 			sample_size = candidate_count;
 		
@@ -7200,13 +7198,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(parent_individuals_[sample_index], gSLiM_Individual_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(parent_individuals_[sample_index], gSLiM_Individual_Class));
 		}
 		else if (replace)
 		{
 			// with replacement, we can just do a series of independent draws
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+			EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
 			EidosObject **object_result_data = result->data();
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1);
@@ -7243,8 +7241,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		{
 			// a sample size of two without replacement is expected to be common (interacting pairs) so optimize for it
 			// note that the code above guarantees that here there are at least two candidates to draw
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+			EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
 			int sample_index1 = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
@@ -7348,7 +7346,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				}
 			}
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(parent_individuals_[sample_index], gSLiM_Individual_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(parent_individuals_[sample_index], gSLiM_Individual_Class));
 		}
 	}
 	
@@ -7457,13 +7455,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		}
 		
 		if (candidate_count == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 		else if (!replace && (candidate_count < sample_size))
 			sample_size = candidate_count;
 		
 		// do the sampling
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+		EidosValue_Object *result = ((EidosValue_Object *)result_SP.get())->resize_no_initialize(sample_size);
 		EidosObject **object_result_data = result->data();
 		
 		if (replace)
@@ -7530,7 +7528,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	int x_count = parent_subpop_size_;
 	
 	if (x_count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 	
 	// a specific individual may be excluded
 	EidosValue *exclude_value = p_arguments[0].get();
@@ -7538,7 +7536,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	slim_popsize_t excluded_index = -1;
 	
 	if (exclude_value->Type() != EidosValueType::kValueNULL)
-		excluded_individual = (Individual *)exclude_value->ObjectElementAtIndex(0, nullptr);
+		excluded_individual = (Individual *)exclude_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	if (excluded_individual)
 	{
@@ -7558,7 +7556,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	
 	if (sex_value->Type() != EidosValueType::kValueNULL)
 	{
-		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex(0, nullptr);
+		const std::string &sex_string = ((EidosValue_String *)sex_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (sex_string == "M")			sex = IndividualSex::kMale;
 		else if (sex_string == "F")		sex = IndividualSex::kFemale;
@@ -7572,15 +7570,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	// a tag value may be specified; if so, tag values must be defined for all individuals
 	EidosValue *tag_value = p_arguments[2].get();
 	bool tag_specified = (tag_value->Type() != EidosValueType::kValueNULL);
-	slim_usertag_t tag = (tag_specified ? tag_value->IntAtIndex(0, nullptr) : 0);
+	slim_usertag_t tag = (tag_specified ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	
 	// an age min or max may be specified in nonWF models
 	EidosValue *ageMin_value = p_arguments[3].get();
 	EidosValue *ageMax_value = p_arguments[4].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
-	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
+	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex_NOCAST(0, nullptr) : -1);
+	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex_NOCAST(0, nullptr) : INT64_MAX);
 	
 	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
@@ -7588,24 +7586,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[5].get();
 	bool migrant_specified = (migrant_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t migrant = (migrant_specified ? migrant_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t migrant = (migrant_specified ? migrant_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	
 	// logical tag values, tagL0 - tagL4, may be specified; if so, those tagL values must be defined for all individuals
 	EidosValue *tagL0_value = p_arguments[6].get();
 	bool tagL0_specified = (tagL0_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL0 = (tagL0_specified ? tagL0_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL0 = (tagL0_specified ? tagL0_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL1_value = p_arguments[7].get();
 	bool tagL1_specified = (tagL1_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL1 = (tagL1_specified ? tagL1_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL1 = (tagL1_specified ? tagL1_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL2_value = p_arguments[8].get();
 	bool tagL2_specified = (tagL2_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL2 = (tagL2_specified ? tagL2_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL2 = (tagL2_specified ? tagL2_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL3_value = p_arguments[9].get();
 	bool tagL3_specified = (tagL3_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL3 = (tagL3_specified ? tagL3_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL3 = (tagL3_specified ? tagL3_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	EidosValue *tagL4_value = p_arguments[10].get();
 	bool tagL4_specified = (tagL4_value->Type() != EidosValueType::kValueNULL);
-	eidos_logical_t tagL4 = (tagL4_specified ? tagL4_value->LogicalAtIndex(0, nullptr) : false);
+	eidos_logical_t tagL4 = (tagL4_specified ? tagL4_value->LogicalAtIndex_NOCAST(0, nullptr) : false);
 	bool any_tagL_specified = (tagL0_specified || tagL1_specified || tagL2_specified || tagL3_specified || tagL4_specified);
 	
 	// determine the range the sample will be drawn from; this does not take into account tag, tagLX, or ageMin/ageMax
@@ -7635,8 +7633,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	else
 		excluded_index = -1;
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get());
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+	EidosValue_Object *result = ((EidosValue_Object *)result_SP.get());
 	
 	if (!tag_specified && !ageMin_specified && !ageMax_specified && !migrant_specified && !any_tagL_specified)
 	{
@@ -7742,13 +7740,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	EidosValue *value_range = p_arguments[4].get();
 	EidosValue *colors = p_arguments[5].get();
 	
-	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << EidosTerminate();
 	
-	const std::string &spatiality_string = spatiality_value->StringRefAtIndex(0, nullptr);
-	bool interpolate = interpolate_value->LogicalAtIndex(0, nullptr);
+	const std::string &spatiality_string = spatiality_value->StringRefAtIndex_NOCAST(0, nullptr);
+	bool interpolate = interpolate_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Make our SpatialMap object and populate it with the values provided
 	SpatialMap *spatial_map = new SpatialMap(map_name, spatiality_string, this, values, interpolate, value_range, colors);
@@ -7773,7 +7771,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	
 	spatial_maps_.emplace(map_name, spatial_map);	// already retained by new SpatialMap(); that is the retain for spatial_maps_
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(spatial_map, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(spatial_map, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	– (void)addSpatialMap(object<SpatialMap>$ map)
@@ -7782,7 +7780,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSpatialMap(EidosGlobalStringID p_m
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *map_value = (EidosValue *)p_arguments[0].get();
-	SpatialMap *spatial_map = (SpatialMap *)map_value->ObjectElementAtIndex(0, nullptr);
+	SpatialMap *spatial_map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	std::string map_name = spatial_map->name_;
 	
 	// Check for an existing entry under this name; that is an error, unless it is the same spatial map object
@@ -7818,7 +7816,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSpatialMap(EidosGlobalStringID 
 	
 	if (map_value->Type() == EidosValueType::kValueString)
 	{
-		std::string map_name = map_value->StringAtIndex(0, nullptr);
+		std::string map_name = map_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		auto map_iter = spatial_maps_.find(map_name);
 		
@@ -7835,7 +7833,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSpatialMap(EidosGlobalStringID 
 	}
 	else
 	{
-		SpatialMap *map = (SpatialMap *)map_value->ObjectElementAtIndex(0, nullptr);
+		SpatialMap *map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		std::string map_name = map->name_;
 		auto map_iter = spatial_maps_.find(map_name);
 		
@@ -7867,7 +7865,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() map name must not be zero-length." << EidosTerminate();
@@ -7900,7 +7898,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapImage(EidosGlobalStringID p
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
+	const std::string &map_name = name_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() map name must not be zero-length." << EidosTerminate();
@@ -7946,14 +7944,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	
 	if (map_value->Type() == EidosValueType::kValueString)
 	{
-		map_name = ((EidosValue_String *)map_value)->StringRefAtIndex(0, nullptr);
+		map_name = ((EidosValue_String *)map_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (map_name.length() == 0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() map name must not be zero-length." << EidosTerminate();
 	}
 	else
 	{
-		map = (SpatialMap *)map_value->ObjectElementAtIndex(0, nullptr);
+		map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		map_name = map->name_;
 	}
 	
@@ -8011,13 +8009,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		}
 	}
 	
-	slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(sampleSize_value->IntAtIndex(0, nullptr));
+	slim_popsize_t sample_size = SLiMCastToPopsizeTypeOrRaise(sampleSize_value->IntAtIndex_NOCAST(0, nullptr));
 	
-	bool replace = replace_value->LogicalAtIndex(0, nullptr);
+	bool replace = replace_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	IndividualSex requested_sex;
 	
-	std::string sex_string = requestedSex_value->StringAtIndex(0, nullptr);
+	std::string sex_string = requestedSex_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (sex_string.compare("M") == 0)
 		requested_sex = IndividualSex::kMale;
@@ -8034,22 +8032,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	bool output_multiallelics = true;
 	
 	if (p_method_id == gID_outputVCFSample)
-		output_multiallelics = outputMultiallelics_arg->LogicalAtIndex(0, nullptr);
+		output_multiallelics = outputMultiallelics_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool simplify_nucs = false;
 	
 	if (p_method_id == gID_outputVCFSample)
-		simplify_nucs = simplifyNucleotides_arg->LogicalAtIndex(0, nullptr);
+		simplify_nucs = simplifyNucleotides_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool output_nonnucs = true;
 	
 	if (p_method_id == gID_outputVCFSample)
-		output_nonnucs = outputNonnucleotides_arg->LogicalAtIndex(0, nullptr);
+		output_nonnucs = outputNonnucleotides_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool filter_monomorphic = false;
 	
 	if (p_method_id == gID_outputMSSample)
-		filter_monomorphic = filterMonomorphic_arg->LogicalAtIndex(0, nullptr);
+		filter_monomorphic = filterMonomorphic_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Figure out the right output stream
 	std::ofstream outfile;
@@ -8058,8 +8056,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (filePath_arg->Type() != EidosValueType::kValueNULL)
 	{
-		outfile_path = Eidos_ResolvedPath(filePath_arg->StringAtIndex(0, nullptr));
-		bool append = append_arg->LogicalAtIndex(0, nullptr);
+		outfile_path = Eidos_ResolvedPath(filePath_arg->StringAtIndex_NOCAST(0, nullptr));
+		bool append = append_arg->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
 		has_file = true;
@@ -8132,8 +8130,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 		if (center_count != 2)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that center be of exactly size 2 (x and y)." << EidosTerminate();
 		
-		double x = center_value->FloatAtIndex(0, nullptr);
-		double y = center_value->FloatAtIndex(1, nullptr);
+		double x = center_value->FloatAtIndex_NOCAST(0, nullptr);
+		double y = center_value->FloatAtIndex_NOCAST(1, nullptr);
 		
 		if ((x < 0.0) || (x > 1.0) || (y < 0.0) || (y > 1.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that the specified center be within [0,1] for both x and y." << EidosTerminate();
@@ -8153,7 +8151,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 	}
 	else
 	{
-		double scale = scale_value->FloatAtIndex(0, nullptr);
+		double scale = scale_value->FloatAtIndex_NOCAST(0, nullptr);
 		
 		if ((scale <= 0.0) || (scale > 5.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_configureDisplay): configureDisplay() requires that the specified scale be within (0,5]." << EidosTerminate();
@@ -8172,7 +8170,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_configureDisplay(EidosGlobalStringID 
 	}
 	else
 	{
-		std::string &&color = color_value->StringAtIndex(0, nullptr);
+		std::string &&color = color_value->StringAtIndex_NOCAST(0, nullptr);
 		
 		if (color.empty())
 		{

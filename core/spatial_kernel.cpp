@@ -78,7 +78,7 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	
 	EidosValue_String *functionType_value = (EidosValue_String *)p_arguments[p_first_kernel_arg].get();
 	
-	const std::string &k_type_string = functionType_value->StringRefAtIndex(0, nullptr);
+	const std::string &k_type_string = functionType_value->StringRefAtIndex_NOCAST(0, nullptr);
 	SpatialKernelType k_type;
 	int expected_k_param_count = 0;
 	std::vector<double> k_parameters;
@@ -140,7 +140,7 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		if ((k_param_type != EidosValueType::kValueFloat) && (k_param_type != EidosValueType::kValueInt))
 			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): the parameters for this spatial kernel type must be numeric (integer or float)." << EidosTerminate();
 		
-		k_parameters.emplace_back(k_param_value->FloatAtIndex(0, nullptr));
+		k_parameters.emplace_back(k_param_value->NumericAtIndex_NOCAST(0, nullptr));
 	}
 	
 	// Internally, we always have a max kernel density.  If one was not expected from the arguments,

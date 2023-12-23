@@ -1602,7 +1602,7 @@ void _RunCodeExampleTests(void)
 									fib = c(fib, next_fib);									\
 								}															\
 								fib;",
-							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765}));
+							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765}));
 	
 	EidosAssertScriptSuccess(	"counter = 12;							\
 								factorial = 1;							\
@@ -1613,7 +1613,7 @@ void _RunCodeExampleTests(void)
 								}										\
 								while (counter > 0);					\
 								factorial;",
-							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(479001600)));
+							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(479001600)));
 	
 	EidosAssertScriptSuccess(	"last = 200;				\
 								p = integer(0);				\
@@ -1627,7 +1627,7 @@ void _RunCodeExampleTests(void)
 									x = x[x % v != 0];		\
 								} while (T);				\
 								c(p, x);",
-							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199}));
+							 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199}));
 }
 
 #pragma mark user-defined functions

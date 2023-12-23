@@ -39,7 +39,7 @@
 SLiMgui::SLiMgui(Community &p_community, QtSLiMWindow *p_controller) :
 	community_(p_community),
 	controller_(p_controller),
-	self_symbol_(gID_slimgui, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMgui_Class)))
+	self_symbol_(gID_slimgui, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMgui_Class)))
 {
 }
 
@@ -73,7 +73,7 @@ EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
 		// constants
 		case gID_pid:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(getpid()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(getpid()));
 		}
 		
 		// variables
@@ -113,7 +113,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_openDocument(EidosGlobalStringID p_method_i
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
 	EidosValue *filePath_value = p_arguments[0].get();
-	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
 	QString filePath = QString::fromStdString(file_path);
 	
 	controller_->eidos_openDocument(filePath);

@@ -1186,19 +1186,10 @@ class EidosValue;
 class EidosValue_VOID;
 class EidosValue_NULL;
 class EidosValue_Logical;
-class EidosValue_Logical_const;
 class EidosValue_Int;
-class EidosValue_Int_singleton;
-class EidosValue_Int_vector;
 class EidosValue_Float;
-class EidosValue_Float_singleton;
-class EidosValue_Float_vector;
 class EidosValue_String;
-class EidosValue_String_singleton;
-class EidosValue_String_vector;
 class EidosValue_Object;
-class EidosValue_Object_singleton;
-class EidosValue_Object_vector;
 
 class EidosObjectPool;
 class EidosPropertySignature;
@@ -1228,19 +1219,10 @@ typedef Eidos_intrusive_ptr<EidosValue>						EidosValue_SP;
 typedef Eidos_intrusive_ptr<EidosValue_VOID>				EidosValue_VOID_SP;
 typedef Eidos_intrusive_ptr<EidosValue_NULL>				EidosValue_NULL_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Logical>				EidosValue_Logical_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Logical_const>		EidosValue_Logical_const_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Int>					EidosValue_Int_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Int_singleton>		EidosValue_Int_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Int_vector>			EidosValue_Int_vector_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Float>				EidosValue_Float_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Float_singleton>		EidosValue_Float_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Float_vector>		EidosValue_Float_vector_SP;
 typedef Eidos_intrusive_ptr<EidosValue_String>				EidosValue_String_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_singleton>	EidosValue_String_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_vector>		EidosValue_String_vector_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Object>				EidosValue_Object_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_singleton>	EidosValue_Object_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_vector>		EidosValue_Object_vector_SP;
 
 
 // EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated

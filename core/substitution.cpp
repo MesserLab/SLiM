@@ -82,17 +82,17 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_id:					// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
 		case gID_mutationType:			// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_position:				// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
 		case gID_selectionCoeff:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
 		case gID_originTick:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_fixationTick:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(fixation_tick_));
 			
 			// variables
 		case gID_nucleotide:			// ACCELERATED
@@ -126,7 +126,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		}
 		case gID_subpopID:				// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpop_index_));
 		case gID_tag:					// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -134,7 +134,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property tag accessed on substitution before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -145,7 +145,7 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *Substitution::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -159,7 +159,7 @@ EidosValue *Substitution::GetProperty_Accelerated_id(EidosObject **p_values, siz
 
 EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)p_values_size);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -184,7 +184,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_val
 
 EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -202,7 +202,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **
 
 EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -216,7 +216,7 @@ EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosObject **p_val
 
 EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -230,7 +230,7 @@ EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosObject **p_v
 
 EidosValue *Substitution::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -244,7 +244,7 @@ EidosValue *Substitution::GetProperty_Accelerated_position(EidosObject **p_value
 
 EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -258,7 +258,7 @@ EidosValue *Substitution::GetProperty_Accelerated_subpopID(EidosObject **p_value
 
 EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -276,7 +276,7 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, si
 
 EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -290,7 +290,7 @@ EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p
 
 EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -309,7 +309,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 	{
 		case gID_nucleotide:
 		{
-			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
+			const std::string &nucleotide = ((EidosValue_String &)p_value).StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotide is only defined for nucleotide-based substitutions." << EidosTerminate();
@@ -323,7 +323,7 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		}
 		case gID_nucleotideValue:
 		{
-			int64_t nucleotide = p_value.IntAtIndex(0, nullptr);
+			int64_t nucleotide = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if (nucleotide_ == -1)
 				EIDOS_TERMINATION << "ERROR (Substitution::SetProperty): property nucleotideValue is only defined for nucleotide-based substitutions." << EidosTerminate();
@@ -335,14 +335,14 @@ void Substitution::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		}
 		case gID_subpopID:
 		{
-			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_objectid_t value = SLiMCastToObjectidTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			subpop_index_ = value;
 			return;
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;

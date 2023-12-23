@@ -63,11 +63,11 @@ void EidosTestElement::Print(std::ostream &p_ostream) const
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(yolk_));
 	else if (p_property_id == gEidosID__increment)
 	{
 		EidosTestElement *inc_element = new EidosTestElement(yolk_ + 1);
-		EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidosTestElement_Class));
+		EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inc_element, gEidosTestElement_Class));
 		inc_element->Release();	// retval now owns it; release the retain from new
 		
 		return retval;
@@ -80,7 +80,7 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
@@ -96,7 +96,7 @@ void EidosTestElement::SetProperty(EidosGlobalStringID p_property_id, const Eido
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 	{
-		yolk_ = p_value.IntAtIndex(0, nullptr);
+		yolk_ = p_value.IntAtIndex_NOCAST(0, nullptr);
 		return;
 	}
 	
@@ -109,14 +109,14 @@ void EidosTestElement::SetProperty_Accelerated__yolk(EidosObject **p_elements, s
 {
 	if (p_source_size == 1)
 	{
-		int64_t source_value = p_source.IntAtIndex(0, nullptr);
+		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_value;
 	}
 	else
 	{
-		const int64_t *source_data = p_source.IntVector()->data();
+		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			((EidosTestElement *)(p_elements[element_index]))->yolk_ = source_data[element_index];
@@ -137,7 +137,7 @@ EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
@@ -153,7 +153,7 @@ EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_m
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosTestElement *sq_element = new EidosTestElement(yolk_ * yolk_);
-	EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidosTestElement_Class));
+	EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(sq_element, gEidosTestElement_Class));
 	sq_element->Release();	// retval now owns it; release the retain from new
 	
 	return retval;
@@ -175,8 +175,8 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *yolk_value = p_arguments[0].get();
-	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElement_Class));
+	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex_NOCAST(0, nullptr));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosTestElement_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -282,7 +282,7 @@ void EidosTestElementNRR::Print(std::ostream &p_ostream) const
 EidosValue_SP EidosTestElementNRR::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(yolk_));
 	
 	// all others, including gID_none
 	else
@@ -293,7 +293,7 @@ void EidosTestElementNRR::SetProperty(EidosGlobalStringID p_property_id, const E
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
 	{
-		yolk_ = p_value.IntAtIndex(0, nullptr);
+		yolk_ = p_value.IntAtIndex_NOCAST(0, nullptr);
 		return;
 	}
 	
@@ -318,8 +318,8 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *yolk_value = p_arguments[0].get();
-	EidosTestElementNRR *objectElement = new EidosTestElementNRR(yolk_value->IntAtIndex(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElementNRR_Class));
+	EidosTestElementNRR *objectElement = new EidosTestElementNRR(yolk_value->IntAtIndex_NOCAST(0, nullptr));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosTestElementNRR_Class));
 	
 	// Note that since these are not under retain/release, and Eidos has no logic to keep track of them and release them, they just leak
 	// This is probably what EidosTestElement::FreeThunks() used to do before EidosTestElement was put under retain/release, so that

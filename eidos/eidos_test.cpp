@@ -171,32 +171,32 @@ void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initia
 
 void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_integer)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_integer)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_integer)));
 }
 
 void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> p_integer_vec)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_integer_vec)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_integer_vec)));
 }
 
 void EidosAssertScriptSuccess_F(const std::string &p_script_string, double p_float)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(p_float)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(p_float)));
 }
 
 void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initializer_list<double> p_float_vec)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(p_float_vec)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(p_float_vec)));
 }
 
 void EidosAssertScriptSuccess_S(const std::string &p_script_string, const char *p_string)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_string)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(p_string)));
 }
 
 void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> p_string_vec)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(p_string_vec)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(p_string_vec)));
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised

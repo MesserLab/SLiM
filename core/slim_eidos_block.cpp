@@ -784,10 +784,14 @@ SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_nod
 }
 
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
-	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
+	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
+	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	script_block_symbol_.second->MarkAsConstant();
+	
 	// NOTE: SLiMEidosBlock::BlockTypeForRootNode() above must be maintained in parallel with this method!
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -1114,10 +1118,14 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 }
 
 SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
-	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
+	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
+	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	script_block_symbol_.second->MarkAsConstant();
+	
 	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization
 }
@@ -1444,57 +1452,57 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_id_));
+				cached_value_block_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(block_id_));
 			return cached_value_block_id_;
 		}
 		case gEidosID_start:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(start_tick_));
 		case gEidosID_end:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(end_tick_));
 		case gEidosID_type:
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEventFirst:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_first));
-				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
-				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
-				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mutationEffect));
-				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitnessEffect));
-				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_interaction));
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
-				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_recombination));
-				case SLiMEidosBlockType::SLiMEidosMutationCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mutation));
-				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_survival));
-				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_reproduction));
-				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_function));
+				case SLiMEidosBlockType::SLiMEidosEventFirst:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_first));
+				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_early));
+				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_late));
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_initialize));
+				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mutationEffect));
+				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_fitnessEffect));
+				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_interaction));
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mateChoice));
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_modifyChild));
+				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_recombination));
+				case SLiMEidosBlockType::SLiMEidosMutationCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mutation));
+				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_survival));
+				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_reproduction));
+				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_function));
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				return gStaticEidosValue_StringAsterisk;	// never hit
 			}
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): (internal error) unrecognized value for type_." << EidosTerminate();
 		}
 		case gEidosID_source:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(compound_statement_node_->token_->token_string_));
 		case gID_speciesSpec:
 		{
 			// With no species spec, we return an empty object vector of class Species; this is allowed since this is a read-only property
 			if (species_spec_)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(species_spec_, gSLiM_Species_Class));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(species_spec_, gSLiM_Species_Class));
 			else
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Species_Class));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Species_Class));
 		}
 		case gID_ticksSpec:
 		{
 			// With no ticks spec, we return an empty object vector of class Species; this is allowed since this is a read-only property
 			if (ticks_spec_)
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(ticks_spec_, gSLiM_Species_Class));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(ticks_spec_, gSLiM_Species_Class));
 			else
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Species_Class));
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Species_Class));
 		}
 			
 			// variables
 		case gID_active:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_active_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(block_active_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -1502,7 +1510,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): property tag accessed on script block before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -1517,7 +1525,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	{
 		case gID_active:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			// cannot activate a block if it has been deactivated by its association with an inactive species
 			if (value && ((species_spec_ && !species_spec_->Active()) || (ticks_spec_ && !ticks_spec_->Active())))
@@ -1530,7 +1538,7 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -1731,9 +1739,9 @@ void SLiMTypeInterpreter::_SetTypeForISArgumentOfClass(const EidosASTNode *p_arg
 			// The argument can be numeric, in which case it must have a cached int value that is singleton and within bounds
 			EidosValue *cached_value = p_arg_node->cached_literal_value_.get();
 			
-			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->IsSingleton()))
+			if (cached_value && (cached_value->Type() == EidosValueType::kValueInt) && (cached_value->Count() == 1))
 			{
-				int64_t cached_int = cached_value->IntAtIndex(0, nullptr);
+				int64_t cached_int = cached_value->IntAtIndex_NOCAST(0, nullptr);
 				
 				if ((cached_int >= 0) && (cached_int <= SLIM_MAX_ID_VALUE))
 				{

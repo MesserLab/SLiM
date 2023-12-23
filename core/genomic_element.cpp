@@ -58,7 +58,7 @@ std::ostream &operator<<(std::ostream &p_outstream, const GenomicElement &p_geno
 void GenomicElement::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElement_Class));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_GenomicElement_Class));
 }
 
 const EidosClass *GenomicElement::Class(void) const
@@ -80,9 +80,9 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_genomicElementType:	// ACCELERATED
 			return genomic_element_type_ptr_->SymbolTableEntry().second;
 		case gID_startPosition:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(start_position_));
 		case gID_endPosition:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(end_position_));
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -92,7 +92,7 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (GenomicElement::GetProperty): property tag accessed on genomic element before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -103,7 +103,7 @@ EidosValue_SP GenomicElement::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -117,7 +117,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_startPosition(EidosObject **
 
 EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -131,7 +131,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_endPosition(EidosObject **p_
 
 EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -149,7 +149,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, 
 
 EidosValue *GenomicElement::GetProperty_Accelerated_genomicElementType(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElementType_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElementType_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -167,7 +167,7 @@ void GenomicElement::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	{
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;

@@ -59,14 +59,14 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	
 	for (int margin_index = 0; margin_index < margin_count; ++margin_index)
 	{
-		int64_t margin = margin_value->IntAtIndex(margin_index, nullptr);
+		int64_t margin = margin_value->IntAtIndex_NOCAST(margin_index, nullptr);
 		
 		if ((margin < 0) || (margin >= x_dimcount))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): specified margin " << margin << " is out of range in function apply(); margin indices are zero-based, and thus must be from 0 to size(dim(x)) - 1." << EidosTerminate(nullptr);
 		
 		for (int margin_index_2 = 0; margin_index_2 < margin_index; ++margin_index_2)
 		{
-			int64_t margin_2 = margin_value->IntAtIndex(margin_index_2, nullptr);
+			int64_t margin_2 = margin_value->IntAtIndex_NOCAST(margin_index_2, nullptr);
 			
 			if (margin_2 == margin)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): specified margin " << margin << " was already specified to function apply(); a given margin may be specified only once." << EidosTerminate(nullptr);
@@ -78,7 +78,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[2].get();
-	EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[2].get());
+	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[2].get());
 	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -91,7 +91,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
 		
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
@@ -297,7 +297,7 @@ EidosValue_SP Eidos_ExecuteFunction_array(const std::vector<EidosValue_SP> &p_ar
 	
 	for (int dim_index = 0; dim_index < dim_count; ++dim_index)
 	{
-		int64_t dim = dim_value->IntAtIndex(dim_index, nullptr);
+		int64_t dim = dim_value->IntAtIndex_NOCAST(dim_index, nullptr);
 		
 		if (dim < 1)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_array): function array() requires that all dimensions be >= 1." << EidosTerminate(nullptr);
@@ -311,7 +311,7 @@ EidosValue_SP Eidos_ExecuteFunction_array(const std::vector<EidosValue_SP> &p_ar
 	// construct the array from the data and dimensions
 	result_SP = data_value->CopyValues();
 	
-	result_SP->SetDimensions(dim_count, dim_value->IntVector()->data());
+	result_SP->SetDimensions(dim_count, dim_value->IntData());
 	
 	return result_SP;
 }
@@ -394,10 +394,10 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 		case EidosValueType::kValueVOID:	break;		// never hit	// NOLINT(*-branch-clone) : intentional consecutive branches
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
-		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()); break;
-		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(result_class))->reserve(result_length)); break;
+		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve(result_length)); break;
+		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(result_length)); break;
+		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String()); break;
+		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object(result_class))->reserve(result_length)); break;
 	}
 	
 	EidosValue *result = result_SP.get();
@@ -435,7 +435,7 @@ EidosValue_SP Eidos_ExecuteFunction_dim(const std::vector<EidosValue_SP> &p_argu
 	
 	const int64_t *dim_values = data_value->Dimensions();
 	
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(dim_count);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(dim_count);
 	result_SP = EidosValue_SP(int_result);
 	
 	for (int dim_index = 0; dim_index < dim_count; ++dim_index)
@@ -516,8 +516,8 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	bool nrow_null = (nrow_value->Type() == EidosValueType::kValueNULL);
 	bool ncol_null = (ncol_value->Type() == EidosValueType::kValueNULL);
 	
-	int64_t nrow = nrow_null ? -1 : nrow_value->IntAtIndex(0, nullptr);
-	int64_t ncol = ncol_null ? -1 : ncol_value->IntAtIndex(0, nullptr);
+	int64_t nrow = nrow_null ? -1 : nrow_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t ncol = ncol_null ? -1 : ncol_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((!nrow_null && (nrow <= 0)) || (!ncol_null && (ncol <= 0)))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrix): dimension <= 0 requested, which is not allowed." << EidosTerminate(nullptr);
@@ -548,14 +548,14 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	}
 	else
 	{
-		nrow = nrow_value->IntAtIndex(0, nullptr);
-		ncol = ncol_value->IntAtIndex(0, nullptr);
+		nrow = nrow_value->IntAtIndex_NOCAST(0, nullptr);
+		ncol = ncol_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (data_count != nrow * ncol)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrix): function matrix() requires a data vector with a length equal to the product of the proposed number of rows and columns." << EidosTerminate(nullptr);
 	}
 	
-	eidos_logical_t byrow = byrow_value->LogicalAtIndex(0, nullptr);
+	eidos_logical_t byrow = byrow_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (byrow)
 	{
@@ -635,22 +635,22 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// a 1x1 vector multiplied by a 1x1 vector
 		if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t x_singleton = x_value->IntAtIndex(0, nullptr);
-			int64_t y_singleton = y_value->IntAtIndex(0, nullptr);
+			int64_t x_singleton = x_value->IntAtIndex_NOCAST(0, nullptr);
+			int64_t y_singleton = y_value->IntAtIndex_NOCAST(0, nullptr);
 			int64_t multiply_result;
 			bool overflow = Eidos_mul_overflow(x_singleton, y_singleton, &multiply_result);
 			
 			if (overflow)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrixMult): integer multiplication overflow in function matrixMult(); you may wish to cast the matrices to float with asFloat() before multiplying." << EidosTerminate(nullptr);
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(multiply_result));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(multiply_result));
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			double x_singleton = x_value->FloatAtIndex(0, nullptr);
-			double y_singleton = y_value->FloatAtIndex(0, nullptr);
+			double x_singleton = x_value->FloatAtIndex_NOCAST(0, nullptr);
+			double y_singleton = y_value->FloatAtIndex_NOCAST(0, nullptr);
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_singleton * y_singleton));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_singleton * y_singleton));
 		}
 	}
 	else if (x_length == 1)
@@ -658,9 +658,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// a 1x1 vector multiplied by a row vector
 		if (x_type == EidosValueType::kValueInt)
 		{
-			int64_t x_singleton = x_value->IntAtIndex(0, nullptr);
-			const int64_t *y_data = y_value->IntVector()->data();
-			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
+			int64_t x_singleton = x_value->IntAtIndex_NOCAST(0, nullptr);
+			const int64_t *y_data = y_value->IntData();
+			EidosValue_Int *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t y_index = 0; y_index < y_length; ++y_index)
@@ -677,9 +677,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			double x_singleton = x_value->FloatAtIndex(0, nullptr);
-			const double *y_data = y_value->FloatVector()->data();
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			double x_singleton = x_value->FloatAtIndex_NOCAST(0, nullptr);
+			const double *y_data = y_value->FloatData();
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t y_index = 0; y_index < y_length; ++y_index)
@@ -691,9 +691,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// a column vector multiplied by a 1x1 vector
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = x_value->IntVector()->data();
-			int64_t y_singleton = y_value->IntAtIndex(0, nullptr);
-			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
+			const int64_t *x_data = x_value->IntData();
+			int64_t y_singleton = y_value->IntAtIndex_NOCAST(0, nullptr);
+			EidosValue_Int *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t x_index = 0; x_index < x_length; ++x_index)
@@ -710,9 +710,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = x_value->FloatVector()->data();
-			double y_singleton = y_value->FloatAtIndex(0, nullptr);
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			const double *x_data = x_value->FloatData();
+			double y_singleton = y_value->FloatAtIndex_NOCAST(0, nullptr);
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t x_index = 0; x_index < x_length; ++x_index)
@@ -724,9 +724,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		// this is the general case; we have non-singleton matrices for both x and y, so we can divide by integer/float and use direct access
 		if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *x_data = x_value->IntVector()->data();
-			const int64_t *y_data = y_value->IntVector()->data();
-			EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(result_length);
+			const int64_t *x_data = x_value->IntData();
+			const int64_t *y_data = y_value->IntData();
+			EidosValue_Int *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t result_col_index = 0; result_col_index < result_cols; ++result_col_index)
@@ -767,9 +767,9 @@ EidosValue_SP Eidos_ExecuteFunction_matrixMult(const std::vector<EidosValue_SP> 
 		}
 		else // (x_type == EidosValueType::kValueFloat)
 		{
-			const double *x_data = x_value->FloatVector()->data();
-			const double *y_data = y_value->FloatVector()->data();
-			EidosValue_Float_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_length);
+			const double *x_data = x_value->FloatData();
+			const double *y_data = y_value->FloatData();
+			EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(result_length);
 			result_SP = EidosValue_SP(result);
 			
 			for (int64_t result_col_index = 0; result_col_index < result_cols; ++result_col_index)
@@ -817,7 +817,7 @@ EidosValue_SP Eidos_ExecuteFunction_ncol(const std::vector<EidosValue_SP> &p_arg
 	
 	const int64_t *dim_values = data_value->Dimensions();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(dim_values[1]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(dim_values[1]));
 }
 
 // (integer$)nrow(* x)
@@ -831,7 +831,7 @@ EidosValue_SP Eidos_ExecuteFunction_nrow(const std::vector<EidosValue_SP> &p_arg
 	
 	const int64_t *dim_values = data_value->Dimensions();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(dim_values[0]));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(dim_values[0]));
 }
 
 // (*)rbind(...)
@@ -912,10 +912,10 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 		case EidosValueType::kValueVOID:	break;		// never hit	// NOLINT(*-branch-clone) : intentional consecutive branches
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
-		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->reserve(result_length)); break;
-		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector()); break;
-		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(result_class))->reserve(result_length)); break;
+		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve(result_length)); break;
+		case EidosValueType::kValueFloat:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->reserve(result_length)); break;
+		case EidosValueType::kValueString:	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String()); break;
+		case EidosValueType::kValueObject:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object(result_class))->reserve(result_length)); break;
 	}
 	
 	EidosValue *result = result_SP.get();
@@ -999,7 +999,7 @@ EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p
 	// contributed by Nick O'Brien (@nobrien97)
 	
 	EidosValue *x_value = p_arguments[0].get();
-	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (x_value->DimensionCount() != 2)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_lowerTri): in function lowerTri() x is not a matrix." << EidosTerminate(nullptr);
@@ -1047,7 +1047,7 @@ EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p
 	// contributed by Nick O'Brien (@nobrien97)
 	
 	EidosValue *x_value = p_arguments[0].get();
-	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (x_value->DimensionCount() != 2)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_upperTri): in function upperTri() x is not a matrix." << EidosTerminate(nullptr);
@@ -1141,15 +1141,15 @@ EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arg
 	}
 	
 	// 2: If x is 1 and nrow is non-NULL, return an identity matrix of size nrow (by ncol, if specified)
-	if ((x_type == EidosValueType::kValueInt) && (x_count == 1) && (x_value->IntAtIndex(0, nullptr) == 1) && !nrow_null)
+	if ((x_type == EidosValueType::kValueInt) && (x_count == 1) && (x_value->IntAtIndex_NOCAST(0, nullptr) == 1) && !nrow_null)
 	{
-		int64_t nrow = nrow_value->IntAtIndex(0, nullptr);
-		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex(0, nullptr));
+		int64_t nrow = nrow_value->IntAtIndex_NOCAST(0, nullptr);
+		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex_NOCAST(0, nullptr));
 		
 		if ((nrow < 1) || (ncol < 1))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() when an identity matrix is being generated, both dimensions of that matrix must be >= 1." << EidosTerminate(nullptr);
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(nrow * ncol);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(nrow * ncol);
 		EidosValue_SP result_SP(int_result);
 		
 		for (int64_t col_index = 0; col_index < ncol; ++col_index)
@@ -1165,12 +1165,12 @@ EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arg
 	// 3: If x is a singleton integer, nrow/ncol must not be set, and a square identity matrix of size x is returned
 	if ((x_type == EidosValueType::kValueInt) && (x_count == 1) && nrow_null && ncol_null)
 	{
-		int64_t size = x_value->IntAtIndex(0, nullptr);
+		int64_t size = x_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (size < 1)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() when x specificies an identity matrix size, that size must be >= 1." << EidosTerminate(nullptr);
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(size * size);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(size * size);
 		EidosValue_SP result_SP(int_result);
 		
 		for (int64_t col_index = 0; col_index < size; ++col_index)
@@ -1186,8 +1186,8 @@ EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arg
 	// 4: If x is a logical/integer/float vector of length >= 2, use the values of x for the diagonal
 	if (((x_type == EidosValueType::kValueLogical) || (x_type == EidosValueType::kValueInt) || (x_type == EidosValueType::kValueFloat)) && (x_count >= 2))
 	{
-		int64_t nrow = (nrow_null ? x_count : nrow_value->IntAtIndex(0, nullptr));
-		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex(0, nullptr));		// it is weird that the default is nrow, not x_count, but this mirrors R's behavior
+		int64_t nrow = (nrow_null ? x_count : nrow_value->IntAtIndex_NOCAST(0, nullptr));
+		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex_NOCAST(0, nullptr));		// it is weird that the default is nrow, not x_count, but this mirrors R's behavior
 		int64_t max_diag_index = std::min(nrow, ncol);
 		
 		if (max_diag_index != x_count)

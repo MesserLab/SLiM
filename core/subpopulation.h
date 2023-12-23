@@ -377,7 +377,7 @@ public:
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	IndividualSex _GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null);
-	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2, EidosValue_Object_vector *p_result)
+	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2, EidosValue_Object *p_result)
 	{
 		if (p_proposed_child_accepted)
 		{

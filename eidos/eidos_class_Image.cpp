@@ -130,7 +130,7 @@ EidosValue_SP EidosImage::ValueForIntegerChannel(EidosValue_SP &p_channel_cache,
 		return p_channel_cache;
 	
 	int64_t pixel_stride = 0, pixel_suboffset = 0;
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(height_ * width_);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(int_result);
 	
 	GetChannelMetrics(p_channel, pixel_stride, pixel_suboffset);
@@ -158,7 +158,7 @@ EidosValue_SP EidosImage::ValueForFloatChannel(EidosValue_SP &p_channel_cache, C
 		return p_channel_cache;
 	
 	int64_t pixel_stride = 0, pixel_suboffset = 0;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(height_ * width_);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(float_result);
 	
 	GetChannelMetrics(p_channel, pixel_stride, pixel_suboffset);
@@ -182,11 +182,11 @@ EidosValue_SP EidosImage::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gEidosID_width:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(width_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(width_));
 		case gEidosID_height:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(height_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(height_));
 		case gEidosID_bitsPerChannel:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(8));	// only 8 is supported for now, but this is for future expansion
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(8));	// only 8 is supported for now, but this is for future expansion
 		case gEidosID_isGrayscale:
 			return (is_grayscale_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gEidosID_integerR:
@@ -228,7 +228,7 @@ EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, c
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
 	
-	std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
+	std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
 	
 	unsigned error;
 	
@@ -260,7 +260,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 	if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueString) && (p_arguments[0]->Count() == 1))
 	{
 		EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
-		objectElement = new EidosImage(filePath_value->StringRefAtIndex(0, nullptr));
+		objectElement = new EidosImage(filePath_value->StringRefAtIndex_NOCAST(0, nullptr));
 	}
 	else if ((p_arguments.size() == 1) &&
 			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) &&
@@ -284,7 +284,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(1, 1, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				int64_t int_value = numeric_value->IntAtIndex(0, nullptr);
+				int64_t int_value = numeric_value->IntAtIndex_NOCAST(0, nullptr);
 				
 				if ((int_value < 0) || (int_value > 255))
 					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
@@ -297,7 +297,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(width, height, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				EidosValue_Int_vector *int_values = (EidosValue_Int_vector *)p_arguments[0].get();
+				EidosValue_Int *int_values = (EidosValue_Int *)p_arguments[0].get();
 				const int64_t *int_data = int_values->data();
 				
 				// translate the data from by-column to by-row, to match the in-memory format of images
@@ -323,7 +323,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(1, 1, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				double float_value = numeric_value->FloatAtIndex(0, nullptr);
+				double float_value = numeric_value->FloatAtIndex_NOCAST(0, nullptr);
 				
 				if ((float_value < 0.0) || (float_value > 1.0))
 					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
@@ -337,7 +337,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(width, height, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				EidosValue_Float_vector *float_values = (EidosValue_Float_vector *)p_arguments[0].get();
+				EidosValue_Float *float_values = (EidosValue_Float *)p_arguments[0].get();
 				const double *float_data = float_values->data();
 				
 				// translate the data from by-column to by-row, to match the in-memory format of images
@@ -366,7 +366,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): the Image() constructor requires either a singleton string (a file path) or a numeric vector (a matrix of pixel values)." << EidosTerminate();
 	}
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosImage_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosImage_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();

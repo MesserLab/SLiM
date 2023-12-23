@@ -153,10 +153,16 @@ EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbo
 			trueConstant = new EidosSymbolTableEntry(gEidosID_T, gStaticEidosValue_LogicalT);
 			falseConstant = new EidosSymbolTableEntry(gEidosID_F, gStaticEidosValue_LogicalF);
 			nullConstant = new EidosSymbolTableEntry(gEidosID_NULL, gStaticEidosValueNULL);
-			piConstant = new EidosSymbolTableEntry(gEidosID_PI, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_PI)));
-			eConstant = new EidosSymbolTableEntry(gEidosID_E, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(M_E)));
-			infConstant = new EidosSymbolTableEntry(gEidosID_INF, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::infinity())));
-			nanConstant = new EidosSymbolTableEntry(gEidosID_NAN, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(std::numeric_limits<double>::quiet_NaN())));
+			piConstant = new EidosSymbolTableEntry(gEidosID_PI, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(M_PI)));
+			eConstant = new EidosSymbolTableEntry(gEidosID_E, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(M_E)));
+			infConstant = new EidosSymbolTableEntry(gEidosID_INF, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::numeric_limits<double>::infinity())));
+			nanConstant = new EidosSymbolTableEntry(gEidosID_NAN, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::numeric_limits<double>::quiet_NaN())));
+			
+			// ensure that the constant_ flag is set on all of these values, to prevent modification in all code paths
+			piConstant->second->MarkAsConstant();
+			eConstant->second->MarkAsConstant();
+			infConstant->second->MarkAsConstant();
+			nanConstant->second->MarkAsConstant();
 		}
 		
 		// We can use InitializeConstantSymbolEntry() here since we obey its requirements (see header)
@@ -461,8 +467,8 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
 	// values directly inside a value we just set in the symbol table.  Evaluate_For() is the worst offender in this
 	// because it wants to set up an index variable once and then munge its value directly each time through the loop,
-	// for speed.  _ProcessSubsetAssignment() also does it in one case, where it needs to change a singleton into a
-	// vector value so that it can do a subscripted assignment.  For that special purpose, this function is provided.
+	// for speed.  For that special purpose, this function is provided.
+	//
 	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
 	if (p_value->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::SetValueForSymbolNoCopy): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
@@ -550,6 +556,9 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
 	if ((p_value->UseCount() != 1) || p_value->Invisible())
 		p_value = p_value->CopyValues();
+	
+	// Now we have a private value, which we can mark as constant
+	p_value->MarkAsConstant();
 	
 	// Then ask the defined constants table to add the constant
 	definedConstantsTable->InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value));

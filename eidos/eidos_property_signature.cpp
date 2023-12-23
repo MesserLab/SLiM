@@ -50,11 +50,14 @@ EidosPropertySignature::~EidosPropertySignature(void)
 {
 }
 
-bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
+void EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 {
 	uint32_t retmask = value_mask_;
 	bool value_type_ok = true;
-	bool value_exact_match = true;
+	
+	// BCH 12/22/2023: We used to allow type promotion when assigning into properties.  I think we ought to be
+	// strict about that; this comes from the days when Eidos was much more oriented towards automatic type
+	// promotion, but it's bug-prone and provides little value.
 	
 	switch (p_value.Type())
 	{
@@ -73,12 +76,12 @@ bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 			value_type_ok = false;
 			break;
 		case EidosValueType::kValueLogical:
-			value_type_ok = !!(retmask & (kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat));		// can give logical to an int or float property
-			value_exact_match = !!(retmask & kEidosValueMaskLogical);
+			//value_type_ok = !!(retmask & (kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskFloat));		// can give logical to an int or float property
+			value_type_ok = !!(retmask & kEidosValueMaskLogical);
 			break;
 		case EidosValueType::kValueInt:
-			value_type_ok = !!(retmask & (kEidosValueMaskInt | kEidosValueMaskFloat));								// can give int to a float property
-			value_exact_match = !!(retmask & kEidosValueMaskInt);
+			//value_type_ok = !!(retmask & (kEidosValueMaskInt | kEidosValueMaskFloat));								// can give int to a float property
+			value_type_ok = !!(retmask & kEidosValueMaskInt);
 			break;
 		case EidosValueType::kValueFloat:
 			value_type_ok = !!(retmask & kEidosValueMaskFloat);
@@ -103,8 +106,6 @@ bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 		EIDOS_TERMINATION << "ERROR (EidosPropertySignature::CheckAssignedValue): value cannot be type " << p_value.Type() << " for " << PropertyType() << " property " << property_name_ << "." << EidosTerminate(nullptr);
 	
 	// No check for size, because we're checking a whole vector being assigned into an object; EidosValue_Object will check the sizes
-	
-	return value_exact_match;
 }
 
 void EidosPropertySignature::CheckResultValue(const EidosValue &p_value) const

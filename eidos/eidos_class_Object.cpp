@@ -104,7 +104,7 @@ void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValu
 	
 	bool readonly = signature->read_only_;
 	
-	// Check whether setting a constant was attempted; we can do this on behalf of all our subclasses
+	// Check whether setting a read-only property was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
 		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
 	else
@@ -245,7 +245,7 @@ EidosValue_SP EidosObject::ExecuteMethod_stringRepresentation(EidosGlobalStringI
 	
 	Print(oss);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(oss.str()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(oss.str()));
 }
 
 EidosValue_SP EidosObject::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -603,7 +603,7 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	EidosValue_String *propertyName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &match_string = (has_match_string ? propertyName_value->StringRefAtIndex(0, nullptr) : gEidosStr_empty_string);
+	const std::string &match_string = (has_match_string ? propertyName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 	bool signature_found = false;
 	
@@ -634,7 +634,7 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &match_string = (has_match_string ? methodName_value->StringRefAtIndex(0, nullptr) : gEidosStr_empty_string);
+	const std::string &match_string = (has_match_string ? methodName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	
@@ -681,7 +681,7 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
 
 

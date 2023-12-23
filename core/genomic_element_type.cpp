@@ -36,9 +36,12 @@
 #pragma mark -
 
 GenomicElementType::GenomicElementType(Species &p_species, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
-	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class))),
+	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_GenomicElementType_Class))),
 	species_(p_species), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(std::move(p_mutation_type_ptrs)), mutation_fractions_(std::move(p_mutation_fractions)), mutation_matrix_(nullptr)
 {
+	// self_symbol_ is always a constant, but can't be marked as such on construction
+	self_symbol_.second->MarkAsConstant();
+	
 	InitializeDraws();
 }
 
@@ -106,7 +109,7 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	return mutation_type_ptrs_[gsl_ran_discrete(rng, lookup_mutation_type_)];
 }
 
-void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_vector_SP &p_mutation_matrix)
+void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_SP &p_mutation_matrix)
 {
 	mutation_matrix_ = p_mutation_matrix;
 	
@@ -124,17 +127,17 @@ void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_vect
 		static int required_zeros_4x4[4] = {0, 5, 10, 15};
 		
 		for (int required_zeros : required_zeros_4x4)
-			if (mutation_matrix_->FloatAtIndex(required_zeros, nullptr) != 0.0)
+			if (mutation_matrix_->FloatAtIndex_NOCAST(required_zeros, nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
 		// check also for no negative values, and for all values being finite
 		for (int row = 0; row < 4; ++row)
 		{
-			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
-			double row_2 = mutation_matrix_->FloatAtIndex(row + 4, nullptr);
-			double row_3 = mutation_matrix_->FloatAtIndex(row + 8, nullptr);
-			double row_4 = mutation_matrix_->FloatAtIndex(row + 12, nullptr);
+			double row_1 = mutation_matrix_->FloatAtIndex_NOCAST(row, nullptr);
+			double row_2 = mutation_matrix_->FloatAtIndex_NOCAST(row + 4, nullptr);
+			double row_3 = mutation_matrix_->FloatAtIndex_NOCAST(row + 8, nullptr);
+			double row_4 = mutation_matrix_->FloatAtIndex_NOCAST(row + 12, nullptr);
 			
 			if ((row_1 < 0.0) || (row_2 < 0.0) || (row_3 < 0.0) || (row_4 < 0.0) ||
 				!std::isfinite(row_1) || !std::isfinite(row_2) || !std::isfinite(row_3) || !std::isfinite(row_4))
@@ -151,17 +154,17 @@ void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_vect
 		static int required_zeros_64x4[64] = {0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51, 68, 69, 70, 71, 84, 85, 86, 87, 100, 101, 102, 103, 116, 117, 118, 119, 136, 137, 138, 139, 152, 153, 154, 155, 168, 169, 170, 171, 184, 185, 186, 187, 204, 205, 206, 207, 220, 221, 222, 223, 236, 237, 238, 239, 252, 253, 254, 255};
 		
 		for (int required_zeros : required_zeros_64x4)
-			if (mutation_matrix_->FloatAtIndex(required_zeros, nullptr) != 0.0)
+			if (mutation_matrix_->FloatAtIndex_NOCAST(required_zeros, nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
 		// check also for no negative values
 		for (int row = 0; row < 64; ++row)
 		{
-			double row_1 = mutation_matrix_->FloatAtIndex(row, nullptr);
-			double row_2 = mutation_matrix_->FloatAtIndex(row + 64, nullptr);
-			double row_3 = mutation_matrix_->FloatAtIndex(row + 128, nullptr);
-			double row_4 = mutation_matrix_->FloatAtIndex(row + 192, nullptr);
+			double row_1 = mutation_matrix_->FloatAtIndex_NOCAST(row, nullptr);
+			double row_2 = mutation_matrix_->FloatAtIndex_NOCAST(row + 64, nullptr);
+			double row_3 = mutation_matrix_->FloatAtIndex_NOCAST(row + 128, nullptr);
+			double row_4 = mutation_matrix_->FloatAtIndex_NOCAST(row + 192, nullptr);
 			
 			if ((row_1 < 0.0) || (row_2 < 0.0) || (row_3 < 0.0) || (row_4 < 0.0) ||
 				!std::isfinite(row_1) || !std::isfinite(row_2) || !std::isfinite(row_3) || !std::isfinite(row_4))
@@ -251,12 +254,12 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:			// ACCELERATED
 		{
 			if (!cached_value_getype_id_)
-				cached_value_getype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genomic_element_type_id_));
+				cached_value_getype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(genomic_element_type_id_));
 			return cached_value_getype_id_;
 		}
 		case gID_mutationTypes:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class);
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto mut_type : mutation_type_ptrs_)
@@ -266,7 +269,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationFractions:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(mutation_fractions_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mutation_fractions_));
 		}
 		case gID_mutationMatrix:
 		{
@@ -276,12 +279,12 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_species:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 		
 			// variables
 		case gEidosID_color:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_));
 		case gID_tag:			// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -289,7 +292,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property tag accessed on genomic element type before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -300,7 +303,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -314,7 +317,7 @@ EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_value
 
 EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -336,7 +339,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 	{
 		case gEidosID_color:
 		{
-			color_ = p_value.StringAtIndex(0, nullptr);
+			color_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			if (!color_.empty())
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			
@@ -347,7 +350,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -390,7 +393,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, &species_.community_, &species_, "setMutationFractions()");		// SPECIES CONSISTENCY CHECK
-		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
+		double proportion = proportions_value->NumericAtIndex_NOCAST(mut_type_index, nullptr);
 		
 		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
 			EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationFractions): setMutationFractions() proportions must be greater than or equal to zero (" << EidosStringForFloat(proportion) << " supplied)." << EidosTerminate();
@@ -429,7 +432,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	
 	EidosValue *mutationMatrix_value = p_arguments[0].get();
 	
-	SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
+	SetNucleotideMutationMatrix(EidosValue_Float_SP((EidosValue_Float *)(mutationMatrix_value)));
 	
 	// the change to the mutation matrix means everything downstream has to be recached
 	species_.CacheNucleotideMatrices();

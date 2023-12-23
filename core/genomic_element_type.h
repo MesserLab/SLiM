@@ -71,7 +71,7 @@ public:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;					// a user-defined tag value
 	
-	EidosValue_Float_vector_SP mutation_matrix_;						// in nucleotide-based models only, the 4x4 or 64x4 float mutation matrix
+	EidosValue_Float_SP mutation_matrix_;								// in nucleotide-based models only, the 4x4 or 64x4 float mutation matrix
 	double *mm_thresholds = nullptr;									// mutation matrix threshold values for determining derived nucleotides; cached in CacheNucleotideMatrices()
 	
 	GenomicElementType(const GenomicElementType&) = delete;				// no copying
@@ -83,7 +83,7 @@ public:
 	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions
 	MutationType *DrawMutationType(void) const;					// draw a mutation type from the distribution for this genomic element type
 	
-	void SetNucleotideMutationMatrix(const EidosValue_Float_vector_SP &p_mutation_matrix);
+	void SetNucleotideMutationMatrix(const EidosValue_Float_SP &p_mutation_matrix);
 	
 	
 	//

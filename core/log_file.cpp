@@ -130,7 +130,7 @@ EidosValue_SP LogFile::_GeneratedValue_Cycle(const LogFileGeneratorInfo &p_gener
 	Species *species = all_species[p_generator_info.objectid_];
 	slim_tick_t cycle = species->Cycle();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(cycle));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_generator_info)
@@ -139,7 +139,7 @@ EidosValue_SP LogFile::_GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	std::string stage_string = StringForSLiMCycleStage(cycle_stage);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(stage_string));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
@@ -162,7 +162,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGenerator
 		}
 		
 		double sex_ratio = (total_individuals == 0) ? 0.0 : (total_males / (double)total_individuals);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sex_ratio));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sex_ratio));
 	}
 	else
 	{
@@ -181,7 +181,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 	for (auto &subpop_iter : species->population_.subpops_)
 		total_individuals += (subpop_iter.second)->CurrentSubpopSize();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(total_individuals));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(total_individuals));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
@@ -193,7 +193,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGenera
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
 		double sex_ratio = (subpop_size == 0) ? 0.0 : ((subpop_size - first_male_index) / (double)subpop_size);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sex_ratio));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sex_ratio));
 	}
 	else
 	{
@@ -209,7 +209,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorI
 	if (subpop)
 	{
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_size));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpop_size));
 	}
 	else
 	{
@@ -223,7 +223,7 @@ EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_genera
 #pragma unused(p_generator_info)
 	slim_tick_t tick = community_.Tick();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tick));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
@@ -562,13 +562,13 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		//case gEidosID_allKeys:	// not technically overridden here, but we override AllKeys() to provide new behavior
 		case gEidosID_filePath:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(user_file_path_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(user_file_path_));
 		case gID_logInterval:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(log_interval_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(log_interval_));
 			
 			// variables
 		case gID_precision:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(float_precision_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(float_precision_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -576,7 +576,7 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (LogFile::GetProperty): property tag accessed on simulation object before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -592,7 +592,7 @@ void LogFile::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 	{
 		case gID_precision:
 		{
-			int64_t value = p_value.IntAtIndex(0, nullptr);
+			int64_t value = p_value.IntAtIndex_NOCAST(0, nullptr);
 			
 			if ((value < 1) || (value > 22))
 				EIDOS_TERMINATION << "ERROR (LogFile::SetProperty): property precision must be in [1,22]." << EidosTerminate();
@@ -603,7 +603,7 @@ void LogFile::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 		}
 		case gID_tag:
 		{
-			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
 			return;
@@ -663,8 +663,8 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	EidosValue_String *source_value = (EidosValue_String *)p_arguments[1].get();
 	EidosValue_SP context_value = p_arguments[2];
 	
-	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
-	const std::string &source = source_value->StringRefAtIndex(0, nullptr);
+	const std::string &column_name = columnName_value->StringRefAtIndex_NOCAST(0, nullptr);
+	const std::string &source = source_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on parsing/running script blocks
 	EidosErrorContext error_context_save = gEidosErrorContext;
@@ -746,8 +746,8 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	EidosValue_String *source_value = (EidosValue_String *)p_arguments[1].get();
 	EidosValue_SP context_value = p_arguments[2];
 	
-	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
-	const std::string &source = source_value->StringRefAtIndex(0, nullptr);
+	const std::string &column_name = columnName_value->StringRefAtIndex_NOCAST(0, nullptr);
+	const std::string &source = source_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	EidosScript *source_script = new EidosScript(source, -1);
@@ -845,16 +845,16 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringI
 	
 	if (subpop_value->Type() == EidosValueType::kValueInt)
 	{
-		subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr));
+		subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr));
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex(0, nullptr));
+		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 #else
-		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex(0, nullptr));
+		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 #endif
 		
 		subpop_id = subpop->subpopulation_id_;
@@ -879,16 +879,16 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 	
 	if (subpop_value->Type() == EidosValueType::kValueInt)
 	{
-		subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr));
+		subpop_id = SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex_NOCAST(0, nullptr));
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex(0, nullptr));
+		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 #else
-		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex(0, nullptr));
+		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 #endif
 		
 		subpop_id = subpop->subpopulation_id_;
@@ -908,7 +908,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSuppliedColumn(EidosGlobalStringID p_met
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addSuppliedColumn");
 	
 	EidosValue_String *columnName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
+	const std::string &column_name = columnName_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_SuppliedColumn, nullptr, -1, EidosValue_SP());
 	column_names_.emplace_back(column_name);
@@ -966,7 +966,7 @@ EidosValue_SP LogFile::ExecuteMethod_setLogInterval(EidosGlobalStringID p_method
 	else
 	{
 		autologging = true;
-		logInterval = logInterval_value->IntAtIndex(0, nullptr);
+		logInterval = logInterval_value->IntAtIndex_NOCAST(0, nullptr);
 	}
 	
 	SetLogInterval(autologging, logInterval);
@@ -986,9 +986,9 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	
 	// Note that the parameters and their interpretation is different from Community::ExecuteMethod_createLogFile();
 	// in particular, NULL here means "keep the existing value"
-	const std::string &filePath = filePath_value->StringRefAtIndex(0, nullptr);
+	const std::string &filePath = filePath_value->StringRefAtIndex_NOCAST(0, nullptr);
 	std::vector<const std::string *> initialContents;
-	bool append = append_value->LogicalAtIndex(0, nullptr);
+	bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool do_compress = compress_;
 	std::string sep = sep_;
 	
@@ -998,14 +998,14 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 		int ic_count = initialContents_value->Count();
 		
 		for (int ic_index = 0; ic_index < ic_count; ++ic_index)
-			initialContents.emplace_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
+			initialContents.emplace_back(&ic_string_value->StringRefAtIndex_NOCAST(ic_index, nullptr));
 	}
 	
 	if (compress_value->Type() != EidosValueType::kValueNULL)
-		do_compress = compress_value->LogicalAtIndex(0, nullptr);
+		do_compress = compress_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (sep_value->Type() != EidosValueType::kValueNULL)
-		sep = sep_value->StringRefAtIndex(0, nullptr);
+		sep = sep_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	ConfigureFile(filePath, initialContents, append, do_compress, sep);
 	
@@ -1019,7 +1019,7 @@ EidosValue_SP LogFile::ExecuteMethod_setSuppliedValue(EidosGlobalStringID p_meth
 	EidosValue_String *columnName_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue_SP value = p_arguments[1];
 	
-	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
+	const std::string &column_name = columnName_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	// check that the column name exists and is a supplied column
 	auto col_iter = std::find(column_names_.begin(), column_names_.end(), column_name);
