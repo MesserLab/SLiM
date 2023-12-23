@@ -321,7 +321,7 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type, bool p_singleton) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), is_singleton_(p_singleton), dim_(nullptr)
+EidosValue::EidosValue(EidosValueType p_value_type) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), dim_(nullptr)
 {
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 	valueTrackingCount++;
@@ -968,7 +968,7 @@ void EidosValue_NULL::Sort(bool p_ascending)
 #pragma mark EidosValue_Logical
 #pragma mark -
 
-EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec) : EidosValue(EidosValueType::kValueLogical, false)
+EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec) : EidosValue(EidosValueType::kValueLogical)
 {
 	size_t count = p_logicalvec.size();
 	const eidos_logical_t *values = p_logicalvec.data();
@@ -979,12 +979,12 @@ EidosValue_Logical::EidosValue_Logical(const std::vector<eidos_logical_t> &p_log
 		set_logical_no_check(values[index], index);
 }
 
-EidosValue_Logical::EidosValue_Logical(eidos_logical_t p_logical1) : EidosValue(EidosValueType::kValueLogical, false)	// protected
+EidosValue_Logical::EidosValue_Logical(eidos_logical_t p_logical1) : EidosValue(EidosValueType::kValueLogical)	// protected
 {
 	push_logical(p_logical1);
 }
 
-EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list) : EidosValue(EidosValueType::kValueLogical, false)
+EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list) : EidosValue(EidosValueType::kValueLogical)
 {
 	reserve(p_init_list.size());
 	
@@ -992,7 +992,7 @@ EidosValue_Logical::EidosValue_Logical(std::initializer_list<eidos_logical_t> p_
 		push_logical_no_check(init_item);
 }
 
-EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueLogical, false)
+EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueLogical)
 {
 	resize_no_initialize(p_count);
 	
@@ -1168,17 +1168,17 @@ void EidosValue_Logical::erase_index(size_t p_index)
 #pragma mark EidosValue_String
 #pragma mark -
 
-EidosValue_String::EidosValue_String(const std::vector<std::string> &p_stringvec) : EidosValue(EidosValueType::kValueString, false), values_(p_stringvec)
+EidosValue_String::EidosValue_String(const std::vector<std::string> &p_stringvec) : EidosValue(EidosValueType::kValueString), values_(p_stringvec)
 {
 }
 
-EidosValue_String::EidosValue_String(std::initializer_list<const std::string> p_init_list) : EidosValue(EidosValueType::kValueString, false)
+EidosValue_String::EidosValue_String(std::initializer_list<const std::string> p_init_list) : EidosValue(EidosValueType::kValueString)
 {
 	for (const auto &init_item : p_init_list)
 		values_.emplace_back(init_item);
 }
 
-EidosValue_String::EidosValue_String(std::initializer_list<const char *> p_init_list) : EidosValue(EidosValueType::kValueString, false)
+EidosValue_String::EidosValue_String(std::initializer_list<const char *> p_init_list) : EidosValue(EidosValueType::kValueString)
 {
 	for (const auto &init_item : p_init_list)
 		values_.emplace_back(init_item);
@@ -1314,7 +1314,7 @@ void EidosValue_String::Sort(bool p_ascending)
 #pragma mark EidosValue_Int
 #pragma mark -
 
-EidosValue_Int::EidosValue_Int(const std::vector<int16_t> &p_intvec) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Int::EidosValue_Int(const std::vector<int16_t> &p_intvec) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	size_t count = p_intvec.size();
 	const int16_t *values = p_intvec.data();
@@ -1325,7 +1325,7 @@ EidosValue_Int::EidosValue_Int(const std::vector<int16_t> &p_intvec) : EidosValu
 		set_int_no_check(values[index], index);
 }
 
-EidosValue_Int::EidosValue_Int(const std::vector<int32_t> &p_intvec) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Int::EidosValue_Int(const std::vector<int32_t> &p_intvec) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	size_t count = p_intvec.size();
 	const int32_t *values = p_intvec.data();
@@ -1336,7 +1336,7 @@ EidosValue_Int::EidosValue_Int(const std::vector<int32_t> &p_intvec) : EidosValu
 		set_int_no_check(values[index], index);
 }
 
-EidosValue_Int::EidosValue_Int(const std::vector<int64_t> &p_intvec) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Int::EidosValue_Int(const std::vector<int64_t> &p_intvec) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	size_t count = p_intvec.size();
 	const int64_t *values = p_intvec.data();
@@ -1347,7 +1347,7 @@ EidosValue_Int::EidosValue_Int(const std::vector<int64_t> &p_intvec) : EidosValu
 		set_int_no_check(values[index], index);
 }
 
-EidosValue_Int::EidosValue_Int(std::initializer_list<int64_t> p_init_list) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Int::EidosValue_Int(std::initializer_list<int64_t> p_init_list) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	reserve(p_init_list.size());
 	
@@ -1355,7 +1355,7 @@ EidosValue_Int::EidosValue_Int(std::initializer_list<int64_t> p_init_list) : Eid
 		push_int_no_check(init_item);
 }
 
-EidosValue_Int::EidosValue_Int(const int64_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Int::EidosValue_Int(const int64_t *p_values, size_t p_count) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	resize_no_initialize(p_count);
 	
@@ -1536,7 +1536,7 @@ void EidosValue_Int::erase_index(size_t p_index)
 #pragma mark EidosValue_Float
 #pragma mark -
 
-EidosValue_Float::EidosValue_Float(const std::vector<double> &p_doublevec) : EidosValue(EidosValueType::kValueFloat, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Float::EidosValue_Float(const std::vector<double> &p_doublevec) : EidosValue(EidosValueType::kValueFloat), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	size_t count = p_doublevec.size();
 	const double *values = p_doublevec.data();
@@ -1547,7 +1547,7 @@ EidosValue_Float::EidosValue_Float(const std::vector<double> &p_doublevec) : Eid
 		set_float_no_check(values[index], index);
 }
 
-EidosValue_Float::EidosValue_Float(std::initializer_list<double> p_init_list) : EidosValue(EidosValueType::kValueFloat, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Float::EidosValue_Float(std::initializer_list<double> p_init_list) : EidosValue(EidosValueType::kValueFloat), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	reserve(p_init_list.size());
 	
@@ -1555,7 +1555,7 @@ EidosValue_Float::EidosValue_Float(std::initializer_list<double> p_init_list) : 
 		push_float_no_check(init_item);
 }
 
-EidosValue_Float::EidosValue_Float(const double *p_values, size_t p_count) : EidosValue(EidosValueType::kValueFloat, false), values_(&singleton_value_), count_(0), capacity_(1)
+EidosValue_Float::EidosValue_Float(const double *p_values, size_t p_count) : EidosValue(EidosValueType::kValueFloat), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	resize_no_initialize(p_count);
 	
@@ -1756,7 +1756,7 @@ void EidosValue_Float::erase_index(size_t p_index)
 // See comments on EidosValue_Object::EidosValue_Object() below.  Note this is shared by all species.
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 
-EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject, false),
+EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject),
 	class_(p_class), values_(&singleton_value_), count_(0), capacity_(1)
 {
 	class_uses_retain_release_ = (class_ == gEidosObject_Class ? true : class_->UsesRetainRelease());

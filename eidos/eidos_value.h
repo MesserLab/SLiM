@@ -182,7 +182,6 @@ protected:
 	const EidosValueType cached_type_;						// allows Type() to be an inline function; cached at construction (uint8_t)
 	unsigned int constant_ : 1;								// if set, this EidosValue is a constant and cannot be modified
 	unsigned int invisible_ : 1;							// as in R; if true, the value will not normally be printed to the console
-	unsigned int is_singleton_ : 1;							// allows Count() and IsSingleton() to be inline; cached at construction
 	unsigned int registered_for_patching_ : 1;				// used by EidosValue_Object, otherwise UNINITIALIZED; declared here for reasons of memory packing
 	unsigned int class_uses_retain_release_ : 1;			// used by EidosValue_Object, otherwise UNINITIALIZED; cached from UsesRetainRelease() of class_; true until class_ is set
 	
@@ -191,15 +190,13 @@ protected:
 	virtual void _CopyDimensionsFromValue(const EidosValue *p_value);											// do not call directly; called by CopyDimensionsFromValue()
 	void PrintMatrixFromIndex(int64_t p_ncol, int64_t p_nrow, int64_t p_start_index, std::ostream &p_ostream, const std::string &p_indent = std::string()) const;
 	
-	virtual int Count_Virtual(void) const = 0;				// the number of values in the vector
-	
 public:
 	
 	EidosValue(const EidosValue &p_original) = delete;		// no copy-construct
 	EidosValue& operator=(const EidosValue&) = delete;		// no copying
 	
-	EidosValue(void) = delete;									// no null constructor
-	EidosValue(EidosValueType p_value_type, bool p_singleton);	// must construct with a type identifier and singleton flag, which will be cached
+	EidosValue(void) = delete;								// no null constructor
+	EidosValue(EidosValueType p_value_type);				// must construct with a type identifier, which will be cached
 	virtual ~EidosValue(void);
 	
 	// methods that raise due to various causes, used to avoid duplication and allow efficient inlining
@@ -211,13 +208,12 @@ public:
 	
 	// basic methods
 	inline __attribute__((always_inline)) EidosValueType Type(void) const { return cached_type_; }	// the type of the vector, cached at construction
-	inline __attribute__((always_inline)) bool IsSingleton(void) const { return is_singleton_; }	// true is the subclass is a singleton subclass (not just if Count()==1)
-	inline __attribute__((always_inline)) int Count(void) const { return (is_singleton_ ? 1 : Count_Virtual()); }	// avoid the virtual function call for singletons
 	
 	// constness; note that the internal state of object elements is NOT const, just the EidosValue containing the object elements
 	inline __attribute__((always_inline)) void MarkAsConstant(void) { constant_ = true; }
 	inline __attribute__((always_inline)) bool IsConstant(void) const { return constant_; }
 	
+	virtual int Count(void) const = 0;			// the only real casualty of removing the singleton/vector distinction: this is now a virtual function
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector
 	void Print(std::ostream &p_ostream, const std::string &p_indent = std::string()) const;				// standard printing; same as operator<<
 	void PrintStructure(std::ostream &p_ostream, int max_values) const;	// print structure; no newline
@@ -386,16 +382,14 @@ class EidosValue_VOID final : public EidosValue
 private:
 	typedef EidosValue super;
 	
-protected:
-	virtual int Count_Virtual(void) const override { return 0; }
-	
 public:
 	EidosValue_VOID(const EidosValue_VOID &p_original) = delete;	// no copy-construct
 	EidosValue_VOID& operator=(const EidosValue_VOID&) = delete;	// no copying
 	
-	inline EidosValue_VOID(void) : EidosValue(EidosValueType::kValueVOID, false) { }
+	inline EidosValue_VOID(void) : EidosValue(EidosValueType::kValueVOID) { }
 	inline virtual ~EidosValue_VOID(void) override { }
 	
+	virtual int Count(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -424,16 +418,14 @@ class EidosValue_NULL final : public EidosValue
 private:
 	typedef EidosValue super;
 
-protected:
-	virtual int Count_Virtual(void) const override { return 0; }
-	
 public:
 	EidosValue_NULL(const EidosValue_NULL &p_original) = delete;	// no copy-construct
 	EidosValue_NULL& operator=(const EidosValue_NULL&) = delete;	// no copying
 	
-	inline EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL, false) { }
+	inline EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL) { }
 	inline virtual ~EidosValue_NULL(void) override { }
 	
+	virtual int Count(void) const override { return 0; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -473,18 +465,17 @@ protected:
 	// protected to encourage use of gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
 	explicit EidosValue_Logical(eidos_logical_t p_logical1);
 	
-	virtual int Count_Virtual(void) const override { return (int)count_; }
-	
 public:
 	EidosValue_Logical(const EidosValue_Logical &p_original) = delete;	// no copy-construct
 	EidosValue_Logical& operator=(const EidosValue_Logical&) = delete;	// no copying
 	
-	inline EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical, false) { }
+	inline EidosValue_Logical(void) : EidosValue(EidosValueType::kValueLogical) { }
 	explicit EidosValue_Logical(const std::vector<eidos_logical_t> &p_logicalvec);
 	explicit EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list);
 	explicit EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count);
 	inline virtual ~EidosValue_Logical(void) override { free(values_); }
 	
+	virtual int Count(void) const override { return (int)count_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -565,13 +556,11 @@ protected:
 	
 	inline void UncacheScript(void) { if (cached_script_) { delete cached_script_; cached_script_ = nullptr; } }
 	
-	virtual int Count_Virtual(void) const override { return (int)values_.size(); }
-	
 public:
 	EidosValue_String(const EidosValue_String &p_original) = delete;	// no copy-construct
 	EidosValue_String& operator=(const EidosValue_String&) = delete;	// no copying
-	inline EidosValue_String(void) : EidosValue(EidosValueType::kValueString, false) { }
-	explicit EidosValue_String(const std::string &p_string1) : EidosValue(EidosValueType::kValueString, false), values_({p_string1}) { }
+	inline EidosValue_String(void) : EidosValue(EidosValueType::kValueString) { }
+	explicit EidosValue_String(const std::string &p_string1) : EidosValue(EidosValueType::kValueString), values_({p_string1}) { }
 	explicit EidosValue_String(const std::vector<std::string> &p_stringvec);
 	explicit EidosValue_String(std::initializer_list<const std::string> p_init_list);
 	explicit EidosValue_String(std::initializer_list<const char *> p_init_list);
@@ -581,6 +570,7 @@ public:
 	virtual std::string *StringData_Mutable(void) override { WILL_MODIFY(this); UncacheScript(); return values_.data(); }
 	std::vector<std::string> &StringVectorData(void) { WILL_MODIFY(this); UncacheScript(); return values_; }	// to get the std::vector for direct modification
 	
+	virtual int Count(void) const override { return (int)values_.size(); }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -629,14 +619,12 @@ protected:
 	int64_t *values_ = nullptr;
 	size_t count_, capacity_;
 	
-	virtual int Count_Virtual(void) const override { return (int)count_; }
-	
 public:
 	EidosValue_Int(const EidosValue_Int &p_original) = delete;			// no copy-construct
 	EidosValue_Int& operator=(const EidosValue_Int&) = delete;			// no copying
 	
-	explicit inline EidosValue_Int(void) : EidosValue(EidosValueType::kValueInt, false), values_(&singleton_value_), count_(0), capacity_(1) { }
-	explicit inline EidosValue_Int(int64_t p_int1) : EidosValue(EidosValueType::kValueInt, false), singleton_value_(p_int1), values_(&singleton_value_), count_(1), capacity_(1) { }
+	explicit inline EidosValue_Int(void) : EidosValue(EidosValueType::kValueInt), values_(&singleton_value_), count_(0), capacity_(1) { }
+	explicit inline EidosValue_Int(int64_t p_int1) : EidosValue(EidosValueType::kValueInt), singleton_value_(p_int1), values_(&singleton_value_), count_(1), capacity_(1) { }
 	explicit EidosValue_Int(const std::vector<int16_t> &p_intvec);
 	explicit EidosValue_Int(const std::vector<int32_t> &p_intvec);
 	explicit EidosValue_Int(const std::vector<int64_t> &p_intvec);
@@ -647,6 +635,7 @@ public:
 	virtual const int64_t *IntData(void) const override { return values_; }
 	virtual int64_t *IntData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
+	virtual int Count(void) const override { return (int)count_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -739,14 +728,12 @@ protected:
 	double *values_;
 	size_t count_, capacity_;
 	
-	virtual int Count_Virtual(void) const override { return (int)count_; }
-	
 public:
 	EidosValue_Float(const EidosValue_Float &p_original) = delete;			// no copy-construct
 	EidosValue_Float& operator=(const EidosValue_Float&) = delete;			// no copying
 	
-	explicit inline EidosValue_Float(void) : EidosValue(EidosValueType::kValueFloat, false), values_(&singleton_value_), count_(0), capacity_(1) { }
-	explicit inline EidosValue_Float(double p_float1) : EidosValue(EidosValueType::kValueFloat, false), singleton_value_(p_float1), values_(&singleton_value_), count_(1), capacity_(1) { }
+	explicit inline EidosValue_Float(void) : EidosValue(EidosValueType::kValueFloat), values_(&singleton_value_), count_(0), capacity_(1) { }
+	explicit inline EidosValue_Float(double p_float1) : EidosValue(EidosValueType::kValueFloat), singleton_value_(p_float1), values_(&singleton_value_), count_(1), capacity_(1) { }
 	explicit EidosValue_Float(const std::vector<double> &p_doublevec);
 	explicit EidosValue_Float(std::initializer_list<double> p_init_list);
 	explicit EidosValue_Float(const double *p_values, size_t p_count);
@@ -755,6 +742,7 @@ public:
 	virtual const double *FloatData(void) const override { return values_; }
 	virtual double *FloatData_Mutable(void) override { WILL_MODIFY(this); return values_; }
 	
+	virtual int Count(void) const override { return (int)count_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -862,8 +850,6 @@ protected:
 	//unsigned int registered_for_patching_ : 1;			// for mutation pointer patching; see EidosValue_Object::EidosValue_Object()
 	//unsigned int class_uses_retain_release_ : 1;			// cached from UsesRetainRelease() of class_; true until class_ is set
 	
-	virtual int Count_Virtual(void) const override { return (int)count_; }
-	
 	// check the type of a new element being added to an EidosValue_Object, and update class_uses_retain_release_
 	inline __attribute__((always_inline)) void DeclareClassFromElement(const EidosObject *p_element, bool p_undeclared_is_error = false)
 	{
@@ -908,6 +894,7 @@ public:
 	inline __attribute__((always_inline)) const EidosClass *Class(void) const { return class_; }
 	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
 	
+	virtual int Count(void) const override { return (int)count_; }
 	virtual const std::string &ElementType(void) const override;
 	virtual EidosValue_SP NewMatchingType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;

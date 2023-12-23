@@ -3771,89 +3771,48 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				{
 					EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 					int64_t operand2_value = cached_operand2->IntAtIndex_NOCAST(0, nullptr);
+					int64_t *int_data = lvalue->IntData_Mutable();
 					
-					if ((lvalue_count == 1) && lvalue->IsSingleton())
+					switch (compound_operator)
 					{
-						EidosValue_Int *int_singleton = static_cast<EidosValue_Int *>(lvalue);
-						
-						switch (compound_operator)
+						case EidosTokenType::kTokenPlus:
 						{
-							case EidosTokenType::kTokenPlus:
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 							{
-								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
-								bool overflow = Eidos_add_overflow(operand1_value, operand2_value, &operand1_value);
+								int64_t &int_vec_value = int_data[value_index];
+								bool overflow = Eidos_add_overflow(int_vec_value, operand2_value, &int_vec_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << EidosTerminate(rvalue_node->token_);
-								goto compoundAssignmentSuccess;
 							}
-							case EidosTokenType::kTokenMinus:
+							goto compoundAssignmentSuccess;
+						}
+						case EidosTokenType::kTokenMinus:
+						{
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 							{
-								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
-								bool overflow = Eidos_sub_overflow(operand1_value, operand2_value, &operand1_value);
+								int64_t &int_vec_value = int_data[value_index];
+								bool overflow = Eidos_sub_overflow(int_vec_value, operand2_value, &int_vec_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << EidosTerminate(rvalue_node->token_);
-								goto compoundAssignmentSuccess;
 							}
-							case EidosTokenType::kTokenMult:
+							goto compoundAssignmentSuccess;
+						}
+						case EidosTokenType::kTokenMult:
+						{
+							for (int value_index = 0; value_index < lvalue_count; ++value_index)
 							{
-								int64_t &operand1_value = int_singleton->IntData_Mutable()[0];
-								bool overflow = Eidos_mul_overflow(operand1_value, operand2_value, &operand1_value);
+								int64_t &int_vec_value = int_data[value_index];
+								bool overflow = Eidos_mul_overflow(int_vec_value, operand2_value, &int_vec_value);
 								
 								if (overflow)
 									EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << EidosTerminate(rvalue_node->token_);
-								goto compoundAssignmentSuccess;
 							}
-							default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
-								break;
+							goto compoundAssignmentSuccess;
 						}
-					}
-					else
-					{
-						int64_t *int_data = lvalue->IntData_Mutable();
-						
-						switch (compound_operator)
-						{
-							case EidosTokenType::kTokenPlus:
-							{
-								for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								{
-									int64_t &int_vec_value = int_data[value_index];
-									bool overflow = Eidos_add_overflow(int_vec_value, operand2_value, &int_vec_value);
-									
-									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer addition overflow with the binary '+' operator." << EidosTerminate(rvalue_node->token_);
-								}
-								goto compoundAssignmentSuccess;
-							}
-							case EidosTokenType::kTokenMinus:
-							{
-								for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								{
-									int64_t &int_vec_value = int_data[value_index];
-									bool overflow = Eidos_sub_overflow(int_vec_value, operand2_value, &int_vec_value);
-									
-									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer subtraction overflow with the binary '-' operator." << EidosTerminate(rvalue_node->token_);
-								}
-								goto compoundAssignmentSuccess;
-							}
-							case EidosTokenType::kTokenMult:
-							{
-								for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								{
-									int64_t &int_vec_value = int_data[value_index];
-									bool overflow = Eidos_mul_overflow(int_vec_value, operand2_value, &int_vec_value);
-									
-									if (overflow)
-										EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): integer multiplication overflow with the '*' operator." << EidosTerminate(rvalue_node->token_);
-								}
-								goto compoundAssignmentSuccess;
-							}
-							default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
-								break;
-						}
+						default:	// div, mod, and exp always produce float, so we don't handle them for int; we can't change the type of x here
+							break;
 					}
 				}
 			}
@@ -3864,99 +3823,51 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 				EidosValue *cached_operand2 = rvalue_node->children_[1]->cached_literal_value_.get();	// the numeric constant
 				EidosTokenType compound_operator = rvalue_node->token_->token_type_;
 				double operand2_value = cached_operand2->NumericAtIndex_NOCAST(0, nullptr);				// might be an int64_t and get converted
+				double *float_data = lvalue->FloatData_Mutable();
 				
-				if ((lvalue_count == 1) && lvalue->IsSingleton())
+				switch (compound_operator)
 				{
-					EidosValue_Float *float_singleton = static_cast<EidosValue_Float *>(lvalue);
-					
-					switch (compound_operator)
-					{
-						case EidosTokenType::kTokenPlus:
-							float_singleton->FloatData_Mutable()[0] += operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMinus:
-							float_singleton->FloatData_Mutable()[0] -= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMult:
-							float_singleton->FloatData_Mutable()[0] *= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenDiv:
-							float_singleton->FloatData_Mutable()[0] /= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMod:
+					case EidosTokenType::kTokenPlus:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+							float_data[value_index] += operand2_value;
+						goto compoundAssignmentSuccess;
+						
+					case EidosTokenType::kTokenMinus:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+							float_data[value_index] -= operand2_value;
+						goto compoundAssignmentSuccess;
+						
+					case EidosTokenType::kTokenMult:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+							float_data[value_index] *= operand2_value;
+						goto compoundAssignmentSuccess;
+						
+					case EidosTokenType::kTokenDiv:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
+							float_data[value_index] /= operand2_value;
+						goto compoundAssignmentSuccess;
+						
+					case EidosTokenType::kTokenMod:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
 						{
-							double &operand1_value = float_singleton->FloatData_Mutable()[0];
+							double &float_vec_value = float_data[value_index];
 							
-							operand1_value = fmod(operand1_value, operand2_value);
-							goto compoundAssignmentSuccess;
+							float_vec_value = fmod(float_vec_value, operand2_value);
 						}
-							
-						case EidosTokenType::kTokenExp:
+						goto compoundAssignmentSuccess;
+						
+					case EidosTokenType::kTokenExp:
+						for (int value_index = 0; value_index < lvalue_count; ++value_index)
 						{
-							double &operand1_value = float_singleton->FloatData_Mutable()[0];
+							double &float_vec_value = float_data[value_index];
 							
-							operand1_value = pow(operand1_value, operand2_value);
-							goto compoundAssignmentSuccess;
+							float_vec_value = pow(float_vec_value, operand2_value);
 						}
-							
-						default:
-							// CODE COVERAGE: This is dead code
-							break;
-					}
-					
-				}
-				else
-				{
-					double *float_data = lvalue->FloatData_Mutable();
-					
-					switch (compound_operator)
-					{
-						case EidosTokenType::kTokenPlus:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								float_data[value_index] += operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMinus:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								float_data[value_index] -= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMult:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								float_data[value_index] *= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenDiv:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-								float_data[value_index] /= operand2_value;
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenMod:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-							{
-								double &float_vec_value = float_data[value_index];
-								
-								float_vec_value = fmod(float_vec_value, operand2_value);
-							}
-							goto compoundAssignmentSuccess;
-							
-						case EidosTokenType::kTokenExp:
-							for (int value_index = 0; value_index < lvalue_count; ++value_index)
-							{
-								double &float_vec_value = float_data[value_index];
-								
-								float_vec_value = pow(float_vec_value, operand2_value);
-							}
-							goto compoundAssignmentSuccess;
-							
-						default:
-							// CODE COVERAGE: This is dead code
-							break;
-					}
+						goto compoundAssignmentSuccess;
+						
+					default:
+						// CODE COVERAGE: This is dead code
+						break;
 				}
 				
 				goto compoundAssignmentSuccess;
