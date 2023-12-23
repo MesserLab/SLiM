@@ -1997,14 +1997,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				const std::string &&first_string = (first_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : first_child_value->StringAtIndex_CAST(0, operator_token);
 				const std::string &&second_string = (second_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : second_child_value->StringAtIndex_CAST(0, operator_token);
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(first_string + second_string));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(first_string + second_string));
 			}
 			else
 			{
 				if (first_child_count == second_child_count)
 				{
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
-					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
+					EidosValue_String_SP string_result_SP = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String());
+					EidosValue_String *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex_CAST(value_index, operator_token) + second_child_value->StringAtIndex_CAST(value_index, operator_token));
@@ -2014,8 +2014,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				else if (first_child_count == 1)
 				{
 					std::string singleton_string = (first_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : first_child_value->StringAtIndex_CAST(0, operator_token);
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
-					EidosValue_String_vector *string_result = string_result_SP->Reserve(second_child_count);
+					EidosValue_String_SP string_result_SP = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String());
+					EidosValue_String *string_result = string_result_SP->Reserve(second_child_count);
 					
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						string_result->PushString(singleton_string + second_child_value->StringAtIndex_CAST(value_index, operator_token));
@@ -2025,8 +2025,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				else if (second_child_count == 1)
 				{
 					std::string singleton_string = (second_child_type == EidosValueType::kValueNULL) ? gEidosStr_NULL : second_child_value->StringAtIndex_CAST(0, operator_token);
-					EidosValue_String_vector_SP string_result_SP = EidosValue_String_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
-					EidosValue_String_vector *string_result = string_result_SP->Reserve(first_child_count);
+					EidosValue_String_SP string_result_SP = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String());
+					EidosValue_String *string_result = string_result_SP->Reserve(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex_CAST(value_index, operator_token) + singleton_string);
@@ -5236,7 +5236,7 @@ EidosValue_SP EidosInterpreter::Evaluate_String(const EidosASTNode *p_node)
 	if (!result_SP)
 	{
 		// CODE COVERAGE: This is dead code
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_node->token_->token_string_));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(p_node->token_->token_string_));
 	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_String()");
@@ -5921,14 +5921,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueString)
 				{
 					const std::string *range_vec = range_value->StringData();
-					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
-					EidosValue_String_singleton *index_value = index_value_SP.get();
+					EidosValue_String_SP index_value_SP = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_empty_string));
+					EidosValue_String *index_value = index_value_SP.get();
 					
 					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
-						index_value->SetValue(range_vec[range_index]);
+						index_value->StringVectorData()[0] = range_vec[range_index];
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						

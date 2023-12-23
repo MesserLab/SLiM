@@ -1080,7 +1080,7 @@ EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_name:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name_));
 		}
 		case gID_spatialBounds:
 		{
@@ -1094,7 +1094,7 @@ EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_spatiality:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(spatiality_string_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(spatiality_string_));
 		}
 			
 			// variables
@@ -1857,7 +1857,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapColor(EidosGlobalStringID p_method_id
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_mapColor): mapColor() no color map defined for spatial map." << EidosTerminate();
 	
 	int value_count = values->Count();
-	EidosValue_String_vector *string_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(value_count);
+	EidosValue_String *string_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(value_count);
 	EidosValue_SP result_SP = EidosValue_SP(string_return);
 	
 	for (slim_popsize_t value_index = 0; value_index < value_count; value_index++)
@@ -2701,7 +2701,7 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_gridValues, kEidosValueMaskFloat)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("linear"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapColor, kEidosValueMaskString))->AddNumeric("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapValue, kEidosValueMaskFloat))->AddFloat("point"));

@@ -98,10 +98,10 @@ void SLiM_WarmUp(void)
 		SLiM_ConfigureContext();
 		
 		// Allocate global permanents
-		gStaticEidosValue_StringA = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_A));
-		gStaticEidosValue_StringC = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_C));
-		gStaticEidosValue_StringG = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_G));
-		gStaticEidosValue_StringT = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_T));
+		gStaticEidosValue_StringA = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
+		gStaticEidosValue_StringC = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_C));
+		gStaticEidosValue_StringG = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_G));
+		gStaticEidosValue_StringT = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_T));
 		
 #if DO_MEMORY_CHECKS
 		// Check for a memory limit and prepare for memory-limit testing
@@ -921,7 +921,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringVector(int64_t start, int64_t 
 	else
 	{
 		// return a vector of one-character strings, "T" "A" "T" "A"
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)length);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)length);
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
@@ -961,8 +961,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 	else
 	{
 		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
-		std::string &nuc_string = string_result->StringValue_Mutable();
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String(""));
+		std::string &nuc_string = string_result->StringData_Mutable()[0];
 		
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		

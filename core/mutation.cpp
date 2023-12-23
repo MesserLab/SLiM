@@ -476,7 +476,7 @@ EidosValue *Mutation::GetProperty_Accelerated_isSegregating(EidosObject **p_valu
 
 EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)p_values_size);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{

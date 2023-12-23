@@ -139,7 +139,7 @@ EidosValue_SP LogFile::_GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	std::string stage_string = StringForSLiMCycleStage(cycle_stage);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(stage_string));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
@@ -562,7 +562,7 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		//case gEidosID_allKeys:	// not technically overridden here, but we override AllKeys() to provide new behavior
 		case gEidosID_filePath:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(user_file_path_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(user_file_path_));
 		case gID_logInterval:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(log_interval_));
 			

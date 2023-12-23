@@ -1235,7 +1235,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		}
 		else if (coltype == EidosValueType::kValueString)
 		{
-			EidosValue_String_vector *string_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(nrows);
+			EidosValue_String *string_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(nrows);
 			column_values = EidosValue_SP(string_column);
 			
 			for (int row_index = 0; row_index < nrows; ++row_index)

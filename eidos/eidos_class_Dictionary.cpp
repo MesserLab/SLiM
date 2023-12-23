@@ -340,7 +340,7 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(const std::string &p_
 	
 	// Make a string vector big enough for everything
 	int result_count = longest_col + 1;		// room for the header
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(result_count);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(result_count);
 	EidosValue_SP result_SP(string_result);
 	
 	// Generate the header
@@ -605,7 +605,7 @@ EidosValue_SP EidosDictionaryUnretained::AllKeys(void) const
 		if (key_count == 0)
 			return gStaticEidosValue_String_ZeroVec;
 		
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(key_count);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(key_count);
 		
 		for (const std::string &key : keys)
 			string_result->PushString(key);
@@ -873,7 +873,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				else if (value.is_string())
 				{
 					const std::string &string_value = value;
-					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string_value));
+					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string_value));
 				}
 				else if (value.is_number_integer() || value.is_number_unsigned())
 				{
@@ -963,7 +963,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 						}
 						else if (array_type == nlohmann::json::value_t::string)
 						{
-							EidosValue_String_vector *string_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve((int)array_count);
+							EidosValue_String *string_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve((int)array_count);
 							
 							for (size_t element_index = 0; element_index < array_count; ++element_index)
 							{
@@ -1456,14 +1456,14 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 	
 	if (format_name == "slim")
 	{
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Serialization_SLiM()));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(Serialization_SLiM()));
 	}
 	else if (format_name == "json")
 	{
 		nlohmann::json json_rep = JSONRepresentation();
 		std::string json_string = json_rep.dump();
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(json_string));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(json_string));
 	}
 	else if (format_name == "csv")
 	{
@@ -1525,7 +1525,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getRowValues, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr)->AddLogical_OS("drop", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("slim"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("slim"))));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

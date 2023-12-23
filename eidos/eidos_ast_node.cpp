@@ -102,7 +102,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 	else if (token_type == EidosTokenType::kTokenString)
 	{
 		// This is taken from EidosInterpreter::Evaluate_String and needs to match exactly!
-		cached_literal_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(token_->token_string_));
+		cached_literal_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(token_->token_string_));
 		cached_literal_value_->MarkAsConstant();
 	}
 	else if (token_type == EidosTokenType::kTokenIdentifier)

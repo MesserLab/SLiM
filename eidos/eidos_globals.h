@@ -1189,8 +1189,6 @@ class EidosValue_Logical;
 class EidosValue_Int;
 class EidosValue_Float;
 class EidosValue_String;
-class EidosValue_String_singleton;
-class EidosValue_String_vector;
 class EidosValue_Object;
 
 class EidosObjectPool;
@@ -1224,8 +1222,6 @@ typedef Eidos_intrusive_ptr<EidosValue_Logical>				EidosValue_Logical_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Int>					EidosValue_Int_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Float>				EidosValue_Float_SP;
 typedef Eidos_intrusive_ptr<EidosValue_String>				EidosValue_String_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_singleton>	EidosValue_String_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_String_vector>		EidosValue_String_vector_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Object>				EidosValue_Object_SP;
 
 

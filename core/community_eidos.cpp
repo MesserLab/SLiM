@@ -401,8 +401,8 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!static_model_type_string_WF)
 				{
-					static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
-					static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+					static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("WF"));
+					static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("nonWF"));
 				}
 			}
 			
@@ -427,7 +427,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			SLiMCycleStage cycle_stage = CycleStage();
 			std::string cycle_stage_str = StringForSLiMCycleStage(cycle_stage);
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cycle_stage_str));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(cycle_stage_str));
 		}
 		case gID_tag:
 		{

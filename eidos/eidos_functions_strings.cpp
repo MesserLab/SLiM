@@ -93,7 +93,7 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 	EidosValue_SP result_SP(nullptr);
 	EidosValue_Logical *result_logical = nullptr;
 	EidosValue_Int *result_int = nullptr;
-	EidosValue_String_vector *result_string = nullptr;
+	EidosValue_String *result_string = nullptr;
 	
 	if (value_enum == kIndices)
 	{
@@ -102,7 +102,7 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 	}
 	else if ((value_enum == kElements) || (value_enum == kMatches))
 	{
-		result_string = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+		result_string = (new (gEidosValuePool->AllocateChunk()) EidosValue_String());
 		result_SP = EidosValue_SP(result_string);
 	}
 	else if (value_enum == kLogical)
@@ -390,7 +390,7 @@ EidosValue_SP Eidos_ExecuteFunction_strsplit(const std::vector<EidosValue_SP> &p
 	
 	EidosValue_String *x_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue_String *sep_value = (EidosValue_String *)p_arguments[1].get();
-	EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+	EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 	result_SP = EidosValue_SP(string_result);
 	
 	const std::string &joined_string = x_value->StringRefAtIndex_NOCAST(0, nullptr);
@@ -510,9 +510,9 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 			if (clamped_last >= len) clamped_last = (int)len - 1;
 			
 			if ((clamped_first >= len) || (clamped_last < 0) || (clamped_first > clamped_last))
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_empty_string));
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string_value.substr(clamped_first, clamped_last - clamped_first + 1)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string_value.substr(clamped_first, clamped_last - clamped_first + 1)));
 		}
 		else
 		{
@@ -522,9 +522,9 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 			if (clamped_first < 0) clamped_first = 0;
 			
 			if (clamped_first >= len)						
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_empty_string));
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string_value.substr(clamped_first, len)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string_value.substr(clamped_first, len)));
 		}
 	}
 	else
@@ -537,7 +537,7 @@ EidosValue_SP Eidos_ExecuteFunction_substr(const std::vector<EidosValue_SP> &p_a
 		if (!first_singleton && (arg_first_count != x_count))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_substr): function substr() requires the size of first to be 1, or equal to the size of x." << EidosTerminate(nullptr);
 		
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(x_count);
 		result_SP = EidosValue_SP(string_result);
 		
 		int64_t first0 = arg_first->IntAtIndex_NOCAST(0, nullptr);

@@ -245,7 +245,7 @@ EidosValue_SP EidosObject::ExecuteMethod_stringRepresentation(EidosGlobalStringI
 	
 	Print(oss);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(oss.str()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(oss.str()));
 }
 
 EidosValue_SP EidosObject::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)

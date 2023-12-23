@@ -184,7 +184,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 	localtime_r(&rawtime, &timeinfo);
 	strftime(buffer, 25, "%d-%m-%Y", &timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(buffer)));
 	
 	return result_SP;
 }
@@ -193,7 +193,7 @@ EidosValue_SP Eidos_ExecuteFunction_date(__attribute__((unused)) const std::vect
 EidosValue_SP Eidos_ExecuteFunction_debugIndent(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 #if DEBUG_POINTS_ENABLED
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(EidosDebugPointIndent::Indent()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(EidosDebugPointIndent::Indent()));
 #else
 	return gStaticEidosValue_StringEmpty;
 #endif
@@ -328,7 +328,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *lambdaSource_value = p_arguments[0].get();
-	EidosValue_String_singleton *lambdaSource_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[0].get());
+	EidosValue_String *lambdaSource_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[0].get());
 	EidosScript *script = (lambdaSource_value_singleton ? lambdaSource_value_singleton->CachedScript() : nullptr);
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -375,7 +375,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	}
 	
 	// Execute inside try/catch so we can handle errors well
-	EidosValue_String *timed_value = (EidosValue_String *)p_arguments[1].get();
+	EidosValue *timed_value = p_arguments[1].get();
 	EidosValueType timed_value_type = timed_value->Type();
 	bool timed = false;
 	int timer_type = 0;		// cpu by default, for legacy reasons
@@ -387,7 +387,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	}
 	else if (timed_value_type == EidosValueType::kValueString)
 	{
-		const std::string &timed_string = timed_value->StringRefAtIndex_NOCAST(0, nullptr);
+		const std::string &timed_string = ((EidosValue_String *)timed_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
 		if (timed_string == "cpu")
 		{
@@ -1138,7 +1138,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
-	EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(p_arguments[1].get());
+	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[1].get());
 	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
@@ -1339,11 +1339,11 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 	if (key == "os")
 	{
 #if defined(__APPLE__)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("macOS"));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("macOS"));
 #elif defined(_WIN32) || (_WIN64)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Windows"));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("Windows"));
 #else
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Unix"));		// assumed if we are not macOS or Windows
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("Unix"));		// assumed if we are not macOS or Windows
 #endif
 	}
 	else if (key == "sysname")
@@ -1352,7 +1352,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.sysname));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.sysname));
 	}
 	else if (key == "release")
 	{
@@ -1360,7 +1360,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.release));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.release));
 	}
 	else if (key == "version")
 	{
@@ -1368,7 +1368,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.version));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.version));
 	}
 	else if (key == "nodename")
 	{
@@ -1376,7 +1376,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.nodename));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.nodename));
 	}
 	else if (key == "machine")
 	{
@@ -1384,7 +1384,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		int ret = uname(&name);
 		
 		if (ret == 0)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.machine));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name.machine));
 	}
 #if 0
 	// "login" doesn't work on Windows, and "user" doesn't work on both Windows and Ubuntu 18.04; disabling both for now, nobody has asked for them anyway
@@ -1393,7 +1393,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		char *name = getlogin();
 		
 		if (name)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name));
 	}
 	else if (key == "user")
 	{
@@ -1401,12 +1401,12 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		struct passwd *pwd = getpwuid(uid);
 		
 		if (pwd && pwd->pw_name)
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(pwd->pw_name));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(pwd->pw_name));
 	}
 #endif
 	
 	// if we fall through the here, the value is unknown
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("unknown"));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("unknown"));
 }
 
 //	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F], [logical$ wait = T])
@@ -1524,7 +1524,7 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		
 		// Parse the result into lines and make a result vector
 		std::istringstream result_stream(result);
-		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 		result_SP = EidosValue_SP(string_result);
 		
 		std::string line;
@@ -1561,7 +1561,7 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const std::vect
 	localtime_r(&rawtime, &timeinfo);
 	strftime(buffer, 20, "%H:%M:%S", &timeinfo);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(buffer)));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(buffer)));
 	
 	return result_SP;
 }

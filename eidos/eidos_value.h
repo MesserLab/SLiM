@@ -551,108 +551,47 @@ public:
 //	EidosValue_String_singleton is used for speed, to represent single values.
 //
 
-class EidosValue_String : public EidosValue
+class EidosValue_String final : public EidosValue
 {
 private:
 	typedef EidosValue super;
 
 protected:
-	explicit inline EidosValue_String(bool p_singleton) : EidosValue(EidosValueType::kValueString, p_singleton) {}
-	
-	virtual int Count_Virtual(void) const override = 0;
-	
-public:
-	EidosValue_String(const EidosValue_String &p_original) = delete;		// no copy-construct
-	EidosValue_String(void) = delete;										// no default constructor
-	EidosValue_String& operator=(const EidosValue_String&) = delete;		// no copying
-	inline virtual ~EidosValue_String(void) override { }
-	
-	virtual const std::string &ElementType(void) const override;
-	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
-	virtual nlohmann::json JSONRepresentation(void) const override;
-	
-	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const = 0;		// const reference for speed
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	
-	virtual EidosValue_SP CopyValues(void) const override = 0;
-	virtual EidosValue_SP NewMatchingType(void) const override;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override = 0;
-	virtual void Sort(bool p_ascending) override = 0;
-};
-
-class EidosValue_String_vector final : public EidosValue_String
-{
-private:
-	typedef EidosValue_String super;
-
-protected:
 	// this is not converted to a malloced buffer because unlike the other types, we can't get away with
 	// not initializing the memory belonging to a std::string, so the malloc strategy doesn't work
+	// for the same reason, we do not use the singleton/vector design here; string is not a bottleneck anyway
 	std::vector<std::string> values_;
+	
+	EidosScript *cached_script_ = nullptr;	// cached by executeLambda(), apply(), and sapply() to avoid multiple tokenize/parse overhead
+	
+	inline void UncacheScript(void) { if (cached_script_) { delete cached_script_; cached_script_ = nullptr; } }
 	
 	virtual int Count_Virtual(void) const override { return (int)values_.size(); }
 	
 public:
-	EidosValue_String_vector(const EidosValue_String_vector &p_original) = delete;	// no copy-construct
-	EidosValue_String_vector& operator=(const EidosValue_String_vector&) = delete;	// no copying
-	
-	inline EidosValue_String_vector(void) : EidosValue_String(false) { }
-	explicit EidosValue_String_vector(const std::vector<std::string> &p_stringvec);
-	EidosValue_String_vector(double *p_doublebuf, int p_buffer_length);
-	//explicit EidosValue_String_vector(const std::string &p_string1);		// disabled to encourage use of EidosValue_String_singleton for this case
-	explicit EidosValue_String_vector(std::initializer_list<const std::string> p_init_list);
-	explicit EidosValue_String_vector(std::initializer_list<const char *> p_init_list);
-	inline virtual ~EidosValue_String_vector(void) override { }
+	EidosValue_String(const EidosValue_String &p_original) = delete;	// no copy-construct
+	EidosValue_String& operator=(const EidosValue_String&) = delete;	// no copying
+	inline EidosValue_String(void) : EidosValue(EidosValueType::kValueString, false) { }
+	explicit EidosValue_String(const std::string &p_string1) : EidosValue(EidosValueType::kValueString, false), values_({p_string1}) { }
+	explicit EidosValue_String(const std::vector<std::string> &p_stringvec);
+	explicit EidosValue_String(std::initializer_list<const std::string> p_init_list);
+	explicit EidosValue_String(std::initializer_list<const char *> p_init_list);
+	inline virtual ~EidosValue_String(void) override { delete cached_script_; }
 	
 	virtual const std::string *StringData(void) const override { return values_.data(); }
-	virtual std::string *StringData_Mutable(void) override { WILL_MODIFY(this); return values_.data(); }
-	std::vector<std::string> &StringVectorData(void) { WILL_MODIFY(this); return values_; }	// to get the std::vector for direct modification
+	virtual std::string *StringData_Mutable(void) override { WILL_MODIFY(this); UncacheScript(); return values_.data(); }
+	std::vector<std::string> &StringVectorData(void) { WILL_MODIFY(this); UncacheScript(); return values_; }	// to get the std::vector for direct modification
 	
-	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { WILL_MODIFY(this); values_.emplace_back(p_string); }
-	inline __attribute__((always_inline)) EidosValue_String_vector *Reserve(int p_reserved_size) { WILL_MODIFY(this); values_.reserve(p_reserved_size); return this; }
+	virtual const std::string &ElementType(void) const override;
+	virtual EidosValue_SP NewMatchingType(void) const override;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
-	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual int64_t IntAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual double FloatAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual EidosValue_SP CopyValues(void) const override;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
-	virtual void Sort(bool p_ascending) override;
-};
-
-class EidosValue_String_singleton final : public EidosValue_String
-{
-private:
-	typedef EidosValue_String super;
-
-protected:
-	std::string value_;
-	EidosScript *cached_script_ = nullptr;	// cached by executeLambda(), apply(), and sapply() to avoid multiple tokenize/parse overhead
-	
-	virtual int Count_Virtual(void) const override { return 1; }
-	
-public:
-	EidosValue_String_singleton(const EidosValue_String_singleton &p_original) = delete;	// no copy-construct
-	EidosValue_String_singleton& operator=(const EidosValue_String_singleton&) = delete;	// no copying
-	EidosValue_String_singleton(void) = delete;
-	explicit inline EidosValue_String_singleton(const std::string &p_string1) : EidosValue_String(true), value_(p_string1) { }
-	inline virtual ~EidosValue_String_singleton(void) override { delete cached_script_; }
-	
-	inline __attribute__((always_inline)) std::string &StringValue_Mutable(void) { WILL_MODIFY(this); delete cached_script_; cached_script_ = nullptr; return value_; }			// very dangerous; do not use
-	
-	virtual const std::string *StringData(void) const override { return &value_; }
-	virtual std::string *StringData_Mutable(void) override { WILL_MODIFY(this); delete cached_script_; cached_script_ = nullptr; return &value_; }			// very dangerous; do not use
-	inline __attribute__((always_inline)) void SetValue(const std::string &p_string) { WILL_MODIFY(this); delete cached_script_; cached_script_ = nullptr; value_ = p_string; }	// very dangerous; used only in Evaluate_For()
+	inline __attribute__((always_inline)) void PushString(const std::string &p_string) { WILL_MODIFY(this); UncacheScript(); values_.emplace_back(p_string); }
+	inline __attribute__((always_inline)) EidosValue_String *Reserve(int p_reserved_size) { WILL_MODIFY(this); values_.reserve(p_reserved_size); return this; }
 	
 	virtual std::string StringAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
-	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
+	virtual const std::string &StringRefAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const;
 	
 	virtual eidos_logical_t LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	virtual std::string StringAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
@@ -661,14 +600,11 @@ public:
 	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
 	virtual EidosValue_SP CopyValues(void) const override;
-	
 	virtual EidosValue_SP VectorBasedCopy(void) const override;
-	
-	// prohibited actions because there is no backing vector
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
 	virtual void Sort(bool p_ascending) override;
 	
-	// script caching; this is something that only EidosValue_String_singleton does!
+	// script caching; this is used only for singleton strings that are used as lambdas
 	inline __attribute__((always_inline)) EidosScript *CachedScript(void) { return cached_script_; }
 	inline __attribute__((always_inline)) void SetCachedScript(EidosScript *p_script) { cached_script_ = p_script; }
 };

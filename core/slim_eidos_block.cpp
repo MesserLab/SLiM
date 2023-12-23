@@ -1463,26 +1463,26 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEventFirst:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_first));
-				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
-				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
-				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mutationEffect));
-				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitnessEffect));
-				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_interaction));
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
-				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_recombination));
-				case SLiMEidosBlockType::SLiMEidosMutationCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mutation));
-				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_survival));
-				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_reproduction));
-				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_function));
+				case SLiMEidosBlockType::SLiMEidosEventFirst:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_first));
+				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_early));
+				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_late));
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_initialize));
+				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mutationEffect));
+				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_fitnessEffect));
+				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_interaction));
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mateChoice));
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_modifyChild));
+				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_recombination));
+				case SLiMEidosBlockType::SLiMEidosMutationCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_mutation));
+				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_survival));
+				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_reproduction));
+				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_function));
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				return gStaticEidosValue_StringAsterisk;	// never hit
 			}
 			EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): (internal error) unrecognized value for type_." << EidosTerminate();
 		}
 		case gEidosID_source:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(compound_statement_node_->token_->token_string_));
 		case gID_speciesSpec:
 		{
 			// With no species spec, we return an empty object vector of class Species; this is allowed since this is a read-only property

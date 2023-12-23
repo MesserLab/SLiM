@@ -1161,7 +1161,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 			if (string0 == string1)
 				result_SP = gStaticEidosValue_String_ZeroVec;
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string0));
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
@@ -1211,7 +1211,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 				if (string0 == string_vec[value_index])
 					return gStaticEidosValue_String_ZeroVec;
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string0));
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
@@ -1265,7 +1265,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		else if (arg_type == EidosValueType::kValueString)
 		{
 			const std::string &string1 = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
-			EidosValue_String_vector *string_vector_obj = dynamic_cast<EidosValue_String_vector *>(result_SP.get());
+			EidosValue_String *string_vector_obj = dynamic_cast<EidosValue_String *>(result_SP.get());
 			std::vector<std::string> &string_vec = string_vector_obj->StringVectorData();
 			
 			for (int value_index = 0; value_index < result_count; ++value_index)
@@ -1366,7 +1366,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		{
 			const std::string *string_vec0 = x_value->StringData();
 			const std::string *string_vec1 = y_value->StringData();
-			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -1563,7 +1563,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 			const std::string &string1 = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (string0 == string1)
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string0));
 			else
 				result_SP = gStaticEidosValue_String_ZeroVec;
 		}
@@ -1720,7 +1720,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		{
 			const std::string *string_vec0 = x_value->StringData();
 			const std::string *string_vec1 = y_value->StringData();
-			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -1932,7 +1932,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 			if (string0 == string1)
 				result_SP = gStaticEidosValue_String_ZeroVec;
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{string0, string1});
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String{string0, string1});
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
@@ -2000,7 +2000,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		else if (arg_type == EidosValueType::kValueString)
 		{
 			const std::string &string1 = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
-			EidosValue_String_vector *string_vector_obj = dynamic_cast<EidosValue_String_vector *>(result_SP.get());
+			EidosValue_String *string_vector_obj = dynamic_cast<EidosValue_String *>(result_SP.get());
 			std::vector<std::string> &string_vec = string_vector_obj->StringVectorData();
 			int value_index;
 			
@@ -2154,7 +2154,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		{
 			const std::string *string_vec0 = x_value->StringData();
 			const std::string *string_vec1 = y_value->StringData();
-			EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+			EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 			result_SP = EidosValue_SP(string_result);
 			
 			for (value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -2399,9 +2399,9 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 			const std::string &string1 = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (string0 == string1)
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(string0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(string0));
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector{string0, string1});
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String{string0, string1});
 		}
 		else if (arg_type == EidosValueType::kValueObject)
 		{
@@ -2483,7 +2483,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 			
 			if (scan_index == result_count)
 			{
-				EidosValue_String_vector *string_vector_obj = dynamic_cast<EidosValue_String_vector *>(result_SP.get());
+				EidosValue_String *string_vector_obj = dynamic_cast<EidosValue_String *>(result_SP.get());
 				std::vector<std::string> &string_vec = string_vector_obj->StringVectorData();
 				
 				string_vec.emplace_back(value);

@@ -191,12 +191,12 @@ void EidosAssertScriptSuccess_FV(const std::string &p_script_string, std::initia
 
 void EidosAssertScriptSuccess_S(const std::string &p_script_string, const char *p_string)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(p_string)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(p_string)));
 }
 
 void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initializer_list<const char *> p_string_vec)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector(p_string_vec)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(p_string_vec)));
 }
 
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised

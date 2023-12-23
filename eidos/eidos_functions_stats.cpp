@@ -309,7 +309,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			}
 		}
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(*max));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(*max));
 	}
 	
 	return result_SP;
@@ -515,7 +515,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			}
 		}
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(*min));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(*min));
 	}
 	
 	return result_SP;
@@ -642,7 +642,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		{
 			const std::string *string0_vec = x_value->StringData();
 			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
+			EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -704,7 +704,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		{
 			const std::string *string0_vec = x_value->StringData();
 			const std::string *string1_vec = y_value->StringData();
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
+			EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -830,7 +830,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		{
 			const std::string *string0_vec = x_value->StringData();
 			const std::string &y_singleton_value = ((EidosValue_String *)y_value)->StringRefAtIndex_NOCAST(0, nullptr);
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
+			EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)
@@ -892,7 +892,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		{
 			const std::string *string0_vec = x_value->StringData();
 			const std::string *string1_vec = y_value->StringData();
-			EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(x_count);
+			EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(x_count);
 			result_SP = EidosValue_SP(string_result);
 			
 			for (int value_index = 0; value_index < x_count; ++value_index)

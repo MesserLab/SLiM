@@ -116,7 +116,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const std::vector<EidosValue_SP>
 	
 	if (dp != NULL)
 	{
-		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 		result_SP = EidosValue_SP(string_result);
 		
 		while (true)
@@ -166,7 +166,7 @@ EidosValue_SP Eidos_ExecuteFunction_getwd(__attribute__((unused)) const std::vec
 	EidosValue_SP result_SP(nullptr);
 	std::string cwd = Eidos_CurrentDirectory();
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cwd));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(cwd));
 	
 	return result_SP;
 }
@@ -193,7 +193,7 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p
 	}
 	else
 	{
-		EidosValue_String_vector *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector();
+		EidosValue_String *string_result = new (gEidosValuePool->AllocateChunk()) EidosValue_String();
 		result_SP = EidosValue_SP(string_result);
 		
 		std::string line;
@@ -220,7 +220,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 	// Get the path; this code is identical to getwd() above, except it makes the value invisible
 	std::string cwd = Eidos_CurrentDirectory();
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cwd));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(cwd));
 	result_SP->SetInvisible(true);
 	
 	// Now set the path
@@ -240,7 +240,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 //	(string$)tempdir(void)
 EidosValue_SP Eidos_ExecuteFunction_tempdir(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Eidos_TemporaryDirectory()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(Eidos_TemporaryDirectory()));
 }
 
 //	(logical$)flushFile(string$ filePath)
@@ -433,7 +433,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			else
 			{
 				std::string file_path(file_path_cstr);
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(file_path));
 			}
 		}
 	}
@@ -479,7 +479,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			}
 			else
 			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(file_path));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(file_path));
 			}
 		}
 	}

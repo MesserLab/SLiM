@@ -284,7 +284,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		
 			// variables
 		case gEidosID_color:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_));
 		case gID_tag:			// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;

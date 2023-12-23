@@ -401,10 +401,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!static_sex_string_H)
 				{
-					static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
-					static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
-					static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
-					static_sex_string_O = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("?"));
+					static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("H"));
+					static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("F"));
+					static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("M"));
+					static_sex_string_O = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("?"));
 				}
 			}
 			
@@ -622,7 +622,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			Eidos_GetColorString(colorR_, colorG_, colorB_, hex_chars);
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(hex_chars)));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(hex_chars)));
 		}
 		case gID_tag:				// ACCELERATED
 		{

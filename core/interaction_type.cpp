@@ -3487,11 +3487,11 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 				default:						sex_segregation_string += "*"; break;
 			}
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(sex_segregation_string));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(sex_segregation_string));
 		}
 		case gID_spatiality:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(spatiality_string_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(spatiality_string_));
 		}
 			
 			// variables

@@ -47,7 +47,7 @@ EidosValue_SP Eidos_ExecuteFunction_cmColors(const std::vector<EidosValue_SP> &p
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cmColors): cmColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
 	
 	int color_count = (int)n;
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	
 	for (int value_index = 0; value_index < color_count; ++value_index)
@@ -100,7 +100,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_a
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colors): colors() requires 0 <= x <= 100000." << EidosTerminate(nullptr);
 		
 		int color_count = (int)x;
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 		result_SP = EidosValue_SP(string_result);
 		
 		for (int value_index = 0; value_index < color_count; ++value_index)
@@ -117,7 +117,7 @@ EidosValue_SP Eidos_ExecuteFunction_colors(const std::vector<EidosValue_SP> &p_a
 	else if (x_value->Type() == EidosValueType::kValueFloat)
 	{
 		int color_count = x_value->Count();
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 		result_SP = EidosValue_SP(string_result);
 		
 		for (int value_index = 0; value_index < color_count; ++value_index)
@@ -185,7 +185,7 @@ EidosValue_SP Eidos_ExecuteFunction_heatColors(const std::vector<EidosValue_SP> 
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_heatColors): heatColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
 	
 	int color_count = (int)n;
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	
 	for (int value_index = 0; value_index < color_count; ++value_index)
@@ -285,7 +285,7 @@ EidosValue_SP Eidos_ExecuteFunction_rainbow(const std::vector<EidosValue_SP> &p_
 	
 	char hex_chars[8];
 	int color_count = (int)n;
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	double r, g, b;
 	
@@ -329,12 +329,12 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const std::vector<EidosValue_SP> &
 		
 		Eidos_GetColorString(r, g, b, hex_chars);
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(hex_chars)));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(hex_chars)));
 	}
 	else
 	{
 		int color_count = rgb_count / 3;
-		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 		result_SP = EidosValue_SP(string_result);
 		
 		for (int value_index = 0; value_index < color_count; ++value_index)
@@ -404,7 +404,7 @@ EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_S
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_terrainColors): terrainColors() requires 0 <= n <= 100000." << EidosTerminate(nullptr);
 	
 	int color_count = (int)n;
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(color_count);
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
 	result_SP = EidosValue_SP(string_result);
 	
 	for (int value_index = 0; value_index < color_count; ++value_index)
