@@ -2695,7 +2695,7 @@ EidosValue_SP Eidos_ExecuteFunction_unique(const std::vector<EidosValue_SP> &p_a
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	return UniqueEidosValue(p_arguments[0].get(), false, p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr));
+	return UniqueEidosValue(p_arguments[0].get(), p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr));
 }
 
 //	(integer)which(logical x)

@@ -1056,7 +1056,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 	else if (y_count == 0)
 	{
 		// If y is empty, the difference is x, uniqued
-		result_SP = UniqueEidosValue(x_value, false, true);
+		result_SP = UniqueEidosValue(x_value, true);
 	}
 	else if (arg_type == EidosValueType::kValueLogical)
 	{
@@ -1228,7 +1228,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 	else if (y_count == 1)
 	{
 		// The result is x uniqued, minus the element in y if it matches
-		result_SP = UniqueEidosValue(x_value, true, true);
+		result_SP = UniqueEidosValue(x_value, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -1828,11 +1828,11 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 	}
 	else if (x_count == 0)
 	{
-		result_SP = UniqueEidosValue(y_value, false, true);
+		result_SP = UniqueEidosValue(y_value, true);
 	}
 	else if (y_count == 0)
 	{
-		result_SP = UniqueEidosValue(x_value, false, true);
+		result_SP = UniqueEidosValue(x_value, true);
 	}
 	else if (arg_type == EidosValueType::kValueLogical)
 	{
@@ -1955,7 +1955,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		}
 		
 		// now x_count > 1, y_count == 1
-		result_SP = UniqueEidosValue(x_value, true, true);
+		result_SP = UniqueEidosValue(x_value, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -2365,12 +2365,12 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 	else if (x_count == 0)
 	{
 		// x is zero-length, y is >1, so we just need to unique y
-		result_SP = UniqueEidosValue(y_value, false, true);
+		result_SP = UniqueEidosValue(y_value, true);
 	}
 	else if (y_count == 0)
 	{
 		// y is zero-length, x is >1, so we just need to unique x
-		result_SP = UniqueEidosValue(x_value, false, true);
+		result_SP = UniqueEidosValue(x_value, true);
 	}
 	else if ((x_count == 1) && (y_count == 1))
 	{
@@ -2424,7 +2424,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		}
 		
 		// now x_count > 1, y_count == 1
-		result_SP = UniqueEidosValue(x_value, true, true);
+		result_SP = UniqueEidosValue(x_value, true);
 		
 		int result_count = result_SP->Count();
 		
@@ -2516,7 +2516,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 		// This code might look slow, but really the uniquing is O(N^2) and everything else is O(N), so since
 		// we are in the vector/vector case here, it really isn't worth worrying about optimizing the O(N) part.
 		result_SP = ConcatenateEidosValues(p_arguments, false, false);	// no NULL, no VOID
-		result_SP = UniqueEidosValue(result_SP.get(), false, true);
+		result_SP = UniqueEidosValue(result_SP.get(), true);
 	}
 	
 	return result_SP;

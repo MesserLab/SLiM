@@ -394,12 +394,6 @@ void EidosValue::RaiseForRetainReleaseViolation(void) const
 	EIDOS_TERMINATION << "ERROR (EidosValue::RaiseForRetainReleaseViolation): (internal error) access violated the retain/release policy of an EidosValue." << EidosTerminate(nullptr);
 }
 
-EidosValue_SP EidosValue::VectorBasedCopy(void) const
-{
-	// note that constness, invisibility, etc. do not get copied
-	return CopyValues();
-}
-
 bool EidosValue::MatchingDimensions(const EidosValue *p_value1, const EidosValue *p_value2)
 {
 	int x_dimcount = p_value1->DimensionCount();
@@ -1289,12 +1283,6 @@ EidosValue_SP EidosValue_String::CopyValues(void) const
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String(values_))->CopyDimensionsFromValue(this));
 }
 
-EidosValue_SP EidosValue_String::VectorBasedCopy(void) const
-{
-	// same as CopyValues() now; slated for removal
-	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_String(values_))->CopyDimensionsFromValue(this));
-}
-
 void EidosValue_String::PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token)
 {
 	WILL_MODIFY(this);
@@ -1463,12 +1451,6 @@ EidosValue_SP EidosValue_Int::GetValueAtIndex(const int p_idx, const EidosToken 
 EidosValue_SP EidosValue_Int::CopyValues(void) const
 {
 	// note that constness, invisibility, etc. do not get copied
-	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int(values_, count_))->CopyDimensionsFromValue(this));
-}
-
-EidosValue_SP EidosValue_Int::VectorBasedCopy(void) const
-{
-	// same as CopyValues() now; slated for removal
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int(values_, count_))->CopyDimensionsFromValue(this));
 }
 
@@ -1683,12 +1665,6 @@ EidosValue_SP EidosValue_Float::GetValueAtIndex(const int p_idx, const EidosToke
 EidosValue_SP EidosValue_Float::CopyValues(void) const
 {
 	// note that constness, invisibility, etc. do not get copied
-	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float(values_, count_))->CopyDimensionsFromValue(this));
-}
-
-EidosValue_SP EidosValue_Float::VectorBasedCopy(void) const
-{
-	// same as CopyValues() now; slated for removal
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Float(values_, count_))->CopyDimensionsFromValue(this));
 }
 
@@ -2015,12 +1991,6 @@ EidosValue_SP EidosValue_Object::GetValueAtIndex(const int p_idx, const EidosTok
 EidosValue_SP EidosValue_Object::CopyValues(void) const
 {
 	// note that constness, invisibility, etc. do not get copied
-	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object(*this))->CopyDimensionsFromValue(this));
-}
-
-EidosValue_SP EidosValue_Object::VectorBasedCopy(void) const
-{
-	// same as CopyValues() now; slated for removal
 	return EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Object(*this))->CopyDimensionsFromValue(this));
 }
 

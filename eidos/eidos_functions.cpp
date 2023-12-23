@@ -776,7 +776,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	return EidosValue_SP(nullptr);
 }
 
-EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vector, bool p_preserve_order)
+EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_preserve_order)
 {
 	EidosValue_SP result_SP(nullptr);
 	
@@ -790,10 +790,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	}
 	else if (x_count == 1)
 	{
-		if (p_force_new_vector)
-			result_SP = x_value->VectorBasedCopy();
-		else
-			result_SP = x_value->CopyValues();
+		result_SP = x_value->CopyValues();
 	}
 	else if (x_type == EidosValueType::kValueLogical)
 	{
@@ -826,11 +823,11 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 		}
 		
 		if (containsF && !containsT)
-			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_LogicalF->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_LogicalF);
+			result_SP = (EidosValue_SP)gStaticEidosValue_LogicalF;
 		else if (containsT && !containsF)
-			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_LogicalT->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_LogicalT);
+			result_SP = (EidosValue_SP)gStaticEidosValue_LogicalT;
 		else if (!containsT && !containsF)
-			result_SP = (p_force_new_vector ? EidosValue_SP(gStaticEidosValue_Logical_ZeroVec->VectorBasedCopy()) : (EidosValue_SP)gStaticEidosValue_Logical_ZeroVec);
+			result_SP = (EidosValue_SP)gStaticEidosValue_Logical_ZeroVec;
 		else	// containsT && containsF
 		{
 			// In this case, we need to be careful to preserve the order of occurrence
