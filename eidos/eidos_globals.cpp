@@ -1115,13 +1115,23 @@ void Eidos_WarmUp(void)
 		// Make the shared EidosASTNode pool
 		gEidosASTNodePool = new EidosObjectPool("EidosObjectPool(EidosASTNode)", sizeof(EidosASTNode));
 		
-		// Allocate global permanents; the first five are fundamental, and get created as statics very early.
-		// The other constants are all created here, and should all be marked as constant here.
-		gStaticEidosValueVOID = EidosValue_VOID::Static_EidosValue_VOID();
-		gStaticEidosValueNULL = EidosValue_NULL::Static_EidosValue_NULL();
-		gStaticEidosValueNULLInvisible = EidosValue_NULL::Static_EidosValue_NULL_Invisible();
-		gStaticEidosValue_LogicalT = EidosValue_Logical::Static_EidosValue_Logical_T();
-		gStaticEidosValue_LogicalF = EidosValue_Logical::Static_EidosValue_Logical_F();
+		// Allocate global permanents.  All of these constants should be marked as constant here.
+		gStaticEidosValueVOID = EidosValue_VOID_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_VOID());
+		gStaticEidosValueVOID->SetInvisible(true);
+		gStaticEidosValueVOID->MarkAsConstant();
+		
+		gStaticEidosValueNULL = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
+		gStaticEidosValueNULL->MarkAsConstant();
+		
+		gStaticEidosValueNULLInvisible = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
+		gStaticEidosValueNULLInvisible->SetInvisible(true);
+		gStaticEidosValueNULLInvisible->MarkAsConstant();
+		
+		gStaticEidosValue_LogicalT = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical({true}));
+		gStaticEidosValue_LogicalT->MarkAsConstant();
+		
+		gStaticEidosValue_LogicalF = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical({false}));
+		gStaticEidosValue_LogicalF->MarkAsConstant();
 		
 		gStaticEidosValue_Logical_ZeroVec = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 		gStaticEidosValue_Logical_ZeroVec->MarkAsConstant();

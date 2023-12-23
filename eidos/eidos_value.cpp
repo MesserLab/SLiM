@@ -861,18 +861,6 @@ void EidosValue::PrintStructure(std::ostream &p_ostream, int max_values) const
 #pragma mark EidosValue_VOID
 #pragma mark -
 
-/* static */ EidosValue_VOID_SP EidosValue_VOID::Static_EidosValue_VOID(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_VOID_SP static_void = EidosValue_VOID_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_VOID());
-	
-	// set every time, since we don't have a constructor to set invisibility
-	static_void->SetInvisible(true);
-	static_void->MarkAsConstant();
-	
-	return static_void;
-}
-
 const std::string &EidosValue_VOID::ElementType(void) const
 {
 	return gEidosStr_void;
@@ -924,29 +912,6 @@ void EidosValue_VOID::Sort(bool p_ascending)
 #pragma mark -
 #pragma mark EidosValue_NULL
 #pragma mark -
-
-/* static */ EidosValue_NULL_SP EidosValue_NULL::Static_EidosValue_NULL(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
-	
-	// set every time, since we don't have a constructor to set invisibility
-	static_null->MarkAsConstant();
-	
-	return static_null;
-}
-
-/* static */ EidosValue_NULL_SP EidosValue_NULL::Static_EidosValue_NULL_Invisible(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_NULL_SP static_null = EidosValue_NULL_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_NULL());
-	
-	// set every time, since we don't have a constructor to set invisibility
-	static_null->SetInvisible(true);
-	static_null->MarkAsConstant();
-	
-	return static_null;
-}
 
 const std::string &EidosValue_NULL::ElementType(void) const
 {
@@ -1039,28 +1004,6 @@ EidosValue_Logical::EidosValue_Logical(const eidos_logical_t *p_values, size_t p
 	
 	for (size_t index = 0; index < p_count; ++index)
 		set_logical_no_check(p_values[index], index);
-}
-
-/* static */ EidosValue_Logical_SP EidosValue_Logical::Static_EidosValue_Logical_T(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_Logical_SP static_T = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(true));
-	
-	// set every time, since we don't have a constructor to set invisibility
-	static_T->MarkAsConstant();
-	
-	return static_T;
-}
-
-/* static */ EidosValue_Logical_SP EidosValue_Logical::Static_EidosValue_Logical_F(void)
-{
-	// this is a truly permanent constant object
-	static EidosValue_Logical_SP static_F = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical(false));
-	
-	// set every time, since we don't have a constructor to set invisibility
-	static_F->MarkAsConstant();
-	
-	return static_F;
 }
 
 const std::string &EidosValue_Logical::ElementType(void) const

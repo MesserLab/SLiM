@@ -396,8 +396,6 @@ public:
 	inline EidosValue_VOID(void) : EidosValue(EidosValueType::kValueVOID, false) { }
 	inline virtual ~EidosValue_VOID(void) override { }
 	
-	static EidosValue_VOID_SP Static_EidosValue_VOID(void);
-	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
 	virtual nlohmann::json JSONRepresentation(void) const override;
@@ -435,9 +433,6 @@ public:
 	
 	inline EidosValue_NULL(void) : EidosValue(EidosValueType::kValueNULL, false) { }
 	inline virtual ~EidosValue_NULL(void) override { }
-	
-	static EidosValue_NULL_SP Static_EidosValue_NULL(void);
-	static EidosValue_NULL_SP Static_EidosValue_NULL_Invisible(void);
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
@@ -489,9 +484,6 @@ public:
 	explicit EidosValue_Logical(std::initializer_list<eidos_logical_t> p_init_list);
 	explicit EidosValue_Logical(const eidos_logical_t *p_values, size_t p_count);
 	inline virtual ~EidosValue_Logical(void) override { free(values_); }
-	
-	static EidosValue_Logical_SP Static_EidosValue_Logical_T(void);
-	static EidosValue_Logical_SP Static_EidosValue_Logical_F(void);
 	
 	virtual const std::string &ElementType(void) const override;
 	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
