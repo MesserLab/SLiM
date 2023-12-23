@@ -1757,7 +1757,7 @@ void EidosValue_Float::erase_index(size_t p_index)
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 
 EidosValue_Object::EidosValue_Object(const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject),
-	class_(p_class), values_(&singleton_value_), count_(0), capacity_(1)
+	values_(&singleton_value_), count_(0), capacity_(1), class_(p_class)
 {
 	class_uses_retain_release_ = (class_ == gEidosObject_Class ? true : class_->UsesRetainRelease());
 	
