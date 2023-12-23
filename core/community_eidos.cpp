@@ -420,7 +420,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			if (cached_value_tick_ && (cached_value_tick_->IntData()[0] != tick_))
 				cached_value_tick_.reset();
 			if (!cached_value_tick_)
-				cached_value_tick_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick_));
+				cached_value_tick_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tick_));
 			return cached_value_tick_;
 		}
 		case gID_cycleStage:
@@ -436,10 +436,10 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Community::GetProperty): property tag accessed on simulation object before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 		case gID_verbosity:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(SLiM_verbosity_level));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(SLiM_verbosity_level));
 			
 			// all others, including gID_none
 		default:

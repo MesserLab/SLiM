@@ -63,7 +63,7 @@ void EidosTestElement::Print(std::ostream &p_ostream) const
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)				// ACCELERATED
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(yolk_));
 	else if (p_property_id == gEidosID__increment)
 	{
 		EidosTestElement *inc_element = new EidosTestElement(yolk_ + 1);
@@ -80,7 +80,7 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *EidosTestElement::GetProperty_Accelerated__yolk(EidosObject **p_elements, size_t p_elements_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
@@ -137,7 +137,7 @@ EidosValue_SP EidosTestElement::ExecuteInstanceMethod(EidosGlobalStringID p_meth
 EidosValue_SP EidosTestElement::ExecuteMethod_Accelerated_cubicYolk(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
@@ -282,7 +282,7 @@ void EidosTestElementNRR::Print(std::ostream &p_ostream) const
 EidosValue_SP EidosTestElementNRR::GetProperty(EidosGlobalStringID p_property_id)
 {
 	if (p_property_id == gEidosID__yolk)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(yolk_));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(yolk_));
 	
 	// all others, including gID_none
 	else

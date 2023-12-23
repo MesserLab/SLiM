@@ -171,12 +171,12 @@ void EidosAssertScriptSuccess_LV(const std::string &p_script_string, std::initia
 
 void EidosAssertScriptSuccess_I(const std::string &p_script_string, int64_t p_integer)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_integer)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_integer)));
 }
 
 void EidosAssertScriptSuccess_IV(const std::string &p_script_string, std::initializer_list<int64_t> p_integer_vec)
 {
-	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_integer_vec)));
+	EidosAssertScriptSuccess(p_script_string, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_integer_vec)));
 }
 
 void EidosAssertScriptSuccess_F(const std::string &p_script_string, double p_float)

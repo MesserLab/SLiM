@@ -130,7 +130,7 @@ EidosValue_SP EidosImage::ValueForIntegerChannel(EidosValue_SP &p_channel_cache,
 		return p_channel_cache;
 	
 	int64_t pixel_stride = 0, pixel_suboffset = 0;
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(height_ * width_);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(height_ * width_);
 	p_channel_cache = EidosValue_SP(int_result);
 	
 	GetChannelMetrics(p_channel, pixel_stride, pixel_suboffset);
@@ -182,11 +182,11 @@ EidosValue_SP EidosImage::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gEidosID_width:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(width_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(width_));
 		case gEidosID_height:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(height_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(height_));
 		case gEidosID_bitsPerChannel:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(8));	// only 8 is supported for now, but this is for future expansion
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(8));	// only 8 is supported for now, but this is for future expansion
 		case gEidosID_isGrayscale:
 			return (is_grayscale_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gEidosID_integerR:
@@ -297,7 +297,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				objectElement = new EidosImage(width, height, true);
 				
 				unsigned char *image_data = objectElement->Data();
-				EidosValue_Int_vector *int_values = (EidosValue_Int_vector *)p_arguments[0].get();
+				EidosValue_Int *int_values = (EidosValue_Int *)p_arguments[0].get();
 				const int64_t *int_data = int_values->data();
 				
 				// translate the data from by-column to by-row, to match the in-memory format of images

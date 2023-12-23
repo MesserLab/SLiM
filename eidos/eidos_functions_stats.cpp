@@ -229,7 +229,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			}
 		}
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(max));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(max));
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -435,7 +435,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			}
 		}
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(min));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(min));
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -596,7 +596,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
@@ -666,7 +666,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			const int64_t * __restrict__ int1_data = y_value->IntData();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
@@ -794,7 +794,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			int64_t y_singleton_value = y_value->IntAtIndex_NOCAST(0, nullptr);
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
@@ -854,7 +854,7 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		{
 			const int64_t * __restrict__ int0_data = x_value->IntData();
 			const int64_t * __restrict__ int1_data = y_value->IntData();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
@@ -1048,7 +1048,7 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 	}
 	else if (x_type == EidosValueType::kValueInt)
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(2);
 		result_SP = EidosValue_SP(int_result);
 		
 		int64_t max = p_arguments[first_nonempty_argument]->IntAtIndex_NOCAST(0, nullptr);

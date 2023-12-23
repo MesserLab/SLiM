@@ -1084,8 +1084,6 @@ void Eidos_WarmUp(void)
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_vector));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_String_singleton));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int_singleton));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_vector));
@@ -1098,8 +1096,6 @@ void Eidos_WarmUp(void)
 //		std::cout << "sizeof(EidosValue_String_vector) ==    " << sizeof(EidosValue_String_vector) << std::endl;
 //		std::cout << "sizeof(EidosValue_String_singleton) == " << sizeof(EidosValue_String_singleton) << std::endl;
 //		std::cout << "sizeof(EidosValue_Int) ==              " << sizeof(EidosValue_Int) << std::endl;
-//		std::cout << "sizeof(EidosValue_Int_vector) ==       " << sizeof(EidosValue_Int_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_Int_singleton) ==    " << sizeof(EidosValue_Int_singleton) << std::endl;
 //		std::cout << "sizeof(EidosValue_Float) ==            " << sizeof(EidosValue_Float) << std::endl;
 //		std::cout << "sizeof(EidosValue_Object) ==           " << sizeof(EidosValue_Object) << std::endl;
 //		std::cout << "sizeof(EidosValue_Object_vector) ==    " << sizeof(EidosValue_Object_vector) << std::endl;
@@ -1132,7 +1128,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_Logical_ZeroVec = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
 		gStaticEidosValue_Logical_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+		gStaticEidosValue_Integer_ZeroVec = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
 		gStaticEidosValue_Integer_ZeroVec->MarkAsConstant();
 		
 		gStaticEidosValue_Float_ZeroVec = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
@@ -1141,16 +1137,16 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_String_ZeroVec = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
 		gStaticEidosValue_String_ZeroVec->MarkAsConstant();
 		
-		gStaticEidosValue_Integer0 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
+		gStaticEidosValue_Integer0 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
 		gStaticEidosValue_Integer0->MarkAsConstant();
 		
-		gStaticEidosValue_Integer1 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(1));
+		gStaticEidosValue_Integer1 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1));
 		gStaticEidosValue_Integer1->MarkAsConstant();
 		
-		gStaticEidosValue_Integer2 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(2));
+		gStaticEidosValue_Integer2 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(2));
 		gStaticEidosValue_Integer2->MarkAsConstant();
 		
-		gStaticEidosValue_Integer3 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(3));
+		gStaticEidosValue_Integer3 = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(3));
 		gStaticEidosValue_Integer3->MarkAsConstant();
 		
 		gStaticEidosValue_Float0 = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0.0));

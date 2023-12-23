@@ -69,7 +69,7 @@ EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
 		// constants
 		case gID_pid:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(getpid()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(getpid()));
 		}
 		
 		// variables

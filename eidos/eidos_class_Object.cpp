@@ -681,7 +681,7 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(p_target->Count()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
 
 

@@ -81,7 +81,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 	int initial_x_result = allInside ? 0 : -1;
 #endif
 	
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 	
 	if (vec_type == EidosValueType::kValueInt)
 	{
@@ -841,18 +841,18 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 			{
 				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton((int64_t)Eidos_RandomBool(rng_state)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int((int64_t)Eidos_RandomBool(rng_state)));
 			}
 			else
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_binomial(rng, probability0, size0)));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gsl_ran_binomial(rng, probability0, size0)));
 			}
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
 			if ((probability0 == 0.5) && (size0 == 1))
@@ -883,7 +883,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 	}
 	else
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
 		bool saw_error1 = false, saw_error2 = false;
@@ -1027,18 +1027,18 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 			{
 				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(Eidos_RandomBool(rng_state) + min_value0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(Eidos_RandomBool(rng_state) + min_value0));
 			}
 			else
 			{
 				Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(Eidos_rng_uniform_int_MT64(mt, count0) + min_value0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(Eidos_rng_uniform_int_MT64(mt, count0) + min_value0));
 			}
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
 			if (count0 == 2)
@@ -1069,7 +1069,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 	}
 	else
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
 		bool saw_error = false;
@@ -1458,13 +1458,13 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 		if (num_draws == 1)
 		{
 			if (p0 == 1.0)	// special-case p==1.0
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_geometric(rng, p0) - 1));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gsl_ran_geometric(rng, p0) - 1));
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
 			if (p0 == 1.0)	// special-case p==1.0
@@ -1477,7 +1477,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1708,11 +1708,11 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 		
 		if (num_draws == 1)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_negative_binomial(rng, probability0, size0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gsl_ran_negative_binomial(rng, probability0, size0)));
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1721,7 +1721,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 	}
 	else
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
@@ -1873,11 +1873,11 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_poisson(rng, lambda0)));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gsl_ran_poisson(rng, lambda0)));
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RPOIS_1);
@@ -1893,7 +1893,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 	}
 	else
 	{
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
 		bool saw_error = false;

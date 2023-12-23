@@ -1452,13 +1452,13 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:
 		{
 			if (!cached_value_block_id_)
-				cached_value_block_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_id_));
+				cached_value_block_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(block_id_));
 			return cached_value_block_id_;
 		}
 		case gEidosID_start:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(start_tick_));
 		case gEidosID_end:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(end_tick_));
 		case gEidosID_type:
 		{
 			switch (type_)
@@ -1502,7 +1502,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_active:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_active_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(block_active_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -1510,7 +1510,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): property tag accessed on script block before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none

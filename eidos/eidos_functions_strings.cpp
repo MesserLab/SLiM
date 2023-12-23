@@ -92,12 +92,12 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 	// Make our return value
 	EidosValue_SP result_SP(nullptr);
 	EidosValue_Logical *result_logical = nullptr;
-	EidosValue_Int_vector *result_int = nullptr;
+	EidosValue_Int *result_int = nullptr;
 	EidosValue_String_vector *result_string = nullptr;
 	
 	if (value_enum == kIndices)
 	{
-		result_int = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+		result_int = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
 		result_SP = EidosValue_SP(result_int);
 	}
 	else if ((value_enum == kElements) || (value_enum == kMatches))
@@ -230,13 +230,13 @@ EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_ar
 	
 	if (x_count == 1)
 	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->StringRefAtIndex_NOCAST(0, nullptr).size()));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(x_value->StringRefAtIndex_NOCAST(0, nullptr).size()));
 	}
 	else
 	{
 		const std::string *string_vec = x_value->StringData();
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
@@ -317,13 +317,13 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 	{
 		const std::string &x = x_value->StringRefAtIndex_NOCAST(0, nullptr);
 		size_t index = x.find(s, pos);
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(index == std::string::npos ? -1 : (int64_t)index));
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(index == std::string::npos ? -1 : (int64_t)index));
 	}
 	else
 	{
 		const std::string *string_vec = x_value->StringData();
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)

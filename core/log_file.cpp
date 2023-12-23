@@ -130,7 +130,7 @@ EidosValue_SP LogFile::_GeneratedValue_Cycle(const LogFileGeneratorInfo &p_gener
 	Species *species = all_species[p_generator_info.objectid_];
 	slim_tick_t cycle = species->Cycle();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(cycle));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_generator_info)
@@ -181,7 +181,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 	for (auto &subpop_iter : species->population_.subpops_)
 		total_individuals += (subpop_iter.second)->CurrentSubpopSize();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(total_individuals));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(total_individuals));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
@@ -209,7 +209,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorI
 	if (subpop)
 	{
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_size));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpop_size));
 	}
 	else
 	{
@@ -223,7 +223,7 @@ EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_genera
 #pragma unused(p_generator_info)
 	slim_tick_t tick = community_.Tick();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tick));
 }
 
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
@@ -564,11 +564,11 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_filePath:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(user_file_path_));
 		case gID_logInterval:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(log_interval_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(log_interval_));
 			
 			// variables
 		case gID_precision:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(float_precision_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(float_precision_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -576,7 +576,7 @@ EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (LogFile::GetProperty): property tag accessed on simulation object before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none

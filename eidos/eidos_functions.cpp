@@ -613,8 +613,8 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	}
 	else if (highest_type == EidosValueType::kValueInt)
 	{
-		EidosValue_Int_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(reserve_size);
-		EidosValue_Int_vector_SP result_SP = EidosValue_Int_vector_SP(result);
+		EidosValue_Int *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(reserve_size);
+		EidosValue_Int_SP result_SP = EidosValue_Int_SP(result);
 		int result_set_index = 0;
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
@@ -845,7 +845,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	{
 		// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
 		const int64_t *int_data = x_value->IntData();
-		EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+		EidosValue_Int *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
 		result_SP = EidosValue_SP(int_result);
 		
 		if (p_preserve_order)
@@ -1079,8 +1079,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			else if (original_value_type == EidosValueType::kValueInt)
 			{
 				const int64_t *first_child_data = p_original_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->reserve(indices_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					if (logical_index_data[value_idx])
@@ -1175,8 +1175,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			{
 				// result type is integer; optimize for that
 				const int64_t *first_child_data = p_original_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->reserve(indices_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 				{

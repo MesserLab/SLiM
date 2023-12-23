@@ -2411,7 +2411,7 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 					else if (numeric_value->Type() == EidosValueType::kValueInt)
 					{
 						int64_t int_value = numeric_value->IntAtIndex_NOCAST(0, current_token_);
-						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-int_value));	// note that overflow is not possible
+						negated_value = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(-int_value));	// note that overflow is not possible
 					}
 					else
 					{

@@ -2454,7 +2454,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 			if (recombination_callback->contains_breakpoints_)
 			{
 				if (!local_crossovers_ptr)
-					local_crossovers_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(p_crossovers));
+					local_crossovers_ptr = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_crossovers));
 				client_symbols.SetValueForSymbolNoCopy(gID_breakpoints, local_crossovers_ptr);
 			}
 			
@@ -6906,11 +6906,11 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 			else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
 			else													count = total_genome_count;
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(count));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(count));
 		}
 		else
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(mutations_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(mutations_count);
 			result_SP = EidosValue_SP(int_result);
 			
 			for (int value_index = 0; value_index < mutations_count; ++value_index)
@@ -6935,7 +6935,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		const MutationIndex *registry = MutationRegistry(&registry_size);
 		Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(registry_size);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
@@ -6956,7 +6956,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 		int registry_size;
 		const MutationIndex *registry = MutationRegistry(&registry_size);
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(registry_size);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(registry_size);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)

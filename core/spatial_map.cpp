@@ -1072,9 +1072,9 @@ EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			switch (spatiality_)
 			{
-				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{grid_size_[0]});
-				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{grid_size_[0], grid_size_[1]});
-				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{grid_size_[0], grid_size_[1], grid_size_[2]});
+				case 1: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{grid_size_[0]});
+				case 2: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{grid_size_[0], grid_size_[1]});
+				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{grid_size_[0], grid_size_[1], grid_size_[2]});
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
@@ -1109,7 +1109,7 @@ EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (SpatialMap::GetProperty): property tag accessed on spatial map before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none

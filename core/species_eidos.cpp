@@ -185,7 +185,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	
 	num_ancseq_declarations_++;
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(chromosome_->ancestral_seq_buffer_->size()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome_->ancestral_seq_buffer_->size()));
 }
 
 //	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
@@ -1503,7 +1503,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_id:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(species_id_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(species_id_));
 		}
 		case gID_periodicity:
 		{
@@ -1625,7 +1625,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			if (cached_value_cycle_ && (cached_value_cycle_->IntData()[0] != cycle_))
 				cached_value_cycle_.reset();
 			if (!cached_value_cycle_)
-				cached_value_cycle_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle_));
+				cached_value_cycle_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(cycle_));
 			return cached_value_cycle_;
 		}
 		case gID_tag:
@@ -1635,7 +1635,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Species::GetProperty): property tag accessed on simulation object before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -2336,7 +2336,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 		MutationRun &muttype_registry = mutation_type_ptr->muttype_registry_;
 		int mutation_count = muttype_registry.size();
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_count));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_count));
 	}
 	else
 #endif
@@ -2350,7 +2350,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 			if ((mut_block_ptr + registry[registry_index])->mutation_type_ptr_ == mutation_type_ptr)
 				++match_count;
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(match_count));
 	}
 }
 			
@@ -2740,7 +2740,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	
 	slim_tick_t file_tick = InitializePopulationFromFile(file_path, &p_interpreter, subpopRemap);
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(file_tick));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(file_tick));
 }
 			
 //	*********************	– (void)recalculateFitness([Ni$ tick = NULL])

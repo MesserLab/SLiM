@@ -957,8 +957,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (second_int - first_int + 1 > 100000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_int - first_int + 1);
+			EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+			EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_int - first_int + 1);
 			
 			for (int64_t range_index = 0; range_index <= second_int - first_int; ++range_index)
 				int_result->set_int_no_check(range_index + first_int, range_index);
@@ -970,8 +970,8 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			if (first_int - second_int + 1 > 100000000)
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_Evaluate_RangeExpr_Internal): a range with more than 100000000 entries cannot be constructed." << EidosTerminate(operator_token);
 			
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_int - second_int + 1);
+			EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+			EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_int - second_int + 1);
 			
 			for (int64_t range_index = 0; range_index <= first_int - second_int; ++range_index)
 				int_result->set_int_no_check(first_int - range_index, range_index);
@@ -2047,7 +2047,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) + second_child_value->IntAtIndex_NOCAST(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) + second_child_value->IntAtIndex_NOCAST(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2057,14 +2057,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 					
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(add_result));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(add_result));
 				}
 				else
 				{
 					const int64_t *first_child_data = first_child_value->IntData();
 					const int64_t *second_child_data = second_child_value->IntData();
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-					EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+					EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+					EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
@@ -2089,8 +2089,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				const int64_t *second_child_data = second_child_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
@@ -2113,8 +2113,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			{
 				const int64_t *first_child_data = first_child_value->IntData();
 				int64_t singleton_int = second_child_value->IntAtIndex_NOCAST(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -2267,7 +2267,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(-first_child_value->IntAtIndex_NOCAST(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(-first_child_value->IntAtIndex_NOCAST(0, operator_token));
 				
 				int64_t operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				int64_t subtract_result;
@@ -2276,13 +2276,13 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << EidosTerminate(operator_token);
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subtract_result));
 			}
 			else
 			{
 				const int64_t *first_child_data = first_child_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -2350,7 +2350,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				if (first_child_count == 1)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) - second_child_value->IntAtIndex_NOCAST(0, operator_token));
+					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) - second_child_value->IntAtIndex_NOCAST(0, operator_token));
 					
 					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2360,14 +2360,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 					
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subtract_result));
+					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subtract_result));
 				}
 				else
 				{
 					const int64_t *first_child_data = first_child_value->IntData();
 					const int64_t *second_child_data = second_child_value->IntData();
-					EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-					EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+					EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+					EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 					
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 					{
@@ -2392,8 +2392,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				int64_t singleton_int = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				const int64_t *second_child_data = second_child_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(second_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(second_child_count);
 				
 				for (int value_index = 0; value_index < second_child_count; ++value_index)
 				{
@@ -2416,8 +2416,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			{
 				const int64_t *first_child_data = first_child_value->IntData();
 				int64_t singleton_int = second_child_value->IntAtIndex_NOCAST(0, operator_token);
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -2722,7 +2722,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			if (first_child_count == 1)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(first_child_value->IntAtIndex_NOCAST(0, operator_token) * second_child_value->IntAtIndex_NOCAST(0, operator_token));
+				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) * second_child_value->IntAtIndex_NOCAST(0, operator_token));
 				
 				int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
 				int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
@@ -2732,14 +2732,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(multiply_result));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(multiply_result));
 			}
 			else
 			{
 				const int64_t *first_child_data = first_child_value->IntData();
 				const int64_t *second_child_data = second_child_value->IntData();
-				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
 				
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
@@ -2827,8 +2827,8 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		{
 			const int64_t *any_count_data = any_count_child->IntData();
 			int64_t singleton_int = one_count_child->IntAtIndex_NOCAST(0, operator_token);
-			EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-			EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(any_count);
+			EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+			EidosValue_Int *int_result = int_result_SP->resize_no_initialize(any_count);
 			
 			for (int value_index = 0; value_index < any_count; ++value_index)
 			{
@@ -3774,7 +3774,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 					
 					if ((lvalue_count == 1) && lvalue->IsSingleton())
 					{
-						EidosValue_Int_singleton *int_singleton = static_cast<EidosValue_Int_singleton *>(lvalue);
+						EidosValue_Int *int_singleton = static_cast<EidosValue_Int *>(lvalue);
 						
 						switch (compound_operator)
 						{
@@ -5192,7 +5192,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(static_cast<int64_t>(converted_value)));
 	}
 	else																										// plain integer
 	{
@@ -5201,7 +5201,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		if (errno || (last_used_char == c_str))
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(converted_value));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(converted_value));
 	}
 }
 
@@ -5762,20 +5762,20 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			if (range_index == range_count)
 				range_index--;
 			
-			global_symbols_->SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(counting_up ? start_int + range_index : start_int - range_index)));
+			global_symbols_->SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(counting_up ? start_int + range_index : start_int - range_index)));
 		}
 		else	// !assigns_index, guaranteed above
 		{
 			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
 			// EidosValue that we stick new values into – much, much faster.
-			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
-			EidosValue_Int_singleton *index_value = index_value_SP.get();
+			EidosValue_Int_SP index_value_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
+			EidosValue_Int *index_value = index_value_SP.get();
 			
 			global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
-				index_value->SetValue(counting_up ? start_int + range_index : start_int - range_index);
+				index_value->data()[0] = (counting_up ? start_int + range_index : start_int - range_index);
 				
 				EidosASTNode *statement_node = p_node->children_[2];
 				
@@ -5855,14 +5855,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				if (range_type == EidosValueType::kValueInt)
 				{
 					const int64_t *range_data = range_value->IntData();
-					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
-					EidosValue_Int_singleton *index_value = index_value_SP.get();
+					EidosValue_Int_SP index_value_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
+					EidosValue_Int *index_value = index_value_SP.get();
 					
 					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
-						index_value->SetValue(range_data[range_index]);
+						index_value->data()[0] = range_data[range_index];
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						

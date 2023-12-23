@@ -414,11 +414,11 @@ EidosValue_SP EidosDataFrame::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_colNames:
 			return AllKeys();
 		case gEidosID_dim:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector{RowCount(), ColumnCount()});
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int{RowCount(), ColumnCount()});
 		case gEidosID_ncol:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ColumnCount()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(ColumnCount()));
 		case gEidosID_nrow:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(RowCount()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(RowCount()));
 			
 			// all others, including gID_none
 		default:
@@ -1171,7 +1171,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		}
 		else if (coltype == EidosValueType::kValueInt)
 		{
-			EidosValue_Int_vector *integer_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(nrows);
+			EidosValue_Int *integer_column = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(nrows);
 			column_values = EidosValue_SP(integer_column);
 			
 			for (int row_index = 0; row_index < nrows; ++row_index)

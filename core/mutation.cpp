@@ -369,7 +369,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 	{
 			// constants
 		case gID_id:				// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(mutation_id_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
 		case gID_isFixed:			// ACCELERATED
 			return (((state_ == MutationState::kFixedAndSubstituted) || (state_ == MutationState::kRemovedWithSubstitution)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_isSegregating:		// ACCELERATED
@@ -377,9 +377,9 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_mutationType:		// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
 		case gID_originTick:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_tick_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_position:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
 		case gID_selectionCoeff:	// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
 			
@@ -415,7 +415,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		}
 		case gID_subpopID:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpop_index_));
 		case gID_tag:				// ACCELERATED
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -423,7 +423,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property tag accessed on mutation before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -434,7 +434,7 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *Mutation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -501,7 +501,7 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values,
 
 EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -519,7 +519,7 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_va
 
 EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -533,7 +533,7 @@ EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values,
 
 EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -547,7 +547,7 @@ EidosValue *Mutation::GetProperty_Accelerated_position(EidosObject **p_values, s
 
 EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -561,7 +561,7 @@ EidosValue *Mutation::GetProperty_Accelerated_subpopID(EidosObject **p_values, s
 
 EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{

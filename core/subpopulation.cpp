@@ -3882,11 +3882,11 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:				// ACCELERATED
 		{
 			if (!cached_value_subpop_id_)
-				cached_value_subpop_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpopulation_id_));
+				cached_value_subpop_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpopulation_id_));
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentFirstMaleIndex()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentFirstMaleIndex()));
 		case gID_genomes:
 		{
 			if (child_generation_valid_)
@@ -4021,7 +4021,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopIDs is not available in nonWF models." << EidosTerminate();
 			
-			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+			EidosValue_Int *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (auto migrant_pair : migrant_fractions_)
@@ -4051,7 +4051,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			std::vector<int32_t> &lifetime_rep_F = lifetime_reproductive_output_F_;
 			int lifetime_rep_count_M = (int)lifetime_rep_M.size();
 			int lifetime_rep_count_F = (int)lifetime_rep_F.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count_M + lifetime_rep_count_F);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count_M + lifetime_rep_count_F);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count_M; ++value_index)
 				int_result->set_int_no_check(lifetime_rep_M[value_index], value_index);
@@ -4069,7 +4069,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_MH_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
 				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
@@ -4085,7 +4085,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_F_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(lifetime_rep_count);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(lifetime_rep_count);
 			
 			for (int value_index = 0; value_index < lifetime_rep_count; ++value_index)
 				int_result->set_int_no_check(lifetime_rep[value_index], value_index);
@@ -4151,7 +4151,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
 		}
 		case gID_individualCount:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentSubpopSize()));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentSubpopSize()));
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -4161,7 +4161,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property tag accessed on subpopulation before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 		case gID_fitnessScaling:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(subpop_fitness_scaling_));
@@ -4174,7 +4174,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4188,7 +4188,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_id(EidosObject **p_values, si
 
 EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4202,7 +4202,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 
 EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4216,7 +4216,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 
 EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{

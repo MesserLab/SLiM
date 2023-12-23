@@ -254,7 +254,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:			// ACCELERATED
 		{
 			if (!cached_value_getype_id_)
-				cached_value_getype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genomic_element_type_id_));
+				cached_value_getype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(genomic_element_type_id_));
 			return cached_value_getype_id_;
 		}
 		case gID_mutationTypes:
@@ -292,7 +292,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property tag accessed on genomic element type before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -303,7 +303,7 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -317,7 +317,7 @@ EidosValue *GenomicElementType::GetProperty_Accelerated_id(EidosObject **p_value
 
 EidosValue *GenomicElementType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{

@@ -599,7 +599,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 		
 		if (integer_result)
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(codon2aa_int[codon]));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(codon2aa_int[codon]));
 		}
 		else
 		{
@@ -614,7 +614,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosVal
 		
 		if (integer_result)
 		{
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(codons_length);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(codons_length);
 			
 			for (int value_index = 0; value_index < codons_length; ++value_index)
 			{
@@ -734,7 +734,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 			
 			int64_t length_3 = length / 3;
 			
-			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length_3);
 			
 			for (int64_t value_index = 0; value_index < length_3; ++value_index)
 			{
@@ -764,7 +764,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotidesToCodons(const std::vector<EidosVa
 		
 		int64_t length_3 = sequence_count / 3;
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length_3);
 		
 		if (sequence_type == EidosValueType::kValueString)
 		{
@@ -1015,7 +1015,7 @@ EidosValue_SP SLiM_ExecuteFunction_nucleotideCounts(const std::vector<EidosValue
 	
 	CountNucleotides(sequence_value, total_ACGT, "nucleotideCounts");
 	
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(4);
 	
 	int_result->set_int_no_check(total_ACGT[0], 0);
 	int_result->set_int_no_check(total_ACGT[1], 1);
@@ -1147,7 +1147,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 	else if (format == "integer")
 	{
 		// return a vector of integers, 3 0 3 0
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length);
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
@@ -1245,7 +1245,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	else if (format == "integer")
 	{
 		// return a vector of integers, 3 0 3 0 1 2
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length);
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{

@@ -271,7 +271,7 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_Int_vector *integer_vec = dynamic_cast<EidosValue_Int_vector *>(all_keys.get());
+		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
 		
 		if (!integer_vec)
 			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_SLiM): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
@@ -620,7 +620,7 @@ EidosValue_SP EidosDictionaryUnretained::AllKeys(void) const
 		if (key_count == 0)
 			return gStaticEidosValue_Integer_ZeroVec;
 		
-		EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(key_count);
+		EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve(key_count);
 		
 		for (int64_t key : keys)
 			integer_result->push_int_no_check(key);
@@ -878,7 +878,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				else if (value.is_number_integer() || value.is_number_unsigned())
 				{
 					int64_t int_value = value;
-					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(int_value));
+					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(int_value));
 				}
 				else if (value.is_number_float())
 				{
@@ -927,7 +927,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 						// ok, all elements are of a single type, so let's create a vector of that type from the values in the array
 						if (array_type == nlohmann::json::value_t::number_integer)
 						{
-							EidosValue_Int_vector *int_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(array_count);
+							EidosValue_Int *int_value = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(array_count);
 							
 							for (size_t element_index = 0; element_index < array_count; ++element_index)
 							{
@@ -1149,7 +1149,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_compactIndices(EidosGloba
 	EidosDictionaryState_IntegerKeys *state_ptr = (EidosDictionaryState_IntegerKeys *)state_ptr_;
 	EidosDictionaryHashTable_IntegerKeys &symbols = state_ptr->dictionary_symbols_;
 	size_t key_count = symbols.size();
-	EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(key_count);
+	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->reserve(key_count);
 	std::vector<EidosValue_SP> compacted_values;
 	
 	if (preserveOrder)

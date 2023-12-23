@@ -867,7 +867,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				EidosValue_Object_singleton local_mut(p_mut, gSLiM_Mutation_Class);
-				EidosValue_Int_singleton local_originalNuc(p_original_nucleotide);
+				EidosValue_Int local_originalNuc(p_original_nucleotide);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -1580,7 +1580,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_lastPosition:
 		{
 			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_position_));
+				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
 			return cached_value_lastpos_;
 		}
 			
@@ -1590,7 +1590,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositions is only defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositions is not defined since sex-specific hotspot maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(hotspot_end_positions_H_));
 		}
 		case gID_hotspotEndPositionsM:
 		{
@@ -1598,7 +1598,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsM is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsM is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(hotspot_end_positions_M_));
 		}
 		case gID_hotspotEndPositionsF:
 		{
@@ -1606,7 +1606,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsF is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsF is not defined since sex-specific hotspot maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(hotspot_end_positions_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(hotspot_end_positions_F_));
 		}
 			
 		case gID_hotspotMultipliers:
@@ -1640,7 +1640,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined since sex-specific mutation rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_end_positions_H_));
 		}
 		case gID_mutationEndPositionsM:
 		{
@@ -1648,7 +1648,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_end_positions_M_));
 		}
 		case gID_mutationEndPositionsF:
 		{
@@ -1656,7 +1656,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined since sex-specific mutation rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(mutation_end_positions_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_end_positions_F_));
 		}
 			
 		case gID_mutationRates:
@@ -1732,19 +1732,19 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositions is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_H_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_H_));
 		}
 		case gID_recombinationEndPositionsM:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_M_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_M_));
 		}
 		case gID_recombinationEndPositionsF:
 		{
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(recombination_end_positions_F_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_F_));
 		}
 			
 		case gID_recombinationRates:
@@ -1807,7 +1807,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property tag accessed on chromosome before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -2002,7 +2002,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	if (all_breakpoints.size() == 0)
 		return gStaticEidosValue_Integer_ZeroVec;
 	else
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector(all_breakpoints));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(all_breakpoints));
 }
 
 //	*********************	(integer$)setAncestralNucleotides(is sequence)
@@ -2136,7 +2136,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 	// debugging
 	//std::cout << "ancestral sequence set: " << *ancestral_seq_buffer_ << std::endl;
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(ancestral_seq_buffer_->size()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(ancestral_seq_buffer_->size()));
 }
 
 //	*********************	– (void)setGeneConversion(numeric$ nonCrossoverFraction, numeric$ meanLength, numeric$ simpleConversionFraction, [numeric$ bias = 0])

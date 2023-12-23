@@ -3462,7 +3462,7 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_id:						// ACCELERATED
 		{
 			if (!cached_value_inttype_id_)
-				cached_value_inttype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(interaction_type_id_));
+				cached_value_inttype_id_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(interaction_type_id_));
 			return cached_value_inttype_id_;
 		}
 		case gID_reciprocal:
@@ -3504,7 +3504,7 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (InteractionType::GetProperty): property tag accessed on interaction type before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -3515,7 +3515,7 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -3529,7 +3529,7 @@ EidosValue *InteractionType::GetProperty_Accelerated_id(EidosObject **p_values, 
 
 EidosValue *InteractionType::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -4655,7 +4655,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		}
 		else
 		{
-			EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+			EidosValue_Int *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(receivers_count);
 			
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 				result_vec->set_int_no_check(0, receiver_index);
@@ -4692,11 +4692,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			default: neighborCount = 0; break;	// unsupported value
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(neighborCount));
 	}
 	else
 	{
-		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+		EidosValue_Int *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_INTNEIGHCOUNT);
@@ -5562,7 +5562,7 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 		}
 		else
 		{
-			EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+			EidosValue_Int *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(receivers_count);
 			
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 				result_vec->set_int_no_check(0, receiver_index);
@@ -5595,11 +5595,11 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 			default: neighborCount = 0; break;	// unsupported value
 		}
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(neighborCount));
 	}
 	else
 	{
-		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+		EidosValue_Int *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEIGHCOUNT);
@@ -5691,7 +5691,7 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCountOfPoint(EidosGlobalStr
 		default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): (internal error) unsupported spatiality" << EidosTerminate();
 	}
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(neighborCount));
 }
 
 //	*********************	- (void)setConstraints(string$ who, [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL],

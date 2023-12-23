@@ -852,7 +852,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsIntegerVector(int64_t start, int64_t
 	else
 	{
 		// return a vector of integers, 3 0 3 0
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length);
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 			int_result->set_int_no_check(NucleotideAtIndex(start + value_index), value_index);
@@ -874,7 +874,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t e
 		int nuc3 = NucleotideAtIndex(start + 2);
 		int codon = nuc1 * 16 + nuc2 * 4 + nuc3;	// 0..63
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(codon));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(codon));
 	}
 	else
 	{
@@ -884,7 +884,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsCodonVector(int64_t start, int64_t e
 		if (length % 3 != 0)
 			EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsCodonVector): to obtain codons, the requested sequence length must be a multiple of 3." << EidosTerminate();
 		
-		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)length_3);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)length_3);
 		
 		for (int64_t value_index = 0; value_index < length_3; ++value_index)
 		{

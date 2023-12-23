@@ -418,7 +418,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			if (!individual_->subpopulation_->species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(genome_id_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(genome_id_));
 		}
 		case gID_genomeType:
 		{
@@ -468,7 +468,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
 				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property tag accessed on genome before being set." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
 			
 			// all others, including gID_none
@@ -479,7 +479,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 
 EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	size_t value_index = 0;
 	
 	// check that pedigrees are enabled, once
@@ -520,7 +520,7 @@ EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObject **p_values,
 
 EidosValue *Genome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -817,7 +817,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 	// Count the number of mutations of the given type
 	const int32_t mutrun_count = ((Genome *)(p_elements[0]))->mutrun_count_;
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	bool saw_error = false;
 	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE);
@@ -970,7 +970,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		
 		// patch the sequence with nucleotide mutations
 		// no singleton case; we force a vector return from NucleotidesAsCodonVector() for simplicity
-		int64_t *int_vec = ((EidosValue_Int_vector *)(codon_value.get()))->data();
+		int64_t *int_vec = ((EidosValue_Int *)(codon_value.get()))->data();
 		GenomeWalker walker(this);
 		
 		walker.MoveToPosition(start);
@@ -1119,7 +1119,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		else
 		{
 			// vector case: replace the appropriate element in integer_value
-			int64_t *int_vec = ((EidosValue_Int_vector *)(integer_value.get()))->data();
+			int64_t *int_vec = ((EidosValue_Int *)(integer_value.get()))->data();
 			GenomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
@@ -1226,7 +1226,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "positionsOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Return the positions of mutations of the given type
-	EidosValue_Int_vector *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
+	EidosValue_Int *int_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
