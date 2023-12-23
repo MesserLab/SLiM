@@ -67,7 +67,7 @@ EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
 	else if (p_property_id == gEidosID__increment)
 	{
 		EidosTestElement *inc_element = new EidosTestElement(yolk_ + 1);
-		EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(inc_element, gEidosTestElement_Class));
+		EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inc_element, gEidosTestElement_Class));
 		inc_element->Release();	// retval now owns it; release the retain from new
 		
 		return retval;
@@ -153,7 +153,7 @@ EidosValue_SP EidosTestElement::ExecuteMethod_squareTest(EidosGlobalStringID p_m
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosTestElement *sq_element = new EidosTestElement(yolk_ * yolk_);
-	EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(sq_element, gEidosTestElement_Class));
+	EidosValue_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(sq_element, gEidosTestElement_Class));
 	sq_element->Release();	// retval now owns it; release the retain from new
 	
 	return retval;
@@ -176,7 +176,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElement(const std::vector<EidosV
 	
 	EidosValue *yolk_value = p_arguments[0].get();
 	EidosTestElement *objectElement = new EidosTestElement(yolk_value->IntAtIndex_NOCAST(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElement_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosTestElement_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -319,7 +319,7 @@ static EidosValue_SP Eidos_Instantiate_EidosTestElementNRR(const std::vector<Eid
 	
 	EidosValue *yolk_value = p_arguments[0].get();
 	EidosTestElementNRR *objectElement = new EidosTestElementNRR(yolk_value->IntAtIndex_NOCAST(0, nullptr));
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosTestElementNRR_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosTestElementNRR_Class));
 	
 	// Note that since these are not under retain/release, and Eidos has no logic to keep track of them and release them, they just leak
 	// This is probably what EidosTestElement::FreeThunks() used to do before EidosTestElement was put under retain/release, so that

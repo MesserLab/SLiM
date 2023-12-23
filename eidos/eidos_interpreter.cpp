@@ -752,7 +752,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				}
 				case EidosValueType::kValueObject:
 				{
-					EidosValue_Object_vector *base_object_vector = dynamic_cast<EidosValue_Object_vector *>(base_value.get());
+					EidosValue_Object *base_object_vector = dynamic_cast<EidosValue_Object *>(base_value.get());
 					
 					if (base_object_vector)
 					{
@@ -773,7 +773,7 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 					{
 						// true singleton case; we can't use set_object_element_no_check_CRR() to set the element
 						// note (rvalue_count == 1) must be true here, so there is only one case to handle
-						EidosValue_Object_singleton *base_object_singleton = dynamic_cast<EidosValue_Object_singleton *>(base_value.get());
+						EidosValue_Object *base_object_singleton = dynamic_cast<EidosValue_Object *>(base_value.get());
 						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
 						
 						base_object_singleton->set_object_element_no_check_CRR(rvalue, 0);
@@ -5954,14 +5954,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				else if (range_type == EidosValueType::kValueObject)
 				{
 					EidosObject * const *range_vec = range_value->ObjectData();
-					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
-					EidosValue_Object_singleton *index_value = index_value_SP.get();
+					EidosValue_Object_SP index_value_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
+					EidosValue_Object *index_value = index_value_SP.get();
 					
 					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
-						index_value->SetValue(range_vec[range_index]);
+						index_value->set_object_element_no_check_CRR(range_vec[range_index], 0);
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						

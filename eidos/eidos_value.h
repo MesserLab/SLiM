@@ -184,6 +184,7 @@ protected:
 	unsigned int invisible_ : 1;							// as in R; if true, the value will not normally be printed to the console
 	unsigned int is_singleton_ : 1;							// allows Count() and IsSingleton() to be inline; cached at construction
 	unsigned int registered_for_patching_ : 1;				// used by EidosValue_Object, otherwise UNINITIALIZED; declared here for reasons of memory packing
+	unsigned int class_uses_retain_release_ : 1;			// used by EidosValue_Object, otherwise UNINITIALIZED; cached from UsesRetainRelease() of class_; true until class_ is set
 	
 	int64_t *dim_;											// nullptr for vectors; points to a malloced, OWNED array of dimensions for matrices and arrays
 															//    when allocated, the first value in the buffer is a count of the dimensions that follow
@@ -460,7 +461,7 @@ public:
 //	those should be used for singleton values when possible.
 //
 
-class EidosValue_Logical : public EidosValue
+class EidosValue_Logical final : public EidosValue
 {
 private:
 	typedef EidosValue super;
@@ -682,7 +683,7 @@ public:
 //	EidosValue_Int represents integer (C++ int64_t) values in Eidos.
 //
 
-class EidosValue_Int : public EidosValue
+class EidosValue_Int final : public EidosValue
 {
 private:
 	typedef EidosValue super;
@@ -793,7 +794,7 @@ public:
 //	EidosValue_Float represents floating-point (C++ double) values in Eidos.
 //
 
-class EidosValue_Float : public EidosValue
+class EidosValue_Float final : public EidosValue
 {
 private:
 	typedef EidosValue super;
@@ -900,8 +901,7 @@ public:
 //	*********************************************************************************************************
 //
 //	EidosValue_Object represents objects in Eidos: entities that have properties and can respond to
-//	methods.  The subclass EidosValue_Object_vector is the standard instance class, used to hold vectors
-//	of objects.  EidosValue_Object_singleton is used for speed, to represent single values.
+//	methods.  The value type for it is EidosObject (or a subclass thereof).
 //
 
 // EidosObject supports a retain/release mechanism that disposes of objects when no longer
@@ -912,24 +912,25 @@ public:
 // script.  Note that if you inherit from EidosDictionaryRetained you *must* subclass from
 // EidosDictionaryRetained_Class, and vice versa; each is considered a guarantee of the other.
 
-class EidosValue_Object : public EidosValue
+class EidosValue_Object final : public EidosValue
 {
 private:
 	typedef EidosValue super;
 
 protected:
-	const EidosClass *class_;		// can be gEidosObject_Class if the vector is empty
-	bool class_uses_retain_release_;	// cached from UsesRetainRelease() of class_; true until class_ is set, to catch errors
+	// singleton/vector design: values_ will either point to singleton_value_, or to a malloced buffer; it will never be nullptr
+	// in the case of a zero-length vector, note that values_ will point to singleton_value_ with count_ == 0 but capacity_ == 1
+	EidosObject *singleton_value_;
+	EidosObject **values_;				// these may use a retain/release system of ownership; see below
+	size_t count_, capacity_;
 	
-	EidosValue_Object(bool p_singleton, const EidosClass *p_class);
+	const EidosClass *class_;			// can be gEidosObject_Class if the vector is empty
 	
-	virtual int Count_Virtual(void) const override = 0;
+	// declared by EidosValue for our benefit, to pack bytes
+	//unsigned int registered_for_patching_ : 1;			// for mutation pointer patching; see EidosValue_Object::EidosValue_Object()
+	//unsigned int class_uses_retain_release_ : 1;			// cached from UsesRetainRelease() of class_; true until class_ is set
 	
-public:
-	EidosValue_Object(const EidosValue_Object &p_original) = delete;				// no copy-construct
-	EidosValue_Object(void) = delete;												// no default constructor
-	EidosValue_Object& operator=(const EidosValue_Object&) = delete;				// no copying
-	virtual ~EidosValue_Object(void) override;
+	virtual int Count_Virtual(void) const override { return (int)count_; }
 	
 	// check the type of a new element being added to an EidosValue_Object, and update class_uses_retain_release_
 	inline __attribute__((always_inline)) void DeclareClassFromElement(const EidosObject *p_element, bool p_undeclared_is_error = false)
@@ -952,85 +953,57 @@ public:
 		}
 	}
 	void RaiseForClassMismatch(void) const;
-
-	virtual const std::string &ElementType(void) const override;
-	inline __attribute__((always_inline)) const EidosClass *Class(void) const { return class_; }
-	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
-	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
-	virtual nlohmann::json JSONRepresentation(void) const override;
-	
-	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override = 0;
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override = 0;
-	
-	virtual EidosValue_SP CopyValues(void) const override = 0;
-	virtual EidosValue_SP NewMatchingType(void) const override;
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override = 0;
-	virtual void Sort(bool p_ascending) override;
-	
-	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
-	// EidosValue_Object instance defines depend upon the type of the EidosObject objects it contains.
-	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const = 0;
-	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token) = 0;
-	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) = 0;
 	
 	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference) = 0;
-	virtual void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference) = 0;
-};
-
-class EidosValue_Object_vector final : public EidosValue_Object
-{
-private:
-	typedef EidosValue_Object super;
-
-protected:
-	EidosObject **values_ = nullptr;		// these may use a retain/release system of ownership; see below
-	size_t count_ = 0, capacity_ = 0;
-	
-	virtual int Count_Virtual(void) const override { return (int)count_; }
+	void PatchPointersByAdding(std::uintptr_t p_pointer_difference);
+	void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference);
 	
 public:
-	EidosValue_Object_vector(const EidosValue_Object_vector &p_original);				// can copy-construct
-	EidosValue_Object_vector& operator=(const EidosValue_Object_vector&) = delete;		// no copying
+	EidosValue_Object(void) = delete;												// no default constructor
+	EidosValue_Object& operator=(const EidosValue_Object&) = delete;				// no copying
+	explicit EidosValue_Object(const EidosClass *p_class);							// funnel initializer; allows gEidosObject_Class
 	
-	explicit inline EidosValue_Object_vector(const EidosClass *p_class) : EidosValue_Object(false, p_class) { }		// can be gEidosObject_Class
-	explicit EidosValue_Object_vector(const std::vector<EidosObject *> &p_elementvec, const EidosClass *p_class);
-	//explicit EidosValue_Object_vector(EidosObject *p_element1);		// disabled to encourage use of EidosValue_Object_singleton for this case
-	explicit EidosValue_Object_vector(std::initializer_list<EidosObject *> p_init_list, const EidosClass *p_class);
-	explicit EidosValue_Object_vector(EidosObject **p_values, size_t p_count, const EidosClass *p_class);
-	virtual ~EidosValue_Object_vector(void) override;
+	explicit EidosValue_Object(EidosObject *p_element1, const EidosClass *p_class);
+	explicit EidosValue_Object(const EidosValue_Object &p_original);
+	explicit EidosValue_Object(const std::vector<EidosObject *> &p_elementvec, const EidosClass *p_class);
+	explicit EidosValue_Object(std::initializer_list<EidosObject *> p_init_list, const EidosClass *p_class);
+	explicit EidosValue_Object(EidosObject **p_values, size_t p_count, const EidosClass *p_class);
+	virtual ~EidosValue_Object(void) override;
+	
+	virtual EidosObject * const *ObjectData(void) const override { return values_; }
+	virtual EidosObject **ObjectData_Mutable(void) override { WILL_MODIFY(this); return values_; }
+	
+	inline __attribute__((always_inline)) const EidosClass *Class(void) const { return class_; }
+	inline __attribute__((always_inline)) bool UsesRetainRelease(void) const { return class_uses_retain_release_; }
+	
+	virtual const std::string &ElementType(void) const override;
+	virtual EidosValue_SP NewMatchingType(void) const override;
+	virtual void PrintValueAtIndex(const int p_idx, std::ostream &p_ostream) const override;
+	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
 	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
 	
-	virtual EidosObject * const *ObjectData(void) const override { return values_; }
-	virtual EidosObject **ObjectData_Mutable(void) override { WILL_MODIFY(this); return values_; }
-	
 	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	
 	virtual EidosValue_SP CopyValues(void) const override;
+	virtual EidosValue_SP VectorBasedCopy(void) const override;
 	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
+	virtual void Sort(bool p_ascending) override;
 	void SortBy(const std::string &p_property, bool p_ascending);
 	
 	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
 	// EidosValue_Object instance defines depend upon the type of the EidosObject objects it contains.
-	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const override;
-	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token) override;
+	EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const;
+	void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token);
 	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
+	EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference) override;
-	virtual void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference) override;
-	
-	// vector lookalike methods; not virtual, only for clients with a EidosValue_Object_vector*
+	// vector lookalike methods for speed; not virtual, only for clients with a EidosValue_Object*
 	void clear(void);													// as in std::vector
-	EidosValue_Object_vector *reserve(size_t p_reserved_size);			// as in std::vector
-	EidosValue_Object_vector *resize_no_initialize(size_t p_new_size);	// does not zero-initialize, unlike std::vector!
-	EidosValue_Object_vector *resize_no_initialize_RR(size_t p_new_size);	// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)
+	EidosValue_Object *reserve(size_t p_reserved_size);					// as in std::vector
+	EidosValue_Object *resize_no_initialize(size_t p_new_size);			// does not zero-initialize, unlike std::vector!
+	EidosValue_Object *resize_no_initialize_RR(size_t p_new_size);		// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
@@ -1055,9 +1028,11 @@ public:
 	void set_object_element_no_check_RR(EidosObject *p_object, size_t p_index);		// specifies retain/release
 	void set_object_element_no_check_no_previous_RR(EidosObject *p_object, size_t p_index);		// specifies retain/release, previous value assumed invalid from resize_no_initialize_RR
 	void set_object_element_no_check_NORR(EidosObject *p_object, size_t p_index);	// specifies no retain/release
+	
+	friend void SLiM_IncreaseMutationBlockCapacity(void);	// for PatchPointersByAdding() / PatchPointersBySubtracting()
 };
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_CRR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_CRR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1072,7 +1047,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_RR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_RR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1091,7 +1066,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_NORR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_NORR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1108,7 +1083,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_capcheck_NORR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_capcheck_NORR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1124,7 +1099,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_CRR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_no_check_CRR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1140,7 +1115,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_RR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_no_check_RR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1156,7 +1131,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_NORR(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_no_check_NORR(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1170,7 +1145,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_already_retained(EidosObject *p_object)
+inline __attribute__((always_inline)) void EidosValue_Object::push_object_element_no_check_already_retained(EidosObject *p_object)
 {
 	WILL_MODIFY(this);
 	
@@ -1184,7 +1159,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	values_[count_++] = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index)
+inline __attribute__((always_inline)) void EidosValue_Object::set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index)
 {
 	WILL_MODIFY(this);
 	
@@ -1205,7 +1180,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_
 	value_slot_to_replace = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_RR(EidosObject *p_object, size_t p_index)
+inline __attribute__((always_inline)) void EidosValue_Object::set_object_element_no_check_RR(EidosObject *p_object, size_t p_index)
 {
 	WILL_MODIFY(this);
 	
@@ -1224,7 +1199,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_
 	value_slot_to_replace = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_no_previous_RR(EidosObject *p_object, size_t p_index)
+inline __attribute__((always_inline)) void EidosValue_Object::set_object_element_no_check_no_previous_RR(EidosObject *p_object, size_t p_index)
 {
 	WILL_MODIFY(this);
 	
@@ -1241,7 +1216,7 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_
 	value_slot_to_replace = p_object;
 }
 
-inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_element_no_check_NORR(EidosObject *p_object, size_t p_index)
+inline __attribute__((always_inline)) void EidosValue_Object::set_object_element_no_check_NORR(EidosObject *p_object, size_t p_index)
 {
 	WILL_MODIFY(this);
 	
@@ -1254,74 +1229,6 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::set_object_
 	EidosObject *&value_slot_to_replace = values_[p_index];
 	
 	value_slot_to_replace = p_object;
-}
-
-class EidosValue_Object_singleton final : public EidosValue_Object
-{
-private:
-	typedef EidosValue_Object super;
-
-protected:
-	EidosObject *value_;		// these may use a retain/release system of ownership; see below
-	
-	virtual int Count_Virtual(void) const override { return 1; }
-	
-public:
-	EidosValue_Object_singleton(const EidosValue_Object_singleton &p_original) = delete;		// no copy-construct
-	EidosValue_Object_singleton& operator=(const EidosValue_Object_singleton&) = delete;		// no copying
-	EidosValue_Object_singleton(void) = delete;
-	explicit EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class);
-	explicit EidosValue_Object_singleton(EidosObject *p_element1, const EidosClass *p_class, bool p_register_for_patching);	// a variant for self-pointer EidosValues; not for general use
-	virtual ~EidosValue_Object_singleton(void) override;
-	
-	virtual EidosObject *ObjectElementAtIndex_NOCAST(int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual EidosObject *ObjectElementAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const override;
-	
-	virtual EidosObject * const *ObjectData(void) const override { return &value_; }
-	virtual EidosObject **ObjectData_Mutable(void) override { WILL_MODIFY(this); return &value_; }		// very dangerous; do not use
-	void SetValue(EidosObject *p_element);																		// very dangerous; used only in Evaluate_For()
-	
-	virtual EidosValue_SP GetValueAtIndex(const int p_idx, const EidosToken *p_blame_token) const override;
-	virtual EidosValue_SP CopyValues(void) const override;
-	
-	virtual EidosValue_SP VectorBasedCopy(void) const override;
-	
-	// prohibited actions because there is no backing vector
-	virtual void PushValueFromIndexOfEidosValue(int p_idx, const EidosValue &p_source_script_value, const EidosToken *p_blame_token) override;
-	
-	// Property and method support; defined only on EidosValue_Object, not EidosValue.  The methods that a
-	// EidosValue_Object instance defines depend upon the type of the EidosObject objects it contains.
-	virtual EidosValue_SP GetPropertyOfElements(EidosGlobalStringID p_property_id) const override;
-	virtual void SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token) override;
-	
-	virtual EidosValue_SP ExecuteMethodCall(EidosGlobalStringID p_method_id, const EidosInstanceMethodSignature *p_call_signature, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	
-	// Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
-	virtual void PatchPointersByAdding(std::uintptr_t p_pointer_difference) override;
-	virtual void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference) override;
-	
-	// We support just this method, from EidosValue_Object_vector's suite of setters, for now
-	void set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index);		// checks for retain/release
-};
-
-inline __attribute__((always_inline)) void EidosValue_Object_singleton::set_object_element_no_check_CRR(EidosObject *p_object, __attribute__((unused)) size_t p_index)
-{
-	WILL_MODIFY(this);
-	
-#if DEBUG
-	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
-	if (p_index >= 1) RaiseForRangeViolation();
-	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
-#endif
-	if (class_uses_retain_release_)
-	{
-		static_cast<EidosDictionaryRetained *>(p_object)->Retain();						// unsafe cast to avoid virtual function overhead
-		if (value_)
-			static_cast<EidosDictionaryRetained *>(value_)->Release();	// unsafe cast to avoid virtual function overhead
-	}
-	
-	value_ = p_object;
 }
 
 

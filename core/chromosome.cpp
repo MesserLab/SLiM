@@ -866,7 +866,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 				
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-				EidosValue_Object_singleton local_mut(p_mut, gSLiM_Mutation_Class);
+				EidosValue_Object local_mut(p_mut, gSLiM_Mutation_Class);
 				EidosValue_Int local_originalNuc(p_original_nucleotide);
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
@@ -1569,7 +1569,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomicElements:
 		{
-			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class);
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElement_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (GenomicElement *genomic_element : genomic_elements_)
@@ -1768,7 +1768,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_species:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 			
 			// variables

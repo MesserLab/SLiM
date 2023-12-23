@@ -1415,7 +1415,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	}
 	else
 	{
-		individuals_buffer = (Individual **)((EidosValue_Object_vector *)individuals_value)->data();
+		individuals_buffer = (Individual **)((EidosValue_Object *)individuals_value)->data();
 	}
 	
 	// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
@@ -1663,7 +1663,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// Execute inside try/catch so we can handle errors well
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
-		EidosValue_Object_vector individuals_vec(gSLiM_Individual_Class);
+		EidosValue_Object individuals_vec(gSLiM_Individual_Class);
 		individuals_vec.StackAllocated();
 		
 		try
@@ -1845,7 +1845,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 		tsk_table_collection_free(&temp_tables);
 		
 		// With no metadata, return an empty dictionary
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosDictionaryRetained_Class));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosDictionaryRetained_Class));
 	}
 	
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
@@ -1894,7 +1894,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	}
 	
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 	objectElement->AddJSONFrom(metadata);
 	objectElement->ContentsChanged("treeSeqMetadata()");

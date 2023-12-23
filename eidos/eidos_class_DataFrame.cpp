@@ -634,7 +634,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 		else
 		{
 			// Note that this retains cols_subset, before the call to Release below
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(cols_subset, gEidosDataFrame_Class));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(cols_subset, gEidosDataFrame_Class));
 		}
 		
 		rows_subset->Release();
@@ -658,7 +658,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetColumns(EidosGlobalStringID p_
 	EidosDataFrame *objectElement = SubsetColumns(index_value);
 	objectElement->ContentsChanged("subsetColumns()");
 	
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -678,7 +678,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetRows(EidosGlobalStringID p_met
 	EidosDataFrame *objectElement = SubsetRows(index_value, drop_value->LogicalAtIndex_NOCAST(0, nullptr));
 	objectElement->ContentsChanged("subsetRows()");
 	
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -700,7 +700,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDataFrame(const std::vector<EidosVal
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosDataFrame *objectElement = new EidosDataFrame();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -1132,7 +1132,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	// Make the DataFrame to return
 	EidosValue_SP result_SP(nullptr);
 	EidosDataFrame *objectElement = new EidosDataFrame();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDataFrame_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDataFrame_Class));
 	
 	objectElement->Release();	// objectElement is now retained by result_SP, so we can release it
 	

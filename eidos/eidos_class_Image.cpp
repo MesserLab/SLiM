@@ -366,7 +366,7 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): the Image() constructor requires either a singleton string (a file path) or a numeric vector (a matrix of pixel values)." << EidosTerminate();
 	}
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosImage_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosImage_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();

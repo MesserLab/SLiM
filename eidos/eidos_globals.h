@@ -1192,8 +1192,6 @@ class EidosValue_String;
 class EidosValue_String_singleton;
 class EidosValue_String_vector;
 class EidosValue_Object;
-class EidosValue_Object_singleton;
-class EidosValue_Object_vector;
 
 class EidosObjectPool;
 class EidosPropertySignature;
@@ -1229,8 +1227,6 @@ typedef Eidos_intrusive_ptr<EidosValue_String>				EidosValue_String_SP;
 typedef Eidos_intrusive_ptr<EidosValue_String_singleton>	EidosValue_String_singleton_SP;
 typedef Eidos_intrusive_ptr<EidosValue_String_vector>		EidosValue_String_vector_SP;
 typedef Eidos_intrusive_ptr<EidosValue_Object>				EidosValue_Object_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_singleton>	EidosValue_Object_singleton_SP;
-typedef Eidos_intrusive_ptr<EidosValue_Object_vector>		EidosValue_Object_vector_SP;
 
 
 // EidosValueType is an enum of the possible types for EidosValue objects.  Note that all of these types are vectors of the stated

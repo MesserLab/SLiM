@@ -1170,7 +1170,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 			if (obj0 == obj1)
 				result_SP = x_value->NewMatchingType();
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(obj0, ((EidosValue_Object *)x_value)->Class()));
 		}
 	}
 	else if (x_count == 1)
@@ -1222,7 +1222,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 				if (obj0 == object_vec[value_index])
 					return x_value->NewMatchingType();
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(obj0, ((EidosValue_Object *)x_value)->Class()));
 		}
 	}
 	else if (y_count == 1)
@@ -1278,7 +1278,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		else if (arg_type == EidosValueType::kValueObject)
 		{
 			EidosObject *obj1 = y_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-			EidosValue_Object_vector *object_element_vec = dynamic_cast<EidosValue_Object_vector *>(result_SP.get());
+			EidosValue_Object *object_element_vec = dynamic_cast<EidosValue_Object *>(result_SP.get());
 			EidosObject * const *object_element_data = object_element_vec->data();
 			
 			for (int value_index = 0; value_index < result_count; ++value_index)
@@ -1397,7 +1397,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 		{
 			EidosObject * const *object_vec0 = x_value->ObjectData();
 			EidosObject * const *object_vec1 = y_value->ObjectData();
-			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
+			EidosValue_Object *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -1572,7 +1572,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 			EidosObject *obj0 = x_value->ObjectElementAtIndex_NOCAST(0, nullptr), *obj1 = y_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 			
 			if (obj0 == obj1)
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(obj0, ((EidosValue_Object *)x_value)->Class()));
 			else
 				result_SP = x_value->NewMatchingType();
 		}
@@ -1750,7 +1750,7 @@ EidosValue_SP Eidos_ExecuteFunction_setIntersection(const std::vector<EidosValue
 		{
 			EidosObject * const *object_vec0 = x_value->ObjectData();
 			EidosObject * const *object_vec1 = y_value->ObjectData();
-			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
+			EidosValue_Object *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (int value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -1941,7 +1941,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 			if (obj0 == obj1)
 				result_SP = x_value->NewMatchingType();
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector({obj0, obj1}, ((EidosValue_Object *)x_value)->Class()));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object({obj0, obj1}, ((EidosValue_Object *)x_value)->Class()));
 		}
 	}
 	else if ((x_count == 1) || (y_count == 1))
@@ -2016,7 +2016,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		else if (arg_type == EidosValueType::kValueObject)
 		{
 			EidosObject *obj1 = y_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-			EidosValue_Object_vector *object_element_vec = dynamic_cast<EidosValue_Object_vector *>(result_SP.get());
+			EidosValue_Object *object_element_vec = dynamic_cast<EidosValue_Object *>(result_SP.get());
 			EidosObject * const *object_element_data = object_element_vec->data();
 			int value_index;
 			
@@ -2203,7 +2203,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 		{
 			EidosObject * const *object_vec0 = x_value->ObjectData();
 			EidosObject * const *object_vec1 = y_value->ObjectData();
-			EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
+			EidosValue_Object *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class());
 			result_SP = EidosValue_SP(object_result);
 			
 			for (value_index0 = 0; value_index0 < x_count; ++value_index0)
@@ -2408,9 +2408,9 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 			EidosObject *obj0 = x_value->ObjectElementAtIndex_NOCAST(0, nullptr), *obj1 = y_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 			
 			if (obj0 == obj1)
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(obj0, ((EidosValue_Object *)x_value)->Class()));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(obj0, ((EidosValue_Object *)x_value)->Class()));
 			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector({obj0, obj1}, ((EidosValue_Object *)x_value)->Class()));
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object({obj0, obj1}, ((EidosValue_Object *)x_value)->Class()));
 		}
 	}
 	else if ((x_count == 1) || (y_count == 1))
@@ -2503,7 +2503,7 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 			
 			if (scan_index == result_count)
 			{
-				EidosValue_Object_vector *object_element_vec = dynamic_cast<EidosValue_Object_vector *>(result_SP.get());
+				EidosValue_Object *object_element_vec = dynamic_cast<EidosValue_Object *>(result_SP.get());
 				
 				object_element_vec->push_object_element_CRR(value);
 			}

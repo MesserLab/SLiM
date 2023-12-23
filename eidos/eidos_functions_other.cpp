@@ -725,7 +725,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetMaxThreads(__attribute__((unused)
 EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 #ifdef _OPENMP
 	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_ABS_FLOAT)));

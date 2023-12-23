@@ -505,7 +505,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
-				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
+				EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(object_class))->resize_no_initialize(sample_size);
 				EidosObject **object_result_data = object_result->data();
 				result_SP = EidosValue_SP(object_result);
 				
@@ -820,7 +820,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			{
 				EidosObject * const *object_data = x_value->ObjectData();
 				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
-				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
+				EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(object_class))->resize_no_initialize(sample_size);
 				EidosObject **object_result_data = object_result->data();
 				result_SP = EidosValue_SP(object_result);
 				
@@ -1558,8 +1558,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				
 				EidosObject * const *true_vec = trueValues_value->ObjectData();
 				EidosObject * const *false_vec = falseValues_value->ObjectData();
-				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
-				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
+				EidosValue_Object_SP object_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trueValues_class));
+				EidosValue_Object *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
 				if (object_result->UsesRetainRelease())
 				{
@@ -1655,8 +1655,8 @@ EidosValue_SP Eidos_ExecuteFunction_ifelse(const std::vector<EidosValue_SP> &p_a
 				
 				EidosObject *true_value = trueValues_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 				EidosObject *false_value = falseValues_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-				EidosValue_Object_vector_SP object_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(trueValues_class));
-				EidosValue_Object_vector *object_result = object_result_SP->resize_no_initialize_RR(test_count);
+				EidosValue_Object_SP object_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trueValues_class));
+				EidosValue_Object *object_result = object_result_SP->resize_no_initialize_RR(test_count);
 				
 				if (object_result->UsesRetainRelease())
 				{
@@ -2560,7 +2560,7 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class()))->resize_no_initialize_RR(x_count);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class()))->resize_no_initialize_RR(x_count);
 	result_SP = EidosValue_SP(object_result);
 	
 	if (object_result->UsesRetainRelease())

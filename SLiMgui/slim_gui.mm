@@ -35,7 +35,7 @@
 SLiMgui::SLiMgui(Community &p_community, SLiMWindowController *p_controller) :
 	community_(p_community),
 	controller_(p_controller),
-	self_symbol_(gID_slimgui, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMgui_Class)))
+	self_symbol_(gID_slimgui, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMgui_Class)))
 {
 }
 

@@ -729,8 +729,8 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 	}
 	else if (has_object_type)
 	{
-		EidosValue_Object_vector *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(element_class))->resize_no_initialize_RR(reserve_size);
-		EidosValue_Object_vector_SP result_SP = EidosValue_Object_vector_SP(result);
+		EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(element_class))->resize_no_initialize_RR(reserve_size);
+		EidosValue_Object_SP result_SP = EidosValue_Object_SP(result);
 		int result_set_index = 0;
 		
 		for (int arg_index = 0; arg_index < argument_count; ++arg_index)
@@ -971,7 +971,7 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	{
 		// We have x_count != 1, so the type of x_value must be EidosValue_Object_vector; we can use the fast API
 		EidosObject * const *object_data = x_value->ObjectData();
-		EidosValue_Object_vector *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)x_value)->Class());
+		EidosValue_Object *object_result = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class());
 		result_SP = EidosValue_SP(object_result);
 		
 		if (p_preserve_order)
@@ -1115,8 +1115,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			else if (original_value_type == EidosValueType::kValueObject)
 			{
 				EidosObject * const *first_child_vec = p_original_value->ObjectData();
-				EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)p_original_value)->Class()));
-				EidosValue_Object_vector *obj_result = obj_result_SP->reserve(indices_count);
+				EidosValue_Object_SP obj_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)p_original_value)->Class()));
+				EidosValue_Object *obj_result = obj_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 					if (logical_index_data[value_idx])
@@ -1197,8 +1197,8 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 			{
 				// result type is object; optimize for that
 				EidosObject * const *first_child_vec = p_original_value->ObjectData();
-				EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)p_original_value)->Class()));
-				EidosValue_Object_vector *obj_result = obj_result_SP->reserve(indices_count);
+				EidosValue_Object_SP obj_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)p_original_value)->Class()));
+				EidosValue_Object *obj_result = obj_result_SP->reserve(indices_count);
 				
 				for (int value_idx = 0; value_idx < indices_count; value_idx++)
 				{

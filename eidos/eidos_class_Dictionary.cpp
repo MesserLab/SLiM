@@ -862,7 +862,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				if (value.is_null())
 				{
 					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
-					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(dictionary, gEidosDictionaryRetained_Class));
 					dictionary->Release();		// now retained by state_ptr->dictionary_symbols_
 				}
 				else if (value.is_boolean())
@@ -889,7 +889,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				{
 					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
 					dictionary->AddJSONFrom(value);
-					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(dictionary, gEidosDictionaryRetained_Class));
 					dictionary->Release();		// now retained by state_ptr->dictionary_symbols_
 				}
 				else if (value.is_array())
@@ -975,7 +975,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 						}
 						else if (array_type == nlohmann::json::value_t::object)
 						{
-							EidosValue_Object_vector *object_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosDictionaryRetained_Class);
+							EidosValue_Object *object_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosDictionaryRetained_Class);
 							
 							for (size_t element_index = 0; element_index < array_count; ++element_index)
 							{
@@ -1218,7 +1218,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 	// With no columns, the indices don't matter, and the result is a new empty dictionary
 	if (KeyCount() == 0)
@@ -1648,7 +1648,7 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();

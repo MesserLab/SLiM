@@ -1086,8 +1086,6 @@ void Eidos_WarmUp(void)
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Int));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Float));
 		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_vector));
-		maxEidosValueSize = std::max(maxEidosValueSize, sizeof(EidosValue_Object_singleton));
 		
 //		std::cout << "sizeof(EidosValue) ==                  " << sizeof(EidosValue) << std::endl;
 //		std::cout << "sizeof(EidosValue_NULL) ==             " << sizeof(EidosValue_NULL) << std::endl;
@@ -1098,8 +1096,6 @@ void Eidos_WarmUp(void)
 //		std::cout << "sizeof(EidosValue_Int) ==              " << sizeof(EidosValue_Int) << std::endl;
 //		std::cout << "sizeof(EidosValue_Float) ==            " << sizeof(EidosValue_Float) << std::endl;
 //		std::cout << "sizeof(EidosValue_Object) ==           " << sizeof(EidosValue_Object) << std::endl;
-//		std::cout << "sizeof(EidosValue_Object_vector) ==    " << sizeof(EidosValue_Object_vector) << std::endl;
-//		std::cout << "sizeof(EidosValue_Object_singleton) == " << sizeof(EidosValue_Object_singleton) << std::endl;
 //		std::cout << "maxEidosValueSize ==                   " << maxEidosValueSize << std::endl;
 		
 		gEidosValuePool = new EidosObjectPool("EidosObjectPool(EidosValue)", maxEidosValueSize);
@@ -1216,7 +1212,7 @@ void Eidos_WarmUp(void)
 		
 		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
 		// before that point, however, since properties and method signatures may use some of those global permanent values
-		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosObject_Class));
+		gStaticEidosValue_Object_ZeroVec = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosObject_Class));
 		gStaticEidosValue_Object_ZeroVec->MarkAsConstant();
 		
 		// Set up the built-in function map, which is immutable

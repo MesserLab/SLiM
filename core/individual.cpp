@@ -313,7 +313,7 @@ int Individual::SharedParentCountWithIndividual(Individual &p_ind)
 void Individual::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Individual_Class));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Individual_Class));
 }
 
 const EidosClass *Individual::Class(void) const
@@ -340,7 +340,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			if (killed_)
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property subpopulation is not available for individuals that have been killed; they have no subpopulation." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(subpopulation_, gSLiM_Subpopulation_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(subpopulation_, gSLiM_Subpopulation_Class));
 		}
 		case gID_index:				// ACCELERATED
 		{
@@ -348,7 +348,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genomes:
 		{
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(2);
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(2);
 			
 			vec->set_object_element_no_check_NORR(genome1_, 0);
 			vec->set_object_element_no_check_NORR(genome2_, 1);
@@ -363,17 +363,17 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			if (genome1null)
 			{
 				if (genome2null)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class));
 				else
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome2_, gSLiM_Genome_Class));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome2_, gSLiM_Genome_Class));
 			}
 			else
 			{
 				if (genome2null)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome1_, gSLiM_Genome_Class));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome1_, gSLiM_Genome_Class));
 				else
 				{
-					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(2);
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(2);
 					
 					vec->set_object_element_no_check_NORR(genome1_, 0);
 					vec->set_object_element_no_check_NORR(genome2_, 1);
@@ -384,11 +384,11 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genome1:			// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome1_, gSLiM_Genome_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome1_, gSLiM_Genome_Class));
 		}
 		case gID_genome2:			// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome2_, gSLiM_Genome_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome2_, gSLiM_Genome_Class));
 		}
 		case gID_sex:
 		{
@@ -496,7 +496,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
 			int genome1_size = (genome1_->IsNull() ? 0 : genome1_->mutation_count());
 			int genome2_size = (genome2_->IsNull() ? 0 : genome2_->mutation_count());
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			if ((genome1_size == 0) && (genome2_size == 0))
@@ -1069,7 +1069,7 @@ EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_
 
 EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Subpopulation_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -1086,7 +1086,7 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 
 EidosValue *Individual::GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -1100,7 +1100,7 @@ EidosValue *Individual::GetProperty_Accelerated_genome1(EidosObject **p_values, 
 
 EidosValue *Individual::GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
@@ -1977,7 +1977,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
 	int genome1_size = (genome1_->IsNull() ? 0 : genome1_->mutation_count());
 	int genome2_size = (genome2_->IsNull() ? 0 : genome2_->mutation_count());
-	EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
 	
 	if ((genome1_size == 0) && (genome2_size == 0))

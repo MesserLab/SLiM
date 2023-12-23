@@ -382,7 +382,7 @@ void Genome::record_derived_states(Species *p_species) const
 void Genome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Genome_Class));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Genome_Class));
 }
 
 const EidosClass *Genome::Class(void) const
@@ -432,7 +432,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_individual:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(individual_, gSLiM_Individual_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(individual_, gSLiM_Individual_Class));
 		}
 		case gID_isNullGenome:		// ACCELERATED
 			return ((mutrun_count_ == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -443,7 +443,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int mut_count = mutation_count();
-			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mut_count);
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mut_count);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			int set_index = 0;
 			
@@ -632,7 +632,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 				if (returnMutation == false)
 					return (mut ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 				else
-					return (mut ? EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mut, gSLiM_Mutation_Class)) : (EidosValue_SP)gStaticEidosValueNULL);
+					return (mut ? EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(mut, gSLiM_Mutation_Class)) : (EidosValue_SP)gStaticEidosValueNULL);
 			}
 		}
 		else if (returnMutation == false)
@@ -664,7 +664,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 		else // (returnMutation == true)
 		{
 			// We will return an object<Mutation> vector, one Mutation (or NULL) for each target genome; not parallelized, for now
-			EidosValue_Object_vector *result_obj_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->reserve(p_elements_size);
+			EidosValue_Object *result_obj_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->reserve(p_elements_size);
 			bool null_genome_seen = false;
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
@@ -873,7 +873,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	// We do this by not creating a vector until we see the second match; with one match, we make a singleton.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Mutation *first_match = nullptr;
-	EidosValue_Object_vector *vec = nullptr;
+	EidosValue_Object *vec = nullptr;
 	EidosValue_SP result_SP;
 	int run_index;
 	
@@ -895,7 +895,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 						first_match = mut;
 					else
 					{
-						vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+						vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 						result_SP = EidosValue_SP(vec);
 						
 						vec->push_object_element_RR(first_match);
@@ -914,13 +914,13 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	// Now return the appropriate return value
 	if (first_match)
 	{
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(first_match, gSLiM_Mutation_Class));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(first_match, gSLiM_Mutation_Class));
 	}
 	else
 	{
 		if (!vec)
 		{
-			vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+			vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 			result_SP = EidosValue_SP(vec);
 		}
 		
@@ -2491,7 +2491,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
 	
-	EidosValue_Object_vector_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class));
+	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	
 	if (count_to_add == 0)
 		return retval;
@@ -3225,12 +3225,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	
 	// Return the instantiated mutations
 	int mutation_count = (int)mutation_indices.size();
-	EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
 	for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
 		vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_indices[mut_index], mut_index);
 	
-	return EidosValue_Object_vector_SP(vec);
+	return EidosValue_Object_SP(vec);
 }
 
 //	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
@@ -3809,12 +3809,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	// Return the instantiated mutations
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mutation_count = (int)mutation_indices.size();
-	EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
 	
 	for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
 		vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_indices[mut_index], mut_index);
 	
-	return EidosValue_Object_vector_SP(vec);
+	return EidosValue_Object_SP(vec);
 }
 
 //	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])

@@ -81,7 +81,7 @@ extern "C" {
 #pragma mark Community
 #pragma mark -
 
-Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
+Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Community_Class)))
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
@@ -1329,7 +1329,7 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 	if (value_count == 1)
 		return &((Individual *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->subpopulation_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Individual **individuals = (Individual **)object_vector_value->data();
 	
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
@@ -1374,7 +1374,7 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 	if (value_count == 1)
 		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Genome **genomes = (Genome **)object_vector_value->data();
 	
 	return Community::SpeciesForGenomesVector(genomes, value_count);
@@ -1419,7 +1419,7 @@ Species *Community::SpeciesForMutations(EidosValue *value)
 	if (value_count == 1)
 		return &((Mutation *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->mutation_type_ptr_->species_;
 	
-	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
 	Mutation **mutations = (Mutation **)object_vector_value->data();
 	
 	return Community::SpeciesForMutationsVector(mutations, value_count);

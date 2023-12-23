@@ -1224,7 +1224,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)blend(ifo<SpatialMap> x, float$ xFraction)
@@ -1275,7 +1275,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_blend(EidosGlobalStringID p_method_id, c
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)multiply(ifo<SpatialMap> x)
@@ -1319,7 +1319,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)subtract(ifo<SpatialMap> x)
@@ -1363,7 +1363,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)divide(ifo<SpatialMap> x)
@@ -1407,7 +1407,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)power(ifo<SpatialMap> x)
@@ -1451,7 +1451,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (object<SpatialMap>)exp(void)
@@ -1465,7 +1465,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (void)changeColors([Nif valueRange = NULL], [Ns color = NULL])
@@ -1842,7 +1842,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 		}
 	}
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (string)mapColor(numeric value)
@@ -1977,7 +1977,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapImage(EidosGlobalStringID p_method_id
 		}
 	}
 	
-	EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(image, gEidosImage_Class)));
+	EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(image, gEidosImage_Class)));
 	
 	// image is now retained by result_SP, so we can release it
 	image->Release();
@@ -2111,7 +2111,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_rescale(EidosGlobalStringID p_method_id,
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 //	*********************	- (float)sampleImprovedNearbyPoint(float point, float$ maxDistance, string$ functionType, ...)
@@ -2595,7 +2595,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, 
 	
 	_ValuesChanged();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SpatialMap_Class));
 }
 
 
@@ -2616,7 +2616,7 @@ EidosValue_SP SpatialMap::_DeriveTemporarySpatialMapWithEidosValue(EidosValue *p
 	
 	// make a duplicate of this SpatialMap
 	SpatialMap *objectElement = new SpatialMap("__tempmap__INTERNAL__", *this);
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gSLiM_SpatialMap_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gSLiM_SpatialMap_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
@@ -2639,7 +2639,7 @@ static EidosValue_SP SLiM_Instantiate_SpatialMap(const std::vector<EidosValue_SP
 	SpatialMap *map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	SpatialMap *objectElement = new SpatialMap(name, *map);
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gSLiM_SpatialMap_Class));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gSLiM_SpatialMap_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
