@@ -2503,16 +2503,11 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 		
 		p_crossovers.resize(count);		// zero-fills only new entries at the margin, so is minimally wasteful
 		
-		if (count == 1)
-			p_crossovers[0] = (slim_position_t)local_crossovers_ptr->IntAtIndex_NOCAST(0, nullptr);
-		else
-		{
-			const int64_t *new_crossover_data = local_crossovers_ptr->IntData();
-			slim_position_t *p_crossovers_data = p_crossovers.data();
-			
-			for (int value_index = 0; value_index < count; ++value_index)
-				p_crossovers_data[value_index] = (slim_position_t)new_crossover_data[value_index];
-		}
+		const int64_t *new_crossover_data = local_crossovers_ptr->IntData();
+		slim_position_t *p_crossovers_data = p_crossovers.data();
+		
+		for (int value_index = 0; value_index < count; ++value_index)
+			p_crossovers_data[value_index] = (slim_position_t)new_crossover_data[value_index];
 		
 		breakpoints_changed = true;
 	}
@@ -5073,7 +5068,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 						
 						if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
 						{
-							if (result->FloatAtIndex_NOCAST(0, nullptr) == 1.0)
+							if (result->FloatData()[0] == 1.0)
 							{
 								// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
 								slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
@@ -6806,11 +6801,12 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
 		int mutations_count = mutations_value->Count();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(mutations_count);
+		result_SP = EidosValue_SP(float_result);
 		
-		if (mutations_count == 1)
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			// Handle the one-mutation case separately so we can return a singleton
-			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 			int8_t mut_state = mut->state_;
 			double freq;
 			
@@ -6818,25 +6814,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 			else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
 			else													freq = 1.0;
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(freq));
-		}
-		else
-		{
-			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(mutations_count);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int value_index = 0; value_index < mutations_count; ++value_index)
-			{
-				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				int8_t mut_state = mut->state_;
-				double freq;
-				
-				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) / denominator;
-				else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
-				else													freq = 1.0;
-				
-				float_result->set_float_no_check(freq, value_index);
-			}
+			float_result->set_float_no_check(freq, value_index);
 		}
 	}
 	else if (MutationRegistryNeedsCheck())
@@ -6894,11 +6872,12 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
 		int mutations_count = mutations_value->Count();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(mutations_count);
+		result_SP = EidosValue_SP(int_result);
 		
-		if (mutations_count == 1)
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			// Handle the one-mutation case separately so we can return a singleton
-			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
 			int8_t mut_state = mut->state_;
 			slim_refcount_t count;
 			
@@ -6906,25 +6885,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 			else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
 			else													count = total_genome_count;
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(count));
-		}
-		else
-		{
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(mutations_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < mutations_count; ++value_index)
-			{
-				Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				int8_t mut_state = mut->state_;
-				slim_refcount_t count;
-				
-				if (mut_state == MutationState::kInRegistry)			count = *(refcount_block_ptr + mut->BlockIndex());
-				else if (mut_state == MutationState::kLostAndRemoved)	count = 0;
-				else													count = total_genome_count;
-				
-				int_result->set_int_no_check(count, value_index);
-			}
+			int_result->set_int_no_check(count, value_index);
 		}
 	}
 	else if (MutationRegistryNeedsCheck())

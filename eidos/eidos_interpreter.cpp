@@ -375,29 +375,16 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 				else	// (second_child_type == EidosValueType::kValueInt)
 				{
 					// An integer vector can be of any length; each number selects the index at that index in base_indices
-					if (second_child_count == 1)
+					const int64_t *second_child_data = second_child_value->IntData();
+					
+					for (int value_idx = 0; value_idx < second_child_count; value_idx++)
 					{
-						int64_t index_value = second_child_value->IntAtIndex_NOCAST(0, parent_token);
+						int64_t index_value = second_child_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= base_indices_count))
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 						else
 							p_indices_ptr->emplace_back(base_indices[index_value]);
-					}
-					else if (second_child_count)
-					{
-						// fast vector access for the non-singleton case
-						const int64_t *second_child_data = second_child_value->IntData();
-						
-						for (int value_idx = 0; value_idx < second_child_count; value_idx++)
-						{
-							int64_t index_value = second_child_data[value_idx];
-							
-							if ((index_value < 0) || (index_value >= base_indices_count))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
-							else
-								p_indices_ptr->emplace_back(base_indices[index_value]);
-						}
 					}
 				}
 			}
@@ -1710,7 +1697,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			// This can be commented out harmlessly; this case is also handled below, just slower
 			if ((child_count == 2) && (child_type == EidosValueType::kValueInt) && (child_value->Count() == 1) && (child_value->DimensionCount() == 1))
 			{
-				int subset_index = (int)child_value->IntAtIndex_NOCAST(0, operator_token);
+				int subset_index = (int)child_value->IntData()[0];
 				
 				result_SP = first_child_value->GetValueAtIndex(subset_index, operator_token);
 				
@@ -2044,46 +2031,28 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			// both operands are integer, so we are computing an integer result, which entails overflow testing
 			if (first_child_count == second_child_count)
 			{
-				if (first_child_count == 1)
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) + second_child_value->IntAtIndex_NOCAST(0, operator_token));
+					//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) + second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 					
-					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
-					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
+					int64_t first_operand = first_child_data[value_index];
+					int64_t second_operand = second_child_data[value_index];
 					int64_t add_result;
 					bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
 					
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(add_result));
+					int_result->set_int_no_check(add_result, value_index);
 				}
-				else
-				{
-					const int64_t *first_child_data = first_child_value->IntData();
-					const int64_t *second_child_data = second_child_value->IntData();
-					EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
-					EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
-					
-					for (int value_index = 0; value_index < first_child_count; ++value_index)
-					{
-						// This is an overflow-safe version of:
-						//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) + second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
-						
-						int64_t first_operand = first_child_data[value_index];
-						int64_t second_operand = second_child_data[value_index];
-						int64_t add_result;
-						bool overflow = Eidos_add_overflow(first_operand, second_operand, &add_result);
-						
-						if (overflow)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Plus): integer addition overflow with the binary '+' operator." << EidosTerminate(operator_token);
-						
-						int_result->set_int_no_check(add_result, value_index);
-					}
-					
-					result_SP = int_result_SP;
-				}
+				
+				result_SP = int_result_SP;
 			}
 			else if (first_child_count == 1)
 			{
@@ -2146,42 +2115,35 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 			// We have at least one float operand, so we are computing a float result
 			if (first_child_count == second_child_count)
 			{
-				if (first_child_count == 1)
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+				
+				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(first_child_value->NumericAtIndex_NOCAST(0, operator_token) + second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
+					const double *first_child_data = first_child_value->FloatData();
+					const double *second_child_data = second_child_value->FloatData();
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
 				}
-				else
+				else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 				{
-					EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-					EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+					const double *first_child_data = first_child_value->FloatData();
+					const int64_t *second_child_data = second_child_value->IntData();
 					
-					if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-					{
-						const double *first_child_data = first_child_value->FloatData();
-						const double *second_child_data = second_child_value->FloatData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
-					}
-					else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-					{
-						const double *first_child_data = first_child_value->FloatData();
-						const int64_t *second_child_data = second_child_value->IntData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
-					}
-					else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-					{
-						const int64_t *first_child_data = first_child_value->IntData();
-						const double *second_child_data = second_child_value->FloatData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
-					}
-					
-					result_SP = float_result_SP;
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
 				}
+				else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+				{
+					const int64_t *first_child_data = first_child_value->IntData();
+					const double *second_child_data = second_child_value->FloatData();
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
+				}
+				
+				result_SP = float_result_SP;
 			}
 			else if (first_child_count == 1)
 			{
@@ -2264,61 +2226,37 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 		// unary minus
 		if (first_child_type == EidosValueType::kValueInt)
 		{
-			if (first_child_count == 1)
+			const int64_t *first_child_data = first_child_value->IntData();
+			EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+			EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(-first_child_value->IntAtIndex_NOCAST(0, operator_token));
+				//int_result->set_int_no_check(-first_child_value->IntAtIndex_NOCAST(value_index, operator_token), value_index);
 				
-				int64_t operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
+				int64_t operand = first_child_data[value_index];
 				int64_t subtract_result;
 				bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
 				
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << EidosTerminate(operator_token);
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subtract_result));
+				int_result->set_int_no_check(subtract_result, value_index);
 			}
-			else
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
-				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-				{
-					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(-first_child_value->IntAtIndex_NOCAST(value_index, operator_token), value_index);
-					
-					int64_t operand = first_child_data[value_index];
-					int64_t subtract_result;
-					bool overflow = Eidos_sub_overflow((int64_t)0, operand, &subtract_result);
-					
-					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer negation overflow with the unary '-' operator." << EidosTerminate(operator_token);
-					
-					int_result->set_int_no_check(subtract_result, value_index);
-				}
-				
-				result_SP = int_result_SP;
-			}
+			
+			result_SP = int_result_SP;
 		}
 		else
 		{
-			if (first_child_count == 1)
-			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(-first_child_value->FloatAtIndex_NOCAST(0, operator_token)));
-			}
-			else
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(-first_child_data[value_index], value_index);
-				
-				result_SP = float_result_SP;
-			}
+			const double *first_child_data = first_child_value->FloatData();
+			EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+			EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(-first_child_data[value_index], value_index);
+			
+			result_SP = float_result_SP;
 		}
 		
 		result_SP->CopyDimensionsFromValue(first_child_value.get());
@@ -2347,46 +2285,28 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			// both operands are integer, so we are computing an integer result, which entails overflow testing
 			if (first_child_count == second_child_count)
 			{
-				if (first_child_count == 1)
+				const int64_t *first_child_data = first_child_value->IntData();
+				const int64_t *second_child_data = second_child_value->IntData();
+				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
 				{
 					// This is an overflow-safe version of:
-					//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) - second_child_value->IntAtIndex_NOCAST(0, operator_token));
+					//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) - second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 					
-					int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
-					int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
+					int64_t first_operand = first_child_data[value_index];
+					int64_t second_operand = second_child_data[value_index];
 					int64_t subtract_result;
 					bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
 					
 					if (overflow)
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
 					
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subtract_result));
+					int_result->set_int_no_check(subtract_result, value_index);
 				}
-				else
-				{
-					const int64_t *first_child_data = first_child_value->IntData();
-					const int64_t *second_child_data = second_child_value->IntData();
-					EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
-					EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
-					
-					for (int value_index = 0; value_index < first_child_count; ++value_index)
-					{
-						// This is an overflow-safe version of:
-						//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) - second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
-						
-						int64_t first_operand = first_child_data[value_index];
-						int64_t second_operand = second_child_data[value_index];
-						int64_t subtract_result;
-						bool overflow = Eidos_sub_overflow(first_operand, second_operand, &subtract_result);
-						
-						if (overflow)
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Minus): integer subtraction overflow with the binary '-' operator." << EidosTerminate(operator_token);
-						
-						int_result->set_int_no_check(subtract_result, value_index);
-					}
-					
-					result_SP = int_result_SP;
-				}
+				
+				result_SP = int_result_SP;
 			}
 			else if (first_child_count == 1)
 			{
@@ -2446,42 +2366,35 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 			// We have at least one float operand, so we are computing a float result
 			if (first_child_count == second_child_count)
 			{
-				if (first_child_count == 1)
+				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+				
+				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 				{
-					result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(first_child_value->NumericAtIndex_NOCAST(0, operator_token) - second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
+					const double *first_child_data = first_child_value->FloatData();
+					const double *second_child_data = second_child_value->FloatData();
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
 				}
-				else
+				else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 				{
-					EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-					EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+					const double *first_child_data = first_child_value->FloatData();
+					const int64_t *second_child_data = second_child_value->IntData();
 					
-					if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-					{
-						const double *first_child_data = first_child_value->FloatData();
-						const double *second_child_data = second_child_value->FloatData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
-					}
-					else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-					{
-						const double *first_child_data = first_child_value->FloatData();
-						const int64_t *second_child_data = second_child_value->IntData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
-					}
-					else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-					{
-						const int64_t *first_child_data = first_child_value->IntData();
-						const double *second_child_data = second_child_value->FloatData();
-						
-						for (int value_index = 0; value_index < first_child_count; ++value_index)
-							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
-					}
-					
-					result_SP = float_result_SP;
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
 				}
+				else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+				{
+					const int64_t *first_child_data = first_child_value->IntData();
+					const double *second_child_data = second_child_value->FloatData();
+					
+					for (int value_index = 0; value_index < first_child_count; ++value_index)
+						float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
+				}
+				
+				result_SP = float_result_SP;
 			}
 			else if (first_child_count == 1)
 			{
@@ -2580,50 +2493,43 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 	// floating-point modulo by zero is safe; it will produce an NaN, following IEEE as implemented by C++
 	if (first_child_count == second_child_count)
 	{
-		if (first_child_count == 1)
+		EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+		EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+		
+		if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fmod(first_child_value->NumericAtIndex_NOCAST(0, operator_token), second_child_value->NumericAtIndex_NOCAST(0, operator_token))));
+			const double *first_child_data = first_child_value->FloatData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 		}
-		else
+		else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 		{
-			EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-			EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+			const double *first_child_data = first_child_value->FloatData();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
-			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			
-			result_SP = float_result_SP;
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 		}
+		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
+		}
+		else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const int64_t *second_child_data = second_child_value->IntData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
+		}
+		
+		result_SP = float_result_SP;
 	}
 	else if (first_child_count == 1)
 	{
@@ -2719,85 +2625,60 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 		// OK, we've got good operands; calculate the result.  If both operands are int, the result is int, otherwise float.
 		if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
 		{
-			if (first_child_count == 1)
+			const int64_t *first_child_data = first_child_value->IntData();
+			const int64_t *second_child_data = second_child_value->IntData();
+			EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
+			EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
 			{
 				// This is an overflow-safe version of:
-				//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_child_value->IntAtIndex_NOCAST(0, operator_token) * second_child_value->IntAtIndex_NOCAST(0, operator_token));
+				//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) * second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
 				
-				int64_t first_operand = first_child_value->IntAtIndex_NOCAST(0, operator_token);
-				int64_t second_operand = second_child_value->IntAtIndex_NOCAST(0, operator_token);
+				int64_t first_operand = first_child_data[value_index];
+				int64_t second_operand = second_child_data[value_index];
 				int64_t multiply_result;
 				bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
 				
 				if (overflow)
 					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
 				
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(multiply_result));
+				int_result->set_int_no_check(multiply_result, value_index);
 			}
-			else
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				EidosValue_Int_SP int_result_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int());
-				EidosValue_Int *int_result = int_result_SP->resize_no_initialize(first_child_count);
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-				{
-					// This is an overflow-safe version of:
-					//int_result->set_int_no_check(first_child_value->IntAtIndex_NOCAST(value_index, operator_token) * second_child_value->IntAtIndex_NOCAST(value_index, operator_token));
-					
-					int64_t first_operand = first_child_data[value_index];
-					int64_t second_operand = second_child_data[value_index];
-					int64_t multiply_result;
-					bool overflow = Eidos_mul_overflow(first_operand, second_operand, &multiply_result);
-					
-					if (overflow)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Mult): integer multiplication overflow with the '*' operator." << EidosTerminate(operator_token);
-					
-					int_result->set_int_no_check(multiply_result, value_index);
-				}
-				
-				result_SP = int_result_SP;
-			}
+			
+			result_SP = int_result_SP;
 		}
 		else
 		{
-			if (first_child_count == 1)
+			EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+			EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+			
+			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 			{
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(first_child_value->NumericAtIndex_NOCAST(0, operator_token) * second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
+				const double *first_child_data = first_child_value->FloatData();
+				const double *second_child_data = second_child_value->FloatData();
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
 			}
-			else
+			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 			{
-				EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-				EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+				const double *first_child_data = first_child_value->FloatData();
+				const int64_t *second_child_data = second_child_value->IntData();
 				
-				if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-				{
-					const double *first_child_data = first_child_value->FloatData();
-					const double *second_child_data = second_child_value->FloatData();
-					
-					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
-				}
-				else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-				{
-					const double *first_child_data = first_child_value->FloatData();
-					const int64_t *second_child_data = second_child_value->IntData();
-					
-					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
-				}
-				else	// ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-				{
-					const int64_t *first_child_data = first_child_value->IntData();
-					const double *second_child_data = second_child_value->FloatData();
-					
-					for (int value_index = 0; value_index < first_child_count; ++value_index)
-						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
-				}
-				
-				result_SP = float_result_SP;
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
 			}
+			else	// ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+			{
+				const int64_t *first_child_data = first_child_value->IntData();
+				const double *second_child_data = second_child_value->FloatData();
+				
+				for (int value_index = 0; value_index < first_child_count; ++value_index)
+					float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
+			}
+			
+			result_SP = float_result_SP;
 		}
 	}
 	else if ((first_child_count == 1) || (second_child_count == 1))
@@ -2925,50 +2806,43 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 	// floating-point division by zero is safe; it will produce an infinity, following IEEE as implemented by C++
 	if (first_child_count == second_child_count)
 	{
-		if (first_child_count == 1)
+		EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+		EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+		
+		if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(first_child_value->NumericAtIndex_NOCAST(0, operator_token) / second_child_value->NumericAtIndex_NOCAST(0, operator_token)));
+			const double *first_child_data = first_child_value->FloatData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
 		}
-		else
+		else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 		{
-			EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-			EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+			const double *first_child_data = first_child_value->FloatData();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
-			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
-			}
-			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(first_child_data[value_index] / (double)second_child_data[value_index], value_index);
-			}
-			
-			result_SP = float_result_SP;
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
 		}
+		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(first_child_data[value_index] / second_child_data[value_index], value_index);
+		}
+		else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const int64_t *second_child_data = second_child_value->IntData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(first_child_data[value_index] / (double)second_child_data[value_index], value_index);
+		}
+		
+		result_SP = float_result_SP;
 	}
 	else if (first_child_count == 1)
 	{
@@ -3102,50 +2976,43 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 	
 	if (first_child_count == second_child_count)
 	{
-		if (first_child_count == 1)
+		EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
+		EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+		
+		if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(pow(first_child_value->NumericAtIndex_NOCAST(0, operator_token), second_child_value->NumericAtIndex_NOCAST(0, operator_token))));
+			const double *first_child_data = first_child_value->FloatData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 		}
-		else
+		else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
 		{
-			EidosValue_Float_SP float_result_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float());
-			EidosValue_Float *float_result = float_result_SP->resize_no_initialize(first_child_count);
+			const double *first_child_data = first_child_value->FloatData();
+			const int64_t *second_child_data = second_child_value->IntData();
 			
-			if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueFloat) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const double *first_child_data = first_child_value->FloatData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const double *second_child_data = second_child_value->FloatData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
-			{
-				const int64_t *first_child_data = first_child_value->IntData();
-				const int64_t *second_child_data = second_child_value->IntData();
-				
-				for (int value_index = 0; value_index < first_child_count; ++value_index)
-					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
-			}
-			
-			result_SP = float_result_SP;
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 		}
+		else if ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueFloat))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const double *second_child_data = second_child_value->FloatData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
+		}
+		else // ((first_child_type == EidosValueType::kValueInt) && (second_child_type == EidosValueType::kValueInt))
+		{
+			const int64_t *first_child_data = first_child_value->IntData();
+			const int64_t *second_child_data = second_child_value->IntData();
+			
+			for (int value_index = 0; value_index < first_child_count; ++value_index)
+				float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
+		}
+		
+		result_SP = float_result_SP;
 	}
 	else if (first_child_count == 1)
 	{
@@ -3982,7 +3849,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool equal;
@@ -3997,10 +3864,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
 					default: equal = false; break;		// never hit
 				}
 				
-				if (!result_dim_source)
-					result_SP = equal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{equal});	// so we can modify it
+				return (equal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -4221,7 +4085,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool lt;
@@ -4236,10 +4100,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Lt(const EidosASTNode *p_node)
 					default: lt = false; break;		// never hit
 				}
 				
-				if (!result_dim_source)
-					result_SP = lt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{lt});	// so we can modify it
+				return (lt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -4368,7 +4229,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool lteq;
@@ -4383,10 +4244,7 @@ EidosValue_SP EidosInterpreter::Evaluate_LtEq(const EidosASTNode *p_node)
 					default: lteq = false; break;		// never hit
 				}
 				
-				if (!result_dim_source)
-					result_SP = lteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{lteq});	// so we can modify it
+				return (lteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -4515,7 +4373,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool gt;
@@ -4530,10 +4388,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Gt(const EidosASTNode *p_node)
 					default: gt = false; break;		// never hit
 				}
 				
-				if (!result_dim_source)
-					result_SP = gt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{gt});	// so we can modify it
+				return (gt ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -4662,7 +4517,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool gteq;
@@ -4677,10 +4532,7 @@ EidosValue_SP EidosInterpreter::Evaluate_GtEq(const EidosASTNode *p_node)
 					default: gteq = false; break;		// never hit
 				}
 				
-				if (!result_dim_source)
-					result_SP = gteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{gteq});	// so we can modify it
+				return (gteq ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{
@@ -4807,7 +4659,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 		
 		if (first_child_count == second_child_count)
 		{
-			if (first_child_count == 1)
+			if ((first_child_count == 1) && (!result_dim_source))
 			{
 				// special-case the 1-to-1 comparison to return a statically allocated logical value, for speed
 				bool notequal;
@@ -4822,11 +4674,7 @@ EidosValue_SP EidosInterpreter::Evaluate_NotEq(const EidosASTNode *p_node)
 					default: notequal = false; break;		// never hit
 				}
 				
-				
-				if (!result_dim_source)
-					result_SP = notequal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-				else
-					result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{notequal});	// so we can modify it
+				return (notequal ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 			}
 			else
 			{

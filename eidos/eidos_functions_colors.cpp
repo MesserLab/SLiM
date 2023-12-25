@@ -146,12 +146,14 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &
 	
 	if (color_count == 1)
 	{
+		// returns a vector
 		Eidos_GetColorComponents(color_value->StringRefAtIndex_NOCAST(0, nullptr), &r, &g, &b);
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float{r, g, b});
 	}
 	else
 	{
+		// returns a matrix
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize((size_t)color_count * 3);
 		result_SP = EidosValue_SP(float_result);
 		
@@ -318,38 +320,22 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2color(const std::vector<EidosValue_SP> &
 		((rgb_value->DimensionCount() != 2) || (rgb_value->Dimensions()[1] != 3)))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): in function rgb2color(), rgb must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
-	if ((rgb_value->DimensionCount() == 1) && (rgb_count == 3))
+	int color_count = rgb_count / 3;
+	EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
+	result_SP = EidosValue_SP(string_result);
+	
+	for (int value_index = 0; value_index < color_count; ++value_index)
 	{
-		double r = rgb_value->FloatAtIndex_NOCAST(0, nullptr);
-		double g = rgb_value->FloatAtIndex_NOCAST(1, nullptr);
-		double b = rgb_value->FloatAtIndex_NOCAST(2, nullptr);
+		double r = rgb_value->FloatAtIndex_NOCAST(value_index, nullptr);
+		double g = rgb_value->FloatAtIndex_NOCAST(value_index + color_count, nullptr);
+		double b = rgb_value->FloatAtIndex_NOCAST(value_index + color_count + color_count, nullptr);
 		
 		if (std::isnan(r) || std::isnan(g) || std::isnan(b))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
 		
 		Eidos_GetColorString(r, g, b, hex_chars);
 		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(hex_chars)));
-	}
-	else
-	{
-		int color_count = rgb_count / 3;
-		EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(color_count);
-		result_SP = EidosValue_SP(string_result);
-		
-		for (int value_index = 0; value_index < color_count; ++value_index)
-		{
-			double r = rgb_value->FloatAtIndex_NOCAST(value_index, nullptr);
-			double g = rgb_value->FloatAtIndex_NOCAST(value_index + color_count, nullptr);
-			double b = rgb_value->FloatAtIndex_NOCAST(value_index + color_count + color_count, nullptr);
-			
-			if (std::isnan(r) || std::isnan(g) || std::isnan(b))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2color): color component with value NAN is not legal." << EidosTerminate();
-			
-			Eidos_GetColorString(r, g, b, hex_chars);
-			
-			string_result->PushString(std::string(hex_chars));
-		}
+		string_result->PushString(std::string(hex_chars));
 	}
 	
 	return result_SP;

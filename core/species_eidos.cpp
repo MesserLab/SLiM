@@ -71,21 +71,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	if (sequence_value_type == EidosValueType::kValueInt)
 	{
 		// A vector of integers has been provided, where ACGT == 0123
-		if (sequence_value_count == 1)
-		{
-			// singleton case
-			int64_t int_value = sequence_value->IntAtIndex_NOCAST(0, nullptr);
-			
-			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(1);
-			chromosome_->ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
-		}
-		else
-		{
-			// non-singleton, direct access
-			const int64_t *int_data = sequence_value->IntData();
-			
-			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
-		}
+		const int64_t *int_data = sequence_value->IntData();
+		
+		chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 	}
 	else if (sequence_value_type == EidosValueType::kValueString)
 	{
@@ -1856,145 +1844,122 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 	
 	// Assemble the result
-	if (pedigreeIDs_count == 1)
+	const int64_t *pedigree_id_data = pedigreeIDs_value->IntData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
+	
+	if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
 	{
-		// Singleton case, to allow efficiency in the non-singleton case
-		slim_pedigreeid_t pedigree_id = pedigreeIDs_value->IntAtIndex_NOCAST(0, nullptr);
-		
-		for (Subpopulation *subpop : subpops_to_search)
+		// for smaller problem sizes, we do sequential search for each pedigree ID
+		for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
 		{
-			std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+			slim_pedigreeid_t pedigree_id = pedigree_id_data[value_index];
 			
-			for (Individual *ind : inds)
+			for (Subpopulation *subpop : subpops_to_search)
 			{
-				if (ind->PedigreeID() == pedigree_id)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(ind, gSLiM_Individual_Class));
+				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				
+				for (Individual *ind : inds)
+				{
+					if (ind->PedigreeID() == pedigree_id)
+					{
+						result->push_object_element_no_check_NORR(ind);
+						goto foundMatch;
+					}
+				}
 			}
+			
+			// Either we drop through to here, if we didn't find a match, or we goto to here, if we found one
+		foundMatch:
+			continue;
 		}
-		
-		// Didn't find a match, so return an empty result
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
 	}
 	else
 	{
-		// Non-singleton case: vectorized access to the pedigree IDs
-		const int64_t *pedigree_id_data = pedigreeIDs_value->IntData();
-		EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
+		// for larger problem sizes, we speed up lookups by building a hash table first, changing from O(N*M) to O(N)
+		// we could get even more fancy and cache this hash table to speed up successive calls within one cycle,
+		// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
+#if EIDOS_ROBIN_HOOD_HASHING
+		robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
+		//typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
+		std::unordered_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
+		//typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+#endif
 		
-		if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
+		try {
+			for (Subpopulation *subpop : subpops_to_search)
+			{
+				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				
+				for (Individual *ind : inds)
+					fromIDToIndividual.emplace(ind->PedigreeID(), ind);
+			}
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_individualsWithPedigreeIDs): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
+		}
+		
+#ifdef _OPENMP
+		if (pedigreeIDs_count >= EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
 		{
-			// for smaller problem sizes, we do sequential search for each pedigree ID
+			// separate parallel implementation, since the logic is somewhat different
+			result->resize_no_initialize(pedigreeIDs_count);
+
+			Individual **result_data = (Individual **)result->data();
+			bool any_unmatched = false;
+			
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS);
+#pragma omp parallel for schedule(static) default(none) shared(pedigreeIDs_count, fromIDToIndividual) firstprivate(pedigree_id_data, result_data) reduction(||: any_unmatched) num_threads(thread_count) // if(EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS) is above
 			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
 			{
-				slim_pedigreeid_t pedigree_id = pedigree_id_data[value_index];
+				auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
 				
-				for (Subpopulation *subpop : subpops_to_search)
+				if (find_iter != fromIDToIndividual.end())
 				{
-					std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+					result_data[value_index] = find_iter->second;
+				}
+				else
+				{
+					result_data[value_index] = nullptr;
+					any_unmatched = true;
+				}
+			}
+			
+			// because of the parallelization, we had to insert nullptrs into the result vector and then compact it afterwards
+			// this compaction needs to preserve order, so it shifts elements down rather than backfilling from the end
+			if (any_unmatched)
+			{
+				int next_unfilled_index = 0;
+				
+				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+				{
+					Individual *result_ind = result_data[value_index];
 					
-					for (Individual *ind : inds)
+					if (result_ind != nullptr)
 					{
-						if (ind->PedigreeID() == pedigree_id)
-						{
-							result->push_object_element_no_check_NORR(ind);
-							goto foundMatch;
-						}
+						if (value_index != next_unfilled_index)
+							result_data[next_unfilled_index] = result_ind;
+						
+						next_unfilled_index++;
 					}
 				}
 				
-				// Either we drop through to here, if we didn't find a match, or we goto to here, if we found one
-			foundMatch:
-				continue;
+				result->resize_no_initialize(next_unfilled_index);
 			}
 		}
 		else
+#endif
 		{
-			// for larger problem sizes, we speed up lookups by building a hash table first, changing from O(N*M) to O(N)
-			// we could get even more fancy and cache this hash table to speed up successive calls within one cycle,
-			// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
-#if EIDOS_ROBIN_HOOD_HASHING
-			robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
-			//typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
-			std::unordered_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
-			//typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
-#endif
-			
-			try {
-				for (Subpopulation *subpop : subpops_to_search)
-				{
-					std::vector<Individual *> &inds = subpop->CurrentIndividuals();
-					
-					for (Individual *ind : inds)
-						fromIDToIndividual.emplace(ind->PedigreeID(), ind);
-				}
-			} catch (...) {
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_individualsWithPedigreeIDs): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
-			}
-			
-#ifdef _OPENMP
-			if (pedigreeIDs_count >= EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
+			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
 			{
-				// separate parallel implementation, since the logic is somewhat different
-				result->resize_no_initialize(pedigreeIDs_count);
-
-				Individual **result_data = (Individual **)result->data();
-				bool any_unmatched = false;
+				auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
 				
-				EIDOS_THREAD_COUNT(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS);
-#pragma omp parallel for schedule(static) default(none) shared(pedigreeIDs_count, fromIDToIndividual) firstprivate(pedigree_id_data, result_data) reduction(||: any_unmatched) num_threads(thread_count) // if(EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS) is above
-				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
-				{
-					auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
-					
-					if (find_iter != fromIDToIndividual.end())
-					{
-						result_data[value_index] = find_iter->second;
-					}
-					else
-					{
-						result_data[value_index] = nullptr;
-						any_unmatched = true;
-					}
-				}
-				
-				// because of the parallelization, we had to insert nullptrs into the result vector and then compact it afterwards
-				// this compaction needs to preserve order, so it shifts elements down rather than backfilling from the end
-				if (any_unmatched)
-				{
-					int next_unfilled_index = 0;
-					
-					for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
-					{
-						Individual *result_ind = result_data[value_index];
-						
-						if (result_ind != nullptr)
-						{
-							if (value_index != next_unfilled_index)
-								result_data[next_unfilled_index] = result_ind;
-							
-							next_unfilled_index++;
-						}
-					}
-					
-					result->resize_no_initialize(next_unfilled_index);
-				}
-			}
-			else
-#endif
-			{
-				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
-				{
-					auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
-					
-					if (find_iter != fromIDToIndividual.end())
-						result->push_object_element_no_check_NORR(find_iter->second);
-				}
+				if (find_iter != fromIDToIndividual.end())
+					result->push_object_element_no_check_NORR(find_iter->second);
 			}
 		}
-		
-		return EidosValue_SP(result);
 	}
+	
+	return EidosValue_SP(result);
 }
 
 //	*********************	- (void)killIndividuals(object<Individual> individuals)
@@ -2231,21 +2196,13 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 		// We're already keeping a separate registry for this mutation type (see mutation_type.h), so we can answer this directly
 		MutationRun &mutation_registry = mutation_type_ptr->muttype_registry_;
 		int mutation_count = mutation_registry.size();
+		EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
+		EidosValue_SP result_SP = EidosValue_SP(vec);
 		
-		if (mutation_count == 1)
-		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(mut_block_ptr + mutation_registry[0], gSLiM_Mutation_Class));
-		}
-		else
-		{
-			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
-			EidosValue_SP result_SP = EidosValue_SP(vec);
-			
-			for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
-				vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_registry[mut_index], mut_index);
-			
-			return result_SP;
-		}
+		for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+			vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_registry[mut_index], mut_index);
+		
+		return result_SP;
 	}
 	else
 #endif
@@ -3286,17 +3243,9 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (species != this)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
-	if (ind_count == 1)
-	{
-		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables_, &tabled_individuals_hash_, flag);
-	}
-	else
-	{
-		EidosObject * const *oe_buffer = individuals_value->ObjectData();
-		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables_, &tabled_individuals_hash_, flag);
-	}
+	EidosObject * const *oe_buffer = individuals_value->ObjectData();
+	Individual * const *ind_buffer = (Individual * const *)oe_buffer;
+	AddIndividualsToTable(ind_buffer, ind_count, &tables_, &tabled_individuals_hash_, flag);
 	
 	return gStaticEidosValueVOID;
 }

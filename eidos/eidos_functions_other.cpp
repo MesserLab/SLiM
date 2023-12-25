@@ -1464,7 +1464,8 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 		
 		if (input_count == 1)
 		{
-			file_stream << input_value->StringRefAtIndex_NOCAST(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+			// no final newline in this case, so the user can precisely specify the file contents if desired
+			file_stream << input_value->StringRefAtIndex_NOCAST(0, nullptr);
 		}
 		else
 		{

@@ -278,81 +278,46 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 		
 		if (numeric_value->Type() == EidosValueType::kValueInt)
 		{
-			if (numeric_value->Count() == 1)
+			objectElement = new EidosImage(width, height, true);
+			
+			unsigned char *image_data = objectElement->Data();
+			EidosValue_Int *int_values = (EidosValue_Int *)p_arguments[0].get();
+			const int64_t *int_data = int_values->data();
+			
+			// translate the data from by-column to by-row, to match the in-memory format of images
+			for (int64_t y = 0; y < height; ++y)
 			{
-				// singleton case
-				objectElement = new EidosImage(1, 1, true);
-				
-				unsigned char *image_data = objectElement->Data();
-				int64_t int_value = numeric_value->IntAtIndex_NOCAST(0, nullptr);
-				
-				if ((int_value < 0) || (int_value > 255))
-					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
-				
-				*image_data = (unsigned char)int_value;
-			}
-			else
-			{
-				// vector case, fast access
-				objectElement = new EidosImage(width, height, true);
-				
-				unsigned char *image_data = objectElement->Data();
-				EidosValue_Int *int_values = (EidosValue_Int *)p_arguments[0].get();
-				const int64_t *int_data = int_values->data();
-				
-				// translate the data from by-column to by-row, to match the in-memory format of images
-				for (int64_t y = 0; y < height; ++y)
+				for (int64_t x = 0; x < width; ++x)
 				{
-					for (int64_t x = 0; x < width; ++x)
-					{
-						int64_t int_value = *(int_data + y + x * height);
-						
-						if ((int_value < 0) || (int_value > 255))
-							EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
-						
-						*(image_data + x + y * width) = (unsigned char)int_value;
-					}
+					int64_t int_value = *(int_data + y + x * height);
+					
+					if ((int_value < 0) || (int_value > 255))
+						EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
+					
+					*(image_data + x + y * width) = (unsigned char)int_value;
 				}
 			}
 		}
 		else if (numeric_value->Type() == EidosValueType::kValueFloat)
 		{
-			if (numeric_value->Count() == 1)
+			objectElement = new EidosImage(width, height, true);
+			
+			unsigned char *image_data = objectElement->Data();
+			EidosValue_Float *float_values = (EidosValue_Float *)p_arguments[0].get();
+			const double *float_data = float_values->data();
+			
+			// translate the data from by-column to by-row, to match the in-memory format of images
+			for (int64_t y = 0; y < height; ++y)
 			{
-				// singleton case
-				objectElement = new EidosImage(1, 1, true);
-				
-				unsigned char *image_data = objectElement->Data();
-				double float_value = numeric_value->FloatAtIndex_NOCAST(0, nullptr);
-				
-				if ((float_value < 0.0) || (float_value > 1.0))
-					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
-				
-				int int_value = (int)round(float_value * 255.0);
-				*image_data = (unsigned char)int_value;
-			}
-			else
-			{
-				// vector case, fast access
-				objectElement = new EidosImage(width, height, true);
-				
-				unsigned char *image_data = objectElement->Data();
-				EidosValue_Float *float_values = (EidosValue_Float *)p_arguments[0].get();
-				const double *float_data = float_values->data();
-				
-				// translate the data from by-column to by-row, to match the in-memory format of images
-				for (int64_t y = 0; y < height; ++y)
+				for (int64_t x = 0; x < width; ++x)
 				{
-					for (int64_t x = 0; x < width; ++x)
-					{
-						double float_value = *(float_data + y + x * height);
-						
-						if ((float_value < 0.0) || (float_value > 1.0))
-							EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
-						
-						int int_value = (int)round(float_value * 255.0);
-						*(image_data + x + y * width) = (unsigned char)int_value;
-					}
+					double float_value = *(float_data + y + x * height);
+					
+					if ((float_value < 0.0) || (float_value > 1.0))
+						EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
+					
+					int int_value = (int)round(float_value * 255.0);
+					*(image_data + x + y * width) = (unsigned char)int_value;
 				}
 			}
 		}

@@ -60,12 +60,16 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 	
 	if (x_type == EidosValueType::kValueInt)
 	{
-		if (x_count == 1)
+		const int64_t *int_data = x_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
 			// This is an overflow-safe version of:
-			//result = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(llabs(x_value->IntAtIndex_NOCAST(0, nullptr)));
+			//int_result->set_int_no_check(llabs(int_vec[value_index]), value_index);
 			
-			int64_t operand = x_value->IntAtIndex_NOCAST(0, nullptr);
+			int64_t operand = int_data[value_index];
 			
 			// the absolute value of INT64_MIN cannot be represented in int64_t
 			if (operand == INT64_MIN)
@@ -73,51 +77,20 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 			
 			int64_t abs_result = llabs(operand);
 			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(abs_result));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-			const int64_t *int_data = x_value->IntData();
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				// This is an overflow-safe version of:
-				//int_result->set_int_no_check(llabs(int_vec[value_index]), value_index);
-				
-				int64_t operand = int_data[value_index];
-				
-				// the absolute value of INT64_MIN cannot be represented in int64_t
-				if (operand == INT64_MIN)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_abs): function abs() cannot take the absolute value of the most negative integer." << EidosTerminate(nullptr);
-				
-				int64_t abs_result = llabs(operand);
-				
-				int_result->set_int_no_check(abs_result, value_index);
-			}
+			int_result->set_int_no_check(abs_result, value_index);
 		}
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		if (x_count == 1)
-		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fabs(x_value->FloatAtIndex_NOCAST(0, nullptr))));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-			const double *float_data = x_value->FloatData();
-			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			double *float_result_data = float_result->data_mutable();
-			result_SP = EidosValue_SP(float_result);
-			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_ABS_FLOAT);
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+		
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_ABS_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_ABS_FLOAT) num_threads(thread_count)
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result_data[value_index] = fabs(float_data[value_index]);
-		}
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = fabs(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -132,19 +105,11 @@ EidosValue_SP Eidos_ExecuteFunction_acos(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(acos(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(acos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(acos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -158,19 +123,11 @@ EidosValue_SP Eidos_ExecuteFunction_asin(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(asin(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(asin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(asin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -184,19 +141,11 @@ EidosValue_SP Eidos_ExecuteFunction_atan(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(atan(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(atan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(atan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -224,18 +173,11 @@ EidosValue_SP Eidos_ExecuteFunction_atan2(const std::vector<EidosValue_SP> &p_ar
 	if ((x_dimcount > 1) && (y_dimcount > 1) && !EidosValue::MatchingDimensions(x_value, y_value))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_atan2): non-conformable array operands in atan2()." << EidosTerminate(nullptr);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(atan2(x_value->NumericAtIndex_NOCAST(0, nullptr), y_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(atan2(x_value->NumericAtIndex_NOCAST(value_index, nullptr), y_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
+	
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(atan2(x_value->NumericAtIndex_NOCAST(value_index, nullptr), y_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	// Copy dimensions from whichever operand we chose at the beginning
 	result_SP->CopyDimensionsFromValue(result_dim_source.get());
@@ -250,24 +192,15 @@ EidosValue_SP Eidos_ExecuteFunction_ceil(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	const double *float_data = x_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	double *float_result_data = float_result->data_mutable();
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(ceil(x_value->FloatAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
-		const double *float_data = x_value->FloatData();
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data_mutable();
-		result_SP = EidosValue_SP(float_result);
-		
-		EIDOS_THREAD_COUNT(gEidos_OMP_threads_CEIL);
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_CEIL);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_CEIL) num_threads(thread_count)
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result_data[value_index] = ceil(float_data[value_index]);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result_data[value_index] = ceil(float_data[value_index]);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -281,19 +214,11 @@ EidosValue_SP Eidos_ExecuteFunction_cos(const std::vector<EidosValue_SP> &p_argu
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cos(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(cos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(cos(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -311,50 +236,34 @@ EidosValue_SP Eidos_ExecuteFunction_cumProduct(const std::vector<EidosValue_SP> 
 	
 	if (x_type == EidosValueType::kValueInt)
 	{
-		if (x_count == 1)
+		const int64_t *int_data = x_value->IntData();
+		int64_t product = 1;
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(x_value->IntAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-			const int64_t *int_data = x_value->IntData();
-			int64_t product = 1;
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
+			int64_t operand = int_data[value_index];
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				int64_t operand = int_data[value_index];
-				
-				bool overflow = Eidos_mul_overflow(product, operand, &product);
-				
-				if (overflow)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumProduct): integer multiplication overflow in function cumProduct()." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(product, value_index);
-			}
+			bool overflow = Eidos_mul_overflow(product, operand, &product);
+			
+			if (overflow)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumProduct): integer multiplication overflow in function cumProduct()." << EidosTerminate(nullptr);
+			
+			int_result->set_int_no_check(product, value_index);
 		}
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		if (x_count == 1)
+		const double *float_data = x_value->FloatData();
+		double product = 1.0;
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-			const double *float_data = x_value->FloatData();
-			double product = 1.0;
-			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				product *= float_data[value_index];
-				float_result->set_float_no_check(product, value_index);
-			}
+			product *= float_data[value_index];
+			float_result->set_float_no_check(product, value_index);
 		}
 	}
 	
@@ -374,50 +283,34 @@ EidosValue_SP Eidos_ExecuteFunction_cumSum(const std::vector<EidosValue_SP> &p_a
 	
 	if (x_type == EidosValueType::kValueInt)
 	{
-		if (x_count == 1)
+		const int64_t *int_data = x_value->IntData();
+		int64_t sum = 0;
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(x_value->IntAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-			const int64_t *int_data = x_value->IntData();
-			int64_t sum = 0;
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
+			int64_t operand = int_data[value_index];
 			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				int64_t operand = int_data[value_index];
-				
-				bool overflow = Eidos_add_overflow(sum, operand, &sum);
-				
-				if (overflow)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumSum): integer addition overflow in function cumSum()." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(sum, value_index);
-			}
+			bool overflow = Eidos_add_overflow(sum, operand, &sum);
+			
+			if (overflow)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cumSum): integer addition overflow in function cumSum()." << EidosTerminate(nullptr);
+			
+			int_result->set_int_no_check(sum, value_index);
 		}
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		if (x_count == 1)
+		const double *float_data = x_value->FloatData();
+		double sum = 0.0;
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-			const double *float_data = x_value->FloatData();
-			double sum = 0.0;
-			EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(float_result);
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				sum += float_data[value_index];
-				float_result->set_float_no_check(sum, value_index);
-			}
+			sum += float_data[value_index];
+			float_result->set_float_no_check(sum, value_index);
 		}
 	}
 	
@@ -435,11 +328,7 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(exp(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else if (x_type == EidosValueType::kValueInt)
+	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
@@ -472,24 +361,15 @@ EidosValue_SP Eidos_ExecuteFunction_floor(const std::vector<EidosValue_SP> &p_ar
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	const double *float_data = x_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	double *float_result_data = float_result->data_mutable();
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(floor(x_value->FloatAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
-		const double *float_data = x_value->FloatData();
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data_mutable();
-		result_SP = EidosValue_SP(float_result);
-		
-		EIDOS_THREAD_COUNT(gEidos_OMP_threads_FLOOR);
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_FLOOR);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_FLOOR) num_threads(thread_count)
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result_data[value_index] = floor(float_data[value_index]);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result_data[value_index] = floor(float_data[value_index]);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -514,66 +394,54 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const std::vector<EidosValue_SP> 
 	if ((x_dimcount > 1) && (y_dimcount > 1) && !EidosValue::MatchingDimensions(x_value, y_value))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): non-conformable array arguments to integerDiv()." << EidosTerminate(nullptr);
 	
-	if ((x_count == 1) && (y_count == 1))
+	if (x_count == y_count)
 	{
-		int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
-		int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
+		const int64_t *int1_data = x_value->IntData();
+		const int64_t *int2_data = y_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
 		
-		if (int2 == 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(int1 / int2));
-	}
-	else
-	{
-		if (x_count == y_count)
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			const int64_t *int1_data = x_value->IntData();
-			const int64_t *int2_data = y_value->IntData();
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				int64_t int1 = int1_data[value_index];
-				int64_t int2 = int2_data[value_index];
-				
-				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(int1 / int2, value_index);
-			}
-		}
-		else if (x_count == 1)
-		{
-			int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
-			const int64_t *int2_data = y_value->IntData();
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(y_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < y_count; ++value_index)
-			{
-				int64_t int2 = int2_data[value_index];
-				
-				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(int1 / int2, value_index);
-			}
-		}
-		else if (y_count == 1)
-		{
-			const int64_t *int1_data = x_value->IntData();
-			int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
+			int64_t int1 = int1_data[value_index];
+			int64_t int2 = int2_data[value_index];
 			
 			if (int2 == 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
 			
-			// Special-case division by 2, since it is common
-			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
-			// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
+			int_result->set_int_no_check(int1 / int2, value_index);
+		}
+	}
+	else if (x_count == 1)
+	{
+		int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
+		const int64_t *int2_data = y_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(y_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < y_count; ++value_index)
+		{
+			int64_t int2 = int2_data[value_index];
+			
+			if (int2 == 0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
+			
+			int_result->set_int_no_check(int1 / int2, value_index);
+		}
+	}
+	else if (y_count == 1)
+	{
+		const int64_t *int1_data = x_value->IntData();
+		int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		if (int2 == 0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() cannot perform division by 0." << EidosTerminate(nullptr);
+		
+		// Special-case division by 2, since it is common
+		// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
+		// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
 //			if (int2 == 2)
 //			{
 //				for (int value_index = 0; value_index < x_count; ++value_index)
@@ -581,14 +449,13 @@ EidosValue_SP Eidos_ExecuteFunction_integerDiv(const std::vector<EidosValue_SP> 
 //			}
 //			else
 //			{
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					int_result->set_int_no_check(int1_data[value_index] / int2, value_index);
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				int_result->set_int_no_check(int1_data[value_index] / int2, value_index);
 //			}
-		}
-		else	// if ((x_count != y_count) && (x_count != 1) && (y_count != 1))
-		{
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
-		}
+	}
+	else	// if ((x_count != y_count) && (x_count != 1) && (y_count != 1))
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerDiv): function integerDiv() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
 	}
 	
 	// Copy dimensions from whichever operand we chose at the beginning
@@ -615,66 +482,54 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const std::vector<EidosValue_SP> 
 	if ((x_dimcount > 1) && (y_dimcount > 1) && !EidosValue::MatchingDimensions(x_value, y_value))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): non-conformable array arguments to integerMod()." << EidosTerminate(nullptr);
 	
-	if ((x_count == 1) && (y_count == 1))
+	if (x_count == y_count)
 	{
-		int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
-		int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
+		const int64_t *int1_data = x_value->IntData();
+		const int64_t *int2_data = y_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
 		
-		if (int2 == 0)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(int1 % int2));
-	}
-	else
-	{
-		if (x_count == y_count)
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			const int64_t *int1_data = x_value->IntData();
-			const int64_t *int2_data = y_value->IntData();
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				int64_t int1 = int1_data[value_index];
-				int64_t int2 = int2_data[value_index];
-				
-				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(int1 % int2, value_index);
-			}
-		}
-		else if (x_count == 1)
-		{
-			int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
-			const int64_t *int2_data = y_value->IntData();
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(y_count);
-			result_SP = EidosValue_SP(int_result);
-			
-			for (int value_index = 0; value_index < y_count; ++value_index)
-			{
-				int64_t int2 = int2_data[value_index];
-				
-				if (int2 == 0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
-				
-				int_result->set_int_no_check(int1 % int2, value_index);
-			}
-		}
-		else if (y_count == 1)
-		{
-			const int64_t *int1_data = x_value->IntData();
-			int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
-			EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
-			result_SP = EidosValue_SP(int_result);
+			int64_t int1 = int1_data[value_index];
+			int64_t int2 = int2_data[value_index];
 			
 			if (int2 == 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
 			
-			// Special-case modulo by 2, since it is common
-			// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
-			// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
+			int_result->set_int_no_check(int1 % int2, value_index);
+		}
+	}
+	else if (x_count == 1)
+	{
+		int64_t int1 = x_value->IntAtIndex_NOCAST(0, nullptr);
+		const int64_t *int2_data = y_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(y_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int value_index = 0; value_index < y_count; ++value_index)
+		{
+			int64_t int2 = int2_data[value_index];
+			
+			if (int2 == 0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
+			
+			int_result->set_int_no_check(int1 % int2, value_index);
+		}
+	}
+	else if (y_count == 1)
+	{
+		const int64_t *int1_data = x_value->IntData();
+		int64_t int2 = y_value->IntAtIndex_NOCAST(0, nullptr);
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(int_result);
+		
+		if (int2 == 0)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() cannot perform modulo by 0." << EidosTerminate(nullptr);
+		
+		// Special-case modulo by 2, since it is common
+		// BCH 13 April 2017: Removing this optimization; it produces inconsistent behavior for negative numerators.
+		// This optimization was originally committed on 2 March 2017; it was never in any release version of SLiM.
 //			if (int2 == 2)
 //			{
 //				for (int value_index = 0; value_index < x_count; ++value_index)
@@ -682,14 +537,13 @@ EidosValue_SP Eidos_ExecuteFunction_integerMod(const std::vector<EidosValue_SP> 
 //			}
 //			else
 //			{
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					int_result->set_int_no_check(int1_data[value_index] % int2, value_index);
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				int_result->set_int_no_check(int1_data[value_index] % int2, value_index);
 //			}
-		}
-		else	// if ((x_count != y_count) && (x_count != 1) && (y_count != 1))
-		{
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
-		}
+	}
+	else	// if ((x_count != y_count) && (x_count != 1) && (y_count != 1))
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_integerMod): function integerMod() requires that either (1) both operands have the same size(), or (2) one operand has size() == 1." << EidosTerminate(nullptr);
 	}
 	
 	// Copy dimensions from whichever operand we chose at the beginning
@@ -706,16 +560,12 @@ EidosValue_SP Eidos_ExecuteFunction_isFinite(const std::vector<EidosValue_SP> &p
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
+	if ((x_count == 1) && (x_value->DimensionCount() == 1))
 	{
-		if (x_value ->DimensionCount() == 1)
-			result_SP = (std::isfinite(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		else
-			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{std::isfinite(x_value->FloatAtIndex_NOCAST(0, nullptr))});
+		result_SP = (std::isfinite(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -738,16 +588,12 @@ EidosValue_SP Eidos_ExecuteFunction_isInfinite(const std::vector<EidosValue_SP> 
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
+	if ((x_count == 1) && (x_value ->DimensionCount() == 1))
 	{
-		if (x_value ->DimensionCount() == 1)
-			result_SP = (std::isinf(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		else
-			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(eidos_logical_t)std::isinf(x_value->FloatAtIndex_NOCAST(0, nullptr))});
+		result_SP = (std::isinf(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -770,16 +616,12 @@ EidosValue_SP Eidos_ExecuteFunction_isNAN(const std::vector<EidosValue_SP> &p_ar
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
+	if ((x_count == 1) && (x_value->DimensionCount() == 1))
 	{
-		if (x_value ->DimensionCount() == 1)
-			result_SP = (std::isnan(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-		else
-			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(eidos_logical_t)std::isnan(x_value->FloatAtIndex_NOCAST(0, nullptr))});
+		result_SP = (std::isnan(x_value->FloatAtIndex_NOCAST(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 	}
 	else
 	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatData();
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(logical_result);
@@ -803,11 +645,7 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else if (x_type == EidosValueType::kValueInt)
+	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
@@ -842,11 +680,7 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log10(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else if (x_type == EidosValueType::kValueInt)
+	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
@@ -881,11 +715,7 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(log2(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else if (x_type == EidosValueType::kValueInt)
+	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
@@ -922,63 +752,47 @@ EidosValue_SP Eidos_ExecuteFunction_product(const std::vector<EidosValue_SP> &p_
 	
 	if (x_type == EidosValueType::kValueInt)
 	{
-		if (x_count == 1)
+		const int64_t *int_data = x_value->IntData();
+		int64_t product = 1;
+		double product_d = 1.0;
+		bool fits_in_integer = true;
+		
+		// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
+		// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
+		// can, and then throwing the integer accumulator over into the float accumulator only when it is about
+		// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
+		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(x_value->IntAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
-			const int64_t *int_data = x_value->IntData();
-			int64_t product = 1;
-			double product_d = 1.0;
-			bool fits_in_integer = true;
+			int64_t old_product = product;
+			int64_t temp = int_data[value_index];
 			
-			// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
-			// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
-			// can, and then throwing the integer accumulator over into the float accumulator only when it is about
-			// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
-			for (int value_index = 0; value_index < x_count; ++value_index)
+			bool overflow = Eidos_mul_overflow(old_product, temp, &product);
+			
+			// switch to float computation on overflow, and accumulate in the float product just before overflow
+			if (overflow)
 			{
-				int64_t old_product = product;
-				int64_t temp = int_data[value_index];
-				
-				bool overflow = Eidos_mul_overflow(old_product, temp, &product);
-				
-				// switch to float computation on overflow, and accumulate in the float product just before overflow
-				if (overflow)
-				{
-					fits_in_integer = false;
-					product_d *= old_product;
-					product = temp;
-				}
+				fits_in_integer = false;
+				product_d *= old_product;
+				product = temp;
 			}
-			
-			product_d *= product;		// multiply in whatever integer accumulation has not overflowed
-			
-			if (fits_in_integer)
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(product));
-			else
-				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(product_d));
 		}
+		
+		product_d *= product;		// multiply in whatever integer accumulation has not overflowed
+		
+		if (fits_in_integer)
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(product));
+		else
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(product_d));
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		if (x_count == 1)
-		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-			const double *float_data = x_value->FloatData();
-			double product = 1;
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				product *= float_data[value_index];
-			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(product));
-		}
+		const double *float_data = x_value->FloatData();
+		double product = 1;
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			product *= float_data[value_index];
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(product));
 	}
 	
 	return result_SP;
@@ -991,24 +805,15 @@ EidosValue_SP Eidos_ExecuteFunction_round(const std::vector<EidosValue_SP> &p_ar
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	const double *float_data = x_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	double *float_result_data = float_result->data_mutable();
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(round(x_value->FloatAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
-		const double *float_data = x_value->FloatData();
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data_mutable();
-		result_SP = EidosValue_SP(float_result);
-		
-		EIDOS_THREAD_COUNT(gEidos_OMP_threads_ROUND);
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_ROUND);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_ROUND) num_threads(thread_count)
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result_data[value_index] = round(float_data[value_index]);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result_data[value_index] = round(float_data[value_index]);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -2529,19 +2334,11 @@ EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_argu
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sin(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(sin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(sin(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -2557,11 +2354,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sqrt(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else if (x_type == EidosValueType::kValueInt)
+	if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
@@ -2601,12 +2394,12 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 	{
 		if (x_count == 1)
 		{
+			// Worth treating the singleton case separately given the complexity below
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(x_value->IntAtIndex_NOCAST(0, nullptr)));
 		}
 		else
 #ifndef _OPENMP
 		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
 			const int64_t *int_data = x_value->IntData();
 			int64_t sum = 0;
 			double sum_d = 0;
@@ -2664,27 +2457,18 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
-		if (x_count == 1)
-		{
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_NOCAST(0, nullptr)));
-		}
-		else
-		{
-			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
-			const double *float_data = x_value->FloatData();
-			double sum = 0;
-			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SUM_FLOAT);
+		const double *float_data = x_value->FloatData();
+		double sum = 0;
+		
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SUM_FLOAT);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data) reduction(+: sum) if(parallel:x_count >= EIDOS_OMPMIN_SUM_FLOAT) num_threads(thread_count)
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				sum += float_data[value_index];
-			
-			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sum));
-		}
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			sum += float_data[value_index];
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sum));
 	}
 	else if (x_type == EidosValueType::kValueLogical)
 	{
-		// EidosValue_Logical does not have a singleton subclass, so we can always use the fast API
 		const eidos_logical_t *logical_data = x_value->LogicalData();
 		int64_t sum = 0;
 		
@@ -2709,11 +2493,11 @@ EidosValue_SP Eidos_ExecuteFunction_sumExact(const std::vector<EidosValue_SP> &p
 	
 	if (x_count == 1)
 	{
+		// Worth treating the singleton case separately given the complexity below
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x_value->FloatAtIndex_NOCAST(0, nullptr)));
 	}
 	else
 	{
-		// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
 		const double *float_data = x_value->FloatData();
 		double sum = Eidos_ExactSum(float_data, x_count);
 		
@@ -2730,19 +2514,11 @@ EidosValue_SP Eidos_ExecuteFunction_tan(const std::vector<EidosValue_SP> &p_argu
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(tan(x_value->NumericAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(tan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result->set_float_no_check(tan(x_value->NumericAtIndex_NOCAST(value_index, nullptr)), value_index);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	
@@ -2756,24 +2532,15 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const std::vector<EidosValue_SP> &p_ar
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	const double *float_data = x_value->FloatData();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	double *float_result_data = float_result->data_mutable();
+	result_SP = EidosValue_SP(float_result);
 	
-	if (x_count == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(trunc(x_value->FloatAtIndex_NOCAST(0, nullptr))));
-	}
-	else
-	{
-		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
-		const double *float_data = x_value->FloatData();
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-		double *float_result_data = float_result->data_mutable();
-		result_SP = EidosValue_SP(float_result);
-		
-		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TRUNC);
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_TRUNC);
 #pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_TRUNC) num_threads(thread_count)
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result_data[value_index] = trunc(float_data[value_index]);
-	}
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		float_result_data[value_index] = trunc(float_data[value_index]);
 	
 	result_SP->CopyDimensionsFromValue(x_value);
 	

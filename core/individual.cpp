@@ -1659,6 +1659,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	
 	if (mutations_count == 1)
 	{
+		// treat the singleton case separately to return gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
 		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr)))->BlockIndex();
 		
 		if ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)))
@@ -1771,52 +1772,34 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	}
 	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(individuals_count);
 	
-	if (individuals_count == 1)
+	if (pedigree_tracking_enabled)
 	{
-		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-		double relatedness;
-		
-		if (pedigree_tracking_enabled)
-			relatedness = RelatednessToIndividual(*ind);
-		else
-			relatedness = (ind == this) ? 1.0 : 0.0;
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(relatedness));
+		// this parallelizes the case of one_individual.relatedness(many_individuals)
+		// it would be nice to also parallelize the case of many_individuals.relatedness(one_individual); that would require accelerating this method
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RELATEDNESS);
+#pragma omp parallel for schedule(dynamic, 128) default(none) shared(individuals_count, individuals_value) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS) num_threads(thread_count)
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
+		{
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			double relatedness = RelatednessToIndividual(*ind);
+			
+			float_result->set_float_no_check(relatedness, value_index);
+		}
 	}
 	else
 	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(individuals_count);
-		
-		if (pedigree_tracking_enabled)
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			// this parallelizes the case of one_individual.relatedness(many_individuals)
-			// it would be nice to also parallelize the case of many_individuals.relatedness(one_individual); that would require accelerating this method
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RELATEDNESS);
-#pragma omp parallel for schedule(dynamic, 128) default(none) shared(individuals_count, individuals_value) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS) num_threads(thread_count)
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				double relatedness = RelatednessToIndividual(*ind);
-				
-				float_result->set_float_no_check(relatedness, value_index);
-			}
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			double relatedness = (ind == this) ? 1.0 : 0.0;
+			
+			float_result->set_float_no_check(relatedness, value_index);
 		}
-		else
-		{
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				double relatedness = (ind == this) ? 1.0 : 0.0;
-				
-				float_result->set_float_no_check(relatedness, value_index);
-			}
-		}
-		
-		return EidosValue_SP(float_result);
 	}
 	
-	return gStaticEidosValueNULL;
+	return EidosValue_SP(float_result);
 }
 
 //	*********************	- (integer)sharedParentCount(o<Individual> individuals)
@@ -1837,49 +1820,31 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	}
 	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(individuals_count);
 	
-	if (individuals_count == 1)
+	if (pedigree_tracking_enabled)
 	{
-		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-		int shared_count;
-		
-		if (pedigree_tracking_enabled)
-			shared_count = SharedParentCountWithIndividual(*ind);
-		else
-			shared_count = (ind == this) ? 2.0 : 0.0;
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(shared_count));
+		// FIXME needs parallelization, see relatedness()
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
+		{
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			int shared_count = SharedParentCountWithIndividual(*ind);
+			
+			int_result->set_int_no_check(shared_count, value_index);
+		}
 	}
 	else
 	{
-		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(individuals_count);
-		
-		if (pedigree_tracking_enabled)
+		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			// FIXME needs parallelization, see relatedness()
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				int shared_count = SharedParentCountWithIndividual(*ind);
-				
-				int_result->set_int_no_check(shared_count, value_index);
-			}
+			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			int shared_count = (ind == this) ? 2.0 : 0.0;
+			
+			int_result->set_int_no_check(shared_count, value_index);
 		}
-		else
-		{
-			for (int value_index = 0; value_index < individuals_count; ++value_index)
-			{
-				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-				int shared_count = (ind == this) ? 2.0 : 0.0;
-				
-				int_result->set_int_no_check(shared_count, value_index);
-			}
-		}
-		
-		return EidosValue_SP(int_result);
 	}
 	
-	return gStaticEidosValueNULL;
+	return EidosValue_SP(int_result);
 }
 
 //	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
@@ -2275,13 +2240,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	int target_size = p_target->Count();
 	
 	// Determine the spatiality of the individuals involved, and make sure it is the same for all
-	if (target_size == 1)
-	{
-		Individual *target = (Individual *)p_target->ObjectElementAtIndex_NOCAST(0, nullptr);
-		
-		dimensionality = target->subpopulation_->species_.SpatialDimensionality();
-	}
-	else if (target_size > 1)
+	if (target_size >= 1)
 	{
 		Individual * const *targets = (Individual * const *)(p_target->ObjectData());
 		
@@ -2307,30 +2266,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	if (value_count == dimensionality)
 	{
 		// One point is being set across all targets
-		if (target_size == 1)
-		{
-			// Handle the singleton target case separately so we can handle the vector target case faster
-			Individual *target = (Individual *)p_target->ObjectElementAtIndex_NOCAST(0, nullptr);
-			
-			switch (dimensionality)
-			{
-				case 1:
-					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
-					break;
-				case 2:
-					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
-					target->spatial_y_ = position_value->FloatAtIndex_NOCAST(1, nullptr);
-					break;
-				case 3:
-					target->spatial_x_ = position_value->FloatAtIndex_NOCAST(0, nullptr);
-					target->spatial_y_ = position_value->FloatAtIndex_NOCAST(1, nullptr);
-					target->spatial_z_ = position_value->FloatAtIndex_NOCAST(2, nullptr);
-					break;
-				default:
-					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) dimensionality out of range." << EidosTerminate(nullptr);
-			}
-		}
-		else if (target_size > 1)
+		if (target_size >= 1)
 		{
 			// Vector target case, one point
 			Individual * const *targets = (Individual * const *)(p_target->ObjectData());

@@ -739,18 +739,11 @@ EidosValue_SP MutationType::ExecuteMethod_drawSelectionCoefficient(EidosGlobalSt
 	if (num_draws < 0)
 		EIDOS_TERMINATION << "ERROR (ExecuteMethod_drawSelectionCoefficient): drawSelectionCoefficient() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
 	
-	if (num_draws == 1)
-	{
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(DrawSelectionCoefficient()));
-	}
-	else
-	{
-		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
-		result_SP = EidosValue_SP(float_result);
-		
-		for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-			float_result->set_float_no_check(DrawSelectionCoefficient(), draw_index);
-	}
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(num_draws);
+	result_SP = EidosValue_SP(float_result);
+	
+	for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+		float_result->set_float_no_check(DrawSelectionCoefficient(), draw_index);
 	
 	return result_SP;
 }

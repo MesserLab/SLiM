@@ -2402,8 +2402,8 @@ void _RunNucleotideMethodTests(void)
 	
 	// initializeAncestralNucleotides()
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(integer(0)); } ", "requires a sequence of length >= 1", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(-1); } ", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(4); } ", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(-1); } ", "integer nucleotide value", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(4); } ", "integer nucleotide value", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides('AACAGTACGTTACAGGTACAD'); } ", "could not be opened or does not exist", __LINE__);	// file path!
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,-1,2)); } ", "integer nucleotide value", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeAncestralNucleotides(c(0,4,2)); } ", "integer nucleotide value", __LINE__);

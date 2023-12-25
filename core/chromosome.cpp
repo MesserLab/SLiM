@@ -2030,21 +2030,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 	if (sequence_value_type == EidosValueType::kValueInt)
 	{
 		// A vector of integers has been provided, where ACGT == 0123
-		if (sequence_value_count == 1)
-		{
-			// singleton case
-			int64_t int_value = sequence_value->IntAtIndex_NOCAST(0, nullptr);
-			
-			ancestral_seq_buffer_ = new NucleotideArray(1);
-			ancestral_seq_buffer_->SetNucleotideAtIndex((std::size_t)0, (uint64_t)int_value);
-		}
-		else
-		{
-			// non-singleton, direct access
-			const int64_t *int_data = sequence_value->IntData();
-			
-			ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
-		}
+		const int64_t *int_data = sequence_value->IntData();
+		
+		ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 	}
 	else if (sequence_value_type == EidosValueType::kValueString)
 	{

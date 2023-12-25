@@ -6215,18 +6215,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	if (value_count != point_count * dimensionality)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): pointInBounds() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
 	
-	if ((point_count == 1) && (dimensionality == 1))
-	{
-		// singleton case, get it out of the way
-		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
-		return ((x >= bounds_x0_) && (x <= bounds_x1_)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
-	}
-	
 	const double *point_buf = point_value->FloatData();
 	
 	if (point_count == 1)
 	{
-		// single-point case, do it separately to return a singleton logical value, and handle the multi-point case more quickly
+		// single-point case, do it separately to return a singleton logical value
 		switch (dimensionality)
 		{
 			case 1:
@@ -6336,22 +6329,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	if (value_count != point_count * dimensionality)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): pointReflected() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
 	
-	if ((point_count == 1) && (dimensionality == 1))
-	{
-		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
-		
-		while (true)
-		{
-			if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-			else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
-			else break;
-		}
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
-	}
-	
-	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data_mutable();
@@ -6469,15 +6446,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	if (value_count != point_count * dimensionality)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): pointStopped() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
 	
-	if ((point_count == 1) && (dimensionality == 1))
-	{
-		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(std::max(bounds_x0_, std::min(bounds_x1_, x))));
-	}
-	
-	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data_mutable();
@@ -6567,21 +6535,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	if (value_count != point_count * dimensionality)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() requires the length of point to be an exact multiple of the spatial dimensionality of the simulation (i.e., point must contain zero or more complete points)." << EidosTerminate();
 	
-	if ((point_count == 1) && (dimensionality == 1))
-	{
-		// Handle the singleton separately, so we can handle the non-singleton case more quickly
-		double x = point_value->FloatAtIndex_NOCAST(0, nullptr);
-		
-		if (periodic_x)
-		{
-			while (x < 0.0)			x += bounds_x1_;
-			while (x > bounds_x1_)	x -= bounds_x1_;
-		}
-		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(x));
-	}
-	
-	// non-singleton general case
 	const double *point_buf = point_value->FloatData();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(value_count);
 	double *float_result_data = float_result->data_mutable();
@@ -7018,14 +6971,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	
 	bool do_all_indices = (indices_value->Type() == EidosValueType::kValueNULL);
 	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
+	EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
+	EidosValue_SP result_SP = EidosValue_SP(float_return);
 	
-	if (index_count == 1)
+	for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 	{
-		slim_popsize_t index = 0;
+		slim_popsize_t index = value_index;
 		
 		if (!do_all_indices)
 		{
-			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(0, nullptr));
+			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(value_index, nullptr));
 			
 			if (index >= parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
@@ -7033,32 +6988,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
 		
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(fitness));
+		float_return->set_float_no_check(fitness, value_index);
 	}
-	else
-	{
-		EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
-		EidosValue_SP result_SP = EidosValue_SP(float_return);
-		
-		for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
-		{
-			slim_popsize_t index = value_index;
-			
-			if (!do_all_indices)
-			{
-				index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(value_index, nullptr));
-				
-				if (index >= parent_subpop_size_)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
-			}
-			
-			double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
-			
-			float_return->set_float_no_check(fitness, value_index);
-		}
-		
-		return result_SP;
-	}
+	
+	return result_SP;
 }
 
 //  *********************	– (No<Individual>)sampleIndividuals(integer$ size, [logical$ replace = F], [No<Individual>$ exclude = NULL], [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL], [Nl$ tagL0 = NULL], [Nl$ tagL1 = NULL], [Nl$ tagL2 = NULL], [Nl$ tagL3 = NULL], [Nl$ tagL4 = NULL])

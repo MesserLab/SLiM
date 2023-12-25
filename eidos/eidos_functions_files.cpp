@@ -393,6 +393,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 			
 			if (contents_count == 1)
 			{
+				// no final newline in this case, so the user can precisely specify the file contents if desired
 				outstream << contents_value->StringAtIndex_NOCAST(0, nullptr);
 			}
 			else
@@ -454,7 +455,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		{
 			if (contents_count == 1)
 			{
-				file_stream << contents_value->StringAtIndex_NOCAST(0, nullptr);	// no final newline in this case, so the user can precisely specify the file contents if desired
+				// no final newline in this case, so the user can precisely specify the file contents if desired
+				file_stream << contents_value->StringAtIndex_NOCAST(0, nullptr);
 			}
 			else
 			{

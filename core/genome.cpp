@@ -623,6 +623,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 		
 		if (p_elements_size == 1)
 		{
+			// separate singleton case to return gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
 			Genome *element = (Genome *)(p_elements[0]);
 			
 			if (!element->IsNull())
@@ -722,44 +723,21 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
 		}
 		
-		if (mutations_count == 1)
+		if ((mutations_count == 1) && (p_elements_size == 1))
 		{
+			// We want to be smart enough to return gStaticEidosValue_LogicalT or gStaticEidosValue_LogicalF in the singleton/singleton case
 			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 			MutationIndex mut_block_index = mut->BlockIndex();
 			slim_position_t mutrun_length = ((Genome *)(p_elements[0]))->mutrun_length_;		// assume all Genome objects have the same mutrun_length_; better be true...
 			slim_position_t mutrun_index = mut->position_ / mutrun_length;
+			Genome *element = (Genome *)(p_elements[0]);
 			
-			if (p_elements_size == 1)
-			{
-				// We want to be smart enough to return gStaticEidosValue_LogicalT or gStaticEidosValue_LogicalF in the singleton/singleton case
-				Genome *element = (Genome *)(p_elements[0]);
-				
-				if (element->IsNull())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
-				
-				bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
-				
-				return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-			}
-			else
-			{
-				EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
-				EidosValue_SP result(logical_result);
-				
-				for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
-				{
-					Genome *element = (Genome *)(p_elements[element_index]);
-					
-					if (element->IsNull())
-						EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
-					
-					bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
-					
-					logical_result->set_logical_no_check(contained, element_index);
-				}
-				
-				return result;
-			}
+			if (element->IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
+			
+			bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
+			
+			return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
 		else
 		{

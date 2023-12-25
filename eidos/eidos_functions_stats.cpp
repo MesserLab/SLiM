@@ -206,7 +206,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
+				int64_t temp = arg_value->IntData()[0];
 				if (max < temp)
 					max = temp;
 			}
@@ -242,7 +242,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
+				double temp = arg_value->FloatData()[0];
 				
 				// if there is a NAN the result is always NAN, so we don't need to scan further
 				if (std::isnan(temp))
@@ -289,23 +289,13 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 		{
 			EidosValue_String *arg_value = (EidosValue_String *)(p_arguments[arg_index].get());
 			int arg_count = arg_value->Count();
+			const std::string *string_vec = arg_value->StringData();
 			
-			if (arg_count == 1)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
 			{
-				const std::string &temp = arg_value->StringRefAtIndex_NOCAST(0, nullptr);
+				const std::string &temp = string_vec[value_index];
 				if (*max < temp)
 					max = &temp;
-			}
-			else
-			{
-				const std::string *string_vec = arg_value->StringData();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-				{
-					const std::string &temp = string_vec[value_index];
-					if (*max < temp)
-						max = &temp;
-				}
 			}
 		}
 		
@@ -412,7 +402,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
+				int64_t temp = arg_value->IntData()[0];
 				if (min > temp)
 					min = temp;
 			}
@@ -448,7 +438,7 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			
 			if (arg_count == 1)
 			{
-				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
+				double temp = arg_value->FloatData()[0];
 				
 				// if there is a NAN the result is always NAN, so we don't need to scan further
 				if (std::isnan(temp))
@@ -495,23 +485,13 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 		{
 			EidosValue_String *arg_value = (EidosValue_String *)(p_arguments[arg_index].get());
 			int arg_count = arg_value->Count();
+			const std::string *string_vec = arg_value->StringData();
 			
-			if (arg_count == 1)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
 			{
-				const std::string &temp = arg_value->StringRefAtIndex_NOCAST(0, nullptr);
+				const std::string &temp = string_vec[value_index];
 				if (*min > temp)
 					min = &temp;
-			}
-			else
-			{
-				const std::string *string_vec = arg_value->StringData();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-				{
-					const std::string &temp = string_vec[value_index];
-					if (*min > temp)
-						min = &temp;
-				}
 			}
 		}
 		
@@ -1058,27 +1038,15 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
+			const int64_t *int_data = arg_value->IntData();
 			
-			if (arg_count == 1)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
 			{
-				int64_t temp = arg_value->IntAtIndex_NOCAST(0, nullptr);
+				int64_t temp = int_data[value_index];
 				if (max < temp)
 					max = temp;
 				else if (min > temp)
 					min = temp;
-			}
-			else
-			{
-				const int64_t *int_data = arg_value->IntData();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-				{
-					int64_t temp = int_data[value_index];
-					if (max < temp)
-						max = temp;
-					else if (min > temp)
-						min = temp;
-				}
 			}
 		}
 		
@@ -1097,10 +1065,11 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 		{
 			EidosValue *arg_value = p_arguments[arg_index].get();
 			int arg_count = arg_value->Count();
+			const double *float_data = arg_value->FloatData();
 			
-			if (arg_count == 1)
+			for (int value_index = 0; value_index < arg_count; ++value_index)
 			{
-				double temp = arg_value->FloatAtIndex_NOCAST(0, nullptr);
+				double temp = float_data[value_index];
 				
 				// if there is a NAN, the range is always (NAN,NAN); short-circuit
 				if (std::isnan(temp))
@@ -1114,28 +1083,6 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 					max = temp;
 				else if (min > temp)
 					min = temp;
-			}
-			else
-			{
-				const double *float_data = arg_value->FloatData();
-				
-				for (int value_index = 0; value_index < arg_count; ++value_index)
-				{
-					double temp = float_data[value_index];
-					
-					// if there is a NAN, the range is always (NAN,NAN); short-circuit
-					if (std::isnan(temp))
-					{
-						float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 0);
-						float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), 1);
-						return result_SP;
-					}
-					
-					if (max < temp)
-						max = temp;
-					else if (min > temp)
-						min = temp;
-				}
 			}
 		}
 		

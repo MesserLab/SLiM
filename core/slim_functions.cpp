@@ -840,6 +840,7 @@ static void CountNucleotides(EidosValue *sequence_value, int64_t *total_ACGT, co
 		}
 		else // sequence_type == EidosValueType::kValueString
 		{
+			// Note that this is different from the case below - a single string versus a vector of single characters
 			uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
 			const std::string &string_ref = sequence_value->StringData()[0];
 			std::size_t length = string_ref.length();
@@ -1402,21 +1403,11 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	// Get individuals vector; complicated as usual by singleton vs. vector
 	int individuals_count = individuals_value->Count();
-	Individual *singleton_ind = nullptr;
-	Individual **individuals_buffer = nullptr;
 	
 	if (individuals_count == 0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() cannot be called with a zero-length individuals vector, because the focal species, and thus the spatial dimensionality, cannot be determined." << EidosTerminate();
 	
-	if (individuals_count == 1)
-	{
-		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-		individuals_buffer = &singleton_ind;
-	}
-	else
-	{
-		individuals_buffer = (Individual **)((EidosValue_Object *)individuals_value)->data();
-	}
+	Individual **individuals_buffer = (Individual **)individuals_value->ObjectData();
 	
 	// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
 	// We use the first individual in the buffer as a test subject, rather than nullptr, to make UBSan happy
