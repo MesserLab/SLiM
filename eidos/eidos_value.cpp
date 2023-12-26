@@ -2384,20 +2384,13 @@ EidosValue_SP EidosValue_Object::ExecuteMethodCall(EidosGlobalStringID p_method_
 		// When a single-return-type method is declared as returning singleton, we special-case that even further, by
 		// reserving a buffer size equal to the size of the target vector and then using push_X_no_check(); if a lot
 		// of NULLs are returned we will waste some memory, but the payoff of avoiding reallocs is worth it overall,
-		// I imagine.  In the singleton case we also avoid a virtual function call per element by checking for the
-		// return's IsSingleton() and doing a cast if it returns YES, allowing direct access to its value.  Yes, I have
-		// timed all of this, and it really does make a difference; calling a method on a large object vector is very
-		// common, and these optimizations make a substantial difference.  In fact, I'm tempted to go even further,
-		// down the road I went down with accelerated properties, but I will hold off on that for now.  :->
+		// I imagine.  Yes, I have timed all of this, and it really does make a difference; calling a method on a
+		// large object vector is very common, and these optimizations make a substantial difference.  In fact, I'm
+		// tempted to go even further, down the road I went down with accelerated properties, but I will hold off on
+		// that for now.  :->
 		// BCH 12/20/2023: the XData() methods now allow us to avoid IsSingleton() and treat the cases jointly.
 		EidosValueMask sig_mask = (p_method_signature->return_mask_ & kEidosValueMaskFlagStrip);
 		bool return_is_singleton = (p_method_signature->return_mask_ & kEidosValueMaskSingleton);
-		
-#if 0
-		// Log vectorized calls to methods, to assess which methods are most worth accelerating
-		if (values_size > 10)
-			std::cerr << "Vector call to method " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " on class " << class_->ElementType() << " (" << values_size << " elements)" << std::endl;
-#endif
 		
 		if (sig_mask == kEidosValueMaskVOID)
 		{
@@ -2574,34 +2567,72 @@ EidosValue_SP EidosValue_Object::ExecuteMethodCall(EidosGlobalStringID p_method_
 			{
 				object_result->reserve(values_size);
 				
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
+				if (return_class->UsesRetainRelease())
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+					{
+						EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 #if DEBUG
-					p_method_signature->CheckReturn(*temp_result);
+						p_method_signature->CheckReturn(*temp_result);
 #endif
-					if (temp_result->Type() == EidosValueType::kValueObject)
-						object_result->push_object_element_no_check_CRR(temp_result->ObjectData()[0]);
-					// else it is a NULL, discard it
+						if (temp_result->Type() == EidosValueType::kValueObject)
+							object_result->push_object_element_no_check_RR(temp_result->ObjectData()[0]);
+						// else it is a NULL, discard it
+					}
+				}
+				else
+				{
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+					{
+						EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+#if DEBUG
+						p_method_signature->CheckReturn(*temp_result);
+#endif
+						if (temp_result->Type() == EidosValueType::kValueObject)
+							object_result->push_object_element_no_check_NORR(temp_result->ObjectData()[0]);
+						// else it is a NULL, discard it
+					}
 				}
 			}
 			else
 			{
-				for (size_t value_index = 0; value_index < values_size; ++value_index)
+				if (return_class->UsesRetainRelease())
 				{
-					EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
-#if DEBUG
-					p_method_signature->CheckReturn(*temp_result);
-#endif
-					if (temp_result->Type() == EidosValueType::kValueObject)
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
 					{
-						int return_count = temp_result->Count();
-						EidosObject * const *return_data = temp_result->ObjectData();
-						
-						for (int return_index = 0; return_index < return_count; return_index++)
-							object_result->push_object_element_CRR(return_data[return_index]);
+						EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+#if DEBUG
+						p_method_signature->CheckReturn(*temp_result);
+#endif
+						if (temp_result->Type() == EidosValueType::kValueObject)
+						{
+							int return_count = temp_result->Count();
+							EidosObject * const *return_data = temp_result->ObjectData();
+							
+							for (int return_index = 0; return_index < return_count; return_index++)
+								object_result->push_object_element_RR(return_data[return_index]);
+						}
+						// else it is a NULL, discard it
 					}
-					// else it is a NULL, discard it
+				}
+				else
+				{
+					for (size_t value_index = 0; value_index < values_size; ++value_index)
+					{
+						EidosValue_SP temp_result = values_[value_index]->ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+#if DEBUG
+						p_method_signature->CheckReturn(*temp_result);
+#endif
+						if (temp_result->Type() == EidosValueType::kValueObject)
+						{
+							int return_count = temp_result->Count();
+							EidosObject * const *return_data = temp_result->ObjectData();
+							
+							for (int return_index = 0; return_index < return_count; return_index++)
+								object_result->push_object_element_NORR(return_data[return_index]);
+						}
+						// else it is a NULL, discard it
+					}
 				}
 			}
 			
