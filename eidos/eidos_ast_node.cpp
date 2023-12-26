@@ -377,6 +377,23 @@ void EidosASTNode::_OptimizeAssignments(void) const
 					}
 				}
 			}
+			else if ((child1_token_type == EidosTokenType::kTokenLParen) && (child1->children_.size() == 3))
+			{
+				// ... the rvalue is a function call with three children...
+				EidosASTNode *left_operand = child1->children_[0];
+				
+				if ((left_operand->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (left_operand->token_->token_string_ == gEidosStr_c))
+				{
+					// ... it's a call to c()...
+					EidosASTNode *middle_operand = child1->children_[1];
+					
+					if ((middle_operand->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (middle_operand->token_->token_string_ == child0->token_->token_string_))
+					{
+						// ... the first argument to c() is the same as the lvalue, so we have x = c(x, <expression>), so we mark that in the tree for Evaluate_Assign()
+						cached_append_assignment_ = true;
+					}
+				}
+			}
 		}
 	}
 }

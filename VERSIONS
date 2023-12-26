@@ -10,6 +10,7 @@ development head (in the master branch):
 	big changes to Eidos under the hood - removal of the singleton/vector distinction and EidosValue subclasses, add constness flag, differentiate casting vs. non-casting accesses, etc.
 	policy change: float indices are no longer legal for subsetting, indices must be integer (or a logical vector, as usual); this was inherited from R and is a bad idea for Eidos
 	policy change: assignment into object properties must match the type of the property; no more promotion to integer/float from lower types
+	add some internal magic to accelerate statements of the form "x = c(x,y)" by appending y onto the end of x directly
 	
 
 version 4.1 (Eidos version 3.1):

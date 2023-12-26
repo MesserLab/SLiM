@@ -500,6 +500,26 @@ public:
 	// vector lookalike methods; not virtual, only for clients with a EidosValue_Logical*
 	EidosValue_Logical *reserve(size_t p_reserved_size);				// as in std::vector
 	EidosValue_Logical *resize_no_initialize(size_t p_new_size);		// does not zero-initialize, unlike std::vector!
+	
+	inline void resize_by_expanding_no_initialize(size_t p_new_size)
+	{
+		// resizes up to exactly p_new_size; if new capacity is needed, doubles to achieve that
+		// this avoids doing a realloc with every resize, with repeated resize operations
+		WILL_MODIFY(this);
+		
+		if (capacity_ < p_new_size)
+		{
+			size_t new_capacity = (capacity_ < 16 ? 16 : capacity_);
+			
+			while (new_capacity < p_new_size)
+				new_capacity <<= 1;
+			
+			reserve(new_capacity);
+		}
+		
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	}
+	
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
@@ -680,6 +700,25 @@ public:
 		return this;
 	}
 	
+	inline void resize_by_expanding_no_initialize(size_t p_new_size)
+	{
+		// resizes up to exactly p_new_size; if new capacity is needed, doubles to achieve that
+		// this avoids doing a realloc with every resize, with repeated resize operations
+		WILL_MODIFY(this);
+		
+		if (capacity_ < p_new_size)
+		{
+			size_t new_capacity = (capacity_ < 16 ? 16 : capacity_);
+			
+			while (new_capacity < p_new_size)
+				new_capacity <<= 1;
+			
+			reserve(new_capacity);
+		}
+		
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	}
+	
 	inline __attribute__((always_inline)) int64_t *data_mutable(void) { WILL_MODIFY(this); return values_; }
 	inline __attribute__((always_inline)) const int64_t *data(void) const { return values_; }
 	inline __attribute__((always_inline)) void push_int(int64_t p_int)
@@ -785,6 +824,25 @@ public:
 		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 		
 		return this;
+	}
+	
+	inline void resize_by_expanding_no_initialize(size_t p_new_size)
+	{
+		// resizes up to exactly p_new_size; if new capacity is needed, doubles to achieve that
+		// this avoids doing a realloc with every resize, with repeated resize operations
+		WILL_MODIFY(this);
+		
+		if (capacity_ < p_new_size)
+		{
+			size_t new_capacity = (capacity_ < 16 ? 16 : capacity_);
+			
+			while (new_capacity < p_new_size)
+				new_capacity <<= 1;
+			
+			reserve(new_capacity);
+		}
+		
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	}
 	
 	inline __attribute__((always_inline)) double *data_mutable(void) { WILL_MODIFY(this); return values_; }
@@ -922,6 +980,32 @@ public:
 	EidosValue_Object *reserve(size_t p_reserved_size);					// as in std::vector
 	EidosValue_Object *resize_no_initialize(size_t p_new_size);			// does not zero-initialize, unlike std::vector!
 	EidosValue_Object *resize_no_initialize_RR(size_t p_new_size);		// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)
+	
+	//inline void resize_by_expanding_no_initialize(size_t p_new_size)
+	// not implemented: would, like EidosValue_Object::resize_no_initialize(),
+	// zero out new slots in the RR case to avoid having pointers in a bad state
+	
+	inline void resize_by_expanding_no_initialize_RR(size_t p_new_size)
+	{
+		// resizes up to exactly p_new_size; if new capacity is needed, doubles to achieve that
+		// this avoids doing a realloc with every resize, with repeated resize operations
+		// this version does not zero-initialize the new entries even in the RR case;
+		// use set_object_element_no_check_no_previous_RR() after this call
+		WILL_MODIFY(this);
+		
+		if (capacity_ < p_new_size)
+		{
+			size_t new_capacity = (capacity_ < 16 ? 16 : capacity_);
+			
+			while (new_capacity < p_new_size)
+				new_capacity <<= 1;
+			
+			reserve(new_capacity);
+		}
+		
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+	}
+	
 	void expand(void);													// expand to fit (at least) one new value
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	

@@ -35,6 +35,7 @@ EidosValue_SP ConcatenateEidosValues(const std::vector<EidosValue_SP> &p_argumen
 EidosValue_SP UniqueEidosValue(const EidosValue *p_value, bool p_preserve_order);
 EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter, bool p_execute_in_outer_scope);
 EidosValue_SP SubsetEidosValue(const EidosValue *p_value, const EidosValue *p_indices, EidosToken *p_error_token, bool p_raise_range_errors);
+EidosValue_SP AppendEidosValues(EidosValue_SP x_value, EidosValue_SP y_value);
 
 
 #pragma mark -

@@ -85,6 +85,7 @@ public:
 	mutable uint8_t cached_for_references_index_ = true;				// pre-cached as true if the index variable is referenced at all in the loop
 	mutable uint8_t cached_for_assigns_index_ = true;					// pre-cached as true if the index variable is assigned to in the loop
 	mutable uint8_t cached_compound_assignment_ = false;				// pre-cached on assignment nodes if they are of the form "x=x+1" or "x=x-1" only
+	mutable uint8_t cached_append_assignment_ = false;					// pre-cached on assignment nodes if they are of the form "x=c(x, y)" only
 	
 	mutable EidosTypeSpecifier typespec_;								// only valid for type-specifier nodes inside function declarations
 	mutable bool hit_eof_in_tolerant_parse_ = false;					// only valid for compound statement nodes; used by the type-interpreter to handle scoping

@@ -1190,6 +1190,114 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 	return result_SP;
 }
 
+EidosValue_SP AppendEidosValues(EidosValue_SP x_value, EidosValue_SP y_value)
+{
+	// This concatenates y_value onto the end of x_value, modifying x_value.  This is used to accelerate "x = c(x, <expr>)" in
+	// EidosInterpreter::Evaluate_Assign(), avoiding the overhead of ConcatenateEidosValues(), which has to allocate a new value.
+	// It can handle some type-promotion cases internally; for the cases it can't handle, it calls ConcatenateEidosValues() to
+	// do the work for it.  It returns the resulting value for x if it changed, or nullptr if it could append successfully.
+	
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design (like c())
+	EidosValueType x_type = x_value->Type();
+	
+	if ((y_value->Type() == x_type) && (!x_value->IsConstant()))
+	{
+		// x and y are the same type, and x is not a constant, so we can handle this case with a true append operation
+		int x_count = x_value->Count(), y_count = y_value->Count();
+		
+		switch (x_type)
+		{
+			case EidosValueType::kValueLogical:
+			{
+				EidosValue_Logical *x_vec = (EidosValue_Logical *)x_value.get();
+				x_vec->resize_by_expanding_no_initialize(x_count + y_count);					// resize first, in case y is x
+				
+				const eidos_logical_t *y_data = y_value->LogicalData();
+				
+				for (int y_index = 0; y_index < y_count; ++y_index)
+					x_vec->set_logical_no_check(y_data[y_index], x_count + y_index);
+				
+				break;
+			}
+			case EidosValueType::kValueInt:
+			{
+				EidosValue_Int *x_vec = (EidosValue_Int *)x_value.get();
+				x_vec->resize_by_expanding_no_initialize(x_count + y_count);					// resize first, in case y is x
+				
+				const int64_t *y_data = y_value->IntData();
+				
+				for (int y_index = 0; y_index < y_count; ++y_index)
+					x_vec->set_int_no_check(y_data[y_index], x_count + y_index);
+				
+				break;
+			}
+			case EidosValueType::kValueFloat:
+			{
+				EidosValue_Float *x_vec = (EidosValue_Float *)x_value.get();
+				x_vec->resize_by_expanding_no_initialize(x_count + y_count);					// resize first, in case y is x
+				
+				const double *y_data = y_value->FloatData();
+				
+				for (int y_index = 0; y_index < y_count; ++y_index)
+					x_vec->set_float_no_check(y_data[y_index], x_count + y_index);
+				
+				break;
+			}
+			case EidosValueType::kValueString:
+			{
+				EidosValue_String *x_vec = (EidosValue_String *)x_value.get();
+				x_vec->Reserve(x_count + y_count);								// resize first, in case y is x
+				
+				const std::string *y_data = y_value->StringData();
+				
+				for (int y_index = 0; y_index < y_count; ++y_index)
+					x_vec->PushString(y_data[y_index]);
+				
+				break;
+			}
+			case EidosValueType::kValueObject:
+			{
+				EidosValue_Object *x_vec = (EidosValue_Object *)x_value.get();
+				x_vec->resize_by_expanding_no_initialize_RR(x_count + y_count);					// resize first, in case y is x
+				
+				EidosObject * const *y_data = y_value->ObjectData();
+				
+				if (x_vec->UsesRetainRelease())
+				{
+					for (int y_index = 0; y_index < y_count; ++y_index)
+						x_vec->set_object_element_no_check_no_previous_RR(y_data[y_index], x_count + y_index);
+				}
+				else
+				{
+					for (int y_index = 0; y_index < y_count; ++y_index)
+						x_vec->set_object_element_no_check_NORR(y_data[y_index], x_count + y_index);
+				}
+				
+				break;
+			}
+			default:
+				break;
+		}
+		
+		// transform x into a vector, like c() does
+		x_value->SetDimensions(1, nullptr);
+		
+		// return nullptr to indicate that we handled the append
+		return EidosValue_SP();
+	}
+	else
+	{
+		// Not a case we can handle, because it involves type-promotion, or x is a constant; delegate to ConcatenateEidosValues()
+		std::vector<EidosValue_SP> arguments;
+		
+		arguments.push_back(x_value);
+		arguments.push_back(y_value);
+		
+		// return the new object created by ConcatenateEidosValues(), which needs to replace x's value
+		return ConcatenateEidosValues(arguments, true, false);	// allow NULL but not VOID
+	}
+}
+
 
 
 

@@ -3746,8 +3746,34 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		
 		// and then we drop through to be handled normally by the standard assign operator code
 	}
+	else if (p_node->cached_append_assignment_)
+	{
+		// we have an assignment statement of the form x = c(x, y), where x is a simple identifier and y is any single expression node
+		// as above, we will try to modify the value of x in place if we can, which should be safe in this context
+		EidosASTNode *lvalue_node = p_node->children_[0];
+		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode(lvalue_node);
+		EidosASTNode *call_node = p_node->children_[1];
+		EidosASTNode *rvalue_node = call_node->children_[2];	// "c" is [0], "x" is [1], "y" is [2]
+		EidosValue_SP rvalue_SP = FastEvaluateNode(rvalue_node);
+		
+		EidosValue_SP result_SP = AppendEidosValues(lvalue_SP, rvalue_SP);
+		
+		if (!result_SP)
+		{
+			// a nullptr return means the append was successful, so we're done
+			goto compoundAssignmentSuccess;
+		}
+		else
+		{
+			// a non-nullptr return means that a new value had to be created for x = c(x,y), so we need to replace
+			// the value of x with that new value; std::swap(lvalue_SP, result_SP) does not do it because lvalue_SP
+			// is not the EidosValue_SP that is inside the symbol table, it just points to the same EidosValue!
+			global_symbols_->SetValueForSymbolNoCopy(lvalue_node->cached_stringID_, std::move(result_SP));
+			goto compoundAssignmentSuccess;
+		}
+	}
 	
-	// we can drop through to here even if cached_compound_assignment_ is set, if the code above bailed for some reason
+	// we can drop through to here even if cached_compound_assignment_ or cached_append_assignment_ is set, if the code above bailed for some reason
 #ifdef SLIMGUI
 compoundAssignmentSkip:
 #endif
@@ -3794,7 +3820,7 @@ compoundAssignmentSkip:
 	
 compoundAssignmentSuccess:
 	
-	// by design, assignment does not yield a usable value; instead it produces void – this prevents the error "if (x = 3) ..."
+	// by design, assignment does not yield a usable value; instead it produces void – this prevents the bug "if (x = 3) ..."
 	// since the condition is void and will raise; the loss of legitimate uses of "if (x = 3)" seems a small price to pay
 	EidosValue_SP result_SP = gStaticEidosValueVOID;
 	
