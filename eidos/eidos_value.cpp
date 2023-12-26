@@ -321,24 +321,6 @@ int EidosValue::valueTrackingCount;
 std::vector<EidosValue *> EidosValue::valueTrackingVector;
 #endif
 
-EidosValue::EidosValue(EidosValueType p_value_type) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), dim_(nullptr)
-{
-#ifdef EIDOS_TRACK_VALUE_ALLOCATION
-	valueTrackingCount++;
-	valueTrackingVector.emplace_back(this);
-#endif
-}
-
-EidosValue::~EidosValue(void)
-{
-#ifdef EIDOS_TRACK_VALUE_ALLOCATION
-	valueTrackingVector.erase(std::remove(valueTrackingVector.begin(), valueTrackingVector.end(), this), valueTrackingVector.end());
-	valueTrackingCount--;
-#endif
-	
-	free(dim_);
-}
-
 eidos_logical_t EidosValue::LogicalAtIndex_CAST(int p_idx, const EidosToken *p_blame_token) const
 {
 #pragma unused(p_idx)
@@ -1116,26 +1098,6 @@ EidosValue_Logical *EidosValue_Logical::reserve(size_t p_reserved_size)
 	}
 	
 	return this;
-}
-
-EidosValue_Logical *EidosValue_Logical::resize_no_initialize(size_t p_new_size)
-{
-	WILL_MODIFY(this);
-	
-	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
-	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
-	
-	return this;
-}
-
-void EidosValue_Logical::expand(void)
-{
-	WILL_MODIFY(this);
-	
-	if (capacity_ == 0)
-		reserve(16);		// if no reserve() call was made, start out with a bit of room
-	else
-		reserve(capacity_ << 1);
 }
 
 void EidosValue_Logical::erase_index(size_t p_index)
@@ -2766,27 +2728,6 @@ EidosValue_Object *EidosValue_Object::resize_no_initialize(size_t p_new_size)
 	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	
 	return this;
-}
-
-EidosValue_Object *EidosValue_Object::resize_no_initialize_RR(size_t p_new_size)
-{
-	WILL_MODIFY(this);
-	
-	reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
-	
-	count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
-	
-	return this;
-}
-
-void EidosValue_Object::expand(void)
-{
-	WILL_MODIFY(this);
-	
-	if (capacity_ == 0)
-		reserve(16);		// if no reserve() call was made, start out with a bit of room
-	else
-		reserve(capacity_ << 1);
 }
 
 void EidosValue_Object::erase_index(size_t p_index)

@@ -194,10 +194,24 @@ public:
 	
 	EidosValue(const EidosValue &p_original) = delete;		// no copy-construct
 	EidosValue& operator=(const EidosValue&) = delete;		// no copying
-	
 	EidosValue(void) = delete;								// no null constructor
-	EidosValue(EidosValueType p_value_type);				// must construct with a type identifier, which will be cached
-	virtual ~EidosValue(void);
+	
+	inline EidosValue(EidosValueType p_value_type) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), dim_(nullptr)
+	{
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+		valueTrackingCount++;
+		valueTrackingVector.emplace_back(this);
+#endif
+	}
+	
+	inline virtual ~EidosValue(void)
+	{
+#ifdef EIDOS_TRACK_VALUE_ALLOCATION
+		valueTrackingVector.erase(std::remove(valueTrackingVector.begin(), valueTrackingVector.end(), this), valueTrackingVector.end());
+		valueTrackingCount--;
+#endif
+		free(dim_);
+	}
 	
 	// methods that raise due to various causes, used to avoid duplication and allow efficient inlining
 	void RaiseForIncorrectTypeCall(void) const __attribute__((__noreturn__)) __attribute__((analyzer_noreturn));
@@ -499,8 +513,18 @@ public:
 	
 	// vector lookalike methods; not virtual, only for clients with a EidosValue_Logical*
 	EidosValue_Logical *reserve(size_t p_reserved_size);				// as in std::vector
-	EidosValue_Logical *resize_no_initialize(size_t p_new_size);		// does not zero-initialize, unlike std::vector!
 	
+	inline EidosValue_Logical *resize_no_initialize(size_t p_new_size)
+	{
+		// does not zero-initialize, unlike std::vector!
+		WILL_MODIFY(this);
+		
+		reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+		
+		return this;
+	}
+
 	inline void resize_by_expanding_no_initialize(size_t p_new_size)
 	{
 		// resizes up to exactly p_new_size; if new capacity is needed, doubles to achieve that
@@ -520,7 +544,17 @@ public:
 		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	}
 	
-	void expand(void);													// expand to fit (at least) one new value
+	inline void expand(void)
+	{
+		// expand to fit (at least) one new value
+		WILL_MODIFY(this);
+		
+		if (capacity_ == 0)
+			reserve(16);		// if no reserve() call was made, start out with a bit of room
+		else
+			reserve(capacity_ << 1);
+	}
+	
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
 	inline __attribute__((always_inline)) eidos_logical_t *data_mutable(void) { WILL_MODIFY(this); return values_; }
@@ -979,7 +1013,18 @@ public:
 	void clear(void);													// as in std::vector
 	EidosValue_Object *reserve(size_t p_reserved_size);					// as in std::vector
 	EidosValue_Object *resize_no_initialize(size_t p_new_size);			// does not zero-initialize, unlike std::vector!
-	EidosValue_Object *resize_no_initialize_RR(size_t p_new_size);		// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)
+	
+	inline EidosValue_Object *resize_no_initialize_RR(size_t p_new_size)
+	{
+		// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)
+		WILL_MODIFY(this);
+		
+		reserve(p_new_size);	// might set a capacity greater than p_new_size; no guarantees
+		
+		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
+		
+		return this;
+	}
 	
 	//inline void resize_by_expanding_no_initialize(size_t p_new_size)
 	// not implemented: would, like EidosValue_Object::resize_no_initialize(),
@@ -1006,7 +1051,16 @@ public:
 		count_ = p_new_size;	// regardless of the capacity set, set the size to exactly p_new_size
 	}
 	
-	void expand(void);													// expand to fit (at least) one new value
+	inline void expand(void)
+	{
+		WILL_MODIFY(this);
+		
+		if (capacity_ == 0)
+			reserve(16);		// if no reserve() call was made, start out with a bit of room
+		else
+			reserve(capacity_ << 1);
+	}
+
 	void erase_index(size_t p_index);									// a weak substitute for erase()
 	
 	inline __attribute__((always_inline)) EidosObject **data_mutable(void) { WILL_MODIFY(this); return values_; }		// the accessors below should be used to modify, since they handle Retain()/Release()
