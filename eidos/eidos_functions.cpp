@@ -1200,7 +1200,8 @@ EidosValue_SP AppendEidosValues(EidosValue_SP x_value, EidosValue_SP y_value)
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design (like c())
 	EidosValueType x_type = x_value->Type();
 	
-	if ((y_value->Type() == x_type) && (!x_value->IsConstant()))
+	if ((y_value->Type() == x_type) && (!x_value->IsConstant()) &&
+		((x_type != EidosValueType::kValueObject) || (((EidosValue_Object *)(x_value.get()))->Class() == ((EidosValue_Object *)(y_value.get()))->Class())))
 	{
 		// x and y are the same type, and x is not a constant, so we can handle this case with a true append operation
 		int x_count = x_value->Count(), y_count = y_value->Count();
