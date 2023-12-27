@@ -1629,7 +1629,16 @@ int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate,
 		if (candidateMatchIndex == 0)
 			score += 100000;
 		else
-			score -= candidateMatchIndex;
+            score -= (candidateMatchIndex * 10);
+        
+        // penalize skipping over a capital letter in candidate to get to the match position; iS is not a great match for initializeTreeSequence() compared to initializeSex()
+        for (int skippedIndex = firstUnusedIndex; skippedIndex < candidateMatchIndex; ++skippedIndex)
+        {
+            QString skippedChar = base.mid(skippedIndex, 1);
+            
+            if (skippedChar == skippedChar.toUpper())
+                score -= 50;
+        }
 		
 		// move firstUnusedIndex to follow the matched range in candidate
 		firstUnusedIndex = candidateMatchIndex + 1;
@@ -1640,10 +1649,15 @@ int64_t QtSLiMTextEdit::scoreForCandidateAsCompletionOfString(QString candidate,
 			break;
 	}
 	while (true);
+    
+    // penalize the unused length of the completed string, all else being equal
+    score -= (candidate.length() - firstUnmatchedIndex);
 	
-	// We want argument-name matches to be at the top, always, when they are available, so bump their score
+	// we want argument-name matches to be at the top, always, when they are available, so bump their score
 	if (candidate.endsWith("="))
 		score += 1000000;
+    
+    //qDebug() << "Score for" << candidate << "given base" << base << "==" << score;
 	
 	return score;
 }
