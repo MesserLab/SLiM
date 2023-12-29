@@ -1992,82 +1992,306 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point = p_arguments[0].get();
 	
-	EidosValue_Float *float_result = nullptr;
-	
 	// Note that point is required to already be in terms of our spatiality; if we are an "xz" map, it must contain "xz" values
-	int x_count;
-	
-	if (point->Count() == spatiality_)
-	{
-		x_count = 1;
-		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0.0));
-	}
-	else if (point->Count() % spatiality_ == 0)
-	{
-		x_count = point->Count() / spatiality_;
-		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
-	}
-	else
+	// Also note that we clamp coordinates here, whether they are periodic or not; the caller should use pointPeriodic()
+	if (point->Count() % spatiality_ != 0)
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_mapValue): mapValue() length of point must match spatiality of map " << name_ << ", or be a multiple thereof." << EidosTerminate();
 	
+	int x_count = point->Count() / spatiality_;
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
 	const double *point_data = point->FloatData();
 	
-	EIDOS_THREAD_COUNT(gEidos_OMP_threads_SPATIAL_MAP_VALUE);
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(point_data, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
-	for (int value_index = 0; value_index < x_count; ++value_index)
+	// need to parallelize the three loops below separately now; disabling this parallelization for now
+	//EIDOS_THREAD_COUNT(gEidos_OMP_threads_SPATIAL_MAP_VALUE);
+//#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(point_data, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
+	
+	// It's very common for spatial bounds to be [0, 1] or [0, x] rather than the fully general case,
+	// so we actually optimize all of the cases here
+	
+	switch (spatiality_)	// NOLINT(*-missing-default-case) : our spatiality is always in [1,3], and we can't throw from a parallel region
 	{
-		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
-		// There is doubtless a way to make this code smarter, but brute force is sometimes best...
-		// Note that we clamp coordinates here, whether they are periodic or not; the caller should use pointPeriodic()
-		double map_value = 0;
-		
-		switch (spatiality_)	// NOLINT(*-missing-default-case) : our spatiality is always in [1,3], and we can't throw from a parallel region
+		case 1:
 		{
-			case 1:
+			if (!interpolate_)
 			{
-				double point_vec[1];
-				int value_offset = value_index;
-				
-				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-				point_vec[0] = SLiMClampCoordinate(a);
-				
-				map_value = ValueAtPoint_S1(point_vec);
-				break;
+				// without interpolation, use the inline version of ValueAtPoint_S1()
+				if (bounds_a0_ == 0.0)
+				{
+					if (bounds_a1_ == 1.0)
+					{
+						for (int value_index = 0; value_index < x_count; ++value_index)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_index]);
+							
+							float_result->set_float_no_check(ValueAtPoint_S1_NOINTERPOLATE(a), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0; value_index < x_count; ++value_index)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_index] / bounds_a1_);
+							
+							float_result->set_float_no_check(ValueAtPoint_S1_NOINTERPOLATE(a), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 1D case without interpolation
+					for (int value_index = 0; value_index < x_count; ++value_index)
+					{
+						double a = SLiMClampCoordinate((point_data[0 + value_index] - bounds_a0_) / (bounds_a1_ - bounds_a0_));
+						
+						float_result->set_float_no_check(ValueAtPoint_S1_NOINTERPOLATE(a), value_index);
+					}
+				}
 			}
-			case 2:
+			else
 			{
-				double point_vec[2];
-				int value_offset = value_index * 2;
-				
-				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-				point_vec[0] = SLiMClampCoordinate(a);
-				
-				double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
-				point_vec[1] = SLiMClampCoordinate(b);
-				
-				map_value = ValueAtPoint_S2(point_vec);
-				break;
+				if (bounds_a0_ == 0.0)
+				{
+					if (bounds_a1_ == 1.0)
+					{
+						for (int value_index = 0; value_index < x_count; ++value_index)
+						{
+							double point_vec[1];
+							
+							double a = point_data[0 + value_index];
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							float_result->set_float_no_check(ValueAtPoint_S1(point_vec), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0; value_index < x_count; ++value_index)
+						{
+							double point_vec[1];
+							
+							double a = point_data[0 + value_index] / bounds_a1_;
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							float_result->set_float_no_check(ValueAtPoint_S1(point_vec), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 1D case
+					for (int value_index = 0; value_index < x_count; ++value_index)
+					{
+						double point_vec[1];
+						
+						double a = (point_data[0 + value_index] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+						point_vec[0] = SLiMClampCoordinate(a);
+						
+						float_result->set_float_no_check(ValueAtPoint_S1(point_vec), value_index);
+					}
+				}
 			}
-			case 3:
-			{
-				double point_vec[3];
-				int value_offset = value_index * 3;
-				
-				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-				point_vec[0] = SLiMClampCoordinate(a);
-				
-				double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
-				point_vec[1] = SLiMClampCoordinate(b);
-				
-				double c = (point_data[2 + value_offset] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
-				point_vec[2] = SLiMClampCoordinate(c);
-				
-				map_value = ValueAtPoint_S3(point_vec);
-				break;
-			}
+			break;
 		}
-		
-		float_result->set_float_no_check(map_value, value_index);
+		case 2:
+		{
+			if (!interpolate_)
+			{
+				// without interpolation, use the inline version of ValueAtPoint_S2()
+				if ((bounds_a0_ == 0.0) && (bounds_b0_ == 0.0))
+				{
+					if ((bounds_a1_ == 1.0) && (bounds_b1_ == 1.0))
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_offset]);
+							double b = SLiMClampCoordinate(point_data[1 + value_offset]);
+							
+							float_result->set_float_no_check(ValueAtPoint_S2_NOINTERPOLATE(a, b), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_offset] / bounds_a1_);
+							double b = SLiMClampCoordinate(point_data[1 + value_offset] / bounds_b1_);
+							
+							float_result->set_float_no_check(ValueAtPoint_S2_NOINTERPOLATE(a, b), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 2D case without interpolation
+					for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+					{
+						double a = SLiMClampCoordinate((point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_));
+						double b = SLiMClampCoordinate((point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_));
+						
+						float_result->set_float_no_check(ValueAtPoint_S2_NOINTERPOLATE(a, b), value_index);
+					}
+				}
+			}
+			else
+			{
+				if ((bounds_a0_ == 0.0) && (bounds_b0_ == 0.0))
+				{
+					if ((bounds_a1_ == 1.0) && (bounds_b1_ == 1.0))
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+						{
+							double point_vec[2];
+							
+							double a = point_data[0 + value_offset];
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							double b = point_data[1 + value_offset];
+							point_vec[1] = SLiMClampCoordinate(b);
+							
+							float_result->set_float_no_check(ValueAtPoint_S2(point_vec), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+						{
+							double point_vec[2];
+							
+							double a = point_data[0 + value_offset] / bounds_a1_;
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							double b = point_data[1 + value_offset] / bounds_b1_;
+							point_vec[1] = SLiMClampCoordinate(b);
+							
+							float_result->set_float_no_check(ValueAtPoint_S2(point_vec), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 2D case
+					for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 2)
+					{
+						double point_vec[2];
+						
+						double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+						point_vec[0] = SLiMClampCoordinate(a);
+						
+						double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+						point_vec[1] = SLiMClampCoordinate(b);
+						
+						float_result->set_float_no_check(ValueAtPoint_S2(point_vec), value_index);
+					}
+				}
+			}
+			break;
+		}
+		case 3:
+		{
+			if (!interpolate_)
+			{
+				// without interpolation, use the inline version of ValueAtPoint_S3()
+				if ((bounds_a0_ == 0.0) && (bounds_b0_ == 0.0) && (bounds_c0_ == 0.0))
+				{
+					if ((bounds_a1_ == 1.0) && (bounds_b1_ == 1.0) && (bounds_c1_ == 1.0))
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_offset]);
+							double b = SLiMClampCoordinate(point_data[1 + value_offset]);
+							double c = SLiMClampCoordinate(point_data[2 + value_offset]);
+							
+							float_result->set_float_no_check(ValueAtPoint_S3_NOINTERPOLATE(a, b, c), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+						{
+							double a = SLiMClampCoordinate(point_data[0 + value_offset] / bounds_a1_);
+							double b = SLiMClampCoordinate(point_data[1 + value_offset] / bounds_b1_);
+							double c = SLiMClampCoordinate(point_data[2 + value_offset] / bounds_c1_);
+							
+							float_result->set_float_no_check(ValueAtPoint_S3_NOINTERPOLATE(a, b, c), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 3D case without interpolation
+					for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+					{
+						double a = SLiMClampCoordinate((point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_));
+						double b = SLiMClampCoordinate((point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_));
+						double c = SLiMClampCoordinate((point_data[2 + value_offset] - bounds_c0_) / (bounds_c1_ - bounds_c0_));
+						
+						float_result->set_float_no_check(ValueAtPoint_S3_NOINTERPOLATE(a, b, c), value_index);
+					}
+				}
+			}
+			else
+			{
+				if ((bounds_a0_ == 0.0) && (bounds_b0_ == 0.0) && (bounds_c0_ == 0.0))
+				{
+					if ((bounds_a1_ == 1.0) && (bounds_b1_ == 1.0) && (bounds_c1_ == 1.0))
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+						{
+							double point_vec[3];
+							
+							double a = point_data[0 + value_offset];
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							double b = point_data[1 + value_offset];
+							point_vec[1] = SLiMClampCoordinate(b);
+							
+							double c = point_data[2 + value_offset];
+							point_vec[2] = SLiMClampCoordinate(c);
+							
+							float_result->set_float_no_check(ValueAtPoint_S3(point_vec), value_index);
+						}
+					}
+					else
+					{
+						for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+						{
+							double point_vec[3];
+							
+							double a = point_data[0 + value_offset] / bounds_a1_;
+							point_vec[0] = SLiMClampCoordinate(a);
+							
+							double b = point_data[1 + value_offset] / bounds_b1_;
+							point_vec[1] = SLiMClampCoordinate(b);
+							
+							double c = point_data[2 + value_offset] / bounds_c1_;
+							point_vec[2] = SLiMClampCoordinate(c);
+							
+							float_result->set_float_no_check(ValueAtPoint_S3(point_vec), value_index);
+						}
+					}
+				}
+				else
+				{
+					// full 3D case
+					for (int value_index = 0, value_offset = 0; value_index < x_count; ++value_index, value_offset += 3)
+					{
+						double point_vec[3];
+						
+						double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+						point_vec[0] = SLiMClampCoordinate(a);
+						
+						double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+						point_vec[1] = SLiMClampCoordinate(b);
+						
+						double c = (point_data[2 + value_offset] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+						point_vec[2] = SLiMClampCoordinate(c);
+						
+						float_result->set_float_no_check(ValueAtPoint_S3(point_vec), value_index);
+					}
+				}
+			}
+			break;
+		}
 	}
 	
 	return EidosValue_SP(float_result);
