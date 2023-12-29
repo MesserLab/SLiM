@@ -2789,24 +2789,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
 	
-	static std::vector<Genome *> target_genomes;	// prevent reallocation by using a static
 	Genome * const *target_data = (Genome * const *)p_target->ObjectData();
 	
-	target_genomes.clear();
-	target_genomes.reserve(target_size);
-	
 	for (int target_index = 0; target_index < target_size; ++target_index)
-	{
-		Genome *target_genome = target_data[target_index];
-		
-		if (target_genome->IsNull())
+		if (target_data[target_index]->IsNull())
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot be called on a null genome." << EidosTerminate();
-		
-		target_genomes.emplace_back(target_genome);
-	}
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomesVector(target_genomes.data(), target_size);
+	Species *species = Community::SpeciesForGenomesVector(target_data, target_size);
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all target genomes belong to a single species." << EidosTerminate();
@@ -2824,7 +2814,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 	Population &population = species->population_;
 	
 	// Have the Population tally for the target genomes
-	population.TallyMutationReferencesAcrossGenomes(&target_genomes);
+	population.TallyMutationReferencesAcrossGenomes(target_data, target_size);
 	
 	// Use the back-end code in Population to do the counting
 	if (p_method_id == gID_mutationFrequenciesInGenomes)

@@ -6167,7 +6167,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 	return total_genome_count;
 }
 
-slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally)
+slim_refcount_t Population::TallyMutationRunReferencesForGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count)
 {
 	slim_refcount_t total_genome_count = 0;
 	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
@@ -6207,8 +6207,10 @@ slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Gen
 		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
 		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
 		
-		for (Genome *genome : *p_genomes_to_tally)
+		for (slim_popsize_t genome_index = 0; genome_index < genomes_count; ++genome_index)
 		{
+			const Genome *genome = genomes_ptr[genome_index];
+			
 			if (!genome->IsNull())
 			{
 				for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
@@ -6378,24 +6380,26 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 		_TallyMutationReferences_FAST_FromMutationRunUsage();
 		
 #if DEBUG
-		std::vector<Genome*> genomes;
-		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			std::vector<Genome*> genomes;
 			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
-				Genome *genome = subpop_genomes[i];
+				Subpopulation *subpop = subpop_pair.second;
+				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 				
-				if (!genome->IsNull())
-					genomes.push_back(genome);
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome *genome = subpop_genomes[i];
+					
+					if (!genome->IsNull())
+						genomes.push_back(genome);
+				}
 			}
+			
+			_CheckMutationTallyAcrossGenomes(genomes.data(), (slim_popsize_t)genomes.size());
 		}
-		
-		_CheckMutationTallyAcrossGenomes(genomes);
 #endif
 	}
 	else
@@ -6595,7 +6599,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 				}
 			}
 			
-			_CheckMutationTallyAcrossGenomes(genomes);
+			_CheckMutationTallyAcrossGenomes(genomes.data(), (slim_popsize_t)genomes.size());
 		}
 #endif
 	}
@@ -6641,11 +6645,9 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 	return total_genome_count;
 }
 
-slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Genome*> *p_genomes_to_tally)
+slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count)
 {
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	slim_popsize_t genome_count = (slim_popsize_t)p_genomes_to_tally->size();
-	std::vector<Genome *> &genomes = *p_genomes_to_tally;
 	slim_refcount_t total_genome_count = 0;
 	
 	// We have two ways of tallying; here we decide which way to use.  We tally directly by
@@ -6657,19 +6659,19 @@ slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Gen
 	// pay a small fixed overhead, but if you do genomes and you're wrong, it can hurt a lot.
 	bool can_tally_using_mutruns = true;
 	
-	if (genomes.size() <= 10)
+	if (genomes_count <= 10)
 		can_tally_using_mutruns = false;
 	
 	if (can_tally_using_mutruns)
 	{
 		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
-		total_genome_count = TallyMutationRunReferencesForGenomes(p_genomes_to_tally);
+		total_genome_count = TallyMutationRunReferencesForGenomes(genomes_ptr, genomes_count);
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage();
 		
 #if DEBUG
-		_CheckMutationTallyAcrossGenomes(*p_genomes_to_tally);
+		_CheckMutationTallyAcrossGenomes(genomes_ptr, genomes_count);
 #endif
 	}
 	else
@@ -6677,9 +6679,9 @@ slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Gen
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
 		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 		
-		for (slim_popsize_t i = 0; i < genome_count; i++)
+		for (slim_popsize_t i = 0; i < genomes_count; i++)
 		{
-			Genome &genome = *genomes[i];
+			const Genome &genome = *genomes_ptr[i];
 			
 			if (!genome.IsNull())
 			{
@@ -6755,7 +6757,7 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 }
 
 #if DEBUG
-void Population::_CheckMutationTallyAcrossGenomes(std::vector<Genome*> &p_genomes)
+void Population::_CheckMutationTallyAcrossGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count)
 {
 	// This does a DEBUG check on the results of _TallyMutationReferences_FAST_FromMutationRunUsage().
 	// It should be called immediately after that method, and passed a vector of the genomes tallied across.
@@ -6769,8 +6771,9 @@ void Population::_CheckMutationTallyAcrossGenomes(std::vector<Genome*> &p_genome
 		mut->refcount_CHECK_ = 0;
 	}
 	
-	for (Genome *genome : p_genomes)
+	for (slim_popsize_t genome_index = 0; genome_index < genomes_count; ++genome_index)
 	{
+		const Genome *genome = genomes_ptr[genome_index];
 		int mutrun_count = genome->mutrun_count_;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)

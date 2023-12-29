@@ -263,7 +263,7 @@ public:
 	// for all of these methods is the number of non-null genomes that were tallied across.
 	slim_refcount_t TallyMutationRunReferencesForPopulation(void);
 	slim_refcount_t TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
-	slim_refcount_t TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);
+	slim_refcount_t TallyMutationRunReferencesForGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count);
 	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferencesForPopulation()!
 	
 	// Tally Mutation usage; these count the total number of times that each Mutation in the registry is referenced
@@ -278,7 +278,7 @@ public:
 	
 	slim_refcount_t TallyMutationReferencesAcrossPopulation(bool p_force_recache);
 	slim_refcount_t TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
-	slim_refcount_t TallyMutationReferencesAcrossGenomes(std::vector<Genome*> *p_genomes_to_tally);
+	slim_refcount_t TallyMutationReferencesAcrossGenomes(const Genome * const *genomes, slim_popsize_t genomes_count);
 	
 	slim_refcount_t _CountNonNullGenomes(void);
 #ifdef SLIMGUI
@@ -286,7 +286,7 @@ public:
 #endif
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
 #if DEBUG
-	void _CheckMutationTallyAcrossGenomes(std::vector<Genome*> &p_genomes);
+	void _CheckMutationTallyAcrossGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count);
 #endif
 	
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
