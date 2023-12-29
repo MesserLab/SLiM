@@ -82,10 +82,11 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		if (index_type == EidosValueType::kValueInt)
 		{
 			int64_t key_count = (int64_t)keys.size();
+			const int64_t *index_data = index_value->IntData();
 			
 			for (int i = 0; i < index_count; ++i)
 			{
-				int64_t index = index_value->IntAtIndex_NOCAST(i, nullptr);
+				int64_t index = index_data[i];
 				
 				if ((index < 0) || (index >= key_count))
 					EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): column index out of range (" << index << " not in [0, " << (key_count - 1) << "])." << EidosTerminate(nullptr);
@@ -101,9 +102,11 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		}
 		else if (index_type == EidosValueType::kValueString)
 		{
+			const std::string *index_data = index_value->StringData();
+			
 			for (int i = 0; i < index_count; ++i)
 			{
-				const std::string &key = ((EidosValue_String *)index_value)->StringRefAtIndex_NOCAST(i, nullptr);
+				const std::string &key = index_data[i];
 				
 				auto value_iter = symbols->find(key);
 				
@@ -116,13 +119,14 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		else // (index_type == EidosValueType::kValueLogical)
 		{
 			int64_t symbols_count = (int64_t)symbols->size();
+			const eidos_logical_t *index_data = index_value->LogicalData();
 			
 			if (index_count != symbols_count)
 				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): logical index vector length does not match the number of columns in the DataFrame." << EidosTerminate(nullptr);
 			
 			for (int i = 0; i < index_count; ++i)
 			{
-				bool selected = index_value->LogicalAtIndex_NOCAST(i, nullptr);
+				bool selected = index_data[i];
 				
 				if (selected)
 				{

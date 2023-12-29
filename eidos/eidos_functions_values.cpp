@@ -2507,18 +2507,19 @@ EidosValue_SP Eidos_ExecuteFunction_sortBy(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
+	EidosObject * const *x_data = x_value->ObjectData();
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(((EidosValue_Object *)x_value)->Class()))->resize_no_initialize_RR(x_count);
 	result_SP = EidosValue_SP(object_result);
 	
 	if (object_result->UsesRetainRelease())
 	{
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			object_result->set_object_element_no_check_no_previous_RR(x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr), value_index);
+			object_result->set_object_element_no_check_no_previous_RR(x_data[value_index], value_index);
 	}
 	else
 	{
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			object_result->set_object_element_no_check_NORR(x_value->ObjectElementAtIndex_NOCAST(value_index, nullptr), value_index);
+			object_result->set_object_element_no_check_NORR(x_data[value_index], value_index);
 	}
 	
 	object_result->SortBy(p_arguments[1]->StringAtIndex_NOCAST(0, nullptr), p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr));

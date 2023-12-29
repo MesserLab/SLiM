@@ -1990,9 +1990,11 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	
 	// Loop over the individuals and kill them one by one; since there might be references to them in script, we can't actually
 	// free the objects now, so we move them to a temporary "graveyard" which we dispose of between tick cycle stages
+	Individual * const *individuals_data = (Individual * const *)individuals_value->ObjectData();
+	
 	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 	{
-		Individual *doomed = (Individual *)individuals_value->ObjectElementAtIndex_NOCAST(individual_index, nullptr);
+		Individual *doomed = individuals_data[individual_index];
 		slim_popsize_t source_subpop_index = doomed->index_;
 		
 		if (source_subpop_index < 0)

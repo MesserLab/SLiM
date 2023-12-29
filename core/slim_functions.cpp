@@ -1198,6 +1198,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 	int codons_length = codons_value->Count();
 	int length = codons_length * 3;
 	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
+	const int64_t *codons_data = codons_value->IntData();
 	
 	if (format == "char")
 	{
@@ -1206,7 +1207,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
+			int codon = (int)codons_data[codon_index];
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1250,7 +1251,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
+			int codon = (int)codons_data[codon_index];
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();
@@ -1278,7 +1279,7 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
-			int codon = (int)codons_value->IntAtIndex_NOCAST(codon_index, nullptr);
+			int codon = (int)codons_data[codon_index];
 			
 			if ((codon < 0) || (codon > 63))
 				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_codonsToNucleotides): function codonsToNucleotides() requires codon values to be in [0,63]." << EidosTerminate();

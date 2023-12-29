@@ -1159,7 +1159,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if ((result->Type() == EidosValueType::kValueFloat) || (result->Count() == 1))
 					{
-						if (result->FloatAtIndex_NOCAST(0, nullptr) == 1.0)
+						if (result->FloatData()[0] == 1.0)
 						{
 							// we have a mutationEffect() callback that is neutral-making, so it could conceivably work;
 							// change our minds but keep checking
@@ -1199,7 +1199,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if ((result->Type() == EidosValueType::kValueFloat) && (result->Count() == 1))
 					{
-						if (result->FloatAtIndex_NOCAST(0, nullptr) == 1.0)
+						if (result->FloatData()[0] == 1.0)
 						{
 							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
 							slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
@@ -2174,7 +2174,13 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 					
-					p_computed_fitness = result->FloatAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+					// this checks the value type at runtime
+					p_computed_fitness = result->FloatData()[0];
+#else
+					// unsafe cast for speed
+					p_computed_fitness = ((EidosValue_Float *)result)->data()[0];
+#endif
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
@@ -2251,7 +2257,13 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 							
-							p_computed_fitness = result->FloatAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+							// this checks the value type at runtime
+							p_computed_fitness = result->FloatData()[0];
+#else
+							// unsafe cast for speed
+							p_computed_fitness = ((EidosValue_Float *)result)->data()[0];
+#endif
 						}
 						catch (...)
 						{
@@ -2326,7 +2338,13 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				
-				computed_fitness *= result->FloatAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+				// this checks the value type at runtime
+				computed_fitness *= result->FloatData()[0];
+#else
+				// unsafe cast for speed
+				computed_fitness *= ((EidosValue_Float *)result)->data()[0];
+#endif
 				
 				// the cached value is owned by the tree, so we do not dispose of it
 				// there is also no script output to handle
@@ -2382,7 +2400,13 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
 							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 						
-						computed_fitness *= result->FloatAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+						// this checks the value type at runtime
+						computed_fitness *= result->FloatData()[0];
+#else
+						// unsafe cast for speed
+						computed_fitness *= ((EidosValue_Float *)result)->data()[0];
+#endif
 					}
 					catch (...)
 					{
@@ -3616,7 +3640,14 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 								 (result->Count() == 1))
 						{
 							// T or F means change the existing decision to that value
-							p_surviving = result->LogicalAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+							// this checks the value type at runtime
+							p_surviving = result->LogicalData()[0];
+#else
+							// unsafe cast for speed
+							p_surviving = ((EidosValue_Logical *)result)->data()[0];
+#endif
+							
 							move_destination = nullptr;		// cancel a previously made move decision; T/F says "do not move"
 						}
 						else if ((result_type == EidosValueType::kValueObject) &&
@@ -3627,7 +3658,14 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 							// moving to one's current subpopulation is not-moving; it is equivalent to returning T (i.e., forces survival)
 							p_surviving = true;
 							
-							Subpopulation *destination = (Subpopulation *)result->ObjectElementAtIndex_NOCAST(0, survival_callback->identifier_token_);
+#if DEBUG
+							// this checks the value type at runtime
+							Subpopulation *destination = (Subpopulation *)result->ObjectData()[0];
+#else
+							// unsafe cast for speed
+							Subpopulation *destination = (Subpopulation *)((EidosValue_Object *)result)->data()[0];
+#endif
+							
 							if (destination != this)
 								move_destination = destination;
 						}
@@ -4398,7 +4436,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
 			// if a string is provided, it must be either "M" or "F"
-			std::string sex_string = p_sex_value->StringAtIndex_NOCAST(0, nullptr);
+			const std::string &sex_string = p_sex_value->StringData()[0];
 			
 			if (sex_string == "M")
 				sex = IndividualSex::kMale;
@@ -4409,7 +4447,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		}
 		else // if (sex_value_type == EidosValueType::kValueFloat)
 		{
-			double sex_prob = p_sex_value->FloatAtIndex_NOCAST(0, nullptr);
+			double sex_prob = p_sex_value->FloatData()[0];
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
 			{
@@ -4474,7 +4512,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
-	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+	Individual *parent = (Individual *)parent_value->ObjectData()[0];
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
@@ -4488,7 +4526,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[1].get();
-	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t child_count = count_value->IntData()[0];
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
@@ -4520,7 +4558,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[2].get();
-	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool defer = defer_value->LogicalData()[0];
 	
 	if (defer && parent_mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
@@ -4609,7 +4647,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
-	Individual *parent1 = (Individual *)parent1_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+	Individual *parent1 = (Individual *)parent1_value->ObjectData()[0];
 	IndividualSex parent1_sex = parent1->sex_;
 	Subpopulation &parent1_subpop = *parent1->subpopulation_;
 	
@@ -4618,7 +4656,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Get and check the second parent (the father)
 	EidosValue *parent2_value = p_arguments[1].get();
-	Individual *parent2 = (Individual *)parent2_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+	Individual *parent2 = (Individual *)parent2_value->ObjectData()[0];
 	IndividualSex parent2_sex = parent2->sex_;
 	Subpopulation &parent2_subpop = *parent2->subpopulation_;
 	
@@ -4638,7 +4676,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
-	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t child_count = count_value->IntData()[0];
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
@@ -4667,7 +4705,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[4].get();
-	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool defer = defer_value->LogicalData()[0];
 	
 	if (defer && (parent1_recombination_callbacks || parent2_recombination_callbacks || parent1_mutation_callbacks || parent2_mutation_callbacks))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
@@ -4771,7 +4809,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
-	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t child_count = count_value->IntData()[0];
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
@@ -4801,15 +4839,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			genome2_null = true;
 			has_null_genomes_ = true;
 			
-			if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalAtIndex_NOCAST(0, nullptr)) ||
-				((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalAtIndex_NOCAST(0, nullptr)))
+			if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalData()[0]) ||
+				((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalData()[0]))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): in a no-genetics species, null genomes are required." << EidosTerminate();
 		}
 		else
 		{
 			if (genome1Null_value->Type() != EidosValueType::kValueNULL)
 			{
-				bool requestedNull = genome1Null_value->LogicalAtIndex_NOCAST(0, nullptr);
+				bool requestedNull = genome1Null_value->LogicalData()[0];
 				
 				if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
@@ -4819,7 +4857,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			
 			if (genome2Null_value->Type() != EidosValueType::kValueNULL)
 			{
-				bool requestedNull = genome2Null_value->LogicalAtIndex_NOCAST(0, nullptr);
+				bool requestedNull = genome2Null_value->LogicalData()[0];
 				
 				if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
@@ -4927,7 +4965,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[10].get();
-	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t child_count = count_value->IntData()[0];
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
@@ -4955,10 +4993,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *sex_value = p_arguments[6].get();
 	
 	// Get the genomes for the supplied strands, or nullptr for NULL
-	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectData()[0]);
+	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectData()[0]);
+	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectData()[0]);
+	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectData()[0]);
 	
 	// The parental strands must be visible in the subpopulation, and we need to be able to find them to check their sex
 	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
@@ -5028,9 +5066,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *parent2_value = p_arguments[8].get();
 	
 	if (parent1_value->Type() != EidosValueType::kValueNULL)
-		pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		pedigree_parent1 = (Individual *)parent1_value->ObjectData()[0];
 	if (parent2_value->Type() != EidosValueType::kValueNULL)
-		pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		pedigree_parent2 = (Individual *)parent2_value->ObjectData()[0];
 	
 	if (pedigree_parent1 && !pedigree_parent2)
 		pedigree_parent2 = pedigree_parent1;
@@ -5047,10 +5085,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		mutation_callbacks = nullptr;
 	
 	EidosValue *randomizeStrands_value = p_arguments[9].get();
-	bool randomizeStrands = randomizeStrands_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool randomizeStrands = randomizeStrands_value->LogicalData()[0];
 	
 	EidosValue *defer_value = p_arguments[11].get();
-	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool defer = defer_value->LogicalData()[0];
 	
 	if (defer && mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
@@ -5139,8 +5177,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		
 		if (breaks1count)
 		{
+			const int64_t *breaks1_data = breaks1_value->IntData();
+			
 			for (int break_index = 0; break_index < breaks1count; ++break_index)
-				breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex_NOCAST(break_index, nullptr)));
+				breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_data[break_index]));
 			
 			std::sort(breakvec1.begin(), breakvec1.end());
 			breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
@@ -5160,8 +5200,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		
 		if (breaks2count)
 		{
+			const int64_t *breaks2_data = breaks2_value->IntData();
+			
 			for (int break_index = 0; break_index < breaks2count; ++break_index)
-				breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex_NOCAST(break_index, nullptr)));
+				breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_data[break_index]));
 			
 			std::sort(breakvec2.begin(), breakvec2.end());
 			breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
@@ -5497,7 +5539,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
-	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+	Individual *parent = (Individual *)parent_value->ObjectData()[0];
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
@@ -5514,7 +5556,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[1].get();
-	int64_t child_count = count_value->IntAtIndex_NOCAST(0, nullptr);
+	int64_t child_count = count_value->IntData()[0];
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() requires an offspring count >= 0 and <= 1000000000." << EidosTerminate();
@@ -5555,7 +5597,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	EidosValue *defer_value = p_arguments[2].get();
-	bool defer = defer_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool defer = defer_value->LogicalData()[0];
 	
 	if (defer && (parent_recombination_callbacks || parent_mutation_callbacks))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
@@ -5651,9 +5693,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() should not be called to add individuals to a subpopulation that has been removed." << EidosTerminate();
 
 	// Loop over the migrants and move them one by one
+	Individual * const *migrants = (Individual * const *)migrants_value->ObjectData();
+	
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
 	{
-		Individual *migrant = (Individual *)migrants_value->ObjectElementAtIndex_NOCAST(migrant_index, nullptr);
+		Individual *migrant = migrants[migrant_index];
 		Subpopulation *source_subpop = migrant->subpopulation_;
 		
 		if (source_subpop != this)
@@ -6973,6 +7017,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	slim_popsize_t index_count = (do_all_indices ? parent_subpop_size_ : SLiMCastToPopsizeTypeOrRaise(indices_value->Count()));
 	EidosValue_Float *float_return = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(index_count);
 	EidosValue_SP result_SP = EidosValue_SP(float_return);
+	const int64_t *indices = (do_all_indices ? nullptr : indices_value->IntData());
 	
 	for (slim_popsize_t value_index = 0; value_index < index_count; value_index++)
 	{
@@ -6980,7 +7025,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 		
 		if (!do_all_indices)
 		{
-			index = SLiMCastToPopsizeTypeOrRaise(indices_value->IntAtIndex_NOCAST(value_index, nullptr));
+			index = SLiMCastToPopsizeTypeOrRaise(indices[value_index]);
 			
 			if (index >= parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();

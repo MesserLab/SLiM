@@ -541,10 +541,11 @@ void Population::CheckForDeferralInGenomes(EidosValue_Object *p_genomes, const s
 	if (HasDeferredGenomes())
 	{
 		int element_count = p_genomes->Count();
+		EidosObject * const *genomes_data = p_genomes->ObjectData();
 		
 		for (int element_index = 0; element_index < element_count; ++element_index)
 		{
-			Genome *genome = (Genome *)p_genomes->ObjectElementAtIndex_NOCAST(element_index, nullptr);
+			Genome *genome = (Genome *)genomes_data[element_index];
 			
 			if (genome->IsDeferred())
 				EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
@@ -791,7 +792,13 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 						// A singleton vector of type Individual may be returned to choose a specific mate
 						if ((result->Count() == 1) && (((EidosValue_Object *)result)->Class() == gSLiM_Individual_Class))
 						{
-							chosen_mate = (Individual *)result->ObjectElementAtIndex_NOCAST(0, mate_choice_callback->identifier_token_);
+#if DEBUG
+							// this checks the value type at runtime
+							chosen_mate = (Individual *)result->ObjectData()[0];
+#else
+							// unsafe cast for speed
+							chosen_mate = (Individual *)((EidosValue_Object *)result)->data()[0];
+#endif
 							weights_reflect_chosen_mate = false;
 							
 							// remember this callback for error attribution below
@@ -1112,7 +1119,13 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 				if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
 					EIDOS_TERMINATION << "ERROR (Population::ApplyModifyChildCallbacks): modifyChild() callbacks must provide a logical singleton return value." << EidosTerminate(modify_child_callback->identifier_token_);
 				
-				eidos_logical_t generate_child = result->LogicalAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+				// this checks the value type at runtime
+				eidos_logical_t generate_child = result->LogicalData()[0];
+#else
+				// unsafe cast for speed
+				eidos_logical_t generate_child = ((EidosValue_Logical *)result)->data()[0];
+#endif
 				
 				// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 				if (!generate_child)
@@ -2467,7 +2480,13 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 				if ((result->Type() != EidosValueType::kValueLogical) || (result->Count() != 1))
 					EIDOS_TERMINATION << "ERROR (Population::ApplyRecombinationCallbacks): recombination() callbacks must provide a logical singleton return value." << EidosTerminate(recombination_callback->identifier_token_);
 				
-				eidos_logical_t breakpoints_changed = result->LogicalAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+				// this checks the value type at runtime
+				eidos_logical_t breakpoints_changed = result->LogicalData()[0];
+#else
+				// unsafe cast for speed
+				eidos_logical_t breakpoints_changed = ((EidosValue_Logical *)result)->data()[0];
+#endif
 				
 				// If the callback says that breakpoints were changed, check for an actual change in value for the variables referenced by the callback
 				if (breakpoints_changed)
@@ -6801,12 +6820,13 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
 		int mutations_count = mutations_value->Count();
+		EidosObject * const *mutations_data = mutations_value->ObjectData();
 		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(mutations_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Mutation *mut = (Mutation *)mutations_data[value_index];
 			int8_t mut_state = mut->state_;
 			double freq;
 			
@@ -6872,12 +6892,13 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 	{
 		// a vector of mutations was given, so loop through them and take their tallies
 		int mutations_count = mutations_value->Count();
+		EidosObject * const *mutations_data = mutations_value->ObjectData();
 		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(mutations_count);
 		result_SP = EidosValue_SP(int_result);
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Mutation *mut = (Mutation *)mutations_data[value_index];
 			int8_t mut_state = mut->state_;
 			slim_refcount_t count;
 			

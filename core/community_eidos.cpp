@@ -720,11 +720,12 @@ EidosValue_SP Community::ExecuteMethod_genomicElementTypesWithIDs(EidosGlobalStr
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElementType_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		GenomicElementType *object = GenomicElementTypeWithID(id);
 		
 		if (!object)
@@ -743,11 +744,12 @@ EidosValue_SP Community::ExecuteMethod_interactionTypesWithIDs(EidosGlobalString
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_InteractionType_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		InteractionType *object = InteractionTypeWithID(id);
 		
 		if (!object)
@@ -766,11 +768,12 @@ EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID 
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		MutationType *object = MutationTypeWithID(id);
 		
 		if (!object)
@@ -789,11 +792,12 @@ EidosValue_SP Community::ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_SLiMEidosBlock_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		SLiMEidosBlock *object = ScriptBlockWithID(id);
 		
 		if (!object)
@@ -812,11 +816,12 @@ EidosValue_SP Community::ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Species_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		Species *object = SpeciesWithID(id);
 		
 		if (!object)
@@ -835,11 +840,12 @@ EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID
 #pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
+	const int64_t *ids_data = ids_value->IntData();
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class))->resize_no_initialize_RR(ids_count);
 	
 	for (int id_index = 0; id_index < ids_count; id_index++)
 	{
-		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_value->IntAtIndex_NOCAST(id_index, nullptr));
+		slim_objectid_t id = SLiMCastToObjectidTypeOrRaise(ids_data[id_index]);
 		Subpopulation *object = SubpopulationWithID(id);
 		
 		if (!object)

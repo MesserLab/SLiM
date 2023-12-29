@@ -912,11 +912,23 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 						
 						if ((resultType == EidosValueType::kValueLogical) && (resultCount == 1))
 						{
-							mutation_accepted = result->LogicalAtIndex_NOCAST(0, nullptr);
+#if DEBUG
+							// this checks the value type at runtime
+							mutation_accepted = result->LogicalData()[0];
+#else
+							// unsafe cast for speed
+							mutation_accepted = ((EidosValue_Logical *)result)->data()[0];
+#endif
 						}
 						else if ((resultType == EidosValueType::kValueObject) && (((EidosValue_Object *)result)->Class() == gSLiM_Mutation_Class) && (resultCount == 1))
 						{
-							Mutation *replacementMutation = (Mutation *)result->ObjectElementAtIndex_NOCAST(0, mutation_callback->identifier_token_);
+#if DEBUG
+							// this checks the value type at runtime
+							Mutation *replacementMutation = (Mutation *)result->ObjectData()[0];
+#else
+							// unsafe cast for speed
+							Mutation *replacementMutation = (Mutation *)((EidosValue_Object *)result)->data()[0];
+#endif
 							
 							if (replacementMutation == p_mut)
 							{

@@ -1670,10 +1670,11 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	else
 	{
 		EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(mutations_count);
+		Mutation * const *mutations = (Mutation * const *)mutations_value->ObjectData();
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(value_index, nullptr)))->BlockIndex();
+			MutationIndex mut = mutations[value_index]->BlockIndex();
 			bool contains_mut = ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)));
 			
 			logical_result->set_logical_no_check(contains_mut, value_index);
@@ -1773,16 +1774,17 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(individuals_count);
+	Individual * const *individuals_data = (Individual * const *)individuals_value->ObjectData();
 	
 	if (pedigree_tracking_enabled)
 	{
 		// this parallelizes the case of one_individual.relatedness(many_individuals)
 		// it would be nice to also parallelize the case of many_individuals.relatedness(one_individual); that would require accelerating this method
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RELATEDNESS);
-#pragma omp parallel for schedule(dynamic, 128) default(none) shared(individuals_count, individuals_value) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 128) default(none) shared(individuals_count, individuals_data) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS) num_threads(thread_count)
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Individual *ind = individuals_data[value_index];
 			double relatedness = RelatednessToIndividual(*ind);
 			
 			float_result->set_float_no_check(relatedness, value_index);
@@ -1792,7 +1794,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	{
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Individual *ind = individuals_data[value_index];
 			double relatedness = (ind == this) ? 1.0 : 0.0;
 			
 			float_result->set_float_no_check(relatedness, value_index);
@@ -1821,13 +1823,14 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(individuals_count);
+	Individual * const *individuals = (Individual * const *)individuals_value->ObjectData();
 	
 	if (pedigree_tracking_enabled)
 	{
 		// FIXME needs parallelization, see relatedness()
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Individual *ind = individuals[value_index];
 			int shared_count = SharedParentCountWithIndividual(*ind);
 			
 			int_result->set_int_no_check(shared_count, value_index);
@@ -1837,7 +1840,7 @@ EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_
 	{
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
-			Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
+			Individual *ind = individuals[value_index];
 			int shared_count = (ind == this) ? 2.0 : 0.0;
 			
 			int_result->set_int_no_check(shared_count, value_index);

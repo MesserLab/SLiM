@@ -786,8 +786,11 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 	if (!prob_singleton && (arg_prob_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	int size0 = (int)arg_size->IntAtIndex_NOCAST(0, nullptr);
-	double probability0 = arg_prob->FloatAtIndex_NOCAST(0, nullptr);
+	const int64_t *size_data = arg_size->IntData();
+	int size0 = (int)size_data[0];
+	
+	const double *prob_data = arg_prob->FloatData();
+	double probability0 = prob_data[0];
 	
 	if (size_singleton && prob_singleton)
 	{
@@ -833,15 +836,15 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 		bool saw_error1 = false, saw_error2 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RBINOM_3);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, size_singleton, prob_singleton, size0, probability0, arg_size, arg_prob) reduction(||: saw_error1) reduction(||: saw_error2) if(num_draws >= EIDOS_OMPMIN_RBINOM_3) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, size_singleton, prob_singleton, size0, probability0, size_data, prob_data) reduction(||: saw_error1) reduction(||: saw_error2) if(num_draws >= EIDOS_OMPMIN_RBINOM_3) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex_NOCAST((int)draw_index, nullptr));
-				double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex_NOCAST((int)draw_index, nullptr));
+				int size = (size_singleton ? size0 : (int)size_data[draw_index]);
+				double probability = (prob_singleton ? probability0 : prob_data[draw_index]);
 				
 				if (size < 0)
 				{
@@ -948,8 +951,11 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 	if (!max_singleton && (arg_max_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires max to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	int64_t min_value0 = (arg_min_count ? arg_min->IntAtIndex_NOCAST(0, nullptr) : 0);
-	int64_t max_value0 = (arg_max_count ? arg_max->IntAtIndex_NOCAST(0, nullptr) : 1);
+	const int64_t *min_data = arg_min->IntData();
+	int64_t min_value0 = (arg_min_count ? min_data[0] : 0);
+	
+	const int64_t *max_data = arg_max->IntData();
+	int64_t max_value0 = (arg_max_count ? max_data[0] : 1);
 	
 	if (min_singleton && max_singleton)
 	{
@@ -994,15 +1000,15 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 		bool saw_error = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_3);
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RDUNIF_3) num_threads(thread_count)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_singleton, max_singleton, min_value0, max_value0, min_data, max_data) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RDUNIF_3) num_threads(thread_count)
 		{
 			Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 			
 #pragma omp for schedule(dynamic, 1024) nowait
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
-				int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex_NOCAST((int)draw_index, nullptr));
-				int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex_NOCAST((int)draw_index, nullptr));
+				int64_t min_value = (min_singleton ? min_value0 : min_data[draw_index]);
+				int64_t max_value = (max_singleton ? max_value0 : max_data[draw_index]);
 				int64_t count = (max_value - min_value) + 1;
 				
 				if (max_value < min_value)
@@ -1315,6 +1321,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	EidosValue *arg_p = p_arguments[1].get();
 	int arg_p_count = arg_p->Count();
 	bool p_singleton = (arg_p_count == 1);
+	const double *p_data = arg_p->FloatData();
 	
 	if (num_draws < 0)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
@@ -1330,7 +1337,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 	
 	if (p_singleton)
 	{
-		double p0 = arg_p->FloatAtIndex_NOCAST(0, nullptr);
+		double p0 = p_data[0];
 		
 		if ((p0 <= 0.0) || (p0 > 1.0) || std::isnan(p0))
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgeom): function rgeom() requires 0.0 < p <= 1.0 (" << EidosStringForFloat(p0) << " supplied)." << EidosTerminate(nullptr);
@@ -1352,7 +1359,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgeom(const std::vector<EidosValue_SP> &p_ar
 		
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
-			double p = arg_p->FloatAtIndex_NOCAST(draw_index, nullptr);
+			double p = p_data[draw_index];
 			
 			if ((p <= 0.0) || (p >= 1.0) || std::isnan(p))
 			{
@@ -1559,7 +1566,9 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
 	
 	double size0 = arg_size->NumericAtIndex_NOCAST(0, nullptr);
-	double probability0 = arg_prob->FloatAtIndex_NOCAST(0, nullptr);
+	
+	const double *prob_data = arg_prob->FloatData();
+	double probability0 = prob_data[0];
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (size_singleton && prob_singleton)
@@ -1583,7 +1592,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_
 		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
 		{
 			double size = (size_singleton ? size0 : arg_size->NumericAtIndex_NOCAST(draw_index, nullptr));
-			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex_NOCAST(draw_index, nullptr));
+			double probability = (prob_singleton ? probability0 : prob_data[draw_index]);
 			
 			if ((size < 0) || std::isnan(size))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);

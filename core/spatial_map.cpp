@@ -2010,8 +2010,10 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 	else
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_mapValue): mapValue() length of point must match spatiality of map " << name_ << ", or be a multiple thereof." << EidosTerminate();
 	
+	const double *point_data = point->FloatData();
+	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_SPATIAL_MAP_VALUE);
-#pragma omp parallel for schedule(static) default(none) shared(x_count, float_singleton_result) firstprivate(point, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(point_data, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
 	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
 		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
@@ -2026,7 +2028,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 				double point_vec[1];
 				int value_offset = value_index;
 				
-				double a = (point->FloatAtIndex_NOCAST(0 + value_offset, nullptr) - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
 				point_vec[0] = SLiMClampCoordinate(a);
 				
 				map_value = ValueAtPoint_S1(point_vec);
@@ -2037,10 +2039,10 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 				double point_vec[2];
 				int value_offset = value_index * 2;
 				
-				double a = (point->FloatAtIndex_NOCAST(0 + value_offset, nullptr) - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
 				point_vec[0] = SLiMClampCoordinate(a);
 				
-				double b = (point->FloatAtIndex_NOCAST(1 + value_offset, nullptr) - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+				double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
 				point_vec[1] = SLiMClampCoordinate(b);
 				
 				map_value = ValueAtPoint_S2(point_vec);
@@ -2051,13 +2053,13 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 				double point_vec[3];
 				int value_offset = value_index * 3;
 				
-				double a = (point->FloatAtIndex_NOCAST(0 + value_offset, nullptr) - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				double a = (point_data[0 + value_offset] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
 				point_vec[0] = SLiMClampCoordinate(a);
 				
-				double b = (point->FloatAtIndex_NOCAST(1 + value_offset, nullptr) - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+				double b = (point_data[1 + value_offset] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
 				point_vec[1] = SLiMClampCoordinate(b);
 				
-				double c = (point->FloatAtIndex_NOCAST(2 + value_offset, nullptr) - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+				double c = (point_data[2 + value_offset] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
 				point_vec[2] = SLiMClampCoordinate(c);
 				
 				map_value = ValueAtPoint_S3(point_vec);

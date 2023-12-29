@@ -328,9 +328,9 @@ double MutationType::DrawSelectionCoefficient(void) const
 				int result_count = result->Count();
 				
 				if ((result_type == EidosValueType::kValueFloat) && (result_count == 1))
-					sel_coeff = result->FloatAtIndex_NOCAST(0, nullptr);
+					sel_coeff = result->FloatData()[0];
 				else if ((result_type == EidosValueType::kValueInt) && (result_count == 1))
-					sel_coeff = result->IntAtIndex_NOCAST(0, nullptr);
+					sel_coeff = result->IntData()[0];
 				else
 					EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): type 's' DFE callbacks must provide a singleton float or integer return value." << EidosTerminate(nullptr);
 			}
