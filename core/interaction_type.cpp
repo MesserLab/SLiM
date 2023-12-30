@@ -5039,38 +5039,35 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 	
 	// set up our return value
 	if (exerters_value_NULL)
 		exerters_count = exerter_subpop_size;
 	
-	EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
-	
-	// Check constraints the receiver; if the individual is disqualified, the distance to each exerter is zero
-	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
-	if (!CheckIndividualConstraints(receiver, receiver_constraints_) || !kd_root_EXERTERS)		// potentially raises
-	{
-		double *result_ptr = result_vec->data_mutable();
-		
-		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
-			*(result_ptr + exerter_index) = INFINITY;
-		
-		return EidosValue_SP(result_vec);
-	}
-	
-	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-	FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
-	uint32_t nnz;
-	const uint32_t *columns;
-	const sv_value_t *distances;
-	
-	distances = sv->Distances(&nnz, &columns);
+	// Check constraints the receiver; if the individual is disqualified, the distance to each exerter is infinity
+	if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
+		goto returnAllInfinity;
 	
 	if (exerters_value_NULL)
 	{
 		// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
 		// We initialize the return vector to INFINITY, and fill in non-infinite values from the sparse vector
+		SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
+		
+		// If the k-d tree has no qualifying exerters, we return all infinity
+		if (!kd_root_EXERTERS)
+			goto returnAllInfinity;
+		
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
+		uint32_t nnz;
+		const uint32_t *columns;
+		const sv_value_t *distances;
+		
+		FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
+		distances = sv->Distances(&nnz, &columns);
+		
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+		EidosValue_SP result_SP(result_vec);
 		double *result_ptr = result_vec->data_mutable();
 		
 		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
@@ -5078,14 +5075,22 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		
 		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
 			*(result_ptr + columns[col_index]) = distances[col_index];
+		
+		InteractionType::FreeSparseVector(sv);
+		return result_SP;
 	}
 	else
 	{
 		// Otherwise, receiver is singleton, and exerters is any length, so we loop over exerters
-		// Each individual in exerters requires a linear search through the sparse vector, unfortunately
-		// FIXME we could just calculate the distance to each exerter directly, without the sparse array,
-		// which would allow us to avoid this O(N^2) behavior
+		// To avoid searching through sparse vector results for each exerter, we calculate distances
+		// ourselves for each receiver-exerter pair, which is a bit complicated - we need to worry
+		// about constraints, self-interactions, max distance, callbacks, etc., which SparseVector
+		// handles for most client code.
 		Individual * const *exerters_data = (Individual * const *)exerters_value->ObjectData();
+		double *exerter_position_data = exerter_subpop_data.positions_;
+		bool periodicity_enabled = (exerter_subpop_data.periodic_x_ || exerter_subpop_data.periodic_y_ || exerter_subpop_data.periodic_z_);
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+		EidosValue_SP result_SP(result_vec);
 		
 		for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 		{
@@ -5093,34 +5098,53 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 			
 			// SPECIES CONSISTENCY CHECK
 			if (exerter_subpop != exerter->subpopulation_)
-			{
-				InteractionType::FreeSparseVector(sv);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all exerters be in the same subpopulation." << EidosTerminate();
-			}
 			
 			slim_popsize_t exerter_index_in_subpop = exerter->index_;
 			
 			if (exerter_index_in_subpop < 0)
-			{
-				InteractionType::FreeSparseVector(sv);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that exerters are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
+			if ((exerter == receiver) || !CheckIndividualConstraints(exerter, exerter_constraints_))
+			{
+				// self-interactions and constraints result in an interaction distance of INF
+				result_vec->set_float_no_check(INFINITY, exerter_index);
 			}
-			
-			double distance = INFINITY;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				if ((slim_popsize_t)columns[col_index] == exerter_index_in_subpop)
+			else
+			{
+				double distance;
+				
+				if (periodicity_enabled)
+					distance = CalculateDistanceWithPeriodicity(receiver_position, exerter_position_data + (size_t)exerter_index_in_subpop * SLIM_MAX_DIMENSIONALITY, exerter_subpop_data);
+				else
+					distance = CalculateDistance(receiver_position, exerter_position_data + (size_t)exerter_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+				
+				if (distance > max_distance_)
 				{
-					distance = distances[col_index];
-					break;
+					// interactions beyond the maximum interaction distance also produce INF
+					result_vec->set_float_no_check(INFINITY, exerter_index);
 				}
-			
-			result_vec->set_float_no_check(distance, exerter_index);
+				else
+				{
+					result_vec->set_float_no_check(distance, exerter_index);
+				}
+			}
 		}
+		
+		return result_SP;
 	}
 	
-	InteractionType::FreeSparseVector(sv);
-	return EidosValue_SP(result_vec);
+	returnAllInfinity:
+	{
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+		EidosValue_SP result_SP(result_vec);
+		double *result_ptr = result_vec->data_mutable();
+		
+		for (int exerter_index = 0; exerter_index < exerter_subpop_size; ++exerter_index)
+			*(result_ptr + exerter_index) = INFINITY;
+		
+		return result_SP;
+	}
 }
 
 //	*********************	– (object)nearestInteractingNeighbors(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
@@ -5967,22 +5991,12 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	
-	// Check constraints for the receiver; if the individual is disqualified, the strength to each exerter is zero
-	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
-	SLiM_kdNode *kd_root_EXERTERS = (spatiality_ ? EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data) : nullptr);
-	
 	if (exerters_value_NULL)
 		exerters_count = exerter_subpop_size;
 	
-	if (!CheckIndividualConstraints(receiver, receiver_constraints_) ||		// potentially raises
-		(!kd_root_EXERTERS && spatiality_))
-	{
-		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
-		
-		EIDOS_BZERO(result_vec->data_mutable(), exerter_subpop_size * sizeof(double));
-		
-		return EidosValue_SP(result_vec);
-	}
+	// Check constraints for the receiver; if the individual is disqualified, the strength to each exerter is zero
+	if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
+		goto returnAllZero;
 	
 	if (spatiality_)
 	{
@@ -5992,75 +6006,100 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 		double *receiver_position = receiver_subpop_data.positions_ + (size_t)receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
-		EidosValue_SP result_SP(result_vec);
+		std::vector<SLiMEidosBlock*> &interaction_callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
+		bool has_interaction_callbacks = (interaction_callbacks.size() > 0);
 		
-		try {
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
+		if (exerters_value_NULL)
+		{
+			// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
+			// We initialize the return vector to 0, and fill in non-zero values from the sparse vector
+			SLiM_kdNode *kd_root_EXERTERS = (spatiality_ ? EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data) : nullptr);
+			
+			// If the k-d tree has no qualifying exerters, we return all zeros
+			if (!kd_root_EXERTERS)
+				goto returnAllZero;
+			
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 			uint32_t nnz;
 			const uint32_t *columns;
 			const sv_value_t *strengths;
 			
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, interaction_callbacks);
 			strengths = sv->Strengths(&nnz, &columns);
 			
-			if (exerters_value_NULL)
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+			EidosValue_SP result_SP(result_vec);
+			double *result_ptr = result_vec->data_mutable();
+			
+			EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
+			
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				*(result_ptr + columns[col_index]) = strengths[col_index];
+			
+			InteractionType::FreeSparseVector(sv);
+			return result_SP;
+		}
+		else
+		{
+			// Otherwise, receiver is singleton, and exerters_value is any length, so we loop over exerters
+			// To avoid searching through sparse vector results for each exerter, we calculate distances and
+			// strengths ourselves for each receiver-exerter pair, which is a bit complicated - we need to
+			// worry about constraints, self-interactions, max distance, callbacks, etc., which SparseVector
+			// handles for most client code.
+			Individual * const *exerters_data = (Individual * const *)exerters_value->ObjectData();
+			double *exerter_position_data = exerter_subpop_data.positions_;
+			bool periodicity_enabled = (exerter_subpop_data.periodic_x_ || exerter_subpop_data.periodic_y_ || exerter_subpop_data.periodic_z_);
+			EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+			EidosValue_SP result_SP(result_vec);
+			
+			for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 			{
-				// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
-				// We initialize the return vector to 0, and fill in non-zero values from the sparse vector
-				double *result_ptr = result_vec->data_mutable();
+				Individual *exerter = exerters_data[exerter_index];
 				
-				EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
+				// SPECIES CONSISTENCY CHECK
+				if (exerter_subpop != exerter->subpopulation_)
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all exerters be in the same subpopulation." << EidosTerminate();
 				
-				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					*(result_ptr + columns[col_index]) = strengths[col_index];
-			}
-			else
-			{
-				// Otherwise, receiver is singleton, and exerters_value is any length, so we loop over exerters
-				// Each individual in exerters_value requires a linear search through the sparse vector, unfortunately
-				// FIXME we could just calculate the strength to each exerter directly, without the sparse array,
-				// which would allow us to avoid this O(N^2) behavior
-				Individual * const *exerters_data = (Individual * const *)exerters_value->ObjectData();
+				slim_popsize_t exerter_index_in_subpop = exerter->index_;
 				
-				for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
+				if (exerter_index_in_subpop < 0)
+					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that exerters are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				
+				if ((exerter == receiver) || !CheckIndividualConstraints(exerter, exerter_constraints_))
 				{
-					Individual *exerter = exerters_data[exerter_index];
+					// self-interactions and constraints result in an interaction strength of 0.0
+					result_vec->set_float_no_check(0.0, exerter_index);
+				}
+				else
+				{
+					double distance;
 					
-					// SPECIES CONSISTENCY CHECK
-					if (exerter_subpop != exerter->subpopulation_)
+					if (periodicity_enabled)
+						distance = CalculateDistanceWithPeriodicity(receiver_position, exerter_position_data + (size_t)exerter_index_in_subpop * SLIM_MAX_DIMENSIONALITY, exerter_subpop_data);
+					else
+						distance = CalculateDistance(receiver_position, exerter_position_data + (size_t)exerter_index_in_subpop * SLIM_MAX_DIMENSIONALITY);
+					
+					if (distance > max_distance_)
 					{
-						InteractionType::FreeSparseVector(sv);
-						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all exerters be in the same subpopulation." << EidosTerminate();
+						// interactions beyond the maximum interaction distance also produce 0.0
+						result_vec->set_float_no_check(0.0, exerter_index);
 					}
-					
-					slim_popsize_t exerter_index_in_subpop = exerter->index_;
-					
-					if (exerter_index_in_subpop < 0)
+					else
 					{
-						InteractionType::FreeSparseVector(sv);
-						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that exerters are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+						double strength;
+						
+						if (has_interaction_callbacks)
+							strength = CalculateStrengthWithCallbacks(distance, receiver, exerter, interaction_callbacks);
+						else
+							strength = CalculateStrengthNoCallbacks(distance);
+						
+						result_vec->set_float_no_check(strength, exerter_index);
 					}
-					
-					double strength = 0;
-					
-					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						if ((slim_popsize_t)columns[col_index] == exerter_index_in_subpop)
-						{
-							strength = strengths[col_index];
-							break;
-						}
-					
-					result_vec->set_float_no_check(strength, exerter_index);
 				}
 			}
-		} catch (...) {
-			InteractionType::FreeSparseVector(sv);
-			throw;
+			
+			return result_SP;
 		}
-		
-		InteractionType::FreeSparseVector(sv);
-		return result_SP;
 	}
 	else
 	{
@@ -6120,6 +6159,16 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 			
 			return EidosValue_SP(result_vec);
 		}
+	}
+	
+	returnAllZero:
+	{
+		EidosValue_Float *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(exerters_count);
+		EidosValue_SP result_SP(result_vec);
+		
+		EIDOS_BZERO(result_vec->data_mutable(), exerter_subpop_size * sizeof(double));
+		
+		return result_SP;
 	}
 }
 
