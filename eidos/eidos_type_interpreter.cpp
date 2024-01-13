@@ -982,21 +982,25 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_For(const EidosASTNode *p_
 	
 	if (p_node->children_.size() >= 2)
 	{
-		EidosASTNode *identifier_child = p_node->children_[0];
-		const EidosASTNode *range_node = p_node->children_[1];
-		EidosTypeSpecifier range_type = TypeEvaluateNode(range_node);
+		int in_clause_count = (int)((p_node->children_.size() - 1) / 2);
 		
-		// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
-		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
 		{
-			EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
+			EidosASTNode *identifier_child = p_node->children_[in_clause_index * 2];
+			const EidosASTNode *range_node = p_node->children_[in_clause_index * 2 + 1];
+			EidosTypeSpecifier range_type = TypeEvaluateNode(range_node);
 			
-			global_symbols_->SetTypeForSymbol(identifier_name, range_type);
+			if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+			{
+				EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
+				
+				global_symbols_->SetTypeForSymbol(identifier_name, range_type);
+			}
 		}
 	}
 	
-	if (p_node->children_.size() >= 3)
-		TypeEvaluateNode(p_node->children_[2]);
+	if (p_node->children_.size() % 2 == 1)
+		TypeEvaluateNode(p_node->children_[p_node->children_.size() - 1]);
 	
 	return result_type;
 }

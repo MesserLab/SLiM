@@ -3768,7 +3768,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 			// a non-nullptr return means that a new value had to be created for x = c(x,y), so we need to replace
 			// the value of x with that new value; std::swap(lvalue_SP, result_SP) does not do it because lvalue_SP
 			// is not the EidosValue_SP that is inside the symbol table, it just points to the same EidosValue!
+			EidosErrorPosition error_pos_save = PushErrorPositionFromToken(p_node->token_);
+			
 			global_symbols_->SetValueForSymbolNoCopy(lvalue_node->cached_stringID_, std::move(result_SP));
+			
+			RestoreErrorPosition(error_pos_save);
 			goto compoundAssignmentSuccess;
 		}
 	}
@@ -5363,53 +5367,59 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 {
 	EIDOS_ENTRY_EXECUTION_LOG("Evaluate_For()");
-	EIDOS_ASSERT_CHILD_COUNT("EidosInterpreter::Evaluate_For", 3);
 	
-	EidosToken *operator_token = p_node->token_;
-	EidosASTNode *identifier_child = p_node->children_[0];
-	
-	// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
-	// CODE COVERAGE: This is dead code (this error gets caught in the parser)
-	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << EidosTerminate(p_node->token_);
-	
-	EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
-	
-	// check for a constant up front, to give a better error message with the token highlighted
-	bool is_const = false;
-	
-	if (global_symbols_->ContainsSymbol_IsConstant(identifier_name, &is_const))
-		if (is_const)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): identifier '" << identifier_child->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(identifier_child->token_);
-	
-	const EidosASTNode *range_node = p_node->children_[1];
-	EidosValue_SP result_SP;
-	
-	// true if the for-loop statement references the index variable; if so, it needs to be set up
-	// each iteration, but that can be done very cheaply by replacing its internal value
-	uint8_t references_index = p_node->cached_for_references_index_;
-	
-	// true if the for-loop statement assigns to the index variable; if so, it needs to be set up
-	// each iteration, and that has to be done without any assumptions regarding its current value
-	uint8_t assigns_index = p_node->cached_for_assigns_index_;
-	
-	// In some cases we do not need to actually construct the range that we are going to iterate over; we check for that case here
-	// and handle it immediately, otherwise we drop through to the (!simpleIntegerRange) case below
-	bool simpleIntegerRange = false;
-	int64_t start_int = 0, end_int = 0;
-	EidosValue_SP range_value(nullptr);
-	
-#ifdef SLIMGUI
-	// SLiMgui debugging point: force down to the general case in SLiMgui with debug points
-	if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1))
-	{
-		references_index = true;
-		assigns_index = true;
-	}
+	// We now allow multiple "in" clauses, so the number of children is just required to be >= 3 and odd
+	// Each "in" clause is two children (identifier and expression), and the statement is the last child.
+	EIDOS_ASSERT_CHILD_COUNT_GTEQ("EidosInterpreter::Evaluate_For", 3);
+#if DEBUG
+	if (p_node->children_.size() % 2 != 1) EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): (internal error) expected an odd number of children." << EidosTerminate(p_node->token_);
 #endif
 	
-	if (!assigns_index)
+	EidosToken *operator_token = p_node->token_;
+	int in_clause_count = (int)((p_node->children_.size() - 1) / 2);
+	
+	// This structure is used to keep track of the range and the index variable for each "in" clause
+	typedef struct {
+		EidosGlobalStringID identifier_name;
+		int64_t iteration_count;
+		
+		// we handle simple integer ranges more efficiently
+		bool simpleIntegerRange;
+		int64_t start_int, end_int;
+		
+		// otherwise we keep an EidosValue for the range of the "in" clause
+		EidosValue_SP range_value;
+		
+		// we keep a reference to the loop iterator variable if we need one
+		EidosValue_SP iterator_variable;
+		EidosValueType iterator_type;
+		void *iterator_data;
+	} ForLoopHandler;
+	
+	// start by evaluating each "in" clause range and caching information about each clause
+	std::vector<ForLoopHandler> loop_handlers;
+	loop_handlers.resize(in_clause_count);
+	
+	for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
 	{
+		EidosASTNode *identifier_child = p_node->children_[in_clause_index * 2];			// guaranteed by the parser to be an identifier token
+		const EidosASTNode *range_node = p_node->children_[in_clause_index * 2 + 1];
+		EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
+		bool is_const = false;
+		
+		// check for a constant up front, to give a better error message with the token highlighted
+		if (global_symbols_->ContainsSymbol_IsConstant(identifier_name, &is_const))
+		{
+			if (is_const)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): identifier '" << identifier_child->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(identifier_child->token_);
+		}
+		
+		// In some cases we do not need to actually construct the range that we are going to iterate over; we check for those cases first
+		bool range_setup_handled = false;
+		ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+		loop_handler.identifier_name = identifier_name;
+		loop_handler.simpleIntegerRange = false;
+		
 		if ((range_node->token_->token_type_ == EidosTokenType::kTokenColon) && (range_node->children_.size() == 2))
 		{
 			// Maybe we can streamline a colon-operator range expression; let's check
@@ -5424,10 +5434,16 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					(range_end_value->Type() == EidosValueType::kValueInt) && (range_end_value->Count() == 1) && (range_end_value->DimensionCount() == 1))
 				{
 					// OK, we have a simple integer:integer range, so this should be very straightforward
-					simpleIntegerRange = true;
+					loop_handler.simpleIntegerRange = true;
+					loop_handler.start_int = range_start_value->IntAtIndex_NOCAST(0, nullptr);
+					loop_handler.end_int = range_end_value->IntAtIndex_NOCAST(0, nullptr);
 					
-					start_int = range_start_value->IntAtIndex_NOCAST(0, nullptr);
-					end_int = range_end_value->IntAtIndex_NOCAST(0, nullptr);
+					if (loop_handler.start_int < loop_handler.end_int)
+						loop_handler.iteration_count = loop_handler.end_int - loop_handler.start_int + 1;
+					else
+						loop_handler.iteration_count = loop_handler.start_int - loop_handler.end_int + 1;
+					
+					range_setup_handled = true;
 				}
 				else
 				{
@@ -5436,7 +5452,9 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					// We therefore have to construct the range here that will be used below.  No good deed goes unpunished.
 					
 					// Note that this call to Evaluate_RangeExpr_Internal() gives ownership of the child values; it deletes them for us
-					range_value = _Evaluate_RangeExpr_Internal(range_node, *range_start_value, *range_end_value);
+					loop_handler.range_value = _Evaluate_RangeExpr_Internal(range_node, *range_start_value, *range_end_value);
+					loop_handler.iteration_count = loop_handler.range_value->Count();
+					range_setup_handled = true;
 				}
 			}
 		}
@@ -5458,16 +5476,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 							// We have a qualifying seqAlong() call, so evaluate its argument and set up our simple integer sequence
 							const EidosASTNode *argument_node = range_node->children_[1];
 							
-							simpleIntegerRange = true;
+							loop_handler.simpleIntegerRange = true;
 							
 							EidosValue_SP argument_value = FastEvaluateNode(argument_node);
 							
-							start_int = 0;
-							end_int = argument_value->Count() - 1;
-							
-							// A seqAlong() on a zero-length operand would give us a loop from 0 to -1; short-circuit that
-							if (end_int == -1)
-								goto for_exit;
+							loop_handler.iteration_count = argument_value->Count();
+							loop_handler.start_int = 0;
+							loop_handler.end_int = loop_handler.iteration_count - 1;
+							range_setup_handled = true;
 						}
 					}
 					else if (signature->internal_function_ == &Eidos_ExecuteFunction_seqLen)
@@ -5477,7 +5493,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 							// We have a qualifying seqLen() call, so evaluate its argument and set up our simple integer sequence
 							const EidosASTNode *argument_node = range_node->children_[1];
 							
-							simpleIntegerRange = true;
+							loop_handler.simpleIntegerRange = true;
 							
 							EidosValue_SP argument_value = FastEvaluateNode(argument_node);
 							EidosValueType arg_type = argument_value->Type();
@@ -5493,388 +5509,305 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 							if (length < 0)
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): function seqLen() requires length to be greater than or equal to 0 (" << length << " supplied)." << EidosTerminate(call_name_node->token_);
 							
-							start_int = 0;
-							end_int = length - 1;
-							
-							// A seqLen() with a length of 0 would give us a loop from 0 to -1; short-circuit that
-							if (end_int == -1)
-								goto for_exit;
+							loop_handler.iteration_count = length;
+							loop_handler.start_int = 0;
+							loop_handler.end_int = length - 1;
+							range_setup_handled = true;
 						}
 					}
 				}
 			}
 		}
+		
+		if (!range_setup_handled)
+		{
+			// We have something other than a simple integer range, so we have to do more work to figure out the range
+			if (!loop_handler.range_value)
+				loop_handler.range_value = FastEvaluateNode(range_node);
+			
+			loop_handler.iteration_count = loop_handler.range_value->Count();
+		}
 	}
 	
-	if (simpleIntegerRange)
+	// check that all "in" clauses have the same iteration count
+	int64_t iteration_count = 0;
+	
+	for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
 	{
-		// OK, we have a simple integer:integer range, so this should be very straightforward
-		bool counting_up = (start_int < end_int);
-		int64_t range_count = (counting_up ? (end_int - start_int + 1) : (start_int - end_int + 1));
+		ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+		int64_t clause_count = loop_handler.iteration_count;
 		
-		// An empty simple integer range can be skipped altogether, without modifying the index variable
-		if (range_count <= 0)
-			goto for_exit;
-		
-		if (!assigns_index && !references_index)
-		{
-			// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
-			// we do need to set up the index variable on exit, though, since code below us might use the final value
-			int range_index;
-			
-			for (range_index = 0; range_index < range_count; ++range_index)
-			{
-				EidosASTNode *statement_node = p_node->children_[2];
-				
-#if (SLIMPROFILING == 1)
-				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-				SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-				
-				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-				
-#if (SLIMPROFILING == 1)
-				// PROFILING
-				SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-				
-				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-				if (next_statement_hit_)				next_statement_hit_ = false;
-				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-			}
-			
-			// set up the final value on exit; if we completed the loop, we need to go back one step
-			if (range_index == range_count)
-				range_index--;
-			
-			global_symbols_->SetValueForSymbolNoCopy(identifier_name, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(counting_up ? start_int + range_index : start_int - range_index)));
-		}
-		else	// !assigns_index, guaranteed above
-		{
-			// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
-			// EidosValue that we stick new values into – much, much faster.
-			EidosValue_Int_SP index_value_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
-			EidosValue_Int *index_value = index_value_SP.get();
-			
-			global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-			
-			for (int range_index = 0; range_index < range_count; ++range_index)
-			{
-				index_value->data_mutable()[0] = (counting_up ? start_int + range_index : start_int - range_index);
-				
-				EidosASTNode *statement_node = p_node->children_[2];
-				
-#if (SLIMPROFILING == 1)
-				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-				SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-				
-				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-				
-#if (SLIMPROFILING == 1)
-				// PROFILING
-				SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-				
-				if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-				if (next_statement_hit_)				next_statement_hit_ = false;
-				if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-			}
-		}
+		if (in_clause_index == 0)
+			iteration_count = clause_count;
+		else if (iteration_count != clause_count)
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): all 'in' clauses of a for loop must have the same number of iterations." << EidosTerminate(p_node->token_);
 	}
-	else	// (!simpleIntegerRange)
+	
+	// short-circuit if we have no work to do
+	EidosValue_SP result_SP;
+	EidosASTNode *statement_node = p_node->children_[in_clause_count * 2];
+	
+	if (iteration_count == 0)
 	{
-		// We have something other than a simple integer range, so we have to do more work to figure out what type of
-		// range we are iterating over; we have optimizations for several cases if assigns_index is false
-		if (!range_value)
-			range_value = FastEvaluateNode(range_node);
-		
-		int range_count = range_value->Count();
-		EidosValueType range_type = range_value->Type();
-		
-		if (range_count > 0)
+		for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
 		{
-			// try to handle the loop with fast special-case code; if !loop_handled, we will drop into the general case
-			// at the bottom, which is more readable and commented
-			bool loop_handled = false;
+			ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
 			
-			if (!assigns_index && !references_index)
+			if (!loop_handler.simpleIntegerRange)
 			{
-				// the loop index variable is not actually used at all; we are just being asked to do a set number of iterations
-				// we do need to set up the index variable on exit, though, since code below us might use the final value
-				int range_index;
+				EidosValueType range_type = loop_handler.range_value->Type();
 				
-				for (range_index = 0; range_index < range_count; ++range_index)
-				{
-					EidosASTNode *statement_node = p_node->children_[2];
-					
-#if (SLIMPROFILING == 1)
-					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-					SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-					
-					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-					
-#if (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-					
-					if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-					if (next_statement_hit_)				next_statement_hit_ = false;
-					if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-				}
-				
-				// set up the final value on exit; if we completed the loop, we need to go back one step
-				if (range_index == range_count)
-					range_index--;
-				
-				global_symbols_->SetValueForSymbolNoCopy(identifier_name, range_value->GetValueAtIndex(range_index, operator_token));
-				
-				loop_handled = true;
+				if (range_type == EidosValueType::kValueVOID)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow void for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
+				if (range_type == EidosValueType::kValueNULL)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
 			}
-			else if (!assigns_index && (range_count > 1))
-			{
-				// the loop index variable is referenced in the loop body but is not assigned to, so we can use a single
-				// EidosValue that we stick new values into – much, much faster.
-				if (range_type == EidosValueType::kValueInt)
-				{
-					const int64_t *range_data = range_value->IntData();
-					EidosValue_Int_SP index_value_SP = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
-					EidosValue_Int *index_value = index_value_SP.get();
-					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-					
-					for (int range_index = 0; range_index < range_count; ++range_index)
-					{
-						index_value->data_mutable()[0] = range_data[range_index];
-						
-						EidosASTNode *statement_node = p_node->children_[2];
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-						
-						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING
-						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-						
-						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
-					
-					loop_handled = true;
-				}
-				else if (range_type == EidosValueType::kValueFloat)
-				{
-					const double *range_data = range_value->FloatData();
-					EidosValue_Float_SP index_value_SP = EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(0));
-					EidosValue_Float *index_value = index_value_SP.get();
-					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-					
-					for (int range_index = 0; range_index < range_count; ++range_index)
-					{
-						index_value->data_mutable()[0] = range_data[range_index];
-						
-						EidosASTNode *statement_node = p_node->children_[2];
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-						
-						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING
-						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-						
-						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
-					
-					loop_handled = true;
-				}
-				else if (range_type == EidosValueType::kValueString)
-				{
-					const std::string *range_vec = range_value->StringData();
-					EidosValue_String_SP index_value_SP = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gEidosStr_empty_string));
-					EidosValue_String *index_value = index_value_SP.get();
-					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-					
-					for (int range_index = 0; range_index < range_count; ++range_index)
-					{
-						index_value->StringVectorData()[0] = range_vec[range_index];
-						
-						EidosASTNode *statement_node = p_node->children_[2];
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-						
-						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING
-						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-						
-						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
-					
-					loop_handled = true;
-				}
-				else if (range_type == EidosValueType::kValueObject)
-				{
-					EidosObject * const *range_vec = range_value->ObjectData();
-					EidosValue_Object_SP index_value_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
-					EidosValue_Object *index_value = index_value_SP.get();
-					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-					
-					for (int range_index = 0; range_index < range_count; ++range_index)
-					{
-						index_value->set_object_element_no_check_CRR(range_vec[range_index], 0);
-						
-						EidosASTNode *statement_node = p_node->children_[2];
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-						
-						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING
-						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-						
-						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
-					
-					loop_handled = true;
-				}
-				else if (range_type == EidosValueType::kValueLogical)
-				{
-					const eidos_logical_t *range_data = range_value->LogicalData();
-					EidosValue_Logical_SP index_value_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
-					EidosValue_Logical *index_value = index_value_SP->resize_no_initialize(1);
-					
-					index_value->set_logical_no_check(false, 0);	// initial placeholder
-					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
-					
-					for (int range_index = 0; range_index < range_count; ++range_index)
-					{
-						index_value->set_logical_no_check(range_data[range_index], 0);
-						
-						EidosASTNode *statement_node = p_node->children_[2];
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-						
-						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-						
-#if (SLIMPROFILING == 1)
-						// PROFILING
-						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-						
-						if (return_statement_hit_)				{ result_SP = std::move(statement_value); break; }
-						if (next_statement_hit_)				next_statement_hit_ = false;
-						if (break_statement_hit_)				{ break_statement_hit_ = false; break; }
-					}
-					
-					loop_handled = true;
-				}
-			}
+		}
+		
+		goto for_exit;
+	}
+	
+	// any loop index variables that already exist should be removed so that we can redefine them below
+	for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
+	{
+		ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+		
+		if (global_symbols_->ContainsSymbol(loop_handler.identifier_name))
+			global_symbols_->RemoveValueForSymbol(loop_handler.identifier_name);
+	}
+	
+	// actually run the for loop
+	try
+	{
+		for (int range_index = 0; range_index < iteration_count; ++range_index)
+		{
+#if DEBUG_POINTS_ENABLED
+			// SLiMgui debugging point
+			EidosDebugPointIndent indenter;
+			bool log_debug_point = false;
 			
-			if (!loop_handled)
+			if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
+				(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
 			{
-				// general case
-				for (int range_index = 0; range_index < range_count; ++range_index)
+				std::ostream &output_stream = ErrorOutputStream();
+				
+				output_stream << EidosDebugPointIndent::Indent() << "#DEBUG FOR (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): ";
+				log_debug_point = true;
+			}
+#endif
+			
+			// set up each iterator variable
+			for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
+			{
+				ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+				
+				if (loop_handler.simpleIntegerRange)
 				{
-					// set the index variable to the range value and then throw the range value away
-					EidosValue_SP iteration_value = range_value->GetValueAtIndex(range_index, operator_token);
+					bool counting_up = (loop_handler.start_int < loop_handler.end_int);
+					int64_t iterator_int_value = (counting_up ? loop_handler.start_int + range_index : loop_handler.start_int - range_index);
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, iteration_value);
-					
+					if (range_index == 0)
+					{
+						EidosValue_Int *index_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Int(iterator_int_value);
+						
+						loop_handler.iterator_variable = EidosValue_Int_SP(index_value);
+						loop_handler.iterator_type = EidosValueType::kValueInt;
+						loop_handler.iterator_data = index_value->data_mutable();
+						
+						// make a constant for the loop index variable; but not that we have a mutable pointer to its data
+						global_symbols_->DefineConstantForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+					}
+					else
+					{
+						int64_t *int_data = (int64_t *)loop_handler.iterator_data;
+						
+						*int_data = iterator_int_value;
+					}
+
 #if DEBUG_POINTS_ENABLED
 					// SLiMgui debugging point
-					EidosDebugPointIndent indenter;
-					
-					if (debug_points_ && debug_points_->set.size() && (operator_token->token_line_ != -1) &&
-						(debug_points_->set.find(operator_token->token_line_) != debug_points_->set.end()))
+					if (log_debug_point)
 					{
 						std::ostream &output_stream = ErrorOutputStream();
 						
-						output_stream << EidosDebugPointIndent::Indent() << "#DEBUG FOR (line " << (operator_token->token_line_ + 1) << eidos_context_->DebugPointInfo() << "): " <<
-							identifier_child->token_->token_string_ << " = " <<
-							iteration_value->Type();
-						if (iteration_value->Type() == EidosValueType::kValueObject)
-							output_stream << "<" << iteration_value->ElementType() << ">";
-						output_stream << "$ " << *iteration_value << std::endl;
+						output_stream << EidosStringRegistry::StringForGlobalStringID(loop_handler.identifier_name) << " = integer$ " << iterator_int_value;
+					}
+#endif
+				}
+				else
+				{
+					if (range_index == 0)
+					{
+						// Start out with GetValueAtIndex(), which will return the correct type, handle retain/release, etc. for us
+						loop_handler.iterator_type = loop_handler.range_value->Type();
+						loop_handler.iterator_variable = loop_handler.range_value->GetValueAtIndex(range_index, operator_token);
+						
+						if (loop_handler.iterator_variable->IsConstant())
+							loop_handler.iterator_variable = loop_handler.iterator_variable->CopyValues();
+						
+						EidosValue *index_value = loop_handler.iterator_variable.get();
+						
+						switch (loop_handler.iterator_type)
+						{
+							case EidosValueType::kValueLogical:		loop_handler.iterator_data = ((EidosValue_Logical *)index_value)->data_mutable(); break;
+							case EidosValueType::kValueInt:			loop_handler.iterator_data = ((EidosValue_Int *)index_value)->data_mutable(); break;
+							case EidosValueType::kValueFloat:		loop_handler.iterator_data = ((EidosValue_Float *)index_value)->data_mutable(); break;
+							case EidosValueType::kValueString:		loop_handler.iterator_data = ((EidosValue_String *)index_value)->StringData_Mutable(); break;
+							case EidosValueType::kValueObject:		loop_handler.iterator_data = ((EidosValue_Object *)index_value)->data_mutable(); break;
+							default:
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): (internal error) unexpected range value type in for loop." << EidosTerminate(p_node->token_);
+						}
+						
+						// make a constant for the loop index variable; but not that we have a mutable pointer to its data
+						global_symbols_->DefineConstantForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+					}
+					else
+					{
+						switch (loop_handler.iterator_type)
+						{
+							case EidosValueType::kValueLogical:
+							{
+								EidosValue_Logical *logical_range_value = (EidosValue_Logical *)(loop_handler.range_value.get());
+								eidos_logical_t iterator_logical_value = logical_range_value->data()[range_index];
+								
+								*(eidos_logical_t *)loop_handler.iterator_data = iterator_logical_value;
+								break;
+							}
+							case EidosValueType::kValueInt:
+							{
+								EidosValue_Int *int_range_value = (EidosValue_Int *)(loop_handler.range_value.get());
+								int64_t iterator_int_value = int_range_value->data()[range_index];
+								
+								*(int64_t *)loop_handler.iterator_data = iterator_int_value;
+								break;
+							}
+							case EidosValueType::kValueFloat:
+							{
+								EidosValue_Float *float_range_value = (EidosValue_Float *)(loop_handler.range_value.get());
+								double iterator_float_value = float_range_value->data()[range_index];
+								
+								*(double *)loop_handler.iterator_data = iterator_float_value;
+								break;
+							}
+							case EidosValueType::kValueString:
+							{
+								EidosValue_String *string_range_value = (EidosValue_String *)(loop_handler.range_value.get());
+								std::string &iterator_logical_value = string_range_value->StringData_Mutable()[range_index];
+								
+								*(std::string *)loop_handler.iterator_data = iterator_logical_value;
+								break;
+							}
+							case EidosValueType::kValueObject:
+							{
+								EidosValue_Object *float_range_value = (EidosValue_Object *)(loop_handler.range_value.get());
+								EidosObject *iterator_object_value = float_range_value->data()[range_index];
+								EidosObject **iterator_variable_data = (EidosObject **)loop_handler.iterator_data;
+								
+								if (iterator_object_value->Class()->UsesRetainRelease())
+								{
+									((EidosDictionaryRetained *)iterator_object_value)->Retain();
+									((EidosDictionaryRetained *)*iterator_variable_data)->Release();
+								}
+								
+								*iterator_variable_data = iterator_object_value;
+								break;
+							}
+							default:
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): (internal error) unexpected range value type in for loop." << EidosTerminate(p_node->token_);
+						}
+					}
+					
+#if DEBUG_POINTS_ENABLED
+					// SLiMgui debugging point
+					if (log_debug_point)
+					{
+						std::ostream &output_stream = ErrorOutputStream();
+						
+						output_stream << EidosStringRegistry::StringForGlobalStringID(loop_handler.identifier_name) << " = " << loop_handler.iterator_type;
+						if (loop_handler.iterator_type == EidosValueType::kValueObject)
+							output_stream << "<" << loop_handler.range_value->ElementType() << ">";
+						output_stream << "$ " << *loop_handler.iterator_variable;
+					}
+#endif
+				}
+				
+#if DEBUG_POINTS_ENABLED
+				// SLiMgui debugging point
+				if (log_debug_point)
+				{
+					std::ostream &output_stream = ErrorOutputStream();
+					
+					if (in_clause_index == in_clause_count - 1)
+					{
+						output_stream << std::endl;
 						indenter.indent();
 					}
-#endif
-					
-					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
-					EidosASTNode *statement_node = p_node->children_[2];
-					
-#if (SLIMPROFILING == 1)
-					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
-					SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
-#endif
-					
-					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
-					
-#if (SLIMPROFILING == 1)
-					// PROFILING
-					SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
-#endif
-					
-					// if a return statement has occurred, we pass the return value outward
-					if (return_statement_hit_)
+					else
 					{
-						result_SP = std::move(statement_value);
-						break;
-					}
-					
-					// handle next and break statements
-					if (next_statement_hit_)
-						next_statement_hit_ = false;		// this is all we need to do; the rest of the function of "next" was done by Evaluate_CompoundStatement()
-					
-					if (break_statement_hit_)
-					{
-						break_statement_hit_ = false;
-						break;							// break statements, on the other hand, get handled additionally by a break from our loop here
+						output_stream << ", ";
 					}
 				}
+#endif
+			}
+			
+#if (SLIMPROFILING == 1)
+			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
+			SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
+#endif
+			
+			EidosValue_SP statement_value = FastEvaluateNode(statement_node);
+			
+#if (SLIMPROFILING == 1)
+			// PROFILING
+			SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
+#endif
+			
+			// if a return statement has occurred, we pass the return value outward
+			if (return_statement_hit_)
+			{
+				result_SP = std::move(statement_value);
+				break;
+			}
+			
+			// handle next and break statements
+			if (next_statement_hit_)
+				next_statement_hit_ = false;		// this is all we need to do; the rest of the function of "next" was done by Evaluate_CompoundStatement()
+			
+			if (break_statement_hit_)
+			{
+				break_statement_hit_ = false;
+				break;							// break statements, on the other hand, get handled additionally by a break from our loop here
 			}
 		}
-		else
+	}
+	catch (...)
+	{
+		// transmute our iterator variables to no longer be constants; the user is allowed to modify them after the loop finishes
+		for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
 		{
-			if (range_type == EidosValueType::kValueVOID)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow void for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
-			if (range_type == EidosValueType::kValueNULL)
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword does not allow NULL for its right operand (the range to be iterated over)." << EidosTerminate(p_node->token_);
+			ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+			
+			if (loop_handler.iterator_variable)
+			{
+				global_symbols_->RemoveConstantForSymbol(loop_handler.identifier_name);
+				global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+				loop_handler.iterator_variable->MarkAsMutable();
+			}
+		}
+		
+		throw;
+	}
+	
+	// transmute our iterator variables to no longer be constants; the user is allowed to modify them after the loop finishes
+	for (int in_clause_index = 0; in_clause_index < in_clause_count; ++in_clause_index)
+	{
+		ForLoopHandler &loop_handler = loop_handlers[in_clause_index];
+		
+		if (loop_handler.iterator_variable)
+		{
+			global_symbols_->RemoveConstantForSymbol(loop_handler.identifier_name);
+			global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+			loop_handler.iterator_variable->MarkAsMutable();
 		}
 	}
 	

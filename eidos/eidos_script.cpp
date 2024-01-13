@@ -1186,19 +1186,31 @@ EidosASTNode *EidosScript::Parse_ForStatement(void)
 		Match(EidosTokenType::kTokenFor, "for statement");
 		Match(EidosTokenType::kTokenLParen, "for statement");
 		
-		identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
-		node->AddChild(identifier);
-		
-		Match(EidosTokenType::kTokenIdentifier, "for statement");
-		Match(EidosTokenType::kTokenIn, "for statement");
-		
-		range_expr = Parse_Expr();
-		node->AddChild(range_expr);
-		
+		// in Eidos 3.2 (SLiM 4.2) we allow for loops with multiple "in" clause
+		// each "in" clause becomes a pair of children: identifier and expression
+		do
+		{
+			identifier = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+			node->AddChild(identifier);
+			
+			Match(EidosTokenType::kTokenIdentifier, "for statement");
+			Match(EidosTokenType::kTokenIn, "for statement");
+			
+			range_expr = Parse_Expr();
+			node->AddChild(range_expr);
+			
 #if (SLIMPROFILING == 1)
-		// PROFILING
-		node->full_range_end_token_ = current_token_;
+			// PROFILING
+			node->full_range_end_token_ = current_token_;
 #endif
+			
+			// look for a comma, indicating another "in" clause
+			if (current_token_type_ == EidosTokenType::kTokenComma)
+				Match(EidosTokenType::kTokenComma, "parameter list");
+			else
+				break;		// not a comma, so we're done
+		}
+		while (true);
 		
 		Match(EidosTokenType::kTokenRParen, "for statement");
 		

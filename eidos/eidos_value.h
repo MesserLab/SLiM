@@ -168,7 +168,7 @@ bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosVal
 #if DEBUG
 #define WILL_MODIFY(x)	if ((x)->constant_) RaiseForImmutabilityCall();
 #else
-#define WILL_MODIFY(x)	if ((x)->constant_) RaiseForImmutabilityCall();
+#define WILL_MODIFY(x)	//if ((x)->constant_) RaiseForImmutabilityCall();
 #endif
 
 
@@ -225,6 +225,7 @@ public:
 	
 	// constness; note that the internal state of object elements is NOT const, just the EidosValue containing the object elements
 	inline __attribute__((always_inline)) void MarkAsConstant(void) { constant_ = true; }
+	inline __attribute__((always_inline)) void MarkAsMutable(void) { constant_ = false; }		// very dangerous, do not use
 	inline __attribute__((always_inline)) bool IsConstant(void) const { return constant_; }
 	
 	virtual int Count(void) const = 0;			// the only real casualty of removing the singleton/vector distinction: this is now a virtual function

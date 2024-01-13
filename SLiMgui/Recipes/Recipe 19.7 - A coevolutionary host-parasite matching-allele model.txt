@@ -52,11 +52,9 @@ ticks all late() {
 	parasites = p1.individuals;
 	chosen_hosts = sample(p0.individuals, size(parasites), replace=T);
 	
-	for (index in seqAlong(parasites))
+	for (p in parasites, h in chosen_hosts)
 	{
 		// infection depends upon a match (diploid matching-allele model)
-		p = parasites[index];
-		h = chosen_hosts[index];
 		all_nucleotides = c(p.genomes.nucleotides(), h.genomes.nucleotides());
 		
 		if (size(unique(all_nucleotides, preserveOrder=F)) == 1)

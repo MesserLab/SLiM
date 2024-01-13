@@ -12,7 +12,7 @@ initialize() {
 late() {
 	m2muts = sim.mutationsOfType(m2);
 	freqs = sim.mutationFrequencies(NULL, m2muts);
-	for (index in seqAlong(m2muts))
-		m2muts[index].setSelectionCoeff(0.5 - freqs[index]);
+	for (mut in m2muts, freq in freqs)
+		mut.setSelectionCoeff(0.5 - freq);
 }
 10000 early() { sim.simulationFinished(); }

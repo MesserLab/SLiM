@@ -814,10 +814,15 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptSuccess("x=0; for (y in float(0)) x=x+1; x;", gStaticEidosValue_Integer0);
 	EidosAssertScriptSuccess_I("x=0; for (y in 33) x=x+y; x;", 33);
 	EidosAssertScriptSuccess("x=0; for (y in 33) x=x+1; x;", gStaticEidosValue_Integer1);
+	EidosAssertScriptSuccess_I("x=0; for (y in 0:0) x=x+1; x;", 1);
+	EidosAssertScriptSuccess_I("x=0; for (y in 0:1) x=x+1; x;", 2);
+	EidosAssertScriptSuccess_I("x=0; for (y in 1:0) x=x+1; x;", 2);
+	EidosAssertScriptSuccess_I("x=0; for (y in 0:4) x=x+1; x;", 5);
+	EidosAssertScriptSuccess_I("x=0; for (y in 4:0) x=x+1; x;", 5);
 	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) x=x+y; x;", 55);
 	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) x=x+1; x;", 10);
-	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) { x=x+y; y = 7; } x;", 55);
-	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) { x=x+1; y = 7; } x;", 10);
+	EidosAssertScriptRaise("x=0; for (y in 1:10) { x=x+y; y = 7; } x;", 32, "cannot be redefined");
+	EidosAssertScriptRaise("x=0; for (y in 1:10) { x=x+1; y = 7; } x;", 32, "cannot be redefined");
 	EidosAssertScriptSuccess_I("x=0; for (y in 10:1) x=x+y; x;", 55);
 	EidosAssertScriptSuccess_I("x=0; for (y in 10:1) x=x+1; x;", 10);
 	EidosAssertScriptSuccess_F("x=0; for (y in 1.0:10) x=x+y; x;", 55.0);
@@ -831,6 +836,8 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptRaise("x=0; y=0:2; for (y[0] in 2:4) x=x+sum(y); x;", 18, "unexpected token");	// lvalue must be an identifier, at present
 	EidosAssertScriptRaise("x=0; y=0:2; for (y.z in 2:4) x=x+sum(y); x;", 18, "unexpected token");	// lvalue must be an identifier, at present
 	EidosAssertScriptRaise("x=0; for (y in NULL) x;", 5, "does not allow NULL");
+	EidosAssertScriptSuccess_I("x=0; q=integer(0); for (y in seqAlong(q)) x=x+1; x;", 0);
+	EidosAssertScriptSuccess_I("x=0; q=float(0); for (y in seqAlong(q)) x=x+1; x;", 0);
 	EidosAssertScriptSuccess_I("x=0; q=11:20; for (y in seqAlong(q)) x=x+y; x;", 45);
 	EidosAssertScriptSuccess_I("x=0; q=11:20; for (y in seqAlong(q)) x=x+1; x;", 10);
 	EidosAssertScriptRaise("x=0; q=11:20; for (y in seqAlong(q, 5)) x=x+y; x;", 24, "too many arguments supplied");
@@ -860,6 +867,27 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptRaise("for (i in matrix(1:3):matrix(5:7)) i;", 21, "must have size() == 1");
 	EidosAssertScriptSuccess_I("x = 0; for (i in seqAlong(matrix(1))) x=x+i; x;", 0);
 	EidosAssertScriptSuccess_I("x = 0; for (i in seqAlong(matrix(1:3))) x=x+i; x;", 3);
+	
+	// protection against changing loop index variables
+	EidosAssertScriptRaise("for (x in 1:10) x = 5;", 18, "cannot be redefined");
+	EidosAssertScriptRaise("for (x in 1:10) x[0] = 5;", 21, "cannot be redefined");
+	EidosAssertScriptRaise("for (x in 1:10) x = c(x, 5);", 18, "cannot be redefined");
+	EidosAssertScriptRaise("for (x in 1:10) x = x + 1;", 18, "cannot be redefined");
+	EidosAssertScriptRaise("for (x in 1:10) defineGlobal('x', 75);", 16, "cannot be redefined");
+	
+	// interaction between the loop index variable and outside code
+	EidosAssertScriptSuccess_I("x=0; y=100; for (y in 1:10) x=x+y; x;", 55);
+	EidosAssertScriptSuccess_I("x=0; y=10:20; for (y in 1:10) x=x+y; x;", 55);
+	EidosAssertScriptSuccess_I("x=0; for (y in 1:10) x=x+y; y=100; x;", 55);
+	EidosAssertScriptSuccess_L("x=0; for (y in 1:10) x=x+y; y==10;", true);
+	EidosAssertScriptRaise("x=0; defineConstant('y', 100); for (y in 1:10) x=x+y; x;", 36, "cannot be redefined");
+	EidosAssertScriptSuccess_I("x=0; defineGlobal('y', 100); for (y in 1:10) x=x+y; x;", 55);
+	
+	// multiple 'in' clauses
+	EidosAssertScriptSuccess_L("x = 0; y = 0; for (i in 1:10, j in 11:20) { x=x+i; y=y+j; } ((x == 55) & (y == 155));", true);
+	EidosAssertScriptSuccess_L("x = 0; y = 0; for (i in integer(0), j in float(0)) { x=x+i; y=y+j; } ((x == 0) & (y == 0));", true);
+	EidosAssertScriptRaise("x = 0; y = 0; for (i in 1:10, j in 11:21) ;", 14, "same number of iterations");
+	EidosAssertScriptSuccess_L("for (i in 1:3, j in c(_Test(1), _Test(2), _Test(3))) ; T;", true);
 }
 
 #pragma mark next

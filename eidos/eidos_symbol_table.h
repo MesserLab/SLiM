@@ -162,12 +162,13 @@ public:
 	bool ContainsSymbol_IsConstant(EidosGlobalStringID p_symbol_name, bool *p_is_const) const;
 	bool SymbolDefinedAnywhere(EidosGlobalStringID p_symbol_name) const;
 	
-	// Set as a variable (raises if already defined as a constant); the NoCopy version is *not* what you want, almost certainly (see it for comments)
+	// Set as a variable (raises if already defined as a constant)
 	void SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
-	void SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
+	void SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);			// *not* what you want, almost certainly
 	
 	// Set as a constant (raises if already defined as a variable or a constant); adds to the kEidosDefinedConstantsTable, creating it if necessary
 	void DefineConstantForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
+	void DefineConstantForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);	// *not* what you want, almost certainly
 	
 	// Set as a global (raises if already defined as a constant); adds to the kGlobalVariablesTable, or raises if that does not exist
 	void DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);

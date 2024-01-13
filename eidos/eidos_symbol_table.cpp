@@ -564,6 +564,74 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 	definedConstantsTable->InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value));
 }
 
+void EidosSymbolTable::DefineConstantForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
+{
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosSymbolTable::DefineConstantForSymbolNoCopy(): symbol table change");
+	
+	// So, this is a little weird.  DefineConstantForSymbol() copies the passed value, as explained in its comment above.
+	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
+	// values directly inside a value we just set in the symbol table.  Evaluate_For() is the worst offender in this
+	// because it wants to set up an index variable once and then munge its value directly each time through the loop,
+	// for speed.  For that special purpose, this function is provided.
+	//
+	// DO NOT USE THIS UNLESS YOU KNOW WHAT YOU'RE DOING!  It can lead to seriously weird behavior if used incorrectly.
+	if (p_value->Invisible())
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): (internal) no copy requested with invisible value." << EidosTerminate(nullptr);
+	
+	// First make sure this symbol is not in use as either a variable or a constant
+	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
+	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
+	if (SymbolDefinedAnywhere(p_symbol_name))
+		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' is already defined." << EidosTerminate(nullptr);
+	
+	// Search through our chain for a defined constants table; if we don't find one, add one
+	EidosSymbolTable *definedConstantsTable;
+	
+	for (definedConstantsTable = this; definedConstantsTable != nullptr; definedConstantsTable = definedConstantsTable->chain_symbol_table_)
+		if (definedConstantsTable->table_type_ == EidosSymbolTableType::kEidosDefinedConstantsTable)
+			break;
+	
+	if (!definedConstantsTable)
+	{
+		// Find the child of the intrinsic constants table, which should be a global variables table; it should not be a local variables table, because there should
+		// always be a global variables table above any local variables table; this is important, because local variables tables are transient, and we need the child
+		// of the intrinsic constants table to end up being the owner of the defined constants table
+		EidosSymbolTable *childTable;
+		
+		for (childTable = this; childTable != nullptr; childTable = childTable->parent_symbol_table_)
+			if (childTable->parent_symbol_table_ && childTable->parent_symbol_table_->table_type_ == EidosSymbolTableType::kEidosIntrinsicConstantsTable)
+				break;
+		
+		if (!childTable)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): (internal) could not find child symbol table of the intrinsic constants table." << EidosTerminate(nullptr);
+		if (childTable->table_type_ != EidosSymbolTableType::kGlobalVariablesTable)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineConstantForSymbolNoCopy): (internal) the child symbol table of the intrinsic constants table must be a global variables table." << EidosTerminate(nullptr);
+		
+		EidosSymbolTable *intrinsicConstantsTable = childTable->parent_symbol_table_;
+		
+		// Make a defined constants table and insert it in between; this table will be
+		// owned by childTable, which will free it whenever childTable is destructed
+		definedConstantsTable = new EidosSymbolTable(EidosSymbolTableType::kEidosDefinedConstantsTable, intrinsicConstantsTable);
+		childTable->parent_symbol_table_ = definedConstantsTable;
+		childTable->parent_symbol_table_owned_ = true;
+		childTable->chain_symbol_table_ = definedConstantsTable;
+		
+		// There may be intervening tables that chain up to the intrinsic constants table;
+		// they need to be fixed to now chain up to the defined constants table instead.
+		EidosSymbolTable *patchTable;
+		
+		for (patchTable = this; patchTable != definedConstantsTable; patchTable = patchTable->parent_symbol_table_)
+			if (patchTable->chain_symbol_table_ == intrinsicConstantsTable)
+				patchTable->chain_symbol_table_ = definedConstantsTable;
+	}
+	
+	// Now we have a private value, which we can mark as constant
+	p_value->MarkAsConstant();
+	
+	// Then ask the defined constants table to add the constant
+	definedConstantsTable->InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value));
+}
+
 void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosSymbolTable::DefineGlobalForSymbol(): symbol table change");

@@ -76,7 +76,6 @@ void EidosASTNode::OptimizeTree(void) const
 	_OptimizeConstants();		// cache values for numeric and string constants, and for return statements and constant compound statements
 	_OptimizeIdentifiers();		// cache unique IDs for identifiers using EidosStringRegistry::GlobalStringIDForString()
 	_OptimizeEvaluators();		// cache evaluator functions in cached_evaluator_ for fast node evaluation
-	_OptimizeFor();				// cache information about for loops that allows them to be accelerated at runtime
 	_OptimizeAssignments();		// cache information about assignments that allows simple increment/decrement assignments to be accelerated
 }
 
@@ -239,95 +238,6 @@ void EidosASTNode::_OptimizeEvaluators(void) const
 		default:
 			// Node types with no known evaluator method just don't get an cached evaluator
 			break;
-	}
-}
-
-void EidosASTNode::_OptimizeForScan(const std::string &p_for_index_identifier, uint8_t *p_references, uint8_t *p_assigns) const
-{
-	// recurse down the tree; determine our children, then ourselves
-	for (auto child : children_)
-		child->_OptimizeForScan(p_for_index_identifier, p_references, p_assigns);
-	
-	EidosTokenType token_type = token_->token_type_;
-	
-	if (token_type == EidosTokenType::kTokenIdentifier)
-	{
-		// if the identifier occurs anywhere in the subtree, that is a reference
-		if (token_->token_string_.compare(p_for_index_identifier) == 0)
-			*p_references = true;
-	}
-	else if (children_.size() >= 1)
-	{
-		if (token_type == EidosTokenType::kTokenAssign)
-		{
-			// if the identifier occurs anywhere on the left-hand side of an assignment, that is an assignment (overbroad, but whatever)
-			EidosASTNode *lvalue_node = children_[0];
-			uint8_t references = false, assigns = false;
-			
-			lvalue_node->_OptimizeForScan(p_for_index_identifier, &references, &assigns);
-			
-			if (references)
-				*p_assigns = true;
-		}
-		else if (token_type == EidosTokenType::kTokenFor)
-		{
-			// for loops assign into their index variable, so they are like an assignment statement
-			EidosASTNode *identifier_child = children_[0];
-			
-			if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-			{
-				if (identifier_child->token_->token_string_.compare(p_for_index_identifier) == 0)
-					*p_assigns = true;
-			}
-		}
-		else if (token_type == EidosTokenType::kTokenLParen)
-		{
-			// certain functions are unpredictable and must be assumed to reference and/or assign
-			EidosASTNode *function_name_node = children_[0];
-			EidosTokenType function_name_token_type = function_name_node->token_->token_type_;
-			
-			if (function_name_token_type == EidosTokenType::kTokenIdentifier)	// is it a function call, not a method call?
-			{
-				const std::string &function_name = function_name_node->token_->token_string_;
-				
-				if ((function_name.compare(gEidosStr_apply) == 0) || (function_name.compare(gEidosStr_sapply) == 0) || (function_name.compare(gEidosStr_executeLambda) == 0) || (function_name.compare(gEidosStr__executeLambda_OUTER) == 0) || (function_name.compare(gEidosStr_doCall) == 0) || (function_name.compare(gEidosStr_rm) == 0))
-				{
-					*p_references = true;
-					*p_assigns = true;
-				}
-				else if (function_name.compare(gEidosStr_ls) == 0)
-				{
-					*p_references = true;
-				}
-			}
-		}
-	}
-}
-
-void EidosASTNode::_OptimizeFor(void) const
-{
-	// recurse down the tree; determine our children, then ourselves
-	for (auto child : children_)
-		child->_OptimizeFor();
-	
-	EidosTokenType token_type = token_->token_type_;
-	
-	if ((token_type == EidosTokenType::kTokenFor) && (children_.size() == 3))
-	{
-		// This node is a for loop node.  We want to determine whether any node under this node:
-		//	1. is unpredictable (executeLambda, _executeLambda_OUTER, apply, sapply, rm, ls)
-		//	2. references our index variable
-		//	3. assigns to our index variable
-		EidosASTNode *identifier_child = children_[0];
-		EidosASTNode *statement_child = children_[2];
-		
-		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
-		{
-			cached_for_references_index_ = false;
-			cached_for_assigns_index_ = false;
-			
-			statement_child->_OptimizeForScan(identifier_child->token_->token_string_, &cached_for_references_index_, &cached_for_assigns_index_);
-		}
 	}
 }
 
