@@ -162,6 +162,21 @@ bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosVal
 // found in a "variables table".  Basically, if *either* condition is met - living in a constants table, or
 // being marked as constant in the EidosValue - modification should be blocked in all code paths.
 //
+// BCH 1/14/2024: And now there is a third kind of constness, for maximal confusion.  Being in a constant
+// symbol table means that the value for the symbol cannot be changed; you can't do "PI = 3;" because PI is
+// in a constants table.  Having the constant_ flag set in the EidosValue does not prevent that kind of
+// replacement, but only prevents modification of the value itself, such as by "x[0] = 3" or "x = x + 1"
+// or "x = c(x, y)" and similar constructs that Eidos implements rapidly by modifying the existing value.
+// Lots of pre-made and built-in constants in Eidos are marked with constant_ == true to make sure they
+// don't get munged, as well as signature default values, cached constant values, self symbols for objects,
+// etc.  The new third type of constant-ness is the iterator_var_ flag.  This is set for iterator variables
+// in for loops, which we want to be constant in the "symbol table" sense: you can't replace their value
+// with a new value, inside the for loop body.  But they can't be in a constants table, because they can't
+// have global scope; otherwise an iterator variable x would conflict with, e.g., a parameter named x to
+// a user-defined function called within the loop body.  If iterator_var_ == true, that value cannot be
+// replaced with a new value, but its scope is still local; it's a local constant, not a global constant,
+// which is something Eidos does not otherwise support.
+//
 // This macro checks for modification of a constant EidosValue.  It is active only in DEBUG builds, because
 // it represents an internal error -- modification of a constant value should be blocked prior to this check
 // in all code paths, so this is like an assert(), not the front-line defense.
