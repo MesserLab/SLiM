@@ -948,7 +948,12 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #endif
 					
 					current_mutrun_index = mutrun_index;
-					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutrun_context);
+					
+					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
+					// we created them empty, nobody has modified them but us, and we process each genome separately.
+					// However, using WillModifyRun() would generally be fine since we hit this call only once
+					// per mutrun per genome anyway, as long as the mutations are sorted by position.
+					current_mutrun = genome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1657,7 +1662,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 #endif
 					
 					current_mutrun_index = mutrun_index;
-					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutrun_context);
+					
+					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
+					// we created them empty, nobody has modified them but us, and we process each genome separately.
+					// However, using WillModifyRun() would generally be fine since we hit this call only once
+					// per mutrun per genome anyway, as long as the mutations are sorted by position.
+					current_mutrun = genome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -8375,7 +8385,10 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 					// When parallel, the MutationRunContext depends upon the position in the genome
 					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(run_index);
 #endif
-					MutationRun *mutrun = genome->WillModifyRun(run_index, mutrun_context);
+					
+					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
+					// we created them empty, nobody has modified them but us, and we process each genome separately.
+					MutationRun *mutrun = genome->WillModifyRun_UNSHARED(run_index, mutrun_context);
 					
 					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
 					{

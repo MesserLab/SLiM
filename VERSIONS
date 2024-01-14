@@ -16,6 +16,7 @@ development head (in the master branch):
 	broaden the for loop syntax in Eidos to allow multiple 'in' clauses, such as "for (i in 1:5, j in 6:10) ..."
 		as a side effect, for loop index variables are now constants until the loop has finished
 		to demonstrate the new syntax, recipes 10.5 and 19.7 have been modified to use it
+	fix #422: readFromPopulationFile() for .trees files in SLiM 4.1 hits a MUCH higher peak memory usage in some cases, due to over-copying of mutation runs
 	
 
 version 4.1 (Eidos version 3.1):

@@ -70,8 +70,8 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunC
 #endif
 	
 	// This method used to support in-place modification for mutruns with a use count of 1,
-	// saving the new mutation run allocation; but in practice that was not used, and it
-	// would be hard to support in the new multithreaded design, so we always make a new run
+	// saving the new mutation run allocation; this is now done only in WillModifyRun_UNSHARED().
+	// See the header comment for more information.
 	const MutationRun *original_run = mutruns_[p_run_index];
 	MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
 	
@@ -80,6 +80,40 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunC
 	
 	// We return a non-const pointer to the caller, giving them permission to modify this new run
 	return new_run;
+}
+
+MutationRun *Genome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
+{
+#if DEBUG
+	if (p_run_index >= mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun_UNSHARED): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
+#endif
+	
+	// This method avoids the new mutation run allocation, unless the mutation run is empty.
+	// This is based on a guarantee from the caller that the run is unshared (unless it is empty).
+	// See the header comment for more information.
+	const MutationRun *original_run = mutruns_[p_run_index];
+	
+	if (original_run->size() == 0)
+	{
+		MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
+		
+		new_run->copy_from_run(*original_run);
+		mutruns_[p_run_index] = new_run;
+		
+		// We return a non-const pointer to the caller, giving them permission to modify this new run
+		return new_run;
+	}
+	else
+	{
+		// We have been guaranteed by the caller that this mutation run is unshared, so we can cast away the const
+		MutationRun *unlocked_run = const_cast<MutationRun *>(original_run);
+		
+		unlocked_run->will_modify_run();	// in-place modification of runs requires notification, for cache invalidation
+		
+		// We return a non-const pointer to the caller, giving them permission to modify this run
+		return unlocked_run;
+	}
 }
 
 void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
@@ -2979,8 +3013,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	slim_position_t last_position = species.TheChromosome().last_position_;
 	bool recording_mutations = species.RecordingTreeSequenceMutations();
 	bool nucleotide_based = species.IsNucleotideBased();
-	
-	// Get the target genomes into a vector
 	int target_size = p_target->Count();
 	
 	// SPECIES CONSISTENCY CHECK
@@ -3181,6 +3213,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 #endif
 					
 					current_run_index = mut_mutrun_index;
+					
+					// We use WillModifyRun() because these are existing genomes we didn't create, and their runs may be shared; we have
+					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per genome.
 					current_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
 				}
 				
@@ -3764,6 +3799,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
 #endif
 					
+					// We use WillModifyRun() because these are existing genomes we didn't create, and their runs may be shared; we have
+					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per genome.
 					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
 					genome_last_mutrun_modified = mut_mutrun_index;
 				}
