@@ -181,6 +181,7 @@ protected:
 	
 	const EidosValueType cached_type_;						// allows Type() to be an inline function; cached at construction (uint8_t)
 	unsigned int constant_ : 1;								// if set, this EidosValue is a constant and cannot be modified
+	unsigned int iterator_var_ : 1;							// if set, this EidosValue cannot be replaced by a different value in a variable
 	unsigned int invisible_ : 1;							// as in R; if true, the value will not normally be printed to the console
 	unsigned int registered_for_patching_ : 1;				// used by EidosValue_Object, otherwise UNINITIALIZED; declared here for reasons of memory packing
 	unsigned int class_uses_retain_release_ : 1;			// used by EidosValue_Object, otherwise UNINITIALIZED; cached from UsesRetainRelease() of class_; true until class_ is set
@@ -196,7 +197,7 @@ public:
 	EidosValue& operator=(const EidosValue&) = delete;		// no copying
 	EidosValue(void) = delete;								// no null constructor
 	
-	inline EidosValue(EidosValueType p_value_type) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), invisible_(false), dim_(nullptr)
+	inline EidosValue(EidosValueType p_value_type) : intrusive_ref_count_(0), cached_type_(p_value_type), constant_(false), iterator_var_(false), invisible_(false), dim_(nullptr)
 	{
 #ifdef EIDOS_TRACK_VALUE_ALLOCATION
 		valueTrackingCount++;
@@ -227,6 +228,11 @@ public:
 	inline __attribute__((always_inline)) void MarkAsConstant(void) { constant_ = true; }
 	inline __attribute__((always_inline)) void MarkAsMutable(void) { constant_ = false; }		// very dangerous, do not use
 	inline __attribute__((always_inline)) bool IsConstant(void) const { return constant_; }
+	
+	// iterator-variable-ness; this is used by for loops to prevent the values in iterator variables from being replaced
+	inline __attribute__((always_inline)) void MarkAsIteratorVariable(void) { iterator_var_ = true; }
+	inline __attribute__((always_inline)) void MarkAsNonIteratorVariable(void) { iterator_var_ = false; }
+	inline __attribute__((always_inline)) bool IsIteratorVariable(void) const { return iterator_var_; }
 	
 	virtual int Count(void) const = 0;			// the only real casualty of removing the singleton/vector distinction: this is now a virtual function
 	virtual const std::string &ElementType(void) const = 0;	// the type of the elements contained by the vector

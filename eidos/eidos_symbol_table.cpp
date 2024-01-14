@@ -674,6 +674,13 @@ void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, 
 	else
 	{
 		// set the value into the already used slot; no linked list maintenance needed
+		
+		// this is the one place where SymbolTable is aware of the IsIteratorVariable() flag, because
+		// we need to prevent a conflict at the global level, which is hard to do in external code.
+		// Consider this check to have been done by the caller, in terms of API semantics.
+		if (global_variables_table->slots_[p_symbol_name].symbol_value_SP_->IsIteratorVariable())
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::DefineGlobalForSymbol): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+		
 		global_variables_table->slots_[p_symbol_name].symbol_value_SP_ = std::move(p_value);
 	}
 }

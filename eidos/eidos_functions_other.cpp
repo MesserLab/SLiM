@@ -246,6 +246,7 @@ EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineGlobal): defineGlobal() can only accept object classes that are under retain/release memory management internally; class " << x_value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
 	}
 	
+	// this checks IsIteratorVariable() on an existing global value for us
 	symbols.DefineGlobalForSymbol(symbol_id, x_value_sp);
 	
 	return gStaticEidosValueVOID;

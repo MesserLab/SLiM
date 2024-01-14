@@ -874,6 +874,7 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptRaise("for (x in 1:10) x = c(x, 5);", 18, "cannot be redefined");
 	EidosAssertScriptRaise("for (x in 1:10) x = x + 1;", 18, "cannot be redefined");
 	EidosAssertScriptRaise("for (x in 1:10) defineGlobal('x', 75);", 16, "cannot be redefined");
+	EidosAssertScriptRaise("for (x in 1:10) for (x in 2:5) y = 1;", 21, "cannot be redefined");
 	
 	// interaction between the loop index variable and outside code
 	EidosAssertScriptSuccess_I("x=0; y=100; for (y in 1:10) x=x+y; x;", 55);
@@ -882,6 +883,7 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptSuccess_L("x=0; for (y in 1:10) x=x+y; y==10;", true);
 	EidosAssertScriptRaise("x=0; defineConstant('y', 100); for (y in 1:10) x=x+y; x;", 36, "cannot be redefined");
 	EidosAssertScriptSuccess_I("x=0; defineGlobal('y', 100); for (y in 1:10) x=x+y; x;", 55);
+	EidosAssertScriptSuccess_I("function (integer$)foo(integer$ i) { return i+1; } x=0; for (i in 1:5) x = x + foo(i); x;", 20);
 	
 	// multiple 'in' clauses
 	EidosAssertScriptSuccess_L("x = 0; y = 0; for (i in 1:10, j in 11:20) { x=x+i; y=y+j; } ((x == 55) & (y == 155));", true);

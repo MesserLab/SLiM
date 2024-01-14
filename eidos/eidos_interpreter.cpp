@@ -566,7 +566,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 			
 			// Check for a constant symbol table.  Note that _AssignRValueToLValue() will check for a constant EidosValue.
 			// The work of checking constness is divided between these methods for historical reasons.
-			if (identifier_is_const)
+			if (identifier_is_const || identifier_value->IsIteratorVariable())
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): identifier '" << EidosStringRegistry::StringForGlobalStringID(p_parent_node->cached_stringID_) << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
 			
 			// BCH 12/21/2023: We used to munge singletons into vectors here, because we didn't have the tools to modify the
@@ -795,6 +795,15 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 		case EidosTokenType::kTokenIdentifier:
 		{
 			EIDOS_ASSERT_CHILD_COUNT_X(p_lvalue_node, "identifier", "EidosInterpreter::_AssignRValueToLValue", 0, nullptr);
+			
+			// Check for an lvalue that is a loop iterator, which cannot be changed
+			if (global_symbols_->ContainsSymbol(p_lvalue_node->cached_stringID_))
+			{
+				EidosValue *existing_value = global_symbols_->GetValueRawOrRaiseForSymbol(p_lvalue_node->cached_stringID_);
+				
+				if (existing_value->IsIteratorVariable())
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << p_lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(nullptr);
+			}
 			
 			// Simple identifier; the symbol host is the global symbol table, at least for now
 			global_symbols_->SetValueForSymbol(p_lvalue_node->cached_stringID_, std::move(p_rvalue));
@@ -3612,9 +3621,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
 		
 		// Check for a constant value.  If either the EidosValue or the table it comes from is constant, there is an error.
-		// (I'm not sure the check on constness of the EidosValue itself is correct, but I can't think of a way that that
-		// could be true here without the table also being a constants table anyway... being cautious until proved wrong...)
-		if (is_const || lvalue_SP->IsConstant())
+		if (is_const || lvalue_SP->IsConstant() || lvalue_SP->IsIteratorVariable())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(p_node->token_);
 		
 		EidosValue *lvalue = lvalue_SP.get();
@@ -3752,6 +3759,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// as above, we will try to modify the value of x in place if we can, which should be safe in this context
 		EidosASTNode *lvalue_node = p_node->children_[0];
 		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode(lvalue_node);
+		
+		// Check for an lvalue that is a loop iterator, which cannot be changed
+		if (lvalue_SP->IsIteratorVariable())
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(p_node->token_);
+		
 		EidosASTNode *call_node = p_node->children_[1];
 		EidosASTNode *rvalue_node = call_node->children_[2];	// "c" is [0], "x" is [1], "y" is [2]
 		EidosValue_SP rvalue_SP = FastEvaluateNode(rvalue_node);
@@ -5410,7 +5422,9 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		// check for a constant up front, to give a better error message with the token highlighted
 		if (global_symbols_->ContainsSymbol_IsConstant(identifier_name, &is_const))
 		{
-			if (is_const)
+			EidosValue *existing_value = global_symbols_->GetValueRawOrRaiseForSymbol(identifier_name);
+			
+			if (is_const || existing_value->IsIteratorVariable())
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): identifier '" << identifier_child->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(identifier_child->token_);
 		}
 		
@@ -5614,8 +5628,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						loop_handler.iterator_type = EidosValueType::kValueInt;
 						loop_handler.iterator_data = index_value->data_mutable();
 						
-						// make a constant for the loop index variable; but not that we have a mutable pointer to its data
-						global_symbols_->DefineConstantForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+						// make a constant for the loop index variable; but note that we have a mutable pointer to its data
+						// the MarkAsConstant() call marks the *value* as constant, so it can't be modified with, e.g.,
+						// x[0] = 7, whereas the MarkAsIteratorVariable() call marks the value as not being allowed to be
+						// replaced by a new value with, e.g., x = 7; making an actual constant in the constants symbol table
+						// is a no-go because it would prevent user-defined functions from using the same variable name
+						global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+						loop_handler.iterator_variable->MarkAsConstant();
+						loop_handler.iterator_variable->MarkAsIteratorVariable();
 					}
 					else
 					{
@@ -5658,8 +5678,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): (internal error) unexpected range value type in for loop." << EidosTerminate(p_node->token_);
 						}
 						
-						// make a constant for the loop index variable; but not that we have a mutable pointer to its data
-						global_symbols_->DefineConstantForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+						// make a constant for the loop index variable; but note that we have a mutable pointer to its data
+						// the MarkAsConstant() call marks the *value* as constant, so it can't be modified with, e.g.,
+						// x[0] = 7, whereas the MarkAsIteratorVariable() call marks the value as not being allowed to be
+						// replaced by a new value with, e.g., x = 7; making an actual constant in the constants symbol table
+						// is a no-go because it would prevent user-defined functions from using the same variable name
+						global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
+						loop_handler.iterator_variable->MarkAsConstant();
+						loop_handler.iterator_variable->MarkAsIteratorVariable();
 					}
 					else
 					{
@@ -5789,9 +5815,8 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			
 			if (loop_handler.iterator_variable)
 			{
-				global_symbols_->RemoveConstantForSymbol(loop_handler.identifier_name);
-				global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
 				loop_handler.iterator_variable->MarkAsMutable();
+				loop_handler.iterator_variable->MarkAsNonIteratorVariable();
 			}
 		}
 		
@@ -5805,9 +5830,8 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 		
 		if (loop_handler.iterator_variable)
 		{
-			global_symbols_->RemoveConstantForSymbol(loop_handler.identifier_name);
-			global_symbols_->SetValueForSymbolNoCopy(loop_handler.identifier_name, loop_handler.iterator_variable);
 			loop_handler.iterator_variable->MarkAsMutable();
+			loop_handler.iterator_variable->MarkAsNonIteratorVariable();
 		}
 	}
 	
