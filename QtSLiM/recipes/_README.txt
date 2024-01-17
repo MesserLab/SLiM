@@ -8,7 +8,7 @@ SLiM's manual contains full explanations of each recipe, in the corresponding se
 
 These recipes were all created by Ben Haller, except recipe 5.4, created by Aaron Sams and Chase W. Nelson.
 
-All recipes are copyright (c) 2016-2023 Philipp Messer.  All rights reserved.
+All recipes are copyright (c) 2016-2024 Philipp Messer.  All rights reserved.
 They are products of the Messer Lab, http://messerlab.org/slim/
 
 All of these recipes are a part of SLiM.
