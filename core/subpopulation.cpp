@@ -4393,6 +4393,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
 
+		case gID_deviatePositions:		return ExecuteMethod_deviatePositions(p_method_id, p_arguments, p_interpreter);
 		case gID_pointDeviated:			return ExecuteMethod_pointDeviated(p_method_id, p_arguments, p_interpreter);
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_interpreter);
@@ -4581,7 +4582,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 			species_.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 		}
 		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
 		
 		if (defer)
@@ -4743,7 +4744,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
 		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent1);
 		
 		if (defer)
@@ -5287,7 +5288,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
 		
-		// BCH 9/26/2023: inherit the spatial position of pedigree_parent1 by default, to set up for pointDeviated()
+		// BCH 9/26/2023: inherit the spatial position of pedigree_parent1 by default, to set up for deviatePositions()/pointDeviated()
 		// Note that, unlike other addX() methods, the first parent is not necessarily defined; in that case, the
 		// spatial position of the offspring is left uninitialized.
 		if (pedigree_parent1)
@@ -5616,7 +5617,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
 		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
 		
 		if (defer)
@@ -5880,11 +5881,397 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)deviatePositions(No<Individual> individuals, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	// NOTE: most of the code of this method is shared with pointDeviated()
+	
+	SLiMCycleStage cycle_stage = community_.CycleStage();
+	
+	// TIMING RESTRICTION
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositions): deviatePositions() may only be called from a first(), early(), or late() event." << EidosTerminate();
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositions): deviatePositions() may not be called from inside a callback." << EidosTerminate();
+	
+	int dimensionality = species_.SpatialDimensionality();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): deviatePositions() cannot be called in non-spatial simulations." << EidosTerminate();
+	
+	EidosValue *individuals_value = p_arguments[0].get();
+	Individual * const *individuals;
+	int individuals_count;
+	
+	if (individuals_value->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL requests that the positions of all individuals in the subpop should be deviated
+		if (child_generation_valid_)
+		{
+			individuals = child_individuals_.data();
+			individuals_count = child_subpop_size_;
+		}
+		else
+		{
+			individuals = parent_individuals_.data();
+			individuals_count = parent_subpop_size_;
+		}
+	}
+	else
+	{
+		individuals = (Individual * const *)individuals_value->ObjectData();
+		individuals_count = individuals_value->Count();
+	}
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[1].get();
+	const std::string &boundary_str = boundary_value->StringRefAtIndex_NOCAST(0, nullptr);
+	BoundaryCondition boundary;
+	
+	if (boundary_str.compare("none") == 0)
+		boundary = BoundaryCondition::kNone;
+	else if (boundary_str.compare("stopping") == 0)
+		boundary = BoundaryCondition::kStopping;
+	else if (boundary_str.compare("reflecting") == 0)
+		boundary = BoundaryCondition::kReflecting;
+	else if (boundary_str.compare("reprising") == 0)
+		boundary = BoundaryCondition::kReprising;
+	else if (boundary_str.compare("periodic") == 0)
+		boundary = BoundaryCondition::kPeriodic;
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): unrecognized boundary condition '" << boundary_str << "'." << EidosTerminate();
+	
+	// Periodic boundaries are a bit complicated.  If only some dimensions are periodic, 'none' will be used
+	// for the non-periodic boundaries, and the user can then use pointReflected(), pointStopped(), etc. to
+	// enforce a boundary condition on those dimensions.
+	bool periodic_x = false, periodic_y = false, periodic_z = false;
+	
+	if (boundary == BoundaryCondition::kPeriodic)
+	{
+		// Since periodic boundaries depend upon the species configuration, we require all individuals to belong to the target species here
+		// In other cases, it doesn't seem necessary to enforce this, and it might be useful to be able to violate it
+		if (community_.SpeciesForIndividualsVector(individuals, individuals_count) != &species_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): deviatePositions() requires that all individuals belong to the same species as the target subpopulation, when periodic boundaries are requested." << EidosTerminate();
+		
+		species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+		
+		if (!periodic_x && !periodic_y && !periodic_z)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): deviatePositions() cannot apply periodic boundary conditions in a model without periodic boundaries." << EidosTerminate();
+	}
+	
+	EidosValue *maxDistance_value = p_arguments[2].get();
+	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
+	
+	SpatialKernel kernel(dimensionality, max_distance, p_arguments, 3, /* p_expect_max_density */ false);	// uses our arguments starting at index 3
+	
+	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
+	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
+	// overhead of drawing a displacement from the kernel, which requires a random number draw.  I tested doing
+	// a special-case here for dimensionality==2, boundary==1 (stopping), kernel.kernel_type==kNormal,
+	// maxDistance==INF, and it clocked at 6.47 seconds versus 7.85 seconds for the unoptimized code below;
+	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
+	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
+	// are common, though.
+	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
+	{
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		double stddev = kernel.kernel_param2_;
+		double bx0 = bounds_x0_, bx1 = bounds_x1_;
+		double by0 = bounds_y0_, by1 = bounds_y1_;
+		
+		if (boundary == BoundaryCondition::kStopping)
+		{
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				
+				a0 = std::max(bx0, std::min(bx1, a0));
+				a1 = std::max(by0, std::min(by1, a1));
+				
+				ind->spatial_x_ = a0;
+				ind->spatial_y_ = a1;
+			}
+		}
+		else if (boundary == BoundaryCondition::kReflecting)
+		{
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				
+				while (true)
+				{
+					if (a0 < bx0) a0 = bx0 + (bx0 - a0);
+					else if (a0 > bx1) a0 = bx1 - (a0 - bx1);
+					else break;
+				}
+				while (true)
+				{
+					if (a1 < by0) a1 = by0 + (by0 - a1);
+					else if (a1 > by1) a1 = by1 - (a1 - by1);
+					else break;
+				}
+				
+				ind->spatial_x_ = a0;
+				ind->spatial_y_ = a1;
+			}
+		}
+		else if (boundary == BoundaryCondition::kReprising)
+		{
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a0_original = ind->spatial_x_;
+				double a1_original = ind->spatial_y_;
+				
+			reprise_specialcase:
+				double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
+				double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+				
+				if ((a0 < bx0) || (a0 > bx1) ||
+					(a1 < by0) || (a1 > by1))
+					goto reprise_specialcase;
+				
+				ind->spatial_x_ = a0;
+				ind->spatial_y_ = a1;
+			}
+		}
+		else if (boundary == BoundaryCondition::kPeriodic)
+		{
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				
+				// (note periodic_x and periodic_y are required to be true above)
+				while (a0 < 0.0)	a0 += bx1;
+				while (a0 > bx1)	a0 -= bx1;
+				while (a1 < 0.0)	a1 += by1;
+				while (a1 > by1)	a1 -= by1;
+				
+				ind->spatial_x_ = a0;
+				ind->spatial_y_ = a1;
+			}
+		}
+		return gStaticEidosValueVOID;
+	}
+	
+	switch (dimensionality)
+	{
+		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a[1];
+				
+			reprise_1:
+				kernel.DrawDisplacement_S1(a);
+				a[0] += ind->spatial_x_;
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kNone:
+						break;
+					case BoundaryCondition::kStopping:
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						break;
+					case BoundaryCondition::kReflecting:
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						break;
+					case BoundaryCondition::kReprising:
+						if ((a[0] < bx0) || (a[0] > bx1))
+							goto reprise_1;
+						break;
+					case BoundaryCondition::kPeriodic:			// (periodic_x must be true)
+						while (a[0] < 0.0)	a[0] += bx1;
+						while (a[0] > bx1)	a[0] -= bx1;
+						break;
+				}
+				
+				ind->spatial_x_ = a[0];
+			}
+			break;
+		}
+		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a[2];
+				
+			reprise_2:
+				kernel.DrawDisplacement_S2(a);
+				a[0] += ind->spatial_x_;
+				a[1] += ind->spatial_y_;
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kNone:
+						break;
+					case BoundaryCondition::kStopping:
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						a[1] = std::max(by0, std::min(by1, a[1]));
+						break;
+					case BoundaryCondition::kReflecting:
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[1] < by0) a[1] = by0 + (by0 - a[1]);
+							else if (a[1] > by1) a[1] = by1 - (a[1] - by1);
+							else break;
+						}
+						break;
+					case BoundaryCondition::kReprising:
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1))
+							goto reprise_2;
+						break;
+					case BoundaryCondition::kPeriodic:
+						if (periodic_x)
+						{
+							while (a[0] < 0.0)	a[0] += bx1;
+							while (a[0] > bx1)	a[0] -= bx1;
+						}
+						if (periodic_y)
+						{
+							while (a[1] < 0.0)	a[1] += by1;
+							while (a[1] > by1)	a[1] -= by1;
+						}
+						break;
+				}
+				
+				ind->spatial_x_ = a[0];
+				ind->spatial_y_ = a[1];
+			}
+			break;
+		}
+		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			double bz0 = bounds_z0_, bz1 = bounds_z1_;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a[3];
+				
+			reprise_3:
+				kernel.DrawDisplacement_S3(a);
+				a[0] += ind->spatial_x_;
+				a[1] += ind->spatial_y_;
+				a[2] += ind->spatial_z_;
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kNone:
+						break;
+					case BoundaryCondition::kStopping:
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						a[1] = std::max(by0, std::min(by1, a[1]));
+						a[2] = std::max(bz0, std::min(bz1, a[2]));
+						break;
+					case BoundaryCondition::kReflecting:
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[1] < by0) a[1] = by0 + (by0 - a[1]);
+							else if (a[1] > by1) a[1] = by1 - (a[1] - by1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[2] < bz0) a[2] = bz0 + (bz0 - a[2]);
+							else if (a[2] > bz1) a[2] = bz1 - (a[2] - bz1);
+							else break;
+						}
+						break;
+					case BoundaryCondition::kReprising:
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1) ||
+							(a[2] < bz0) || (a[2] > bz1))
+							goto reprise_3;
+						break;
+					case BoundaryCondition::kPeriodic:
+						if (periodic_x)
+						{
+							while (a[0] < 0.0)	a[0] += bx1;
+							while (a[0] > bx1)	a[0] -= bx1;
+						}
+						if (periodic_y)
+						{
+							while (a[1] < 0.0)	a[1] += by1;
+							while (a[1] > by1)	a[1] -= by1;
+						}
+						if (periodic_z)
+						{
+							while (a[2] < 0.0)	a[2] += bz1;
+							while (a[2] > bz1)	a[2] -= bz1;
+						}
+						break;
+				}
+				
+				ind->spatial_x_ = a[0];
+				ind->spatial_y_ = a[1];
+				ind->spatial_z_ = a[2];
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): (internal error) unrecognized dimensionality." << EidosTerminate();
+	}
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	– (float)pointDeviated(integer$ n, float point, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	// NOTE: most of the code of this method is shared with deviatePositions()
 	
 	int dimensionality = species_.SpatialDimensionality();
 	
@@ -8234,6 +8621,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskVOID))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));

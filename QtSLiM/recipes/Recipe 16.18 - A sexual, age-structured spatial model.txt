@@ -44,13 +44,11 @@ early() {
 	sim.killIndividuals(c(inds4[death4], inds5[death5], inds6));
 	
 	// disperse prior to density-dependence
-	inds = p1.individuals;
-	pos = inds.spatialPosition;
-	pos = p1.pointDeviated(inds.size(), pos, "reprising", INF, "n", 0.02);
-	inds.setSpatialPosition(pos);
+	p1.deviatePositions(NULL, "reprising", INF, "n", 0.02);
 	
 	// spatial competition provides density-dependent selection
 	i1.evaluate(p1);
+	inds = p1.individuals;
 	competition = i1.localPopulationDensity(inds);
 	inds.fitnessScaling = K / competition;
 }

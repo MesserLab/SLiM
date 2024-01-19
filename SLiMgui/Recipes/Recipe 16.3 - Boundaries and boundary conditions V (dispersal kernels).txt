@@ -19,10 +19,7 @@ initialize() {
 }
 1: late() {
 	// Dispersal and boundary enforcement
-	inds = p1.individuals;
-	pos = inds.spatialPosition;
-	pos = p1.pointDeviated(inds.size(), pos, "reprising", INF, "n", 0.02);
-	inds.setSpatialPosition(pos);
+	p1.deviatePositions(NULL, "reprising", INF, "n", 0.02);
 	
 	// Evaluate for competition
 	i1.evaluate(p1);

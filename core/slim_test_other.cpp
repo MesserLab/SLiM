@@ -1231,106 +1231,120 @@ void _RunContinuousSpaceTests(void)
 						{
 							for (int kernel = 0; kernel <= 4; kernel++)
 							{
-								if ((boundary == 3) && (!periodic))		// with periodic bounds, use only periodic boundary condition
-									continue;
-								if ((boundary != 3) && periodic)		// with non-periodic bounds, do not use periodic boundary condition
-									continue;
-								if ((dimcount == 3) && (kernel == 4))	// in 3D, do not use Student's t displacement; not implemented
-									continue;
-								
-								std::string model_string = "initialize() { ";
-								
-								if (dimcount == 1)
+								for (int use_deviate_positions = 0; use_deviate_positions <= 2; ++use_deviate_positions)
 								{
-									if (periodic)
-										model_string.append("initializeSLiMOptions(dimensionality='x', periodicity='x'); ");
-									else
-										model_string.append("initializeSLiMOptions(dimensionality='x'); ");
-								}
-								else if (dimcount == 2)
-								{
-									if (periodic)
-										model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
-									else
-										model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
-								}
-								else
-								{
-									if (periodic)
-										model_string.append("initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); ");
-									else
-										model_string.append("initializeSLiMOptions(dimensionality='xyz'); ");
-								}
-								
-								if (sex_enabled)
-									model_string.append("initializeSex('A'); ");
-								
-								model_string.append("} 1 early() { sim.addSubpop('p1', 500); ");
-								
-								if (dimcount == 1)
-								{
-									if (periodic)
-										model_string.append("p1.setSpatialBounds(c(0.0, 6.2)); ");
-									else
-										model_string.append("p1.setSpatialBounds(c(1.8, 6.2)); ");
-								}
-								else if (dimcount == 2)
-								{
-									if (periodic)
-										model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
-									else
-										model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 1.9, 6.2)); ");
-								}
-								else
-								{
-									if (periodic)
-										model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.9, 6.2, 11.4)); ");
-									else
-										model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 0.7, 1.9, 6.2, 11.4)); ");
-								}
-								
-								model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); ");
-								
-								if (cloning_selfing)
-									model_string.append("p1.setCloningRate(0.2); if (!sim.sexEnabled) p1.setSelfingRate(0.2); ");
-								
-								model_string.append("} early() { defineGlobal('PARENT_POS', p1.individuals.spatialPosition); } ");
-								
-								if (callbacks)
-								{
+									if ((boundary == 3) && (!periodic))		// with periodic bounds, use only periodic boundary condition
+										continue;
+									if ((boundary != 3) && periodic)		// with non-periodic bounds, do not use periodic boundary condition
+										continue;
+									if ((dimcount == 3) && (kernel == 4))	// in 3D, do not use Student's t displacement; not implemented
+										continue;
+									
+									std::string model_string = "initialize() { ";
+									
 									if (dimcount == 1)
-										model_string.append("modifyChild() { if (child.x != parent1.x) stop('child does not match parent!'); return T; } ");
+									{
+										if (periodic)
+											model_string.append("initializeSLiMOptions(dimensionality='x', periodicity='x'); ");
+										else
+											model_string.append("initializeSLiMOptions(dimensionality='x'); ");
+									}
 									else if (dimcount == 2)
-										model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y)) stop('child does not match parent!'); return T; } ");
+									{
+										if (periodic)
+											model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
+										else
+											model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
+									}
 									else
-										model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y) | (child.z != parent1.z)) stop('child does not match parent!'); return T; } ");
+									{
+										if (periodic)
+											model_string.append("initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); ");
+										else
+											model_string.append("initializeSLiMOptions(dimensionality='xyz'); ");
+									}
+									
+									if (sex_enabled)
+										model_string.append("initializeSex('A'); ");
+									
+									model_string.append("} 1 early() { sim.addSubpop('p1', 500); ");
+									
+									if (dimcount == 1)
+									{
+										if (periodic)
+											model_string.append("p1.setSpatialBounds(c(0.0, 6.2)); ");
+										else
+											model_string.append("p1.setSpatialBounds(c(1.8, 6.2)); ");
+									}
+									else if (dimcount == 2)
+									{
+										if (periodic)
+											model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
+										else
+											model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 1.9, 6.2)); ");
+									}
+									else
+									{
+										if (periodic)
+											model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.9, 6.2, 11.4)); ");
+										else
+											model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 0.7, 1.9, 6.2, 11.4)); ");
+									}
+									
+									model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); ");
+									
+									if (cloning_selfing)
+										model_string.append("p1.setCloningRate(0.2); if (!sim.sexEnabled) p1.setSelfingRate(0.2); ");
+									
+									model_string.append("} early() { defineGlobal('PARENT_POS', p1.individuals.spatialPosition); } ");
+									
+									if (callbacks)
+									{
+										if (dimcount == 1)
+											model_string.append("modifyChild() { if (child.x != parent1.x) stop('child does not match parent!'); return T; } ");
+										else if (dimcount == 2)
+											model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y)) stop('child does not match parent!'); return T; } ");
+										else
+											model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y) | (child.z != parent1.z)) stop('child does not match parent!'); return T; } ");
+									}
+									
+									model_string.append("late() { inds = p1.individuals; pos = inds.spatialPosition; ");
+									model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
+									
+									if (use_deviate_positions == 0)
+										model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
+									else if (use_deviate_positions == 1)
+										model_string.append("p1.deviatePositions(NULL, ");
+									else if (use_deviate_positions == 2)
+										model_string.append("p1.deviatePositions(inds, ");
+									
+									switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
+									{
+										case 0: model_string.append("'stopping'"); break;
+										case 1: model_string.append("'reflecting'"); break;
+										case 2: model_string.append("'reprising'"); break;
+										case 3: model_string.append("'periodic'"); break;
+									}
+									
+									switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
+									{
+										case 0: model_string.append(", 0.1, 'f')"); break;
+										case 1: model_string.append(", 0.1, 'l')"); break;
+										case 2: model_string.append(", INF, 'e', 10.0)"); break;
+										case 3: model_string.append(", INF, 'n', 0.1)"); break;
+										case 4: model_string.append(", INF, 't', 2.0, 0.1)"); break;
+									}
+									
+									if (use_deviate_positions == 0)
+										model_string.append("); ");
+									else
+										model_string.append("; ");
+									
+									model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+									model_string.append("} 10 late() {} ");
+									
+									SLiMAssertScriptSuccess(model_string);
 								}
-								
-								model_string.append("late() { inds = p1.individuals; pos = inds.spatialPosition; ");
-								model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
-								model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
-								
-								switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
-								{
-									case 0: model_string.append("'stopping'"); break;
-									case 1: model_string.append("'reflecting'"); break;
-									case 2: model_string.append("'reprising'"); break;
-									case 3: model_string.append("'periodic'"); break;
-								}
-								
-								switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
-								{
-									case 0: model_string.append(", 0.1, 'f')); "); break;
-									case 1: model_string.append(", 0.1, 'l')); "); break;
-									case 2: model_string.append(", INF, 'e', 10.0)); "); break;
-									case 3: model_string.append(", INF, 'n', 0.1)); "); break;
-									case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
-								}
-								
-								model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
-								model_string.append("} 10 late() {} ");
-								
-								SLiMAssertScriptSuccess(model_string);
 							}
 						}
 					}

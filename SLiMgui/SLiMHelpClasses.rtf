@@ -8451,6 +8451,8 @@ Also beginning in SLiM 4.1, in spatial models the spatial position of the offspr
 \f4\fs20  property in 2D/3D models, and the 
 \f3\fs18 z
 \f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 4.1.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 deviatePositions()
+\f4\fs20  / 
 \f3\fs18 pointDeviated()
 \f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
@@ -8590,6 +8592,8 @@ Also beginning in SLiM 4.1, in spatial models the spatial position of the offspr
 \f4\fs20  property in 2D/3D models, and the 
 \f3\fs18 z
 \f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 4.1.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 deviatePositions()
+\f4\fs20  / 
 \f3\fs18 pointDeviated()
 \f4\fs20 .\
 Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
@@ -8927,6 +8931,8 @@ Also beginning in SLiM 4.1, in spatial models the spatial position of the offspr
 \f4\fs20  property in 2D/3D models, and the 
 \f3\fs18 z
 \f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 4.1.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 deviatePositions()
+\f4\fs20  / 
 \f3\fs18 pointDeviated()
 \f4\fs20 .  If 
 \f3\fs18 parent1
@@ -9002,6 +9008,8 @@ Also beginning in SLiM 4.1, in spatial models the spatial position of the offspr
 \f4\fs20  property in 2D/3D models, and the 
 \f3\fs18 z
 \f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 4.1.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 deviatePositions()
+\f4\fs20  / 
 \f3\fs18 pointDeviated()
 \f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
@@ -9260,6 +9268,56 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)deviatePositions(No<Individual>\'a0individuals, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Deviates the spatial positions of the individuals supplied in 
+\f3\fs18 individuals
+\f4\fs20 , using the provided boundary condition and dispersal kernel.  If 
+\f3\fs18 individuals
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , the positions of all individuals in the target subpopulation are deviated.  This method is essentially a more efficient shorthand for getting the spatial positions of 
+\f3\fs18 individuals
+\f4\fs20  from the 
+\f3\fs18 spatialPosition
+\f4\fs20  property, deviating those positions with 
+\f3\fs18 pointDeviated()
+\f4\fs20 , and setting the deviated positions back into 
+\f3\fs18 individuals
+\f4\fs20  with the 
+\f3\fs18 setSpatialPosition()
+\f4\fs20  method.  The boundary condition 
+\f3\fs18 boundary
+\f4\fs20  must be one of 
+\f3\fs18 "none"
+\f4\fs20 , 
+\f3\fs18 "periodic"
+\f4\fs20 , 
+\f3\fs18 "reflecting"
+\f4\fs20 , 
+\f3\fs18 "stopping"
+\f4\fs20 , or 
+\f3\fs18 "reprising"
+\f4\fs20 , and the spatial kernel type 
+\f3\fs18 functionType
+\f4\fs20  must be one of 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , or 
+\f3\fs18 "t"
+\f4\fs20 , with the ellipsis parameters 
+\f3\fs18 ...
+\f4\fs20  supplying kernel configuration parameters appropriate for that kernel type; see 
+\f3\fs18 pointDeviated()
+\f4\fs20  for further details.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
@@ -9443,7 +9501,9 @@ The parameters
 \f3\fs18 ...
 \f4\fs20 , as detailed below) and then applying a boundary condition specified by 
 \f3\fs18 boundary
-\f4\fs20 .  This method therefore performs the steps of a simple dispersal algorithm in a single vectorized call.\
+\f4\fs20 .  This method therefore performs the steps of a simple dispersal algorithm in a single vectorized call.  See 
+\f3\fs18 deviatePositions()
+\f4\fs20  for an even more efficient approach.\
 The parameter 
 \f3\fs18 point
 \f4\fs20  may contain a single point which is deviated and bounded 
@@ -9598,13 +9658,15 @@ The boundary condition must be one of
 \f4\fs20  methods; see their documentation for further details.  For 
 \f3\fs18 "reprising"
 \f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.  Note that absorbing boundaries (for which being out-of-bounds is lethal) would be implemented in script; this method cannot enforce them.\
-In the typical usage case, 
+Note that for the typical usage case, in which 
 \f3\fs18 point
 \f4\fs20  comes from the 
 \f3\fs18 spatialPosition
 \f4\fs20  property for a vector of individuals, and the result is then set back onto the same vector of individuals using the 
 \f3\fs18 setSpatialPosition()
-\f4\fs20  method; however, this method might be useful in other situations too.\
+\f4\fs20  method, the 
+\f3\fs18 deviatePositions()
+\f4\fs20  method provides an even more efficient alternative.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(logical)pointInBounds(float\'a0point)

@@ -17,6 +17,7 @@ development head (in the master branch):
 		as a side effect, for loop index variables are now constants until the loop has finished
 		to demonstrate the new syntax, recipes 10.5 and 19.7 have been modified to use it
 	fix #422: readFromPopulationFile() for .trees files in SLiM 4.1 hits a MUCH higher peak memory usage in some cases, due to over-copying of mutation runs
+	add deviatePositions() method to Subpopulation for even faster offspring positioning than with pointDeviated(); revise recipes 16.3 and 16.8 to use it
 	
 
 version 4.1 (Eidos version 3.1):
