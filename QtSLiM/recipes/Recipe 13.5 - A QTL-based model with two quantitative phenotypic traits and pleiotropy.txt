@@ -1,5 +1,19 @@
 // Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting, mutation()
 
+function (void)updatePlot(void) {
+	if (exists("slimgui"))
+	{
+		title = "Adaptive Walk";
+		slimgui.plotCreate(title, xrange=c(-5,25), yrange=c(-25,5));
+		slimgui.plotText(title, 0, 4, "start", size=15);
+		slimgui.plotText(title, 20, -24, "optimum", size=15);
+		slimgui.plotPoints(title, 0, 0, symbol=21, color="red", size=3.0);
+		slimgui.plotPoints(title, 20, -20, symbol=21, color="green", size=3.0);
+		slimgui.plotLines(title, HIST[,0], HIST[,1], "black");
+		slimgui.plotPoints(title, HIST[,0], HIST[,1], 16, "black", size=0.5);
+	}
+}
+
 initialize() {
 	initializeMutationRate(1e-7);
 	
@@ -30,27 +44,12 @@ initialize() {
 	print(QTL_mu);
 	catn("\nQTL DFE variance-covariance matrix: ");
 	print(QTL_sigma);
-	
-	// find Rscript
-	if (fileExists("/usr/bin/Rscript"))
-		defineConstant("RSCRIPT", "/usr/bin/Rscript");
-	else if (fileExists("/usr/local/bin/Rscript"))
-		defineConstant("RSCRIPT", "/usr/local/bin/Rscript");
-	else
-		stop("Couldn't find Rscript.");
 }
 
 1 late() {
 	sim.addSubpop("p1", 500);
-}
-
-1 late() {
-	sim.setValue("history", matrix(c(0.0, 0.0), nrow=1));
-	defineConstant("pngPath", writeTempFile("plot_", ".png", ""));
-	
-	// If we're running in SLiMgui, open a plot window
-	if (exists("slimgui"))
-		slimgui.openDocument(pngPath);
+	defineGlobal("HIST", matrix(c(0.0, 0.0), nrow=1));
+	updatePlot();
 }
 
 mutation(m2) {
@@ -99,25 +98,8 @@ late() {
 	catn("Mean phenotype 1: " + p1_mean + " (" + QTL_optima[1] + ")");
 	
 	// update our plot
-	history = sim.getValue("history");
-	history = rbind(history, c(p0_mean, p1_mean));
-	sim.setValue("history", history);
-	
-	rstr = paste('{',
-		'x <- c(' + paste(history[,0], sep=", ") + ')',
-		'y <- c(' + paste(history[,1], sep=", ") + ')',
-		'png(width=4, height=4, units="in", res=72, file="' + pngPath + '")',
-		'par(mar=c(4.0, 4.0, 1.5, 1.5))',
-		'plot(x=c(-10,30), y=c(-30,10), type="n", xlab="x", ylab="y")',
-		'points(x=0,y=0,col="red", pch=19, cex=2)',
-		'points(x=20,y=-20,col="green", pch=19, cex=2)',
-		'points(x=x, y=y, col="black", pch=19, cex=0.5)',
-		'lines(x=x, y=y)',
-		'dev.off()',
-		'}', sep="\n");
-	
-	scriptPath = writeTempFile("plot_", ".R", rstr);
-	system(RSCRIPT, args=scriptPath);
+	defineGlobal("HIST", rbind(HIST, c(p0_mean, p1_mean)));
+	updatePlot();
 	
 	// keep running until we get within 10% of both optima
 	if ((abs(p0_mean - QTL_optima[0]) > abs(0.1 * QTL_optima[0])) |

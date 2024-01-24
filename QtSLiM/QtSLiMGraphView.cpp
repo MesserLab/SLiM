@@ -41,6 +41,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 #include "species.h"
 #include "subpopulation.h"
@@ -1335,6 +1336,142 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 		xAxisMajorTickModulus_ = 2;
 		xAxisTickValuePrecision_ = 0;
 	}
+}
+
+void QtSLiMGraphView::configureAxisForRange(double minValue, double maxValue, double &axisMin, double &axisMax,
+                                            double &majorTickInterval, double &minorTickInterval,
+                                            int &majorTickModulus, int &tickValuePrecision)
+{
+    // This method tries to come up with a plausible axis range for any arbitrary range of values
+    // it is limited by the capabilities of our axis plotting -- the first tick drawn must be a major tick (with label),
+    // for example -- so the results are not always ideal, but it seems to basically do ok for now
+    
+    // First of all, how far apart are the min and max?
+    double width = maxValue - minValue;
+    
+    if (width == 0)
+    {
+        if (minValue > 0)
+            width = pow(10.0, floor(log10(minValue)));  // base the width on the scale of the value
+        else
+            width = 1;                                  // if the value is <= 0, just use a width of 1.0
+    }
+    
+    //qDebug() << "minValue ==" << minValue << ", maxValue ==" << maxValue << ", width ==" << width;
+    
+    // That gives us a power of 10 that will be our basic interval between ticks; width will span >= 1 of these intervals
+    int powerOf10 = (int)floor(log10(width) - 0.0000000001);
+    double tickInterval = pow(10.0, powerOf10);
+    
+    tickValuePrecision = (powerOf10 < 0) ? -powerOf10 : 0;
+    
+    //qDebug() << "powerOf10 ==" << powerOf10 << ", tickInterval ==" << tickInterval << ", tickValuePrecision ==" << tickValuePrecision;
+    
+    // Round the axis min/max to the next lower/higher tick interval value
+    axisMin = floor(minValue / tickInterval) * tickInterval;
+    axisMax = ceil(maxValue / tickInterval) * tickInterval;
+    
+    if ((axisMin == minValue) && ((axisMin < 0) || (axisMin >= tickInterval)))
+        axisMin -= tickInterval;
+    if ((axisMax == maxValue) && ((axisMax > 0) || (axisMax <= -tickInterval)))
+        axisMax += tickInterval;
+    
+    if (axisMin == axisMax)
+    {
+        axisMin -= 1;
+        axisMax += 1;
+    }
+    
+    //qDebug() << "axisMin ==" << axisMin << ", axisMax ==" << axisMax;
+    
+    // Normally we like tick intervals that are a power of 10, but sometimes that pushes the whole range to one side or the other
+    // a range of [2, 104] becomes an axis range of [0, 200]; we would like that case to become [0, 150] with an interval of 50
+    if ((minValue > axisMin + (axisMax - axisMin) * 0.20) && (minValue > axisMin + tickInterval * 0.56))
+    {
+        tickInterval /= 2;
+        axisMin += tickInterval;
+        if (powerOf10 <= 0)
+            tickValuePrecision++;
+    }
+    else if ((maxValue < axisMin + (axisMax - axisMin) * 0.80) && (maxValue < axisMax - tickInterval * 0.56))
+    {
+        tickInterval /= 2;
+        axisMax -= tickInterval;
+        if (powerOf10 <= 0)
+            tickValuePrecision++;
+    }
+    
+    //qDebug() << "half-adjusted axisMin ==" << axisMin << ", axisMax ==" << axisMax;
+    
+    // How many tick intervals are there between the lowest and the highest?
+    int tickIntervalCount = (int)round((axisMax - axisMin) / tickInterval);
+    
+    //qDebug() << "initial tickIntervalCount ==" << tickIntervalCount << ", tickInterval ==" << tickInterval;
+    
+    // Try to decrease the number of ticks by merging adjacent ticks
+    while ((tickIntervalCount % 2 == 0) && (tickIntervalCount > 4))
+    {
+        tickIntervalCount /= 2;
+        tickInterval *= 2;
+    }
+    while ((tickIntervalCount % 3 == 0) && (tickIntervalCount > 6))
+    {
+        tickIntervalCount /= 3;
+        tickInterval *= 3;
+    }
+    while ((tickIntervalCount % 5 == 0) && (tickIntervalCount > 10))
+    {
+        tickIntervalCount /= 5;
+        tickInterval *= 5;
+    }
+    
+    // If necessary, merge adjacent ticks even without dividing evenly; we don't want more than 5 tick intervals
+    while (tickIntervalCount > 5)
+    {
+        tickIntervalCount = (int)ceil(tickIntervalCount / 2);
+        tickInterval *= 2;
+    }
+    
+    //qDebug() << "final tickIntervalCount ==" << tickIntervalCount << ", tickInterval ==" << tickInterval;
+    
+    switch (tickIntervalCount)
+    {
+    case 1:
+    {
+        majorTickInterval = tickInterval;
+        minorTickInterval = tickInterval / 0.5;
+        majorTickModulus = 2;
+        break;
+    }
+    case 2:
+    {
+        majorTickInterval = tickInterval * 2;
+        minorTickInterval = tickInterval;
+        majorTickModulus = 2;
+        break;
+    }
+    case 3:
+    {
+        majorTickInterval = tickInterval * 3;
+        minorTickInterval = tickInterval;
+        majorTickModulus = 3;
+        break;
+    }
+    case 4:
+    {
+        majorTickInterval = tickInterval * 2;
+        minorTickInterval = tickInterval;
+        majorTickModulus = 2;
+        break;
+    }
+    case 5:
+    {
+        majorTickInterval = tickInterval * 5;
+        minorTickInterval = tickInterval;
+        majorTickModulus = 5;
+        break;
+    }
+    }
 }
 
 QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray)

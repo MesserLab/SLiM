@@ -1449,6 +1449,10 @@ const std::string &gStr_slimgui = EidosRegisteredString("slimgui", gID_slimgui);
 const std::string &gStr_pid = EidosRegisteredString("pid", gID_pid);
 const std::string &gStr_openDocument = EidosRegisteredString("openDocument", gID_openDocument);
 const std::string &gStr_pauseExecution = EidosRegisteredString("pauseExecution", gID_pauseExecution);
+const std::string &gStr_plotCreate = EidosRegisteredString("plotCreate", gID_plotCreate);
+const std::string &gStr_plotLines = EidosRegisteredString("plotLines", gID_plotLines);
+const std::string &gStr_plotPoints = EidosRegisteredString("plotPoints", gID_plotPoints);
+const std::string &gStr_plotText = EidosRegisteredString("plotText", gID_plotText);
 const std::string &gStr_configureDisplay = EidosRegisteredString("configureDisplay", gID_configureDisplay);
 
 // mostly SLiM element types

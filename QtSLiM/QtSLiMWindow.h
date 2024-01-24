@@ -232,6 +232,10 @@ public:
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
+    void eidos_plotCreate(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height);
+    void eidos_plotLines(QString title, double *x_values, double *y_values, int data_count, std::vector<QColor> *color, std::vector<double> *lwd);
+    void eidos_plotPoints(QString title, double *x_values, double *y_values, int data_count, std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border, std::vector<double> *lwd, std::vector<double> *size);
+    void eidos_plotText(QString title, double *x_values, double *y_values, std::vector<QString> *labels, int data_count, std::vector<QColor> *color, std::vector<double> *size, double *adj);
     
 signals:
     void terminationWithMessage(QString message, EidosErrorContext errorContext);
@@ -330,7 +334,7 @@ protected:
     virtual void resizeEvent(QResizeEvent *p_event) override;
     virtual void showEvent(QShowEvent *p_event) override;
     void positionNewSubsidiaryWindow(QWidget *window);
-    QWidget *graphWindowWithView(QtSLiMGraphView *graphView);
+    QWidget *graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth=300, double windowHeight=300);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
     
     // used to suppress saving of resize/position info until we are fully constructed
@@ -361,6 +365,7 @@ protected:
 private:
     void glueUI(void);
     void invalidateUI(void);
+    QtSLiMGraphView *graphViewWithTitle(QString title);
     
     Ui::QtSLiMWindow *ui;
 };

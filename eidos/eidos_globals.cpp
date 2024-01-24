@@ -4641,7 +4641,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
 		}
 	}
-	else
+	else if (p_color_name.length() > 0)
 	{
 		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
 		{
@@ -4655,7 +4655,10 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
+	if (p_color_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color strings may not be zero-length." << EidosTerminate();
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
 }
 
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component)
@@ -4679,7 +4682,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
 		}
 	}
-	else
+	else if (p_color_name.length() > 0)
 	{
 		for (EidosNamedColor *color_table = gEidosNamedColors; color_table->name; ++color_table)
 		{
@@ -4693,7 +4696,10 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
+	if (p_color_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color strings may not be zero-length." << EidosTerminate();
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
 }
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)

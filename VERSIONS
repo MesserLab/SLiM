@@ -18,6 +18,7 @@ development head (in the master branch):
 		to demonstrate the new syntax, recipes 10.5 and 19.7 have been modified to use it
 	fix #422: readFromPopulationFile() for .trees files in SLiM 4.1 hits a MUCH higher peak memory usage in some cases, due to over-copying of mutation runs
 	add deviatePositions() method to Subpopulation for even faster offspring positioning than with pointDeviated(); revise recipes 16.3 and 16.8 to use it
+	add basic custom plotting capabilities to SLiMgui, through the slimgui object, with new methods plotCreate(), plotLines(), plotPoints(), and plotText(); revise recipe 13.5 to demonstrate this capability
 	
 
 version 4.1 (Eidos version 3.1):

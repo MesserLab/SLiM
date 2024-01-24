@@ -48,6 +48,7 @@
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
 #include "QtSLiMGraphView_MultispeciesPopSizeOverTime.h"
 #include "QtSLiMHaplotypeManager.h"
+#include "QtSLiMGraphView_CustomPlot.h"
 
 #include <QCoreApplication>
 #include <QFontDatabase>
@@ -936,6 +937,27 @@ void QtSLiMWindow::invalidateUI(void)
         if (child_widget && child_widget->isVisible() && (child_widget->windowFlags() & Qt::Window))
             child_widget->close();
     }
+}
+
+QtSLiMGraphView *QtSLiMWindow::graphViewWithTitle(QString title)
+{
+    // This searches through our child views for a graph window with the requested title
+    const QObjectList &child_objects = children();
+    
+    for (QObject *child_object : child_objects)
+    {
+        QWidget *child_widget = qobject_cast<QWidget *>(child_object);
+        
+        if (child_widget && child_widget->isVisible() && (child_widget->windowFlags() & Qt::Window))
+        {
+            QtSLiMGraphView *graphView = graphViewForGraphWindow(child_widget);
+            
+            if (graphView && (graphView->graphTitle() == title))
+                return graphView;
+        }
+    }
+    
+    return nullptr;
 }
 
 const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
@@ -4397,6 +4419,140 @@ void QtSLiMWindow::eidos_pauseExecution(void)
 	}
 }
 
+void QtSLiMWindow::eidos_plotCreate(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height)
+{
+    QtSLiMGraphView *graphView = graphViewWithTitle(title);
+    QtSLiMGraphView_CustomPlot *customPlot = nullptr;
+    QWidget *graphWindow = nullptr;
+    bool createdWindow = false;
+    
+    if (graphView)
+    {
+        customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
+        
+        if (!customPlot)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+        
+        graphWindow = graphView->window();
+    }
+    else
+    {
+        customPlot = new QtSLiMGraphView_CustomPlot(this, this);
+        
+        // width/height are 0 if they were NULL in the Eidos call; supply the default size here
+        if (width == 0)
+            width = 300;
+        
+        if (height == 0)
+            height = 300;
+        
+        if ((width < 250) || (height < 250))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): plotCreate() requires the window width and height to be at least 250 pixels." << EidosTerminate(nullptr);
+        
+        graphWindow = graphWindowWithView(customPlot, width, height);
+        createdWindow = true;
+    }
+    
+    if (customPlot && graphWindow)
+    {
+        customPlot->controllerRecycled();
+        customPlot->setTitle(title);
+        customPlot->setXLabel(x_label);
+        customPlot->setYLabel(y_label);
+        customPlot->setAxisRanges(x_range, y_range);
+        
+        if (createdWindow)
+        {
+            graphWindow->show();
+            graphWindow->raise();
+            graphWindow->activateWindow();
+            qDebug("created window");
+        }
+    }
+    else
+    {
+        qApp->beep();
+    }
+}
+
+void QtSLiMWindow::eidos_plotLines(QString title, double *x_values, double *y_values, int data_count, std::vector<QColor> *color, std::vector<double> *lwd)
+{
+    QtSLiMGraphView *graphView = graphViewWithTitle(title);
+    QtSLiMGraphView_CustomPlot *customPlot = nullptr;
+    QWidget *graphWindow = nullptr;
+    
+    if (graphView)
+    {
+        customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
+        
+        if (!customPlot)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLines): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+        
+        graphWindow = graphView->window();
+    }
+    else
+    {
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLines): no plot window exists with the given title.  Plotting must begin with a call to plotCreate(), to create the initial plot window." << EidosTerminate(nullptr);
+    }
+    
+    if (customPlot && graphWindow)
+        customPlot->addLineData(x_values, y_values, data_count, color, lwd);     // gives buffers to the graph window
+    else
+        qApp->beep();
+}
+
+void QtSLiMWindow::eidos_plotPoints(QString title, double *x_values, double *y_values, int data_count, std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border, std::vector<double> *lwd, std::vector<double> *size)
+{
+    QtSLiMGraphView *graphView = graphViewWithTitle(title);
+    QtSLiMGraphView_CustomPlot *customPlot = nullptr;
+    QWidget *graphWindow = nullptr;
+    
+    if (graphView)
+    {
+        customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
+        
+        if (!customPlot)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotPoints): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+        
+        graphWindow = graphView->window();
+    }
+    else
+    {
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotPoints): no plot window exists with the given title.  Plotting must begin with a call to plotCreate(), to create the initial plot window." << EidosTerminate(nullptr);
+    }
+    
+    if (customPlot && graphWindow)
+        customPlot->addPointData(x_values, y_values, data_count, symbol, color, border, lwd, size);     // gives buffers to the graph window
+    else
+        qApp->beep();
+}
+
+void QtSLiMWindow::eidos_plotText(QString title, double *x_values, double *y_values, std::vector<QString> *labels, int data_count, std::vector<QColor> *color, std::vector<double> *size, double *adj)
+{
+    QtSLiMGraphView *graphView = graphViewWithTitle(title);
+    QtSLiMGraphView_CustomPlot *customPlot = nullptr;
+    QWidget *graphWindow = nullptr;
+    
+    if (graphView)
+    {
+        customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
+        
+        if (!customPlot)
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotText): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+        
+        graphWindow = graphView->window();
+    }
+    else
+    {
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotText): no plot window exists with the given title.  Plotting must begin with a call to plotCreate(), to create the initial plot window." << EidosTerminate(nullptr);
+    }
+    
+    if (customPlot && graphWindow)
+        customPlot->addTextData(x_values, y_values, labels, data_count, color, size, adj);     // gives buffers to the graph window
+    else
+        qApp->beep();
+}
+
 
 //
 //  change tracking and the recycle button
@@ -5585,7 +5741,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     return image_window;
 }
 
-QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
+QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth, double windowHeight)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
@@ -5595,7 +5751,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
     
     graph_window->setWindowTitle(title);
     graph_window->setMinimumSize(250, 250);
-    graph_window->resize(300, 300);
+    graph_window->resize(windowWidth, windowHeight);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     graph_window->setWindowIcon(QIcon());

@@ -122,6 +122,9 @@ protected:
     // Prefab additions
     QString dateline(void);
     void setXAxisRangeFromTick(void);
+    void configureAxisForRange(double minValue, double maxValue, double &axisMin, double &axisMax,
+                               double &majorTickInterval, double &minorTickInterval,
+                               int &majorTickModulus, int &tickValuePrecision);
     QtSLiMLegendSpec subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray);
     QtSLiMLegendSpec mutationTypeLegendKey(void);
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);

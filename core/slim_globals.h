@@ -1039,6 +1039,10 @@ extern const std::string &gStr_slimgui;
 extern const std::string &gStr_pid;
 extern const std::string &gStr_openDocument;
 extern const std::string &gStr_pauseExecution;
+extern const std::string &gStr_plotCreate;
+extern const std::string &gStr_plotLines;
+extern const std::string &gStr_plotPoints;
+extern const std::string &gStr_plotText;
 extern const std::string &gStr_configureDisplay;
 
 extern const std::string &gStr_Chromosome;
@@ -1439,6 +1443,10 @@ enum _SLiMGlobalStringID : int {
 	gID_pid,
 	gID_openDocument,
 	gID_pauseExecution,
+	gID_plotCreate,
+	gID_plotLines,
+	gID_plotPoints,
+	gID_plotText,
 	gID_configureDisplay,
 	
 	gID_Chromosome,
