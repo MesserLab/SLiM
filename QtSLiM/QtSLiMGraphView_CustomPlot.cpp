@@ -138,16 +138,16 @@ void QtSLiMGraphView_CustomPlot::setAxisRanges(double *x_range, double *y_range)
     }
 }
 
-void QtSLiMGraphView_CustomPlot::dataRange(std::vector<double *> &data, double *p_min, double *p_max)
+void QtSLiMGraphView_CustomPlot::dataRange(std::vector<double *> &data_vector, double *p_min, double *p_max)
 {
     // This method accumulates the min/max for the range of our data, in either x or y
     // It excludes NAN and INF values from the range; such values are not plotted
     double min = std::numeric_limits<double>::infinity();
     double max = -std::numeric_limits<double>::infinity();
     
-    for (int data_index = 0; data_index < (int)data.size(); ++data_index)
+    for (int data_index = 0; data_index < (int)data_vector.size(); ++data_index)
     {
-        double *point_data = data[data_index];
+        double *point_data = data_vector[data_index];
         int point_count = data_count_[data_index];
         
         for (int point_index = 0; point_index < point_count; ++point_index)
@@ -259,7 +259,7 @@ QString QtSLiMGraphView_CustomPlot::graphTitle(void)
 
 QString QtSLiMGraphView_CustomPlot::aboutString(void)
 {
-    return "The Custom Plot graph type displays user-provided data that is supplied ";
+    return "The Custom Plot graph type displays user-provided data that is supplied "
            "in script with calls to plotLines(), plotPoints(), and plotText().";
 }
 
@@ -630,7 +630,6 @@ void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRec
                 symbolFillPath.closeSubpath();
                 painter.fillPath(symbolFillPath, symbolColor);
                 painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
-                symbolFillPath.clear();
                 break;
             }
             case 25:     // triangle filled and stroked pointing down
@@ -642,7 +641,6 @@ void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRec
                 symbolFillPath.closeSubpath();
                 painter.fillPath(symbolFillPath, symbolColor);
                 painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
-                symbolFillPath.clear();
                 break;
             }
             default:        // other symbols draw nothing
