@@ -237,6 +237,9 @@ public:
     void eidos_plotPoints(QString title, double *x_values, double *y_values, int data_count, std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border, std::vector<double> *lwd, std::vector<double> *size);
     void eidos_plotText(QString title, double *x_values, double *y_values, std::vector<QString> *labels, int data_count, std::vector<QColor> *color, std::vector<double> *size, double *adj);
     
+    void plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count);
+    void plotLogFileData_2D(QString title, QString x_title, QString y_title, double *x_values, double *y_values, int data_count, bool makeScatterPlot);
+    
 signals:
     void terminationWithMessage(QString message, EidosErrorContext errorContext);
     void playStateChanged(void);

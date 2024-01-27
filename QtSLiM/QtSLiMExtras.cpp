@@ -39,6 +39,7 @@
 #include <QAbstractTextDocumentLayout>
 #include <QPalette>
 #include <QApplication>
+#include <QDateTime>
 #include <QDebug>
 #include <cmath>
 
@@ -653,6 +654,14 @@ QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharForm
     format.setBackground(fractionColor);
     
 	return byteString;
+}
+
+QString slimDateline(void)
+{
+    QDateTime dateTime = QDateTime::currentDateTime();
+    QString dateTimeString = dateTime.toString("M/d/yy, h:mm:ss AP");        // format: 3/28/20, 8:03:09 PM
+    
+    return QString("# %1").arg(dateTimeString);
 }
 
 // Running a panel to obtain numbers from the user

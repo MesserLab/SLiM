@@ -120,7 +120,6 @@ protected:
     QComboBox *newButtonInLayout(QHBoxLayout *layout);
     
     // Prefab additions
-    QString dateline(void);
     void setXAxisRangeFromTick(void);
     void configureAxisForRange(double minValue, double maxValue, double &axisMin, double &axisMax,
                                double &majorTickInterval, double &minorTickInterval,

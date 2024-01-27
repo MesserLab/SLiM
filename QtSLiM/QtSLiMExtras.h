@@ -21,6 +21,7 @@
 #define QTSLIMEXTRAS_H
 
 #include <QObject>
+#include <QString>
 #include <QWidget>
 #include <QColor>
 #include <QRect>
@@ -119,6 +120,9 @@ QColor slimColorForFraction(double fraction);
 // Nicely formatted memory usage strings
 QString stringForByteCount(uint64_t bytes);
 QString attributedStringForByteCount(uint64_t bytes, double total, QTextCharFormat &format);
+
+// Nicely formatted dateline for output
+QString slimDateline(void);
 
 // Running a panel to obtain numbers from the user
 QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStringList captions, QStringList values);

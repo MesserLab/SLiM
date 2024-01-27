@@ -27,6 +27,7 @@ class QCloseEvent;
 class QtSLiMWindow;
 class QtSLiMTextEdit;
 class QTableWidget;
+class QTableWidgetItem;
 
 
 namespace Ui {
@@ -69,6 +70,7 @@ private slots:
     virtual void closeEvent(QCloseEvent *p_event) override;
     void clearOutputPressed(void);
     void clearOutputReleased(void);
+    void logFileRightClick(const QPoint &pos);
     
 private:
     Ui::QtSLiMDebugOutputWindow *ui;

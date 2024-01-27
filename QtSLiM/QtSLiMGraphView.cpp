@@ -939,7 +939,7 @@ QString QtSLiMGraphView::stringForData(void)
 	
     string.append(graphTitle());
     string.append("\n");
-    string.append(dateline());
+    string.append(slimDateline());
     string.append("\n\n");
     
     appendStringForData(string);
@@ -948,14 +948,6 @@ QString QtSLiMGraphView::stringForData(void)
     string.replace(", \n", "\n");
     
     return string;
-}
-
-QString QtSLiMGraphView::dateline(void)
-{
-    QDateTime dateTime = QDateTime::currentDateTime();
-    QString dateTimeString = dateTime.toString("M/d/yy, h:mm:ss AP");        // format: 3/28/20, 8:03:09 PM
-    
-	return QString("# %1").arg(dateTimeString);
 }
 
 void QtSLiMGraphView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)

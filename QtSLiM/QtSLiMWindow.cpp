@@ -4553,6 +4553,54 @@ void QtSLiMWindow::eidos_plotText(QString title, double *x_values, double *y_val
         qApp->beep();
 }
 
+void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count)
+{
+    // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
+    eidos_plotCreate(title, nullptr, nullptr, "time", y_title, 0, 0);
+    
+    double *x_values = (double *)malloc(data_count * sizeof(double));
+    for (int i = 0; i < data_count; ++i)
+        x_values[i] = i;
+    
+    std::vector<QColor> *color = new std::vector<QColor>;
+    color->emplace_back(255, 0, 0, 255);
+    
+    std::vector<double> *lwd = new std::vector<double>;
+    lwd->push_back(1.5);
+    
+    eidos_plotLines(title, x_values, y_values, data_count, color, lwd);     // takes buffers from us
+}
+
+void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_title, double *x_values, double *y_values, int data_count, bool makeScatterPlot)
+{
+    // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
+    eidos_plotCreate(title, nullptr, nullptr, x_title, y_title, 0, 0);
+    
+    std::vector<QColor> *color = new std::vector<QColor>;
+    color->emplace_back(0, 0, 0, 255);
+    
+    std::vector<double> *lwd = new std::vector<double>;
+    lwd->push_back(1.0);
+    
+    if (makeScatterPlot)
+    {
+        std::vector<int> *symbol = new std::vector<int>;
+        symbol->push_back(16);
+        
+        std::vector<QColor> *border = new std::vector<QColor>;
+        border->emplace_back(0, 0, 0, 255);
+        
+        std::vector<double> *size = new std::vector<double>;
+        size->push_back(0.5);
+        
+        eidos_plotPoints(title, x_values, y_values, data_count, symbol, color, border, lwd, size);      // takes buffers from us
+    }
+    else
+    {
+        eidos_plotLines(title, x_values, y_values, data_count, color, lwd);                             // takes buffers from us
+    }
+}
+
 
 //
 //  change tracking and the recycle button
