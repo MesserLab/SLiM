@@ -35,6 +35,7 @@
 #include <QtGlobal>
 #include <QMessageBox>
 #include <QLabel>
+#include <QPainterPath>
 #include <QDebug>
 
 #include <map>
@@ -712,7 +713,7 @@ QSize QtSLiMGraphView::legendSize(QPainter &painter)
 	
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
-        QString labelString = legendEntry.first;
+        QString labelString = legendEntry.label;
         QRect labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
         
         legend_size.setWidth(std::max(legend_size.width(), 0 + (legendRowHeight - 6) + 5 + labelBoundingBox.width()));
@@ -730,15 +731,46 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRect legendRect)
     
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
-        QRect swatchRect(legendRect.x(), legendRect.y() + ((legendEntryCount - 1) * legendRowHeight - 3) - idx * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
-        QString labelString = legendEntry.first;
-        QColor entryColor = legendEntry.second;
+        QRect drawingRect(legendRect.x(), legendRect.y() + ((legendEntryCount - 1) * legendRowHeight - 3) - idx * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+        QString labelString = legendEntry.label;
         
-        painter.fillRect(swatchRect, entryColor);
-        QtSLiMFrameRect(swatchRect, Qt::black, painter);
-        
-        double labelX = swatchRect.x() + swatchRect.width() + 5;
-        double labelY = swatchRect.y() + 1;
+        switch (legendEntry.entry_type)
+        {
+        case QtSLiM_LegendEntryType::kSwatch:
+        {
+            QColor swatchColor = legendEntry.swatch_color;
+            
+            painter.fillRect(drawingRect, swatchColor);
+            QtSLiMFrameRect(drawingRect, Qt::black, painter);
+            break;
+        }
+        case QtSLiM_LegendEntryType::kLine:
+        {
+            double lineWidth = legendEntry.line_lwd;
+            QColor lineColor = legendEntry.line_color;
+            QPainterPath linePath;
+            QPen linePen(lineColor, lineWidth);
+            double y = SLIM_SCREEN_ROUND(drawingRect.center().y()) + 0.5;
+            
+            linePen.setCapStyle(Qt::FlatCap);
+            
+            linePath.moveTo(drawingRect.left(), y);
+            linePath.lineTo(drawingRect.right() + 1, y);
+            painter.strokePath(linePath, linePen);
+            break;
+        }
+        case QtSLiM_LegendEntryType::kPoint:
+        {
+            drawPointSymbol(painter, drawingRect.center().x(), drawingRect.center().y(),
+                            legendEntry.point_symbol, legendEntry.point_color, legendEntry.point_border,
+                            legendEntry.point_lwd, legendEntry.point_size);
+            break;
+        }
+        default: break;
+        }
+
+        double labelX = drawingRect.x() + drawingRect.width() + 5;
+        double labelY = drawingRect.y() + 1;
         
         labelY = painter.transform().map(QPointF(labelX, labelY)).y();
         
@@ -763,12 +795,19 @@ void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interior
 		const int legendMargin = 10;
 		QRect legendRect(0, 0, legendWidth + legendMargin + legendMargin, legendHeight + legendMargin + legendMargin);
 		
-		// Position the legend in the upper right, for now; this should be configurable
-		legendRect.moveLeft(interiorRect.x() + interiorRect.width() - (legendRect.width() + 2));
-		legendRect.moveTop(interiorRect.y() + interiorRect.height() - (legendRect.height() + 2));
-		
-		// Frame the legend and erase it with a slightly translucent wash
-        painter.fillRect(legendRect, QtSLiMColorWithWhite(0.95, 0.9));
+		// Position the legend in the chosen corner
+        if ((legend_position_ == QtSLiM_LegendPosition::kTopLeft) || (legend_position_ == QtSLiM_LegendPosition::kTopRight))
+            legendRect.moveTop(interiorRect.y() + interiorRect.height() - (legendRect.height() + 2));
+        else if ((legend_position_ == QtSLiM_LegendPosition::kBottomLeft) || (legend_position_ == QtSLiM_LegendPosition::kBottomRight))
+            legendRect.moveTop(interiorRect.y() + 1);
+        
+        if ((legend_position_ == QtSLiM_LegendPosition::kTopRight) || (legend_position_ == QtSLiM_LegendPosition::kBottomRight))
+            legendRect.moveLeft(interiorRect.x() + interiorRect.width() - (legendRect.width() + 2));
+        else if ((legend_position_ == QtSLiM_LegendPosition::kTopLeft) || (legend_position_ == QtSLiM_LegendPosition::kBottomLeft))
+            legendRect.moveLeft(interiorRect.x() + 1);
+        
+		// Frame the legend and erase it with a slightly gray wash
+        painter.fillRect(legendRect, QtSLiMColorWithWhite(0.95, 1.0));
         QtSLiMFrameRect(legendRect, QtSLiMColorWithWhite(0.3, 1.0), painter);
 		
 		// Inset and draw the legend content
@@ -1509,22 +1548,308 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
     
     QtSLiMLegendSpec legend_key;
     
-    // first we put in placeholders
-    legend_key.resize(graphSpecies->mutation_types_.size());
+    // first we put in placeholders, of swatch type
+    std::map<slim_objectid_t,MutationType*> &mutTypes = graphSpecies->mutation_types_;
+    
+    for (size_t index = 0; index < mutTypes.size(); ++index)
+        legend_key.emplace_back("placeholder", QColor());
     
     // then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-    for (auto mutationTypeIter : graphSpecies->mutation_types_)
+    for (auto mutationTypeIter : mutTypes)
     {
         MutationType *mutationType = mutationTypeIter.second;
         int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
         QString labelString = QString("m%1").arg(mutationType->mutation_type_id_);
         QtSLiMLegendEntry &entry = legend_key[static_cast<size_t>(mutationTypeIndex)];
         
-        entry.first = labelString;
-        entry.second = controller_->blackContrastingColorForIndex(mutationTypeIndex);
+        entry.label = labelString;
+        entry.swatch_color = controller_->blackContrastingColorForIndex(mutationTypeIndex);
     }
     
     return legend_key;
+}
+
+void QtSLiMGraphView::drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size)
+{
+    size = size * 3.5;       // this scales what size=1 looks like
+    
+    switch (symbol)
+    {
+    case 0:     // square outline
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addRect(x - size, y - size, size * 2, size * 2);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 1:     // circle outline
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addEllipse(x - size * 1.13, y - size * 1.13, size * 2 * 1.13, size * 2 * 1.13);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 2:     // triangle outline pointing up
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x, y + size * 1.4);
+        symbolStrokePath.lineTo(x + 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolStrokePath.lineTo(x - 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolStrokePath.closeSubpath();
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 3:     // orthogonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x, y + size);
+        symbolStrokePath.lineTo(x, y - size);
+        symbolStrokePath.moveTo(x + size, y);
+        symbolStrokePath.lineTo(x - size, y);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 4:     // diagonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x + size * 0.7071, y + size * 0.7071);
+        symbolStrokePath.lineTo(x - size * 0.7071, y - size * 0.7071);
+        symbolStrokePath.moveTo(x + size * 0.7071, y - size * 0.7071);
+        symbolStrokePath.lineTo(x - size * 0.7071, y + size * 0.7071);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 5:     // diamond outline
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x + size * 1.3, y);
+        symbolStrokePath.lineTo(x, y - size * 1.3);
+        symbolStrokePath.lineTo(x - size * 1.3, y);
+        symbolStrokePath.lineTo(x, y + size * 1.3);
+        symbolStrokePath.closeSubpath();
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 6:     // triangle outline pointing down
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x, y - size * 1.4);
+        symbolStrokePath.lineTo(x + 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolStrokePath.lineTo(x - 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolStrokePath.closeSubpath();
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 7:     // square outline with diagonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addRect(x - size, y - size, size * 2, size * 2);
+        symbolStrokePath.moveTo(x + size * 0.93, y + size * 0.93);
+        symbolStrokePath.lineTo(x - size * 0.93, y - size * 0.93);
+        symbolStrokePath.moveTo(x + size * 0.93, y - size * 0.93);
+        symbolStrokePath.lineTo(x - size * 0.93, y + size * 0.93);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 8:     // 8-pointed asterisk
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x, y + size);
+        symbolStrokePath.lineTo(x, y - size);
+        symbolStrokePath.moveTo(x + size, y);
+        symbolStrokePath.lineTo(x - size, y);
+        symbolStrokePath.moveTo(x + size * 0.7071, y + size * 0.7071);
+        symbolStrokePath.lineTo(x - size * 0.7071, y - size * 0.7071);
+        symbolStrokePath.moveTo(x + size * 0.7071, y - size * 0.7071);
+        symbolStrokePath.lineTo(x - size * 0.7071, y + size * 0.7071);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 9:     // diamond with orthogonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x + size * 1.3, y);
+        symbolStrokePath.lineTo(x, y - size * 1.3);
+        symbolStrokePath.lineTo(x - size * 1.3, y);
+        symbolStrokePath.lineTo(x, y + size * 1.3);
+        symbolStrokePath.closeSubpath();
+        symbolStrokePath.moveTo(x, y + size * 1.2);
+        symbolStrokePath.lineTo(x, y - size * 1.2);
+        symbolStrokePath.moveTo(x + size * 1.2, y);
+        symbolStrokePath.lineTo(x - size * 1.2, y);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 10:     // circle outline with orthogonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addEllipse(x - size * 1.13, y - size * 1.13, size * 2 * 1.13, size * 2 * 1.13);
+        symbolStrokePath.moveTo(x, y + size * 1.05);
+        symbolStrokePath.lineTo(x, y - size * 1.05);
+        symbolStrokePath.moveTo(x + size * 1.05, y);
+        symbolStrokePath.lineTo(x - size * 1.05, y);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 11:     // six-pointed star outline (overlapping triangles)
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.moveTo(x, y + size * 1.4);
+        symbolStrokePath.lineTo(x + 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolStrokePath.lineTo(x - 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolStrokePath.closeSubpath();
+        symbolStrokePath.moveTo(x, y - size * 1.4);
+        symbolStrokePath.lineTo(x + 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolStrokePath.lineTo(x - 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolStrokePath.closeSubpath();
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 12:     // square outline with orthogonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addRect(x - size, y - size, size * 2, size * 2);
+        symbolStrokePath.moveTo(x, y + size * 0.9);
+        symbolStrokePath.lineTo(x, y - size * 0.9);
+        symbolStrokePath.moveTo(x + size * 0.9, y);
+        symbolStrokePath.lineTo(x - size * 0.9, y);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 13:     // circle outline with diagonal cross
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addEllipse(x - size * 1.13, y - size * 1.13, size * 2 * 1.13, size * 2 * 1.13);
+        symbolStrokePath.moveTo(x + size * 0.75, y + size * 0.75);
+        symbolStrokePath.lineTo(x - size * 0.75, y - size * 0.75);
+        symbolStrokePath.moveTo(x + size * 0.75, y - size * 0.75);
+        symbolStrokePath.lineTo(x - size * 0.75, y + size * 0.75);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 14:     // square with embedded triangle
+    {
+        QPainterPath symbolStrokePath;
+        symbolStrokePath.addRect(x - size, y - size, size * 2, size * 2);
+        symbolStrokePath.moveTo(x - size, y - size);
+        symbolStrokePath.lineTo(x, y + size);
+        symbolStrokePath.lineTo(x + size, y - size);
+        painter.strokePath(symbolStrokePath, QPen(symbolColor, lineWidth));
+        break;
+    }
+    case 15:     // square filled
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.addRect(x - size, y - size, size * 2, size * 2);
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 16:     // circle filled
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.addEllipse(x - size * 1.13, y - size * 1.13, size * 2 * 1.13, size * 2 * 1.13);
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 17:     // triangle filled pointing up
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x, y + size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 18:     // diamond filled
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x + size * 1.3, y);
+        symbolFillPath.lineTo(x, y - size * 1.3);
+        symbolFillPath.lineTo(x - size * 1.3, y);
+        symbolFillPath.lineTo(x, y + size * 1.3);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 19:     // triangle filled pointing down
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x, y - size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 20:     // six-pointed star filled (overlapping triangles)
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x, y + size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        symbolFillPath.moveTo(x, y - size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        symbolFillPath.setFillRule(Qt::WindingFill);
+        painter.fillPath(symbolFillPath, symbolColor);
+        break;
+    }
+    case 21:     // circle filled and stroked
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.addEllipse(x - size * 1.13, y - size * 1.13, size * 2 * 1.13, size * 2 * 1.13);
+        painter.fillPath(symbolFillPath, symbolColor);
+        painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
+        break;
+    }
+    case 22:     // square filled and stroked
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.addRect(x - size, y - size, size * 2, size * 2);
+        painter.fillPath(symbolFillPath, symbolColor);
+        painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
+        break;
+    }
+    case 23:     // diamond filled and stroked
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x + size * 1.3, y);
+        symbolFillPath.lineTo(x, y - size * 1.3);
+        symbolFillPath.lineTo(x - size * 1.3, y);
+        symbolFillPath.lineTo(x, y + size * 1.3);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
+        break;
+    }
+    case 24:     // triangle filled and stroked pointing up
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x, y + size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y - 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
+        break;
+    }
+    case 25:     // triangle filled and stroked pointing down
+    {
+        QPainterPath symbolFillPath;
+        symbolFillPath.moveTo(x, y - size * 1.4);
+        symbolFillPath.lineTo(x + 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.lineTo(x - 0.8660 * size * 1.4, y + 0.5 * size * 1.4);
+        symbolFillPath.closeSubpath();
+        painter.fillPath(symbolFillPath, symbolColor);
+        painter.strokePath(symbolFillPath, QPen(borderColor, lineWidth));
+        break;
+    }
+    default:        // other symbols draw nothing
+        break;
+    }
 }
 
 void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth)

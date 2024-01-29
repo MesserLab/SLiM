@@ -208,11 +208,8 @@ QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
     {
         QtSLiMLegendSpec legend_key;
         
-        legend_key.resize(2);
-        legend_key[0].first = "M";
-        legend_key[0].second = controller_->blackContrastingColorForIndex(0);
-        legend_key[1].first = "F";
-        legend_key[1].second = controller_->blackContrastingColorForIndex(1);
+        legend_key.emplace_back("M", controller_->blackContrastingColorForIndex(0));
+        legend_key.emplace_back("F", controller_->blackContrastingColorForIndex(1));
         
         return legend_key;
     }

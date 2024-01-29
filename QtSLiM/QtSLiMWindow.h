@@ -47,6 +47,7 @@ class QtSLiMTablesDrawer;
 class QItemSelection;
 class SLiMgui;
 class QtSLiMGraphView;
+class QtSLiMGraphView_CustomPlot;
 class QtSLiMScriptTextEdit;
 class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
@@ -232,7 +233,10 @@ public:
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
-    void eidos_plotCreate(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height);
+    void eidos_plotCreate(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, QtSLiM_LegendPosition legendPosition);
+    void eidos_plotLegendLineEntry(QString title, QString label, QColor color, double lwd);
+    void eidos_plotLegendPointEntry(QString title, QString label,int symbol, QColor color, QColor border, double lwd, double size);
+    void eidos_plotLegendSwatchEntry(QString title, QString label, QColor color);
     void eidos_plotLines(QString title, double *x_values, double *y_values, int data_count, std::vector<QColor> *color, std::vector<double> *lwd);
     void eidos_plotPoints(QString title, double *x_values, double *y_values, int data_count, std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border, std::vector<double> *lwd, std::vector<double> *size);
     void eidos_plotText(QString title, double *x_values, double *y_values, std::vector<QString> *labels, int data_count, std::vector<QColor> *color, std::vector<double> *size, double *adj);
@@ -369,6 +373,7 @@ private:
     void glueUI(void);
     void invalidateUI(void);
     QtSLiMGraphView *graphViewWithTitle(QString title);
+    QtSLiMGraphView_CustomPlot *_lookUpCustomPlot(QString title);
     
     Ui::QtSLiMWindow *ui;
 };

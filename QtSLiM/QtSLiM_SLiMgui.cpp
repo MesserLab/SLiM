@@ -103,6 +103,9 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
 		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
 		case gID_plotCreate:				return ExecuteMethod_plotCreate(p_method_id, p_arguments, p_interpreter);
+		case gID_plotLegendLineEntry:       return ExecuteMethod_plotLegendLineEntry(p_method_id, p_arguments, p_interpreter);
+		case gID_plotLegendPointEntry:      return ExecuteMethod_plotLegendPointEntry(p_method_id, p_arguments, p_interpreter);
+		case gID_plotLegendSwatchEntry:     return ExecuteMethod_plotLegendSwatchEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_plotLines:					return ExecuteMethod_plotLines(p_method_id, p_arguments, p_interpreter);
 		case gID_plotPoints:				return ExecuteMethod_plotPoints(p_method_id, p_arguments, p_interpreter);
 		case gID_plotText:					return ExecuteMethod_plotText(p_method_id, p_arguments, p_interpreter);
@@ -136,7 +139,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_pauseExecution(EidosGlobalStringID p_method
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)plotCreate(string$ title, [Nif xrange = NULL], [Nif yrange = NULL],[string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL])
+//	*********************	– (void)plotCreate(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL], [string$ legendPosition = "topRight"])
 //
 EidosValue_SP SLiMgui::ExecuteMethod_plotCreate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -148,6 +151,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotCreate(EidosGlobalStringID p_method_id,
     EidosValue *ylab_value = p_arguments[4].get();
     EidosValue *width_value = p_arguments[5].get();
     EidosValue *height_value = p_arguments[6].get();
+    EidosValue *legendPosition_value = p_arguments[7].get();
     
     QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
     
@@ -209,7 +213,159 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotCreate(EidosGlobalStringID p_method_id,
             EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): plotCreate() requires height to be > 0.0, or NULL." << EidosTerminate();
     }
     
-    controller_->eidos_plotCreate(title, x_range, y_range, xlab, ylab, width, height);
+    QString legendPositionString  = QString::fromStdString(legendPosition_value->StringAtIndex_NOCAST(0, nullptr));
+    QtSLiM_LegendPosition legendPosition;
+    
+    if (legendPositionString == "topLeft")
+        legendPosition = QtSLiM_LegendPosition::kTopLeft;
+    else if (legendPositionString == "topRight")
+        legendPosition = QtSLiM_LegendPosition::kTopRight;
+    else if (legendPositionString == "bottomLeft")
+        legendPosition = QtSLiM_LegendPosition::kBottomLeft;
+    else if (legendPositionString == "bottomRight")
+        legendPosition = QtSLiM_LegendPosition::kBottomRight;
+    else
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): plotCreate() requires legendPosition to be 'topLeft', 'topRight', 'bottomLeft', or 'bottomRight'." << EidosTerminate(nullptr);
+    controller_->eidos_plotCreate(title, x_range, y_range, xlab, ylab, width, height, legendPosition);
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)plotLegendLineEntry(string$ title, string$ label, [string$ color = "red"], [numeric$ lwd = 1.0])
+//
+EidosValue_SP SLiMgui::ExecuteMethod_plotLegendLineEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *title_value = p_arguments[0].get();
+    EidosValue *label_value = p_arguments[1].get();
+    EidosValue *color_value = p_arguments[2].get();
+    EidosValue *lwd_value = p_arguments[3].get();
+    
+    // title
+    QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (title.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendLineEntry): plotLegendLineEntry() requires a non-empty plot title." << EidosTerminate();
+    
+    // label
+    QString label = QString::fromStdString(label_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (label.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendLineEntry): plotLegendLineEntry() requires a non-empty legend label." << EidosTerminate();
+    
+    // color
+    std::string color_string = color_value->StringAtIndex_NOCAST(0, nullptr);
+    uint8_t colorR, colorG, colorB;
+    
+    Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+    
+    QColor color(colorR, colorG, colorB, 255);
+    
+    // lwd
+    double lwd = lwd_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if ((lwd < 0.0) || (lwd > 100.0))
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendLineEntry): plotLegendLineEntry() requires the line width lwd to be in [0, 100]." << EidosTerminate(nullptr);
+    
+    controller_->eidos_plotLegendLineEntry(title, label, color, lwd);
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)plotLegendPointEntry(string$ title, string$ label, [integer$ symbol = 0], [string$ color = "red"], [string$ border = "black"], [numeric$ lwd = 1.0], [numeric$ size = 1.0])
+//
+EidosValue_SP SLiMgui::ExecuteMethod_plotLegendPointEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *title_value = p_arguments[0].get();
+    EidosValue *label_value = p_arguments[1].get();
+    EidosValue *symbol_value = p_arguments[2].get();
+    EidosValue *color_value = p_arguments[3].get();
+    EidosValue *border_value = p_arguments[4].get();
+    EidosValue *lwd_value = p_arguments[5].get();
+    EidosValue *size_value = p_arguments[6].get();
+    
+    // title
+    QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (title.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() requires a non-empty plot title." << EidosTerminate();
+    
+    // label
+    QString label = QString::fromStdString(label_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (label.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() requires a non-empty legend label." << EidosTerminate();
+    
+    // symbol
+    int symbol = symbol_value->IntAtIndex_NOCAST(0, nullptr);
+    
+    if (symbol < 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() requires the elements of symbol to be >= 0." << EidosTerminate();
+    
+    // color
+    std::string color_string = color_value->StringAtIndex_NOCAST(0, nullptr);
+    uint8_t colorR, colorG, colorB;
+    
+    Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+    
+    QColor color(colorR, colorG, colorB, 255);
+    
+    // border
+    std::string border_string = border_value->StringAtIndex_NOCAST(0, nullptr);
+    uint8_t borderR, borderG, borderB;
+    
+    Eidos_GetColorComponents(border_string, &borderR, &borderG, &borderB);
+    
+    QColor border(borderR, borderG, borderB, 255);
+    
+    // lwd
+    double lwd = lwd_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if ((lwd < 0.0) || (lwd > 100.0))
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
+    
+    // size
+    double size = size_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if ((size <= 0.0) || (size > 1000.0))
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() requires the elements of size to be in (0, 1000]." << EidosTerminate(nullptr);
+    
+    controller_->eidos_plotLegendPointEntry(title, label, symbol, color, border, lwd, size);
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)plotLegendSwatchEntry(string$ title, string$ label, [string$ color = "red"])
+//
+EidosValue_SP SLiMgui::ExecuteMethod_plotLegendSwatchEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *title_value = p_arguments[0].get();
+    EidosValue *label_value = p_arguments[1].get();
+    EidosValue *color_value = p_arguments[2].get();
+    
+    // title
+    QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (title.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendSwatchEntry): plotLegendSwatchEntry() requires a non-empty plot title." << EidosTerminate();
+    
+    // label
+    QString label = QString::fromStdString(label_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (label.length() == 0)
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotLegendSwatchEntry): plotLegendSwatchEntry() requires a non-empty legend label." << EidosTerminate();
+    
+    // color
+    std::string color_string = color_value->StringAtIndex_NOCAST(0, nullptr);
+    uint8_t colorR, colorG, colorB;
+    
+    Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+    
+    QColor color(colorR, colorG, colorB, 255);
+    
+    controller_->eidos_plotLegendSwatchEntry(title, label, color);
     
     return gStaticEidosValueVOID;
 }
@@ -596,7 +752,18 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
                                   ->AddNumeric_ON("xrange", gStaticEidosValueNULL)->AddNumeric_ON("yrange", gStaticEidosValueNULL)
                                   ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
                                   ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
-                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)));
+                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
+                                  ->AddString_OS("legendPosition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("topRight")))));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotLegendLineEntry, kEidosValueMaskVOID))->AddString_S("title")
+                                  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+                                  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotLegendPointEntry, kEidosValueMaskVOID))->AddString_S("title")
+                                  ->AddString_S("label")->AddInt_OS("symbol", gStaticEidosValue_Integer0)
+                                  ->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+                                  ->AddString_OS("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
+                                  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddNumeric_OS("size", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotLegendSwatchEntry, kEidosValueMaskVOID))->AddString_S("title")
+                                  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotLines, kEidosValueMaskVOID))->AddString_S("title")
                                   ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)));

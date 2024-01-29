@@ -41,7 +41,48 @@ class QPushButton;
 
 
 // Legend support
-typedef std::pair<QString, QColor> QtSLiMLegendEntry;
+enum class QtSLiM_LegendEntryType : int {
+    kUninitialized = -1,
+    kSwatch = 0,
+    kLine,
+    kPoint
+};
+
+class QtSLiMLegendEntry {
+public: 
+    // the text label for the legend entry
+    QString label;
+    
+    // the type of legend entry
+    QtSLiM_LegendEntryType entry_type = QtSLiM_LegendEntryType::kUninitialized;
+    
+    // attributes for a swatch component (QtSLiM_LegendEntryType::kSwatch)
+    QColor swatch_color;
+    
+    // attributes for a line component (QtSLiM_LegendEntryType::kLine); same as for plotLines()
+    double line_lwd;
+    QColor line_color;
+    
+    // attributes for a point component (QtSLiM_LegendEntryType::kPoint); same as for plotPoints()
+    int point_symbol;
+    QColor point_color;
+    QColor point_border;
+    double point_lwd;
+    double point_size;
+    
+    // constructor for an entry that shows a color swatch
+    QtSLiMLegendEntry(QString p_label, QColor p_swatch_color) :
+        label(p_label), entry_type(QtSLiM_LegendEntryType::kSwatch), swatch_color(p_swatch_color) {};
+    
+    // constructor for an entry that shows a line segment
+    QtSLiMLegendEntry(QString p_label, double p_line_lwd, QColor p_line_color) :
+        label(p_label), entry_type(QtSLiM_LegendEntryType::kLine), line_lwd(p_line_lwd), line_color(p_line_color) {};
+    
+    // constructor for an entry that shows a point symbol
+    QtSLiMLegendEntry(QString p_label, int p_point_symbol, QColor p_point_color, QColor p_point_border, double p_point_lwd, double p_point_size) :
+        label(p_label), entry_type(QtSLiM_LegendEntryType::kPoint), point_symbol(p_point_symbol), point_color(p_point_color), point_border(p_point_border), point_lwd(p_point_lwd), point_size(p_point_size) {};
+};
+
 typedef std::vector<QtSLiMLegendEntry> QtSLiMLegendSpec;
 
 
@@ -157,6 +198,7 @@ protected:
     QString yAxisLabel_;
     
     bool legendVisible_ = false;
+    QtSLiM_LegendPosition legend_position_ = QtSLiM_LegendPosition::kTopRight;
     bool showHorizontalGridLines_ = false;
     bool showVerticalGridLines_ = false;
     bool showGridLinesMajorOnly_ = false;
@@ -182,6 +224,9 @@ protected:
     // disable drawing of things that don't belong in a cache, such as the legend
 	bool cachingNow_ = false;
     
+protected:
+    void drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size);
+    
 private:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;
     void drawContents(QPainter &painter);
@@ -189,7 +234,7 @@ private:
     virtual void resizeEvent(QResizeEvent *p_event) override;
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
     
-    QString stringForData(void);    
+    QString stringForData(void);
 };
 
 

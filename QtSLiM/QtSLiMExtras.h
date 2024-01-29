@@ -44,6 +44,13 @@
 
 class QPaintEvent;
 
+// legend positions for QtSLiMGraphView
+typedef enum {
+    kTopLeft = 0,
+    kTopRight,
+    kBottomLeft,
+    kBottomRight
+} QtSLiM_LegendPosition;
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
 void QtSLiMFrameRect(const QRectF &p_rect, const QColor &p_color, QPainter &p_painter, double p_lineWidth);

@@ -46,6 +46,7 @@ public:
     void setTitle(QString title);
     void setXLabel(QString x_label);
     void setYLabel(QString y_label);
+    void setLegendPosition(QtSLiM_LegendPosition position);
     void setAxisRanges(double *x_range, double *y_range);
     
     void addLineData(double *x_values, double *y_values, int data_count,
@@ -56,11 +57,17 @@ public:
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
                      std::vector<QColor> *color, std::vector<double> *size, double *adj);
     
+    void addLegendLineEntry(QString label, QColor color, double lwd);
+    void addLegendPointEntry(QString label, int symbol, QColor color, QColor border, double lwd, double size);
+    void addLegendSwatchEntry(QString label, QColor color);
+    
     virtual QString graphTitle(void) override;
     virtual QString aboutString(void) override;
     virtual QString disableMessage(void) override;
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
     virtual void appendStringForData(QString &string) override;
+    
+    virtual QtSLiMLegendSpec legendKey(void) override;
     
 public slots:
     virtual void controllerRecycled(void) override;
@@ -90,6 +97,8 @@ private:
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);
+    
+    QtSLiMLegendSpec legend_entries_;                   // unlike most graph types, we keep our legend around
 };
 
 

@@ -5876,7 +5876,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)plotCreate(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)plotCreate(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [string$\'a0legendPosition\'a0=\'a0"topRight"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Creates a new custom plot window referred to by 
@@ -5909,7 +5909,17 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f3\fs18 height
 \f4\fs20 , in units of pixels (perhaps 70\'96100 pixels per inch, depending on your screen\'92s pixel density); the default of 
 \f3\fs18 NULL
-\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.\
+\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  Finally, the 
+\f3\fs18 legendPosition
+\f4\fs20  parameter controls the position of the legend (if any); it may be 
+\f3\fs18 "topRight"
+\f4\fs20 , 
+\f3\fs18 "topLeft"
+\f4\fs20 , 
+\f3\fs18 "bottomRight"
+\f4\fs20 , or 
+\f3\fs18 "bottomLeft"
+\f4\fs20 .\
 Once the plot window has been created, the 
 \f3\fs18 title
 \f4\fs20  attribute provided can be used to reference the plot window in subsequent calls to add data using 
@@ -5918,7 +5928,69 @@ Once the plot window has been created, the
 \f3\fs18 plotPoints()
 \f4\fs20 , and 
 \f3\fs18 plotText()
-\f4\fs20 .  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access further plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
+\f4\fs20 , as well as calls to 
+\f3\fs18 plotLegendLineEntry()
+\f4\fs20  and 
+\f3\fs18 plotLegendPointEntry()
+\f4\fs20  to configure a legend for the plot.  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access further plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)plotLegendLineEntry(string$\'a0title, string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the custom plot window named 
+\f3\fs18 title
+\f4\fs20 , previously created with 
+\f3\fs18 plotCreate()
+\f4\fs20 .  The entry will be displayed as a line segment drawn in color 
+\f3\fs18 color
+\f4\fs20 , using line width 
+\f3\fs18 lwd
+\f4\fs20 , mirroring the appearance produced by 
+\f3\fs18 plotLines()
+\f4\fs20  for the same parameters.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)plotLegendPointEntry(string$\'a0title, string$\'a0label, [integer$\'a0symbol\'a0=\'a00], [string$\'a0color\'a0=\'a0"red"], [string$\'a0border\'a0=\'a0"black"], [numeric$\'a0lwd\'a0=\'a01.0], [numeric$\'a0size\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the custom plot window named 
+\f3\fs18 title
+\f4\fs20 , previously created with 
+\f3\fs18 plotCreate()
+\f4\fs20 .  The entry will be displayed as a point symbol specified by 
+\f3\fs18 symbol
+\f4\fs20 , 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 size
+\f4\fs20 , mirroring the appearance produced by 
+\f3\fs18 plotPoints()
+\f4\fs20  for the same parameters; see 
+\f3\fs18 plotPoints()
+\f4\fs20  for further details.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)plotLegendSwatchEntry(string$\'a0title, string$\'a0label, [string$\'a0color\'a0=\'a0"red"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the custom plot window named 
+\f3\fs18 title
+\f4\fs20 , previously created with 
+\f3\fs18 plotCreate()
+\f4\fs20 .  The entry will be displayed as a swatch drawn in color 
+\f3\fs18 color
+\f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)plotLines(string$\'a0title, numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
