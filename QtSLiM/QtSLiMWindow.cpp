@@ -2930,10 +2930,9 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
 void QtSLiMWindow::updateWindowMenu(void)
 {
     // Clear out old actions, up to the separator
-    const QList<QAction *> actions = ui->menuWindow->actions();
-    
     do
     {
+        const QList<QAction *> actions = ui->menuWindow->actions();
         QAction *lastAction = actions.last();
         
         if (!lastAction)
@@ -2941,7 +2940,18 @@ void QtSLiMWindow::updateWindowMenu(void)
         if ((lastAction->objectName().length() == 0) || (lastAction->objectName() == "action"))
             break;
         
+        // I have seen this loop fail to terminate, because apparently asking for an action
+        // to be removed sometimes fails.  So now we watch the number of actions and make
+        // sure it goes down, otherwise we bail.  BCH 1/29/2024
+        int actionCount = actions.count();
+        
         ui->menuWindow->removeAction(lastAction);
+        
+        if (ui->menuWindow->actions().count() >= actionCount)
+        {
+            qDebug() << "QtSLiMWindow::updateWindowMenu() menu clearing terminating due to malfunction";
+            break;
+        }
     }
     while (true);
     
