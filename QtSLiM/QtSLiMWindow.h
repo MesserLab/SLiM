@@ -234,7 +234,7 @@ public:
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
-    QtSLiMGraphView_CustomPlot *eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, QtSLiM_LegendPosition legendPosition);
+    QtSLiMGraphView_CustomPlot *eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height);
     QtSLiMGraphView_CustomPlot *eidos_plotWithTitle(QString title);
     
     void plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count);

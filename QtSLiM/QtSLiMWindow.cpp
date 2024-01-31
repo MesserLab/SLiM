@@ -4429,7 +4429,7 @@ void QtSLiMWindow::eidos_pauseExecution(void)
 	}
 }
 
-QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, QtSLiM_LegendPosition legendPosition)
+QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height)
 {
     QtSLiMGraphView *graphView = graphViewWithTitle(title);
     QtSLiMGraphView_CustomPlot *customPlot = nullptr;
@@ -4470,7 +4470,6 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         customPlot->setXLabel(x_label);
         customPlot->setYLabel(y_label);
         customPlot->setAxisRanges(x_range, y_range);
-        customPlot->setLegendPosition(legendPosition);
         
         if (createdWindow)
         {
@@ -4516,7 +4515,7 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_plotWithTitle(QString title)
 void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count)
 {
     // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
-    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, "time", y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
+    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, "time", y_title, 0, 0);
     
     double *x_values = (double *)malloc(data_count * sizeof(double));
     for (int i = 0; i < data_count; ++i)
@@ -4534,7 +4533,7 @@ void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_
 void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_title, double *x_values, double *y_values, int data_count, bool makeScatterPlot)
 {
     // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
-    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, x_title, y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
+    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, x_title, y_title, 0, 0);
     
     std::vector<QColor> *color = new std::vector<QColor>;
     color->emplace_back(0, 0, 0, 255);

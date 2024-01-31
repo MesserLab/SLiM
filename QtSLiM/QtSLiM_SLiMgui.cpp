@@ -110,7 +110,7 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	}
 }
 
-//	*********************	– (No<Plot>$)createPlot(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL], [string$ legendPosition = "topRight"])
+//	*********************	– (No<Plot>$)createPlot(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL])
 //
 EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -122,7 +122,6 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     EidosValue *ylab_value = p_arguments[4].get();
     EidosValue *width_value = p_arguments[5].get();
     EidosValue *height_value = p_arguments[6].get();
-    EidosValue *legendPosition_value = p_arguments[7].get();
     
     QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
     
@@ -184,21 +183,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
             EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires height to be > 0.0, or NULL." << EidosTerminate();
     }
     
-    QString legendPositionString  = QString::fromStdString(legendPosition_value->StringAtIndex_NOCAST(0, nullptr));
-    QtSLiM_LegendPosition legendPosition;
-    
-    if (legendPositionString == "topLeft")
-        legendPosition = QtSLiM_LegendPosition::kTopLeft;
-    else if (legendPositionString == "topRight")
-        legendPosition = QtSLiM_LegendPosition::kTopRight;
-    else if (legendPositionString == "bottomLeft")
-        legendPosition = QtSLiM_LegendPosition::kBottomLeft;
-    else if (legendPositionString == "bottomRight")
-        legendPosition = QtSLiM_LegendPosition::kBottomRight;
-    else
-        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires legendPosition to be 'topLeft', 'topRight', 'bottomLeft', or 'bottomRight'." << EidosTerminate(nullptr);
-    
-    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, legendPosition);
+    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height);
     Plot *plot = new Plot(plotview);
     
     EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(plot, gSLiM_Plot_Class)));
@@ -301,8 +286,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
                                   ->AddNumeric_ON("xrange", gStaticEidosValueNULL)->AddNumeric_ON("yrange", gStaticEidosValueNULL)
                                   ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
                                   ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
-                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
-                                  ->AddString_OS("legendPosition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("topRight")))));
+                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotWithTitle,
