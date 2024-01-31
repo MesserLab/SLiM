@@ -1624,6 +1624,8 @@
 		98DEB47F2AA632AA00ABE60F /* spatial_map.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DEB47C2AA632AA00ABE60F /* spatial_map.cpp */; };
 		98DEB4802AA632AA00ABE60F /* spatial_map.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DEB47C2AA632AA00ABE60F /* spatial_map.cpp */; };
 		98DEB4812AA632AA00ABE60F /* spatial_map.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DEB47C2AA632AA00ABE60F /* spatial_map.cpp */; };
+		98E684402B694F09000B3B65 /* plot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98E6843E2B694F09000B3B65 /* plot.mm */; };
+		98E684412B694F09000B3B65 /* plot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98E6843E2B694F09000B3B65 /* plot.mm */; };
 		98E9A68A1A3CCFD0000AD4FC /* mutation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6881A3CCFD0000AD4FC /* mutation.cpp */; };
 		98E9A6901A3CD4CF000AD4FC /* mutation_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */; };
 		98E9A6931A3CD4EF000AD4FC /* genomic_element.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6911A3CD4EF000AD4FC /* genomic_element.cpp */; };
@@ -2174,6 +2176,8 @@
 		98DE4C121B6F9657004FDF5F /* eidos_property_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_property_signature.h; sourceTree = "<group>"; };
 		98DEB47C2AA632AA00ABE60F /* spatial_map.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = spatial_map.cpp; sourceTree = "<group>"; };
 		98DEB47D2AA632AA00ABE60F /* spatial_map.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = spatial_map.h; sourceTree = "<group>"; };
+		98E6843E2B694F09000B3B65 /* plot.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = plot.mm; sourceTree = "<group>"; };
+		98E6843F2B694F09000B3B65 /* plot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = plot.h; sourceTree = "<group>"; };
 		98E9A6881A3CCFD0000AD4FC /* mutation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation.cpp; sourceTree = "<group>"; };
 		98E9A6891A3CCFD0000AD4FC /* mutation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation.h; sourceTree = "<group>"; };
 		98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_type.cpp; sourceTree = "<group>"; };
@@ -2712,6 +2716,8 @@
 		986926D61AA13D340000E138 /* Graphing */ = {
 			isa = PBXGroup;
 			children = (
+				98E6843F2B694F09000B3B65 /* plot.h */,
+				98E6843E2B694F09000B3B65 /* plot.mm */,
 				986926D71AA140550000E138 /* GraphView.h */,
 				986926D81AA140550000E138 /* GraphView.mm */,
 				986926DD1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.h */,
@@ -4400,6 +4406,7 @@
 				98CF5287294A3FC900557BBA /* eidos_functions_values.cpp in Sources */,
 				98CF5288294A3FC900557BBA /* psi.c in Sources */,
 				98CF5289294A3FC900557BBA /* eidos_functions_strings.cpp in Sources */,
+				98E684412B694F09000B3B65 /* plot.mm in Sources */,
 				98CF528A294A3FC900557BBA /* GraphView_MutationFrequencySpectra.mm in Sources */,
 				98CF528B294A3FC900557BBA /* genotypes.c in Sources */,
 				98CF528C294A3FC900557BBA /* SLiMPDFView.mm in Sources */,
@@ -4741,6 +4748,7 @@
 				981DC36128E26F8B000ABE91 /* eidos_functions_values.cpp in Sources */,
 				98C8215B1C7A983700548839 /* psi.c in Sources */,
 				981DC36928E26F8B000ABE91 /* eidos_functions_strings.cpp in Sources */,
+				98E684402B694F09000B3B65 /* plot.mm in Sources */,
 				986926DF1AA14CF10000E138 /* GraphView_MutationFrequencySpectra.mm in Sources */,
 				9854D2622278B9F8001D43BC /* genotypes.c in Sources */,
 				988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */,

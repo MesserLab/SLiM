@@ -158,6 +158,7 @@ SOURCES += \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
+    QtSLiM_Plot.cpp \
     main.cpp \
     QtSLiMWindow.cpp \
     QtSLiMAppDelegate.cpp \
@@ -218,6 +219,7 @@ HEADERS += \
     QtSLiMScriptTextEdit.h \
     QtSLiMEidosConsole.h \
     QtSLiMConsoleTextEdit.h \
+    QtSLiM_Plot.h \
     QtSLiM_SLiMgui.h \
     QtSLiMTablesDrawer.h \
     QtSLiMFindPanel.h \

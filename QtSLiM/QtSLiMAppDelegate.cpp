@@ -22,6 +22,7 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMFindRecipe.h"
 #include "QtSLiM_SLiMgui.h"
+#include "QtSLiM_Plot.h"
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiMAbout.h"
 #include "QtSLiMPreferences.h"
@@ -61,6 +62,7 @@
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"
+#include "slim_globals.h"
 #include "slim_globals.h"
 
 
@@ -171,6 +173,9 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     // Warm up our back ends before anything else happens, including our own class objects
     Eidos_WarmUp();
     SLiM_WarmUp();
+    
+    gSLiM_Plot_Class = new Plot_Class(gStr_Plot, gEidosDictionaryUnretained_Class);
+    gSLiM_Plot_Class->CacheDispatchTables();
     
     gSLiM_SLiMgui_Class = new SLiMgui_Class(gStr_SLiMgui, gEidosDictionaryUnretained_Class);
     gSLiM_SLiMgui_Class->CacheDispatchTables();

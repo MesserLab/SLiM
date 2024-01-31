@@ -1039,14 +1039,16 @@ extern const std::string &gStr_slimgui;
 extern const std::string &gStr_pid;
 extern const std::string &gStr_openDocument;
 extern const std::string &gStr_pauseExecution;
-extern const std::string &gStr_plotCreate;
-extern const std::string &gStr_plotLegendLineEntry;
-extern const std::string &gStr_plotLegendPointEntry;
-extern const std::string &gStr_plotLegendSwatchEntry;
-extern const std::string &gStr_plotLines;
-extern const std::string &gStr_plotPoints;
-extern const std::string &gStr_plotText;
 extern const std::string &gStr_configureDisplay;
+extern const std::string &gStr_createPlot;
+extern const std::string &gStr_plotWithTitle;
+
+extern const std::string &gStr_legendLineEntry;
+extern const std::string &gStr_legendPointEntry;
+extern const std::string &gStr_legendSwatchEntry;
+extern const std::string &gStr_lines;
+extern const std::string &gStr_points;
+extern const std::string &gStr_text;
 
 extern const std::string &gStr_Chromosome;
 //extern const std::string &gStr_Genome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1062,6 +1064,7 @@ extern const std::string &gStr_Subpopulation;
 //extern const std::string &gStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gStr_Substitution;
 extern const std::string &gStr_InteractionType;
+extern const std::string &gStr_Plot;
 extern const std::string &gStr_SLiMgui;
 
 extern const std::string &gStr_createLogFile;
@@ -1446,14 +1449,16 @@ enum _SLiMGlobalStringID : int {
 	gID_pid,
 	gID_openDocument,
 	gID_pauseExecution,
-	gID_plotCreate,
-	gID_plotLegendLineEntry,
-	gID_plotLegendPointEntry,
-	gID_plotLegendSwatchEntry,
-	gID_plotLines,
-	gID_plotPoints,
-	gID_plotText,
+	gID_createPlot,
+	gID_plotWithTitle,
 	gID_configureDisplay,
+	
+	gID_legendLineEntry,
+	gID_legendPointEntry,
+	gID_legendSwatchEntry,
+	gID_lines,
+	gID_points,
+	gID_text,
 	
 	gID_Chromosome,
 	gID_Genome,
@@ -1469,6 +1474,7 @@ enum _SLiMGlobalStringID : int {
 	gID_Individual,
 	gID_Substitution,
 	gID_InteractionType,
+	gID_Plot,
 	gID_SLiMgui,
 	
 	gID_createLogFile,

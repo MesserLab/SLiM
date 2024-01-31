@@ -25,6 +25,8 @@
 #include <QFontMetrics>
 #include <QDebug>
 
+#include "QtSLiM_Plot.h"
+
 
 QtSLiMGraphView_CustomPlot::QtSLiMGraphView_CustomPlot(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
@@ -88,6 +90,17 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
 QtSLiMGraphView_CustomPlot::~QtSLiMGraphView_CustomPlot()
 {
     // We are responsible for our own destruction
+    
+    // We own our corresponding Eidos object of class Plot, and free it here.  It is not under retain/release,
+    // and this should occur only at a "long-term boundary" since it is triggered by the plot window closing
+    // in SLiMgui.  Note that sometimes eidos_plot_object_ is nullptr, such as when the custom plot was created
+    // in SLiMgui's UI from LogFile data; this is fine, it just means the window is not controllable from script.
+    if (eidos_plot_object_)
+    {
+        delete eidos_plot_object_;
+        eidos_plot_object_ = nullptr;
+    }
+    
     freeData();
 }
 
@@ -286,7 +299,7 @@ QString QtSLiMGraphView_CustomPlot::graphTitle(void)
 QString QtSLiMGraphView_CustomPlot::aboutString(void)
 {
     return "The Custom Plot graph type displays user-provided data that is supplied "
-           "in script with plotCreate() and subsequent calls.";
+           "in script with createPlot() and subsequent calls.";
 }
 
 void QtSLiMGraphView_CustomPlot::drawGraph(QPainter &painter, QRect interiorRect)

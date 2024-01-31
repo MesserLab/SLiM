@@ -26,6 +26,8 @@
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_beep.h"
+#import "slim_gui.h"
+#import "plot.h"
 #import <WebKit/WebKit.h>
 
 #include <stdio.h>
@@ -229,6 +231,9 @@ typedef enum SLiMLaunchAction
 	
 	Eidos_WarmUp();
 	SLiM_WarmUp();
+	
+	gSLiM_Plot_Class = new Plot_Class(gStr_Plot, gEidosDictionaryUnretained_Class);
+	gSLiM_Plot_Class->CacheDispatchTables();
 	
 	gSLiM_SLiMgui_Class = new SLiMgui_Class(gStr_SLiMgui, gEidosDictionaryUnretained_Class);
 	gSLiM_SLiMgui_Class->CacheDispatchTables();

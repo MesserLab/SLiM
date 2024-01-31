@@ -1449,14 +1449,17 @@ const std::string &gStr_slimgui = EidosRegisteredString("slimgui", gID_slimgui);
 const std::string &gStr_pid = EidosRegisteredString("pid", gID_pid);
 const std::string &gStr_openDocument = EidosRegisteredString("openDocument", gID_openDocument);
 const std::string &gStr_pauseExecution = EidosRegisteredString("pauseExecution", gID_pauseExecution);
-const std::string &gStr_plotCreate = EidosRegisteredString("plotCreate", gID_plotCreate);
-const std::string &gStr_plotLegendLineEntry = EidosRegisteredString("plotLegendLineEntry", gID_plotLegendLineEntry);
-const std::string &gStr_plotLegendPointEntry = EidosRegisteredString("plotLegendPointEntry", gID_plotLegendPointEntry);
-const std::string &gStr_plotLegendSwatchEntry = EidosRegisteredString("plotLegendSwatchEntry", gID_plotLegendSwatchEntry);
-const std::string &gStr_plotLines = EidosRegisteredString("plotLines", gID_plotLines);
-const std::string &gStr_plotPoints = EidosRegisteredString("plotPoints", gID_plotPoints);
-const std::string &gStr_plotText = EidosRegisteredString("plotText", gID_plotText);
+const std::string &gStr_createPlot = EidosRegisteredString("createPlot", gID_createPlot);
+const std::string &gStr_plotWithTitle = EidosRegisteredString("plotWithTitle", gID_plotWithTitle);
 const std::string &gStr_configureDisplay = EidosRegisteredString("configureDisplay", gID_configureDisplay);
+
+// Plot methods
+const std::string &gStr_legendLineEntry = EidosRegisteredString("legendLineEntry", gID_legendLineEntry);
+const std::string &gStr_legendPointEntry = EidosRegisteredString("legendPointEntry", gID_legendPointEntry);
+const std::string &gStr_legendSwatchEntry = EidosRegisteredString("legendSwatchEntry", gID_legendSwatchEntry);
+const std::string &gStr_lines = EidosRegisteredString("lines", gID_lines);
+const std::string &gStr_points = EidosRegisteredString("points", gID_points);
+const std::string &gStr_text = EidosRegisteredString("text", gID_text);
 
 // mostly SLiM element types
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
@@ -1473,6 +1476,7 @@ const std::string &gStr_Subpopulation = EidosRegisteredString("Subpopulation", g
 //const std::string &gStr_Individual = EidosRegisteredString("Individual", gID_Individual);		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_Substitution = EidosRegisteredString("Substitution", gID_Substitution);
 const std::string &gStr_InteractionType = EidosRegisteredString("InteractionType", gID_InteractionType);
+const std::string &gStr_Plot = EidosRegisteredString("Plot", gID_Plot);
 const std::string &gStr_SLiMgui = EidosRegisteredString("SLiMgui", gID_SLiMgui);
 
 // strings for LogFile

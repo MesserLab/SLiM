@@ -26,6 +26,8 @@
 
 #include "QtSLiMGraphView.h"
 
+class Plot;
+
 
 enum class QtSLiM_CustomPlotType : int {
     kLines,
@@ -40,6 +42,9 @@ class QtSLiMGraphView_CustomPlot : public QtSLiMGraphView
 public:
     QtSLiMGraphView_CustomPlot(QWidget *p_parent, QtSLiMWindow *controller);
     virtual ~QtSLiMGraphView_CustomPlot() override;
+    
+    Plot *eidosPlotObject(void) { return eidos_plot_object_; }
+    void setEidosPlotObject(Plot *plot_object) { eidos_plot_object_ = plot_object; }    // takes ownership
     
     void freeData(void);
     
@@ -73,6 +78,8 @@ public slots:
     virtual void controllerRecycled(void) override;
     
 private:
+    Plot *eidos_plot_object_ = nullptr;                 // OWNED POINTER
+    
     QString title_;
     
     // we can keep any number of sets of lines and points; they get plotted in the order supplied to us

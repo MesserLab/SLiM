@@ -5654,10 +5654,234 @@ The species to which the target object belongs.\
 \f4\fs20  Eidos script parameter.  The DFE for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.12  Class SLiMEidosBlock\
+\f0\b\fs22 \cf2 5.12  Class Plot\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.12.1  
+\f1\i\b0 \cf2 5.12.1  
+\f2\fs18 Plot
+\f1\fs22  properties\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.12.2  
+\f2\fs18 Plot
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the plot.  The entry will be displayed as a line segment drawn in color 
+\f3\fs18 color
+\f4\fs20 , using line width 
+\f3\fs18 lwd
+\f4\fs20 , mirroring the appearance produced by 
+\f3\fs18 lines()
+\f4\fs20  for the same parameters.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)legendPointEntry(string$\'a0label, [integer$\'a0symbol\'a0=\'a00], [string$\'a0color\'a0=\'a0"red"], [string$\'a0border\'a0=\'a0"black"], [numeric$\'a0lwd\'a0=\'a01.0], [numeric$\'a0size\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the plot.  The entry will be displayed as a point symbol specified by 
+\f3\fs18 symbol
+\f4\fs20 , 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 size
+\f4\fs20 , mirroring the appearance produced by 
+\f3\fs18 points()
+\f4\fs20  for the same parameters; see 
+\f3\fs18 points()
+\f4\fs20  for further details.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)legendSwatchEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the plot.  The entry will be displayed as a swatch drawn in color 
+\f3\fs18 color
+\f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds line data given by 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  to the plot.  The data will be plotted as a series of connected line segments, following the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  vectors must be the same length.  The new line data will be plotted on top of any previously added data.\
+The lines will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , using line width 
+\f3\fs18 lwd
+\f4\fs20 .  Unlike 
+\f3\fs18 points()
+\f4\fs20  and 
+\f3\fs18 text()
+\f4\fs20 , 
+\f3\fs18 color
+\f4\fs20  and 
+\f3\fs18 lwd
+\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color and width for each line segment, separate calls to 
+\f3\fs18 lines()
+\f4\fs20  are necessary.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds point data given by 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  to the plot.  The data will be plotted as a set of point symbols, centered at the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  vectors must be the same length.  The new point data will be plotted on top of any previously added data.\
+The symbol plotted for each point depends upon the value of 
+\f3\fs18 symbol
+\f4\fs20 .  In general, symbols will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , with a line width 
+\f3\fs18 lwd
+\f4\fs20  used for lines (if any) in the symbol, and an overall size scaled by 
+\f3\fs18 size
+\f4\fs20 .  Symbols 
+\f3\fs18 21
+\f4\fs20 \'96
+\f3\fs18 25
+\f4\fs20  involve both a filled shape and a border line around that shape; for those symbols, the border line will use the color provided by 
+\f3\fs18 border
+\f4\fs20 , while the filled shape will use color 
+\f3\fs18 color
+\f4\fs20 .  All of these parameters (
+\f3\fs18 symbol
+\f4\fs20 , 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 size
+\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds text data given by 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  to the plot.  The string values in 
+\f3\fs18 labels
+\f4\fs20  will be plotted at the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  must all be the same length.  The new text data will be plotted on top of any previously added data.\
+The text will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , at the font size given by 
+\f3\fs18 size
+\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Both of these parameters (
+\f3\fs18 color
+\f4\fs20  and 
+\f3\fs18 size
+\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+The exact position of the text, relative to each point (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ), is adjusted by the optional parameter 
+\f3\fs18 adj
+\f4\fs20 .  The value of 
+\f3\fs18 adj
+\f4\fs20 , if specified, must be a vector of length 
+\f3\fs18 2
+\f4\fs20 , where 
+\f3\fs18 adj[0]
+\f4\fs20  adjusts the 
+\f1\i x
+\f4\i0  position and 
+\f3\fs18 adj[1]
+\f4\fs20  adjusts the 
+\f1\i y
+\f4\i0  position of the text.  Relative to a given 
+\f1\i x
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the left edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the right edge of the text to it.  Similarly, relative to a given 
+\f1\i y
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the bottom edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the top edge of the text to it.  Intermediate values will produce intermediate alignments, and values of 
+\f3\fs18 adj
+\f4\fs20  outside of [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ] are also allowed.  The default value of 
+\f3\fs18 adj
+\f4\fs20 , 
+\f3\fs18 NULL
+\f4\fs20 , is equivalent to 
+\f3\fs18 c(0.5,\'a00.5)
+\f4\fs20 , aligning the center of the text to (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) both horizontally and vertically.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 5.13  Class SLiMEidosBlock\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf0 5.13.1  
 \f2\fs18 SLiMEidosBlock
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5807,7 +6031,7 @@ The species to which the target object belongs.\
 \f3\fs18 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.12.2  
+\f1\i\fs22 \cf0 5.13.2  
 \f2\fs18 SLiMEidosBlock
 \f1\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -5815,10 +6039,10 @@ The species to which the target object belongs.\
 \f5\i0 \cf0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b \cf0 5.13  Class SLiMgui\
+\f0\b \cf0 5.14  Class SLiMgui\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.13.1  
+\f1\i\b0 \cf0 5.14.1  
 \f2\fs18 SLiMgui
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5830,12 +6054,69 @@ pid => (integer$)\
 \f4\fs20 \cf2 The Un*x process identifier (commonly called the \'93pid\'94) of the running SLiMgui application.  This can be useful for scripts that wish to use system calls to influence the SLiMgui application.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 \kerning1\expnd0\expndtw0 5.13.2  
+\f1\i\fs22 \cf0 \kerning1\expnd0\expndtw0 5.14.2  
 \f2\fs18 SLiMgui
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
+\f3\i0\fs18 \cf2 \'96\'a0(No<Plot>$)createPlot(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [string$\'a0legendPosition\'a0=\'a0"topRight"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates and returns a new custom plot referred to by 
+\f3\fs18 title
+\f4\fs20 , or restarts and returns the existing plot with that title; if the plot cannot be created, 
+\f3\fs18 NULL
+\f4\fs20  is returned.  The range for the 
+\f1\i x
+\f4\i0  and 
+\f1\i y
+\f4\i0  axes of the plot can optionally be provided in 
+\f3\fs18 xrange
+\f4\fs20  and 
+\f3\fs18 yrange
+\f4\fs20 , as vectors of length 
+\f3\fs18 2
+\f4\fs20  containing the minimum and maximum values for the corresponding axis; the default of 
+\f3\fs18 NULL
+\f4\fs20  for these parameters requests that the axis ranges be determined heuristically based upon the data subsequently added to the plot.  Labels for the 
+\f1\i x
+\f4\i0  and 
+\f1\i y
+\f4\i0  axes can be provided in 
+\f3\fs18 xlab
+\f4\fs20  and 
+\f3\fs18 ylab
+\f4\fs20 ; if no axis label is desired, the empty string 
+\f3\fs18 ""
+\f4\fs20  may be passed.  The width and height of the window itself can optionally be set with 
+\f3\fs18 width
+\f4\fs20  and 
+\f3\fs18 height
+\f4\fs20 , in units of pixels (perhaps 70\'96100 pixels per inch, depending on your screen\'92s pixel density); the default of 
+\f3\fs18 NULL
+\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  Finally, the 
+\f3\fs18 legendPosition
+\f4\fs20  parameter controls the position of the legend (if any); it may be 
+\f3\fs18 "topRight"
+\f4\fs20 , 
+\f3\fs18 "topLeft"
+\f4\fs20 , 
+\f3\fs18 "bottomRight"
+\f4\fs20 , or 
+\f3\fs18 "bottomLeft"
+\f4\fs20 .\
+Once the plot has been created, data can be added to it using the 
+\f3\fs18 Plot
+\f4\fs20  methods 
+\f3\fs18 plotLines()
+\f4\fs20 , 
+\f3\fs18 plotPoints()
+\f4\fs20 , and 
+\f3\fs18 plotText()
+\f4\fs20 .  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access further plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(void)openDocument(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5876,312 +6157,21 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)plotCreate(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [string$\'a0legendPosition\'a0=\'a0"topRight"])\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(No<Plot>$)plotWithTitle(string$\'a0title)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Creates a new custom plot window referred to by 
+\f4\fs20 \cf2 Returns an existing plot that was created by 
+\f3\fs18 createPlot()
+\f4\fs20  with 
 \f3\fs18 title
-\f4\fs20 , or restarts the existing plot window with that title.  The range for the 
-\f1\i x
-\f4\i0  and 
-\f1\i y
-\f4\i0  axes of the plot can optionally be provided in 
-\f3\fs18 xrange
-\f4\fs20  and 
-\f3\fs18 yrange
-\f4\fs20 , as vectors of length 
-\f3\fs18 2
-\f4\fs20  containing the minimum and maximum values for the corresponding axis; the default of 
+\f4\fs20 ; if such a plot does not exist, 
 \f3\fs18 NULL
-\f4\fs20  for these parameters requests that the axis ranges be determined heuristically based upon the data added to the plot.  Labels for the 
-\f1\i x
-\f4\i0  and 
-\f1\i y
-\f4\i0  axes can be provided in 
-\f3\fs18 xlab
-\f4\fs20  and 
-\f3\fs18 ylab
-\f4\fs20 ; if no axis label is desired, the empty string 
-\f3\fs18 ""
-\f4\fs20  may be passed.  The width and height of the window itself can optionally be set with 
-\f3\fs18 width
-\f4\fs20  and 
-\f3\fs18 height
-\f4\fs20 , in units of pixels (perhaps 70\'96100 pixels per inch, depending on your screen\'92s pixel density); the default of 
-\f3\fs18 NULL
-\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  Finally, the 
-\f3\fs18 legendPosition
-\f4\fs20  parameter controls the position of the legend (if any); it may be 
-\f3\fs18 "topRight"
-\f4\fs20 , 
-\f3\fs18 "topLeft"
-\f4\fs20 , 
-\f3\fs18 "bottomRight"
-\f4\fs20 , or 
-\f3\fs18 "bottomLeft"
-\f4\fs20 .\
-Once the plot window has been created, the 
-\f3\fs18 title
-\f4\fs20  attribute provided can be used to reference the plot window in subsequent calls to add data using 
-\f3\fs18 plotLines()
-\f4\fs20 , 
-\f3\fs18 plotPoints()
-\f4\fs20 , and 
-\f3\fs18 plotText()
-\f4\fs20 , as well as calls to 
-\f3\fs18 plotLegendLineEntry()
-\f4\fs20  and 
-\f3\fs18 plotLegendPointEntry()
-\f4\fs20  to configure a legend for the plot.  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access further plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotLegendLineEntry(string$\'a0title, string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds a legend entry with text 
-\f3\fs18 label
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The entry will be displayed as a line segment drawn in color 
-\f3\fs18 color
-\f4\fs20 , using line width 
-\f3\fs18 lwd
-\f4\fs20 , mirroring the appearance produced by 
-\f3\fs18 plotLines()
-\f4\fs20  for the same parameters.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotLegendPointEntry(string$\'a0title, string$\'a0label, [integer$\'a0symbol\'a0=\'a00], [string$\'a0color\'a0=\'a0"red"], [string$\'a0border\'a0=\'a0"black"], [numeric$\'a0lwd\'a0=\'a01.0], [numeric$\'a0size\'a0=\'a01.0])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds a legend entry with text 
-\f3\fs18 label
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The entry will be displayed as a point symbol specified by 
-\f3\fs18 symbol
-\f4\fs20 , 
-\f3\fs18 color
-\f4\fs20 , 
-\f3\fs18 border
-\f4\fs20 , 
-\f3\fs18 lwd
-\f4\fs20 , and 
-\f3\fs18 size
-\f4\fs20 , mirroring the appearance produced by 
-\f3\fs18 plotPoints()
-\f4\fs20  for the same parameters; see 
-\f3\fs18 plotPoints()
-\f4\fs20  for further details.  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotLegendSwatchEntry(string$\'a0title, string$\'a0label, [string$\'a0color\'a0=\'a0"red"])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds a legend entry with text 
-\f3\fs18 label
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The entry will be displayed as a swatch drawn in color 
-\f3\fs18 color
-\f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotLines(string$\'a0title, numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds line data given by 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The data will be plotted as a series of connected line segments, following the (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) positions given; note that the 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  vectors must be the same length.  The new line data will be plotted on top of any previously added data.\
-The lines will be drawn in color 
-\f3\fs18 color
-\f4\fs20 , using line width 
-\f3\fs18 lwd
-\f4\fs20 .  Unlike 
-\f3\fs18 plotPoints()
-\f4\fs20  and 
-\f3\fs18 plotText()
-\f4\fs20 , 
-\f3\fs18 color
-\f4\fs20  and 
-\f3\fs18 lwd
-\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color and width for each line segment, separate calls to 
-\f3\fs18 plotLines()
-\f4\fs20  are necessary.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotPoints(string$\'a0title, numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds point data given by 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The data will be plotted as a set of point symbols, centered at the (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) positions given; note that the 
-\f3\fs18 x
-\f4\fs20  and 
-\f3\fs18 y
-\f4\fs20  vectors must be the same length.  The new point data will be plotted on top of any previously added data.\
-The symbol plotted for each point depends upon the value of 
-\f3\fs18 symbol
-\f4\fs20 .  In general, symbols will be drawn in color 
-\f3\fs18 color
-\f4\fs20 , with a line width 
-\f3\fs18 lwd
-\f4\fs20  used for lines (if any) in the symbol, and an overall size scaled by 
-\f3\fs18 size
-\f4\fs20 .  Symbols 
-\f3\fs18 21
-\f4\fs20 \'96
-\f3\fs18 25
-\f4\fs20  involve both a filled shape and a border line around that shape; for those symbols, the border line will use the color provided by 
-\f3\fs18 border
-\f4\fs20 , while the filled shape will use color 
-\f3\fs18 color
-\f4\fs20 .  All of these parameters (
-\f3\fs18 symbol
-\f4\fs20 , 
-\f3\fs18 color
-\f4\fs20 , 
-\f3\fs18 border
-\f4\fs20 , 
-\f3\fs18 lwd
-\f4\fs20 , and 
-\f3\fs18 size
-\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.  Note that except for 
-\f3\fs18 symbol
-\f4\fs20  values 
-\f3\fs18 19
-\f4\fs20  and 
-\f3\fs18 20
-\f4\fs20 , plot symbols match the symbols provided by base R plotting (with the 
-\f3\fs18 pch
-\f4\fs20  parameter); in R, values 
-\f3\fs18 19
-\f4\fs20  and 
-\f3\fs18 20
-\f4\fs20  are just filled circles of slightly different sizes than 
-\f3\fs18 16
-\f4\fs20 , for some reason, so those values have been repurposed here to be more useful.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(void)plotText(string$\'a0title, numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 Adds text data given by 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 y
-\f4\fs20 , and 
-\f3\fs18 labels
-\f4\fs20  to the custom plot window named 
-\f3\fs18 title
-\f4\fs20 , previously created with 
-\f3\fs18 plotCreate()
-\f4\fs20 .  The string values in 
-\f3\fs18 labels
-\f4\fs20  will be plotted at the (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) positions given; note that 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 y
-\f4\fs20 , and 
-\f3\fs18 labels
-\f4\fs20  must all be the same length.  The new text data will be plotted on top of any previously added data.\
-The text will be drawn in color 
-\f3\fs18 color
-\f4\fs20 , at the font size given by 
-\f3\fs18 size
-\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Both of these parameters (
-\f3\fs18 color
-\f4\fs20  and 
-\f3\fs18 size
-\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
-The exact position of the text, relative to each point (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ), is adjusted by the optional parameter 
-\f3\fs18 adj
-\f4\fs20 .  The value of 
-\f3\fs18 adj
-\f4\fs20 , if specified, must be a vector of length 
-\f3\fs18 2
-\f4\fs20 , where 
-\f3\fs18 adj[0]
-\f4\fs20  adjusts the 
-\f1\i x
-\f4\i0  position and 
-\f3\fs18 adj[1]
-\f4\fs20  adjusts the 
-\f1\i y
-\f4\i0  position of the text.  Relative to a given 
-\f1\i x
-\f4\i0  position, a value of 
-\f3\fs18 0.0
-\f4\fs20  aligns the left edge of the text to it; a value of 
-\f3\fs18 0.5
-\f4\fs20  aligns the center of the text to it; and a value of 
-\f3\fs18 1.0
-\f4\fs20  aligns the right edge of the text to it.  Similarly, relative to a given 
-\f1\i y
-\f4\i0  position, a value of 
-\f3\fs18 0.0
-\f4\fs20  aligns the bottom edge of the text to it; a value of 
-\f3\fs18 0.5
-\f4\fs20  aligns the center of the text to it; and a value of 
-\f3\fs18 1.0
-\f4\fs20  aligns the top edge of the text to it.  Intermediate values will produce intermediate alignments, and values of 
-\f3\fs18 adj
-\f4\fs20  outside of [
-\f3\fs18 0.0
-\f4\fs20 , 
-\f3\fs18 1.0
-\f4\fs20 ] are also allowed.  The default value of 
-\f3\fs18 adj
-\f4\fs20 , 
-\f3\fs18 NULL
-\f4\fs20 , is equivalent to 
-\f3\fs18 c(0.5,\'a00.5)
-\f4\fs20 , aligning the center of the text to (
-\f1\i x
-\f4\i0 , 
-\f1\i y
-\f4\i0 ) both horizontally and vertically.\
+\f4\fs20  is returned.  Note that other SLiMgui plots cannot be accessed through this method; only plots created by 
+\f3\fs18 createPlot()
+\f4\fs20  are available in Eidos.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf2 5.14  Class SpatialMap
+\f0\b\fs22 \cf2 5.15  Class SpatialMap
 \f4\b0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -6197,7 +6187,7 @@ The exact position of the text, relative to each point (
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.14.1  
+\f1\i\fs22 \cf2 5.15.1  
 \f2\fs18 SpatialMap
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6296,7 +6286,7 @@ The exact position of the text, relative to each point (
 \f4\fs20  class; see the Eidos manual), for another way of attaching state to spatial maps.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.14.2  
+\f1\i\fs22 \cf2 5.15.2  
 \f2\fs18 SpatialMap
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6937,10 +6927,10 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20  is subtracted from the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.15  Class Species\
+\f0\b\fs22 \cf0 5.16  Class Species\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.15.1  
+\f1\i\b0 \cf0 5.16.1  
 \f2\fs18 Species
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7163,7 +7153,7 @@ The spatial periodicity of the simulation for this species, as specified in
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.15.2  
+\f1\i\fs22 \cf0 5.16.2  
 \f2\fs18 Species
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -8425,10 +8415,10 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \f4\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.16  Class Subpopulation\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.17  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.16.1  
+\f1\i\b0 \cf0 5.17.1  
 \f2\fs18 Subpopulation
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -8705,7 +8695,7 @@ The species to which the target object belongs.\
 \f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.16.2  
+\f1\i\fs22 \cf0 5.17.2  
 \f2\fs18 Subpopulation
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -10562,10 +10552,10 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.17  Class Substitution\
+\f0\b\fs22 \cf0 5.18  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.17.1  
+\f1\i\b0 \cf0 5.18.1  
 \f2\fs18 Substitution
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -10680,7 +10670,7 @@ nucleotide <\'96> (string$)\
 \f4\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.17.2  
+\f1\i\fs22 \cf0 5.18.2  
 \f2\fs18 Substitution
 \f1\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0

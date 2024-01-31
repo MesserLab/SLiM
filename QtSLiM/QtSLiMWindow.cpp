@@ -4429,7 +4429,7 @@ void QtSLiMWindow::eidos_pauseExecution(void)
 	}
 }
 
-void QtSLiMWindow::eidos_plotCreate(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, QtSLiM_LegendPosition legendPosition)
+QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, QtSLiM_LegendPosition legendPosition)
 {
     QtSLiMGraphView *graphView = graphViewWithTitle(title);
     QtSLiMGraphView_CustomPlot *customPlot = nullptr;
@@ -4441,7 +4441,7 @@ void QtSLiMWindow::eidos_plotCreate(QString title, double *x_range, double *y_ra
         customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
         
         if (!customPlot)
-            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
         
         graphWindow = graphView->window();
     }
@@ -4457,7 +4457,7 @@ void QtSLiMWindow::eidos_plotCreate(QString title, double *x_range, double *y_ra
             height = 300;
         
         if ((width < 250) || (height < 250))
-            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotCreate): plotCreate() requires the window width and height to be at least 250 pixels." << EidosTerminate(nullptr);
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires the window width and height to be at least 250 pixels." << EidosTerminate(nullptr);
         
         graphWindow = graphWindowWithView(customPlot, width, height);
         createdWindow = true;
@@ -4477,16 +4477,17 @@ void QtSLiMWindow::eidos_plotCreate(QString title, double *x_range, double *y_ra
             graphWindow->show();
             graphWindow->raise();
             graphWindow->activateWindow();
-            qDebug("created window");
         }
     }
     else
     {
         qApp->beep();
     }
+    
+    return customPlot;
 }
 
-QtSLiMGraphView_CustomPlot *QtSLiMWindow::_lookUpCustomPlot(QString title)
+QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_plotWithTitle(QString title)
 {
     QtSLiMGraphView *graphView = graphViewWithTitle(title);
     QtSLiMGraphView_CustomPlot *customPlot = nullptr;
@@ -4495,63 +4496,27 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::_lookUpCustomPlot(QString title)
     {
         customPlot = dynamic_cast<QtSLiMGraphView_CustomPlot *>(graphView);
         
-        if (!customPlot)
-            EIDOS_TERMINATION << "ERROR (QtSLiMWindow::_lookUpCustomPlot): a plot window exists with the given title, but it is not a custom plot window." << EidosTerminate(nullptr);
+        if (customPlot)
+        {
+            Plot *plotobj = customPlot->eidosPlotObject();
+            
+            if (plotobj)
+                return customPlot;
+        }
+        
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_plotWithTitle): a plot window exists with the given title, but it is not a custom plot window created with createPlot()." << EidosTerminate(nullptr);
     }
     else
     {
-        EIDOS_TERMINATION << "ERROR (QtSLiMWindow::_lookUpCustomPlot): no plot window exists with the given title.  Plotting must begin with a call to plotCreate(), to create the initial plot window." << EidosTerminate(nullptr);
+        // when there is no plot window with the given title, it is not an error
+        return nullptr;
     }
-    
-    return customPlot;
-}
-
-void QtSLiMWindow::eidos_plotLegendLineEntry(QString title, QString label, QColor color, double lwd)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addLegendLineEntry(label, color, lwd);
-}
-
-void QtSLiMWindow::eidos_plotLegendPointEntry(QString title, QString label, int symbol, QColor color, QColor border, double lwd, double size)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addLegendPointEntry(label, symbol, color, border, lwd, size);
-}
-
-void QtSLiMWindow::eidos_plotLegendSwatchEntry(QString title, QString label, QColor color)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addLegendSwatchEntry(label, color);
-}
-
-void QtSLiMWindow::eidos_plotLines(QString title, double *x_values, double *y_values, int data_count, std::vector<QColor> *color, std::vector<double> *lwd)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addLineData(x_values, y_values, data_count, color, lwd);     // gives buffers to the graph window
-}
-
-void QtSLiMWindow::eidos_plotPoints(QString title, double *x_values, double *y_values, int data_count, std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border, std::vector<double> *lwd, std::vector<double> *size)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addPointData(x_values, y_values, data_count, symbol, color, border, lwd, size);     // gives buffers to the graph window
-}
-
-void QtSLiMWindow::eidos_plotText(QString title, double *x_values, double *y_values, std::vector<QString> *labels, int data_count, std::vector<QColor> *color, std::vector<double> *size, double *adj)
-{
-    QtSLiMGraphView_CustomPlot *customPlot = _lookUpCustomPlot(title);
-    
-    customPlot->addTextData(x_values, y_values, labels, data_count, color, size, adj);     // gives buffers to the graph window
 }
 
 void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count)
 {
     // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
-    eidos_plotCreate(title, nullptr, nullptr, "time", y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
+    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, "time", y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
     
     double *x_values = (double *)malloc(data_count * sizeof(double));
     for (int i = 0; i < data_count; ++i)
@@ -4563,13 +4528,13 @@ void QtSLiMWindow::plotLogFileData_1D(QString title, QString y_title, double *y_
     std::vector<double> *lwd = new std::vector<double>;
     lwd->push_back(1.5);
     
-    eidos_plotLines(title, x_values, y_values, data_count, color, lwd);     // takes buffers from us
+    plot->addLineData(x_values, y_values, data_count, color, lwd);     // takes buffers from us
 }
 
 void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_title, double *x_values, double *y_values, int data_count, bool makeScatterPlot)
 {
     // To plot logfile data, we call through to the same APIs as for Eidos-based plotting
-    eidos_plotCreate(title, nullptr, nullptr, x_title, y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
+    QtSLiMGraphView_CustomPlot *plot = eidos_createPlot(title, nullptr, nullptr, x_title, y_title, 0, 0, QtSLiM_LegendPosition::kTopRight);
     
     std::vector<QColor> *color = new std::vector<QColor>;
     color->emplace_back(0, 0, 0, 255);
@@ -4588,11 +4553,11 @@ void QtSLiMWindow::plotLogFileData_2D(QString title, QString x_title, QString y_
         std::vector<double> *size = new std::vector<double>;
         size->push_back(0.5);
         
-        eidos_plotPoints(title, x_values, y_values, data_count, symbol, color, border, lwd, size);      // takes buffers from us
+        plot->addPointData(x_values, y_values, data_count, symbol, color, border, lwd, size);      // takes buffers from us
     }
     else
     {
-        eidos_plotLines(title, x_values, y_values, data_count, color, lwd);                             // takes buffers from us
+        plot->addLineData(x_values, y_values, data_count, color, lwd);                             // takes buffers from us
     }
 }
 

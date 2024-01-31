@@ -19,6 +19,7 @@
 
 
 #include "slim_gui.h"
+#include "plot.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
@@ -29,7 +30,7 @@
 
 
 #pragma mark -
-#pragma mark SLiMGUI
+#pragma mark SLiMgui
 #pragma mark -
 
 SLiMgui::SLiMgui(Community &p_community, SLiMWindowController *p_controller) :
@@ -96,17 +97,30 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 {
 	switch (p_method_id)
 	{
+		case gID_createPlot:				return ExecuteMethod_createPlot(p_method_id, p_arguments, p_interpreter);
 		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
 		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
-		case gID_plotCreate:				return ExecuteMethod_plotCreate(p_method_id, p_arguments, p_interpreter);
-		case gID_plotLegendLineEntry:		return ExecuteMethod_plotLegendLineEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_plotLegendPointEntry:		return ExecuteMethod_plotLegendPointEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_plotLegendSwatchEntry:		return ExecuteMethod_plotLegendSwatchEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_plotLines:					return ExecuteMethod_plotLines(p_method_id, p_arguments, p_interpreter);
-		case gID_plotPoints:				return ExecuteMethod_plotPoints(p_method_id, p_arguments, p_interpreter);
-		case gID_plotText:					return ExecuteMethod_plotText(p_method_id, p_arguments, p_interpreter);
+		case gID_plotWithTitle:				return ExecuteMethod_plotWithTitle(p_method_id, p_arguments, p_interpreter);
 		default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (No<Plot>$)createPlot(...)
+//
+EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	static bool beenHere = false;
+	
+	if (!beenHere)
+	{
+		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
+		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
+		std::cerr << "WARNING (SLiMgui::ExecuteMethod_createPlot): createPlot() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
+		beenHere = true;
+	}
+	
+	return gStaticEidosValueNULL;
 }
 
 //	*********************	– (void)openDocument(string$ path)
@@ -135,9 +149,9 @@ EidosValue_SP SLiMgui::ExecuteMethod_pauseExecution(EidosGlobalStringID p_method
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)plotCreate(...)
+//	*********************	– (No<Plot>$)plotWithTitle(...)
 //
-EidosValue_SP SLiMgui::ExecuteMethod_plotCreate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP SLiMgui::ExecuteMethod_plotWithTitle(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	static bool beenHere = false;
@@ -146,119 +160,11 @@ EidosValue_SP SLiMgui::ExecuteMethod_plotCreate(EidosGlobalStringID p_method_id,
 	{
 		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
 		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotCreate): plotCreate() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
+		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotWithTitle): plotWithTitle() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
 		beenHere = true;
 	}
 	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotLegendLineEntry(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotLegendLineEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotLegendLineEntry): plotLegendLineEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotLegendPointEntry(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotLegendPointEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotLegendPointEntry): plotLegendPointEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotLegendSwatchEntry(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotLegendSwatchEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotLegendSwatchEntry): plotLegendSwatchEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotLines(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotLines(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotLines): plotLines() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotPoints(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotPoints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotPoints): plotPoints() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
-}
-
-//	*********************	– (void)plotText(...)
-//
-EidosValue_SP SLiMgui::ExecuteMethod_plotText(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
-{
-#pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (SLiMgui::ExecuteMethod_plotText): plotText() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
-	return gStaticEidosValueVOID;
+	return gStaticEidosValueNULL;
 }
 
 
@@ -296,37 +202,15 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotCreate, kEidosValueMaskVOID))->AddString_S("title")
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createPlot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Plot_Class))->AddString_S("title")
 							  ->AddNumeric_ON("xrange", gStaticEidosValueNULL)->AddNumeric_ON("yrange", gStaticEidosValueNULL)
 							  ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
 							  ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
 							  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
 							  ->AddString_OS("legendPosition", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("topRight"))));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotLegendLineEntry, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotLegendPointEntry, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddString_S("label")->AddInt_OS("symbol", gStaticEidosValue_Integer0)
-							  ->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-							  ->AddString_OS("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
-							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddNumeric_OS("size", gStaticEidosValue_Float1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotLegendSwatchEntry, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red"))));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotLines, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotPoints, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddNumeric("x")->AddNumeric("y")->AddInt_O("symbol", gStaticEidosValue_Integer0)
-							  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-							  ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
-							  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotText, kEidosValueMaskVOID))->AddString_S("title")
-							  ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
-							  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
-							  ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
-							  ->AddNumeric_ON("adj", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotWithTitle, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Plot_Class))->AddString_S("title"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
