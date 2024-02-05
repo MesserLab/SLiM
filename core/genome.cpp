@@ -1589,6 +1589,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	if (p_output_nonnucs && p_nucleotide_based)
 		p_out << "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">" << std::endl;
 	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
+	p_out << "##contig=<ID=1,URL=https://github.com/MesserLab/SLiM>" << std::endl;
 	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
