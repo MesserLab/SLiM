@@ -3126,7 +3126,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		shuffle_buf_size_ = 0;
 		
 		if (!shuffle_buffer_)
-			EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): allocation failed (size " << (shuffle_buf_capacity_ * sizeof(slim_popsize_t)) << "); you may need to raise the memory limit for SLiM." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): allocation failed (requested size " << p_buffer_size << " entries, allocation size " << (shuffle_buf_capacity_ * sizeof(slim_popsize_t)) << " bytes); you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
 	if (shuffle_buf_is_enabled_)
