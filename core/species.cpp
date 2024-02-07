@@ -3122,22 +3122,38 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		if (shuffle_buffer_)
 			free(shuffle_buffer_);
 		shuffle_buf_capacity_ = p_buffer_size * 2;		// double capacity so we reallocate less often
+#if DEBUG_SHUFFLE_BUFFER
+		// room for an extra value at the start and end
+		shuffle_buffer_ = (slim_popsize_t *)malloc((shuffle_buf_capacity_ + 2) * sizeof(slim_popsize_t));
+#else
 		shuffle_buffer_ = (slim_popsize_t *)malloc(shuffle_buf_capacity_ * sizeof(slim_popsize_t));
+#endif
 		shuffle_buf_size_ = 0;
 		
 		if (!shuffle_buffer_)
 			EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): allocation failed (requested size " << p_buffer_size << " entries, allocation size " << (shuffle_buf_capacity_ * sizeof(slim_popsize_t)) << " bytes); you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
+#if DEBUG_SHUFFLE_BUFFER
+	// put flag values in to detect an overrun
+	slim_popsize_t *buffer_contents = shuffle_buffer_ + 1;
+	
+	shuffle_buffer_[0] = (slim_popsize_t)0xDEADD00D;
+	shuffle_buffer_[p_buffer_size + 1] = (slim_popsize_t)0xDEADD00D;
+#else
+	slim_popsize_t *buffer_contents = shuffle_buffer_;
+#endif
+	
 	if (shuffle_buf_is_enabled_)
 	{
 		// The shuffle buffer is enabled, so we need to reinitialize it with sequential values if it has
 		// changed size (unnecessary if it has not changed size, since the values are just rearranged),
 		// and then shuffle it into a new order.
+		
 		if (p_buffer_size != shuffle_buf_size_)
 		{
 			for (slim_popsize_t i = 0; i < p_buffer_size; ++i)
-				shuffle_buffer_[i] = i;
+				buffer_contents[i] = i;
 			
 			shuffle_buf_size_ = p_buffer_size;
 		}
@@ -3145,7 +3161,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		if (shuffle_buf_size_ > 0)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-			Eidos_ran_shuffle(rng, shuffle_buffer_, shuffle_buf_size_);
+			Eidos_ran_shuffle(rng, buffer_contents, shuffle_buf_size_);
 		}
 	}
 	else
@@ -3155,18 +3171,36 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		if (p_buffer_size > shuffle_buf_size_)
 		{
 			for (slim_popsize_t i = shuffle_buf_size_; i < p_buffer_size; ++i)
-				shuffle_buffer_[i] = i;
+				buffer_contents[i] = i;
+			
+			shuffle_buf_size_ = p_buffer_size;
 		}
 	}
 	
+#if DEBUG_SHUFFLE_BUFFER
+	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
+	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
+		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
+	if (shuffle_buffer_[shuffle_buf_size_ + 1] != (slim_popsize_t)0xDEADD00D)
+		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer overrun at end." << EidosTerminate();
+#endif
+	
 	shuffle_buf_borrowed_ = true;
-	return shuffle_buffer_;
+	return buffer_contents;
 }
 
 void Species::ReturnShuffleBuffer(void)
 {
 	if (!shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer was not borrowed." << EidosTerminate();
+	
+#if DEBUG_SHUFFLE_BUFFER
+	// check for correct setup of flag values; entries 1:shuffle_buf_size_ are used
+	if (shuffle_buffer_[0] != (slim_popsize_t)0xDEADD00D)
+		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer overrun at start." << EidosTerminate();
+	if (shuffle_buffer_[shuffle_buf_size_ + 1] != (slim_popsize_t)0xDEADD00D)
+		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer overrun at end." << EidosTerminate();
+#endif
 	
 	shuffle_buf_borrowed_ = false;
 }

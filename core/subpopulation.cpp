@@ -3462,8 +3462,13 @@ void Subpopulation::MergeReproductionOffspring(void)
 	if (sex_enabled_)
 	{
 		// resize to create new slots for the new individuals
-		parent_genomes_.resize(parent_genomes_.size() + (size_t)new_count * 2);
-		parent_individuals_.resize(parent_individuals_.size() + new_count);
+		try {
+			parent_genomes_.resize(parent_genomes_.size() + (size_t)new_count * 2);
+			parent_individuals_.resize(parent_individuals_.size() + new_count);
+		}
+		catch (...) {
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) resize() exception with parent_genomes_.size() == " << parent_genomes_.size() << ", parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
+		}
 		
 		// in sexual models, females must be put before males and parent_first_male_index_ must be adjusted
 		Genome **parent_genome_ptrs = parent_genomes_.data();
@@ -3515,8 +3520,13 @@ void Subpopulation::MergeReproductionOffspring(void)
 	else
 	{
 		// reserve space for the new offspring to be merged in
-		parent_genomes_.reserve(parent_genomes_.size() + (size_t)new_count * 2);
-		parent_individuals_.reserve(parent_individuals_.size() + new_count);
+		try {
+			parent_genomes_.reserve(parent_genomes_.size() + (size_t)new_count * 2);
+			parent_individuals_.reserve(parent_individuals_.size() + new_count);
+		}
+		catch (...) {
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) reserve() exception with parent_genomes_.size() == " << parent_genomes_.size() << ", parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
+		}
 		
 		// in hermaphroditic models there is no ordering, so just add new stuff at the end
 		for (int new_index = 0; new_index < new_count; ++new_index)

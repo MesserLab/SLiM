@@ -475,6 +475,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_MUTATION_ZOMBIES		0		// avoid destroying Mutation objects; keep them as zombies
 #define SLIM_DEBUG_MUTATION_RUNS	0		// turn on to get logging about mutation run uniquing and usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
+#define DEBUG_SHUFFLE_BUFFER		1		// debug memory overruns with the shuffle buffer
 
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output
