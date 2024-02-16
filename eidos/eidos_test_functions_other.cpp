@@ -964,14 +964,16 @@ void _RunFunctionMiscTests(const std::string &temp_path)
 		#ifdef _WIN32
 		EidosAssertScriptSuccess_S("system('set /a 5 + 5');", "10");
 		EidosAssertScriptSuccess_S("system('set', args=c('/a', '5', '+', '5'));", "10");
-		EidosAssertScriptSuccess_S("system('set /a 5 / 0', stderr=T);", "Divide by zero error.");
+		// BCH 2/16/2024: This is a continuing source of confusion since the "Divide by zero error" is localization-specific.  Commenting out; not worth it.
+		//EidosAssertScriptSuccess_S("system('set /a 5 / 0', stderr=T);", "Divide by zero error.");
 		EidosAssertScriptSuccess_S("system('echo foo');", "foo");
 		// input doesn't currently work because ofstream() fails
 		EidosAssertScriptSuccess_SV("system('echo foo&echo bar&echo baz');", {"foo", "bar", "baz"});
 		#else
 		EidosAssertScriptSuccess_S("system('expr 5 + 5');", "10");
 		EidosAssertScriptSuccess_S("system('expr', args=c('5', '+', '5'));", "10");
-		EidosAssertScriptSuccess_L("err = system('expr 5 / 0', stderr=T); (err == 'expr: division by zero') | (err == 'expr: división por cero') | (err == 'expr: division par zéro') | (substr(err, 0, 5) == 'expr: ');", true);	// unfortunately system localization makes the message returned vary
+		// BCH 2/16/2024: This is a continuing source of confusion since the "Divide by zero error" is localization-specific.  Commenting out; not worth it.
+		//EidosAssertScriptSuccess_L("err = system('expr 5 / 0', stderr=T); (err == 'expr: division by zero') | (err == 'expr: división por cero') | (err == 'expr: division par zéro') | (substr(err, 0, 5) == 'expr: ');", true);
 		EidosAssertScriptSuccess_S("system('printf foo');", "foo");
 		EidosAssertScriptSuccess_S("system(\"printf 'foo bar baz' | wc -m | sed 's/ //g'\");", "11");
 		EidosAssertScriptSuccess_S("system(\"(wc -l | sed 's/ //g')\", input='foo\\nbar\\nbaz\\n');", "3");
