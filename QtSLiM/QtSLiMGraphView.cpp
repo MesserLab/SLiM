@@ -43,7 +43,6 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
-#include <unordered_map>
 
 #include "species.h"
 #include "subpopulation.h"
@@ -705,7 +704,7 @@ int QtSLiMGraphView::lineCountForLegend(QtSLiMLegendSpec &legend)
 {
     // check for duplicate labels, which get uniqued into a single line
     // displayedLabels maps from label to index, but we don't use the index here; parallel with drawLegend()
-    std::unordered_map<QString, int> displayedLabels;
+    QMap<QString, int> displayedLabels;
     int lineCount = 0;
     
     for (const QtSLiMLegendEntry &legendEntry : legend)
@@ -716,7 +715,7 @@ int QtSLiMGraphView::lineCountForLegend(QtSLiMLegendSpec &legend)
         if (existingEntry == displayedLabels.end())
         {
             // not a duplicate
-            displayedLabels.emplace(labelString, 0);
+            displayedLabels.insert(labelString, 0);
             lineCount++;
         }
     }
@@ -744,7 +743,7 @@ double QtSLiMGraphView::graphicsWidthForLegend(QtSLiMLegendSpec &legend, double 
             if (legendEntry.entry_type == QtSLiM_LegendEntryType::kLine)
             {
                 // duplicates entries, and some entries are lines; expand
-                return legendGraphicsWidth_default * 1.5;
+                return legendGraphicsWidth_default * 2.0;
             }
         }
     }
@@ -807,7 +806,7 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
     const double labelVerticalAdjust = (legendLineHeight - capHeight) / 2.0;
     double swatchSize = capHeight * 1.5;
     int lineCount = lineCountForLegend(legend);             // remove duplicate lines from the count
-    std::unordered_map<QString, int> displayedLabels;       // maps from label to index
+    QMap<QString, int> displayedLabels;       // maps from label to index
     
 #if 0
     // show the legend layout, for debugging
@@ -843,12 +842,12 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         {
             // not a duplicate
             positionIndex = (nextLinePosition--);
-            displayedLabels.emplace(labelString, positionIndex);
+            displayedLabels.insert(labelString, positionIndex);
         }
         else
         {
             // duplicate; use the previously determined position
-            positionIndex = existingEntry->second;
+            positionIndex = existingEntry.value();
         }
         
         QRectF entryBox(legendRect.x(), legendRect.y() + positionIndex * (legendLineHeight + legendInteriorMargin), legendRect.width(), legendLineHeight);
