@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <unordered_map>
 
 #include "species.h"
 #include "subpopulation.h"
@@ -700,48 +701,189 @@ QtSLiMLegendSpec QtSLiMGraphView::legendKey(void)
     return QtSLiMLegendSpec();
 }
 
-QSize QtSLiMGraphView::legendSize(QPainter &painter)
+int QtSLiMGraphView::lineCountForLegend(QtSLiMLegendSpec &legend)
 {
-    QtSLiMLegendSpec legend = legendKey();
-	int legendEntryCount = static_cast<int>(legend.size());
+    // check for duplicate labels, which get uniqued into a single line
+    // displayedLabels maps from label to index, but we don't use the index here; parallel with drawLegend()
+    std::unordered_map<QString, int> displayedLabels;
+    int lineCount = 0;
     
-	if (legendEntryCount == 0)
-		return QSize();
-	
-	const int legendRowHeight = 15;
-	QSize legend_size = QSize(0, legendRowHeight * legendEntryCount - 6);
-	
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
         QString labelString = legendEntry.label;
-        QRect labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
+        auto existingEntry = displayedLabels.find(labelString);
         
-        legend_size.setWidth(std::max(legend_size.width(), 0 + (legendRowHeight - 6) + 5 + labelBoundingBox.width()));
+        if (existingEntry == displayedLabels.end())
+        {
+            // not a duplicate
+            displayedLabels.emplace(labelString, 0);
+            lineCount++;
+        }
+    }
+    
+    return lineCount;
+}
+
+double QtSLiMGraphView::graphicsWidthForLegend(QtSLiMLegendSpec &legend, double legendLineHeight)
+{
+    // with a specified width, use that width
+    if (legend_graphicsWidth != -1)
+        return legend_graphicsWidth;
+    
+    // otherwise, the default graphics width depends upon whether there are any duplicate
+    // entries and lines; we want to make the area a bit wider if we have points on top of lines
+    const double legendGraphicsWidth_default = legendLineHeight;
+    
+    int entryCount = static_cast<int>(legend.size());
+    int lineCount = lineCountForLegend(legend);    // remove duplicate lines from the count
+    
+    if (entryCount != lineCount)
+    {
+        for (const QtSLiMLegendEntry &legendEntry : legend)
+        {
+            if (legendEntry.entry_type == QtSLiM_LegendEntryType::kLine)
+            {
+                // duplicates entries, and some entries are lines; expand
+                return legendGraphicsWidth_default * 1.5;
+            }
+        }
+    }
+    
+    return legendGraphicsWidth_default;
+}
+
+QSizeF QtSLiMGraphView::legendSize(QPainter &painter)
+{
+    // This method must be synchronized with QtSLiMGraphView::drawLegend()
+    QtSLiMLegendSpec legend = legendKey();
+    int entryCount = static_cast<int>(legend.size());
+    
+	if (entryCount == 0)
+		return QSize();
+    
+    const double legendLabelPointSize = ((legend_labelSize == -1) ? 10 : legend_labelSize);
+    const double legendLineHeight = ((legend_lineHeight == -1) ? legendLabelPointSize : legend_lineHeight);
+    const double legendInteriorMargin = ((legend_interiorMargin == -1) ?  5 : legend_interiorMargin);
+    const double legendGraphicsWidth = graphicsWidthForLegend(legend, legendLineHeight);
+    
+    int lineCount = lineCountForLegend(legend);    // remove duplicate lines from the count
+    QSizeF legend_size = QSize(0, legendLineHeight * lineCount + legendInteriorMargin * (lineCount - 1));
+	
+    for (const QtSLiMLegendEntry &legendEntry : legend)
+    {
+        // we don't bother removing duplicate lines here, we just measure them twice; no harm
+        QString labelString = legendEntry.label;
+        
+        // incorporate the width of the label into the width of the legend
+        QRectF labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
+        double labelWidth = legendGraphicsWidth + legendInteriorMargin + labelBoundingBox.width();
+        
+        labelWidth = SLIM_SCREEN_ROUND(labelWidth);
+        
+        legend_size.setWidth(std::max(legend_size.width(), labelWidth));
     }
     
 	return legend_size;
 }
 
-void QtSLiMGraphView::drawLegend(QPainter &painter, QRect legendRect)
+void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
 {
+    // This method must be synchronized with QtSLiMGraphView::legendSize()
+    // drawLegendInInteriorRect() has already done the frame/fill, including margins, for us
     QtSLiMLegendSpec legend = legendKey();
-    int legendEntryCount = static_cast<int>(legend.size());
-	const int legendRowHeight = 15;
-	int idx = 0;
+    int entryCount = static_cast<int>(legend.size());
     
-    for (const QtSLiMLegendEntry &legendEntry : legend)
+    if (entryCount == 0)
+        return;
+    
+    const double legendLabelPointSize = ((legend_labelSize == -1) ? 10 : legend_labelSize);
+    const double legendLineHeight = ((legend_lineHeight == -1) ? legendLabelPointSize : legend_lineHeight);
+    const double legendInteriorMargin = ((legend_interiorMargin == -1) ?  5 : legend_interiorMargin);
+    const double legendGraphicsWidth = graphicsWidthForLegend(legend, legendLineHeight);
+    
+    QFont legendFont = labelFontOfPointSize(legendLabelPointSize);
+    QFontMetricsF legendFontMetrics(legendFont);
+    double capHeight = legendFontMetrics.capHeight();
+    const double labelVerticalAdjust = (legendLineHeight - capHeight) / 2.0;
+    double swatchSize = capHeight * 1.5;
+    int lineCount = lineCountForLegend(legend);             // remove duplicate lines from the count
+    std::unordered_map<QString, int> displayedLabels;       // maps from label to index
+    
+#if 0
+    // show the legend layout, for debugging
+    for (int index = 0; index < lineCount; ++index)
     {
-        QRect drawingRect(legendRect.x(), legendRect.y() + ((legendEntryCount - 1) * legendRowHeight - 3) - idx * legendRowHeight + 3, legendRowHeight - 6, legendRowHeight - 6);
+        int positionIndex = (lineCount - 1) - index;                   // top to bottom
+        QRectF entryBox(legendRect.x(), legendRect.y() + positionIndex * (legendLineHeight + legendInteriorMargin), legendRect.width(), legendLineHeight);
+        QRectF graphicsBox(entryBox);
+        QRectF labelBox(entryBox);
+        
+        graphicsBox.setWidth(legendGraphicsWidth);
+        labelBox.adjust(legendGraphicsWidth + legendInteriorMargin, 0, 0, 0);
+        
+        painter.fillRect(entryBox, Qt::white);
+        painter.fillRect(graphicsBox, QtSLiMColorWithWhite(0.85, 1.0));
+        painter.fillRect(labelBox, QtSLiMColorWithWhite(0.85, 1.0));
+        QtSLiMFrameRect(entryBox, Qt::black, painter, 1.0);
+    }
+#endif
+    
+    int nextLinePosition = lineCount - 1;      // top to bottom
+    
+    for (int index = 0; index < entryCount; ++index)
+    {
+        const QtSLiMLegendEntry &legendEntry = legend[index];
         QString labelString = legendEntry.label;
         
+        // check for duplicate labels, which get uniqued into a single line
+        int positionIndex;
+        auto existingEntry = displayedLabels.find(labelString);
+        
+        if (existingEntry == displayedLabels.end())
+        {
+            // not a duplicate
+            positionIndex = (nextLinePosition--);
+            displayedLabels.emplace(labelString, positionIndex);
+        }
+        else
+        {
+            // duplicate; use the previously determined position
+            positionIndex = existingEntry->second;
+        }
+        
+        QRectF entryBox(legendRect.x(), legendRect.y() + positionIndex * (legendLineHeight + legendInteriorMargin), legendRect.width(), legendLineHeight);
+        QRectF graphicsBox(entryBox);
+        QRectF labelBox(entryBox);
+        
+        graphicsBox.setWidth(legendGraphicsWidth);
+        labelBox.adjust(legendGraphicsWidth + legendInteriorMargin, 0, 0, 0);
+        
+        // draw the graphics in graphicsBox
         switch (legendEntry.entry_type)
         {
         case QtSLiM_LegendEntryType::kSwatch:
         {
+            QRectF swatchBox = graphicsBox;
+            
+            // make the width and height be, at most, swatchSize (a scaled factor of the capHeight)
+            {
+                double widthAdj = (swatchBox.width() > swatchSize) ? (swatchBox.width() - swatchSize) / 2 : 0;
+                double heightAdj = (swatchBox.height() > swatchSize) ? (swatchBox.height() - swatchSize) / 2 : 0;
+                swatchBox.adjust(widthAdj, heightAdj, -widthAdj, -heightAdj);
+            }
+            
+            // make sure the swatch is square, by shrinking it
+            if (swatchBox.width() != swatchBox.height())
+            {
+                double widthAdj = (swatchBox.width() > swatchBox.height()) ? (swatchBox.width() - swatchBox.height()) / 2 : 0;
+                double heightAdj = (swatchBox.height() > swatchBox.width()) ? (swatchBox.height() - swatchBox.width()) / 2 : 0;
+                swatchBox.adjust(widthAdj, heightAdj, -widthAdj, -heightAdj);
+            }
+            
             QColor swatchColor = legendEntry.swatch_color;
             
-            painter.fillRect(drawingRect, swatchColor);
-            QtSLiMFrameRect(drawingRect, Qt::black, painter);
+            painter.fillRect(swatchBox, swatchColor);
+            QtSLiMFrameRect(swatchBox, Qt::black, painter, 1.0);
             break;
         }
         case QtSLiM_LegendEntryType::kLine:
@@ -750,68 +892,85 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRect legendRect)
             QColor lineColor = legendEntry.line_color;
             QPainterPath linePath;
             QPen linePen(lineColor, lineWidth);
-            double y = SLIM_SCREEN_ROUND(drawingRect.center().y()) + 0.5;
+            double y = SLIM_SCREEN_ROUND(graphicsBox.center().y()) + 0.5;
             
             linePen.setCapStyle(Qt::FlatCap);
             
-            linePath.moveTo(drawingRect.left(), y);
-            linePath.lineTo(drawingRect.right() + 1, y);
+            linePath.moveTo(graphicsBox.left(), y);
+            linePath.lineTo(graphicsBox.right(), y);
             painter.strokePath(linePath, linePen);
             break;
         }
         case QtSLiM_LegendEntryType::kPoint:
         {
-            drawPointSymbol(painter, drawingRect.center().x(), drawingRect.center().y(),
+            drawPointSymbol(painter, graphicsBox.center().x(), graphicsBox.center().y(),
                             legendEntry.point_symbol, legendEntry.point_color, legendEntry.point_border,
                             legendEntry.point_lwd, legendEntry.point_size);
             break;
         }
         default: break;
         }
-
-        double labelX = drawingRect.x() + drawingRect.width() + 5;
-        double labelY = drawingRect.y() + 1;
         
-        labelY = painter.transform().map(QPointF(labelX, labelY)).y();
-        
-        painter.setWorldMatrixEnabled(false);
-        painter.drawText(QPointF(labelX, labelY), labelString);
-        painter.setWorldMatrixEnabled(true);
-        
-        idx++;
+        // if the entry is not a duplicate, draw the text label
+        if (existingEntry == displayedLabels.end())
+        {
+            double labelX = labelBox.x();
+            double labelY = labelBox.y() + labelVerticalAdjust;
+            
+            labelY = painter.transform().map(QPointF(labelX, labelY)).y();
+            
+            painter.setWorldMatrixEnabled(false);
+            painter.drawText(QPointF(labelX, labelY), labelString);
+            painter.setWorldMatrixEnabled(true);
+        }
     }
 }
 
 void QtSLiMGraphView::drawLegendInInteriorRect(QPainter &painter, QRect interiorRect)
 {
-    painter.setFont(QtSLiMGraphView::fontForLegendLabels());
+    // set the legend label font for the methods we call, which will rely on it
+    const double legendLabelPointSize = ((legend_labelSize == -1) ? 10 : legend_labelSize);
+    QFont legendFont = labelFontOfPointSize(legendLabelPointSize);
     
-    QSize legend_size = legendSize(painter);
+    painter.setFont(legendFont);
+    
+    // assess the size of the legend, given all configuration preferences
+    QSizeF legend_size = legendSize(painter);
 	int legendWidth = static_cast<int>(ceil(legend_size.width()));
 	int legendHeight = static_cast<int>(ceil(legend_size.height()));
 	
 	if ((legendWidth > 0) && (legendHeight > 0))
 	{
-		const int legendMargin = 10;
-		QRect legendRect(0, 0, legendWidth + legendMargin + legendMargin, legendHeight + legendMargin + legendMargin);
-		
-		// Position the legend in the chosen corner
-        if ((legend_position_ == QtSLiM_LegendPosition::kTopLeft) || (legend_position_ == QtSLiM_LegendPosition::kTopRight))
-            legendRect.moveTop(interiorRect.y() + interiorRect.height() - (legendRect.height() + 2));
-        else if ((legend_position_ == QtSLiM_LegendPosition::kBottomLeft) || (legend_position_ == QtSLiM_LegendPosition::kBottomRight))
-            legendRect.moveTop(interiorRect.y() + 1);
+        // legend_entryMargin provides the margin between and around each entry, within the legend's box; +1 for the width of the legend's frame
+        const double legendExteriorMargin = ((legend_exteriorMargin == -1) ?  9 : legend_exteriorMargin) + 1;
         
-        if ((legend_position_ == QtSLiM_LegendPosition::kTopRight) || (legend_position_ == QtSLiM_LegendPosition::kBottomRight))
-            legendRect.moveLeft(interiorRect.x() + interiorRect.width() - (legendRect.width() + 2));
-        else if ((legend_position_ == QtSLiM_LegendPosition::kTopLeft) || (legend_position_ == QtSLiM_LegendPosition::kBottomLeft))
-            legendRect.moveLeft(interiorRect.x() + 1);
+		QRect legendRect(0, 0, legendWidth + legendExteriorMargin + legendExteriorMargin, legendHeight + legendExteriorMargin + legendExteriorMargin);
         
-		// Frame the legend and erase it with a slightly gray wash
+        // positional inset from the edge, outside the legend's box; -1 so an inset of zero matches the "full box"
+        int legendInset = ((legend_inset == -1) ?  3 : legend_inset) - 1;
+        
+		// position the legend in the chosen corner with the chosen inset
+        QtSLiM_LegendPosition position = legend_position_;
+        
+        if (position == QtSLiM_LegendPosition::kUnconfigured)
+            position = QtSLiM_LegendPosition::kTopRight;
+        
+        if ((position == QtSLiM_LegendPosition::kTopLeft) || (position == QtSLiM_LegendPosition::kTopRight))
+            legendRect.moveTop(interiorRect.y() + interiorRect.height() - (legendRect.height() + legendInset));
+        else if ((position == QtSLiM_LegendPosition::kBottomLeft) || (position == QtSLiM_LegendPosition::kBottomRight))
+            legendRect.moveTop(interiorRect.y() + legendInset);
+        
+        if ((position == QtSLiM_LegendPosition::kTopRight) || (position == QtSLiM_LegendPosition::kBottomRight))
+            legendRect.moveLeft(interiorRect.x() + interiorRect.width() - (legendRect.width() + legendInset));
+        else if ((position == QtSLiM_LegendPosition::kTopLeft) || (position == QtSLiM_LegendPosition::kBottomLeft))
+            legendRect.moveLeft(interiorRect.x() + legendInset);
+        
+		// frame the legend and erase it with a slightly gray wash
         painter.fillRect(legendRect, QtSLiMColorWithWhite(0.95, 1.0));
         QtSLiMFrameRect(legendRect, QtSLiMColorWithWhite(0.3, 1.0), painter);
-		
-		// Inset and draw the legend content
-		legendRect.adjust(legendMargin, legendMargin, -legendMargin, -legendMargin);
+        
+		// inset and draw the legend content
+		legendRect.adjust(legendExteriorMargin, legendExteriorMargin, -legendExteriorMargin, -legendExteriorMargin);
 		drawLegend(painter, legendRect);
 	}
 }

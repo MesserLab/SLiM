@@ -89,6 +89,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 {
 	switch (p_method_id)
 	{
+		case gID_addLegend:				return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:		return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:		return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendSwatchEntry:		return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
@@ -99,21 +100,21 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 	}
 }
 
+//	*********************	– (void)addLegend(...)
+//
+EidosValue_SP Plot::ExecuteMethod_addLegend(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)legendLineEntry(...)
 //
 EidosValue_SP Plot::ExecuteMethod_legendLineEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_legendLineEntry): legendLineEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -122,16 +123,7 @@ EidosValue_SP Plot::ExecuteMethod_legendLineEntry(EidosGlobalStringID p_method_i
 EidosValue_SP Plot::ExecuteMethod_legendPointEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_legendPointEntry): legendPointEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -140,16 +132,7 @@ EidosValue_SP Plot::ExecuteMethod_legendPointEntry(EidosGlobalStringID p_method_
 EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_legendSwatchEntry): legendSwatchEntry() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -158,16 +141,7 @@ EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method
 EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_lines): lines() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -176,16 +150,7 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
 EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_points): points() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -194,16 +159,7 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
 EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
-		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
-		std::cerr << "WARNING (Plot::ExecuteMethod_text): text() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
-		beenHere = true;
-	}
-	
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
 	return gStaticEidosValueVOID;
 }
 
@@ -240,6 +196,11 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addLegend, kEidosValueMaskVOID))
+							  ->AddString_OSN("position", gStaticEidosValueNULL)->AddInt_OSN("inset", gStaticEidosValueNULL)
+							  ->AddNumeric_OSN("labelSize", gStaticEidosValueNULL)->AddNumeric_OSN("lineHeight", gStaticEidosValueNULL)
+							  ->AddNumeric_OSN("graphicsWidth", gStaticEidosValueNULL)->AddNumeric_OSN("exteriorMargin", gStaticEidosValueNULL)
+							  ->AddNumeric_OSN("interiorMargin", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_legendLineEntry, kEidosValueMaskVOID))
 							  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
 							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1));

@@ -47,6 +47,7 @@ QtSLiMGraphView_CustomPlot::QtSLiMGraphView_CustomPlot(QWidget *p_parent, QtSLiM
 
 void QtSLiMGraphView_CustomPlot::freeData(void)
 {
+    // discard all plot data
     for (double *xbuffer : xdata_)
         free(xbuffer);
     
@@ -83,6 +84,17 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     size_.clear();
     xadj_.clear();
     yadj_.clear();
+    
+    // reset the legend state
+    legend_added_ = false;
+    
+    legend_position_ = QtSLiM_LegendPosition::kUnconfigured;
+    legend_inset = -1;
+    legend_labelSize = -1;
+    legend_lineHeight = -1;
+    legend_graphicsWidth = -1;
+    legend_exteriorMargin = -1;
+    legend_interiorMargin = -1;
     
     legend_entries_.clear();
 }
@@ -270,6 +282,21 @@ void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values,
     yadj_.push_back(adj[1]);
     
     rescaleAxesForDataRange();
+    update();
+}
+
+void QtSLiMGraphView_CustomPlot::addLegend(QtSLiM_LegendPosition position, int inset, double labelSize, double lineHeight,
+                                           double graphicsWidth, double exteriorMargin, double interiorMargin)
+{
+    legend_added_ = true;
+    
+    legend_position_ = position;
+    legend_inset = inset;
+    legend_labelSize = labelSize;
+    legend_lineHeight = lineHeight;
+    legend_graphicsWidth = graphicsWidth;
+    legend_exteriorMargin = exteriorMargin;
+    legend_interiorMargin = interiorMargin;
     update();
 }
 

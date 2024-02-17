@@ -62,6 +62,8 @@ public:
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
                      std::vector<QColor> *color, std::vector<double> *size, double *adj);
     
+    void addLegend(QtSLiM_LegendPosition position, int inset, double labelSize, double lineHeight,
+                   double graphicsWidth, double exteriorMargin, double interiorMargin);
     void addLegendLineEntry(QString label, QColor color, double lwd);
     void addLegendPointEntry(QString label, int symbol, QColor color, QColor border, double lwd, double size);
     void addLegendSwatchEntry(QString label, QColor color);
@@ -72,6 +74,7 @@ public:
     virtual void drawGraph(QPainter &painter, QRect interiorRect) override;
     virtual void appendStringForData(QString &string) override;
     
+    bool legendAdded(void) { return legend_added_; }
     virtual QtSLiMLegendSpec legendKey(void) override;
     
 public slots:
@@ -105,6 +108,7 @@ private:
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);
     
+    bool legend_added_ = false;                         // set to true by addLegend()
     QtSLiMLegendSpec legend_entries_;                   // unlike most graph types, we keep our legend around
 };
 

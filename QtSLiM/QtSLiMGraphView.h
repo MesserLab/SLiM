@@ -94,7 +94,6 @@ public:
     static QFont labelFontOfPointSize(double size);
     static inline QFont fontForAxisLabels(void) { return labelFontOfPointSize(15); }
     static inline QFont fontForTickLabels(void) { return labelFontOfPointSize(10); }
-    static inline QFont fontForLegendLabels(void) { return labelFontOfPointSize(10); }
     static inline QColor gridLineColor(void) { return QtSLiMColorWithWhite(0.85, 1.0); }
     
     QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller);
@@ -150,8 +149,8 @@ protected:
     virtual void willDraw(QPainter &painter, QRect interiorRect);
     virtual bool providesStringForData(void);
     virtual QtSLiMLegendSpec legendKey(void);
-    virtual QSize legendSize(QPainter &painter);
-    virtual void drawLegend(QPainter &painter, QRect legendRect);
+    virtual QSizeF legendSize(QPainter &painter);
+    virtual void drawLegend(QPainter &painter, QRectF legendRect);
     virtual void subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent *p_event);
     virtual QString disableMessage(void);
     
@@ -198,7 +197,14 @@ protected:
     QString yAxisLabel_;
     
     bool legendVisible_ = false;
-    QtSLiM_LegendPosition legend_position_ = QtSLiM_LegendPosition::kTopRight;
+    QtSLiM_LegendPosition legend_position_ = QtSLiM_LegendPosition::kUnconfigured;
+    int legend_inset = -1;
+    double legend_labelSize = -1;
+    double legend_lineHeight = -1;
+    double legend_graphicsWidth = -1;
+    double legend_exteriorMargin = -1;
+    double legend_interiorMargin = -1;
+    
     bool showHorizontalGridLines_ = false;
     bool showVerticalGridLines_ = false;
     bool showGridLinesMajorOnly_ = false;
@@ -225,6 +231,8 @@ protected:
 	bool cachingNow_ = false;
     
 protected:
+    int lineCountForLegend(QtSLiMLegendSpec &legend);
+    double graphicsWidthForLegend(QtSLiMLegendSpec &legend, double legendLineHeight);
     void drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size);
     
 private:

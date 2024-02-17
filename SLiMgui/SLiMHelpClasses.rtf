@@ -5670,7 +5670,45 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\f3\i0\fs18 \cf2 \'96\'a0(void)addLegend([Ns$\'a0position\'a0=\'a0NULL], [Ni$\'a0inset\'a0=\'a0NULL], [Nif$\'a0labelSize\'a0=\'a0NULL], [Nif$\'a0lineHeight\'a0=\'a0NULL], [Nif$\'a0graphicsWidth\'a0=\'a0NULL], [Nif$\'a0exteriorMargin\'a0=\'a0NULL], [Nif$\'a0interiorMargin\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend to the plot.  The legend will be displayed within the plot at the location specified by position, which must be 
+\f3\fs18 "topRight"
+\f4\fs20 , 
+\f3\fs18 "topLeft"
+\f4\fs20 , 
+\f3\fs18 "bottomRight"
+\f4\fs20 , or 
+\f3\fs18 \'93bottomLeft\'94
+\f4\fs20 , or NULL (the default) requesting that SLiMgui choose the position.  The position of the legend will be inset from the chosen corner by a margin 
+\f3\fs18 inset
+\f4\fs20 , measured in pixels; the default of 
+\f3\fs18 NULL
+\f4\fs20  allows SLiMgui to choose the inset.\
+The internal layout of the legend is a bit complex, and can be controlled by five parameters; in all cases, the default value of 
+\f3\fs18 NULL
+\f4\fs20  requests that SLiMgui provide a reasonable default.  The 
+\f3\fs18 labelSize
+\f4\fs20  parameter specifies the font size used for the text labels for each legend entry (measured in \'93points\'94, the standard metric of font sizes).  The 
+\f3\fs18 lineHeight
+\f4\fs20  parameter specifies the vertical size, in pixels, of one entry line.  The 
+\f3\fs18 graphicsWidth
+\f4\fs20  parameter species the width, in pixels, of the column used to display the \'93graphics\'94 (whether a line segment, a point symbol, a swatch, or a combination of those) associated with each entry.  The 
+\f3\fs18 exteriorMargin
+\f4\fs20  parameter specifies the width/height of margins, in pixels, outside of the entries (between the entries and the legend\'92s frame).  Finally, the 
+\f3\fs18 interiorMargin
+\f4\fs20  parameter specifies the width/height of margins, in pixels, vertically between entries, and also between the \'93graphics\'94 column and the label.  It is easy to produce a legend that looks terrible, using these layout metrics; SLiMgui does only minimal sanity-checking of their values, to provide maximal flexibility.\
+The legend is initially empty; entries for it can be added with 
+\f3\fs18 legendLineEntry()
+\f4\fs20 , 
+\f3\fs18 legendPointEntry()
+\f4\fs20 , and 
+\f3\fs18 legendSwatchEntry()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds a legend entry with text 
@@ -6064,7 +6102,7 @@ pid => (integer$)\
 
 \f4\fs20 \cf2 Creates and returns a new custom plot referred to by 
 \f3\fs18 title
-\f4\fs20 , or restarts and returns the existing plot with that title; if the plot cannot be created, 
+\f4\fs20 , or restarts and returns the existing plot with that title; if the plot cannot be created (notably, when running under SLiMguiLegacy rather than SLiMgui), 
 \f3\fs18 NULL
 \f4\fs20  is returned.  The range for the 
 \f1\i x

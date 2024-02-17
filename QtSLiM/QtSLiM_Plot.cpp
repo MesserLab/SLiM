@@ -94,6 +94,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 {
 	switch (p_method_id)
 	{
+        case gID_addLegend:             return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:       return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:      return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendSwatchEntry:     return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
@@ -102,6 +103,128 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
 		default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (void)addLegend([Ns$ position = NULL], [Ni$ inset = NULL], [Nif$ labelSize = NULL], [Nif$ lineHeight = NULL], [Nif$ graphicsWidth = NULL], [Nif$ exteriorMargin = NULL], [Nif$ interiorMargin = NULL])
+//
+EidosValue_SP Plot::ExecuteMethod_addLegend(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *position_value = p_arguments[0].get();
+    EidosValue *inset_value = p_arguments[1].get();
+    EidosValue *labelSize_value = p_arguments[2].get();
+    EidosValue *lineHeight_value = p_arguments[3].get();
+    EidosValue *graphicsWidth_value = p_arguments[4].get();
+    EidosValue *exteriorMargin_value = p_arguments[5].get();
+    EidosValue *interiorMargin_value = p_arguments[6].get();
+    
+    // position
+    QtSLiM_LegendPosition position;
+    
+    if (position_value->Type() == EidosValueType::kValueNULL)
+    {
+        position = QtSLiM_LegendPosition::kUnconfigured;
+    }
+    else
+    {
+        QString positionString  = QString::fromStdString(position_value->StringAtIndex_NOCAST(0, nullptr));
+        
+        if (positionString == "topLeft")
+            position = QtSLiM_LegendPosition::kTopLeft;
+        else if (positionString == "topRight")
+            position = QtSLiM_LegendPosition::kTopRight;
+        else if (positionString == "bottomLeft")
+            position = QtSLiM_LegendPosition::kBottomLeft;
+        else if (positionString == "bottomRight")
+            position = QtSLiM_LegendPosition::kBottomRight;
+        else
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires position to be 'topLeft', 'topRight', 'bottomLeft', or 'bottomRight' (or NULL)." << EidosTerminate(nullptr);
+    }
+    
+    // inset
+    int inset;
+    
+    if (inset_value->Type() == EidosValueType::kValueNULL)
+        inset = -1;
+    else
+    {
+        inset = inset_value->IntAtIndex_NOCAST(0, nullptr);
+        
+        if ((inset < 0) || (inset > 50))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires inset to be in [0, 50]." << EidosTerminate(nullptr);
+    }
+    
+    // labelSize
+    double labelSize;
+    
+    if (labelSize_value->Type() == EidosValueType::kValueNULL)
+        labelSize = -1;
+    else
+    {
+        labelSize = labelSize_value->NumericAtIndex_NOCAST(0, nullptr);
+        
+        if (!std::isfinite(labelSize) || (labelSize < 5) || (labelSize > 50))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires labelSize to be in [5, 50]." << EidosTerminate(nullptr);
+    }
+    
+    // lineHeight
+    double lineHeight;
+    
+    if (lineHeight_value->Type() == EidosValueType::kValueNULL)
+        lineHeight = -1;
+    else
+    {
+        lineHeight = lineHeight_value->NumericAtIndex_NOCAST(0, nullptr);
+        
+        if (!std::isfinite(lineHeight) || (lineHeight < 5) || (lineHeight > 100))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires lineHeight to be in [5, 100]." << EidosTerminate(nullptr);
+    }
+    
+    // graphicsWidth
+    double graphicsWidth;
+    
+    if (graphicsWidth_value->Type() == EidosValueType::kValueNULL)
+        graphicsWidth = -1;
+    else
+    {
+        graphicsWidth = graphicsWidth_value->NumericAtIndex_NOCAST(0, nullptr);
+        
+        if (!std::isfinite(graphicsWidth) || (graphicsWidth < 5) || (graphicsWidth > 100))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires graphicsWidth to be in [5, 100]." << EidosTerminate(nullptr);
+    }
+    
+    // exteriorMargin
+    double exteriorMargin;
+    
+    if (exteriorMargin_value->Type() == EidosValueType::kValueNULL)
+        exteriorMargin = -1;
+    else
+    {
+        exteriorMargin = exteriorMargin_value->NumericAtIndex_NOCAST(0, nullptr);
+        
+        if (!std::isfinite(exteriorMargin) || (exteriorMargin < 0) || (exteriorMargin > 50))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires exteriorMargin to be in [0, 50]." << EidosTerminate(nullptr);
+    }
+    
+    // interiorMargin
+    double interiorMargin;
+    
+    if (interiorMargin_value->Type() == EidosValueType::kValueNULL)
+        interiorMargin = -1;
+    else
+    {
+        interiorMargin = interiorMargin_value->NumericAtIndex_NOCAST(0, nullptr);
+        
+        if (!std::isfinite(interiorMargin) || (interiorMargin < 0) || (interiorMargin > 50))
+            EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() requires interiorMargin to be in [0, 50]." << EidosTerminate(nullptr);
+    }
+    
+    if (plotview_->legendAdded())
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_addLegend): addLegend() has already been called for this plot, and should only be called once." << EidosTerminate(nullptr);
+    
+    plotview_->addLegend(position, inset, labelSize, lineHeight, graphicsWidth, exteriorMargin, interiorMargin);
+    
+    return gStaticEidosValueVOID;
 }
 
 //	*********************	– (void)legendLineEntry(string$ label, [string$ color = "red"], [numeric$ lwd = 1.0])
@@ -132,6 +255,9 @@ EidosValue_SP Plot::ExecuteMethod_legendLineEntry(EidosGlobalStringID p_method_i
     
     if ((lwd < 0.0) || (lwd > 100.0))
         EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendLineEntry): legendLineEntry() requires the line width lwd to be in [0, 100]." << EidosTerminate(nullptr);
+    
+    if (!plotview_->legendAdded())
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_legendLineEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
     
     plotview_->addLegendLineEntry(label, color, lwd);
     
@@ -190,6 +316,9 @@ EidosValue_SP Plot::ExecuteMethod_legendPointEntry(EidosGlobalStringID p_method_
     if ((size <= 0.0) || (size > 1000.0))
         EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendPointEntry): legendPointEntry() requires the elements of size to be in (0, 1000]." << EidosTerminate(nullptr);
     
+    if (!plotview_->legendAdded())
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_legendLineEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
+    
     plotview_->addLegendPointEntry(label, symbol, color, border, lwd, size);
     
     return gStaticEidosValueVOID;
@@ -216,6 +345,9 @@ EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method
     Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
     
     QColor color(colorR, colorG, colorB, 255);
+    
+    if (!plotview_->legendAdded())
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_legendLineEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
     
     plotview_->addLegendSwatchEntry(label, color);
     
@@ -574,7 +706,12 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 	if (!methods)
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
-		
+        
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_addLegend, kEidosValueMaskVOID))
+                                  ->AddString_OSN("position", gStaticEidosValueNULL)->AddInt_OSN("inset", gStaticEidosValueNULL)
+                                  ->AddNumeric_OSN("labelSize", gStaticEidosValueNULL)->AddNumeric_OSN("lineHeight", gStaticEidosValueNULL)
+                                  ->AddNumeric_OSN("graphicsWidth", gStaticEidosValueNULL)->AddNumeric_OSN("exteriorMargin", gStaticEidosValueNULL)
+                                  ->AddNumeric_OSN("interiorMargin", gStaticEidosValueNULL)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_legendLineEntry, kEidosValueMaskVOID))
                                   ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)));

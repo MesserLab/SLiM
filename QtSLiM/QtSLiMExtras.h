@@ -46,6 +46,7 @@ class QPaintEvent;
 
 // legend positions for QtSLiMGraphView
 typedef enum {
+    kUnconfigured = -1,
     kTopLeft = 0,
     kTopRight,
     kBottomLeft,
