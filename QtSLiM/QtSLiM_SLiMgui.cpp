@@ -202,14 +202,19 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     if (showFullBox_value->Type() != EidosValueType::kValueNULL)
         showFullBox = showFullBox_value->LogicalAtIndex_NOCAST(0, nullptr);
     
+    // make the plot view; note this might return an existing object
     QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, showHorizontalGrid, showVerticalGrid, showFullBox);
-    Plot *plot = new Plot(plotview);
+    
+    // plotview owns its Eidos instance of class Plot, and keeps it across recycles
+    Plot *plot = plotview->eidosPlotObject();
+    
+    if (!plot)
+    {
+        plot = new Plot(plotview);
+        plotview->setEidosPlotObject(plot);
+    }
     
     EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(plot, gSLiM_Plot_Class)));
-    
-    // plot is not under retain/release, so we don't release it here; rather, we give ownership to the QtSLiMGraphView_CustomPlot object
-    //plot->Release();
-    plotview->setEidosPlotObject(plot);
     
     return result_SP;
 }
