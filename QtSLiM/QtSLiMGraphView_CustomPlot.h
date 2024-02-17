@@ -51,6 +51,9 @@ public:
     void setTitle(QString title);
     void setXLabel(QString x_label);
     void setYLabel(QString y_label);
+    void setShowHorizontalGrid(int showHorizontalGrid);
+    void setShowVerticalGrid(int showVerticalGrid);
+    void setShowFullBox(int showFullBox);
     void setLegendPosition(QtSLiM_LegendPosition position);
     void setAxisRanges(double *x_range, double *y_range);
     
@@ -110,6 +113,10 @@ private:
     
     bool legend_added_ = false;                         // set to true by addLegend()
     QtSLiMLegendSpec legend_entries_;                   // unlike most graph types, we keep our legend around
+    
+    bool hgridIsUserConfigured = false;
+    bool vgridIsUserConfigured = false;
+    bool fullBoxIsUserConfigured = false;
 };
 
 

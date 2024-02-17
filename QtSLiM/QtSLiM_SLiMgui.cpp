@@ -110,7 +110,8 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	}
 }
 
-//	*********************	– (No<Plot>$)createPlot(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL])
+//	*********************	– (No<Plot>$)createPlot(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL]
+//                                                  [Nl$ showHorizontalGrid = NULL], [Nl$ showVerticalGrid = NULL], [Nl$ showFullBox = NULL])
 //
 EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -122,6 +123,9 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     EidosValue *ylab_value = p_arguments[4].get();
     EidosValue *width_value = p_arguments[5].get();
     EidosValue *height_value = p_arguments[6].get();
+    EidosValue *showHorizontalGrid_value = p_arguments[7].get();
+    EidosValue *showVerticalGrid_value = p_arguments[8].get();
+    EidosValue *showFullBox_value = p_arguments[9].get();
     
     QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
     
@@ -183,7 +187,22 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
             EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires height to be > 0.0, or NULL." << EidosTerminate();
     }
     
-    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height);
+    int showHorizontalGrid = -1;    // default for NULL; handled downstream
+    
+    if (showHorizontalGrid_value->Type() != EidosValueType::kValueNULL)
+        showHorizontalGrid = showHorizontalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
+    
+    int showVerticalGrid = -1;      // default for NULL; handled downstream
+    
+    if (showVerticalGrid_value->Type() != EidosValueType::kValueNULL)
+        showVerticalGrid = showVerticalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
+    
+    int showFullBox = -1;           // default for NULL; handled downstream
+    
+    if (showFullBox_value->Type() != EidosValueType::kValueNULL)
+        showFullBox = showFullBox_value->LogicalAtIndex_NOCAST(0, nullptr);
+    
+    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, showHorizontalGrid, showVerticalGrid, showFullBox);
     Plot *plot = new Plot(plotview);
     
     EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(plot, gSLiM_Plot_Class)));
@@ -286,7 +305,9 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
                                   ->AddNumeric_ON("xrange", gStaticEidosValueNULL)->AddNumeric_ON("yrange", gStaticEidosValueNULL)
                                   ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
                                   ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
-                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)));
+                                  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
+                                  ->AddLogical_OSN("showHorizontalGrid", gStaticEidosValueNULL)->AddLogical_OSN("showVerticalGrid", gStaticEidosValueNULL)
+                                  ->AddLogical_OSN("showFullBox", gStaticEidosValueNULL)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotWithTitle,

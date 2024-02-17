@@ -6097,7 +6097,7 @@ pid => (integer$)\
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(No<Plot>$)createPlot(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(No<Plot>$)createPlot(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [Nl$\'a0showHorizontalGrid\'a0=\'a0NULL], [Nl$\'a0showVerticalGrid\'a0=\'a0NULL], [Nl$\'a0showFullBox\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Creates and returns a new custom plot referred to by 
@@ -6132,7 +6132,15 @@ pid => (integer$)\
 \f3\fs18 height
 \f4\fs20 , in units of pixels (perhaps 70\'96100 pixels per inch, depending on your screen\'92s pixel density); the default of 
 \f3\fs18 NULL
-\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.\
+\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  Finally, the display of horizontal grid lines, vertical grid lines, and a full box around the plot area can be controlled with 
+\f3\fs18 showHorizontalGrid
+\f4\fs20 , 
+\f3\fs18 showVerticalGrid
+\f4\fs20 , and 
+\f3\fs18 showFullBox
+\f4\fs20  respectively; again, the default values of 
+\f3\fs18 NULL
+\f4\fs20  request SLiMgui\'92s default behavior.\
 Once the plot has been created, data can be added to it using the 
 \f3\fs18 Plot
 \f4\fs20  methods 
