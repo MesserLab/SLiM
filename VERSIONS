@@ -20,7 +20,7 @@ development head (in the master branch):
 	add deviatePositions() method to Subpopulation for even faster offspring positioning than with pointDeviated(); revise recipes 16.3 and 16.8 to use it
 	add basic custom plotting capabilities to SLiMgui, through the slimgui object, with new methods plotCreate(), plotLines(), plotPoints(), and plotText(); revise recipe 13.5 to demonstrate this capability
 	add SLiMgui plotting of data from LogFile output, through a context menu in the debug output window; revise recipes 4.2.5 and 15.16 (text only, not code) to demonstrate this capability
-	add support for legends in the SLiMgui plotting code with plotLegendLineEntry(), plotLegendPointEntry(), and plotLegendSwatchEntry()
+	add support for legends in the SLiMgui plotting code with addLegend(), legendLineEntry(), legendPointEntry(), and legendSwatchEntry()
 	split out the new plotting functionality into a new class, Plot, available only in SLiMgui
 	
 

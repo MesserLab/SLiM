@@ -4,13 +4,15 @@ function (void)updatePlot(void) {
 	if (exists("slimgui"))
 	{
 		title = "Adaptive Walk";
-		slimgui.plotCreate(title, xrange=c(-5,25), yrange=c(-25,5));
-		slimgui.plotText(title, 0, 4, "start", size=15);
-		slimgui.plotText(title, 20, -24, "optimum", size=15);
-		slimgui.plotPoints(title, 0, 0, symbol=21, color="red", size=3.0);
-		slimgui.plotPoints(title, 20, -20, symbol=21, color="green", size=3.0);
-		slimgui.plotLines(title, HIST[,0], HIST[,1], "black");
-		slimgui.plotPoints(title, HIST[,0], HIST[,1], 16, "black", size=0.5);
+		plot = slimgui.createPlot(title, xrange=c(-5,25), yrange=c(-25,5),
+			xlab="phenotype 1", ylab="phenotype 2", showHorizontalGrid=F,
+			showVerticalGrid=F, showFullBox=T);
+		plot.points(0, 0, symbol=21, color="red", size=3.0);
+		plot.points(20, -20, symbol=21, color="green", size=3.0);
+		plot.text(0, 4, "start", size=15);
+		plot.text(20, -24, "optimum", size=15);
+		plot.lines(HIST[,0], HIST[,1], "black");
+		plot.points(HIST[,0], HIST[,1], 16, "black", size=0.5);
 	}
 }
 
