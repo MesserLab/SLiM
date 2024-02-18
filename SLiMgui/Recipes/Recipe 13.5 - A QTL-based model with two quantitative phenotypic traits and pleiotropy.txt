@@ -1,12 +1,13 @@
 // Keywords: QTL, quantitative trait loci, pleiotropy, M-matrix, live plotting, mutation()
 
-function (void)updatePlot(void) {
+function (void)updatePlot(void)
+{
 	if (exists("slimgui"))
 	{
-		title = "Adaptive Walk";
-		plot = slimgui.createPlot(title, xrange=c(-5,25), yrange=c(-25,5),
-			xlab="phenotype 1", ylab="phenotype 2", showHorizontalGrid=F,
-			showVerticalGrid=F, showFullBox=T);
+		plot = slimgui.createPlot("Adaptive Walk",
+			xrange=c(-5,25), yrange=c(-25,5),
+			xlab="phenotype 1", ylab="phenotype 2",
+			showHorizontalGrid=F, showVerticalGrid=F, showFullBox=T);
 		plot.points(0, 0, symbol=21, color="red", size=3.0);
 		plot.points(20, -20, symbol=21, color="green", size=3.0);
 		plot.text(0, 4, "start", size=15);
