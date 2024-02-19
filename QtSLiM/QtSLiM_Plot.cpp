@@ -36,8 +36,8 @@
 #pragma mark Plot
 #pragma mark -
 
-Plot::Plot(QtSLiMGraphView_CustomPlot *p_plotview) :
-	plotview_(p_plotview)
+Plot::Plot(const std::string &title, QtSLiMGraphView_CustomPlot *p_plotview) :
+    title_(title), plotview_(p_plotview)
 {
 }
 
@@ -69,8 +69,12 @@ EidosValue_SP Plot::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 		// constants
-		
-		// variables
+        case gID_title:
+        {
+            return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(title_));
+        }
+        
+        // variables
 		
 		// all others, including gID_none
 		default:
@@ -692,7 +696,9 @@ const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) cons
 	if (!properties)
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
-		
+        
+        properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_title, true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+        
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
 	

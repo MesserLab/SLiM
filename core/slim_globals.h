@@ -1052,6 +1052,7 @@ extern const std::string &gStr_legendSwatchEntry;
 extern const std::string &gStr_lines;
 extern const std::string &gStr_points;
 extern const std::string &gStr_text;
+extern const std::string &gStr_title;
 
 extern const std::string &gStr_Chromosome;
 //extern const std::string &gStr_Genome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1464,6 +1465,7 @@ enum _SLiMGlobalStringID : int {
 	gID_lines,
 	gID_points,
 	gID_text,
+	gID_title,
 	
 	gID_Chromosome,
 	gID_Genome,

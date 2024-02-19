@@ -64,6 +64,11 @@ EidosValue_SP Plot::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 		// constants
+		case gID_title:
+		{
+			// The user has no way to access this property in SLiMguiLegacy
+			return gStaticEidosValue_StringEmpty;
+		}
 		
 		// variables
 		
@@ -181,6 +186,8 @@ const std::vector<EidosPropertySignature_CSP> *Plot_Class::Properties(void) cons
 	if (!properties)
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
+		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_title,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}

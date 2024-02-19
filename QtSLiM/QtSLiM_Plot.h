@@ -42,13 +42,14 @@ private:
 	typedef EidosDictionaryUnretained super;
 
 public:
-	
+    
+    std::string title_;                                     // the title as given to createPlot()
 	QtSLiMGraphView_CustomPlot *plotview_;                  // We have a reference to the QtSLiMGraphView_CustomPlot that displays us
 	
 	Plot(const Plot&) = delete;                             // no copying
 	Plot& operator=(const Plot&) = delete;                  // no copying
 	Plot(void) = delete;                                    // no null construction
-	Plot(QtSLiMGraphView_CustomPlot *p_plotview);
+    Plot(const std::string &title, QtSLiMGraphView_CustomPlot *p_plotview);
 	virtual ~Plot(void) override;
 	
 	

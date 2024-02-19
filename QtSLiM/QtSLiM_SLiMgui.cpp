@@ -129,7 +129,8 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     EidosValue *showVerticalGrid_value = p_arguments[8].get();
     EidosValue *showFullBox_value = p_arguments[9].get();
     
-    QString title = QString::fromStdString(title_value->StringAtIndex_NOCAST(0, nullptr));
+    std::string std_title = title_value->StringAtIndex_NOCAST(0, nullptr);
+    QString title = QString::fromStdString(std_title);
     
     if (title.length() == 0)
         EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires a non-empty plot title." << EidosTerminate();
@@ -212,7 +213,7 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     
     if (!plot)
     {
-        plot = new Plot(plotview);
+        plot = new Plot(std_title, plotview);
         plotview->setEidosPlotObject(plot);
     }
     

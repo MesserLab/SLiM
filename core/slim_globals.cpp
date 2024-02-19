@@ -1454,7 +1454,7 @@ const std::string &gStr_openDocument = EidosRegisteredString("openDocument", gID
 const std::string &gStr_pauseExecution = EidosRegisteredString("pauseExecution", gID_pauseExecution);
 const std::string &gStr_plotWithTitle = EidosRegisteredString("plotWithTitle", gID_plotWithTitle);
 
-// Plot methods
+// Plot methods and properties
 const std::string &gStr_addLegend = EidosRegisteredString("addLegend", gID_addLegend);
 const std::string &gStr_legendLineEntry = EidosRegisteredString("legendLineEntry", gID_legendLineEntry);
 const std::string &gStr_legendPointEntry = EidosRegisteredString("legendPointEntry", gID_legendPointEntry);
@@ -1462,6 +1462,7 @@ const std::string &gStr_legendSwatchEntry = EidosRegisteredString("legendSwatchE
 const std::string &gStr_lines = EidosRegisteredString("lines", gID_lines);
 const std::string &gStr_points = EidosRegisteredString("points", gID_points);
 const std::string &gStr_text = EidosRegisteredString("text", gID_text);
+const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 
 // mostly SLiM element types
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
