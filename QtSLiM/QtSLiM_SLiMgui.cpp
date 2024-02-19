@@ -26,6 +26,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "log_file.h"
 
 #include <unistd.h>
 
@@ -103,10 +104,11 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	switch (p_method_id)
 	{
         case gID_createPlot:				return ExecuteMethod_createPlot(p_method_id, p_arguments, p_interpreter);
-		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
-		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
-        case gID_plotWithTitle:             return ExecuteMethod_plotWithTitle(p_method_id, p_arguments, p_interpreter);
-		default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+        case gID_logFileData:				return ExecuteMethod_logFileData(p_method_id, p_arguments, p_interpreter);
+        case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
+        case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
+        case gID_plotWithTitle:				return ExecuteMethod_plotWithTitle(p_method_id, p_arguments, p_interpreter);
+        default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -219,6 +221,20 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     return result_SP;
 }
 
+//	*********************	– (Nfs)logFileData(o<LogFile>$ logFile, is$ column)
+//
+EidosValue_SP SLiMgui::ExecuteMethod_logFileData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    
+    EidosValue_Object *logFile_value = (EidosValue_Object *)p_arguments[0].get();
+    EidosValue *column_value = p_arguments[1].get();
+    
+    LogFile *logFile = (LogFile *)logFile_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+    
+    return controller_->eidos_logFileData(logFile, column_value);
+}
+
 //	*********************	– (void)openDocument(string$ path)
 //
 EidosValue_SP SLiMgui::ExecuteMethod_openDocument(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -313,6 +329,8 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
                                   ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
                                   ->AddLogical_OSN("showHorizontalGrid", gStaticEidosValueNULL)->AddLogical_OSN("showVerticalGrid", gStaticEidosValueNULL)
                                   ->AddLogical_OSN("showFullBox", gStaticEidosValueNULL)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
+                                  ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_plotWithTitle,

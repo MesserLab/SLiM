@@ -1447,11 +1447,12 @@ const std::string &gStr_draw = EidosRegisteredString("draw", gID_draw);
 // SLiMgui instance name and methods
 const std::string &gStr_slimgui = EidosRegisteredString("slimgui", gID_slimgui);
 const std::string &gStr_pid = EidosRegisteredString("pid", gID_pid);
+const std::string &gStr_configureDisplay = EidosRegisteredString("configureDisplay", gID_configureDisplay);
+const std::string &gStr_createPlot = EidosRegisteredString("createPlot", gID_createPlot);
+const std::string &gStr_logFileData = EidosRegisteredString("logFileData", gID_logFileData);
 const std::string &gStr_openDocument = EidosRegisteredString("openDocument", gID_openDocument);
 const std::string &gStr_pauseExecution = EidosRegisteredString("pauseExecution", gID_pauseExecution);
-const std::string &gStr_createPlot = EidosRegisteredString("createPlot", gID_createPlot);
 const std::string &gStr_plotWithTitle = EidosRegisteredString("plotWithTitle", gID_plotWithTitle);
-const std::string &gStr_configureDisplay = EidosRegisteredString("configureDisplay", gID_configureDisplay);
 
 // Plot methods
 const std::string &gStr_addLegend = EidosRegisteredString("addLegend", gID_addLegend);

@@ -39,6 +39,8 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMExtras.h"
 
+#include "log_file.h"
+
 
 //
 //  QtSLiMDebugOutputWindow
@@ -227,8 +229,25 @@ void QtSLiMDebugOutputWindow::takeSchedulingOutput(QString str)
     tabReceivedInput(2);
 }
 
+QTableWidget *QtSLiMDebugOutputWindow::logFileTableForPath(const std::string &path)
+{
+    auto pathIter = std::find(logfilePaths.begin(), logfilePaths.end(), path);
+    QTableWidget *table = nullptr;
+    
+    if (pathIter != logfilePaths.end())
+    {
+        size_t tableIndex = std::distance(logfilePaths.begin(), pathIter);
+        
+        table = logfileViews[tableIndex];
+    }
+    
+    return table;
+}
+
 void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path)
 {
+    qDebug() << "QtSLiMDebugOutputWindow::takeLogFileOutput()";
+    
     // First, find the index of the log file view we're taking input into
     // If we didn't find one, make a new one
     auto pathIter = std::find(logfilePaths.begin(), logfilePaths.end(), path);
@@ -573,6 +592,111 @@ void QtSLiMDebugOutputWindow::logFileRightClick(const QPoint &pos)
             }
         }
     }
+}
+
+EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, int64_t columnIndex)
+{
+    qDebug() << "QtSLiMDebugOutputWindow::dataForColumn" << columnIndex;
+    
+    const std::string &logfile_path = logFile->UserFilePath();
+    QTableWidget *table = logFileTableForPath(logfile_path);
+    
+    if (table)
+    {
+        int rowCount = table->rowCount();
+        int columnCount = table->columnCount();
+        
+        qDebug() << "   rowCount" << rowCount;
+        qDebug() << "   columnCount" << columnCount;
+        
+        if ((rowCount > 0) && (columnCount > 0) && (columnIndex < columnCount))
+        {
+            bool columnIsNumeric = true;        // were any conversion errors to double detected?
+            
+            for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
+            {
+                QTableWidgetItem *item = table->item(rowIndex, columnIndex);
+                
+                if (item)
+                {
+                    QString itemText = item->text();
+                    
+                    if ((itemText == "NAN") || (itemText == "INF") || (itemText == "-INF"))
+                    {
+                        // NAN / INF / -INF are acceptable as double values, although
+                        // whatever parser the data ends up in might not like it...
+                    }
+                    else
+                    {
+                        bool ok;
+                        
+                        itemText.toDouble(&ok);
+                        if (!ok)
+                        {
+                            columnIsNumeric = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (columnIsNumeric)
+            {
+                qDebug() << "   columnIsNumeric == true";
+                
+                EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(rowCount);
+                
+                for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
+                {
+                    QTableWidgetItem *item = table->item(rowIndex, columnIndex);
+                    QString text = item->text();
+                    double value;
+                    
+                    if (text == "NAN")
+                        value = std::numeric_limits<double>::quiet_NaN();
+                    else if (text == "INF")
+                        value = std::numeric_limits<double>::infinity();
+                    else if (text == "-INF")
+                        value = -std::numeric_limits<double>::infinity();
+                    else
+                        value = text.toDouble();
+                    
+                    float_result->set_float_no_check(value, rowIndex);
+                }
+                
+                return EidosValue_SP(float_result);
+            }
+            else
+            {
+                qDebug() << "   columnIsNumeric == false";
+                
+                EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(rowCount);
+                
+                for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
+                {
+                    QTableWidgetItem *item = table->item(rowIndex, columnIndex);
+                    QString text = item->text();
+                    
+                    string_result->PushString(text.toStdString());
+                }
+                
+                return EidosValue_SP(string_result);
+            }
+        }
+    }
+    
+    return gStaticEidosValueNULL;
+}
+
+EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, const std::string &columnName)
+{
+    std::vector<std::string> columnNames = logFile->SortedKeys_StringKeys();
+    auto columnIter = std::find(columnNames.begin(), columnNames.end(), columnName);
+    
+    if (columnIter != columnNames.end())
+        return dataForColumn(logFile, std::distance(columnNames.begin(), columnIter));
+    
+    return gStaticEidosValueNULL;
 }
 
 void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path)

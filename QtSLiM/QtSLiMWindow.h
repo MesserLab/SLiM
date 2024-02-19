@@ -53,6 +53,7 @@ class QtSLiMScriptTextEdit;
 class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
 class QtSLiMChromosomeWidget;
+class LogFile;
 
 
 namespace Ui {
@@ -232,6 +233,7 @@ public:
     bool checkTerminationForAutofix(QString terminationMessage);
     
     //	Eidos SLiMgui method forwards
+    EidosValue_SP eidos_logFileData(LogFile *logFile, EidosValue *column_value);
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
     QtSLiMGraphView_CustomPlot *eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, int showHorizontalGrid, int showVerticalGrid, int showFullBox);

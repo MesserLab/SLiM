@@ -19,6 +19,7 @@
 
 
 #include "slim_gui.h"
+#include "log_file.h"
 #include "plot.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
@@ -98,6 +99,7 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	switch (p_method_id)
 	{
 		case gID_createPlot:				return ExecuteMethod_createPlot(p_method_id, p_arguments, p_interpreter);
+		case gID_logFileData:				return ExecuteMethod_logFileData(p_method_id, p_arguments, p_interpreter);
 		case gID_openDocument:				return ExecuteMethod_openDocument(p_method_id, p_arguments, p_interpreter);
 		case gID_pauseExecution:			return ExecuteMethod_pauseExecution(p_method_id, p_arguments, p_interpreter);
 		case gID_plotWithTitle:				return ExecuteMethod_plotWithTitle(p_method_id, p_arguments, p_interpreter);
@@ -117,6 +119,24 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
 		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
 		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get a plot window.
 		std::cerr << "WARNING (SLiMgui::ExecuteMethod_createPlot): createPlot() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
+		beenHere = true;
+	}
+	
+	return gStaticEidosValueNULL;
+}
+
+//	*********************	– (Nfs)logFileData(o<LogFile>$ logFile, is$ column)
+//
+EidosValue_SP SLiMgui::ExecuteMethod_logFileData(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	static bool beenHere = false;
+	
+	if (!beenHere)
+	{
+		// Emit a warning that this API is unsupported in SLiMguiLegacy.  We warn, not error, so the user does not have to modify
+		// their script to run it in SLiMguiLegacy when it is designed to run under QtSLiM; they just won't get data.
+		std::cerr << "WARNING (SLiMgui::ExecuteMethod_logFileData): logFileData() is not supported in SLiMguiLegacy, and does nothing." << std::endl;
 		beenHere = true;
 	}
 	
@@ -209,6 +229,8 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 							  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
 							  ->AddLogical_OSN("showHorizontalGrid", gStaticEidosValueNULL)->AddLogical_OSN("showVerticalGrid", gStaticEidosValueNULL)
 							  ->AddLogical_OSN("showFullBox", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
+							  ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pauseExecution, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_plotWithTitle, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Plot_Class))->AddString_S("title"));

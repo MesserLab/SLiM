@@ -1038,10 +1038,11 @@ extern const std::string &gStr_draw;
 
 extern const std::string &gStr_slimgui;
 extern const std::string &gStr_pid;
-extern const std::string &gStr_openDocument;
-extern const std::string &gStr_pauseExecution;
 extern const std::string &gStr_configureDisplay;
 extern const std::string &gStr_createPlot;
+extern const std::string &gStr_logFileData;
+extern const std::string &gStr_openDocument;
+extern const std::string &gStr_pauseExecution;
 extern const std::string &gStr_plotWithTitle;
 
 extern const std::string &gStr_addLegend;
@@ -1449,11 +1450,12 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_slimgui,
 	gID_pid,
+	gID_configureDisplay,
+	gID_createPlot,
+	gID_logFileData,
 	gID_openDocument,
 	gID_pauseExecution,
-	gID_createPlot,
 	gID_plotWithTitle,
-	gID_configureDisplay,
 	
 	gID_addLegend,
 	gID_legendLineEntry,

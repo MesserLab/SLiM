@@ -4407,6 +4407,22 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 	}
 }
 
+EidosValue_SP QtSLiMWindow::eidos_logFileData(LogFile *logFile, EidosValue *column_value)
+{
+    // start by flushing any pending output to the debug output window
+    updateOutputViews();
+    
+    // then fetch the data from the debug output window
+    QtSLiMDebugOutputWindow *debugOutput = debugOutputWindow();
+    
+    if (column_value->Type() == EidosValueType::kValueInt)
+        return debugOutput->dataForColumn(logFile, column_value->IntAtIndex_NOCAST(0, nullptr));
+    else
+        return debugOutput->dataForColumn(logFile, column_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    return gStaticEidosValueNULL;
+}
+
 void QtSLiMWindow::eidos_openDocument(QString path)
 {
     if (path.endsWith(".pdf", Qt::CaseInsensitive))

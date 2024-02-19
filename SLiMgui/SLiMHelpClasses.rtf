@@ -6152,6 +6152,29 @@ Once the plot has been created, data can be added to it using
 \f4\fs20 .  As with other plot windows in SLiMgui, the \'93action button\'94 can be used to access plot configuration options, and to copy or save the final plot as a raster image or a PDF file.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(Nfs)logFileData(object<LogFile>$\'a0logFile, is$\'a0column)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing data from the 
+\f3\fs18 LogFile
+\f4\fs20  object 
+\f3\fs18 logFile
+\f4\fs20 , taken from a specified column (identified in 
+\f3\fs18 column
+\f4\fs20  either by the column\'92s name or by its zero-based index).  If the data are all numeric, they will be returned as a 
+\f3\fs18 float
+\f4\fs20  vector.  Otherwise \'96 if the data are non-numeric \'96 they will be returned as a 
+\f3\fs18 string
+\f4\fs20  vector.  If the specified column does not exist in the log file, 
+\f3\fs18 NULL
+\f4\fs20  will be returned.\
+This functionality is provided as a method on the 
+\f3\fs18 SLiMgui
+\f4\fs20  class, rather than on 
+\f3\fs18 LogFile
+\f4\fs20 , because in SLiMgui logged data is kept in memory anyway, for display in the debugging output viewer window.  When running at the command line logged data is not kept in memory, and thus is not available.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(void)openDocument(string$\'a0filePath)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0

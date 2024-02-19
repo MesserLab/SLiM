@@ -22,6 +22,7 @@ development head (in the master branch):
 	add SLiMgui plotting of data from LogFile output, through a context menu in the debug output window; revise recipes 4.2.5 and 15.16 (text only, not code) to demonstrate this capability
 	split out the new plotting functionality into a new class, Plot, available only in SLiMgui
 	add support for legends in the SLiMgui plotting code with addLegend(), legendLineEntry(), legendPointEntry(), and legendSwatchEntry()
+	add logFileData() method to the SLiMgui class to allow access to logged data, which is useful for live plotting in SLiMgui
 	
 
 version 4.1 (Eidos version 3.1):
