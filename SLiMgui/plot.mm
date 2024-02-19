@@ -94,6 +94,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 {
 	switch (p_method_id)
 	{
+		case gID_abline:				return ExecuteMethod_abline(p_method_id, p_arguments, p_interpreter);
 		case gID_addLegend:				return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:		return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:		return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
@@ -104,6 +105,15 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
 		default:						return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (void)abline(...)
+//
+EidosValue_SP Plot::ExecuteMethod_abline(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (void)addLegend(...)
@@ -213,6 +223,11 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_abline, kEidosValueMaskVOID))
+							  ->AddNumeric_ON("a", gStaticEidosValueNULL)->AddNumeric_ON("b", gStaticEidosValueNULL)
+							  ->AddNumeric_ON("h", gStaticEidosValueNULL)->AddNumeric_ON("v", gStaticEidosValueNULL)
+							  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+							  ->AddNumeric_O("lwd", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addLegend, kEidosValueMaskVOID))
 							  ->AddString_OSN("position", gStaticEidosValueNULL)->AddInt_OSN("inset", gStaticEidosValueNULL)
 							  ->AddNumeric_OSN("labelSize", gStaticEidosValueNULL)->AddNumeric_OSN("lineHeight", gStaticEidosValueNULL)

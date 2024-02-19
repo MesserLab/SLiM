@@ -5679,7 +5679,49 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)addLegend([Ns$\'a0position\'a0=\'a0NULL], [Ni$\'a0inset\'a0=\'a0NULL], [Nif$\'a0labelSize\'a0=\'a0NULL], [Nif$\'a0lineHeight\'a0=\'a0NULL], [Nif$\'a0graphicsWidth\'a0=\'a0NULL], [Nif$\'a0exteriorMargin\'a0=\'a0NULL], [Nif$\'a0interiorMargin\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(void)abline([Nif\'a0a\'a0=\'a0NULL], [Nif\'a0b\'a0=\'a0NULL], [Nif\'a0h\'a0=\'a0NULL], [Nif\'a0v\'a0=\'a0NULL], [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds one or more straight lines to the plot.  There are three supported modes of operation for this method.  In the first mode, the lines are specified by 
+\f3\fs18 a
+\f4\fs20  and 
+\f3\fs18 b
+\f4\fs20 , representing the intercepts and slopes of the lines, respectively; in this case, 
+\f3\fs18 a
+\f4\fs20  and 
+\f3\fs18 b
+\f4\fs20  may be the same length, or one of them may be a singleton to provide a single value used for all of the lines specified by the other.  In the second mode, the lines are specified by 
+\f3\fs18 h
+\f4\fs20 , representing the 
+\f1\i y
+\f4\i0 -values of horizontal lines.  In the third mode, the lines are specified by 
+\f3\fs18 v
+\f4\fs20 , representing the 
+\f1\i x
+\f4\i0 -values of vertical lines.  These modes are mutually exclusive and cannot be mixed within one call to 
+\f3\fs18 abline()
+\f4\fs20 .  The new lines will be plotted on top of any previously added data.\
+The lines will be drawn in colors and line widths specified by 
+\f3\fs18 color
+\f4\fs20  and 
+\f3\fs18 lwd
+\f4\fs20 , each of which may be either a singleton (to provide one value used for all lines) or a vector equal in length to the number of lines plotted (to provide one value per line).\
+See also 
+\f3\fs18 lines()
+\f4\fs20 , for a more common approach to line plotting.  The 
+\f3\fs18 abline()
+\f4\fs20  method is different, and more specialized; the lines plotted by it span the full extent of the plot area, and their coordinates are not considered when dynamically resizing the axes of the plot (i.e., when 
+\f3\fs18 createPlot()
+\f4\fs20  is not passed explicit, non-
+\f3\fs18 NULL
+\f4\fs20  values for 
+\f3\fs18 xrange
+\f4\fs20  or 
+\f3\fs18 yrange
+\f4\fs20 ).  This is typically useful for plotting things such as expected values and fit lines.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addLegend([Ns$\'a0position\'a0=\'a0NULL], [Ni$\'a0inset\'a0=\'a0NULL], [Nif$\'a0labelSize\'a0=\'a0NULL], [Nif$\'a0lineHeight\'a0=\'a0NULL], [Nif$\'a0graphicsWidth\'a0=\'a0NULL], [Nif$\'a0exteriorMargin\'a0=\'a0NULL], [Nif$\'a0interiorMargin\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds a legend to the plot.  The legend will be displayed within the plot at the location specified by position, which must be 
@@ -5793,7 +5835,9 @@ The lines will be drawn in color
 \f3\fs18 lwd
 \f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color and width for each line segment, separate calls to 
 \f3\fs18 lines()
-\f4\fs20  are necessary.\
+\f4\fs20  are necessary.  See also 
+\f3\fs18 abline()
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0])\

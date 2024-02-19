@@ -1045,6 +1045,7 @@ extern const std::string &gStr_openDocument;
 extern const std::string &gStr_pauseExecution;
 extern const std::string &gStr_plotWithTitle;
 
+extern const std::string &gStr_abline;
 extern const std::string &gStr_addLegend;
 extern const std::string &gStr_legendLineEntry;
 extern const std::string &gStr_legendPointEntry;
@@ -1458,6 +1459,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pauseExecution,
 	gID_plotWithTitle,
 	
+	gID_abline,
 	gID_addLegend,
 	gID_legendLineEntry,
 	gID_legendPointEntry,

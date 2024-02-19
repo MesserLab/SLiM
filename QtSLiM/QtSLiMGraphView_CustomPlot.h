@@ -32,7 +32,10 @@ class Plot;
 enum class QtSLiM_CustomPlotType : int {
     kLines,
     kPoints,
-    kText
+    kText,
+    kABLines,   // from abline()
+    kHLines,    // from abline()
+    kVLines,    // from abline()
 };
 
 class QtSLiMGraphView_CustomPlot : public QtSLiMGraphView
@@ -57,6 +60,9 @@ public:
     void setLegendPosition(QtSLiM_LegendPosition position);
     void setAxisRanges(double *x_range, double *y_range);
     
+    void addABLineData(double *a_values, double *b_values,
+                       double *h_values, double *v_values, int data_count,
+                       std::vector<QColor> *color, std::vector<double> *lwd);
     void addLineData(double *x_values, double *y_values, int data_count,
                      std::vector<QColor> *color, std::vector<double> *lwd);
     void addPointData(double *x_values, double *y_values, int data_count,
@@ -107,6 +113,9 @@ private:
     
     void dataRange(std::vector<double *> &data, double *p_min, double *p_max);
     void rescaleAxesForDataRange(void);
+    void drawABLines(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawHLines(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawVLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);

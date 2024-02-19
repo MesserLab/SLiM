@@ -98,6 +98,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 {
 	switch (p_method_id)
 	{
+        case gID_abline:                return ExecuteMethod_abline(p_method_id, p_arguments, p_interpreter);
         case gID_addLegend:             return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:       return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:      return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
@@ -108,6 +109,123 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
 		default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (void)abline([Nif a = NULL], [Nif b = NULL], [Nif h = NULL], [Nif v = NULL], [string color = "red"], [numeric lwd = 1.0])
+//
+EidosValue_SP Plot::ExecuteMethod_abline(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *a_value = p_arguments[0].get();
+    EidosValue *b_value = p_arguments[1].get();
+    EidosValue *h_value = p_arguments[2].get();
+    EidosValue *v_value = p_arguments[3].get();
+    EidosValue *color_value = p_arguments[4].get();
+    EidosValue *lwd_value = p_arguments[5].get();
+    double *a = nullptr, *b = nullptr, *h = nullptr, *v = nullptr;
+    int line_count;
+    
+    if ((a_value->Type() != EidosValueType::kValueNULL) && (b_value->Type() != EidosValueType::kValueNULL) && (h_value->Type() == EidosValueType::kValueNULL) && (v_value->Type() == EidosValueType::kValueNULL))
+    {
+        // a and b
+        int acount = a_value->Count();
+        int bcount = b_value->Count();
+        
+        if (acount == bcount)   line_count = acount;
+        else if (acount == 1)   line_count = bcount;
+        else if (bcount == 1)   line_count = acount;
+        else
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires a and b to be the same length, or one of them to be singleton." << EidosTerminate();
+        
+        if (line_count == 0)
+            return gStaticEidosValueVOID;
+        
+        a = (double *)malloc(line_count * sizeof(double));
+        b = (double *)malloc(line_count * sizeof(double));
+        
+        if (!a || !b)
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+        
+        for (int index = 0; index < line_count; ++index)
+        {
+            a[index] = a_value->NumericAtIndex_NOCAST(index % acount, nullptr);
+            b[index] = b_value->NumericAtIndex_NOCAST(index % bcount, nullptr);
+        }
+    }
+    else if ((a_value->Type() == EidosValueType::kValueNULL) && (b_value->Type() == EidosValueType::kValueNULL) && (h_value->Type() != EidosValueType::kValueNULL) && (v_value->Type() == EidosValueType::kValueNULL))
+    {
+        // h
+        line_count = h_value->Count();
+        
+        if (line_count == 0)
+            return gStaticEidosValueVOID;
+        
+        h = (double *)malloc(line_count * sizeof(double));
+        
+        if (!h)
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+        
+        for (int index = 0; index < line_count; ++index)
+            h[index] = h_value->NumericAtIndex_NOCAST(index, nullptr);
+    }
+    else if ((a_value->Type() == EidosValueType::kValueNULL) && (b_value->Type() == EidosValueType::kValueNULL) && (h_value->Type() == EidosValueType::kValueNULL) && (v_value->Type() != EidosValueType::kValueNULL))
+    {
+        // v
+        line_count = v_value->Count();
+        
+        if (line_count == 0)
+            return gStaticEidosValueVOID;
+        
+        v = (double *)malloc(line_count * sizeof(double));
+        
+        if (!v)
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+        
+        for (int index = 0; index < line_count; ++index)
+            v[index] = v_value->NumericAtIndex_NOCAST(index, nullptr);
+    }
+    else
+    {
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires one of three usage modes: (1) a and b are non-NULL while h and v are NULL; (2) a, b, and v are NULL while h is non-NULL; or (3) a, b, and h are NULL while v is non-NULL." << EidosTerminate(nullptr);
+    }
+    
+    // color
+    std::vector<QColor> *colors = new std::vector<QColor>;
+    int color_count = color_value->Count();
+    
+    if ((color_count != 1) && (color_count != line_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires color to match the number of lines, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < color_count; ++index)
+    {
+        std::string color_string = color_value->StringAtIndex_NOCAST(index, nullptr);
+        uint8_t colorR, colorG, colorB;
+        
+        Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+        
+        colors->emplace_back(colorR, colorG, colorB, 255);
+    }
+    
+    // lwd
+    std::vector<double> *lwds = new std::vector<double>;
+    int lwd_count = lwd_value->Count();
+    
+    if ((lwd_count != 1) && (lwd_count != line_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires lwd to match the number of lines, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < lwd_count; ++index)
+    {
+        double lwd = lwd_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if ((lwd < 0.0) || (lwd > 100.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
+        
+        lwds->push_back(lwd);
+    }
+    
+    plotview_->addABLineData(a, b, h, v, line_count, colors, lwds);       // takes ownership of buffers
+    
+    return gStaticEidosValueVOID;
 }
 
 //	*********************	– (void)addLegend([Ns$ position = NULL], [Ni$ inset = NULL], [Nif$ labelSize = NULL], [Nif$ lineHeight = NULL], [Nif$ graphicsWidth = NULL], [Nif$ exteriorMargin = NULL], [Nif$ interiorMargin = NULL])
@@ -735,6 +853,11 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
         
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_abline, kEidosValueMaskVOID))
+                                  ->AddNumeric_ON("a", gStaticEidosValueNULL)->AddNumeric_ON("b", gStaticEidosValueNULL)
+                                  ->AddNumeric_ON("h", gStaticEidosValueNULL)->AddNumeric_ON("v", gStaticEidosValueNULL)
+                                  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_addLegend, kEidosValueMaskVOID))
                                   ->AddString_OSN("position", gStaticEidosValueNULL)->AddInt_OSN("inset", gStaticEidosValueNULL)
                                   ->AddNumeric_OSN("labelSize", gStaticEidosValueNULL)->AddNumeric_OSN("lineHeight", gStaticEidosValueNULL)
