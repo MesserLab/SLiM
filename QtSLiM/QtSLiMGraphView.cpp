@@ -1164,6 +1164,35 @@ QString QtSLiMGraphView::disableMessage(void)
     return "";
 }
 
+bool QtSLiMGraphView::writeToFile(QString fileName)
+{
+    QSize graphSize = size();
+    QPdfWriter pdfwriter(fileName);
+    QPageSize pageSize = QPageSize(graphSize, QString(), QPageSize::ExactMatch);
+    QMarginsF margins(0, 0, 0, 0);
+    
+    pdfwriter.setCreator("SLiMgui");
+    pdfwriter.setResolution(72);    // match the screen?
+    pdfwriter.setPageSize(pageSize);
+    pdfwriter.setPageMargins(margins);
+    
+    QPainter painter;
+    
+    if (painter.begin(&pdfwriter))
+    {
+        generatingPDF_ = true;
+        drawContents(painter);
+        generatingPDF_ = false;
+        painter.end();
+        
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 {
     if (!controller_->invalidSimulation() && !missingFocalDisplaySpecies()) // && ![[controller window] attachedSheet])
@@ -1449,20 +1478,10 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                 
                 if (!fileName.isEmpty())
                 {
-                    QSize graphSize = size();
-                    QPdfWriter pdfwriter(fileName);
-                    QPageSize pageSize = QPageSize(graphSize, QString(), QPageSize::ExactMatch);
-                    QMarginsF margins(0, 0, 0, 0);
+                    bool success = writeToFile(fileName);
                     
-                    pdfwriter.setCreator("SLiMgui");
-                    pdfwriter.setResolution(72);    // match the screen?
-                    pdfwriter.setPageSize(pageSize);
-                    pdfwriter.setPageMargins(margins);
-                    
-                    QPainter painter(&pdfwriter);
-                    generatingPDF_ = true;
-                    drawContents(painter);
-                    generatingPDF_ = false;
+                    if (!success)
+                        qApp->beep();
                 }
             }
             if (action == copyData)

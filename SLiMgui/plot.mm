@@ -101,6 +101,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
 		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
 		default:						return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -162,6 +163,15 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
 //	*********************	– (void)text(...)
 //
 EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)write(string$ filePath)
+//
+EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
@@ -231,6 +241,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 							  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
 							  ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
 							  ->AddNumeric_ON("adj", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_write, kEidosValueMaskVOID))
+							  ->AddString_S(gEidosStr_filePath));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

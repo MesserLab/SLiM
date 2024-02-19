@@ -103,6 +103,8 @@ public:
     virtual QString aboutString(void) = 0;
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
+    bool writeToFile(QString fileName);
+    
 public slots:
     virtual void addedToWindow(void);
     virtual void invalidateCachedData(void);        // subclasses must call this themselves in their destructor - super cannot do it!

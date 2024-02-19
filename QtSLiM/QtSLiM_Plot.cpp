@@ -105,6 +105,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
 		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
 		default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -678,6 +679,27 @@ EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const st
     return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)write(string$ filePath)
+//
+EidosValue_SP Plot::ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *filePath_value = p_arguments[0].get();
+    
+    std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (outfile_path.length() == 0)
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_write): write() requires a non-empty path." << EidosTerminate();
+    
+    QString qpath = QString::fromStdString(outfile_path);
+    bool success = plotview_->writeToFile(qpath);
+    
+    if (!success)
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_write): write() could not write to " << outfile_path << "; check the permissions of the enclosing directory." << EidosTerminate();
+    
+    return gStaticEidosValueVOID;
+}
+
 
 //
 //	Plot_Class
@@ -741,6 +763,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
                                   ->AddNumeric_ON("adj", gStaticEidosValueNULL)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gEidosStr_write, kEidosValueMaskVOID))
+                                  ->AddString_S(gEidosStr_filePath)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

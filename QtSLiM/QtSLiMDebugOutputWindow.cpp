@@ -246,8 +246,6 @@ QTableWidget *QtSLiMDebugOutputWindow::logFileTableForPath(const std::string &pa
 
 void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path)
 {
-    qDebug() << "QtSLiMDebugOutputWindow::takeLogFileOutput()";
-    
     // First, find the index of the log file view we're taking input into
     // If we didn't find one, make a new one
     auto pathIter = std::find(logfilePaths.begin(), logfilePaths.end(), path);
