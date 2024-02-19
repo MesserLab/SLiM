@@ -594,8 +594,6 @@ void QtSLiMDebugOutputWindow::logFileRightClick(const QPoint &pos)
 
 EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, int64_t columnIndex)
 {
-    qDebug() << "QtSLiMDebugOutputWindow::dataForColumn" << columnIndex;
-    
     const std::string &logfile_path = logFile->UserFilePath();
     QTableWidget *table = logFileTableForPath(logfile_path);
     
@@ -603,9 +601,6 @@ EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, int64_t c
     {
         int rowCount = table->rowCount();
         int columnCount = table->columnCount();
-        
-        qDebug() << "   rowCount" << rowCount;
-        qDebug() << "   columnCount" << columnCount;
         
         if ((rowCount > 0) && (columnCount > 0) && (columnIndex < columnCount))
         {
@@ -640,8 +635,6 @@ EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, int64_t c
             
             if (columnIsNumeric)
             {
-                qDebug() << "   columnIsNumeric == true";
-                
                 EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(rowCount);
                 
                 for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
@@ -666,8 +659,6 @@ EidosValue_SP QtSLiMDebugOutputWindow::dataForColumn(LogFile *logFile, int64_t c
             }
             else
             {
-                qDebug() << "   columnIsNumeric == false";
-                
                 EidosValue_String *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String())->Reserve(rowCount);
                 
                 for (int rowIndex = 0; rowIndex < rowCount; ++rowIndex)
