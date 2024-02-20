@@ -46,20 +46,53 @@ reproduction(p3) {
 	for (i in seqLen(litterSize))
 		subpop.addCrossed(individual, subpop.sampleIndividuals(1));
 }
-:200 early() {
+early() {
 	// p1 uses the "simple model" with non-overlapping generations
 	inds = p1.individuals;
-	inds[inds.age > 0].fitnessScaling = 0;
+	inds[inds.age > 0].fitnessScaling = 0.0;
 	n_t_plus_pt5 = sum(inds.age == 0);
 	p1.fitnessScaling = K / n_t_plus_pt5;
 	
 	// p2 has selection only to achieve non-overlapping generations
 	inds = p2.individuals;
-	inds[inds.age > 0].fitnessScaling = 0;
+	inds[inds.age > 0].fitnessScaling = 0.0;
 	
 	// p3 uses the Beverton-Holt equation for survival
 	inds = p3.individuals;
-	inds[inds.age > 0].fitnessScaling = 0;
+	inds[inds.age > 0].fitnessScaling = 0.0;
 	n_t_plus_pt5 = sum(inds.age == 0);
 	p3.fitnessScaling = 1 / (1 + (n_t_plus_pt5 / R) / M);
+}
+190 late() {
+	// log out the final row before plotting
+	log = community.logFiles;
+	log.logRow();
+	log.setLogInterval(NULL);
+	
+	// make a final plot
+	if (exists("slimgui"))
+	{
+		cycle_data = slimgui.logFileData(log, "cycle");
+		p1_data = slimgui.logFileData(log, "p1_num_individuals");
+		p2_data = slimgui.logFileData(log, "p2_num_individuals");
+		p3_data = slimgui.logFileData(log, "p3_num_individuals");
+		
+		plot = slimgui.createPlot("Population Growth",
+			xlab="Generation", ylab="Population size",
+			width=500, height=250, showHorizontalGrid=F,
+			showVerticalGrid=F, showFullBox=T);
+		
+		plot.abline(h=50000, color="#999999", lwd=1.0);
+		
+		plot.lines(cycle_data, p1_data, "cornflowerblue", lwd=2);
+		plot.lines(cycle_data, p2_data, "red", lwd=2);
+		plot.lines(cycle_data, p3_data, "chartreuse3", lwd=2);
+		
+		plot.addLegend("topLeft", inset=0, labelSize=13);
+		plot.legendLineEntry("p1", "cornflowerblue", lwd=2);
+		plot.legendLineEntry("p2", "red", lwd=2);
+		plot.legendLineEntry("p3", "chartreuse3", lwd=2);
+		
+		plot.write("Population Growth.pdf");
+	}
 }
