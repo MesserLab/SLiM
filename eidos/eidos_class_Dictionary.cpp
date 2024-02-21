@@ -279,9 +279,9 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 		const int64_t *all_key_integers = integer_vec->data();
 		int all_keys_count = integer_vec->Count();
 		
-		for (int i = 0; i < all_keys_count; ++i)
+		for (int key_index = 0; key_index < all_keys_count; ++key_index)
 		{
-			int64_t key = all_key_integers[i];
+			int64_t key = all_key_integers[key_index];
 			
 			// emit the key
 			ss << key << "=";
@@ -301,6 +301,147 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 			}
 		}
 	}
+	
+	return ss.str();
+}
+
+std::string EidosDictionaryUnretained::Serialization_Pretty(int indent_level) const
+{
+	// Loop through our key-value pairs and serialize them
+	if (!state_ptr_)
+		return "{}";
+	
+	std::ostringstream ss;
+	
+	ss << "{";
+	indent_level++;
+	
+	if (KeysAreStrings())
+	{
+		// Serialize a dictionary with string keys
+		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
+		
+		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
+		EidosValue_SP all_keys = AllKeys();
+		int all_keys_count = all_keys->Count();
+		const std::string *all_key_strings = all_keys->StringData();
+		
+		for (int key_index = 0; key_index < all_keys_count; ++key_index)
+		{
+			if (key_index == 0)
+				ss << std::endl;
+			ss << std::string(indent_level, '\t');
+			
+			const std::string key = all_key_strings[key_index];
+			
+			// emit the key; note that we now always quote stringkeys, to distinguish them from the integer-key case easily
+			ss << Eidos_string_escaped(key, EidosStringQuoting::kDoubleQuotes) << " = ";
+			
+			// emit the value
+			auto hash_iter = symbols->find(key);
+			
+			if (hash_iter == symbols->end())
+			{
+				// We assume that this is not an internal error, but is instead LogFile with a column that is NA;
+				// it returns all of its column names for AllKeys() even if they have NA as a value, so we play along
+				ss << "NA";
+			}
+			else
+			{
+				EidosValue *value = hash_iter->second.get();
+				
+				if ((value->Type() == EidosValueType::kValueObject) &&
+					((((EidosValue_Object *)value)->Class() == gEidosDictionaryUnretained_Class) || (((EidosValue_Object *)value)->Class() == gEidosDictionaryRetained_Class)))
+				{
+					// Dictionaries get serialized by recursion; subclasses of them do not
+					int value_count = value->Count();
+					
+					for (int value_index = 0; value_index < value_count; ++value_index)
+					{
+						if (value_index > 0)
+							ss << " ";
+						
+						EidosDictionaryUnretained *dict = (EidosDictionaryUnretained *)value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
+						
+						ss << dict->Serialization_Pretty(indent_level);
+					}
+				}
+				else
+				{
+					ss << *value;
+				}
+			}
+			
+			ss << std::endl;
+		}
+	}
+	else	// KeysAreIntegers()
+	{
+		// Serialize a dictionary with integer keys
+		const EidosDictionaryHashTable_IntegerKeys *symbols = DictionarySymbols_IntegerKeys();
+		
+		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
+		EidosValue_SP all_keys = AllKeys();
+		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
+		
+		if (!integer_vec)
+			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_Pretty): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
+		
+		const int64_t *all_key_integers = integer_vec->data();
+		int all_keys_count = integer_vec->Count();
+		
+		for (int key_index = 0; key_index < all_keys_count; ++key_index)
+		{
+			if (key_index == 0)
+				ss << std::endl;
+			ss << std::string(indent_level, '\t');
+			
+			int64_t key = all_key_integers[key_index];
+			
+			// emit the key
+			ss << key << " = ";
+			
+			// emit the value
+			auto hash_iter = symbols->find(key);
+			
+			if (hash_iter == symbols->end())
+			{
+				// We assume that this is not an internal error, but is instead LogFile with a column that is NA;
+				// it returns all of its column names for AllKeys() even if they have NA as a value, so we play along
+				ss << "NA;";
+			}
+			else
+			{
+				EidosValue *value = hash_iter->second.get();
+				
+				if ((value->Type() == EidosValueType::kValueObject) &&
+					((((EidosValue_Object *)value)->Class() == gEidosDictionaryUnretained_Class) || (((EidosValue_Object *)value)->Class() == gEidosDictionaryRetained_Class)))
+				{
+					// Dictionaries get serialized by recursion; subclasses of them do not
+					int value_count = value->Count();
+					
+					for (int value_index = 0; value_index < value_count; ++value_index)
+					{
+						if (value_index > 0)
+							ss << " ";
+						
+						EidosDictionaryUnretained *dict = (EidosDictionaryUnretained *)value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
+						
+						ss << dict->Serialization_Pretty(indent_level);
+					}
+				}
+				else
+				{
+					ss << *value;
+				}
+			}
+			
+			ss << std::endl;
+		}
+	}
+	
+	indent_level--;
+	ss << std::string(indent_level, '\t') << "}";
 	
 	return ss.str();
 }
@@ -1458,6 +1599,10 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 	{
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(Serialization_SLiM()));
 	}
+	else if (format_name == "pretty")
+	{
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(Serialization_Pretty(0)));
+	}
 	else if (format_name == "json")
 	{
 		nlohmann::json json_rep = JSONRepresentation();
@@ -1475,7 +1620,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_serialize): serialize() does not recognize the format '" << format_name << "'; it should be 'slim', 'json', 'csv', or 'tsv'." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_serialize): serialize() does not recognize the format '" << format_name << "'; it should be 'slim', 'pretty', 'json', 'csv', or 'tsv'." << EidosTerminate(nullptr);
 	}
 }
 

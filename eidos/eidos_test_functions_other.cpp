@@ -1240,6 +1240,38 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue(5, 1:3); x.setValue(3, 'baz'); x.serialize('slim');", "3=\"baz\";5=1 2 3;");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue(5, 1:3); y = Dictionary(); y.setValue(20, 1.5); y.setValue(30, T); x.setValue(11, y); x.serialize('slim');", "5=1 2 3;11={20=1.5;30=T;};");
 	
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('pretty');", "{}");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('pretty');", R"V0G0N({
+	"foo" = 1 2 3
+})V0G0N");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('pretty');", R"V0G0N({
+	"bar" = "baz"
+	"foo" = 1 2 3
+})V0G0N");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize('pretty');", R"V0G0N({
+	"foo" = 1 2 3
+	"xyzzy" = {
+		"a" = 1.5
+		"b" = T
+	}
+})V0G0N");
+	
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('pretty');", "{}");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue(5, 1:3); x.serialize('pretty');", R"V0G0N({
+	5 = 1 2 3
+})V0G0N");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue(5, 1:3); x.setValue(3, 'baz'); x.serialize('pretty');", R"V0G0N({
+	3 = "baz"
+	5 = 1 2 3
+})V0G0N");
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue(5, 1:3); y = Dictionary(); y.setValue(20, 1.5); y.setValue(30, T); x.setValue(11, y); x.serialize('pretty');", R"V0G0N({
+	5 = 1 2 3
+	11 = {
+		20 = 1.5
+		30 = T
+	}
+})V0G0N");
+	
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('json');", "{}");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('json');", "{\"foo\":[1,2,3]}");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('json');", R"V0G0N({"bar":["baz"],"foo":[1,2,3]})V0G0N");

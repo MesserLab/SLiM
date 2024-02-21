@@ -164,6 +164,7 @@ public:
 	virtual EidosValue_SP AllKeys(void) const;
 	
 	std::string Serialization_SLiM(void) const;
+	std::string Serialization_Pretty(int indent_level) const;
 	EidosValue_SP Serialization_CSV(const std::string &p_delimiter) const;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	

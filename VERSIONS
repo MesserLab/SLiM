@@ -24,6 +24,7 @@ development head (in the master branch):
 	add support for legends in the SLiMgui plotting code with addLegend(), legendLineEntry(), legendPointEntry(), and legendSwatchEntry()
 	add logFileData() method to the SLiMgui class to allow access to logged data, which is useful for live plotting in SLiMgui
 	convert recipe 15.17 over to SLiMgui live plotting, to illustrate addLegend(), logFileData(), abline(), etc.
+	add new serialize() mode, "pretty", for pretty-printed Dictionary output
 	
 
 version 4.1 (Eidos version 3.1):
