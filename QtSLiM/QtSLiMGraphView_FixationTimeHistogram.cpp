@@ -29,7 +29,9 @@ QtSLiMGraphView_FixationTimeHistogram::QtSLiMGraphView_FixationTimeHistogram(QWi
     histogramBinCount_ = 10;
     //allowBinCountRescale_ = true;     // not supported yet
     
-    xAxisMax_ = 1000;
+    x1_ = 1000;
+    
+    xAxisMax_ = x1_;
     xAxisMajorTickInterval_ = 200;
     xAxisMinorTickInterval_ = 100;
     xAxisMajorTickModulus_ = 2;

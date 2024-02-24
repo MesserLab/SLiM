@@ -57,8 +57,11 @@ QtSLiMGraphView_MultispeciesPopSizeOverTime::QtSLiMGraphView_MultispeciesPopSize
 
 void QtSLiMGraphView_MultispeciesPopSizeOverTime::setDefaultYAxisRange(void)
 {
-    yAxisMin_ = 0.0;
-	yAxisMax_ = 100.0;		// dynamic
+    y0_ = 0.0;
+    y1_ = 100.0;		// dynamic
+    
+    yAxisMin_ = y0_;
+	yAxisMax_ = y1_;
 	yAxisMajorTickInterval_ = 50;
 	yAxisMinorTickInterval_ = 10;
 	yAxisMajorTickModulus_ = 5;
@@ -139,6 +142,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100.0) * 100.0);
                 yAxisMax_ = maxHistory;
+                y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
                 yAxisMajorTickInterval_ = 200;
                 yAxisMinorTickInterval_ = 100;
                 yAxisMajorTickModulus_ = 2;
@@ -147,6 +151,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 1000.0) * 1000.0);
                 yAxisMax_ = maxHistory;
+                y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
                 yAxisMajorTickInterval_ = 2000;
                 yAxisMinorTickInterval_ = 1000;
                 yAxisMajorTickModulus_ = 2;
@@ -155,6 +160,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 10000.0) * 10000.0);
                 yAxisMax_ = maxHistory;
+                y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
                 yAxisMajorTickInterval_ = 20000;
                 yAxisMinorTickInterval_ = 10000;
                 yAxisMajorTickModulus_ = 2;
@@ -163,6 +169,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
             {
                 maxHistory = (slim_popsize_t)(std::ceil(maxHistory / 100000.0) * 100000.0);
                 yAxisMax_ = maxHistory;
+                y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
                 yAxisMajorTickInterval_ = 200000;
                 yAxisMinorTickInterval_ = 100000;
                 yAxisMajorTickModulus_ = 2;

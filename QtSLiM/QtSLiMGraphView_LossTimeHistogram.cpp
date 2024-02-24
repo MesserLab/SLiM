@@ -29,7 +29,9 @@ QtSLiMGraphView_LossTimeHistogram::QtSLiMGraphView_LossTimeHistogram(QWidget *p_
     histogramBinCount_ = 10;
     //allowBinCountRescale_ = true;     // not supported yet
     
-    xAxisMax_ = 100;
+    x1_ = 100;
+    
+    xAxisMax_ = x1_;
     xAxisMajorTickInterval_ = 20;
     xAxisMinorTickInterval_ = 10;
     xAxisMajorTickModulus_ = 2;

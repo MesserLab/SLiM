@@ -34,6 +34,9 @@ QtSLiMGraphView_CustomPlot::QtSLiMGraphView_CustomPlot(QWidget *p_parent, QtSLiM
     xAxisLabel_ = "x";
     yAxisLabel_ = "y";
     
+    // user-rescaling of the axes should work fine, but will switch to the "base plot" way of handling
+    // the data range and the axis ticks, so some functionality will be disabled, such as auto-resizing
+    // the data range and axes to fit newly added data; so it goes
     allowXAxisUserRescale_ = true;
     allowYAxisUserRescale_ = true;
     
@@ -188,11 +191,16 @@ void QtSLiMGraphView_CustomPlot::setLegendPosition(QtSLiM_LegendPosition positio
 
 void QtSLiMGraphView_CustomPlot::setAxisRanges(double *x_range, double *y_range)
 {
+    // this is called by QtSLiMWindow::eidos_createPlot(), to set up for the user's specified ranges
     // nullptr for an axis indicates that we want that axis to be controlled by the range of the data
     // otherwise, we set up the min and max values for the axis from the given (two-valued) range buffer
     if (x_range)
     {
-        configureAxisForRange(x_range[0], x_range[1], xAxisMin_, xAxisMax_, xAxisMajorTickInterval_, xAxisMinorTickInterval_,
+        x0_ = x_range[0];
+        x1_ = x_range[1];
+        
+        configureAxisForRange(x0_, x1_, xAxisMin_, xAxisMax_,
+                              xAxisMajorTickInterval_, xAxisMinorTickInterval_,
                               xAxisMajorTickModulus_, xAxisTickValuePrecision_);
         xAxisIsUserRescaled_ = true;
     }
@@ -203,7 +211,11 @@ void QtSLiMGraphView_CustomPlot::setAxisRanges(double *x_range, double *y_range)
     
     if (y_range)
     {
-        configureAxisForRange(y_range[0], y_range[1], yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
+        y0_ = y_range[0];
+        y1_ = y_range[1];
+        
+        configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_,
+                              yAxisMajorTickInterval_, yAxisMinorTickInterval_,
                               yAxisMajorTickModulus_, yAxisTickValuePrecision_);
         yAxisIsUserRescaled_ = true;
     }
@@ -249,6 +261,7 @@ void QtSLiMGraphView_CustomPlot::dataRange(std::vector<double *> &data_vector, d
 
 void QtSLiMGraphView_CustomPlot::rescaleAxesForDataRange(void)
 {
+    // this is called when new data is added to a plot, to rescale the axes as needed
     // set up axes based on the data range; we try to apply a little intelligence, but if the user
     // wants really intelligent axis ranges, they can set them up themselves...
     double xmin, xmax, ymin, ymax;
@@ -261,12 +274,22 @@ void QtSLiMGraphView_CustomPlot::rescaleAxesForDataRange(void)
     if (std::isfinite(xmin) && std::isfinite(xmax) && std::isfinite(ymin) && std::isfinite(ymax))
     {
         if (!xAxisIsUserRescaled_)
-            configureAxisForRange(xmin, xmax, xAxisMin_, xAxisMax_, xAxisMajorTickInterval_, xAxisMinorTickInterval_,
+        {
+            x0_ = xmin;
+            x1_ = xmax;
+            
+            configureAxisForRange(x0_, x1_, xAxisMin_, xAxisMax_, xAxisMajorTickInterval_, xAxisMinorTickInterval_,
                                   xAxisMajorTickModulus_, xAxisTickValuePrecision_);
+        }
         
         if (!yAxisIsUserRescaled_)
-            configureAxisForRange(ymin, ymax, yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
+        {
+            y0_ = ymin;
+            y1_ = ymax;
+            
+            configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
                                   yAxisMajorTickModulus_, yAxisTickValuePrecision_);
+        }
         
         has_finite_data_ = true;
     }
@@ -487,8 +510,8 @@ void QtSLiMGraphView_CustomPlot::drawABLines(QPainter &painter, QRect interiorRe
         if (std::isfinite(user_a) && std::isfinite(user_b))
         {
             // slope-intercept: y = a + bx
-            double user_x1 = xAxisMin_ - 100000.0;
-            double user_x2 = xAxisMax_ + 100000.0;
+            double user_x1 = x0_ - 100000.0;
+            double user_x2 = x1_ + 100000.0;
             double user_y1 = user_a + user_b * user_x1;
             double user_y2 = user_a + user_b * user_x2;
             QPointF devicePoint1(plotToDeviceX(user_x1, interiorRect), plotToDeviceY(user_y1, interiorRect));
@@ -519,8 +542,8 @@ void QtSLiMGraphView_CustomPlot::drawHLines(QPainter &painter, QRect interiorRec
         if (std::isfinite(user_h))
         {
             // round the y-coordinate for display to make the line look nicer, especially for lwd 1.0
-            QPointF devicePoint1(plotToDeviceX(xAxisMin_ - 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
-            QPointF devicePoint2(plotToDeviceX(xAxisMax_ + 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
+            QPointF devicePoint1(plotToDeviceX(x0_ - 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
+            QPointF devicePoint2(plotToDeviceX(x1_ + 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
             QColor lineColor = lineColors[lineIndex % lineColors.size()];
             double lineWidth = lineWidths[lineIndex % lineWidths.size()];
             
@@ -547,8 +570,8 @@ void QtSLiMGraphView_CustomPlot::drawVLines(QPainter &painter, QRect interiorRec
         if (std::isfinite(user_v))
         {
             // round the x-coordinate for display to make the line look nicer, especially for lwd 1.0
-            QPointF devicePoint1(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(yAxisMin_ - 100000.0, interiorRect));
-            QPointF devicePoint2(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(yAxisMax_ + 100000.0, interiorRect));
+            QPointF devicePoint1(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(y0_ - 100000.0, interiorRect));
+            QPointF devicePoint2(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(y1_ + 100000.0, interiorRect));
             QColor lineColor = lineColors[lineIndex % lineColors.size()];
             double lineWidth = lineWidths[lineIndex % lineWidths.size()];
             

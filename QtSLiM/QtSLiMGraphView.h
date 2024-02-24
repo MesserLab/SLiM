@@ -92,8 +92,6 @@ class QtSLiMGraphView : public QWidget
     
 public:
     static QFont labelFontOfPointSize(double size);
-    static inline QFont fontForAxisLabels(void) { return labelFontOfPointSize(15); }
-    static inline QFont fontForTickLabels(void) { return labelFontOfPointSize(10); }
     static inline QColor gridLineColor(void) { return QtSLiMColorWithWhite(0.85, 1.0); }
     
     QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller);
@@ -134,6 +132,13 @@ protected:
     double roundPlotToDeviceX(double plotx, QRect interiorRect);	// rounded off to the nearest midpixel
     double roundPlotToDeviceY(double ploty, QRect interiorRect);	// rounded off to the nearest midpixel
     
+    inline QFont fontForAxisLabels(void) { return labelFontOfPointSize(axisLabelSize_); }
+    inline QFont fontForTickLabels(void) { return labelFontOfPointSize(tickLabelSize_); }
+    
+    QString labelTextForTick(double tickValue, int tickValuePrecision, double minorTickInterval);
+    void drawAxisTickLabel(QPainter &painter, QString labelText, double xValueForTick, double axisLength,
+                           bool isFirstTick, bool isLastTick);
+    
     void drawXAxisTicks(QPainter &painter, QRect interiorRect);
     void drawXAxis(QPainter &painter, QRect interiorRect);
     void drawYAxisTicks(QPainter &painter, QRect interiorRect);
@@ -163,7 +168,7 @@ protected:
     
     // Prefab additions
     void setXAxisRangeFromTick(void);
-    void configureAxisForRange(double minValue, double maxValue, double &axisMin, double &axisMax,
+    void configureAxisForRange(double &dim0, double &dim1, double &axisMin, double &axisMax,
                                double &majorTickInterval, double &minorTickInterval,
                                int &majorTickModulus, int &tickValuePrecision);
     QtSLiMLegendSpec subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray);
@@ -177,13 +182,22 @@ protected:
     size_t tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index);
     
     // Properties; initialzed in the constructor, these defaults are just zero-fill
+    // Note that the bounds in user coordinates (x0_/x1_/y0_/y1_) are now separate from
+    // the axis limits (xAxisMin_, ...), but at present they are always the same except
+    // for custom plots.  That may change, going forward, to improve axis behavior.
+    double x0_ = 0.0, x1_ = 0.0, y0_ = 0.0, y1_ = 0.0;  // coordinate space bounds
+    
+    double axisLabelSize_ = 15;
+    double tickLabelSize_ = 10;
+    
     bool showXAxis_ = false;
     bool allowXAxisUserRescale_ = false;
     bool xAxisIsUserRescaled_ = false;
     bool showXAxisTicks_ = false;
     double xAxisMin_ = 0.0, xAxisMax_ = 0.0;
     double xAxisMajorTickInterval_ = 0.0, xAxisMinorTickInterval_ = 0.0;
-    int xAxisMajorTickModulus_ = 0, xAxisTickValuePrecision_ = 0;
+    int xAxisMajorTickModulus_ = 0;
+    int xAxisTickValuePrecision_ = 0;   // negative values request output mode 'g' instead of 'f'
     bool xAxisHistogramStyle_ = false;
     QString xAxisLabel_;
     
@@ -193,7 +207,8 @@ protected:
     bool showYAxisTicks_ = false;
     double yAxisMin_ = 0.0, yAxisMax_ = 0.0;
     double yAxisMajorTickInterval_ = 0.0, yAxisMinorTickInterval_ = 0.0;
-    int yAxisMajorTickModulus_ = 0, yAxisTickValuePrecision_ = 0;
+    int yAxisMajorTickModulus_ = 0;
+    int yAxisTickValuePrecision_ = 0;   // negative values request output mode 'g' instead of 'f'
     bool yAxisHistogramStyle_ = false;
     bool yAxisLog_ = false;
     QString yAxisLabel_;
@@ -245,6 +260,13 @@ private:
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
     
     QString stringForData(void);
+    
+    // Internal axis layout code, based on R; presently used only by custom graphs
+    void _GScale(double &minValue, double &maxValue, double &axisMin, double &axisMax, int &nDivisions);
+    void _GAxisPars(double *minValue, double *maxValue, int *nDivisions);
+    void _GEPretty(double *lo, double *up, int *nDivisions);
+    double _R_pretty(double *lo, double *up, int *nDivisions, int min_n, double shrink_sml,
+                        const double high_u_fact[], int eps_correction);
 };
 
 
