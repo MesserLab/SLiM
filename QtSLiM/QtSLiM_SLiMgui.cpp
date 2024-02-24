@@ -128,6 +128,8 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     EidosValue *horizontalGrid_value = p_arguments[7].get();
     EidosValue *verticalGrid_value = p_arguments[8].get();
     EidosValue *fullBox_value = p_arguments[9].get();
+    EidosValue *axisLabelSize_value = p_arguments[10].get();
+    EidosValue *tickLabelSize_value = p_arguments[11].get();
     
     std::string std_title = title_value->StringAtIndex_NOCAST(0, nullptr);
     QString title = QString::fromStdString(std_title);
@@ -194,8 +196,18 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     bool verticalGrid = verticalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
     bool fullBox = fullBox_value->LogicalAtIndex_NOCAST(0, nullptr);
     
+    double axisLabelSize = axisLabelSize_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if (!std::isfinite(axisLabelSize) || (axisLabelSize < 2.0) || (axisLabelSize > 30.0))
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires axisLabelSize to be in [2, 30]." << EidosTerminate();
+    
+    double tickLabelSize = tickLabelSize_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if (!std::isfinite(tickLabelSize) || (tickLabelSize < 2.0) || (tickLabelSize > 30.0))
+        EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires tickLabelSize to be in [2, 30]." << EidosTerminate();
+    
     // make the plot view; note this might return an existing object
-    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, horizontalGrid, verticalGrid, fullBox);
+    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, horizontalGrid, verticalGrid, fullBox, axisLabelSize, tickLabelSize);
     
     // plotview owns its Eidos instance of class Plot, and keeps it across recycles
     Plot *plot = plotview->eidosPlotObject();
@@ -310,15 +322,16 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 	if (!methods)
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
-		
-        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_createPlot,
-                                  kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Plot_Class))->AddString_S("title")
+        
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_createPlot, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Plot_Class))->AddString_S("title")
                                   ->AddNumeric_ON("xrange", gStaticEidosValueNULL)->AddNumeric_ON("yrange", gStaticEidosValueNULL)
                                   ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
                                   ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
                                   ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
                                   ->AddLogical_OS("horizontalGrid", gStaticEidosValue_LogicalF)->AddLogical_OS("verticalGrid", gStaticEidosValue_LogicalF)
-                                  ->AddLogical_OS("fullBox", gStaticEidosValue_LogicalT)));
+                                  ->AddLogical_OS("fullBox", gStaticEidosValue_LogicalT)
+                                  ->AddNumeric_OS("axisLabelSize", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(15)))
+                                  ->AddNumeric_OS("tickLabelSize", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(10)))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
                                   ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));

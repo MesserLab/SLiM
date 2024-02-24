@@ -159,6 +159,18 @@ void QtSLiMGraphView_CustomPlot::setShowFullBox(bool showFullBox)
     update();
 }
 
+void QtSLiMGraphView_CustomPlot::setAxisLabelSize(double axisLabelSize)
+{
+    axisLabelSize_ = axisLabelSize;
+    update();
+}
+
+void QtSLiMGraphView_CustomPlot::setTickLabelSize(double tickLabelSize)
+{
+    tickLabelSize_ = tickLabelSize;
+    update();
+}
+
 void QtSLiMGraphView_CustomPlot::setLegendPosition(QtSLiM_LegendPosition position)
 {
     legend_position_ = position;

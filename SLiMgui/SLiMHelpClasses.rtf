@@ -6164,7 +6164,7 @@ pid => (integer$)\
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(No<Plot>$)createPlot(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [logical$\'a0horizontalGrid\'a0=\'a0F], [logical$\'a0verticalGrid\'a0=\'a0F], [logical$\'a0fullBox\'a0=\'a0T])\
+\f3\i0\fs18 \cf2 \'96\'a0(No<Plot>$)createPlot(string$\'a0title, [Nif\'a0xrange\'a0=\'a0NULL], [Nif\'a0yrange\'a0=\'a0NULL], [string$\'a0xlab\'a0=\'a0"x"], [string$\'a0ylab\'a0=\'a0"y"], [Nif$\'a0width\'a0=\'a0NULL], [Nif$\'a0height\'a0=\'a0NULL], [logical$\'a0horizontalGrid\'a0=\'a0F], [logical$\'a0verticalGrid\'a0=\'a0F], [logical$\'a0fullBox\'a0=\'a0T], [numeric$\'a0axisLabelSize\'a0=\'a015], [numeric$\'a0tickLabelSize\'a0=\'a010])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Creates and returns a new custom plot referred to by 
@@ -6199,12 +6199,16 @@ pid => (integer$)\
 \f3\fs18 height
 \f4\fs20 , in units of pixels (perhaps 70\'96100 pixels per inch, depending on your screen\'92s pixel density); the default of 
 \f3\fs18 NULL
-\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  Finally, the display of horizontal grid lines, vertical grid lines, and a full box around the plot area can be controlled with 
+\f4\fs20  for these parameters requests SLiMgui\'92s default plot window size.  The display of horizontal grid lines, vertical grid lines, and a full box around the plot area can be controlled with 
 \f3\fs18 horizontalGrid
 \f4\fs20 , 
 \f3\fs18 verticalGrid
 \f4\fs20 , and 
 \f3\fs18 fullBox
+\f4\fs20  respectively, and the size (in points) of axis and tick labels can be controlled with 
+\f3\fs18 axisLabelSize
+\f4\fs20  and 
+\f3\fs18 tickLabelSize
 \f4\fs20  respectively.\
 Once the plot has been created, data can be added to it using 
 \f3\fs18 Plot

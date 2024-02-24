@@ -57,6 +57,8 @@ public:
     void setShowHorizontalGrid(bool showHorizontalGrid);
     void setShowVerticalGrid(bool showVerticalGrid);
     void setShowFullBox(bool showFullBox);
+    void setAxisLabelSize(double axisLabelSize);
+    void setTickLabelSize(double tickLabelSize);
     void setLegendPosition(QtSLiM_LegendPosition position);
     void setAxisRanges(double *x_range, double *y_range);
     
