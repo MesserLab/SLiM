@@ -630,8 +630,6 @@ void QtSLiMGraphView::drawYAxis(QPainter &painter, QRect interiorRect)
     painter.rotate(90);
     painter.scale(1.0, -1.0);
     
-    //painter.drawText(QPointF(SLIM_SCREEN_ROUND(-labelBoundingRect.width() / 2.0), 0), yAxisLabel_);
-    
     // draw debugging lines that are positioned where we intend the axis label to go
     //painter.fillRect(QRectF(interiorRect.y(), 0, interiorRect.height(), 1), Qt::blue);
     //painter.fillRect(QRectF(drawPoint.x(), -capHeight * 0.5, labelBoundingRect.width(), 1), Qt::red);
@@ -1607,12 +1605,12 @@ void QtSLiMGraphView::configureAxisForRange(double &dim0, double &dim1, double &
     {
         int nDivisions;
         
-        qDebug() << "configureAxisForRange() : original dim0 ==" << dim0 << ", dim1 ==" << dim1;
+        //qDebug() << "configureAxisForRange() : original dim0 ==" << dim0 << ", dim1 ==" << dim1;
         
         _GScale(dim0, dim1, axisMin, axisMax, nDivisions);
         
-        qDebug() << "    after axisGScale() : dim0 ==" << dim0 << ", dim1 ==" << dim1;
-        qDebug() << "    after axisGScale() : axisMin ==" << axisMin << ", axisMax ==" << axisMax << ", nDivisions ==" << nDivisions;
+        //qDebug() << "    after axisGScale() : dim0 ==" << dim0 << ", dim1 ==" << dim1;
+        //qDebug() << "    after axisGScale() : axisMin ==" << axisMin << ", axisMax ==" << axisMax << ", nDivisions ==" << nDivisions;
         
         // We go beyond R a little, designating some ticks as "major" (getting a label, and a longer tick
         // mark) and others "minor" (just a short tick mark with no label).  We do that after the R-based
@@ -1643,7 +1641,7 @@ void QtSLiMGraphView::configureAxisForRange(double &dim0, double &dim1, double &
             break;
         }
         
-        qDebug() << "    majorTickInterval ==" << majorTickInterval << ", minorTickInterval ==" << minorTickInterval << ", majorTickModulus ==" << majorTickModulus;
+        //qDebug() << "    majorTickInterval ==" << majorTickInterval << ", minorTickInterval ==" << minorTickInterval << ", majorTickModulus ==" << majorTickModulus;
         
         // We now use a negative tick precision to ask the tick-plotting code to use output mode 'g'
         // instead of 'f', with the tick precision meaning the number of significant digits, not
@@ -1654,7 +1652,7 @@ void QtSLiMGraphView::configureAxisForRange(double &dim0, double &dim1, double &
         // concise.
         tickValuePrecision = -8;
         
-        qDebug() << "    tickValuePrecision ==" << tickValuePrecision;
+        //qDebug() << "    tickValuePrecision ==" << tickValuePrecision;
     }
 }
 

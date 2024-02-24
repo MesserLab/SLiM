@@ -63,7 +63,7 @@ early() {
 	n_t_plus_pt5 = sum(inds.age == 0);
 	p3.fitnessScaling = 1 / (1 + (n_t_plus_pt5 / R) / M);
 }
-190 late() {
+200 late() {
 	// log out the final row before plotting
 	log = community.logFiles;
 	log.logRow();
@@ -79,8 +79,7 @@ early() {
 		
 		plot = slimgui.createPlot("Population Growth",
 			xlab="Generation", ylab="Population size",
-			width=500, height=250, showHorizontalGrid=F,
-			showVerticalGrid=F, showFullBox=T);
+			width=500, height=250);
 		
 		plot.abline(h=50000, color="#999999", lwd=1.0);
 		

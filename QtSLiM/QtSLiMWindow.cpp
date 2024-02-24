@@ -4445,7 +4445,7 @@ void QtSLiMWindow::eidos_pauseExecution(void)
 	}
 }
 
-QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, int showHorizontalGrid, int showVerticalGrid, int showFullBox)
+QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, bool horizontalGrid, bool verticalGrid, bool fullBox)
 {
     QtSLiMGraphView *graphView = graphViewWithTitle(title);
     QtSLiMGraphView_CustomPlot *customPlot = nullptr;
@@ -4486,9 +4486,9 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         customPlot->setXLabel(x_label);
         customPlot->setYLabel(y_label);
         customPlot->setAxisRanges(x_range, y_range);
-        customPlot->setShowHorizontalGrid(showHorizontalGrid);
-        customPlot->setShowVerticalGrid(showVerticalGrid);
-        customPlot->setShowFullBox(showFullBox);
+        customPlot->setShowHorizontalGrid(horizontalGrid);
+        customPlot->setShowVerticalGrid(verticalGrid);
+        customPlot->setShowFullBox(fullBox);
         
         if (createdWindow)
         {

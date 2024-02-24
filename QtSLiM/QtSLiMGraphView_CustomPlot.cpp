@@ -141,45 +141,21 @@ void QtSLiMGraphView_CustomPlot::setYLabel(QString y_label)
     update();
 }
 
-void QtSLiMGraphView_CustomPlot::setShowHorizontalGrid(int showHorizontalGrid)
+void QtSLiMGraphView_CustomPlot::setShowHorizontalGrid(bool showHorizontalGrid)
 {
-    // -1 means "do the default thing", which will remember and reuse a user-chosen value
-    // if the user has not chosen a value, we just inherit the default flag as set in the constructor
-    if (showHorizontalGrid == -1)
-    {
-        return;
-    }
-    
     showHorizontalGridLines_ = showHorizontalGrid;
-    hgridIsUserConfigured = true;
     update();
 }
 
-void QtSLiMGraphView_CustomPlot::setShowVerticalGrid(int showVerticalGrid)
+void QtSLiMGraphView_CustomPlot::setShowVerticalGrid(bool showVerticalGrid)
 {
-    // -1 means "do the default thing", which will remember and reuse a user-chosen value
-    // if the user has not chosen a value, we just inherit the default flag as set in the constructor
-    if (showVerticalGrid == -1)
-    {
-        return;
-    }
-    
     showVerticalGridLines_ = showVerticalGrid;
-    vgridIsUserConfigured = true;
     update();
 }
 
-void QtSLiMGraphView_CustomPlot::setShowFullBox(int showFullBox)
+void QtSLiMGraphView_CustomPlot::setShowFullBox(bool showFullBox)
 {
-    // -1 means "do the default thing", which will remember and reuse a user-chosen value
-    // if the user has not chosen a value, we just inherit the default flag as set in the constructor
-    if (showFullBox == -1)
-    {
-        return;
-    }
-    
     showFullBox_ = showFullBox;
-    fullBoxIsUserConfigured = true;
     update();
 }
 

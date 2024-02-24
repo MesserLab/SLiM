@@ -113,7 +113,7 @@ EidosValue_SP SLiMgui::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 }
 
 //	*********************	– (No<Plot>$)createPlot(string$ title, [Nif xrange = NULL], [Nif yrange = NULL], [string$ xlab = "x"], [string$ ylab = "y"], [Nif$ width = NULL], [Nif$ height = NULL]
-//                                                  [Nl$ showHorizontalGrid = NULL], [Nl$ showVerticalGrid = NULL], [Nl$ showFullBox = NULL])
+//                                                  [logical$ horizontalGrid = F], [logical$ verticalGrid = F], [logical$ fullBox = T])
 //
 EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -125,9 +125,9 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
     EidosValue *ylab_value = p_arguments[4].get();
     EidosValue *width_value = p_arguments[5].get();
     EidosValue *height_value = p_arguments[6].get();
-    EidosValue *showHorizontalGrid_value = p_arguments[7].get();
-    EidosValue *showVerticalGrid_value = p_arguments[8].get();
-    EidosValue *showFullBox_value = p_arguments[9].get();
+    EidosValue *horizontalGrid_value = p_arguments[7].get();
+    EidosValue *verticalGrid_value = p_arguments[8].get();
+    EidosValue *fullBox_value = p_arguments[9].get();
     
     std::string std_title = title_value->StringAtIndex_NOCAST(0, nullptr);
     QString title = QString::fromStdString(std_title);
@@ -190,23 +190,12 @@ EidosValue_SP SLiMgui::ExecuteMethod_createPlot(EidosGlobalStringID p_method_id,
             EIDOS_TERMINATION << "ERROR (SLiMgui::ExecuteMethod_createPlot): createPlot() requires height to be > 0.0, or NULL." << EidosTerminate();
     }
     
-    int showHorizontalGrid = -1;    // default for NULL; handled downstream
-    
-    if (showHorizontalGrid_value->Type() != EidosValueType::kValueNULL)
-        showHorizontalGrid = showHorizontalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
-    
-    int showVerticalGrid = -1;      // default for NULL; handled downstream
-    
-    if (showVerticalGrid_value->Type() != EidosValueType::kValueNULL)
-        showVerticalGrid = showVerticalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
-    
-    int showFullBox = -1;           // default for NULL; handled downstream
-    
-    if (showFullBox_value->Type() != EidosValueType::kValueNULL)
-        showFullBox = showFullBox_value->LogicalAtIndex_NOCAST(0, nullptr);
+    bool horizontalGrid = horizontalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
+    bool verticalGrid = verticalGrid_value->LogicalAtIndex_NOCAST(0, nullptr);
+    bool fullBox = fullBox_value->LogicalAtIndex_NOCAST(0, nullptr);
     
     // make the plot view; note this might return an existing object
-    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, showHorizontalGrid, showVerticalGrid, showFullBox);
+    QtSLiMGraphView_CustomPlot *plotview = controller_->eidos_createPlot(title, x_range, y_range, xlab, ylab, width, height, horizontalGrid, verticalGrid, fullBox);
     
     // plotview owns its Eidos instance of class Plot, and keeps it across recycles
     Plot *plot = plotview->eidosPlotObject();
@@ -328,8 +317,8 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
                                   ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
                                   ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
                                   ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
-                                  ->AddLogical_OSN("showHorizontalGrid", gStaticEidosValueNULL)->AddLogical_OSN("showVerticalGrid", gStaticEidosValueNULL)
-                                  ->AddLogical_OSN("showFullBox", gStaticEidosValueNULL)));
+                                  ->AddLogical_OS("horizontalGrid", gStaticEidosValue_LogicalF)->AddLogical_OS("verticalGrid", gStaticEidosValue_LogicalF)
+                                  ->AddLogical_OS("fullBox", gStaticEidosValue_LogicalT)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
                                   ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S("filePath")));

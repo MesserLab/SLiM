@@ -227,8 +227,8 @@ const std::vector<EidosMethodSignature_CSP> *SLiMgui_Class::Methods(void) const
 							  ->AddString_OS("xlab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("x")))
 							  ->AddString_OS("ylab", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("y")))
 							  ->AddNumeric_OSN("width", gStaticEidosValueNULL)->AddNumeric_OSN("height", gStaticEidosValueNULL)
-							  ->AddLogical_OSN("showHorizontalGrid", gStaticEidosValueNULL)->AddLogical_OSN("showVerticalGrid", gStaticEidosValueNULL)
-							  ->AddLogical_OSN("showFullBox", gStaticEidosValueNULL));
+							  ->AddLogical_OS("horizontalGrid", gStaticEidosValue_LogicalF)->AddLogical_OS("verticalGrid", gStaticEidosValue_LogicalF)
+							  ->AddLogical_OS("fullBox", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logFileData, kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString))
 							  ->AddObject_S("logFile", gSLiM_LogFile_Class)->AddIntString_S("column"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_openDocument, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));

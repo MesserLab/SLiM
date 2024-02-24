@@ -236,7 +236,7 @@ public:
     EidosValue_SP eidos_logFileData(LogFile *logFile, EidosValue *column_value);
     void eidos_openDocument(QString path);
     void eidos_pauseExecution(void);
-    QtSLiMGraphView_CustomPlot *eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, int showHorizontalGrid, int showVerticalGrid, int showFullBox);
+    QtSLiMGraphView_CustomPlot *eidos_createPlot(QString title, double *x_range, double *y_range, QString x_label, QString y_label, double width, double height, bool horizontalGrid, bool verticalGrid, bool fullBox);
     QtSLiMGraphView_CustomPlot *eidos_plotWithTitle(QString title);
     
     void plotLogFileData_1D(QString title, QString y_title, double *y_values, int data_count);
