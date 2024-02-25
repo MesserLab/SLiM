@@ -43,6 +43,7 @@ public:
     bool showLineNumbersPref(void) const;
     bool highlightCurrentLinePref(void) const;
     bool autosaveOnRecyclePref(void) const;
+    bool reloadOnSafeExternalEditsPref(void) const;
     bool showSaveIfUntitledPref(void) const;
     
     // Change preferences values in ways other than the Preferences panel itself
@@ -58,6 +59,7 @@ signals:
     void showLineNumbersPrefChanged(void);
     void highlightCurrentLinePrefChanged(void);
     void autosaveOnRecyclePrefChanged(void);
+    void reloadOnSafeExternalEditsChanged(void);
     void showSaveIfUntitledPrefChanged(void);
     
 private:
@@ -78,6 +80,7 @@ private slots:
     void showLineNumbersToggled();
     void highlightCurrentLineToggled();
     void autosaveOnRecycleToggled();
+    void reloadOnSafeExternalEditsToggled();
     void showSaveIfUntitledToggled();
     void resetSuppressedClicked();
     

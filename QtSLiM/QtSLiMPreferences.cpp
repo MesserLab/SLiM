@@ -43,6 +43,7 @@ static const char *QtSLiMShowLineNumbers = "QtSLiMShowLineNumbers";
 static const char *QtSLiMHighlightCurrentLine = "QtSLiMHighlightCurrentLine";
 static const char *QtSLiMAutosaveOnRecycle = "QtSLiMAutosaveOnRecycle";
 static const char *QtSLiMShowSaveInUntitled = "QtSLiMShowSaveInUntitled";
+static const char *QtSLiMReloadOnSafeExternalEdits = "QtSLiMReloadOnSafeExternalEdits";
 
 
 static QFont &defaultDisplayFont(void)
@@ -189,6 +190,13 @@ bool QtSLiMPreferencesNotifier::showSaveIfUntitledPref(void) const
     QSettings settings;
     
     return settings.value(QtSLiMShowSaveInUntitled, QVariant(false)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::reloadOnSafeExternalEditsPref(void) const
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMReloadOnSafeExternalEdits, QVariant(false)).toBool();
 }
 
 void QtSLiMPreferencesNotifier::displayFontBigger(void)
@@ -354,6 +362,16 @@ void QtSLiMPreferencesNotifier::showSaveIfUntitledToggled()
     emit showSaveIfUntitledPrefChanged();
 }
 
+void QtSLiMPreferencesNotifier::reloadOnSafeExternalEditsToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMReloadOnSafeExternalEdits, QVariant(prefsUI.ui->reloadOnSafeExternalEdits->isChecked()));
+    
+    emit reloadOnSafeExternalEditsChanged();
+}
+
 void QtSLiMPreferencesNotifier::resetSuppressedClicked()
 {
     // All "do not show this again" settings should be removed here
@@ -414,6 +432,8 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     ui->showSaveIfUntitled->setChecked(notifier->showSaveIfUntitledPref());
     ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref());
     
+    ui->reloadOnSafeExternalEdits->setChecked(notifier->reloadOnSafeExternalEditsPref());
+    
     // connect the UI elements to QtSLiMPreferencesNotifier
     connect(ui->startupRadioOpenFile, &QRadioButton::toggled, notifier, &QtSLiMPreferencesNotifier::startupRadioChanged);
     connect(ui->startupRadioCreateNew, &QRadioButton::toggled, notifier, &QtSLiMPreferencesNotifier::startupRadioChanged);
@@ -430,6 +450,8 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     connect(ui->autosaveOnRecycle, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::autosaveOnRecycleToggled);
     connect(ui->showSaveIfUntitled, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showSaveIfUntitledToggled);
     connect(notifier, &QtSLiMPreferencesNotifier::autosaveOnRecyclePrefChanged, this, [this, notifier]() { ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref()); });
+    
+    connect(ui->reloadOnSafeExternalEdits, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::reloadOnSafeExternalEditsToggled);
     
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
     

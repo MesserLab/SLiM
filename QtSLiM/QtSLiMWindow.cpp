@@ -229,6 +229,7 @@ QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType, bool includeCommen
         untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString_NC() : defaultNonWFScriptString_NC();
     
     lastSavedString = QString::fromStdString(untitledScriptString);
+    lastSavedDate = QDateTime::currentDateTime();
     scriptChangeObserved = false;
     
     ui->scriptTextEdit->setPlainText(lastSavedString);
@@ -263,6 +264,7 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
     
     // set up the initial script
     lastSavedString = recipeScript;
+    lastSavedDate = QDateTime::currentDateTime();
     scriptChangeObserved = false;
     
     ui->scriptTextEdit->setPlainText(recipeScript);
@@ -364,6 +366,9 @@ void QtSLiMWindow::init(void)
     // Wire up things that set the window to be modified.
     connect(ui->scriptTextEdit, &QPlainTextEdit::textChanged, this, &QtSLiMWindow::documentWasModified);
     connect(ui->scriptTextEdit, &QPlainTextEdit::textChanged, this, &QtSLiMWindow::scriptTexteditChanged);
+    
+    // Watch for app activation to check for external modification of our file
+    connect(qApp, &QApplication::applicationStateChanged, this, &QtSLiMWindow::appStateChanged);
     
     // Watch for changes to the selection in the population tableview
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
@@ -1139,7 +1144,7 @@ bool QtSLiMWindow::isScriptModified(void)
     // We used to use Qt's isWindowModified() change-tracking system.  Unfortunately, apparently that is broken on Debian;
     // see https://github.com/MesserLab/SLiM/issues/370.  It looks like Qt internally calls textChanged() and modifies the
     // document when it shouldn't, resulting in untitled documents being marked dirty.  So now we check whether the
-    // script string has been changed from was was last saved to disk, or from their initial state if they are not
+    // script string has been changed from when it was last saved to disk, or from its initial state if it is not
     // based on a disk file.  Once a change has been observed, the document stays dirty; it doesn't revert to clean if
     // the script string goes back to its original state (although smart, that would be non-standard).  BCH 10/24/2023
     if (scriptChangeObserved)
@@ -1249,6 +1254,7 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     QString contents = in.readAll();
     
     lastSavedString = contents;
+    lastSavedDate = QDateTime::currentDateTime();
     scriptChangeObserved = false;
     
     ui->scriptTextEdit->setPlainText(contents);
@@ -1278,6 +1284,7 @@ void QtSLiMWindow::loadRecipe(const QString &recipeName, const QString &recipeSc
     clearOutputClicked();
     
     lastSavedString = recipeScript;
+    lastSavedDate = QDateTime::currentDateTime();
     scriptChangeObserved = false;
     
     ui->scriptTextEdit->setPlainText(recipeScript);
@@ -1305,6 +1312,7 @@ bool QtSLiMWindow::saveFile(const QString &fileName)
     }
     
     lastSavedString = ui->scriptTextEdit->toPlainText();
+    lastSavedDate = QDateTime::currentDateTime();
     scriptChangeObserved = false;
 
     QTextStream out(&file);
@@ -1366,6 +1374,93 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     const QPoint position = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
     if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + position))
         move(position);
+}
+
+void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
+{
+    if (state == Qt::ApplicationState::ApplicationActive)
+    {
+        // the motivation for listening to these state changes is to check for externally-edited
+        // documents; that can only happen for files that have been saved to disk
+        if (!isUntitled && !isRecipe && !isTransient && currentFile.length() && lastSavedDate.isValid())
+        {
+            if (QFile::exists(currentFile))
+            {
+                QFileInfo fileInfo(currentFile);
+                QString filename = fileInfo.fileName();         // last path component, for showing to the user
+                QDateTime modDate = fileInfo.lastModified();
+                
+                if (modDate > lastSavedDate)
+                {
+                    // check for readability different file contents
+                    QFile file(currentFile);
+                    
+                    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+                        QMessageBox::warning(this, "SLiMgui", QString("File %1 appears to have been modified externally (on disk), but cannot be read; you may wish to check permissions.").arg(filename));
+                        return;
+                    }
+                    
+                    QTextStream in(&file);
+                    QString contents = in.readAll();
+                    
+                    if (contents == lastSavedString)
+                    {
+                        // the mod date was tweaked, but the file contents are the same; silently update our mod date
+                        //qDebug() << "no mod: date changed but identical contents";
+                        lastSavedDate = modDate;
+                        return;
+                    }
+                    
+                    //qDebug() << "EXTERNAL MOD!";
+                    
+                    // The file has changed externally; we need to ask the user what to do
+                    QMessageBox::StandardButton ret = QMessageBox::No;
+                    
+                    if (isScriptModified())
+                    {
+                        // If the script in SLiMgui has been changed (i.e., there are unsaved changes), reloading
+                        // is quite dangerous so we require user confirmation with a default of No.
+                        QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\nThere are unsaved changes in SLiMgui; if you reload, those changes will be lost!").arg(filename);
+                        
+                        ret = QMessageBox::critical(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                    }
+                    else
+                    {
+                        // If that is not the case, we can suggest the reload as a safer operation with a default
+                        // of Yes.  In this case, we also allow the user to auto-confirm in Preferences.
+                        QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+                        
+                        if (prefsNotifier.reloadOnSafeExternalEditsPref())
+                        {
+                            ret = QMessageBox::Yes;
+                        }
+                        else
+                        {
+                            QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\n(There are no unsaved changes in SLiMgui that would be lost.  In the Preferences panel you can choose to automatically reload, in this case.)").arg(filename);
+                            
+                            ret = QMessageBox::question(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+                        }
+                    }
+                    
+                    if (ret == QMessageBox::Yes)
+                        loadFile(currentFile);
+                }
+                else
+                {
+                    //qDebug() << "no mod: mod date equal";
+                }
+            }
+            else
+            {
+                QMessageBox::warning(this, "SLiMgui", QString("File %1 no longer exists on disk; you may wish to re-save or close.").arg(QDir::toNativeSeparators(currentFile)));
+                return;
+            }
+        }
+        else
+        {
+            //qDebug() << "no mod: unsaved file";
+        }
+    }
 }
 
 

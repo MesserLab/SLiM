@@ -25,6 +25,7 @@
 #include <QElapsedTimer>
 #include <QColor>
 #include <QDateTime>
+#include <QApplication>
 
 #include <string>
 #include <vector>
@@ -75,6 +76,7 @@ private:
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
     QString lastSavedString;                    // the last string saved to disk, or initial script string
+    QDateTime lastSavedDate;                    // the date when we last saved, to detect external changes
     bool scriptChangeObserved = false;          // has a change to the script been observed since last saved?
     bool isScriptModified(void);                // uses scriptChangeObserved / lastSavedString to determine modified status
     
@@ -288,6 +290,7 @@ private slots:
     bool saveAs(void);
     void revert(void);
     void documentWasModified(void);
+    void appStateChanged(Qt::ApplicationState state);
     
     void playOneStepPressed(void);
     void playOneStepReleased(void);
