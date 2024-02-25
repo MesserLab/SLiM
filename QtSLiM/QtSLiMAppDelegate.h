@@ -110,6 +110,8 @@ public slots:
     void dispatch_about(void);
     void dispatch_showCycle_WF(void);
     void dispatch_showCycle_nonWF(void);
+    void dispatch_showCycle_WF_MS(void);
+    void dispatch_showCycle_nonWF_MS(void);
     void dispatch_help(void);
     void dispatch_quit(void);
     

@@ -1435,6 +1435,9 @@ QSlider::handle:horizontal:disabled {
     <addaction name="actionShowCycle_WF"/>
     <addaction name="actionShowCycle_nonWF"/>
     <addaction name="separator"/>
+    <addaction name="actionShowCycle_WF_MS"/>
+    <addaction name="actionShowCycle_nonWF_MS"/>
+    <addaction name="separator"/>
     <addaction name="actionQtSLiMHelp"/>
     <addaction name="actionSLiMWorkshops"/>
     <addaction name="separator"/>
@@ -2015,6 +2018,22 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+-</string>
+   </property>
+  </action>
+  <action name="actionShowCycle_WF_MS">
+   <property name="text">
+    <string>Show WF Tick Cycle (Multispecies)</string>
+   </property>
+   <property name="toolTip">
+    <string>Show WF Tick Cycle (Multispecies)</string>
+   </property>
+  </action>
+  <action name="actionShowCycle_nonWF_MS">
+   <property name="text">
+    <string>Show nonWF Tick Cycle (Multispecies)</string>
+   </property>
+   <property name="toolTip">
+    <string>Show nonWF Tick Cycle (Multispecies)</string>
    </property>
   </action>
  </widget>

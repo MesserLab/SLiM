@@ -843,6 +843,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionShowCycle_nonWF);
     }
     {
+        QAction *actionShowCycle_WF_MS = new QAction("Show WF Tick Cycle (Multispecies)", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_WF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF_MS);
+        window->addAction(actionShowCycle_WF_MS);
+    }
+    {
+        QAction *actionShowCycle_nonWF_MS = new QAction("Show nonWF Tick Cycle (Multispecies)", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
+        window->addAction(actionShowCycle_nonWF_MS);
+    }
+    {
         QAction *actionHelp = new QAction("Help", this);
         //actionHelp->setShortcut(Qt::CTRL + Qt::Key_Comma);
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -1228,6 +1240,30 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
 {
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.32);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF_MS.png", "WF Cycle (Multispecies)", 0.32);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF_MS.png", "nonWF Cycle (Multispecies)", 0.32);
     
     if (imageWindow)
     {
