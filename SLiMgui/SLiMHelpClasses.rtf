@@ -5731,8 +5731,10 @@ See also
 \f4\fs20 , 
 \f3\fs18 "bottomRight"
 \f4\fs20 , or 
-\f3\fs18 \'93bottomLeft\'94
-\f4\fs20 , or NULL (the default) requesting that SLiMgui choose the position.  The position of the legend will be inset from the chosen corner by a margin 
+\f3\fs18 "bottomLeft"
+\f4\fs20 , or 
+\f3\fs18 NULL
+\f4\fs20  (the default) requesting that SLiMgui choose the position.  The position of the legend will be inset from the chosen corner by a margin 
 \f3\fs18 inset
 \f4\fs20 , measured in pixels; the default of 
 \f3\fs18 NULL
@@ -5757,6 +5759,62 @@ The legend is initially empty; entries for it can be added with
 \f4\fs20 , and 
 \f3\fs18 legendSwatchEntry()
 \f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)axis(integer$\'a0side, [Nif\'a0at\'a0=\'a0NULL], [ls\'a0labels\'a0=\'a0T])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Configures an axis of the plot.  The 
+\f3\fs18 side
+\f4\fs20  parameter controls which axis is being configured; at present, it may be 
+\f3\fs18 1
+\f4\fs20  for the 
+\f1\i x
+\f4\i0 -axis (at the bottom of the plot), or 
+\f3\fs18 2
+\f4\fs20  for the 
+\f1\i y
+\f4\i0 -axis (at the left of the plot).\
+The positions of tick marks (and of any associated labels) are controlled by 
+\f3\fs18 at
+\f4\fs20 ; if 
+\f3\fs18 at
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default) these positions will be computed automatically based upon the range of the data in the plot, otherwise 
+\f3\fs18 at
+\f4\fs20  must be a vector of 
+\f3\fs18 numeric
+\f4\fs20  positions.  Note that the coordinate system of the plot is controlled not by this method, but by the 
+\f3\fs18 xrange
+\f4\fs20  and 
+\f3\fs18 yrange
+\f4\fs20  parameters of 
+\f3\fs18 createPlot()
+\f4\fs20 ; 
+\f3\fs18 at
+\f4\fs20  controls only the positions of axis ticks 
+\f1\i within
+\f4\i0  that coordinate system.\
+The 
+\f3\fs18 labels
+\f4\fs20  parameter controls the text labels displayed for ticks; it may be 
+\f3\fs18 T
+\f4\fs20  (the default) to label ticks with their numeric positions, 
+\f3\fs18 F
+\f4\fs20  to suppress all tick labels, or a vector of type 
+\f3\fs18 string
+\f4\fs20 , equal in length to 
+\f3\fs18 at
+\f4\fs20 , providing the label for each position in 
+\f3\fs18 at
+\f4\fs20 .  Label values may be the empty string, 
+\f3\fs18 ""
+\f4\fs20 , if a label at a given position is not desired, and if 
+\f3\fs18 labels
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , some ticks may not receive a label for readability.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\

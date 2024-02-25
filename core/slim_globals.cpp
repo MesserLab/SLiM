@@ -1457,6 +1457,7 @@ const std::string &gStr_plotWithTitle = EidosRegisteredString("plotWithTitle", g
 // Plot methods and properties
 const std::string &gStr_abline = EidosRegisteredString("abline", gID_abline);
 const std::string &gStr_addLegend = EidosRegisteredString("addLegend", gID_addLegend);
+const std::string &gStr_axis = EidosRegisteredString("axis", gID_axis);
 const std::string &gStr_legendLineEntry = EidosRegisteredString("legendLineEntry", gID_legendLineEntry);
 const std::string &gStr_legendPointEntry = EidosRegisteredString("legendPointEntry", gID_legendPointEntry);
 const std::string &gStr_legendSwatchEntry = EidosRegisteredString("legendSwatchEntry", gID_legendSwatchEntry);

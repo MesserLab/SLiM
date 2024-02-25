@@ -4485,7 +4485,7 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
         customPlot->setTitle(title);
         customPlot->setXLabel(x_label);
         customPlot->setYLabel(y_label);
-        customPlot->setAxisRanges(x_range, y_range);
+        customPlot->setDataRanges(x_range, y_range);
         customPlot->setShowHorizontalGrid(horizontalGrid);
         customPlot->setShowVerticalGrid(verticalGrid);
         customPlot->setShowFullBox(fullBox);

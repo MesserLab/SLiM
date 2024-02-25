@@ -60,7 +60,8 @@ public:
     void setAxisLabelSize(double axisLabelSize);
     void setTickLabelSize(double tickLabelSize);
     void setLegendPosition(QtSLiM_LegendPosition position);
-    void setAxisRanges(double *x_range, double *y_range);
+    void setDataRanges(double *x_range, double *y_range);
+    void setAxisConfiguration(int side, std::vector<double> *at, int labels_type, std::vector<QString> *labels);
     
     void addABLineData(double *a_values, double *b_values,
                        double *h_values, double *v_values, int data_count,

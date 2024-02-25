@@ -1047,6 +1047,7 @@ extern const std::string &gStr_plotWithTitle;
 
 extern const std::string &gStr_abline;
 extern const std::string &gStr_addLegend;
+extern const std::string &gStr_axis;
 extern const std::string &gStr_legendLineEntry;
 extern const std::string &gStr_legendPointEntry;
 extern const std::string &gStr_legendSwatchEntry;
@@ -1461,6 +1462,7 @@ enum _SLiMGlobalStringID : int {
 	
 	gID_abline,
 	gID_addLegend,
+	gID_axis,
 	gID_legendLineEntry,
 	gID_legendPointEntry,
 	gID_legendSwatchEntry,

@@ -96,6 +96,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     xAxisMajorTickModulus_ = 2;
     xAxisHistogramStyle_ = false;
     xAxisTickValuePrecision_ = 1;
+    xAxisLabelsType_ = 1;           // default numeric labels
 
     yAxisMin_ = y0_;
     yAxisMax_ = y1_;
@@ -105,6 +106,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     yAxisTickValuePrecision_ = 1;
     yAxisHistogramStyle_ = false;
     yAxisLog_ = false;
+    yAxisLabelsType_ = 1;           // default numeric labels
     
     xAxisLabel_ = "This is the x-axis, yo";
     yAxisLabel_ = "This is the y-axis, yo";
@@ -131,6 +133,29 @@ QtSLiMGraphView::~QtSLiMGraphView()
     // methods must call them themselves in their destructors.
     QtSLiMGraphView::invalidateDrawingCache();
     QtSLiMGraphView::invalidateCachedData();
+    
+    if (xAxisAt_)
+    {
+        delete xAxisAt_;
+        xAxisAt_ = nullptr;
+    }
+    if (xAxisLabels_)
+    {
+        delete xAxisLabels_;
+        xAxisLabels_ = nullptr;
+    }
+    if (yAxisAt_)
+    {
+        delete yAxisAt_;
+        yAxisAt_ = nullptr;
+    }
+    if (yAxisLabels_)
+    {
+        delete yAxisLabels_;
+        yAxisLabels_ = nullptr;
+    }
+    xAxisLabelsType_ = 1;
+    yAxisLabelsType_ = 1;
     
     controller_ = nullptr;
 }
@@ -393,22 +418,26 @@ void QtSLiMGraphView::drawXAxisTicks(QPainter &painter, QRect interiorRect)
     painter.setFont(font);
     painter.setBrush(Qt::black);
     
-    double axisMin = xAxisMin_;
-    double axisMax = xAxisMax_;
-    int tickValuePrecision = xAxisTickValuePrecision_;
-    double tickValue;
-    
-    if (!xAxisHistogramStyle_)
+    if (xAxisAt_)
     {
-        double minorTickInterval = xAxisMinorTickInterval_;
-        int majorTickModulus = xAxisMajorTickModulus_;
-        int tickIndex;
+        // user-specified tick positions, which may or may not have corresponding label strings
+        int tickCount = (int)xAxisAt_->size();
         
-        for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+        for (int tickIndex = 0; tickIndex < tickCount; ++tickIndex)
         {
+            double tickValue = (*xAxisAt_)[tickIndex];
             bool isFirstTick = (tickIndex == 0);
-            bool isLastTick = (tickValue + minorTickInterval > (axisMax + minorTickInterval / 10.0));
-            bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+            bool isLastTick = (tickIndex == tickCount - 1);
+            QString labelText;
+            
+            if (xAxisLabelsType_ == 1)
+                labelText = labelTextForTick(tickValue, -8, 1e-100);
+            else if (xAxisLabelsType_ == 2)
+                labelText = (*xAxisLabels_)[tickIndex];
+            else
+                labelText = " ";    // force a major tick mark when labels are turned off
+            
+            bool isMajorTick = labelText.length();
             double tickLength = (isMajorTick ? 6 : 3);
             double xValueForTick;
             
@@ -421,10 +450,8 @@ void QtSLiMGraphView::drawXAxisTicks(QPainter &painter, QRect interiorRect)
             
             painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
             
-            if (isMajorTick)
+            if (isMajorTick && (xAxisLabelsType_ != 0))
             {
-                QString labelText = labelTextForTick(tickValue, tickValuePrecision, minorTickInterval);
-                
                 painter.save();
                 painter.translate(interiorRect.x(), 41 - capHeight);
                 painter.scale(1.0, -1.0);
@@ -435,36 +462,79 @@ void QtSLiMGraphView::drawXAxisTicks(QPainter &painter, QRect interiorRect)
     }
     else
     {
-        // Histogram-style ticks are centered under each bar position, at the 0.5 positions on the axis
-        // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
-        double axisStart = axisMin + 1;
+        double axisMin = xAxisMin_;
+        double axisMax = xAxisMax_;
+        int tickValuePrecision = xAxisTickValuePrecision_;
+        double tickValue;
         
-        for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+        if (!xAxisHistogramStyle_)
         {
-            bool isFirstTick = (tickValue == axisStart);
-            bool isLastTick = (tickValue == axisMax);
-            bool isMajorTick = isFirstTick || isLastTick;
-            double tickLength = (isMajorTick ? 6 : 3);
-            double xValueForTick;
+            double minorTickInterval = xAxisMinorTickInterval_;
+            int majorTickModulus = xAxisMajorTickModulus_;
+            int tickIndex;
             
-            if (generatingPDF_)
-                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - 0.5 - x0_) / (x1_ - x0_)) - 0.5);    // left edge of pixel
-            else
-                xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - 0.5 - x0_) / (x1_ - x0_)));    // left edge of pixel
-            
-            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
-            
-            painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
-            
-            if (isMajorTick)
+            for (tickValue = axisMin, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
             {
-                QString labelText = labelTextForTick(tickValue, tickValuePrecision, 1.0);
+                bool isFirstTick = (tickIndex == 0);
+                bool isLastTick = (tickValue + minorTickInterval > (axisMax + minorTickInterval / 10.0));
+                bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+                double tickLength = (isMajorTick ? 6 : 3);
+                double xValueForTick;
                 
-                painter.save();
-                painter.translate(interiorRect.x(), 41 - capHeight);
-                painter.scale(1.0, -1.0);
-                drawAxisTickLabel(painter, labelText, xValueForTick - interiorRect.x(), interiorRect.width(), isFirstTick, isLastTick);
-                painter.restore();
+                if (generatingPDF_)
+                    xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - x0_) / (x1_ - x0_)) - 0.5);    // left edge of pixel
+                else
+                    xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - x0_) / (x1_ - x0_)));    // left edge of pixel
+                
+                //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
+                
+                painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
+                
+                if (isMajorTick && (xAxisLabelsType_ != 0))
+                {
+                    QString labelText = labelTextForTick(tickValue, tickValuePrecision, minorTickInterval);
+                    
+                    painter.save();
+                    painter.translate(interiorRect.x(), 41 - capHeight);
+                    painter.scale(1.0, -1.0);
+                    drawAxisTickLabel(painter, labelText, xValueForTick - interiorRect.x(), interiorRect.width(), isFirstTick, isLastTick);
+                    painter.restore();
+                }
+            }
+        }
+        else
+        {
+            // Histogram-style ticks are centered under each bar position, at the 0.5 positions on the axis
+            // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
+            double axisStart = axisMin + 1;
+            
+            for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+            {
+                bool isFirstTick = (tickValue == axisStart);
+                bool isLastTick = (tickValue == axisMax);
+                bool isMajorTick = isFirstTick || isLastTick;
+                double tickLength = (isMajorTick ? 6 : 3);
+                double xValueForTick;
+                
+                if (generatingPDF_)
+                    xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + interiorRect.width() * ((tickValue - 0.5 - x0_) / (x1_ - x0_)) - 0.5);    // left edge of pixel
+                else
+                    xValueForTick = SLIM_SCREEN_ROUND(interiorRect.x() + (interiorRect.width() - 1) * ((tickValue - 0.5 - x0_) / (x1_ - x0_)));    // left edge of pixel
+                
+                //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", xValueForTick == " << xValueForTick;
+                
+                painter.fillRect(QRectF(xValueForTick, interiorRect.y() - tickLength, 1, tickLength - (generatingPDF_ ? 0.5 : 0.0)), Qt::black);
+                
+                if (isMajorTick && (xAxisLabelsType_ != 0))
+                {
+                    QString labelText = labelTextForTick(tickValue, tickValuePrecision, 1.0);
+                    
+                    painter.save();
+                    painter.translate(interiorRect.x(), 41 - capHeight);
+                    painter.scale(1.0, -1.0);
+                    drawAxisTickLabel(painter, labelText, xValueForTick - interiorRect.x(), interiorRect.width(), isFirstTick, isLastTick);
+                    painter.restore();
+                }
             }
         }
     }
@@ -506,43 +576,33 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
     painter.setFont(QtSLiMGraphView::fontForTickLabels());
     painter.setBrush(Qt::black);
     
-	double axisMin = yAxisMin_;
-	double axisMax = yAxisMax_;
-	int tickValuePrecision = yAxisTickValuePrecision_;
-	double tickValue;
-	
-    if (!yAxisHistogramStyle_)
+    if (yAxisAt_)
     {
-        double axisStart = (yAxisLog_ ? round(yAxisMin_) : yAxisMin_);  // with a log scale, we leave a little room at the bottom
-        double minorTickInterval = yAxisMinorTickInterval_;
-        int majorTickModulus = yAxisMajorTickModulus_;
-        int tickIndex;
+        // user-specified tick positions, which may or may not have corresponding label strings
+        int tickCount = (int)yAxisAt_->size();
         
-        for (tickValue = axisStart, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
+        for (int tickIndex = 0; tickIndex < tickCount; ++tickIndex)
         {
+            double tickValue = (*yAxisAt_)[tickIndex];
             bool isFirstTick = (tickIndex == 0);
-            bool isLastTick = (tickValue + minorTickInterval > (axisMax + minorTickInterval / 10.0));
-            bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+            bool isLastTick = (tickIndex == tickCount - 1);
+            QString labelText;
+            
+            if (yAxisLabelsType_ == 1)
+                labelText = labelTextForTick(tickValue, -8, 1e-100);
+            else if (yAxisLabelsType_ == 2)
+                labelText = (*yAxisLabels_)[tickIndex];
+            else
+                labelText = " ";    // force a major tick mark when labels are turned off
+            
+            bool isMajorTick = labelText.length();
             double tickLength = (isMajorTick ? 6 : 3);
-            double transformedTickValue = tickValue;
-            
-            if (yAxisLog_ && !isMajorTick)
-            {
-                // with a log scale, adjust the tick positions so they are non-linear; this is hackish
-                double intPart = std::floor(tickValue);
-                double fractPart = tickValue - intPart;
-                double minorTickIndex = fractPart * 9.0;
-                double minorTickOffset = std::log10(minorTickIndex + 1.0);
-                transformedTickValue = intPart + minorTickOffset;
-                //std::cout << intPart << " , " << fractPart << "\n";
-            }
-            
             double yValueForTick;
             
             if (generatingPDF_)
-                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((transformedTickValue - y0_) / (y1_ - y0_)) - 0.5);   // bottom edge of pixel
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((tickValue - y0_) / (y1_ - y0_)) - 0.5);   // bottom edge of pixel
             else
-                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((transformedTickValue - y0_) / (y1_ - y0_)));   // bottom edge of pixel
+                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - y0_) / (y1_ - y0_)));   // bottom edge of pixel
             
             //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
             
@@ -550,16 +610,6 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
             
             if (isMajorTick)
             {
-                QString labelText = labelTextForTick(tickValue, tickValuePrecision, minorTickInterval);
-                
-                if (yAxisLog_)
-                {
-                    if (std::abs(tickValue - 0.0) < 0.0000001)          labelText = "1";
-                    else if (std::abs(tickValue - 1.0) < 0.0000001)     labelText = "10";
-                    else if (std::abs(tickValue - 2.0) < 0.0000001)     labelText = "100";
-                    else                                                labelText = QString("10^%1").arg((int)round(tickValue));
-                }
-                
                 painter.save();
                 painter.translate(41, interiorRect.y());
                 painter.rotate(90);
@@ -571,37 +621,103 @@ void QtSLiMGraphView::drawYAxisTicks(QPainter &painter, QRect interiorRect)
     }
     else
     {
-        // Histogram-style ticks are centered to the left of each bar position, at the 0.5 positions on the axis
-        // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
-        double axisStart = axisMin + 1;
+        double axisMin = yAxisMin_;
+        double axisMax = yAxisMax_;
+        int tickValuePrecision = yAxisTickValuePrecision_;
+        double tickValue;
         
-        for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+        if (!yAxisHistogramStyle_)
         {
-            bool isFirstTick = (tickValue == axisStart);
-            bool isLastTick = (tickValue == axisMax);
-            bool isMajorTick = isFirstTick || isLastTick;
-            double tickLength = (isMajorTick ? 6 : 3);
-            double yValueForTick;
+            double axisStart = (yAxisLog_ ? round(yAxisMin_) : yAxisMin_);  // with a log scale, we leave a little room at the bottom
+            double minorTickInterval = yAxisMinorTickInterval_;
+            int majorTickModulus = yAxisMajorTickModulus_;
+            int tickIndex;
             
-            if (generatingPDF_)
-                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((tickValue - 0.5 - y0_) / (y1_ - y0_)) - 0.5);   // bottom edge of pixel
-            else
-                yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - 0.5 - y0_) / (y1_ - y0_)));   // bottom edge of pixel
-            
-            //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
-            
-            painter.fillRect(QRectF(interiorRect.x() - tickLength, yValueForTick, tickLength - (generatingPDF_ ? 0.5 : 0.0), 1), Qt::black);
-            
-            if (isMajorTick)
+            for (tickValue = axisStart, tickIndex = 0; tickValue <= (axisMax + minorTickInterval / 10.0); tickValue += minorTickInterval, tickIndex++)
             {
-                QString labelText = labelTextForTick(tickValue, tickValuePrecision, 1.0);
+                bool isFirstTick = (tickIndex == 0);
+                bool isLastTick = (tickValue + minorTickInterval > (axisMax + minorTickInterval / 10.0));
+                bool isMajorTick = ((tickIndex % majorTickModulus) == 0);
+                double tickLength = (isMajorTick ? 6 : 3);
+                double transformedTickValue = tickValue;
                 
-                painter.save();
-                painter.translate(41, interiorRect.y());
-                painter.rotate(90);
-                painter.scale(1.0, -1.0);
-                drawAxisTickLabel(painter, labelText, yValueForTick - interiorRect.y(), interiorRect.height(), isFirstTick, isLastTick);
-                painter.restore();
+                if (yAxisLog_ && !isMajorTick)
+                {
+                    // with a log scale, adjust the tick positions so they are non-linear; this is hackish
+                    double intPart = std::floor(tickValue);
+                    double fractPart = tickValue - intPart;
+                    double minorTickIndex = fractPart * 9.0;
+                    double minorTickOffset = std::log10(minorTickIndex + 1.0);
+                    transformedTickValue = intPart + minorTickOffset;
+                    //std::cout << intPart << " , " << fractPart << "\n";
+                }
+                
+                double yValueForTick;
+                
+                if (generatingPDF_)
+                    yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((transformedTickValue - y0_) / (y1_ - y0_)) - 0.5);   // bottom edge of pixel
+                else
+                    yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((transformedTickValue - y0_) / (y1_ - y0_)));   // bottom edge of pixel
+                
+                //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
+                
+                painter.fillRect(QRectF(interiorRect.x() - tickLength, yValueForTick, tickLength - (generatingPDF_ ? 0.5 : 0.0), 1), Qt::black);
+                
+                if (isMajorTick)
+                {
+                    QString labelText = labelTextForTick(tickValue, tickValuePrecision, minorTickInterval);
+                    
+                    if (yAxisLog_)
+                    {
+                        if (std::abs(tickValue - 0.0) < 0.0000001)          labelText = "1";
+                        else if (std::abs(tickValue - 1.0) < 0.0000001)     labelText = "10";
+                        else if (std::abs(tickValue - 2.0) < 0.0000001)     labelText = "100";
+                        else                                                labelText = QString("10^%1").arg((int)round(tickValue));
+                    }
+                    
+                    painter.save();
+                    painter.translate(41, interiorRect.y());
+                    painter.rotate(90);
+                    painter.scale(1.0, -1.0);
+                    drawAxisTickLabel(painter, labelText, yValueForTick - interiorRect.y(), interiorRect.height(), isFirstTick, isLastTick);
+                    painter.restore();
+                }
+            }
+        }
+        else
+        {
+            // Histogram-style ticks are centered to the left of each bar position, at the 0.5 positions on the axis
+            // So a histogram-style axis declared with min/max of 0/10 actually spans 1..10, with ticks at 0.5..9.5 labeled 1..10
+            double axisStart = axisMin + 1;
+            
+            for (tickValue = axisStart; tickValue <= axisMax; tickValue++)
+            {
+                bool isFirstTick = (tickValue == axisStart);
+                bool isLastTick = (tickValue == axisMax);
+                bool isMajorTick = isFirstTick || isLastTick;
+                double tickLength = (isMajorTick ? 6 : 3);
+                double yValueForTick;
+                
+                if (generatingPDF_)
+                    yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + interiorRect.height() * ((tickValue - 0.5 - y0_) / (y1_ - y0_)) - 0.5);   // bottom edge of pixel
+                else
+                    yValueForTick = SLIM_SCREEN_ROUND(interiorRect.y() + (interiorRect.height() - 1) * ((tickValue - 0.5 - y0_) / (y1_ - y0_)));   // bottom edge of pixel
+                
+                //qDebug() << "tickValue == " << tickValue << ", isMajorTick == " << (isMajorTick ? "YES" : "NO") << ", yValueForTick == " << yValueForTick;
+                
+                painter.fillRect(QRectF(interiorRect.x() - tickLength, yValueForTick, tickLength - (generatingPDF_ ? 0.5 : 0.0), 1), Qt::black);
+                
+                if (isMajorTick)
+                {
+                    QString labelText = labelTextForTick(tickValue, tickValuePrecision, 1.0);
+                    
+                    painter.save();
+                    painter.translate(41, interiorRect.y());
+                    painter.rotate(90);
+                    painter.scale(1.0, -1.0);
+                    drawAxisTickLabel(painter, labelText, yValueForTick - interiorRect.y(), interiorRect.height(), isFirstTick, isLastTick);
+                    painter.restore();
+                }
             }
         }
     }
@@ -1131,6 +1247,32 @@ void QtSLiMGraphView::controllerRecycled(void)
     
 	invalidateDrawingCache();
     invalidateCachedData();
+    
+    // recycling reverts custom axis settings from axis() back to the default
+    // the design of what reverts on a recycle and what doesn't is kind of ad hoc...
+    if (xAxisAt_)
+    {
+        delete xAxisAt_;
+        xAxisAt_ = nullptr;
+    }
+    if (xAxisLabels_)
+    {
+        delete xAxisLabels_;
+        xAxisLabels_ = nullptr;
+    }
+    if (yAxisAt_)
+    {
+        delete yAxisAt_;
+        yAxisAt_ = nullptr;
+    }
+    if (yAxisLabels_)
+    {
+        delete yAxisLabels_;
+        yAxisLabels_ = nullptr;
+    }
+    xAxisLabelsType_ = 1;
+    yAxisLabelsType_ = 1;
+    
     update();
     
     QPushButton *action = actionButton();

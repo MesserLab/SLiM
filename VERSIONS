@@ -26,6 +26,7 @@ development head (in the master branch):
 	convert recipe 15.17 over to SLiMgui live plotting, to illustrate addLegend(), logFileData(), abline(), etc.
 	add new serialize() mode, "pretty", for pretty-printed Dictionary output
 	improvements to axis scaling, tick labels, axis labels, data range, etc., with some impact on built-in plots, but mostly for custom plots at this point
+	add axis() method to Plot, for fine-scale control over axis tick marks and labels
 	
 
 version 4.1 (Eidos version 3.1):

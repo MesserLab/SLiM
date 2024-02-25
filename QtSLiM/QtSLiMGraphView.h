@@ -181,7 +181,7 @@ protected:
     size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
     size_t tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index);
     
-    // Properties; initialzed in the constructor, these defaults are just zero-fill
+    // Properties; initialized in the constructor, these defaults are just zero-fill
     // Note that the bounds in user coordinates (x0_/x1_/y0_/y1_) are now separate from
     // the axis limits (xAxisMin_, ...), but at present they are always the same except
     // for custom plots.  That may change, going forward, to improve axis behavior.
@@ -200,6 +200,9 @@ protected:
     int xAxisTickValuePrecision_ = 0;   // negative values request output mode 'g' instead of 'f'
     bool xAxisHistogramStyle_ = false;
     QString xAxisLabel_;
+    std::vector<double> *xAxisAt_ = nullptr;
+    int xAxisLabelsType_ = 0;           // 0 == F (don't show labels), 1 == T (numeric position labels), 2 == use xAxisLabels_
+    std::vector<QString> *xAxisLabels_ = nullptr;
     
     bool showYAxis_ = false;
     bool allowYAxisUserRescale_ = false;
@@ -212,6 +215,9 @@ protected:
     bool yAxisHistogramStyle_ = false;
     bool yAxisLog_ = false;
     QString yAxisLabel_;
+    std::vector<double> *yAxisAt_ = nullptr;
+    int yAxisLabelsType_ = 0;           // 0 == F (don't show labels), 1 == T (numeric position labels), 2 == use yAxisLabels_
+    std::vector<QString> *yAxisLabels_ = nullptr;
     
     bool legendVisible_ = false;
     QtSLiM_LegendPosition legend_position_ = QtSLiM_LegendPosition::kUnconfigured;
@@ -243,7 +249,7 @@ protected:
 	bool generatingPDF_ = false;
 	
 	// caching for drawing speed is up to subclasses, if they want to do it, but we provide minimal support
-    // in GraphView to make it work smoothly this flag is to prevent recursion in the drawing code, and to
+    // in GraphView to make it work smoothly; this flag is to prevent recursion in the drawing code, and to
     // disable drawing of things that don't belong in a cache, such as the legend
 	bool cachingNow_ = false;
     

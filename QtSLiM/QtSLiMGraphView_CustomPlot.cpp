@@ -177,7 +177,7 @@ void QtSLiMGraphView_CustomPlot::setLegendPosition(QtSLiM_LegendPosition positio
     update();
 }
 
-void QtSLiMGraphView_CustomPlot::setAxisRanges(double *x_range, double *y_range)
+void QtSLiMGraphView_CustomPlot::setDataRanges(double *x_range, double *y_range)
 {
     // this is called by QtSLiMWindow::eidos_createPlot(), to set up for the user's specified ranges
     // nullptr for an axis indicates that we want that axis to be controlled by the range of the data
@@ -210,6 +210,66 @@ void QtSLiMGraphView_CustomPlot::setAxisRanges(double *x_range, double *y_range)
     else
     {
         // leave the axis as it was, so that any user configuration persists through a recycle
+    }
+}
+
+void QtSLiMGraphView_CustomPlot::setAxisConfiguration(int side, std::vector<double> *at, int labels_type, std::vector<QString> *labels)
+{
+    // This method is called by the Eidos method Plot::axis() to customize axis display.
+    // Note that Plot::ExecuteMethod_axis() does a bunch of bounds-checking and such for us.
+    if (side == 1)
+    {
+        // x-axis configuration
+        if (xAxisAt_)
+        {
+            delete xAxisAt_;
+            xAxisAt_ = nullptr;
+        }
+        if (xAxisLabels_)
+        {
+            delete xAxisLabels_;
+            xAxisLabels_ = nullptr;
+        }
+        
+        if (at)
+        {
+            xAxisAt_ = at;
+            allowXAxisUserRescale_ = false;
+        }
+        else
+        {
+            allowXAxisUserRescale_ = true;
+        }
+        
+        xAxisLabelsType_ = labels_type;
+        xAxisLabels_ = labels;
+    }
+    else if (side == 2)
+    {
+        // y-axis configuration
+        if (yAxisAt_)
+        {
+            delete yAxisAt_;
+            yAxisAt_ = nullptr;
+        }
+        if (yAxisLabels_)
+        {
+            delete yAxisLabels_;
+            yAxisLabels_ = nullptr;
+        }
+        
+        if (at)
+        {
+            yAxisAt_ = at;
+            allowYAxisUserRescale_ = false;
+        }
+        else
+        {
+            allowYAxisUserRescale_ = true;
+        }
+        
+        yAxisLabelsType_ = labels_type;
+        yAxisLabels_ = labels;
     }
 }
 
