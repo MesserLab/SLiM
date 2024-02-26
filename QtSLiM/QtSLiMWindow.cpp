@@ -1382,7 +1382,7 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
     {
         // the motivation for listening to these state changes is to check for externally-edited
         // documents; that can only happen for files that have been saved to disk
-        if (!isUntitled && !isRecipe && !isTransient && currentFile.length() && lastSavedDate.isValid())
+        if (!isUntitled && !isRecipe && !isTransient && !isZombieWindow_ && currentFile.length() && lastSavedDate.isValid())
         {
             if (QFile::exists(currentFile))
             {
