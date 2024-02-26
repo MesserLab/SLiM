@@ -12,6 +12,6 @@ initialize() {
 }
 late() {
 	// here be dragons
-	sample(sim.subpopulations.individuals, 100).fitnessScaling = 0;
+	sample(sim.subpopulations.individuals, 100).fitnessScaling = 0.0;
 }
 10000 late() { sim.outputFull(); }
