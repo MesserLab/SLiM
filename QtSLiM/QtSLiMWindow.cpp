@@ -1073,6 +1073,14 @@ void QtSLiMWindow::closeEvent(QCloseEvent *p_event)
         // We used to save the window size/position here, but now that is done in moveEvent() / resizeEvent()
         p_event->accept();
         
+        // In case we are playing when we get closed, emit a signal to un-highlight the app icon
+        if (continuousPlayOn_)
+        {
+            continuousPlayOn_ = false;
+            //updateUIEnabling();           // not needed, the window is going away anyway
+            emit playStateChanged();
+        }
+        
         // On macOS, we turn off the automatic quit on last window close, for Qt 5.15.2.
         // In that case, we no longer get freed when we close, because we need to stick around
         // to make the global menubar work; see QtSLiMWindow::init().  So when we're closing,
