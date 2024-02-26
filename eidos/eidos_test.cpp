@@ -1468,6 +1468,12 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("PI = PI * 2.0;", 3, "is a constant");
 	EidosAssertScriptRaise("PI = PI / 2;", 3, "is a constant");
 	EidosAssertScriptRaise("PI = PI / 2.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI % 2;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI % 2.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI ^ 2;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = PI ^ 2.0;", 3, "is a constant");
+	EidosAssertScriptRaise("PI = c(PI, 2);", 3, "is a constant");
+	EidosAssertScriptRaise("PI = c(PI, 2.0);", 3, "is a constant");
 	EidosAssertScriptRaise("for (PI in c(3, 4)) 5;", 5, "is a constant");
 	EidosAssertScriptRaise("for (PI in c(3.0, 4.0)) 5;", 5, "is a constant");
 	
@@ -1485,6 +1491,12 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q * 2.0;", 26, "is a constant");
 	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q / 2;", 26, "is a constant");
 	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q / 2.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q % 2;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q % 2.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q ^ 2;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = Q ^ 2.0;", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = c(Q, 2);", 26, "is a constant");
+	EidosAssertScriptRaise("defineConstant('Q', 7); Q = c(Q, 2.0);", 26, "is a constant");
 	EidosAssertScriptRaise("defineConstant('Q', 7); for (Q in c(3, 4)) 5;", 29, "is a constant");
 	EidosAssertScriptRaise("defineConstant('Q', 7); for (Q in c(3.0, 4.0)) 5;", 29, "is a constant");
 }

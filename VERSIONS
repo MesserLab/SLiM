@@ -30,6 +30,7 @@ development head (in the master branch):
 	split the "squashed stabilizing selection" recipe out from section 13.6 to make a new section 13.7, utilizing lots of live SLiMgui plotting for advanced visualization
 	add support for external editors (#423): changes made externally will now result in a panel offering to reload from disk, or (if a pref is set) automatic reloading as long as there is no conflict
 	add multispecies tick cycle diagrams to the Help menu in QtSLiM
+	fix Sachin's scoped assignment bug (#430): x=x+1 would do the wrong thing in a local scope where x is defined as a global variable; it would increment the global instead of making a new local
 	
 
 version 4.1 (Eidos version 3.1):

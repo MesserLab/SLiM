@@ -371,10 +371,12 @@ EidosValue *EidosSymbolTable::_GetValue_RAW(EidosGlobalStringID p_symbol_name, c
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_RAW): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
-EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const
+EidosValue_SP EidosSymbolTable::_GetValue_IsConstIsLocal(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const, bool *p_is_local) const
 {
-	// This follows _GetValue() but provides the p_is_const flag
+	// This follows _GetValue() but provides the p_is_const and p_is_global flags
 	const EidosSymbolTable *current_table = this;
+	
+	*p_is_local = true;
 	
 	do
 	{
@@ -392,10 +394,11 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 		
 		// We didn't get a hit, so try our chained table
 		current_table = current_table->chain_symbol_table_;
+		*p_is_local = false;
 	}
 	while (current_table);
 	
-	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConst): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
+	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue_IsConstIsLocal): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
 void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)

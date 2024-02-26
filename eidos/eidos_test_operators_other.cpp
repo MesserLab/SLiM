@@ -413,6 +413,32 @@ void _RunOperatorAssignTests(void)
 	EidosAssertScriptRaise("x = 5.0:7.0; x = x ^ (3.0:4.0); x;", 19, "operator requires that either");
 	EidosAssertScriptRaise("x = 5.0:6.0; x = x ^ (3.0:5.0); x;", 19, "operator requires that either");
 	
+	// scoped compound assignment (see https://github.com/MesserLab/SLiM/issues/430)
+	EidosAssertScriptSuccess_I("function (void)mod(void) { x = x + 1; } x = 1; mod(); x;", 1);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { x = x + 1; } x = 1.0; mod(); x;", 1.0);
+	EidosAssertScriptSuccess_I("function (void)mod(void) { defineGlobal('x', x + 1); } x = 1; mod(); x;", 2);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { defineGlobal('x', x + 1); } x = 1.0; mod(); x;", 2.0);
+	
+	EidosAssertScriptSuccess_I("function (void)mod(void) { x = x - 1; } x = 1; mod(); x;", 1);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { x = x - 1; } x = 1.0; mod(); x;", 1.0);
+	EidosAssertScriptSuccess_I("function (void)mod(void) { defineGlobal('x', x - 1); } x = 1; mod(); x;", 0);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { defineGlobal('x', x - 1); } x = 1.0; mod(); x;", 0.0);
+	
+	EidosAssertScriptSuccess_I("function (void)mod(void) { x = c(x, 2); } x = 1; mod(); x;", 1);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { x = c(x, 2); } x = 1.0; mod(); x;", 1.0);
+	EidosAssertScriptSuccess_IV("function (void)mod(void) { defineGlobal('x', c(x, 2)); } x = 1; mod(); x;", {1, 2});
+	EidosAssertScriptSuccess_FV("function (void)mod(void) { defineGlobal('x', c(x, 2)); } x = 1.0; mod(); x;", {1.0, 2.0});
+	
+	EidosAssertScriptSuccess_I("function (void)mod(void) { x = cbind(x, 2); } x = 1; mod(); x;", 1);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { x = cbind(x, 2.0); } x = 1.0; mod(); x;", 1.0);
+	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', cbind(x, 2)); } x = 1; mod(); identical(x, cbind(1, 2));", true);
+	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', cbind(x, 2.0)); } x = 1.0; mod(); identical(x, cbind(1.0, 2.0));", true);
+	
+	EidosAssertScriptSuccess_I("function (void)mod(void) { x = rbind(x, 2); } x = 1; mod(); x;", 1);
+	EidosAssertScriptSuccess_F("function (void)mod(void) { x = rbind(x, 2.0); } x = 1.0; mod(); x;", 1.0);
+	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', rbind(x, 2)); } x = 1; mod(); identical(x, rbind(1, 2));", true);
+	EidosAssertScriptSuccess_L("function (void)mod(void) { defineGlobal('x', rbind(x, 2.0)); } x = 1.0; mod(); identical(x, rbind(1.0, 2.0));", true);
+	
 #if EIDOS_HAS_OVERFLOW_BUILTINS
 	EidosAssertScriptRaise("x = 5e18; x = x + 5e18;", 16, "overflow with the binary");
 	EidosAssertScriptRaise("x = c(5e18, 0); x = x + 5e18;", 22, "overflow with the binary");

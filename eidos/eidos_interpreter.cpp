@@ -561,7 +561,8 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 			EIDOS_ASSERT_CHILD_COUNT_X(p_parent_node, "identifier", "EidosInterpreter::_ProcessSubsetAssignment", 0, parent_token);
 			
 			bool identifier_is_const = false;
-			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(p_parent_node, &identifier_is_const);
+			bool identifier_is_local = false;		// not used, just needed by the API
+			EidosValue_SP identifier_value_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConstIsLocal(p_parent_node, &identifier_is_const, &identifier_is_local);
 			EidosValue *identifier_value = identifier_value_SP.get();
 			
 			// Check for a constant symbol table.  Note that _AssignRValueToLValue() will check for a constant EidosValue.
@@ -3617,12 +3618,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// if _OptimizeAssignments() set this flag, this assignment is of the form "x = x <operator> <number>",
 		// where x is a simple identifier and the operator is one of +-/%*^; we try to optimize that case
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		bool is_const;
-		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConst(lvalue_node, &is_const);
+		bool is_const, is_local;
+		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConstIsLocal(lvalue_node, &is_const, &is_local);
 		
 		// Check for a constant value.  If either the EidosValue or the table it comes from is constant, there is an error.
 		if (is_const || lvalue_SP->IsConstant() || lvalue_SP->IsIteratorVariable())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(p_node->token_);
+		
+		// Check for a non-local value (global, or at any higher scope).  This is an assignment where the
+		// rvalue resolves to a non-local variable, but the assignment needs to go into a new local value;
+		// see https://github.com/MesserLab/SLiM/issues/430.  This is legal but confusing, and the code
+		// here mishandles it, so we skip to the general case, which handles it correctly.
+		if (!is_local)
+		{
+			p_node->cached_compound_assignment_ = false;
+			goto compoundAssignmentSkip;
+		}
 		
 		EidosValue *lvalue = lvalue_SP.get();
 		int lvalue_count = lvalue->Count();
@@ -3758,11 +3769,22 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 		// we have an assignment statement of the form x = c(x, y), where x is a simple identifier and y is any single expression node
 		// as above, we will try to modify the value of x in place if we can, which should be safe in this context
 		EidosASTNode *lvalue_node = p_node->children_[0];
-		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode(lvalue_node);
+		bool is_const, is_local;	// is_const is needed by the API but unused; the const case gets caught by the code below
+		EidosValue_SP lvalue_SP = global_symbols_->GetValueOrRaiseForASTNode_IsConstIsLocal(lvalue_node, &is_const, &is_local);
 		
 		// Check for an lvalue that is a loop iterator, which cannot be changed
 		if (lvalue_SP->IsIteratorVariable())
 			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign): identifier '" << lvalue_node->token_->token_string_ << "' cannot be redefined because it is a constant." << EidosTerminate(p_node->token_);
+		
+		// Check for a non-local value (global, or at any higher scope).  This is an assignment where the
+		// rvalue resolves to a non-local variable, but the assignment needs to go into a new local value;
+		// see https://github.com/MesserLab/SLiM/issues/430.  This is legal but confusing, and the code
+		// here mishandles it, so we skip to the general case, which handles it correctly.
+		if (!is_local)
+		{
+			p_node->cached_append_assignment_ = false;
+			goto compoundAssignmentSkip;
+		}
 		
 		EidosASTNode *call_node = p_node->children_[1];
 		EidosASTNode *rvalue_node = call_node->children_[2];	// "c" is [0], "x" is [1], "y" is [2]
@@ -3790,9 +3812,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign(const EidosASTNode *p_node)
 	}
 	
 	// we can drop through to here even if cached_compound_assignment_ or cached_append_assignment_ is set, if the code above bailed for some reason
-#ifdef SLIMGUI
 compoundAssignmentSkip:
-#endif
 	
 	{
 		EidosToken *operator_token = p_node->token_;

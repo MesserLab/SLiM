@@ -139,7 +139,7 @@ private:
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
 	EidosValue_SP _GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
 	EidosValue *_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
-	EidosValue_SP _GetValue_IsConst(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const) const;
+	EidosValue_SP _GetValue_IsConstIsLocal(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const, bool *p_is_local) const;
 	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
 	void _InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value);
 	void _ResizeToFitSymbol(EidosGlobalStringID p_symbol_name);
@@ -188,8 +188,8 @@ public:
 	inline __attribute__((always_inline)) EidosValue *GetValueRawOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue_RAW(p_symbol_name, nullptr); }
 	
 	// Special getters that return a boolean flag, true if the fetched symbol is a constant
-	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode_IsConst(const EidosASTNode *p_symbol_node, bool *p_is_const) const { return _GetValue_IsConst(p_symbol_node->cached_stringID_, p_symbol_node->token_, p_is_const); }
-	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol_IsConst(EidosGlobalStringID p_symbol_name, bool *p_is_const) const { return _GetValue_IsConst(p_symbol_name, nullptr, p_is_const); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode_IsConstIsLocal(const EidosASTNode *p_symbol_node, bool *p_is_const, bool *p_is_local) const { return _GetValue_IsConstIsLocal(p_symbol_node->cached_stringID_, p_symbol_node->token_, p_is_const, p_is_local); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol_IsConstIsLocal(EidosGlobalStringID p_symbol_name, bool *p_is_const, bool *p_is_local) const { return _GetValue_IsConstIsLocal(p_symbol_name, nullptr, p_is_const, p_is_local); }
 	
 	// Special-purpose methods used for fast setup of new symbol tables with constants.
 	//
