@@ -965,6 +965,29 @@ QtSLiMGraphView *QtSLiMWindow::graphViewWithTitle(QString title)
     return nullptr;
 }
 
+int QtSLiMWindow::graphViewCount(void)
+{
+    // This searches through our child views for graph windows and returns a count
+    int count = 0;
+    
+    const QObjectList &child_objects = children();
+    
+    for (QObject *child_object : child_objects)
+    {
+        QWidget *child_widget = qobject_cast<QWidget *>(child_object);
+        
+        if (child_widget && child_widget->isVisible() && (child_widget->windowFlags() & Qt::Window))
+        {
+            QtSLiMGraphView *graphView = graphViewForGraphWindow(child_widget);
+            
+            if (graphView)
+                count++;
+        }
+    }
+    
+    return count;
+}
+
 const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
 {
     static std::vector<QColor> colorArray;
@@ -5653,7 +5676,17 @@ static bool rectIsOnscreen(QRect windowRect)
 
 void QtSLiMWindow::positionNewSubsidiaryWindow(QWidget *p_window)
 {
-    // force geometry calculation, which is lazy
+    // If all previous graph windows have been closed, reset our positioning.  This scheme could be much smarter;
+    // we could actually try to avoid the specific rectangles covered by existing subsidiary windows.
+    if (graphViewCount() == 0)
+    {
+        openedGraphCount_left = 0;
+        openedGraphCount_right = 0;
+        openedGraphCount_top = 0;
+        openedGraphCount_bottom = 0;
+    }
+    
+    // Force geometry calculation, which is lazy
     p_window->setAttribute(Qt::WA_DontShowOnScreen, true);
     p_window->show();
     p_window->hide();

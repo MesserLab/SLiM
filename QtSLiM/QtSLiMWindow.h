@@ -374,6 +374,7 @@ private:
     void glueUI(void);
     void invalidateUI(void);
     QtSLiMGraphView *graphViewWithTitle(QString title);
+    int graphViewCount(void);
     
     Ui::QtSLiMWindow *ui;
 };

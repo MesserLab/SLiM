@@ -1542,7 +1542,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
             if (action == changeXAxisScale)
             {
                 QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
-                                                                   QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
+                                                                   QStringList{"Minimum value:", "Maximum value:", "Interval between major ticks:", "Minor tick divisions per major tick interval:", "Tick label precision:"},
                                                                    QStringList{QString::number(xAxisMin_), QString::number(xAxisMax_), QString::number(xAxisMajorTickInterval_), QString::number(xAxisMajorTickModulus_),QString::number(xAxisTickValuePrecision_)});
                 
                 if (choices.length() == 5)
@@ -1550,7 +1550,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                     xAxisMin_ = choices[0].toDouble();
                     xAxisMax_ = choices[1].toDouble();
                     xAxisMajorTickInterval_ = choices[2].toDouble();
-                    xAxisMajorTickModulus_ = choices[3].toInt();
+                    xAxisMajorTickModulus_ = std::max(choices[3].toInt(), 1);       // zero causes a crash; better would be to validate that it is an integer value, etc.
                     xAxisTickValuePrecision_ = choices[4].toInt();
                     xAxisMinorTickInterval_ = xAxisMajorTickInterval_ / xAxisMajorTickModulus_;
                     xAxisIsUserRescaled_ = true;
@@ -1568,7 +1568,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                 if (!yAxisLog_)
                 {
                     QStringList choices = QtSLiMRunLineEditArrayDialog(window(), "Choose a configuration for the axis:",
-                                                                       QStringList{"Minimum value:", "Maximum value:", "Major tick interval:", "Minor tick divisions:", "Tick label precision:"},
+                                                                       QStringList{"Minimum value:", "Maximum value:", "Interval between major ticks:", "Minor tick divisions per major tick interval:", "Tick label precision:"},
                                                                        QStringList{QString::number(yAxisMin_), QString::number(yAxisMax_), QString::number(yAxisMajorTickInterval_), QString::number(yAxisMajorTickModulus_),QString::number(yAxisTickValuePrecision_)});
                     
                     if (choices.length() == 5)
@@ -1576,7 +1576,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                         yAxisMin_ = choices[0].toDouble();
                         yAxisMax_ = choices[1].toDouble();
                         yAxisMajorTickInterval_ = choices[2].toDouble();
-                        yAxisMajorTickModulus_ = choices[3].toInt();
+                        yAxisMajorTickModulus_ = std::max(choices[3].toInt(), 1);       // zero causes a crash; better would be to validate that it is an integer value, etc.
                         yAxisTickValuePrecision_ = choices[4].toInt();
                         yAxisMinorTickInterval_ = yAxisMajorTickInterval_ / yAxisMajorTickModulus_;
                         yAxisIsUserRescaled_ = true;
