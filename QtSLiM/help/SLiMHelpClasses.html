@@ -154,13 +154,13 @@
 <p class="p1"><b>5.3<span class="Apple-converted-space">  </span>Class Community</b></p>
 <p class="p2"><i>5.3.1<span class="Apple-converted-space">  </span></i><span class="s1"><i>Community</i></span><i> properties</i></p>
 <p class="p5">allGenomicElementTypes =&gt; (object&lt;GenomicElementType&gt;)</p>
-<p class="p6">All of the <span class="s1">GenomicElementType</span> objects defined in the simulation.</p>
+<p class="p6">All of the <span class="s1">GenomicElementType</span> objects defined in the simulation.<span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p5">allInteractionTypes =&gt; (object&lt;InteractionType&gt;)</p>
-<p class="p6">All of the <span class="s1">InteractionType</span> objects defined in the simulation.</p>
+<p class="p6">All of the <span class="s1">InteractionType</span> objects defined in the simulation.<span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p5">allMutationTypes =&gt; (object&lt;MutationType&gt;)</p>
-<p class="p6">All of the <span class="s1">MutationType</span> objects defined in the simulation.</p>
+<p class="p6">All of the <span class="s1">MutationType</span> objects defined in the simulation.<span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p5">allScriptBlocks =&gt; (object&lt;SLiMEidosBlock&gt;)</p>
-<p class="p6">All registered <span class="s1">SLiMEidosBlock</span> objects in the simulation.</p>
+<p class="p6">All registered <span class="s1">SLiMEidosBlock</span> objects in the simulation.<span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p5">allSpecies =&gt; (object&lt;Species&gt;)</p>
 <p class="p6">All of the <span class="s1">Species</span> objects defined in the simulation (in species declaration order).</p>
 <p class="p5">allSubpopulations =&gt; (object&lt;Subpopulation&gt;)</p>
@@ -832,11 +832,11 @@
 <p class="p3">dimensionality =&gt; (string$)</p>
 <p class="p4">The spatial dimensionality of the simulation for this species, as specified in <span class="s1">initializeSLiMOptions()</span>.<span class="Apple-converted-space">  </span>This will be <span class="s1">""</span> (the empty string) for non-spatial simulations (the default), or <span class="s1">"x"</span>, <span class="s1">"xy"</span>, or <span class="s1">"xyz"</span>, for simulations using those spatial dimensions respectively.</p>
 <p class="p3">genomicElementTypes =&gt; (object&lt;GenomicElementType&gt;)</p>
-<p class="p4">The <span class="s1">GenomicElementType</span> objects being used in the species.</p>
+<p class="p6"><span class="s5">The </span><span class="s8">GenomicElementType</span><span class="s5"> objects being used in the species.</span><span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p5">id =&gt; (integer$)</p>
 <p class="p6">The identifier for this species.<span class="Apple-converted-space">  </span>Species identifiers are determined by their declaration order in the script; the first declared species is given an <span class="s1">id</span> of <span class="s1">0</span>, the second is given an <span class="s1">id</span> of <span class="s1">1</span>, and so forth.</p>
 <p class="p3">mutationTypes =&gt; (object&lt;MutationType&gt;)</p>
-<p class="p4">The <span class="s1">MutationType</span> objects being used in the species.</p>
+<p class="p6"><span class="s5">The </span><span class="s8">MutationType</span><span class="s5"> objects being used in the species.</span><span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p3">mutations =&gt; (object&lt;Mutation&gt;)</p>
 <p class="p4">The <span class="s1">Mutation</span> objects that are currently active in the species.</p>
 <p class="p5">name =&gt; (string$)</p>
@@ -850,7 +850,7 @@
 <p class="p3">sexEnabled =&gt; (logical$)</p>
 <p class="p4">If <span class="s1">T</span>, sex is enabled for this species; if <span class="s1">F</span>, individuals are hermaphroditic.</p>
 <p class="p3">subpopulations =&gt; (object&lt;Subpopulation&gt;)</p>
-<p class="p4">The <span class="s1">Subpopulation</span> instances currently defined in the species.</p>
+<p class="p6"><span class="s5">The </span><span class="s8">Subpopulation</span><span class="s5"> instances currently defined in the species.</span><span class="Apple-converted-space">  </span>These are guaranteed to be in sorted order, by their <span class="s1">id</span> property.</p>
 <p class="p3">substitutions =&gt; (object&lt;Substitution&gt;)</p>
 <p class="p4">A vector of <span class="s1">Substitution</span> objects, representing all mutations that have been fixed in this species.</p>
 <p class="p3">tag &lt;–&gt; (integer$)</p>

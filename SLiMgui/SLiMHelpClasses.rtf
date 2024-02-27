@@ -735,7 +735,9 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f4\fs20 \cf2 All of the 
 \f3\fs18 GenomicElementType
-\f4\fs20  objects defined in the simulation.\
+\f4\fs20  objects defined in the simulation.  These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 allInteractionTypes => (object<InteractionType>)\
@@ -743,7 +745,9 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f4\fs20 \cf2 All of the 
 \f3\fs18 InteractionType
-\f4\fs20  objects defined in the simulation.\
+\f4\fs20  objects defined in the simulation.  These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 allMutationTypes => (object<MutationType>)\
@@ -751,7 +755,9 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f4\fs20 \cf2 All of the 
 \f3\fs18 MutationType
-\f4\fs20  objects defined in the simulation.\
+\f4\fs20  objects defined in the simulation.  These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 allScriptBlocks => (object<SLiMEidosBlock>)\
@@ -759,7 +765,9 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f4\fs20 \cf2 All registered 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  objects in the simulation.\
+\f4\fs20  objects in the simulation.  These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 allSpecies => (object<Species>)\
@@ -7202,8 +7210,10 @@ The density scale of the kernel has no effect and will be normalized; this is th
 
 \f4\fs20 \cf0 The 
 \f3\fs18 GenomicElementType
-\f4\fs20  objects being used in the species.
-\f5 \
+\f4\fs20  objects being used in the species.\cf2   These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.
+\f5 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 id => (integer$)\
@@ -7225,8 +7235,10 @@ The density scale of the kernel has no effect and will be normalized; this is th
 
 \f4\fs20 \cf0 The 
 \f3\fs18 MutationType
-\f4\fs20  objects being used in the species.
-\f5 \
+\f4\fs20  objects being used in the species.\cf2   These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.
+\f5 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 mutations => (object<Mutation>)\
@@ -7306,8 +7318,10 @@ The spatial periodicity of the simulation for this species, as specified in
 
 \f4\fs20 \cf0 The 
 \f3\fs18 Subpopulation
-\f4\fs20  instances currently defined in the species.
-\f5 \
+\f4\fs20  instances currently defined in the species.\cf2   These are guaranteed to be in sorted order, by their 
+\f3\fs18 id
+\f4\fs20  property.
+\f5 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 substitutions => (object<Substitution>)\
