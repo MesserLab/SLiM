@@ -202,5 +202,6 @@
         <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
         <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
         <file>recipes/Recipe 19.8 - Within-host reproduction in a host-pathogen model.txt</file>
+        <file>recipes/Recipe 22.7 - Parallelizing nonWF reproduction and spatial interactions.txt</file>
     </qresource>
 </RCC>
