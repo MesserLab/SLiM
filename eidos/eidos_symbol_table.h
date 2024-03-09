@@ -211,8 +211,9 @@ public:
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosSymbolTableEntry &p_new_entry) { _InitializeConstantSymbolEntry(p_new_entry.first, p_new_entry.second); }
 	inline __attribute__((always_inline)) void InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value) { _InitializeConstantSymbolEntry(p_symbol_name, std::move(p_value)); }
 	
-	// A utility method for printing a symbol table; note this is different from operator<<, which prints the whole chain in sorted form
+	// Utility methods for printing a symbol table and, for PrintSymbolTableChain(), its parents; note these are different from operator<<
 	void PrintSymbolTable(std::ostream &p_outstream);
+	void PrintSymbolTableChain(std::ostream &p_outstream);
 	
 	// A utility method to add entries for defined symbols into an EidosTypeTable
 	void AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const;
@@ -226,6 +227,7 @@ public:
 	friend size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable);
 };
 
+// Print all symbols available from a given table (and its parents), in sorted form
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols);
 
 // Memory usage tallying, for outputUsage()

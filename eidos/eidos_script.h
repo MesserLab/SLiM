@@ -133,6 +133,20 @@ public:
 	EidosASTNode *Parse_ParamList(void);
 	EidosASTNode *Parse_ParamSpec(void);
 	EidosASTNode *Parse_DefaultValue(void);
+	
+	// These alternative parsing methods are provided for use by SLiM.  They represent
+	// an expression syntax that does not include the sequence operator at the top level;
+	// so "sum(1:10)" is legal, but "1:10" stops at "1" and leaves the colon.  This is
+	// used for parsing tick range expressions, such as "1:10 early()"; that should
+	// not produce the sequence 1:10 (since 1: and :10 are also legal), but rather just
+	// "1", ":", and "10".  See SLiMEidosScript::Parse_SLiMEidosBlock().
+	EidosASTNode *Parse_ConditionalExpr_NOSEQ(void);
+	EidosASTNode *Parse_LogicalOrExpr_NOSEQ(void);
+	EidosASTNode *Parse_LogicalAndExpr_NOSEQ(void);
+	EidosASTNode *Parse_EqualityExpr_NOSEQ(void);
+	EidosASTNode *Parse_RelationalExpr_NOSEQ(void);
+	EidosASTNode *Parse_AddExpr_NOSEQ(void);
+	EidosASTNode *Parse_MultExpr_NOSEQ(void);
 };
 
 

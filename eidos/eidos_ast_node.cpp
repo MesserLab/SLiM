@@ -423,6 +423,30 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 	}
 }
 
+EidosErrorPosition EidosASTNode::ErrorPositionForNodeAndChildren(void) const
+{
+	// Returns the union of all the token ranges for the node and its children; useful when
+	// you want to report an error that spans a whole region of the AST.
+	EidosErrorPosition pos;
+	
+	pos.characterStartOfError = token_->token_start_;
+	pos.characterEndOfError = token_->token_end_;
+	pos.characterStartOfErrorUTF16 = token_->token_UTF16_start_;
+	pos.characterEndOfErrorUTF16 = token_->token_UTF16_end_;
+	
+	for (auto child : children_)
+	{
+		EidosErrorPosition child_pos = child->ErrorPositionForNodeAndChildren();
+		
+		pos.characterStartOfError = std::min(pos.characterStartOfError, child_pos.characterStartOfError);
+		pos.characterEndOfError = std::max(pos.characterEndOfError, child_pos.characterEndOfError);
+		pos.characterStartOfErrorUTF16 = std::min(pos.characterStartOfErrorUTF16, child_pos.characterStartOfErrorUTF16);
+		pos.characterEndOfErrorUTF16 = std::max(pos.characterEndOfErrorUTF16, child_pos.characterEndOfErrorUTF16);
+	}
+	
+	return pos;
+}
+
 #if (SLIMPROFILING == 1)
 // PROFILING
 

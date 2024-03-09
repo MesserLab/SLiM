@@ -260,6 +260,8 @@ public:
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
 	
+	EidosValue_SP _EvaluateTickRangeNode(const EidosASTNode *node);					// evaluate a node that represents a tick range expression
+	void EvaluateScriptBlockTickRanges(void);										// evaluate tick range expressions to find when a block is scheduled
 	slim_tick_t FirstTick(void);													// derived from the first tick in which an Eidos block is registered
 	slim_tick_t EstimatedLastTick(void);											// derived from the last tick in which an Eidos block is registered
 	void SimulationHasFinished(void);

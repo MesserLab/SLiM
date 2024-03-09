@@ -1107,19 +1107,23 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
-                else if (scriptBlock->start_tick_ == -1)
+                else if (scriptBlock->tick_range_is_sequence_ == false)
+                    return QVariant("?");
+                else if (scriptBlock->tick_start_ == -1)
                     return QVariant("MIN");
                 else
-                    return QVariant(QString("%1").arg(scriptBlock->start_tick_));
+                    return QVariant(QString("%1").arg(scriptBlock->tick_start_));
             }
             else if (p_index.column() == 2)
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
-                else if (scriptBlock->end_tick_ == SLIM_MAX_TICK + 1)
+                else if (scriptBlock->tick_range_is_sequence_ == false)
+                    return QVariant("?");
+                else if (scriptBlock->tick_end_ == SLIM_MAX_TICK + 1)
                     return QVariant("MAX");
                 else
-                    return QVariant(QString("%1").arg(scriptBlock->end_tick_));
+                    return QVariant(QString("%1").arg(scriptBlock->tick_end_));
             }
             else if (p_index.column() == 3)
             {

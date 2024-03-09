@@ -31,6 +31,9 @@ development head (in the master branch):
 	add support for external editors (#423): changes made externally will now result in a panel offering to reload from disk, or (if a pref is set) automatic reloading as long as there is no conflict
 	add multispecies tick cycle diagrams to the Help menu in QtSLiM
 	fix Sachin's scoped assignment bug (#430): x=x+1 would do the wrong thing in a local scope where x is defined as a global variable; it would increment the global instead of making a new local
+	extend SLiM script parsing to allow expressions for event/callback timing, evaluated at the end of initialize() callbacks; these may depend upon global constants, and even call functions
+		events and callbacks may now be scheduled for a non-consecutive set of ticks, not just a range; for example, seq() or c() may be used to construct the times at which a script block runs
+		as a part of this work, rescheduleScriptBlock() no longer makes copies of the script block when non-consecutive ticks are requested; a single script block can now be scheduled non-consecutively
 	
 
 version 4.1 (Eidos version 3.1):

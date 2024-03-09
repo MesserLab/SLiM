@@ -472,6 +472,7 @@ public:
 	
 	EidosTerminate(void) = default;							// default constructor, no backtrace, does not change error range
 	explicit EidosTerminate(const EidosToken *p_error_token);	// supply a token from which an error range is taken
+	explicit EidosTerminate(const EidosErrorPosition &p_error_position);	// supply an error position yourself
 	
 	// These constructors request a backtrace as well
 	explicit EidosTerminate(bool p_print_backtrace);

@@ -1228,21 +1228,20 @@ The
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$
-\f5 \'a0
-\f3 block, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Ni\'a0ticks\'a0=\'a0NULL])
-\f5 \
+\f3\fs18 \cf2 \'96\'a0(object<SLiMEidosBlock>$)rescheduleScriptBlock(io<SLiMEidosBlock>$\'a0block, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [Ni\'a0ticks\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Reschedule the target script block given by 
+\f4\fs20 \cf2 Reschedule the target script block given by 
 \f3\fs18 block
-\f4\fs20  to execute in a specified set of ticks.\cf2   The 
+\f4\fs20  to execute in a specified set of ticks.  The 
 \f3\fs18 block
 \f4\fs20  parameter may be either an 
 \f3\fs18 integer
 \f4\fs20  representing the ID of the desired script block, or a 
 \f3\fs18 SLiMScriptBlock
-\f4\fs20  specified directly.\cf0 \
+\f4\fs20  specified directly.  The target script block, 
+\f3\fs18 block
+\f4\fs20 , is returned.\
 The first way to specify the tick set is with 
 \f3\fs18 start
 \f4\fs20  and 
@@ -1253,52 +1252,17 @@ The first way to specify the tick set is with
 \f3\fs18 start
 \f4\fs20  to 
 \f3\fs18 end
-\f4\fs20 , inclusive.  In this case, 
-\f3\fs18 block
-\f4\fs20  is returned.\
+\f4\fs20 , inclusive.\
 The second way to specify the tick set is using the 
 \f3\fs18 ticks
-\f4\fs20  parameter; this is more flexible but more complicated.  Since script blocks execute across a contiguous span of ticks defined by their 
-\f3\fs18 start
-\f4\fs20  and 
-\f3\fs18 end
-\f4\fs20  properties, this may result in the duplication of 
-\f3\fs18 block
-\f4\fs20 ; one script block will be used for each contiguous span of ticks in 
-\f3\fs18 ticks
-\f5\fs20 .
-\f4   The 
-\f3\fs18 block
-\f4\fs20  object itself will be rescheduled to cover the first such span, whereas duplicates of 
-\f3\fs18 block
-\f4\fs20  will be created to cover subsequent contiguous spans.  A vector containing all of the script blocks scheduled by this method, including 
-\f3\fs18 block
-\f4\fs20 , will be returned; this vector is guaranteed to be sorted by the (ascending) scheduled execution order of the blocks.  Any duplicates of 
-\f3\fs18 block
-\f4\fs20  created will be given values for the 
-\f3\fs18 active
-\f4\fs20 , 
-\f3\fs18 source
-\f4\fs20 , 
-\f3\fs18 tag
-\f4\fs20 , and 
-\f3\fs18 type
-\f4\fs20  properties equal to the current values for 
-\f3\fs18 block
-\f4\fs20 , but will be given an 
-\f3\fs18 id
-\f4\fs20  of 
-\f3\fs18 -1
-\f4\fs20  since script block identifiers must be unique; if it is necessary to find the duplicated blocks again later, their 
-\f3\fs18 tag
-\f4\fs20  property should be used.  The vector supplied for 
+\f4\fs20  parameter, specifying each tick in which the block should execute.  The vector supplied for 
 \f3\fs18 ticks
 \f4\fs20  does not need to be in sorted order, but it must not contain any duplicates.\
-Because this method can create a large number of duplicate script blocks, it can sometimes be better to handle script block scheduling in other ways.  If an 
+It can sometimes be better to handle script block scheduling in other ways.  If an 
 \f3\fs18 early()
-\f4\fs20  event needs to execute every tenth tick over the whole duration of a long model run, for example, it would not be advisable to use a call like 
+\f4\fs20  event needs to execute every tenth tick over the whole duration of a long model run, for example, it might not be advisable to use a call like 
 \f3\fs18 community.rescheduleScriptBlock(s1, ticks=seq(10, 100000, 10))
-\f4\fs20  for that purpose, since that would result in thousands of duplicate script blocks.  Instead, it would be preferable to add a test such as 
+\f4\fs20  for that purpose, since that would make things complicated for SLiM\'92s scheduler.  Instead, it might be preferable to add a test such as 
 \f3\fs18 if (community.tick % 10 != 0) return;
 \f4\fs20  at the beginning of the event.  It is legal to reschedule a script block while the block is executing; a call like 
 \f3\fs18 community.rescheduleScriptBlock(self, community.tick + 10, community.tick + 10);
@@ -1307,31 +1271,18 @@ Whichever way of specifying the tick set is used,
 \f3\fs18 block
 \f4\fs20  may continue to be executed during the current tick cycle stage even after it has been rescheduled, unless it is made inactive using its 
 \f3\fs18 active
-\f4\fs20  property, and similarly, the block may not execute during the current tick cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the tick and tick cycle stage in which they are executing, or in which they are intended to execute, should be avoided.\cf2   Also, script blocks which are open-ended (i.e., with no specified end tick), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever); if you reschedule a block to be open-ended, and to start after the end of the last closed-ended block, the rescheduled block will therefore not run at all (just as such a block would not run at all in other circumstances, too).\cf0 \
+\f4\fs20  property, and similarly, the block may not execute during the current tick cycle stage if it was not already scheduled to do so.  Rescheduling script blocks during the tick and tick cycle stage in which they are executing, or in which they are intended to execute, should be avoided.  Also, note that script blocks which are open-ended (i.e., with no specified end tick), are not used in determining whether the end of the simulation has been reached (because then the simulation would run forever).\
 Note that new script blocks can also be created and scheduled using the 
 \f3\fs18 register...()
 \f4\fs20  methods of 
 \f3\fs18 Community
 \f4\fs20  and 
 \f3\fs18 Species
-\f4\fs20 ; by using the same source as a template script block, the template can be duplicated and scheduled for different ticks.  In fact, 
-\f3\fs18 rescheduleScriptBlock()
-\f4\fs20  does essentially that internally.\cf2   In multispecies models, note that all new script blocks created as a side effect of 
-\f3\fs18 rescheduleScriptBlock()
-\f4\fs20  will have the same 
-\f3\fs18 species
-\f4\fs20  and 
-\f3\fs18 ticks
-\f4\fs20  specifier as 
-\f3\fs18 block
-\f4\fs20 ; use the 
-\f3\fs18 register...()
-\f4\fs20  methods to create a new block with a different 
+\f4\fs20 ; by using the same source as a template script block, the template can be duplicated and scheduled for different ticks, perhaps with modifications or variations.  In multispecies models, note that blocks may not run due to their 
 \f3\fs18 species
 \f4\fs20  or 
 \f3\fs18 ticks
-\f4\fs20  specifier.
-\f5 \cf0 \
+\f4\fs20  specifier, even in ticks in which they are scheduled to run.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<SLiMEidosBlock>)scriptBlocksWithIDs(integer\'a0ids)\
@@ -3386,7 +3337,7 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f3\fs18 0
 \f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , this method will use the pedigree information described in section 25.7.1 to construct a relatedness estimate.\
+\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.\
 More specifically, this method uses the parental pedigree IDs from the pedigree records of a pair of individuals to count the number of shared parents between them, such that full siblings (with all of the same parents) have a count of 
 \f3\fs18 2
 \f4\fs20 , and half siblings (with half of the same parents) have a count of 
@@ -4369,7 +4320,7 @@ Exerter constraints are applied at
 \f3\fs18 numeric$
 \f4\fs20  scale parameter for a 
 \f1\i t
-\f4\i0 -distribution function.  See section 25.8 above for discussions of these interaction functions.  Non-spatial interactions must use function type 
+\f4\i0 -distribution function.  See the InteractionType class documentation for discussions of these interaction functions.  Non-spatial interactions must use function type 
 \f3\fs18 "f"
 \f4\fs20 , since no distance values are available in that case.\
 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
@@ -6791,7 +6742,7 @@ The sampling of the spatial map can be done in one of two ways, as controlled by
 \f3\fs18 centers == F
 \f4\fs20  will recover the original values, but will not capture the \'93typical\'94 value of each pixel in the image; 
 \f3\fs18 centers == T
-\f4\fs20 , on the other hand, will not recover the original values, but will capture the \'93typical\'94 value of each pixel in the image (i.e., the value at the center of each pixel, as produced by interpolation).  The figures in section 15.11 may be helpful for visualizing the difference between these options; the overlaid grids span the full extent of the spatial map, just as shown in that section.\
+\f4\fs20 , on the other hand, will not recover the original values, but will capture the \'93typical\'94 value of each pixel in the image (i.e., the value at the center of each pixel, as produced by interpolation).\
 If 
 \f3\fs18 color
 \f4\fs20  is 
@@ -7425,7 +7376,7 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 sexRatio
 \f4\fs20  (as the male fraction, M:M+F); if it is not specified, a default of 
 \f3\fs18 0.5
-\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method (see section 24.15), and will also be returned by this method.\
+\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.\
 Subpopulations added by this method will consist of individuals that are clonal copies of individuals from the source subpopulation, randomly chosen with probabilities proportional to fitness.  The fitness of all of these initial individuals is considered to be 1.0, to avoid a doubled round of selection in the initial tick, given that fitness values were already used to choose the individuals to clone.  Once this initial set of individuals has mated to produce offspring, the model is effectively of parental individuals in the source subpopulation mating randomly according to fitness, as usual in SLiM, with juveniles migrating to the newly added subpopulation.  Effectively, then, then new subpopulation is created empty, and is filled by migrating juveniles from the source subpopulation, in accordance with SLiM\'92s usual model of juvenile migration.\
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -9043,7 +8994,7 @@ Note that any defined, active, and applicable
 \f4\fs20  are used (since that is the maternal parent).\
 If the 
 \f3\fs18 modifyChild()
-\f4\fs20  callback process results in rejection of the proposed child (see section 26.5), a new offspring individual is not be generated.  To force the generation of an offspring individual from a given pair of parents, you could loop until 
+\f4\fs20  callback process results in rejection of the proposed child, a new offspring individual is not be generated.  To force the generation of an offspring individual from a given pair of parents, you could loop until 
 \f3\fs18 addCrossed()
 \f4\fs20  succeeds, but note that if your 
 \f3\fs18 modifyChild()
@@ -10052,7 +10003,7 @@ The dispersal kernel is specified similarly to other kernel-based methods, such 
 \f3\fs18 "t"
 \f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  See the 
 \f3\fs18 InteractionType
-\f4\fs20  class documentation (section 25.8) for more detailed discussion of the available kernel types and their parameters and probability distribution functions.\
+\f4\fs20  class documentation for more detailed discussion of the available kernel types and their parameters and probability distribution functions.\
 The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the kernel \'96 in other words, at distance 
 \f1\i r
 \f4\i0  the density is proportional to the kernel type referred to by 

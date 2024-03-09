@@ -701,7 +701,7 @@ void _RunSpeciesTests(const std::string &temp_path)
 	
 	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni ticks = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 early() { }", "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=integer(0)); stop(); } s1 10 early() { }", "requires at least one tick", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=integer(0)); stop(); } s1 10 early() { }", __LINE__);	// this is now legal
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(25, 25)); stop(); } s1 10 early() { }", "same tick cannot be used twice", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, start=25, end=25, ticks=25); stop(); } s1 10 early() { }", "either start/end or ticks", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, start=25, end=NULL, ticks=25); stop(); } s1 10 early() { }", "either start/end or ticks", __LINE__);
@@ -717,12 +717,13 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 early() { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 early() { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 early() { }", __LINE__);
+	// these would use a `ticks` property now to check the scheduling, if that property existed; you'd also have sort-order issues though, would need to check the sorted order
+	//SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 early() { }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 early() { }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(2, start=10, end=9); stop(); } s1 10 early() { }", "s2 not defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, start=10, end=9); stop(); } s1 10 early() { }", "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=integer(0)); stop(); } s1 10 early() { }", "requires at least one tick", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=integer(0)); stop(); } s1 10 early() { }", __LINE__);	// this is now legal
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(25, 25)); stop(); } s1 10 early() { }", "same tick cannot be used twice", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, start=25, end=25, ticks=25); stop(); } s1 10 early() { }", "either start/end or ticks", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, start=25, end=NULL, ticks=25); stop(); } s1 10 early() { }", "either start/end or ticks", __LINE__);
@@ -738,8 +739,9 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 early() { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 early() { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 early() { }", __LINE__);
+	// these would use a `ticks` property now to check the scheduling, if that property existed; you'd also have sort-order issues though, would need to check the sorted order
+	//SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 early() { }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 early() { }", __LINE__);
 	
 	// Test Community - (object<LogFile>$)createLogFile(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [logical$ compress = F], [string$ sep = ","], [Ni$ logInterval = NULL], [Ni$ flushInterval = NULL])
 	if (Eidos_TemporaryDirectoryExists())
@@ -2377,6 +2379,34 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { individual; subpop; fitness; draw; return T; } 10 early() { stop(); }", __LINE__);
+	
+	// Test tick range expressions
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} early() { if (community.tick == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} 1: early() { if (community.tick == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} :10 early() { if (community.tick == 5) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} 2:5 early() { if (community.tick == 5) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} 1 early() { if (community.tick == 1) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} N+2 early() { if (community.tick == 7) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} N+5: early() { if (community.tick == 10) stop(); } 20 early() {}", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} :N-1 early() { if (community.tick == 4) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} (N+1):(N+4) early() { if (community.tick == 9) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} N*N early() { if (community.tick == 25) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} sum(1:3) early() { if (community.tick == 6) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} sum(1:3):7 early() { if (community.tick == 7) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} seq(1, 10, by=3) early() { if (community.tick == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} seq(1, 10, by=3)*2 early() { if (community.tick == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} c(1, 5, 10) early() { if (community.tick == 10) stop(); }", __LINE__);
+	
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 1.5 early() { stop(); }", "must evaluate to an integer value", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 1:1.5 early() { stop(); }", "must evaluate to an integer value", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 'foo' early() { stop(); }", "must evaluate to an integer value", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 2 5 early() { stop(); }", "expected an event declaration", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} : early() { stop(); }", "unexpected token", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} N+40:(N+50) early() { stop(); }", "must both be simple expressions", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} (N+40):N+50 early() { stop(); }", "must both be simple expressions", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} R early() { stop(); }", "undefined identifier", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); defineGlobal('R', 5); } 1 early() {} R early() { stop(); }", "undefined identifier", __LINE__);	// would be nice if this gave a better error message...
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} c(1, 5, 10, 5) early() { stop(); }", "duplicate elements", __LINE__);
 }
 
 

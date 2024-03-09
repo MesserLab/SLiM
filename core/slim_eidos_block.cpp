@@ -49,6 +49,29 @@ std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type)
 	return p_out;
 }
 
+static inline bool SLiM_TokenIsCallbackIdentifier(EidosToken *token)
+{
+	if (token->token_type_ != EidosTokenType::kTokenIdentifier)
+		return false;
+	
+	if ((token->token_string_.compare(gStr_first) == 0) ||
+		(token->token_string_.compare(gStr_early) == 0) ||
+		(token->token_string_.compare(gStr_late) == 0) ||
+		(token->token_string_.compare(gStr_initialize) == 0) ||
+		(token->token_string_.compare(gStr_fitnessEffect) == 0) ||
+		(token->token_string_.compare(gStr_mutationEffect) == 0) ||
+		(token->token_string_.compare(gStr_mutation) == 0) ||
+		(token->token_string_.compare(gStr_interaction) == 0) ||
+		(token->token_string_.compare(gStr_mateChoice) == 0) ||
+		(token->token_string_.compare(gStr_modifyChild) == 0) ||
+		(token->token_string_.compare(gStr_recombination) == 0) ||
+		(token->token_string_.compare(gStr_survival) == 0) ||
+		(token->token_string_.compare(gStr_reproduction) == 0))
+		return true;
+	
+	return false;
+}
+
 
 //
 //	SLiMEidosScript
@@ -216,10 +239,80 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			// We don't parse this as if the : were an operator, since we have to allow for a missing start or end;
 			// for this reason, we make the : into a node of its own, with no children, so X:Y, X:, and :Y are distinct.
 			// SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) handles this anomalous tree structure.
-			if (current_token_type_ == EidosTokenType::kTokenNumber)
+			//
+			// BCH 3/6/2024: We now allow ticks specifiers with a complex structure such as N, N+10, N:(N+10),
+			// (N+10):(N+20), and even things like 1:(L ? N+10 else N+20), etc.  Note that parentheses are needed
+			// for the sequence expressions that involve complicated operands.  This is tricky.  As just mentioned,
+			// we want to allow X: and :Y, so this is not a normal Eidos sequence-expression, and we can't parse it
+			// as such.  We use special _NOSEQ parsing methods below to parse just X, the colon, and Y, without
+			// allowing the colon to become a sequence-expression.  That means that "N+10:N+20" would parse as "N+10",
+			// the colon, and "N+20", which might seem nice, and might even be what the user wants -- but it is
+			// not how the operator precedence of the : operator normally works in Eidos, which would be N+(10:N)+20
+			// instead.  To avoid confusion over this conflict, we require that if X and Y are both present (X:Y),
+			// they must both be "primary" or "postfix" expressions -- a number, an identifier, a parenthesized expression,
+			// function and method calls, etc., where the top-level operator node is higher precedence than the
+			// sequence operator.  This way, X:Y always behaves as it does in Eidos, even though we are parsing it
+			// in a different way, because we disallow all of the conflicting cases.  That check is done at evaluation
+			// time; see EvaluateScriptBlockTickRanges().  Here we just do the parsing, using NOSEQ.
+			if (current_token_type_ == EidosTokenType::kTokenColon)
 			{
-				// A start tick is present; add it
-				slim_script_block_node->AddChild(Parse_Constant());
+				// The tick range starts with a colon; first eat that
+				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+				Match(EidosTokenType::kTokenColon, "SLiM script block");
+				
+				// In this situation, we must have an end tick subexpression; a lone colon is not a legal tick specifier
+				if (SLiM_TokenIsCallbackIdentifier(current_token_))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer expression for the tick range end." << EidosTerminate(current_token_);
+				
+				// BCH 3/6/2024: We used to require a number here:
+				//
+				//if (current_token_type_ == EidosTokenType::kTokenNumber)
+				//	slim_script_block_node->AddChild(Parse_Constant());
+				//
+				// but now we allow any NOSEQ subexpression:
+				try
+				{
+					EidosASTNode *end_tick_expr = nullptr;
+					
+					end_tick_expr = Parse_ConditionalExpr_NOSEQ();
+					
+					slim_script_block_node->AddChild(end_tick_expr);
+				}
+				catch (...)
+				{
+					if (!parse_make_bad_nodes_)
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer expression for the tick range end." << EidosTerminate(current_token_);
+					
+					// Introduce a bad node, since we're being error-tolerant
+					slim_script_block_node->AddChild(Parse_Constant());
+				}
+			}
+			else if (!SLiM_TokenIsCallbackIdentifier(current_token_))
+			{
+				// A start tick subexpression appears to be present; add it
+				
+				// We used to require a number here:
+				//
+				//if (current_token_type_ == EidosTokenType::kTokenNumber)
+				//	slim_script_block_node->AddChild(Parse_Constant());
+				//
+				// but now we allow any NOSEQ subexpression:
+				try
+				{
+					EidosASTNode *start_tick_expr = nullptr;
+					
+					start_tick_expr = Parse_ConditionalExpr_NOSEQ();
+					
+					slim_script_block_node->AddChild(start_tick_expr);
+				}
+				catch (...)
+				{
+					if (!parse_make_bad_nodes_)
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer expression for the tick range start." << EidosTerminate(current_token_);
+					
+					// Introduce a bad node, since we're being error-tolerant
+					slim_script_block_node->AddChild(Parse_Constant());
+				}
 				
 				// If a colon is present, we have a range, although it could be just X:
 				if (current_token_type_ == EidosTokenType::kTokenColon)
@@ -227,27 +320,32 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					Match(EidosTokenType::kTokenColon, "SLiM script block");
 					
-					// If an end tick is present, add it
-					if (current_token_type_ == EidosTokenType::kTokenNumber)
-						slim_script_block_node->AddChild(Parse_Constant());
-				}
-			}
-			else if (current_token_type_ == EidosTokenType::kTokenColon)
-			{
-				// The tick range starts with a colon; first eat that
-				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
-				Match(EidosTokenType::kTokenColon, "SLiM script block");
-				
-				// In this situation, we must have an end tick; a lone colon is not a legal tick specifier
-				if (current_token_type_ == EidosTokenType::kTokenNumber)
-					slim_script_block_node->AddChild(Parse_Constant());
-				else
-				{
-					if (!parse_make_bad_nodes_)
-						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the tick range end." << EidosTerminate(current_token_);
-					
-					// Introduce a bad node, since we're being error-tolerant
-					slim_script_block_node->AddChild(Parse_Constant());
+					// If an end tick subexpression is present, add it
+					if (!SLiM_TokenIsCallbackIdentifier(current_token_))
+					{
+						// We used to require a number here:
+						//
+						//if (current_token_type_ == EidosTokenType::kTokenNumber)
+						//	slim_script_block_node->AddChild(Parse_Constant());
+						//
+						// but now we allow any NOSEQ subexpression:
+						try
+						{
+							EidosASTNode *end_tick_expr = nullptr;
+							
+							end_tick_expr = Parse_ConditionalExpr_NOSEQ();
+							
+							slim_script_block_node->AddChild(end_tick_expr);
+						}
+						catch (...)
+						{
+							if (!parse_make_bad_nodes_)
+								EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer expression for the tick range end." << EidosTerminate(current_token_);
+							
+							// Introduce a bad node, since we're being error-tolerant
+							slim_script_block_node->AddChild(Parse_Constant());
+						}
+					}
 				}
 			}
 			
@@ -834,20 +932,30 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 		
 		// eat the optional tick range, which could be X, X:Y, X:, or :Y
 		// we don't need to syntax-check here since the parse already did
+		// BCH 3/6/2024: Note that X and Y can now be expressions, not just numbers; we evaluate them later, in EvaluateScriptBlockTickRanges()
 		if (child_index < n_children)
 		{
 			EidosToken *start_tick_token = block_children[child_index]->token_;
 			
-			if (start_tick_token->token_type_ == EidosTokenType::kTokenNumber)
+			// BCH 3/6/2024: We used to parse a number here, and get its value immediately:
+			//
+			//if (start_tick_token->token_type_ == EidosTokenType::kTokenNumber)
+			//{
+			//	int64_t long_start = EidosInterpreter::NonnegativeIntegerForString(start_tick_token->token_string_, start_tick_token);
+			//	
+			//	// We do our own range checking here so that we can highlight the bad token
+			//	if ((long_start < 1) || (long_start > SLIM_MAX_TICK))
+			//		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start tick " << start_tick_token->token_string_ << " is out of range." << EidosTerminate(start_tick_token);
+			//	
+			//	start_tick_ = SLiMCastToTickTypeOrRaise(long_start);
+			//	end_tick_ = start_tick_;			// if a start is given, the default end is the same as the start
+			//	child_index++;
+			//}
+			//
+			// but now we allow any expression, and evaluate it later (as long as it is not a colon):
+			if ((start_tick_token->token_type_ != EidosTokenType::kTokenColon) && !SLiM_TokenIsCallbackIdentifier(start_tick_token))
 			{
-				int64_t long_start = EidosInterpreter::NonnegativeIntegerForString(start_tick_token->token_string_, start_tick_token);
-				
-				// We do our own range checking here so that we can highlight the bad token
-				if ((long_start < 1) || (long_start > SLIM_MAX_TICK))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start tick " << start_tick_token->token_string_ << " is out of range." << EidosTerminate(start_tick_token);
-				
-				start_tick_ = SLiMCastToTickTypeOrRaise(long_start);
-				end_tick_ = start_tick_;			// if a start is given, the default end is the same as the start
+				start_tick_node_ = block_children[child_index];
 				child_index++;
 			}
 		}
@@ -856,10 +964,12 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 		{
 			EidosToken *colon_token = block_children[child_index]->token_;
 			
-			// we don't need to do much here except fix the end tick in case none is supplied, as in X:
+			// we don't need to do anything here except move across the colon
 			if (colon_token->token_type_ == EidosTokenType::kTokenColon)
 			{
-				end_tick_ = SLIM_MAX_TICK + 1;	// marker value for "no endpoint specified"; illegal for the user to specify this as a literal
+				// BCH 3/6/2024: Evaluation of tick ranges is now deferred
+				//end_tick_ = SLIM_MAX_TICK + 1;	// marker value for "no endpoint specified"; illegal for the user to specify this as a literal
+				colon_node_ = block_children[child_index];
 				child_index++;
 			}
 		}
@@ -868,17 +978,24 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 		{
 			EidosToken *end_tick_token = block_children[child_index]->token_;
 			
-			if (end_tick_token->token_type_ == EidosTokenType::kTokenNumber)
+			// BCH 3/6/2024: We used to parse a number here, and get its value immediately:
+			//if (end_tick_token->token_type_ == EidosTokenType::kTokenNumber)
+			//{
+			//	int64_t long_end = EidosInterpreter::NonnegativeIntegerForString(end_tick_token->token_string_, end_tick_token);
+			//	
+			//	// We do our own range checking here so that we can highlight the bad token
+			//	if ((long_end < 1) || (long_end > SLIM_MAX_TICK))
+			//		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is out of range." << EidosTerminate(end_tick_token);
+			//	if (long_end < start_tick_)
+			//		EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is less than the start tick." << EidosTerminate(end_tick_token);
+			//	
+			//	end_tick_ = SLiMCastToTickTypeOrRaise(long_end);
+			//	child_index++;
+			//}
+			// but now we allow any constant expression, and evaluate it later:
+			if (!SLiM_TokenIsCallbackIdentifier(end_tick_token))
 			{
-				int64_t long_end = EidosInterpreter::NonnegativeIntegerForString(end_tick_token->token_string_, end_tick_token);
-				
-				// We do our own range checking here so that we can highlight the bad token
-				if ((long_end < 1) || (long_end > SLIM_MAX_TICK))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is out of range." << EidosTerminate(end_tick_token);
-				if (long_end < start_tick_)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is less than the start tick." << EidosTerminate(end_tick_token);
-				
-				end_tick_ = SLiMCastToTickTypeOrRaise(long_end);
+				end_tick_node_ = block_children[child_index];
 				child_index++;
 			}
 		}
@@ -924,11 +1041,14 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 					if (n_callback_children != 0)
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters." << EidosTerminate(callback_token);
 					
-					if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
+					if (start_tick_node_ || colon_node_ || end_tick_node_)
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a tick range cannot be specified for an initialize() callback." << EidosTerminate(callback_token);
 					
-					start_tick_ = 0;
-					end_tick_ = 0;
+					tick_range_is_sequence_ = true;
+					tick_start_ = 0;
+					tick_end_ = 0;
+					tick_set_.clear();
+					
 					type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitnessEffect) == 0))
@@ -1120,8 +1240,11 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
 {
+	// this constructor is used by the various registerX() methods that register a new script block; they all take a start and end tick,
+	// with no option to supply a vector of ticks instead, which is why there is no constructor here taking a vector of ticks
+	
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
 	script_block_symbol_.second->MarkAsConstant();
@@ -1275,17 +1398,24 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 	
 	if (type_ != SLiMEidosBlockType::SLiMEidosInitializeCallback)
 	{
-		if (start_tick_ != -1)
-			gSLiMScheduling << start_tick_;
-		if (end_tick_ != start_tick_)
+		if (!tick_range_is_sequence_)
 		{
-			if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
-				gSLiMScheduling << ":";
-			if (end_tick_ != SLIM_MAX_TICK + 1)
-				gSLiMScheduling << end_tick_;
+			gSLiMScheduling << "? ";
 		}
-		if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
-			gSLiMScheduling << " ";
+		else
+		{
+			if (tick_start_ != -1)
+				gSLiMScheduling << tick_start_;
+			if (tick_end_ != tick_start_)
+			{
+				if ((tick_start_ != -1) || (tick_end_ != SLIM_MAX_TICK + 1))
+					gSLiMScheduling << ":";
+				if (tick_end_ != SLIM_MAX_TICK + 1)
+					gSLiMScheduling << tick_end_;
+			}
+			if ((tick_start_ != -1) || (tick_end_ != SLIM_MAX_TICK + 1))
+				gSLiMScheduling << " ";
+		}
 	}
 	
 	switch (type_)
@@ -1411,14 +1541,21 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName() << "<";
 	
-	if (start_tick_ > 0)
+	if (tick_range_is_sequence_)
 	{
-		p_ostream << start_tick_;
-		
-		if (end_tick_ != start_tick_)
-			p_ostream << ":" << end_tick_;
-		
-		p_ostream << " : ";
+		p_ostream << "? : ";
+	}
+	else
+	{
+		if (tick_start_ > 0)
+		{
+			p_ostream << tick_start_;
+			
+			if (tick_end_ != tick_start_)
+				p_ostream << ":" << tick_end_;
+			
+			p_ostream << " : ";
+		}
 	}
 	
 	switch (type_)
@@ -1456,9 +1593,20 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_block_id_;
 		}
 		case gEidosID_start:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(start_tick_));
+		{
+			if (!tick_range_is_sequence_)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): this script block does not have a sequential tick range, so the start property is undefined." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tick_start_));
+		}
 		case gEidosID_end:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(end_tick_));
+		{
+			if (!tick_range_is_sequence_)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): this script block does not have a sequential tick range, so the end property is undefined." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tick_end_));
+		}
+			// FIXME: could add a `ticks` property as well, which would return a vector of ticks for scheduling when tick_range_is_sequence_ is true... but is it needed?
 		case gEidosID_type:
 		{
 			switch (type_)

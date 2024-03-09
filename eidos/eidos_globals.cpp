@@ -1764,6 +1764,11 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token)
 		PushErrorPositionFromToken(p_error_token);
 }
 
+EidosTerminate::EidosTerminate(const EidosErrorPosition &p_error_position)
+{
+	gEidosErrorContext.errorPosition = p_error_position;
+}
+
 EidosTerminate::EidosTerminate(bool p_print_backtrace) : print_backtrace_(p_print_backtrace)
 {
 }

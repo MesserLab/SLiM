@@ -5015,19 +5015,23 @@
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->start_tick_ == -1)
+					else if (scriptBlock->tick_range_is_sequence_ == false)
+						return @"?";
+					else if (scriptBlock->tick_start_ == -1)
 						return @"MIN";
 					else
-						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->start_tick_];
+						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->tick_start_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->end_tick_ == SLIM_MAX_TICK + 1)
+					else if (scriptBlock->tick_range_is_sequence_ == false)
+						return @"?";
+					else if (scriptBlock->tick_end_ == SLIM_MAX_TICK + 1)
 						return @"MAX";
 					else
-						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->end_tick_];
+						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->tick_end_];
 				}
 				else if (aTableColumn == scriptBlocksTypeColumn)
 				{

@@ -766,14 +766,14 @@ void EidosSymbolTable::PrintSymbolTable(std::ostream &p_outstream)
 	{
 		case EidosSymbolTableType::kEidosIntrinsicConstantsTable: p_outstream << "kEidosIntrinsicConstantsTable"; break;
 		case EidosSymbolTableType::kEidosDefinedConstantsTable: p_outstream << "kEidosDefinedConstantsTable"; break;
-		case EidosSymbolTableType::kContextConstantsTable: p_outstream << "kContextConstantsTable"; break;
 		case EidosSymbolTableType::kGlobalVariablesTable: p_outstream << "kGlobalVariablesTable"; break;
+		case EidosSymbolTableType::kContextConstantsTable: p_outstream << "kContextConstantsTable"; break;
 		case EidosSymbolTableType::kLocalVariablesTable: p_outstream << "kLocalVariablesTable"; break;
 		case EidosSymbolTableType::kINVALID_TABLE_TYPE:
 			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::PrintSymbolTable): (internal error) invalid table type." << EidosTerminate(nullptr);
 	}
 	
-	p_outstream << std::endl;
+	p_outstream << (table_type_is_constant_ ? " (constant)" : " (not constant)") << std::endl;
 	
 	for (EidosGlobalStringID symbol = slots_->next_; symbol != 0; symbol = (slots_ + symbol)->next_)
 	{
@@ -791,6 +791,26 @@ void EidosSymbolTable::PrintSymbolTable(std::ostream &p_outstream)
 			p_outstream << "   " << symbol_name << (table_type_is_constant_ ? " => (" : " -> (") << symbol_value->Type() << ") " << *first_value << " " << *second_value << " ... (" << symbol_count << " values)" << std::endl;
 		}
 	}
+}
+
+void EidosSymbolTable::PrintSymbolTableChain(std::ostream &p_outstream)
+{
+	p_outstream << "================================================" << std::endl;
+	this->PrintSymbolTable(p_outstream);
+	
+	EidosSymbolTable *next_in_chain = chain_symbol_table_;
+	
+	while (next_in_chain)
+	{
+		p_outstream << "------------------------------------------------" << std::endl;
+		next_in_chain->PrintSymbolTable(p_outstream);
+		
+		next_in_chain = next_in_chain->chain_symbol_table_;
+	}
+	
+	p_outstream << "------------------------------------------------" << std::endl;
+	p_outstream << "END OF CHAIN" << std::endl;
+	p_outstream << "================================================" << std::endl;
 }
 
 void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
@@ -813,6 +833,7 @@ void EidosSymbolTable::AddSymbolsToTypeTable(EidosTypeTable *p_type_table) const
 	}
 }
 
+// This stream output method for EidosSymbolTable dumps all available symbols
 std::ostream &operator<<(std::ostream &p_outstream, const EidosSymbolTable &p_symbols)
 {
 	std::vector<std::string> read_only_symbol_names = p_symbols.ReadOnlySymbols();

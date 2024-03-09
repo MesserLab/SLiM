@@ -35,6 +35,8 @@
 #include "eidos_type_table.h"
 #include "eidos_type_interpreter.h"
 
+#include <unordered_set>
+
 class Community;
 
 
@@ -132,7 +134,22 @@ public:
 	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
-	slim_tick_t start_tick_ = -1, end_tick_ = SLIM_MAX_TICK + 1;		// the tick range to which the block is limited
+	// BCH 3/6/2024: For deferred tick range evaluation, we now need to keep track of the tick range nodes in our AST.
+	// These can represent <vector-expr>, <singleton-expr>:, :<singleton-expr>, or <singleton-expr>:<singleton-expr>,
+	// or no tick range at all (all nullptr).  These are used at eval time; see EvaluateScriptBlockTickRanges(), which
+	// uses these nodes to produce the tick range information below.  We do not use Robin Hood Hashing for tick_set_
+	// because I'm concerned about the possibility of a long, regular sequence of values triggering the hash collision
+	// case in it; better to take a small performance hit and be assured of total reliability, in this case.
+	const EidosASTNode *start_tick_node_ = nullptr;				// NOT OWNED
+	const EidosASTNode *colon_node_ = nullptr;					// NOT OWNED
+	const EidosASTNode *end_tick_node_ = nullptr;				// NOT OWNED
+	
+	bool tick_range_is_sequence_ = true;						// if true, tick_start_ and tick_end_ are used; if false, tick_set_ is used
+	slim_tick_t tick_start_ = -1;								// the first tick to which the block is limited
+	slim_tick_t tick_end_ = SLIM_MAX_TICK + 1;					// the last tick to which the block is limited
+	std::unordered_set<slim_tick_t> tick_set_;					// a set of ticks to which the block is limited
+	
+	// other specifiers that limit when a block executes
 	Species *species_spec_ = nullptr;							// NOT OWNED: the species to which the block is limited; nullptr if not limited by this
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this

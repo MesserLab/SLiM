@@ -87,6 +87,7 @@ public:
 	
 	mutable EidosTypeSpecifier typespec_;								// only valid for type-specifier nodes inside function declarations
 	mutable bool hit_eof_in_tolerant_parse_ = false;					// only valid for compound statement nodes; used by the type-interpreter to handle scoping
+	bool was_parenthesized_ = false;									// set to true for nodes that are the child of a set of grouping parentheses
 	
 	mutable EidosASTNode_ArgumentCache *argument_cache_ = nullptr;		// OWNED POINTER: an argument cache struct, allocated on demand for function/method call nodes
 	
@@ -123,6 +124,8 @@ public:
 	
 	void PrintToken(std::ostream &p_outstream) const;
 	void PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) const;
+	
+	EidosErrorPosition ErrorPositionForNodeAndChildren(void) const;
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING

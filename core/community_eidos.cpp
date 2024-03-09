@@ -1163,8 +1163,11 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		
 		CheckScheduling(start, stage);
 		
-		block->start_tick_ = start;
-		block->end_tick_ = end;
+		block->tick_range_is_sequence_ = true;
+		block->tick_start_ = start;
+		block->tick_end_ = end;
+		block->tick_set_.clear();
+		
 		last_script_block_tick_cached_ = false;
 		script_block_types_cached_ = false;
 		scripts_changed_ = true;
@@ -1179,90 +1182,75 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	}
 	else if (!ticks_null && (start_null && end_null))
 	{
-		// ticks case; this is complicated
+		// ticks case; we no longer schedule multiple blocks, we use ticks_set_ with the focal block
 		
 		// first, fetch the ticks and make sure they are in bounds
-		std::vector<slim_tick_t> ticks;
 		int tick_count = ticks_value->Count();
+		const int64_t *ticks_data = ticks_value->IntData();
 		
-		if (tick_count < 1)
-			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires at least one tick; use deregisterScriptBlock() to remove a script block from the simulation." << EidosTerminate();
-		
-		ticks.reserve(tick_count);
-		
-		for (int tick_index = 0; tick_index < tick_count; ++tick_index)
-			ticks.emplace_back(SLiMCastToTickTypeOrRaise(ticks_value->IntAtIndex_NOCAST(tick_index, nullptr)));
-		
-		// next, sort the tick list and check that the first scheduling it requests is not in the past
-		std::sort(ticks.begin(), ticks.end());
-		
-		CheckScheduling(ticks.front(), stage);
-		
-		// finally, go through the tick vector and schedule blocks for sequential runs
-		EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_SLiMEidosBlock_Class));
-		EidosValue_SP result_SP = EidosValue_SP(vec);
-		bool first_block = true;
-		
-		slim_tick_t start = -10;
-		slim_tick_t end = -10;
-		int tick_index = 0;
-		
-		// I'm sure there's a prettier algorithm for finding the sequential runs, but I'm not seeing it right now.
-		// The tricky thing is that I want there to be only a single place in the code where a block is scheduled;
-		// it seems easy to write a version where blocks get scheduled in two places, a main case and a tail case.
-		while (true)
+		if (tick_count == 0)
 		{
-			slim_tick_t tick = ticks[tick_index];
-			bool reached_end_in_seq = false;
+			// set to run in no ticks; we do this with an empty set
+			block->tick_range_is_sequence_ = false;
+			block->tick_set_.clear();
+		}
+		else
+		{
+			// if it is a singleton, or a consecutive range, we detect that and handle it efficiently
+			// we don't try to detect consecutive ranges that have been scrambled, since we'd have to sort;
+			// I don't want this algorithm to be O(N log N), since we might get called with a very large vector
+			bool is_sequential = true;
+			int64_t first_value = ticks_data[0];
+			int64_t prev_value = first_value;
 			
-			if (tick == end + 1)			// sequential value seen; move on to the next sequential value
+			for (int index = 1; index < tick_count; ++index)
 			{
-				end++;
+				int64_t tick_64 = ticks_data[index];
 				
-				if (++tick_index < tick_count)
-					continue;
-				reached_end_in_seq = true;
-			}
-			else if (tick <= end)
-			{
-				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that the tick vector contain unique values; the same tick cannot be used twice." << EidosTerminate();
-			}
-			
-			// make new block and move on to start the next sequence
-		makeBlock:
-			if ((start != -10) && (end != -10))
-			{
-				// start and end define the range of the block to schedule; first_block
-				// determines whether we use the existing block or make a new one
-				if (first_block)
+				if ((tick_64 < 1) || (tick_64 > SLIM_MAX_TICK))
+					EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): tick value out of range (" << tick_64 << ")." << EidosTerminate();
+				
+				if (tick_64 != prev_value + 1)
 				{
-					block->start_tick_ = start;
-					block->end_tick_ = end;
-					first_block = false;
-					last_script_block_tick_cached_ = false;
-					script_block_types_cached_ = false;
-					scripts_changed_ = true;
-					
-					vec->push_object_element_NORR(block);
+					is_sequential = false;
+					break;
 				}
-				else
-				{
-					SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->user_script_line_offset_, block->type_, start, end, block->species_spec_, block->ticks_spec_);
-					
-					AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
-					
-					vec->push_object_element_NORR(new_script_block);
-				}
+				
+				prev_value = tick_64;
 			}
 			
-			start = tick;
-			end = tick;
-			++tick_index;
-			
-			if ((tick_index == tick_count) && !reached_end_in_seq)
-				goto makeBlock;
-			else if (tick_index >= tick_count)
-				break;
+			if (is_sequential)
+			{
+				block->tick_range_is_sequence_ = true;
+				block->tick_start_ = (slim_tick_t)first_value;
+				block->tick_end_ = (slim_tick_t)prev_value;
+				block->tick_set_.clear();
+				
+				CheckScheduling(block->tick_start_, stage);
+			}
+			else
+			{
+				std::unordered_set<slim_tick_t> &set = block->tick_set_;
+				slim_tick_t min_tick = SLIM_MAX_TICK;
+				
+				block->tick_range_is_sequence_ = false;
+				set.clear();
+				
+				for (int tick_index = 0; tick_index < tick_count; ++tick_index)
+				{
+					slim_tick_t tick = (slim_tick_t)ticks_data[tick_index];
+					
+					if (set.find(tick) != set.end())
+						EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that the tick vector contain unique values; the same tick cannot be used twice." << EidosTerminate();
+					
+					if (tick < min_tick)
+						min_tick = tick;
+					
+					set.emplace(tick);
+				}
+				
+				CheckScheduling(min_tick, stage);	// if the minimum tick is OK, they are all OK
+			}
 		}
 		
 #ifdef SLIMGUI
@@ -1271,7 +1259,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		gSLiMScheduling << std::endl;
 #endif
 		
-		return result_SP;
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(block, gSLiM_SLiMEidosBlock_Class));
 	}
 	else
 	{
@@ -1387,7 +1375,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddObject_OSN("ticksSpec", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddObject_OSN("ticksSpec", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerInteractionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_S("intType", gSLiM_InteractionType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("ticks", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("ticks", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_scriptBlocksWithIDs, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_speciesWithIDs, kEidosValueMaskObject, gSLiM_Species_Class))->AddInt("ids"));

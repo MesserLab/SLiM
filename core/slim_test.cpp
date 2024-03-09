@@ -496,9 +496,9 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} mutationEffect(m1) {}", "must be preceded", __LINE__);
 	SLiMAssertScriptRaise("species mouse species mouse", "must be followed by a callback", __LINE__);
 	SLiMAssertScriptRaise("ticks mouse ticks mouse", "must be followed by an event", __LINE__);
-	SLiMAssertScriptRaise("foo", "unexpected identifier", __LINE__);
-	SLiMAssertScriptRaise("species mouse foo", "unexpected identifier", __LINE__);
-	SLiMAssertScriptRaise("ticks mouse foo", "unexpected identifier", __LINE__);
+	SLiMAssertScriptRaise("foo", "unexpected token", __LINE__);					// these three now read "foo" as a tick range, and then hit EOF
+	SLiMAssertScriptRaise("species mouse foo", "unexpected token", __LINE__);
+	SLiMAssertScriptRaise("ticks mouse foo", "unexpected token", __LINE__);
 	SLiMAssertScriptRaise("species fox function (void)foo(void) {}", "may not be preceded", __LINE__);
 	SLiMAssertScriptRaise("ticks fox function (void)foo(void) {}", "may not be preceded", __LINE__);
 	SLiMAssertScriptRaise("species fox 1 early() {}", "may not be preceded", __LINE__);
