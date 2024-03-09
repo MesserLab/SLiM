@@ -16,9 +16,8 @@ initialize() {
 }
 1 early() {
 	sim.addSubpop("p1", N);
-	community.rescheduleScriptBlock(s1, 10*N, 10*N);
 }
-s1 10 late() {
+10*N late() {
 	sim.treeSeqOutput("./diversity.trees");
 }
 
