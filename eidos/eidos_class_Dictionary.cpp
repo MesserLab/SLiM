@@ -1716,16 +1716,26 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 	}
 	else if (p_arguments.size() == 1)
 	{
-		// one singleton argument; multiple overloaded meanings
+		// one argument; multiple overloaded meanings
 		EidosValue *source_value = p_arguments[0].get();
-		
-		if (source_value->Count() != 1)
-			EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton (Dictionary, Dictionary subclass, or JSON string)." << EidosTerminate(nullptr);
+		int source_count = source_value->Count();
 		
 		if (source_value->Type() == EidosValueType::kValueString)
 		{
-			// Construct from a JSON string
-			std::string json_string = source_value->StringAtIndex_NOCAST(0, nullptr);
+			// Construct from a JSON string; beginning in SLiM 4.2 this is allowed to be a string vector,
+			// as returned by readFile().  We just paste the lines back together with newlines.  Note that
+			// if the user tries to put a newline inside a string value, that is actually not legal JSON
+			// (see https://stackoverflow.com/a/16690186/2752221), and nlohmann will error below.
+			std::string json_string;
+			
+			for (int source_index = 0; source_index < source_count; ++source_index)
+			{
+				if (source_index > 0)
+					json_string.append("\n");
+				
+				json_string.append(source_value->StringAtIndex_NOCAST(source_index, nullptr));
+			}
+			
 			nlohmann::json json_rep;
 			
 			try {
@@ -1738,11 +1748,14 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 		}
 		else
 		{
-			// Construct from a Dictionary or Dictionary subclass
+			// Construct from a singleton Dictionary or Dictionary subclass
+			if (source_count != 1)
+				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
+			
 			EidosDictionaryUnretained *source = (source_value->Type() != EidosValueType::kValueObject) ? nullptr : dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 		
 			if (!source)
-				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary)." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << "(x) requires that x be a singleton Dictionary (or a singleton subclass of Dictionary), or a string vector." << EidosTerminate(nullptr);
 		
 			AddKeysAndValuesFrom(source);
 		}

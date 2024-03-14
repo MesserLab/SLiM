@@ -1359,6 +1359,12 @@ void _RunClassTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_L("a = Dictionary(); a.setValue('logical_empty', logical(0)); a.setValue('logical_T', T); a.setValue('logical_F', F); a.setValue('logical_vector', c(T, F, T, F)); a.setValue('int_empty', integer(0)); a.setValue('int_singleton', 1); a.setValue('int_vector', 1:3); a.setValue('float_empty', float(0)); a.setValue('float_singleton', 1.0); a.setValue('float_vector', 1.0:3); a.setValue('string_empty', string(0)); a.setValue('string_singleton', 'foo'); a.setValue('string_vector', c('foo', 'bar', 'baz')); sa_json = a.serialize('json'); b = Dictionary(sa_json); sb_json = b.serialize('json'); identical(sa_json,sb_json);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 5:7, 'b', 'foo'); x.setValue('c', Dictionary('d', 18)); y = x.serialize('json'); z = Dictionary(y); z = z.serialize('json'); identical(y, z);", true);
 	
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:3, 'b', 2:4); z = Dictionary('{\"a\":[1,2,3],\"b\":[2,3,4]}'); x.identicalContents(z);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:3, 'b', c('foo', 'bar')); z = Dictionary('{\"a\":[1,2,3],\"b\":[\"foo\",\"bar\"]}'); x.identicalContents(z);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:3, 'b', c('foo', 'bar')); z = Dictionary('{\\n   \"a\":[1,2,3],\\n   \"b\":[\"foo\",\"bar\"]\\n}'); x.identicalContents(z);", true);				// multiline string singleton
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 1:3, 'b', c('foo', 'bar')); z = Dictionary(c('{', '   \"a\":[1,2,3],', '   \"b\":[\"foo\",\"bar\"]', '}')); x.identicalContents(z);", true);		// string vector, as from readFile()
+	EidosAssertScriptRaise("Dictionary(c('{', '   \"a\":[1,2,3],', '   \"b\":[\"fo', 'o\",\"bar\"]', '}'));", 0, "valid JSON string");																	// line break inside a JSON string value -- illegal
+	
 	// DataFrame(...)
 	// identicalContents()
 	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); x.identicalContents(y);", true);

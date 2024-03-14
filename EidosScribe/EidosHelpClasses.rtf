@@ -130,7 +130,7 @@
 \f3\fs18 Dictionary
 \f4\fs20 , like 
 \f3\fs18 DataFrame
-\f4\fs20 ) to make a copy, or with a singleton string in JSON format.  See the 
+\f4\fs20 ) to make a copy, or with a string in JSON format.  See the 
 \f3\fs18 Dictionary
 \f4\fs20  class for further documentation.  However, note that 
 \f3\fs18 DataFrame
@@ -567,11 +567,19 @@ Another alternative is to call
 \f4\fs20  to copy key-value pairs over; it is just a shorthand for convenience.\
 A final alternative is to call 
 \f3\fs18 Dictionary()
-\f4\fs20  with a singleton 
+\f4\fs20  with a 
 \f3\fs18 string
-\f4\fs20  as its only argument; this creates a new 
+\f4\fs20  vector as its only argument; this creates a new 
 \f3\fs18 Dictionary
-\f4\fs20  from the string, assuming that it is a data archive in JSON format.  Note that a JSON string can be generated from the 
+\f4\fs20  from the string, assuming that it is a data archive in JSON format.  If the 
+\f3\fs18 string
+\f4\fs20  value is not a singleton, its elements will be joined together by newlines to make a singleton 
+\f3\fs18 string
+\f4\fs20  value; this allows the result from 
+\f3\fs18 readFile()
+\f4\fs20  to be passed directly to 
+\f3\fs18 Dictionary()
+\f4\fs20  even for a multiline (prettyprinted) JSON file.  Note that a JSON string can be generated from the 
 \f3\fs18 serialize()
 \f4\fs20  method of 
 \f3\fs18 Dictionary

@@ -35,6 +35,7 @@ development head (in the master branch):
 		events and callbacks may now be scheduled for a non-consecutive set of ticks, not just a range; for example, seq() or c() may be used to construct the times at which a script block runs
 		as a part of this work, rescheduleScriptBlock() no longer makes copies of the script block when non-consecutive ticks are requested; a single script block can now be scheduled non-consecutively
 		update recipe 17.4 to use this new facility instead of rescheduleScriptBlock(), and add recipe 4.1.10 demonstrating defining constants for parameters and using them for tick scheduling; also update manual sections 20.2 and 26.1 for this
+	make the Dictionary constructor allow a non-singleton string vector, so the (JSON) result of readFile() can be passed directly to it
 	
 
 version 4.1 (Eidos version 3.1):
