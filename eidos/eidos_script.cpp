@@ -687,64 +687,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 			if (token_type == EidosTokenType::kTokenIdentifier)
 			{
 				std::string identifierString = script_string_.substr(token_start, token_end - token_start + 1);
-				bool contains_illegal = false;
 				
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-warning-option"
-#pragma GCC diagnostic ignored "-Wbidi-chars"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-warning-option"
-#pragma clang diagnostic ignored "-Wbidi-chars"
-				// BCH 8/14/2023: Note that seven lines are commented out below.  They are correct, but they
-				// produce a warning "unpaired UTF-8 bidirectional control character detected [-Wbidi-chars=]",
-				// and disabling the bidi-chars warning does not suppress that warning, annoyingly.  This is
-				// very edge anyhow, so I'm commenting these lines out for now.  A better fix should be
-				// possible, but it doesn't seem worth worrying about for now.
-				contains_illegal = contains_illegal || (identifierString.find("\u2000") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2001") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2002") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2003") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2004") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2005") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2006") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2007") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2008") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2009") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200a") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200b") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200c") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200d") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200e") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u200f") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2028") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2029") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u202a") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u202b") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u202c") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u202d") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u202e") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u202f") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u205f") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2060") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2061") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2062") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2063") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2064") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2065") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u2066") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u2067") != std::string::npos);
-				//contains_illegal = contains_illegal || (identifierString.find("\u2068") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u2069") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206a") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206b") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206c") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206d") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206e") != std::string::npos);
-				contains_illegal = contains_illegal || (identifierString.find("\u206f") != std::string::npos);
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
-				
-				if (contains_illegal)
+				if (Eidos_ContainsIllegalUnicode(identifierString))
 				{
 					if (p_make_bad_tokens)
 					{

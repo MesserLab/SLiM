@@ -199,6 +199,74 @@ EidosValue_SP Eidos_ExecuteFunction_debugIndent(__attribute__((unused)) const st
 #endif
 }
 
+static bool Eidos_IsIdentifier(const std::string &symbol_name)
+{
+	// checks that symbol_name is a valid identifier; this is similar to the identifier parsing code in EidosScript::Tokenize(),
+	// but we know the length of symbol_name ahead of time, so the UTF handling is a bit different
+	bool first_char = true, saw_unicode = false;
+	size_t pos = 0, len = symbol_name.length();
+	
+	while (pos < len)
+	{
+		int chx = (unsigned char)symbol_name[pos];
+		
+		// 0..9 are fine as long as it's not the first position
+		if (!first_char)
+			if ((chx >= '0') && (chx <= '9'))
+			{
+				pos++;
+				continue;
+			}
+		
+		first_char = false;
+		
+		// a..z, A..Z, _ are all fine anywhere in an identifier
+		if (((chx >= 'a') && (chx <= 'z')) || ((chx >= 'A') && (chx <= 'Z')) || (chx == '_'))
+		{
+			pos++;
+			continue;
+		}
+		
+		// if the high bit is set, this is the start of a UTF-8 multi-byte sequence; eat the whole sequence
+		// the design of this code assumes that UTF-8 sequences are compliant; checking compliance is harder
+		if (chx & 0x0080)
+		{
+			// we accept the current character, and now advance over the characters following it
+			pos++;
+			saw_unicode = true;
+			
+			while (pos < len)
+			{
+				int chn = (unsigned char)symbol_name[pos];
+				
+				if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop		// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
+				{
+					break;
+				}
+				else if (chn & 0x0080)			// trailing byte of the current Unicode multi-byte sequence; eat it
+				{
+					pos++;
+				}
+				else							// an ordinary character following the Unicode sequence; stop
+				{
+					break;
+				}
+			}
+			
+			// at this point, we have advanced to the character after the end of the Unicode sequence; pos++ is not needed
+			continue;
+		}
+		
+		// an illegal character was encountered
+		return false;
+	}
+	
+	if (saw_unicode && Eidos_ContainsIllegalUnicode(symbol_name))
+		return false;
+	
+	return true;
+}
+
 //	(void)defineConstant(string$ symbol, * x)
 EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -206,6 +274,10 @@ EidosValue_SP Eidos_ExecuteFunction_defineConstant(const std::vector<EidosValue_
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
 	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
+	
+	if (!Eidos_IsIdentifier(symbol_name))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() requires that symbol is a valid Eidos identifier." << EidosTerminate(nullptr);
+	
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -232,6 +304,10 @@ EidosValue_SP Eidos_ExecuteFunction_defineGlobal(const std::vector<EidosValue_SP
 	
 	EidosValue_String *symbol_value = (EidosValue_String *)p_arguments[0].get();
 	const std::string &symbol_name = symbol_value->StringRefAtIndex_NOCAST(0, nullptr);
+	
+	if (!Eidos_IsIdentifier(symbol_name))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_defineConstant): defineConstant() requires that symbol is a valid Eidos identifier." << EidosTerminate(nullptr);
+	
 	const EidosValue_SP &x_value_sp = p_arguments[1];
 	EidosGlobalStringID symbol_id = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();

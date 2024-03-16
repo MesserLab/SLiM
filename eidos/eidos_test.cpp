@@ -1539,6 +1539,35 @@ void _RunSymbolsAndVariablesTests(void)
 	EidosAssertScriptSuccess_I("\u1F603e = 3; \u1F603e;", 3);
 	EidosAssertScriptSuccess_I("e\u1F603 = 3; e\u1F603;", 3);
 	EidosAssertScriptSuccess_I("e\u1F603\u1F603e = 3; e\u1F603\u1F603e;", 3);
+	
+	// test defineGlobal() and defineConstant() for correctly checking identifier syntax
+	EidosAssertScriptSuccess_I("defineConstant('Q', 7); Q;", 7);
+	EidosAssertScriptSuccess_I("defineConstant('_Qixx_14850_', 7); _Qixx_14850_;", 7);
+	EidosAssertScriptRaise("defineConstant('_Qixx 14850_', 7);", 0, "valid Eidos identifier");
+	EidosAssertScriptRaise("defineConstant('_Qixx.14850_', 7);", 0, "valid Eidos identifier");
+	
+	EidosAssertScriptSuccess_I("defineConstant('\u00E9', 3); \u00E9;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('\u00E9e', 3); \u00E9e;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('e\u00E9', 3); e\u00E9;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('e\u00E9\u00E9e', 3); e\u00E9\u00E9e;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('\u1F603', 3); \u1F603;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('\u1F603e', 3); \u1F603e;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('e\u1F603', 3); e\u1F603;", 3);
+	EidosAssertScriptSuccess_I("defineConstant('e\u1F603\u1F603e', 3); e\u1F603\u1F603e;", 3);
+	
+	EidosAssertScriptSuccess_I("defineGlobal('Q', 7); Q;", 7);
+	EidosAssertScriptSuccess_I("defineGlobal('_Qixx_14850_', 7); _Qixx_14850_;", 7);
+	EidosAssertScriptRaise("defineGlobal('_Qixx 14850_', 7);", 0, "valid Eidos identifier");
+	EidosAssertScriptRaise("defineGlobal('_Qixx.14850_', 7);", 0, "valid Eidos identifier");
+	
+	EidosAssertScriptSuccess_I("defineGlobal('\u00E9', 3); \u00E9;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('\u00E9e', 3); \u00E9e;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('e\u00E9', 3); e\u00E9;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('e\u00E9\u00E9e', 3); e\u00E9\u00E9e;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('\u1F603', 3); \u1F603;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('\u1F603e', 3); \u1F603e;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('e\u1F603', 3); e\u1F603;", 3);
+	EidosAssertScriptSuccess_I("defineGlobal('e\u1F603\u1F603e', 3); e\u1F603\u1F603e;", 3);
 }
 
 #pragma mark parsing

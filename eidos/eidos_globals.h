@@ -626,6 +626,9 @@ BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 // The <regex> library does not work on Ubuntu 18.04, annoyingly; probably a very old compiler or something.  So we have to check.
 bool Eidos_RegexWorks(void);
 
+// Checks that symbol_name does not contain any illegal Unicode characters; used to check identifiers, in particular
+bool Eidos_ContainsIllegalUnicode(const std::string &symbol_name);
+
 
 // *******************************************************************************************************************
 //
