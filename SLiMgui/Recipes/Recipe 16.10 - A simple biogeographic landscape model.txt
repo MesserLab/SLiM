@@ -23,8 +23,9 @@ initialize() {
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
 	mapImage = Image("world_map_540x217.png");
-	p1.defineSpatialMap("world", "xy", 1.0 - mapImage.floatK,
+	map = p1.defineSpatialMap("world", "xy", 1.0 - mapImage.floatK,
 		valueRange=c(0.0, 1.0), colors=c("#0000CC", "#55FF22"));
+	defineConstant("WORLD", map);
 	
 	// start near a specific map location
 	for (ind in p1.individuals) {
@@ -50,7 +51,7 @@ modifyChild() {
 	while (!p1.pointInBounds(pos));
 	
 	// prevent dispersal into water
-	if (p1.spatialMapValue("world", pos) == 0.0)
+	if (WORLD.mapValue(pos) == 0.0)
 		return F;
 	
 	child.setSpatialPosition(pos);

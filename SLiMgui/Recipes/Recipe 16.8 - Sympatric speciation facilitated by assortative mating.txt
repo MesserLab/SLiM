@@ -1,11 +1,11 @@
 // Keywords: QTL, quantitative trait loci, phenotypic competition
 
 initialize() {
-	defineConstant("optimum", 5.0);
-	defineConstant("sigma_K", 1.0);
-	defineConstant("sigma_C", 0.4);
-	defineConstant("sigma_M", 0.5);
-	defineConstant("NORM", dnorm(0.0, mean=0, sd=sigma_C));
+	defineConstant("OPTIMUM", 5.0);
+	defineConstant("SIGMA_K", 1.0);
+	defineConstant("SIGMA_C", 0.4);
+	defineConstant("SIGMA_M", 0.5);
+	defineConstant("NORM", dnorm(0.0, mean=0, sd=SIGMA_C));
 	
 	initializeSLiMOptions(dimensionality="x");
 	initializeMutationRate(1e-6);
@@ -17,11 +17,13 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e5 - 1);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "x", reciprocal=T, maxDistance=sigma_C * 3);     // competition
-	i1.setInteractionFunction("n", 1.0, sigma_C);
+	// competition
+	initializeInteractionType(1, "x", reciprocal=T, maxDistance=SIGMA_C * 3);
+	i1.setInteractionFunction("n", 1.0, SIGMA_C);
 	
-	initializeInteractionType(2, "x", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
-	i2.setInteractionFunction("n", 1.0, sigma_M);
+	// mate choice
+	initializeInteractionType(2, "x", reciprocal=T, maxDistance=SIGMA_M * 3);
+	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
 mutationEffect(m2) { return 1.0; }
 1 late() {
@@ -33,7 +35,7 @@ mutationEffect(m2) { return 1.0; }
 	
 	// construct phenotypes and fitness effects from QTLs
 	phenotypes = inds.sumOfMutationsOfType(m2);
-	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optimum, sigma_K);
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, OPTIMUM, SIGMA_K);
 	inds.x = phenotypes;
 	
 	// evaluate phenotypic competition

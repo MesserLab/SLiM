@@ -1,9 +1,9 @@
 // Keywords: continuous space, continuous spatial landscape, spatial map, reprising boundaries, QTL, quantitative trait loci, spatial competition, spatial mate choice
 
 initialize() {
-	defineConstant("sigma_C", 0.1);
-	defineConstant("sigma_K", 0.5);
-	defineConstant("sigma_M", 0.1);
+	defineConstant("SIGMA_C", 0.1);
+	defineConstant("SIGMA_K", 0.5);
+	defineConstant("SIGMA_M", 0.1);
 	defineConstant("N", 500);
 	
 	initializeSLiMOptions(dimensionality="xyz");
@@ -16,11 +16,13 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e5 - 1);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=sigma_C * 3);     // competition
-	i1.setInteractionFunction("n", 1.0, sigma_C);
+	// competition
+	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=SIGMA_C * 3);
+	i1.setInteractionFunction("n", 1.0, SIGMA_C);
 	
-	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
-	i2.setInteractionFunction("n", 1.0, sigma_M);
+	// mate choice
+	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=SIGMA_M * 3);
+	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
 mutationEffect(m2) { return 1.0; }
 1 late() {
@@ -29,9 +31,10 @@ mutationEffect(m2) { return 1.0; }
 	p1.individuals.setSpatialPosition(p1.pointUniform(N));
 	p1.individuals.z = 0.0;
 	
-	defineConstant("mapValues", matrix(runif(25, 0, 1), ncol=5));
-	p1.defineSpatialMap("map1", "xy", mapValues, interpolate=T,
+	defineConstant("MAPVALUES", matrix(runif(25, 0, 1), ncol=5));
+	map = p1.defineSpatialMap("map1", "xy", MAPVALUES, interpolate=T,
 		valueRange=c(0.0, 1.0), colors=c("red", "yellow"));
+	defineConstant("OPTIMUM", map);
 }
 modifyChild() {
 	// set offspring position based on parental position
@@ -46,12 +49,12 @@ modifyChild() {
 	inds = sim.subpopulations.individuals;
 	phenotype = inds.sumOfMutationsOfType(m2);
 	location = inds.spatialPosition[rep(c(T,T,F), inds.size())];
-	optimum = p1.spatialMapValue("map1", location);
-	inds.fitnessScaling = 1.0 + dnorm(phenotype, optimum, sigma_K);
+	optimum = OPTIMUM.mapValue(location);
+	inds.fitnessScaling = 1.0 + dnorm(phenotype, optimum, SIGMA_K);
 	inds.z = phenotype;
 	
 	// color individuals according to phenotype
-	inds.color = p1.spatialMapColor("map1", phenotype);
+	inds.color = OPTIMUM.mapColor(phenotype);
 	
 	// evaluate phenotypic competition
 	i1.evaluate(p1);

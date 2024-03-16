@@ -1,10 +1,10 @@
 // Keywords: QTL, quantitative trait loci, phenotypic competition, interaction()
 
 initialize() {
-	defineConstant("optimum", 5.0);
-	defineConstant("sigma_K", 1.0);
-	defineConstant("sigma_C", 0.4);
-	defineConstant("NORM", dnorm(0.0, mean=0, sd=sigma_C));
+	defineConstant("OPTIMUM", 5.0);
+	defineConstant("SIGMA_K", 1.0);
+	defineConstant("SIGMA_C", 0.4);
+	defineConstant("NORM", dnorm(0.0, mean=0, sd=SIGMA_C));
 	
 	initializeMutationRate(1e-6);
 	initializeMutationType("m1", 0.5, "f", 0.0);        // neutral
@@ -27,7 +27,7 @@ mutationEffect(m2) { return 1.0; }
 	
 	// construct phenotypes and fitness effects from QTLs
 	phenotypes = inds.sumOfMutationsOfType(m2);
-	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optimum, sigma_K);
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, OPTIMUM, SIGMA_K);
 	inds.tagF = phenotypes;
 	
 	// evaluate phenotypic competition
@@ -37,7 +37,7 @@ mutationEffect(m2) { return 1.0; }
 	inds.fitnessScaling = inds.fitnessScaling * effects;
 }
 interaction(i1) {
-	return dnorm(exerter.tagF, receiver.tagF, sigma_C) / NORM;
+	return dnorm(exerter.tagF, receiver.tagF, SIGMA_C) / NORM;
 }
 1:2001 late() {
 	if (sim.cycle == 1)

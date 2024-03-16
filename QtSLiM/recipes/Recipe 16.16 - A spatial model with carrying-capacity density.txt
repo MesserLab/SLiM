@@ -4,7 +4,7 @@ initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(dimensionality="xy");
 	defineConstant("K", 300);   // carrying-capacity density
-	defineConstant("S", 0.1);   // sigma_S, the spatial interaction width
+	defineConstant("S", 0.1);   // SIGMA_S, the spatial interaction width
 	
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	m1.convertToSubstitution = T;

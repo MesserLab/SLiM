@@ -1,10 +1,10 @@
 // Keywords: continuous space, continuous spatial landscape, reprising boundaries, QTL, quantitative trait loci, spatial competition, phenotypic competition, spatial mate choice
 
 initialize() {
-	defineConstant("sigma_C", 0.1);
-	defineConstant("sigma_K", 0.5);
-	defineConstant("sigma_M", 0.1);
-	defineConstant("slope", 1.0);
+	defineConstant("SIGMA_C", 0.1);
+	defineConstant("SIGMA_K", 0.5);
+	defineConstant("SIGMA_M", 0.1);
+	defineConstant("SLOPE", 1.0);
 	defineConstant("N", 500);
 	
 	initializeSLiMOptions(dimensionality="xyz");
@@ -17,16 +17,18 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e5 - 1);
 	initializeRecombinationRate(1e-8);
 	
-	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=sigma_C * 3);     // competition
-	i1.setInteractionFunction("n", 1.0, sigma_C);
+	// competition
+	initializeInteractionType(1, "xyz", reciprocal=T, maxDistance=SIGMA_C * 3);
+	i1.setInteractionFunction("n", 1.0, SIGMA_C);
 	
-	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
-	i2.setInteractionFunction("n", 1.0, sigma_M);
+	// mate choice
+	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=SIGMA_M * 3);
+	i2.setInteractionFunction("n", 1.0, SIGMA_M);
 }
 mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", N);
-	p1.setSpatialBounds(c(0.0, 0.0, -slope, 1.0, 1.0, slope));
+	p1.setSpatialBounds(c(0.0, 0.0, -SLOPE, 1.0, 1.0, SLOPE));
 	p1.individuals.setSpatialPosition(p1.pointUniform(N));
 	p1.individuals.z = 0.0;
 }
@@ -43,14 +45,14 @@ modifyChild() {
 	
 	// construct phenotypes and fitness effects from QTLs
 	phenotypes = inds.sumOfMutationsOfType(m2);
-	optima = (inds.x - 0.5) * slope;
-	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optima, sigma_K);
+	optima = (inds.x - 0.5) * SLOPE;
+	inds.fitnessScaling = 1.0 + dnorm(phenotypes, optima, SIGMA_K);
 	inds.z = phenotypes;
 	
 	// color individuals according to phenotype
 	for (ind in inds)
 	{
-		hue = ((ind.z + slope) / (slope * 2)) * 0.66;
+		hue = ((ind.z + SLOPE) / (SLOPE * 2)) * 0.66;
 		ind.color = rgb2color(hsv2rgb(c(hue, 1.0, 1.0)));
 	}
 	

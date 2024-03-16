@@ -5,7 +5,7 @@ initialize() {
 	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
 	
 	defineConstant("K", 10000);   // carrying-capacity density
-	defineConstant("S", 0.01);    // sigma_S, the competition width
+	defineConstant("S", 0.01);    // SIGMA_S, the competition width
 	
 	defineConstant("HEALTH_S", 0);   // susceptible
 	defineConstant("HEALTH_I", 1);   // infectious

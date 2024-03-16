@@ -36,6 +36,7 @@ development head (in the master branch):
 		as a part of this work, rescheduleScriptBlock() no longer makes copies of the script block when non-consecutive ticks are requested; a single script block can now be scheduled non-consecutively
 		update recipe 17.4 to use this new facility instead of rescheduleScriptBlock(), and add recipe 4.1.10 demonstrating defining constants for parameters and using them for tick scheduling; also update manual sections 20.2 and 26.1 for this
 	make the Dictionary constructor allow a non-singleton string vector, so the (JSON) result of readFile() can be passed directly to it
+	revised recipes 16.6, 16.7, 16.8, 16.9, 16.10, and 16.11 to use new APIs and conventions (mapValue(), mapColor(), uppercasing defined constants)
 	
 
 version 4.1 (Eidos version 3.1):

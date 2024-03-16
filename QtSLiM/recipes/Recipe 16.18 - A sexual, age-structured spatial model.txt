@@ -5,7 +5,7 @@ initialize() {
 	initializeSLiMOptions(dimensionality="xy");
 	initializeSex("A");
 	defineConstant("K", 300);   // carrying-capacity density
-	defineConstant("S", 0.1);   // sigma_S, the spatial interaction width
+	defineConstant("S", 0.1);   // SIGMA_S, the spatial interaction width
 	
 	// spatial competition
 	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=S * 3);
