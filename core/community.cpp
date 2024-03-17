@@ -107,6 +107,11 @@ Community::~Community(void)
 {
 	//EIDOS_ERRSTREAM << "Community::~Community" << std::endl;
 	
+	// our log file registry retains all log files
+	for (LogFile *log_file : log_file_registry_)
+		log_file->Release();
+	log_file_registry_.clear();
+	
 	all_mutation_types_.clear();
 	all_genomic_element_types_.clear();
 	
