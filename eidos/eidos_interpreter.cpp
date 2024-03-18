@@ -1181,7 +1181,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "; all required arguments must be supplied in order." << EidosTerminate(nullptr);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1248,7 +1248,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
 					
 					if (named_arg_nameID == arg_name_ID)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to " << p_call_signature->call_name_ << "() could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
