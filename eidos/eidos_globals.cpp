@@ -2251,7 +2251,7 @@ std::string Eidos_AbsolutePath(const std::string &p_path)
 	// We also do not support relative paths from per-drive current directories, like "C:Projects\apilibrary\apilibrary.sln"
 	// I'm not sure what happens if such paths are used, nor what ought to happen, since I don't really understand Windows paths well.
 	// Our support for Windows-style paths could thus be improxed; FIXME.  See https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
-	bool is_absolute_path = ((resolved_file_path_.length() >= 3) && (resolved_file_path_[0] >= 'A') && (resolved_file_path_[0] <= 'Z') && (resolved_file_path_[1] == ':') && ((resolved_file_path_[2] == '/') || (resolved_file_path_[2] == '\\')));
+	bool is_absolute_path = ((resolved_file_path.length() >= 3) && (resolved_file_path[0] >= 'A') && (resolved_file_path[0] <= 'Z') && (resolved_file_path[1] == ':') && ((resolved_file_path[2] == '/') || (resolved_file_path[2] == '\\')));
 #else
 	// On other platforms, absolute paths start with a "/"
 	bool is_absolute_path = ((resolved_file_path.length() >= 1) && (resolved_file_path[0] == '/'));
