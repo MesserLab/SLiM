@@ -501,6 +501,9 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 // Resolve a leading ~ in a filesystem path to the user's home directory
 std::string Eidos_ResolvedPath(const std::string &p_path);
 
+// Generate a canonical absolute path corresponding to the provided path
+std::string Eidos_AbsolutePath(const std::string &p_path);
+
 // Get the filename (or a trailing directory name) from a path
 std::string Eidos_LastPathComponent(const std::string &p_path);
 
@@ -532,12 +535,12 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len);
 #define EIDOS_BUFFER_ZIP_APPENDS	1
 
 #if EIDOS_BUFFER_ZIP_APPENDS	// implementation details for Eidos_FlushFiles(); for internal use only
-extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// filename -> text
+extern std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;	// canonical absolute file path -> buffered text
 bool _Eidos_FlushZipBuffer(const std::string &p_file_path, const std::string &p_outstring);
 #endif
 
 void Eidos_FlushFile(const std::string &p_file_path);
-void Eidos_FlushFiles(void);			// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data
+bool Eidos_FlushFiles(void);			// This should be called at the end of execution, or any other appropriate time, to flush buffered file append data; returns false for failure
 
 enum class EidosFileFlush {
 	kNoFlush = 0,		// no flush, no matter what

@@ -2234,6 +2234,51 @@ std::string Eidos_ResolvedPath(const std::string &p_path)
 	return path;
 }
 
+// generate a canonical absolute path corresponding to the provided path
+std::string Eidos_AbsolutePath(const std::string &p_path)
+{
+	// Resolve a ~ at the start of the path
+	std::string resolved_file_path = Eidos_ResolvedPath(p_path);
+	
+	// A zero-length path is an error
+	if (resolved_file_path.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_AbsolutePath): resolved path is zero-length." << EidosTerminate();
+	
+	// Convert to an absolute path so we do not depend on the current working directory, which could change
+#ifdef _WIN32
+	// On Windows, absolute paths start with a drive identifier from "A:" to "Z:", and then a path separator "/" or "\"
+	// Note that we do not presently support absolute paths from the "current drive", like "\Program Files\Custom Utilities\StringFinder.exe"
+	// We also do not support relative paths from per-drive current directories, like "C:Projects\apilibrary\apilibrary.sln"
+	// I'm not sure what happens if such paths are used, nor what ought to happen, since I don't really understand Windows paths well.
+	// Our support for Windows-style paths could thus be improxed; FIXME.  See https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+	bool is_absolute_path = ((resolved_file_path_.length() >= 3) && (resolved_file_path_[0] >= 'A') && (resolved_file_path_[0] <= 'Z') && (resolved_file_path_[1] == ':') && ((resolved_file_path_[2] == '/') || (resolved_file_path_[2] == '\\')));
+#else
+	// On other platforms, absolute paths start with a "/"
+	bool is_absolute_path = ((resolved_file_path.length() >= 1) && (resolved_file_path[0] == '/'));
+#endif
+	
+	if (!is_absolute_path)
+	{
+		std::string current_dir = Eidos_CurrentDirectory();
+		size_t current_dir_length = current_dir.length();
+		
+		if (current_dir_length > 0)
+		{
+			// Figure out whether we need to append a '/' to the CWD or not; I'm not sure whether this is standard
+			if (current_dir[current_dir_length - 1] == '/')
+				resolved_file_path = current_dir + resolved_file_path;
+			else
+				resolved_file_path = current_dir + "/" + resolved_file_path;
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_AbsolutePath): the current working directory seems to be invalid." << EidosTerminate();
+		}
+	}
+	
+	return resolved_file_path;
+}
+
 // Get the filename (or a trailing directory name) from a path
 std::string Eidos_LastPathComponent(const std::string &p_path)
 {
@@ -2585,42 +2630,49 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
 
 // This flushes the bytes in outstring to the file at file_path, with gzip append
+// If an error occurs, it returns false; it should not raise
 bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("_Eidos_FlushZipBuffer():  filesystem write");
 	
 	//std::cout << "_Eidos_FlushZipBuffer() called for " << file_path << std::endl;
 	
-	gzFile gzf = gzopen(file_path.c_str(), "ab");
-	
-	if (!gzf)
-		return false;
-	
 	const char *outcstr = outstring.c_str();
 	size_t outcstr_length = outstring.length();
 	
-	// do the writing with zlib
-	bool success = false;
-	int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+	if (outcstr_length == 0)
+		return true;
 	
-	if (retval != -1)
+	gzFile gzf = gzopen(file_path.c_str(), "ab");
+	
+	if (!gzf)
 	{
-		retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
-		
-		if ((retval != 0) || (outcstr_length == 0))	// writing 0 bytes returns 0, which is supposed to be an error code
-		{
-			retval = gzclose_w(gzf);
-			
-			if (retval == Z_OK)
-				success = true;
-		}
+		//std::cerr << "errno == " << errno << std::endl;
+		return false;
 	}
 	
-	return success;
+	// do the writing with zlib
+	int retval = gzbuffer(gzf, 128*1024L);	// bigger buffer for greater speed
+	
+	if (retval == -1)
+		return false;
+	
+	retval = gzwrite(gzf, outcstr, (unsigned)outcstr_length);
+	
+	if (retval == 0)
+		return false;
+	
+	retval = gzclose_w(gzf);
+	
+	if (retval != Z_OK)
+		return false;
+	
+	return true;
 }
 #endif
 
 // This flushes a given file, if it is buffering zip output
+// This raises if an error occurs
 void Eidos_FlushFile(const std::string &p_file_path)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFile():  filesystem write");
@@ -2641,25 +2693,35 @@ void Eidos_FlushFile(const std::string &p_file_path)
 }
 
 // This flushes all outstanding buffered zip data to the appropriate files
-void Eidos_FlushFiles(void)
+// This returns false if an error occurs
+bool Eidos_FlushFiles(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFiles():  filesystem write");
 	
 #if EIDOS_BUFFER_ZIP_APPENDS
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
+	bool success = true;
+	
 	for (auto &buffer_pair : gEidosBufferedZipAppendData)
 	{
 		bool result = _Eidos_FlushZipBuffer(buffer_pair.first, buffer_pair.second);
 		
 		if (!result)
 		{
-			// Note that we do this without a raise, because we often want to flush when we're already handling a raise; simpler to just log, the user will figure it out...
+			// Note that we do this without a raise, because we often want to flush when we're already handling a raise,
+			// and also we want to try to flush all of our files before halting, not halt on the first flush failure.
+			// The caller should report the error to the user in some way, if this stderr log is insufficient.
 			std::cerr << std::endl << "ERROR (Eidos_FlushFiles): Flush of gzip data to file " << buffer_pair.first << " failed!" << std::endl;
+			success = false;
 		}
 	}
 	
 	gEidosBufferedZipAppendData.clear();
+	
+	return success;
 #endif
+	
+	return true;
 }
 
 void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const std::string *> &p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)

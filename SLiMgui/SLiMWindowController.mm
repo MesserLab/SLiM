@@ -46,6 +46,7 @@
 #include <stdexcept>
 #include <sys/stat.h>
 #include <ctime>
+#include <csignal>
 
 
 @implementation SLiMWindowController
@@ -889,8 +890,10 @@
 	Species *displaySpecies = [self focalDisplaySpecies];
 	
 	// Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
+	// NOTE THAT THE WORKING DIRECTORY HAS BEEN CHANGED BACK AT THIS POINT!
 	if (fullUpdate)
-		Eidos_FlushFiles();
+		if (!Eidos_FlushFiles())
+			raise(SIGTRAP);			// could be improved, but for SLiMguiLegacy this is OK
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
 	[self checkForSimulationTermination];

@@ -38,6 +38,7 @@ development head (in the master branch):
 	make the Dictionary constructor allow a non-singleton string vector, so the (JSON) result of readFile() can be passed directly to it
 	revised recipes 16.6, 16.7, 16.8, 16.9, 16.10, and 16.11 to use new APIs and conventions (mapValue(), mapColor(), uppercasing defined constants)
 	require the symbol name passed to defineConstant() / defineGlobal() to be a valid Eidos identifier
+	fix a bug that would cause failures to write buffered compressed data from writeFile(), only in SLiMgui; these failures were not reported to the user well (only through SLiMgui's stderr)
 	
 
 version 4.1 (Eidos version 3.1):

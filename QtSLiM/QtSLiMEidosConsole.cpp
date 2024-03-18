@@ -440,11 +440,15 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	// See comment on safeguardReferences above
 	if (safeguardReferences)
 		validateSymbolTableAndFunctionMap();
-	
-    // Flush buffered output to files after every script execution, so the user sees the results
-	Eidos_FlushFiles();
     
-	return QString::fromStdString(output);
+    // Flush buffered output to files after every script execution, so the user sees the results
+    // NOTE THAT THE WORKING DIRECTORY HAS BEEN CHANGED BACK AT THIS POINT!
+    bool flush_success = Eidos_FlushFiles();
+    
+    if (!flush_success)
+        *errorString = "ERROR (Eidos_FlushFiles): A compressed file buffer failed to write out to disk.  Please check file paths, filesystem writeability and permissions, available disk space, and other possible causes of file I/O problems.\n";
+    
+    return QString::fromStdString(output);
 }
 
 // Execute the given script string, with the terminating semicolon being optional if requested

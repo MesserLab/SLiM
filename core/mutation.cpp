@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <csignal>
 
 
 // All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()

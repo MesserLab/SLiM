@@ -2589,8 +2589,22 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
     updateChromosomeViewSetup();
     
     // Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
+    // NOTE THAT THE WORKING DIRECTORY HAS BEEN CHANGED BACK AT THIS POINT!
 	if (fullUpdate)
-		Eidos_FlushFiles();
+    {
+		bool flush_success = Eidos_FlushFiles();
+        
+        if (!flush_success)
+        {
+            // Showing a message right here is a bit disruptive to the flow of the code; for example, if the step button is pressed,
+            // it will stick down and bad things will happen.  So we need to actually halt the simulation with the error.  We might
+            // as well do that with the standard error termination mechanism.  Hopefully this will never be hit anyway.  BCH 3/18/2024
+            gEidosTermination.clear();
+            gEidosTermination.str("");
+            gEidosTermination << "ERROR (Eidos_FlushFiles): A compressed file buffer failed to write out to disk.  Please check file paths, filesystem writeability and permissions, available disk space, and other possible causes of file I/O problems.\n";
+            gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+        }
+    }
 	
 	// Check whether the simulation has terminated due to an error; if so, show an error message with a delayed perform
 	checkForSimulationTermination();

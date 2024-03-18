@@ -250,7 +250,10 @@ EidosValue_SP Eidos_ExecuteFunction_flushFile(const std::vector<EidosValue_SP> &
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
-	std::string file_path = Eidos_ResolvedPath(base_path);
+	
+	// resolve the user-supplied path to a canonical absolute path, so that it remains valid even if the current directory changes
+	// this is needed because we buffer writes in some cases, and don't actually write them out until a later time
+	std::string file_path = Eidos_AbsolutePath(base_path);
 	
 	// note that writeFile() adds ".gz" to the filename if compression is specified and it is not already present; we don't,
 	// since we don't know if compression is on for this file; the user will therefore have to use the correct path
@@ -268,7 +271,10 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	std::string base_path = filePath_value->StringAtIndex_NOCAST(0, nullptr);
-	std::string file_path = Eidos_ResolvedPath(base_path);
+	
+	// resolve the user-supplied path to a canonical absolute path, so that it remains valid even if the current directory changes
+	// this is needed because we buffer writes in some cases, and don't actually write them out until a later time
+	std::string file_path = Eidos_AbsolutePath(base_path);
 	
 	// the second argument is the file contents to write, which we put into a vector
 	EidosValue_String *contents_value = (EidosValue_String *)p_arguments[1].get();

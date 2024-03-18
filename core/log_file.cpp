@@ -59,44 +59,8 @@ void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std
 	if (p_compress && !Eidos_string_hasSuffix(user_file_path_, ".gz"))
 		user_file_path_.append(".gz");
 	
-	// Resolve a ~ at the start of the path
-	resolved_file_path_ = Eidos_ResolvedPath(user_file_path_);
-	
-	// A zero-length path is an error
-	if (resolved_file_path_.length() == 0)
-		EIDOS_TERMINATION << "ERROR (LogFile::ConfigureFile): resolved path is zero-length." << EidosTerminate();
-	
-	// Convert to an absolute path so we do not depend on the current working directory, which could change
-#ifdef _WIN32
-	// On Windows, absolute paths start with a drive identifier from "A:" to "Z:", and then a path separator "/" or "\"
-	// Note that we do not presently support absolute paths from the "current drive", like "\Program Files\Custom Utilities\StringFinder.exe"
-	// We also do not support relative paths from per-drive current directories, like "C:Projects\apilibrary\apilibrary.sln"
-	// I'm not sure what happens if such paths are used, nor what ought to happen, since I don't really understand Windows paths well.
-	// Our support for Windows-style paths could thus be improxed; FIXME.  See https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
-	bool is_absolute_path = ((resolved_file_path_.length() >= 3) && (resolved_file_path_[0] >= 'A') && (resolved_file_path_[0] <= 'Z') && (resolved_file_path_[1] == ':') && ((resolved_file_path_[2] == '/') || (resolved_file_path_[2] == '\\')));
-#else
-	// On other platforms, absolute paths start with a "/"
-	bool is_absolute_path = ((resolved_file_path_.length() >= 1) && (resolved_file_path_[0] == '/'));
-#endif
-	
-	if (!is_absolute_path)
-	{
-		std::string current_dir = Eidos_CurrentDirectory();
-		size_t current_dir_length = current_dir.length();
-		
-		if (current_dir_length > 0)
-		{
-			// Figure out whether we need to append a '/' to the CWD or not; I'm not sure whether this is standard
-			if (current_dir[current_dir_length - 1] == '/')
-				resolved_file_path_ = current_dir + resolved_file_path_;
-			else
-				resolved_file_path_ = current_dir + "/" + resolved_file_path_;
-		}
-		else
-		{
-			EIDOS_TERMINATION << "ERROR (LogFile::ConfigureFile): current working directory seems to be invalid." << EidosTerminate();
-		}
-	}
+	// Resolve a ~ at the start of the path, and get a canonical absolute path
+	resolved_file_path_ = Eidos_AbsolutePath(user_file_path_);
 	
 	compress_ = p_compress;
 	sep_ = p_sep;
