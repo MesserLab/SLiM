@@ -648,10 +648,11 @@ See the documentation for
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the recombination rate per base position per gamete.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
+\f2\fs20 \cf2 Set the recombination rate per base position per gamete.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
 \f1\fs18 initializeMutationRate()
-\f2\fs20 ).  All rates must be in the interval [
+\f2\fs20 ).  A recombination rate of 1 centimorgan/Mbp corresponds to a recombination rate of 
+\f1\fs18 1e-8
+\f2\fs20  in the units used by SLiM.  All rates must be in the interval [
 \f1\fs18 0.0
 \f2\fs20 , 
 \f1\fs18 0.5
@@ -688,9 +689,9 @@ There are two ways to call this function.  If the optional
 \f1\fs18 ends
 \f2\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f1\fs18 ends
-\f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).  Note that a recombination rate of 1 centimorgan/Mbp corresponds to a recombination rate of 
-\f1\fs18 1e-8
-\f2\fs20  in the units used by SLiM.\
+\f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 For example, if the following call is made:\
 \pard\pardeftab720\ri720\partightenfactor0
 

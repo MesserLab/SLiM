@@ -4511,7 +4511,11 @@ Given this automatic invalidation, most simulations have no reason to call
 
 \f4\fs20 \cf2 The interval for automatic logging; a new row of data will be logged every 
 \f3\fs18 logInterval
-\f4\fs20  ticks.  This may be changed with 
+\f4\fs20  ticks.  This may be set with the 
+\f3\fs18 logInterval
+\f4\fs20  parameter to 
+\f3\fs18 createLogFile()
+\f4\fs20  and changed with 
 \f3\fs18 setLogInterval()
 \f4\fs20 .  If automatic logging has been disabled, this property will be 
 \f3\fs18 0
@@ -4560,6 +4564,8 @@ Given this automatic invalidation, most simulations have no reason to call
 
 \f4\fs20 \cf2 Adds a new data column with its name provided by 
 \f3\fs18 columnName
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  The value for the column, when a given row is generated, will be produced by the code supplied in 
 \f3\fs18 source
 \f4\fs20 , which is expected to return either 
@@ -4598,7 +4604,9 @@ See
 \f3\fs18 species
 \f4\fs20  (the same as the value of the 
 \f3\fs18 cycle
-\f4\fs20  property of that species).  In single-species models, 
+\f4\fs20  property of that species).  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
+\f4\fs20 .  In single-species models, 
 \f3\fs18 species
 \f4\fs20  may be 
 \f3\fs18 NULL
@@ -4612,6 +4620,8 @@ See
 
 \f4\fs20 \cf2 Adds a new data column that provides the cycle stage, named 
 \f3\fs18 cycle_stage
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  The stage is provided as a 
 \f3\fs18 string
 \f4\fs20 , and will typically be 
@@ -4650,6 +4660,8 @@ See
 \f3\fs18 columnName_mean
 \f4\fs20  and 
 \f3\fs18 columnName_sd
+\f4\fs20 .  The new columns will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  When a given row is generated, the code supplied in 
 \f3\fs18 source
 \f4\fs20  is expected to return either a zero-length vector of any type including 
@@ -4676,6 +4688,8 @@ See
 
 \f4\fs20 \cf2 Adds a new data column that provides the population sex ratio M:(M+F) for 
 \f3\fs18 species
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  In single-species models, 
 \f3\fs18 species
 \f4\fs20  may be 
@@ -4692,6 +4706,8 @@ See
 
 \f4\fs20 \cf2 Adds a new data column that provides the total population size for 
 \f3\fs18 species
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  In single-species models, 
 \f3\fs18 species
 \f4\fs20  may be 
@@ -4708,6 +4724,8 @@ See
 \f3\fs18 subpop
 \f4\fs20 , named 
 \f3\fs18 pX_sex_ratio
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  If the subpopulation exists but has a size of zero, 
 \f3\fs18 NA
 \f4\fs20  will be written.\
@@ -4720,6 +4738,8 @@ See
 \f3\fs18 subpop
 \f4\fs20 , named 
 \f3\fs18 pX_num_individuals
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  If the subpopulation exists but has a size of zero, 
 \f3\fs18 0
 \f4\fs20  will be written.\
@@ -4730,6 +4750,8 @@ See
 
 \f4\fs20 \cf2 Adds a new data column with its name provided by 
 \f3\fs18 columnName
+\f4\fs20 .  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
 \f4\fs20 .  The value for the column is initially undefined, and will be written as 
 \f3\fs18 NA
 \f4\fs20 .  A different value may (optionally) be provided by calling 
@@ -4748,7 +4770,9 @@ See
 
 \f4\fs20 \cf2 Adds a new data column, named 
 \f3\fs18 tick
-\f4\fs20 , that provides the tick number for the simulation.
+\f4\fs20 , that provides the tick number for the simulation.  The new column will be logged each time that a row is generated, either by automatic logging or by a call to 
+\f3\fs18 logRow()
+\f4\fs20 .
 \f3\fs18 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 \cf2 \'96\'a0(void)clearKeysAndValues(void)\
