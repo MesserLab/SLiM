@@ -30,7 +30,7 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		[self setXAxisRangeFromTick];
+		//[self setXAxisRangeFromTick];	// the end tick is not yet known
 		
 		[self setXAxisLabelString:@"Tick"];
 		[self setYAxisLabelString:@"Frequency"];
@@ -511,8 +511,8 @@
 	
 	if (![controller invalidSimulation])
 	{
-		if (![self xAxisIsUserRescaled])
-			[self setXAxisRangeFromTick];
+		//if (![self xAxisIsUserRescaled])
+		//	[self setXAxisRangeFromTick];	// the end tick is not yet known
 		
 		[self setNeedsDisplay:YES];
 	}
@@ -545,6 +545,10 @@
 
 - (void)updateAfterTick
 {
+	// BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+	if (![self xAxisIsUserRescaled])
+		[self setXAxisRangeFromTick];
+	
 	// Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
 	[self addSubpopulationsToMenu];

@@ -47,7 +47,7 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		[self setXAxisRangeFromTick];
+		//[self setXAxisRangeFromTick];	// the end tick is not yet known
 		[self setDefaultYAxisRange];
 		
 		[self setXAxisLabelString:@"Tick"];
@@ -73,8 +73,8 @@
 	{
 		if (![self yAxisIsUserRescaled])
 			[self setDefaultYAxisRange];
-		if (![self xAxisIsUserRescaled])
-			[self setXAxisRangeFromTick];
+		//if (![self xAxisIsUserRescaled])	// the end tick is not yet known
+		//	[self setXAxisRangeFromTick];
 		
 		[self setNeedsDisplay:YES];
 	}
@@ -98,6 +98,10 @@
 - (void)updateAfterTick
 {
 	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	// BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+	if (displaySpecies && ![self xAxisIsUserRescaled])
+		[self setXAxisRangeFromTick];
 	
 	if (displaySpecies && ![self yAxisIsUserRescaled])
 	{

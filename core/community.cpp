@@ -1494,6 +1494,9 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *node)
 
 void Community::EvaluateScriptBlockTickRanges()
 {
+	if (tick_ranges_available_)
+		EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): (internal error) EvaluateScriptBlockTickRanges() called unexpectedly." << EidosTerminate(nullptr);
+	
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	
 	// Evaluate tick range expressions to determine the start and end tick for each block
@@ -1696,10 +1699,23 @@ void Community::EvaluateScriptBlockTickRanges()
 			}
 		}
 	}
+	
+	// Notify the various interested parties that the script blocks have changed
+	last_script_block_tick_cached_ = false;
+	script_block_types_cached_ = false;
+	scripts_changed_ = true;
+	
+	// We are now open for business
+	tick_ranges_available_ = true;
 }
 
 slim_tick_t Community::FirstTick(void)
 {
+	// BEWARE!  This method must not be called before EvaluateScriptBlockTickRanges() has been
+	// called, after the last initialize() callback!  It will provide incorrect information!
+	if (!tick_ranges_available_)
+		EIDOS_TERMINATION << "ERROR (Community::FirstTick): (internal error) the first tick cannot be calculated yet, because tick ranges have not yet been evaluated." << EidosTerminate(nullptr);
+	
 	slim_tick_t first_tick = SLIM_MAX_TICK + 1;
 	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
 	
@@ -1732,6 +1748,11 @@ slim_tick_t Community::FirstTick(void)
 
 slim_tick_t Community::EstimatedLastTick(void)
 {
+	// BEWARE!  This method must not be called before EvaluateScriptBlockTickRanges() has been
+	// called, after the last initialize() callback!  It will provide incorrect information!
+	if (!tick_ranges_available_)
+		EIDOS_TERMINATION << "ERROR (Community::EstimatedLastTick): (internal error) the estimated last tick cannot be calculated yet, because tick ranges have not yet been evaluated." << EidosTerminate(nullptr);
+	
 	// return our cached value if we have one
 	if (last_script_block_tick_cached_)
 		return last_script_block_tick_;
@@ -1991,6 +2012,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// BCH 3/6/2024: Here is where we now determine the tick ranges for script blocks; we now
 	// do this in a deferred fashion to allow tick ranges to contain constant expressions.
 	// It needs to be done before the call to FirstTick() below so tick ranges are valid.
+	// Nobody can call FirstTick() or EstimatedLastTick() before this point!
 	EvaluateScriptBlockTickRanges();
 	
 	// determine the first tick and emit our start log

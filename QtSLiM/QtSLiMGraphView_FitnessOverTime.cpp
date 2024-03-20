@@ -34,7 +34,7 @@
 
 QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromTick();
+    //setXAxisRangeFromTick();	// the end tick is not yet known
     setDefaultYAxisRange();
     
     xAxisLabel_ = "Tick";
@@ -84,8 +84,8 @@ void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
 	{
 		if (!yAxisIsUserRescaled_)
 			setDefaultYAxisRange();
-		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromTick();
+		//if (!xAxisIsUserRescaled_)
+		//	setXAxisRangeFromTick();	// the end tick is not yet known
 		
 		update();
 	}
@@ -117,6 +117,10 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
     
     if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
     {
+        // BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+        if (!xAxisIsUserRescaled_)
+            setXAxisRangeFromTick();
+        
         Population &pop = graphSpecies->population_;
         double minHistory = std::numeric_limits<double>::infinity();
         double maxHistory = -std::numeric_limits<double>::infinity();

@@ -1699,6 +1699,11 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 void QtSLiMGraphView::setXAxisRangeFromTick(void)
 {
 	Community *community = controller_->community;
+    
+    // We can't get the estimated last tick until tick ranges are known
+    if (community->Tick() < 1)
+        return;
+    
 	slim_tick_t lastTick = community->EstimatedLastTick();
 	
 	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere

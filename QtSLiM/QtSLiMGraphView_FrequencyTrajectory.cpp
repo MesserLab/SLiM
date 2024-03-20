@@ -34,7 +34,7 @@
 
 QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromTick();
+    //setXAxisRangeFromTick();	// the end tick is not yet known
     
     xAxisLabel_ = "Tick";
     yAxisLabel_ = "Frequency";
@@ -283,8 +283,8 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
 {
 	if (!controller_->invalidSimulation())
 	{
-		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromTick();
+		//if (!xAxisIsUserRescaled_)
+		//	setXAxisRangeFromTick();	// the end tick is not yet known
 		
 		update();
 	}
@@ -335,12 +335,16 @@ QString QtSLiMGraphView_FrequencyTrajectory::aboutString(void)
 
 void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 {
+    // BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+    if (!xAxisIsUserRescaled_)
+        setXAxisRangeFromTick();
+    
     // Rebuild the subpop and muttype menus; this has the side effect of checking and fixing our selections, and that,
-	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
-	addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
-	
-	QtSLiMGraphView::updateAfterTick();
+    // in turn, will have the side effect of invaliding our cache and fetching new data if needed
+    addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
+    addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
+    
+    QtSLiMGraphView::updateAfterTick();
 }
 
 QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)

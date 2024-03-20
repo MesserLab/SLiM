@@ -34,7 +34,7 @@
 
 QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromTick();
+    //setXAxisRangeFromTick();	// the end tick is not yet known
     setDefaultYAxisRange();
     
     xAxisLabel_ = "Tick";
@@ -83,8 +83,8 @@ void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
 	{
 		if (!yAxisIsUserRescaled_)
 			setDefaultYAxisRange();
-		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromTick();
+		//if (!xAxisIsUserRescaled_)
+		//	setXAxisRangeFromTick();	// the end tick is not yet known
 		
 		update();
 	}
@@ -108,8 +108,12 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 {
     Species *graphSpecies = focalDisplaySpecies();
     
-	if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
-	{
+    // BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+    if (!controller_->invalidSimulation() && graphSpecies && !xAxisIsUserRescaled_)
+        setXAxisRangeFromTick();
+    
+    if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
+    {
 		Population &pop = graphSpecies->population_;
 		slim_popsize_t maxHistory = 0;
 		bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);

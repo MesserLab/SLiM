@@ -72,6 +72,7 @@ private:
 	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
 	
 	// a cache of the last tick for the simulation, for speed
+	bool tick_ranges_available_ = false;											// false until tick ranges have been determined, after initialize() callbacks
 	bool last_script_block_tick_cached_ = false;
 	slim_tick_t last_script_block_tick_;											// the last tick in which a bounded script block is scheduled to run
 	

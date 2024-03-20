@@ -37,7 +37,7 @@ QtSLiMGraphView_MultispeciesPopSizeOverTime::QtSLiMGraphView_MultispeciesPopSize
     // super assumes that we are species-specific; we tell it we are not
     setFocalDisplaySpecies(nullptr);
     
-    setXAxisRangeFromTick();
+    //setXAxisRangeFromTick();	// the end tick is not yet known
     setDefaultYAxisRange();
     
     xAxisLabel_ = "Tick";
@@ -87,8 +87,8 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::controllerRecycled(void)
 	{
 		if (!yAxisIsUserRescaled_)
 			setDefaultYAxisRange();
-		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromTick();
+		//if (!xAxisIsUserRescaled_)
+		//	setXAxisRangeFromTick();	// the end tick is not yet known
 		
 		update();
 	}
@@ -110,8 +110,12 @@ QString QtSLiMGraphView_MultispeciesPopSizeOverTime::aboutString(void)
 
 void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
 {
-	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
-	{
+    // BCH 3/20/2024: We set the x axis range each tick, because the end tick is now invalid until after initialize() callbacks
+    if (!controller_->invalidSimulation() && !xAxisIsUserRescaled_)
+        setXAxisRangeFromTick();
+    
+    if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
+    {
         Community *community = controller_->community;
         slim_popsize_t maxHistory = 0;
         
