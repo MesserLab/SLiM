@@ -994,6 +994,14 @@ The
 \f4\fs20  to write out the data you are interested in from your simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(integer$)estimatedLastTick(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns SLiM\'92s current estimate of the last tick in which the model will execute.  Because script blocks can be added, removed, and rescheduled, and because the simulation may end prematurely (due to a call to 
+\f3\fs18 simulationFinished()
+\f4\fs20 , for example), this is only an estimate, and may change over time.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 \'96\'a0(void)deregisterScriptBlock(io<SLiMEidosBlock>\'a0scriptBlocks)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

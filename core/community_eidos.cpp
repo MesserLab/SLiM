@@ -547,6 +547,7 @@ EidosValue_SP Community::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, 
 	switch (p_method_id)
 	{
 		case gID_createLogFile:					return ExecuteMethod_createLogFile(p_method_id, p_arguments, p_interpreter);
+		case gID_estimatedLastTick:				return ExecuteMethod_estimatedLastTick(p_method_id, p_arguments, p_interpreter);
 		case gID_deregisterScriptBlock:			return ExecuteMethod_deregisterScriptBlock(p_method_id, p_arguments, p_interpreter);
 		case gID_genomicElementTypesWithIDs:	return ExecuteMethod_genomicElementTypesWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_interactionTypesWithIDs:		return ExecuteMethod_interactionTypesWithIDs(p_method_id, p_arguments, p_interpreter);
@@ -649,6 +650,19 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	}
 	
 	return result_SP;
+}
+
+//	*********************	- (integer$)estimatedLastTick(void)
+//
+EidosValue_SP Community::ExecuteMethod_estimatedLastTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!tick_ranges_available_)
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_estimatedLastTick): estimatedLastTick() cannot be called until script block tick ranges have been evaluated, after initialize() callbacks have finished executing." << EidosTerminate();
+	
+	slim_tick_t last_tick = EstimatedLastTick();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_tick));
 }
 
 //	*********************	- (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
@@ -1366,6 +1380,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_estimatedLastTick, kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_genomicElementTypesWithIDs, kEidosValueMaskObject, gSLiM_GenomicElementType_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactionTypesWithIDs, kEidosValueMaskObject, gSLiM_InteractionType_Class))->AddInt("ids"));
