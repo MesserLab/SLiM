@@ -15,10 +15,10 @@ development head (in the master branch):
 	optimize strength() and interactionDistance() in the case where exerters != NULL; had a very bad algorithm, now O(N) instead of O(NM) where N is # exerters, M is # interactors for the focal receiver
 	broaden the for loop syntax in Eidos to allow multiple 'in' clauses, such as "for (i in 1:5, j in 6:10) ..."
 		as a side effect, for loop index variables are now constants until the loop has finished
-		to demonstrate the new syntax, recipes 10.5 and 19.7 have been modified to use it
+		to demonstrate the new syntax, recipes 10.5, 14.7, and 19.7 have been modified to use it
 	fix #422: readFromPopulationFile() for .trees files in SLiM 4.1 hits a MUCH higher peak memory usage in some cases, due to over-copying of mutation runs
 	add deviatePositions() method to Subpopulation for even faster offspring positioning than with pointDeviated(); revise recipes 16.3 and 16.8 to use it
-	add basic custom plotting capabilities to SLiMgui, through the slimgui object, with new methods createPlot(), lines(), points(), and text(); revise recipe 13.5 to demonstrate this capability
+	add basic custom plotting capabilities to SLiMgui, through the slimgui object, with new methods createPlot(), lines(), points(), and text(); revise recipes 13.5 and 14.7 to demonstrate this capability
 	add SLiMgui plotting of data from LogFile output, through a context menu in the debug output window; revise recipes 4.2.5 and 15.16 (text only, not code) to demonstrate this capability
 	split out the new plotting functionality into a new class, Plot, available only in SLiMgui
 	add support for legends in the SLiMgui plotting code with addLegend(), legendLineEntry(), legendPointEntry(), and legendSwatchEntry()
@@ -39,6 +39,7 @@ development head (in the master branch):
 	revised recipes 16.6, 16.7, 16.8, 16.9, 16.10, and 16.11 to use new APIs and conventions (mapValue(), mapColor(), uppercasing defined constants)
 	require the symbol name passed to defineConstant() / defineGlobal() to be a valid Eidos identifier
 	fix a bug that would cause failures to write buffered compressed data from writeFile(), only in SLiMgui; these failures were not reported to the user well (only through SLiMgui's stderr)
+	recipe 14.7 is a ground-up rewrite, to show the utility of using marker mutations to track true local ancestry, including live plotting in SLiMgui
 	
 
 version 4.1 (Eidos version 3.1):

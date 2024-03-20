@@ -99,7 +99,7 @@
         <file>recipes/Recipe 14.4 - Modeling chromosomal inversions with a recombination() callback.txt</file>
         <file>recipes/Recipe 14.5 - Modeling both X and Y Chromosomes with a Pseudo-Autosomal Region (PAR).txt</file>
         <file>recipes/Recipe 14.6 - Estimating model parameters with ABC.txt</file>
-        <file>recipes/Recipe 14.7 - Tracking true local ancestry along the chromosome.txt</file>
+        <file>recipes/Recipe 14.7 - Tracking local ancestry along the chromosome.txt</file>
         <file>recipes/Recipe 14.8 - Live plotting with R using system().txt</file>
         <file>recipes/Recipe 14.9 - Modeling haploid organisms.txt</file>
         <file>recipes/Recipe 14.10 - Using mutation rate variation to model varying functional density.txt</file>
