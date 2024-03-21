@@ -7,7 +7,7 @@
 %endif
 
 Name:           SLiM
-Version:        4.1
+Version:        4.2
 Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
@@ -72,6 +72,9 @@ visualization of simulation output.
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Thu Mar 20 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.2-1
+- No changes to the package have been made since the last release. See the SLiM release notes on GitHub for information about changes to the packaged software.
+
 * Mon Dec 4 2023 Bryce Carson <bryce.a.carson@gmail.com> - 4.1-1
 - Final candidate 1 for 4.1 release
 - CMake install of package desktop environment data properly implemented
