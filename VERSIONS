@@ -6,6 +6,9 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+
+
+version 4.2 (Eidos version 3.2):
 	fix for #418, a crash involving null genomes in nonWF (has_null_genomes_ was not set correctly by addCloned() or takeMigrants() when putting a null genome into a subpop that previously had none)
 	big changes to Eidos under the hood - removal of the singleton/vector distinction and EidosValue subclasses, add constness flag, differentiate casting vs. non-casting accesses, etc.
 	policy change: float indices are no longer legal for subsetting, indices must be integer (or a logical vector, as usual); this was inherited from R and is a bad idea for Eidos
@@ -43,7 +46,6 @@ development head (in the master branch):
 	add estimatedLastTick() method to Community; useful for custom plotting where you want to know the span of the model up front, to set an axis range, for example
 	adjusted recipe 5.3.1 to use zero-based subpopulation ids, simplifying the logic; the workshop uses this recipe and it was a common source of confusion
 	
-
 version 4.1 (Eidos version 3.1):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
 	fix recipe 17.10 to set the time unit, to avoid the timescale warning from tskit
