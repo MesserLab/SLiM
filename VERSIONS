@@ -41,6 +41,7 @@ development head (in the master branch):
 	fix a bug that would cause failures to write buffered compressed data from writeFile(), only in SLiMgui; these failures were not reported to the user well (only through SLiMgui's stderr)
 	recipe 14.7 is a ground-up rewrite, to show the utility of using marker mutations to track true local ancestry, including live plotting in SLiMgui
 	add estimatedLastTick() method to Community; useful for custom plotting where you want to know the span of the model up front, to set an axis range, for example
+	adjusted recipe 5.3.1 to use zero-based subpopulation ids, simplifying the logic; the workshop uses this recipe and it was a common source of confusion
 	
 
 version 4.1 (Eidos version 3.1):
