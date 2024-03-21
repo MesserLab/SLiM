@@ -2612,17 +2612,25 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
     bool inInvalidState = (!community || !community->simulation_valid_ || invalidSimulation());
     
-	if (fullUpdate)
+    if (fullUpdate)
+        updateOutputViews();
+    
+    // Minimal population table updating.  When the list of subpops changes, we always need to redisplay, otherwise the display
+    // list is outdated and might contain deallocated Subpopulations.  Other than that, though, we only want to redisplay
+    // on full updates, because reloading and redisplaying the tableview can be quite expensive.  The QtSLiMPopulationTableModel
+    // keeps a cache of its display list, and we can use that to see whether a redisplay is needed or not.
+    std::vector<Subpopulation *> newDisplaySubpops = listedSubpopulations();
+    
+    if (fullUpdate || populationTableModel_->needsUpdateForDisplaySubpops(newDisplaySubpops))
 	{
-		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
-		updateOutputViews();
-		
+        //qDebug() << "UPDATING TABLE";
+        
 		// Reloading the subpop tableview is tricky, because we need to preserve the selection across the reload, while also noting that the selection is forced
 		// to change when a subpop goes extinct.  The current selection is noted in the gui_selected_ ivar of each subpop.  So what we do here is reload the tableview
 		// while suppressing our usual update of our selection state, and then we try to re-impose our selection state on the new tableview content.  If a subpop
 		// went extinct, we will fail to notice the selection change; but that is OK, since we force an update of populationView and chromosomeZoomed below anyway.
-		reloadingSubpopTableview = true;
-        populationTableModel_->reloadTable();
+		reloadingSubpopTableview = true;                        // suppresses QtSLiMWindow::subpopSelectionDidChange()
+        populationTableModel_->reloadTable(newDisplaySubpops);  // invalidates newDisplaySubpops with std::swap()
 		
         int subpopCount = populationTableModel_->rowCount();
         
@@ -2654,6 +2662,10 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
         if ((ui->subpopTableView->selectionModel()->selectedRows().size() == 0) && subpopCount)
             ui->subpopTableView->selectAll();
 	}
+    else
+    {
+        //qDebug() << "skipping unnecessary table update";
+    }
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView
     ui->individualsWidget->update();

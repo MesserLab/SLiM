@@ -68,13 +68,24 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
             
             std::advance(popIter, p_index.row());
             Subpopulation *subpop = *popIter;
+            Species *species = &(subpop->species_);
+            
+            // BCH 3/21/2024: This check is a debugging leftover that should stay permanently.  The display list
+            // for the population table was out of date and contained subpopulations that had been deallocated,
+            // leading to a crash.  This was a very hard bug to find, so it's worth keeping this code here.  The
+            // bug was fixed with needsUpdateForDisplaySubpops() in QtSLiMPopulationTableModel.  
+            if (species == nullptr)
+            {
+                qDebug() << "INVALID SUBPOPULATION in QtSLiMPopulationTableModel::data()!";
+                qApp->beep();
+            }
             
             if (p_index.column() == 0)
             {
                 QString idString = QString("p%1").arg(subpop->subpopulation_id_);
                 
                 if (community->all_species_.size() > 1)
-                    idString.append(" ").append(QString::fromStdString(subpop->species_.avatar_));
+                    idString.append(" ").append(QString::fromStdString(species->avatar_));
                 
                 return QVariant(idString);
             }
@@ -210,17 +221,19 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
     return QVariant();
 }
 
-void QtSLiMPopulationTableModel::reloadTable(void)
+bool QtSLiMPopulationTableModel::needsUpdateForDisplaySubpops(std::vector<Subpopulation *> &newDisplayList)
+{
+    // Checks whether our cached display list is out of date; if it is, a reload needs to be forced.
+    return (displaySubpops != newDisplayList);
+}
+
+void QtSLiMPopulationTableModel::reloadTable(std::vector<Subpopulation *> &newDisplayList)
 {
     beginResetModel();
     
     // recache the list of subpopulations we display
-    displaySubpops.clear();
-    
-    QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
-    
-    if (controller)
-        displaySubpops = controller->listedSubpopulations();
+    std::swap(displaySubpops, newDisplayList);
+    newDisplayList.clear();
     
     endResetModel();
 }

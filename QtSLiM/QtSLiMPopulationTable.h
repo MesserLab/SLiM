@@ -42,7 +42,8 @@ public:
     virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     virtual QVariant headerData(int section, Qt::Orientation p_orientation, int role = Qt::DisplayRole) const override;
     
-    void reloadTable(void);
+    bool needsUpdateForDisplaySubpops(std::vector<Subpopulation *> &newDisplayList);
+    void reloadTable(std::vector<Subpopulation *> &newDisplayList);
     
     Subpopulation *subpopAtIndex(int i) const { return displaySubpops[i]; }
     
