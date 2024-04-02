@@ -3799,8 +3799,11 @@ void Eidos_calc_sha_256(uint8_t hash[32], const void *input, size_t len)
 void Eidos_hash_to_string(char string[65], const uint8_t hash[32])
 {
 	size_t i;
+	size_t buf_left = 65;
+	
 	for (i = 0; i < 32; i++) {
-		string += snprintf(string, 65, "%02x", hash[i]);
+		string += snprintf(string, buf_left, "%02x", hash[i]);
+		buf_left -= 2;
 	}
 }	
 
