@@ -110,7 +110,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_nonWF.slim&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_WF.slim&quot;"

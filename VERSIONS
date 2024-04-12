@@ -6,7 +6,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
-	fix a crash when BorrowShuffleBuffer() is called with size zero, unfortunately introduced when debugging a different problem
+	fix a crash when BorrowShuffleBuffer() is called with size zero, unfortunately introduced when debugging a different problem; occurs when a nonWF model has a subpop of size 0 at reproduction() time
 	
 
 version 4.2 (Eidos version 3.2):
