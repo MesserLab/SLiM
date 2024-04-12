@@ -3117,7 +3117,12 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 	if (shuffle_buf_borrowed_)
 		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer already borrowed." << EidosTerminate();
 	
+#if DEBUG_SHUFFLE_BUFFER
+	// guarantee allocation even with a p_buffer_size of 0, so we have a place to put our overrun barriers
+	if ((p_buffer_size > shuffle_buf_capacity_) || (p_buffer_size == 0))
+#else
 	if (p_buffer_size > shuffle_buf_capacity_)
+#endif
 	{
 		if (shuffle_buffer_)
 			free(shuffle_buffer_);

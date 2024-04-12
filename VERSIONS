@@ -6,7 +6,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
-
+	fix a crash when BorrowShuffleBuffer() is called with size zero, unfortunately introduced when debugging a different problem
+	
 
 version 4.2 (Eidos version 3.2):
 	fix for #418, a crash involving null genomes in nonWF (has_null_genomes_ was not set correctly by addCloned() or takeMigrants() when putting a null genome into a subpop that previously had none)
