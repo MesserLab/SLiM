@@ -6,8 +6,11 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
-	fix a crash in BorrowShuffleBuffer(), introduced debugging a different problem; occurs when (a) a nonWF model has (b) a subpop of size 0 (c) at reproduction() time (d) before ever having a non-zero size
 	
+
+version 4.2.1 (Eidos version 3.2.1):
+	fix an issue in Linux release/installer builds with FORTIFY_SOURCE=3 (resulting in a "buffer overflow" error in self-test and in treeSeqOutput())
+	fix a crash in BorrowShuffleBuffer(), introduced debugging a different problem; occurs when (a) a nonWF model has (b) a subpop of size 0 (c) at reproduction() time (d) before ever having a non-zero size
 
 version 4.2 (Eidos version 3.2):
 	fix for #418, a crash involving null genomes in nonWF (has_null_genomes_ was not set correctly by addCloned() or takeMigrants() when putting a null genome into a subpop that previously had none)

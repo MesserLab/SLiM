@@ -44,8 +44,8 @@ class SLiMEidosBlock;
 
 
 // SLiM version: see also Info.plist and QtSLiM.pro
-#define SLIM_VERSION_STRING	("4.2")
-#define SLIM_VERSION_FLOAT	(4.2)
+#define SLIM_VERSION_STRING	("4.2.1")
+#define SLIM_VERSION_FLOAT	(4.21)
 
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state
