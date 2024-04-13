@@ -33,7 +33,11 @@
 #include "subpopulation.h"
 
 // This define changes the visualization a little for use making Perry's icon; should be 0 otherwise
-#define PERRY_ICON 1
+#define PERRY_ICON 0
+
+#if PERRY_ICON
+#warning PERRY_ICON should be 0!
+#endif
 
 QtSLiMGraphView_PopulationVisualization::QtSLiMGraphView_PopulationVisualization(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
