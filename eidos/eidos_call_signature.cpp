@@ -80,6 +80,10 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 	
 	// Default values should be marked constant, just to be safe.  We just make a copy here;
 	// it's not worth trying to avoid that, since this is just startup overhead.
+	// BCH: Note that copying removes the invisible flag that we use internally in some spots;
+	// we therefore note here whether the original value was invisible NULL, for reference below.
+	bool default_value_is_invisible_NULL = (p_default_value.get() == gStaticEidosValueNULLInvisible);
+	
 	if (p_default_value)
 	{
 		p_default_value = p_default_value->CopyValues();
@@ -116,7 +120,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 		EidosValue *argument = p_default_value.get();
 		EidosValueType arg_type = argument->Type();
 		
-		if ((type_mask != kEidosValueMaskAny) && (argument != gStaticEidosValueNULLInvisible))	// allow gStaticEidosValueNULLInvisible as a default even if the argument is not labelled as taking NULL; this is for internal use only
+		if ((type_mask != kEidosValueMaskAny) && !default_value_is_invisible_NULL)	// allow gStaticEidosValueNULLInvisible as a default even if the argument is not labelled as taking NULL; this is for internal use only
 		{
 			bool type_ok = true;
 			
