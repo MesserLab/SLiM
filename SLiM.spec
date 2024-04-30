@@ -8,7 +8,7 @@
 
 Name:           SLiM
 Version:        4.2.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        an evolutionary simulation framework
 
 License:        GPLv3+
@@ -72,6 +72,10 @@ visualization of simulation output.
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Tue Apr 30 2024 Ben Haller <bhaller@mac.com> - 4.2.1-2
+- No changes to the package have been made since the last release.
+- Another fix for a crashing bug under certain conditions.
+
 * Fri Apr 12 2024 Ben Haller <bhaller@mac.com> - 4.2.1-1
 - No changes to the package have been made since the last release.
 - Fix for a crashing bug under certain conditions.
