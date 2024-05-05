@@ -6,9 +6,11 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+
+
+version 4.2.2 (Eidos version 3.2.2):
 	fix SLiMgui crash with code completion
 	fix spurious VCF reading error (number of calls not equal to number of samples) due to incorrect usage of eof()
-	
 
 version 4.2.1 (Eidos version 3.2.1):
 	fix an issue in Linux release/installer builds with FORTIFY_SOURCE=3 (resulting in a "buffer overflow" error in self-test and in treeSeqOutput())
