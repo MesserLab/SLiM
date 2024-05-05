@@ -6,6 +6,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+	fix SLiMgui crash with code completion
+	fix spurious VCF reading error (number of calls not equal to number of samples) due to incorrect usage of eof()
 	
 
 version 4.2.1 (Eidos version 3.2.1):

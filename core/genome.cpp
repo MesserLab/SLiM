@@ -3056,10 +3056,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				iss >> sub;
 				if (sub != "segsites:")
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
-				if (iss.eof())
+				
+				if (!(iss >> sub))
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing segsites value." << EidosTerminate();
 				
-				iss >> sub;
 				int64_t segsites_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				
 				if ((segsites_long <= 0) || (segsites_long > 1000000))
@@ -3067,7 +3067,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				
 				segsites = (int)segsites_long;
 				
-				if (!iss.eof())
+				if (iss >> sub)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
 				
 				parse_state = 1;
@@ -3084,10 +3084,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				
 				for (int pos_index = 0; pos_index < segsites; ++pos_index)
 				{
-					if (iss.eof())
+					if (!(iss >> sub))
 						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing positions value." << EidosTerminate();
 					
-					iss >> sub;
 					double pos_double = EidosInterpreter::FloatForString(sub, nullptr);
 					
 					if ((pos_double < 0.0) || (pos_double > 1.0))
@@ -3104,7 +3103,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 					positions.emplace_back((slim_position_t)round(pos_double * last_position));
 				}
 				
-				if (!iss.eof())
+				if (iss >> sub)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
 				
 				parse_state = 2;
@@ -3320,19 +3319,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					// verify that the expected standard columns are present
 					for (const char *header_field : header_fields)
 					{
-						if (iss.eof())
+						if (!(iss >> sub))
 							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
-						iss >> sub;
 						if (sub != header_field)
 							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
 					}
 					
 					// the remaining columns are sample IDs; we don't care what they are, we just count them
-					while (!iss.eof())
-					{
-						iss >> sub;
+					while (iss >> sub)
 						sample_id_count++;
-					}
 					
 					// now the remainder of the file should be call lines
 					parse_state = 1;
@@ -3558,7 +3553,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 		for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
 		{
 			if (iss.eof())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectly before the last sample." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
 			
 			std::getline(iss, sub, '\t');
 			

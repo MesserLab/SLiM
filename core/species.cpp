@@ -683,10 +683,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		iss >> sub;		// prevalence, which we discard
 		
 		int8_t nucleotide = -1;
-		if (iss && !iss.eof())
+		if (iss && (iss >> sub))
 		{
 			// fetch the nucleotide field if it is present
-			iss >> sub;
 			if (sub == "A") nucleotide = 0;
 			else if (sub == "C") nucleotide = 1;
 			else if (sub == "G") nucleotide = 2;
