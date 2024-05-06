@@ -57,7 +57,8 @@ cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 option(TIDY "Run clang-tidy on SLiM (for development)" OFF)
 
 if(TIDY)
-	cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+	# cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+  if(CMAKE_VERSION VERSION_LESS "3.6") message(FATAL_ERROR "To use the clang-tidy wrapper TIDY in this project you will need a version of CMake at least as new as 3.6.") endif()
 	message(STATUS "TIDY is ${TIDY}; building with clang-tidy (for development)")
 	set(CMAKE_C_COMPILER "/opt/local/libexec/llvm-17/bin/clang")
 	set(CMAKE_CXX_COMPILER "/opt/local/libexec/llvm-17/bin/clang++")
@@ -318,41 +319,51 @@ endif(PARALLEL)
 
 # SLiMgui -- this can be enabled with the -DBUILD_SLIMGUI=ON option to cmake
 if(BUILD_SLIMGUI)
-cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
-set(TARGET_NAME SLiMgui)
-find_package(OpenGL REQUIRED)
-find_package(Qt5 REQUIRED
+  cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
+  set(TARGET_NAME SLiMgui)
+  find_package(OpenGL REQUIRED)
+  find_package(Qt5 REQUIRED
     Core
     Gui
     Widgets
-)
-if(WIN32)
+  )
+
+  if(WIN32)
     set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
-endif()
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-list(REMOVE_ITEM SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/main.cpp)
-file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/*.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
-add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
-set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_definitions( ${TARGET_NAME} PRIVATE EIDOSGUI=1 SLIMGUI=1)
-target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
-if(APPLE)
-	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
-else()
+  endif()
+
+  set(CMAKE_AUTOMOC ON)
+  set(CMAKE_AUTORCC ON)
+  set(CMAKE_AUTOUIC ON)
+  list(REMOVE_ITEM SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/main.cpp)
+  file(GLOB_RECURSE QTSLIM_SOURCES ${PROJECT_SOURCE_DIR}/QtSLiM/*.cpp ${PROJECT_SOURCE_DIR}/QtSLiM/*.qrc ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
+  add_executable(${TARGET_NAME} "${QTSLIM_SOURCES}" "${SLIM_SOURCES}")
+  set_target_properties( ${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+  target_compile_definitions( ${TARGET_NAME} PRIVATE EIDOSGUI=1 SLIMGUI=1)
+  target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
+
+  # Operating System-specific install stuff.
+  if(APPLE)
+	  target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+  else()
     if(WIN32)
-        set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
-        set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
-        target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
-        target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
+      set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
+      set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+      target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
+      target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
     else()
 	    target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
-        # Install icons and desktop files to the data root directory (usually /usr/local/share, or /usr/share).
-	    install(DIRECTORY data/ TYPE DATA)
-    endif() 
-endif()
-install(TARGETS ${TARGET_NAME} DESTINATION bin)
+
+      # Install icons and desktop files to the data root directory (usually /usr/local/share, or /usr/share).
+      if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.14")
+        install(DIRECTORY data/ TYPE DATA)
+      else()
+        message(WARNING "The CMake version is less than 3.14, so installation of icons, desktop files, mime types, etc. must occur manually.")
+      endif()
+    endif()
+  endif()
+
+  install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_SLIMGUI)
 
 
