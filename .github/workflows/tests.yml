@@ -186,6 +186,11 @@ jobs:
       - name: Choose GCC
         if: startsWith(matrix.os, 'ubuntu')
         run: |
+          # the following two lines try to fix a build failure with
+          # "Unable to locate package gcc-11"; see discussion at
+          # https://github.com/actions/runner-images/issues/9679
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update -y
           sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
           sudo update-alternatives \
             --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
