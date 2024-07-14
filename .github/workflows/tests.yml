@@ -38,11 +38,11 @@ jobs:
           - os: ubuntu-22.04
             gcc: 12
             python: 3.9
-          # macOS, oldest supported version (macos-10.15 was removed by GitHub)
-          - os: macos-11
-            python: 3.8
-          # macOS, newest supported version (macos-13 does not work yet)
+          # macOS, oldest supported version (macos-10.15 and macos-11 were removed by GitHub)
           - os: macos-12
+            python: 3.8
+          # macOS, newest supported version (haven't tried macos-14 yet)
+          - os: macos-13
             python: 3.9
 
     steps:
@@ -173,10 +173,10 @@ jobs:
             qt: 5.15.2
             gcc: 12
           # old macOS with oldest supported Qt.
-          - os: macos-11
-            qt: 5.9.5
-          # new macOS with most recent Qt (macos-13 does not work yet)
           - os: macos-12
+            qt: 5.9.5
+          # new macOS with most recent Qt
+          - os: macos-13
             qt: 5.15.2
 
     steps:
