@@ -427,14 +427,7 @@ endif()
 
 # add testing so it can be called using make test
 enable_testing()
-# we add test_build to generate the slim binary if make build has not been called first
-add_test(test_build
-  "${CMAKE_COMMAND}"
-  --build "${CMAKE_BINARY_DIR}"
-  --config "$<CONFIG>"
-  --target ${TARGET_NAME_SLIM}
-)
-set_tests_properties(test_build PROPERTIES FIXTURES_SETUP test_fixture)
+
 # test SLiM
 add_test(
   NAME testSLiM
@@ -445,6 +438,3 @@ add_test(
   NAME testEidos
   COMMAND ${TARGET_NAME_SLIM} -testEidos
 )
-set_tests_properties(testSLiM PROPERTIES FIXTURES_REQUIRED test_fixture)
-set_tests_properties(testEidos PROPERTIES FIXTURES_REQUIRED test_fixture)
-
