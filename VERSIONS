@@ -6,7 +6,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
-
+	fixed a bug in calcWattersonsTheta(): the value calculated would be incorrect if a window (start/end) was specified
+	
 
 version 4.2.2 (Eidos version 3.2.2):
 	fix SLiMgui crash with code completion

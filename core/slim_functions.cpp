@@ -272,6 +272,8 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
+	length = species.chromosome.lastPosition + 1;
+	
 	if (isNULL(muts))
 		muts = species.mutations;
 	
@@ -297,7 +299,7 @@ R"V0G0N({
 	k = size(muts);
 	n = genomes.size();
 	a_n = sum(1 / 1:(n-1));
-	theta = (k / a_n) / (species.chromosome.lastPosition + 1);
+	theta = (k / a_n) / length;
 	return theta;
 })V0G0N";
 
