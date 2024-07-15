@@ -123,9 +123,7 @@ jobs:
       - name: Test (Debug)
         run: |
           cd Debug
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
+          make test
 
       - name: Build (Release)
         run: |
@@ -137,9 +135,7 @@ jobs:
       - name: Test (Release)
         run: |
           cd Release
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
+          make test
 
       - name: Treesequence tests
         run: |
@@ -313,9 +309,7 @@ jobs:
       - name: Test (Release)
         run: |
           cd Release
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
+          make test
 
       - name: Treesequence tests
         shell: bash -l {0}
