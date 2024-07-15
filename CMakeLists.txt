@@ -433,8 +433,14 @@ add_test(
   NAME testSLiM
   COMMAND ${TARGET_NAME_SLIM} -testSLiM
 )
-# test Eidos
+# test Eidos from SLiM
 add_test(
-  NAME testEidos
+  NAME testEidosSLiM
   COMMAND ${TARGET_NAME_SLIM} -testEidos
+)
+
+# test Eidos from Eidos
+add_test(
+  NAME testEidosEidos
+  COMMAND ${TARGET_NAME_EIDOS} -testEidos
 )
