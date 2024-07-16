@@ -22,7 +22,7 @@ GitHub Actions | Fedora Copr | Conda
 License
 ----------
 
-Copyright (c) 2016-2023 Philipp Messer.  All rights reserved.
+Copyright (c) 2016-2024 Philipp Messer.  All rights reserved.
 
 SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -39,14 +39,14 @@ Installation
 ------------
 <em>Looking for Binary Packages / Installers?</em>
 
-The following subsections summarize what methods for acquiring SLiM (and SLiMgui) are available.  Building from sources is also an option on all platforms; see the next section.
+The following subsections summarize what methods for acquiring SLiM (and SLiMgui) are available.  Building from sources is also an option on all platforms; see the next section.  Chapter 2 of the SLiM manual contains much more detail on installation and building of SLiM.  The manual and other SLiM resources can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/#Downloads).
 
 ##### macOS
-https://github.com/MesserLab/SLiM/releases/download/v4.0.1/SLiM_OSX_Installer.pkg
+Download and double-click the macOS Installer from the SLiM home page at https://messerlab.org/slim/#Downloads.  It will install the `slim` and `eidos` command-line tools, as well as SLiMgui.
 
 ##### Linux
 ###### Arch & Manjaro
-Any Arch-based distributions *which support the AUR* should be compatibile.
+Any Arch-based distributions *which support the AUR* should be compatible.
 
 https://aur.archlinux.org/packages/slim-simulator/
 
@@ -56,25 +56,22 @@ Derivative distributions are not guaranteed compatibility with these binary pack
 https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/
 
 ###### Debian & Ubuntu (and any derivatives using dpkg)
-A shell script using the facilities of `dpkg` is available. It uses the CMake install target to integrate SLiMgui with the desktop environment. It has the advantage over building from source in that it will check build dependencies for you, and it will automatically remove build artifacts from `/tmp`. Source the script with `curl` following the instructions in the manual.
+A shell script using the facilities of `dpkg` is available. It uses the CMake install target to integrate SLiMgui with the desktop environment. It has the advantage over building from source that it will check build dependencies for you, and it will automatically remove build artifacts from `/tmp`. Source the script with `curl` following the instructions in the manual.
 
 https://raw.githubusercontent.com/MesserLab/SLiM-Extras/master/installation/DebianUbuntuInstall.sh
 
 ##### Windows (10 & 11)
 ###### Native package (using MSYS2)
-The installation instructions for the native package (using MSYS2) are available in the Manual.
+If you have MSYS2 installed, you can do `pacman -Syu` to update its information (see the SLiM manual for further information).  You can then install SLiM and SLiMgui with:
+
+`pacman -S mingw-w64-x86_64-slim-simulator`
 
 ###### WSL2 installation guide
-This guide shows how to use an XServer to display graphical applications from WSL2 on your machine. The instructions are out of date, but may still prove useful.
+The SLiM manual provides detailed instructions on building and installing SLiM and SLiMgui under the WSL2.
 
-Most of the instructions in the guide should be avoided, due to the subsystem for Linux now supporting graphical applications out-of-the-box: https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps.
-
-The last instruction, on sourcing the Debian & Ubuntu shell script, are still relevant if your preference is to use WSL2 rather than MSYS2.
-
-https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md
 
 
 Compilation of SLiM from Source
 ----------------------------------
 
-See chapter two of the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM resources can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
+You can build both SLiM and SLiMgui from sources.  This can be useful, in particular, if you wish to run a recent development version of SLiM, rather than the last released version.  See chapter 2 of the SLiM manual for more information on building from sources on various platforms.
