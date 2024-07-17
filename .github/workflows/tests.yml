@@ -1,5 +1,11 @@
 name: tests
-on: [push, pull_request]
+on:
+  # Run tests on every push to the main branch,
+  # on every pull request, and once a week (every monday at 05:00)
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 5 * * 1'
 jobs:
   canceller:
     runs-on: ubuntu-20.04
