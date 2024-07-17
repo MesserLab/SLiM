@@ -2225,6 +2225,12 @@ void QtSLiMWindow::updateOutputViews(void)
     {
         QString str = QString::fromStdString(newErrors);
         
+        // BCH 7/17/2024: Decided to send debug output to the main window also, not just the debug output tab
+        // of the debug window; otherwise important messages get lost.  So the main window shows both.
+        ui->outputTextEdit->moveCursor(QTextCursor::End);
+        ui->outputTextEdit->insertPlainText(str);
+        ui->outputTextEdit->moveCursor(QTextCursor::End);
+        
         if (debugWindow)
         {
             debugWindow->takeDebugOutput(str);

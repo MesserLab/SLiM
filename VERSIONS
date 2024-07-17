@@ -10,6 +10,7 @@ development head (in the master branch):
 	added TOC I and TOC II to the PDF index of the SLiM manual; removed the bottom-of-page links section, which made search difficult
 	add subpopulationsWithNames() method to Community, to facilitate being able to use user-defined names for subpops
 	fix bugs in some graphs in SLiMgui that could cause incorrect display or a crash in various circumstances
+	send debug output to the main window as well as the debug output tab, to avoid important messages getting lost
 	
 
 version 4.2.2 (Eidos version 3.2.2):
