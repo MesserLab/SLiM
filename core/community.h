@@ -219,6 +219,7 @@ public:
 	bool SubpopulationNameInUse(const std::string &p_subpop_name);					// not whether a SLiM subpop with this name currently exists, but whether the name is "in use"
 	
 	Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id);
+	Subpopulation *SubpopulationWithName(const std::string &p_subpop_name);
 	MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id);
 	GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id);
 	SLiMEidosBlock *ScriptBlockWithID(slim_objectid_t p_script_block_id);
@@ -366,6 +367,7 @@ public:
 	EidosValue_SP ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_subpopulationsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

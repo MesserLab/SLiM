@@ -556,6 +556,7 @@ EidosValue_SP Community::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, 
 		case gID_scriptBlocksWithIDs:			return ExecuteMethod_scriptBlocksWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_speciesWithIDs:				return ExecuteMethod_speciesWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_subpopulationsWithIDs:			return ExecuteMethod_subpopulationsWithIDs(p_method_id, p_arguments, p_interpreter);
+		case gID_subpopulationsWithNames:		return ExecuteMethod_subpopulationsWithNames(p_method_id, p_arguments, p_interpreter);
 		case gID_outputUsage:					return ExecuteMethod_outputUsage(p_method_id, p_arguments, p_interpreter);
 		case gID_registerFirstEvent:
 		case gID_registerEarlyEvent:
@@ -867,6 +868,30 @@ EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID
 			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_subpopulationsWithIDs): subpopulationsWithIDs() did not find a subpopulation with id " << id << "." << EidosTerminate();
 		
 		vec->set_object_element_no_check_NORR(object, id_index);
+	}
+	
+	return EidosValue_SP(vec);
+}
+
+//	*********************	– (object<Subpopulation>)subpopulationsWithNames(string names)
+//
+EidosValue_SP Community::ExecuteMethod_subpopulationsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *names_value = p_arguments[0].get();
+	int names_count = names_value->Count();
+	const std::string *names_data = names_value->StringData();
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Subpopulation_Class))->resize_no_initialize_RR(names_count);
+	
+	for (int name_index = 0; name_index < names_count; name_index++)
+	{
+		const std::string &name = names_data[name_index];
+		Subpopulation *object = SubpopulationWithName(name);
+		
+		if (!object)
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_subpopulationsWithNames): subpopulationsWithNames() did not find a subpopulation with name " << name << "." << EidosTerminate();
+		
+		vec->set_object_element_no_check_NORR(object, name_index);
 	}
 	
 	return EidosValue_SP(vec);
@@ -1396,6 +1421,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_speciesWithIDs, kEidosValueMaskObject, gSLiM_Species_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subpopulationsWithIDs, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddInt("ids"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subpopulationsWithNames, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddString("names"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_usage, kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

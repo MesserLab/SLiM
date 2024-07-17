@@ -1233,6 +1233,19 @@ Subpopulation *Community::SubpopulationWithID(slim_objectid_t p_subpop_id)
 	return nullptr;
 }
 
+Subpopulation *Community::SubpopulationWithName(const std::string &p_subpop_name)
+{
+	for (Species *species : all_species_)
+	{
+		Subpopulation *found_subpop = species->SubpopulationWithName(p_subpop_name);
+		
+		if (found_subpop)
+			return found_subpop;
+	}
+	
+	return nullptr;
+}
+
 MutationType *Community::MutationTypeWithID(slim_objectid_t p_muttype_id)
 {
 	for (Species *species : all_species_)

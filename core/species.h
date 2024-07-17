@@ -516,6 +516,7 @@ public:
 		auto id_iter = population_.subpops_.find(p_subpop_id);
 		return (id_iter == population_.subpops_.end()) ? nullptr : id_iter->second;
 	}
+	Subpopulation *SubpopulationWithName(const std::string &p_subpop_name);
 	inline MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id) {
 		auto id_iter = mutation_types_.find(p_muttype_id);
 		return (id_iter == mutation_types_.end()) ? nullptr : id_iter->second;

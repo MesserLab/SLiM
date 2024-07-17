@@ -1787,6 +1787,16 @@ void Species::DeleteAllMutationRuns(void)
 	}
 }
 
+Subpopulation *Species::SubpopulationWithName(const std::string &p_subpop_name) {
+	for (auto subpop_iter : population_.subpops_)
+	{
+		Subpopulation *subpop = subpop_iter.second;
+		if (subpop->name_ == p_subpop_name)
+			return subpop;
+	}
+	return nullptr;
+}
+
 
 //
 // Running cycles
