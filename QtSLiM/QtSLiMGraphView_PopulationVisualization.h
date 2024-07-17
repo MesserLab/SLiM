@@ -45,7 +45,7 @@ public slots:
 private:
     double scalingFactor_;
     
-    bool optimizePositions_;
+    bool optimizePositions_ = false;
     double scorePositions(double *center_x, double *center_y, bool *connected, size_t subpopCount);
     void optimizePositions(void); 
     
