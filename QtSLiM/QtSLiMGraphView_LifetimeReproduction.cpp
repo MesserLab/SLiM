@@ -270,16 +270,19 @@ double *QtSLiMGraphView_LifetimeReproduction::reproductionDistribution(int *binC
     if (!subpop1)
         return nullptr;
     
-    // Find the maximum age and choose the new bin count
-    slim_age_t maxReproduction = 0;
+    // Find the maximum reproductive output and choose the new bin count
+    int32_t maxReproduction = 0;
     
-    for (int reproduction : subpop1->lifetime_reproductive_output_F_)
+    for (int32_t reproduction : subpop1->lifetime_reproductive_output_F_)
         maxReproduction = std::max(maxReproduction, reproduction);
-    for (int reproduction : subpop1->lifetime_reproductive_output_MH_)
+    for (int32_t reproduction : subpop1->lifetime_reproductive_output_MH_)
         maxReproduction = std::max(maxReproduction, reproduction);
     
-    if (maxReproduction > *binCount)
-        *binCount = (int)(std::ceil(maxReproduction / 10.0) * 10.0 + 1);
+    // compare to the logic in QtSLiMGraphView_AgeDistribution::ageDistribution();
+    // it is different here because reproduction count 0 gets a bin, so if the
+    // max reproduction is 12, we need 13 bins; confusing!
+    if (maxReproduction >= *binCount)
+        *binCount = (int)(std::ceil(maxReproduction / 10.0) * 10.0 + 1);    // +1 because zero gets an entry
     
     int newBinCount = *binCount;
     

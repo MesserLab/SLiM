@@ -280,6 +280,9 @@ double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tal
     for (const Individual *individual : subpop1->CurrentIndividuals())
         maxAge = std::max(maxAge, individual->age_);
     
+    // compare to the logic in QtSLiMGraphView_LifetimeReproduction::reproductionDistribution();
+    // it is different here because we subtract 1 from every age in the tallying code below,
+    // there is no bin for age==0, and age==1 goes into bin #0; confusing!
     if (maxAge > *binCount)
         *binCount = (slim_age_t)(std::ceil(maxAge / 10.0) * 10.0);
     

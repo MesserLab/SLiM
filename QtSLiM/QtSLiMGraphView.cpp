@@ -1701,7 +1701,7 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 	Community *community = controller_->community;
     
     // We can't get the estimated last tick until tick ranges are known
-    if (community->Tick() < 1)
+    if (!community || (community->Tick() < 1))
         return;
     
 	slim_tick_t lastTick = community->EstimatedLastTick();
