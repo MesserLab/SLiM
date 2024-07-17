@@ -1,17 +1,11 @@
-# It's useful to use yamllint to find problems with this file;
-# pip install --user yamllint, python3 -m yamllint <file>
-#
-# It is quite aggressive by default, though, so I've disabled some rules
-#
-# yamllint disable rule:document-start
-# yamllint disable rule:line-length
-# yamllint disable rule:brackets
-# yamllint disable rule:braces
-
 name: tests
-
-on: [push, pull_request]     # yamllint disable-line rule:truthy
-
+on:
+  # Run tests on every push to the main branch,
+  # on every pull request, and once a week (every monday at 05:00)
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 5 * * 1'
 jobs:
   canceller:
     runs-on: ubuntu-20.04
@@ -20,218 +14,100 @@ jobs:
         uses: styfle/cancel-workflow-action@0.6.0
         with:
           access_token: ${{ github.token }}
-
-  CLI:
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
+  tests-Unix-CLI:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Ubuntu with the oldest supported GCC (used to be 4.8, but with 20.04 it is 7, sadly).
-          - os: ubuntu-20.04
-            gcc: 7
-            python: 3.8
-          # Ubuntu with the most recent GCC (on 22.04, that is 12).
-          - os: ubuntu-22.04
-            gcc: 12
-            python: 3.9
-          # macOS, oldest supported version (macos-10.15 and macos-11 were removed by GitHub)
-          - os: macos-12
-            python: 3.8
+          # Ubuntu with the oldest supported GCC
+          # (used to be 4.8, but with 20.04 it is 7, sadly).
+          - {os: ubuntu-20.04, gcc: 7, python: 3.8}
+          - {os: ubuntu-20.04, gcc: 11, python: 3.9}
+          # macOS, oldest supported version
+          # (macos-10.15 and macos-11 were removed by GitHub)
+          - {os: macos-12, python: 3.8}
           # macOS, newest supported version (haven't tried macos-14 yet)
-          - os: macos-13
-            python: 3.9
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Choose GCC
-        if: startsWith(matrix.os, 'ubuntu')
-        run: |
-          # Install specific GCC version as the default.
-          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
-          sudo update-alternatives \
-            --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
-            --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
-
-      - name: Cache conda and dependancies
-        id: cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            c:\Miniconda\envs\anaconda-client-env
-            /usr/share/miniconda/envs/anaconda-client-env
-            ~/osx-conda
-            ~/.profile
-          key: ${{ runner.os }}-${{ matrix.python }}-conda-v13-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
-
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
-          activate-environment: anaconda-client-env
-          python-version: ${{ matrix.python }}
-          channels: conda-forge
-          channel-priority: strict
-          auto-update-conda: true
-          use-only-tar-bz2: true
-
-      - name: Install conda deps
-        if: steps.cache.outputs.cache-hit != 'true'
-        shell: bash -l {0}    # We need a login shell to get conda
-        run: conda install --yes --file=treerec/tests/conda-requirements.txt
-
-      - name: Install pip deps
-        if: steps.cache.outputs.cache-hit != 'true'
-        shell: bash -l {0}
-        run: |
-          pip3 install -r treerec/tests/pip-requirements.txt
-
-      - name: Fix OSX Cache Write    # OSX Won't let the cache restore due to file perms
-        if: steps.cache.outputs.cache-hit != 'true' && startsWith(matrix.os, 'macos')
-        run: |
-          cp -r /usr/local/miniconda/envs/anaconda-client-env ~/osx-conda
-
-      - name: Fix OSX Cache Restore
-        if: steps.cache.outputs.cache-hit == 'true' && startsWith(matrix.os, 'macos')
-        run: |
-          sudo mkdir -p /usr/local/miniconda/envs
-          sudo cp -r ~/osx-conda /usr/local/miniconda/envs/anaconda-client-env
-
-      - name: Install pyslim
-        shell: bash -l {0}
-        run: |
-          # TODO: uncomment when pyslim 1.0 on conda
-          source ~/.profile
-          # conda activate anaconda-client-env
-          # pip install pyslim
-          git clone https://github.com/tskit-dev/pyslim.git
-          cd pyslim
-          pip3 install .
-
-      - name: Build (Debug)
-        run: |
-          mkdir Debug
-          cd Debug
-          cmake -D CMAKE_BUILD_TYPE=Debug ..
-          make -j 2
-
-      - name: Test (Debug)
-        run: |
-          cd Debug
-          make test
-
-      - name: Build (Release)
-        run: |
-          mkdir Release
-          cd Release
-          cmake -D CMAKE_BUILD_TYPE=Release ..
-          make -j 2
-
-      - name: Test (Release)
-        run: |
-          cd Release
-          make test
-
-      - name: Treesequence tests
-        run: |
-          source ~/.profile
-          conda activate anaconda-client-env
-          export PATH=$PATH:$PWD/Release
-          echo $PATH
-          cd treerec/tests && python -m pytest -xv
-
-  GUI:
+          - {os: macos-13, python: 3.9}
+      
     runs-on: ${{ matrix.os }}
-    env:
-      CXXFLAGS: -D NO_QT_VERSION_ERROR
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Ubuntu with the oldest supported Qt and GCC.
-          - os: ubuntu-20.04
-            qt: 5.9.5
-            gcc: 7
-          # Ubuntu with the most recent Qt and GCC.
-          - os: ubuntu-20.04
-            qt: 5.15.2
-            gcc: 11
-          # Ubuntu with the most recent Qt and GCC.
-          - os: ubuntu-22.04
-            qt: 5.15.2
-            gcc: 12
-          # old macOS with oldest supported Qt.
-          - os: macos-12
-            qt: 5.9.5
-          # new macOS with most recent Qt
-          - os: macos-13
-            qt: 5.15.2
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Choose GCC
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          activate-environment: anaconda-client-env
+          use-mamba: true
+          python-version: ${{ matrix.python }}
+      - name: Get Date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
+        env:
+          # Increase this value to reset cache if
+          # treerec/tests/environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+      - name: Update environment
+        run:
+          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Workaround for gcc-11
+        if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+          sudo apt-get update -y
+      - name: Set up default GCC (in Ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          # the following two lines try to fix a build failure with
-          # "Unable to locate package gcc-11"; see discussion at
-          # https://github.com/actions/runner-images/issues/9679
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-          sudo apt-get update -y
-          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }}
+          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }} && \
           sudo update-alternatives \
             --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v3
-        with:
-          version: ${{ matrix.qt }}
-          setup-python: true
-
-      - name: Build (cmake)
+      - name: Build and test (Debug)
         run: |
-          # Just do a release build.
-          mkdir Release
-          cd Release
-          cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..
-          make -j 2
-
-      - name: Build (qmake)
+          mkdir Debug && \
+          cd Debug && \
+          cmake -D CMAKE_BUILD_TYPE=Debug .. && \
+          make -j 2 && make test
+      - name: Build and test (Release)
         run: |
-          mkdir QtSLiM_QMAKE
-          cd QtSLiM_QMAKE
-          qmake ..
-          make -j 2
+          mkdir Release && \
+          cd Release && \
+          cmake -D CMAKE_BUILD_TYPE=Release .. && \
+          make -j 2 && make test
+      - name: Treesequence tests
+        shell: bash -el {0}
+        run: |
+            conda activate anaconda-client-env && \
+            export PATH=$PATH:$PWD/Release && \
+            echo $PATH && \
+            cd treerec/tests && python -m pytest -xv
 
-  # test windows-latest compilation
-  tests-windows-latest-CLI:
+  tests-Windows-CLI:
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64, python: 3.8 }
-          - { sys: ucrt64, env: ucrt-x86_64, python: 3.8 }
-    name: Windows CLI (${{ matrix.sys }}, ${{ matrix.env }})
+          - {sys: mingw64, env: x86_64, python: 3.8}
+          - {sys: ucrt64, env: ucrt-x86_64, python: 3.8}
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
+      - name: Check out repository code
+        uses: actions/checkout@v4
       - name: Setup MSYS2 ${{matrix.sys}}
         uses: msys2/setup-msys2@v2
         with:
@@ -243,99 +119,123 @@ jobs:
             msys2-devel
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
-
-      - name: Cache conda and dependancies
-        id: cache
-        uses: actions/cache@v2
+      - name: Setup Mambaforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          path: |
-            c:\Miniconda\envs\anaconda-client-env
-            ~/.bash_profile
-            ~/.profile
-          key: ${{ runner.os }}-${{ matrix.python}}-conda-v16-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
-
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v2
-        if: steps.cache.outputs.cache-hit != 'true'
-        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
           activate-environment: anaconda-client-env
-          python-version: ${{ matrix.python }}
-          channels: conda-forge
-          channel-priority: strict
+          use-mamba: true
           auto-update-conda: true
-          use-only-tar-bz2: true
-
-      - name: Install conda deps
+          python-version: ${{ matrix.python }}
+      - name: Get Date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
+        env:
+          # Increase this value to reset cache if
+          # treerec/tests/environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+      - name: Update environment
+        shell: bash -el {0}
+        run:
+          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
-        shell: bash -l {0}
+      - name: Build and test (Debug)
         run: |
-          conda install --yes --file=treerec/tests/conda-requirements.txt
-
-      - name: Install pip deps
-        if: steps.cache.outputs.cache-hit != 'true'
-        shell: bash -l {0}
+          cd windows_compat/gnulib && \
+          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in && \
+          cd ../.. && \
+          mkdir Debug && \
+          cd Debug && \
+          cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug .. && \
+          make -j 2 && make test
+      - name: Build and test (Release)
         run: |
-          pip install -r treerec/tests/pip-requirements.txt
-
-      - name: Install pyslim
-        shell: bash -l {0}
-        run: |
-          # TODO: uncomment when pyslim 1.0 is on conda
-          # conda install -c conda-forge pyslim
-          git clone https://github.com/tskit-dev/pyslim.git
-          cd pyslim
-          pip3 install .
-
-      - name: Debug
-        run: |
-          cd windows_compat/gnulib
-          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
-          cd ../..
-          mkdir Debug
-          cd Debug
-          cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
-          make -j 2
-
-      - name: Build (Release)
-        run: |
-          cd windows_compat/gnulib
-          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
-          cd ../..
-          mkdir Release
-          cd Release
-          cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-          make -j 2
-
-      - name: Test (Release)
-        run: |
-          cd Release
-          make test
-
+          cd windows_compat/gnulib && \
+          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in && \
+          cd ../.. && \
+          mkdir Release && \
+          cd Release && \
+          cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release .. && \
+          make -j 2 && make test
       - name: Treesequence tests
-        shell: bash -l {0}
+        shell: bash -el {0}
         run: |
-          export PATH=$PATH:$(pwd)/Release
-          cd treerec/tests
-          python -m pytest -xv
-
-  tests-windows-latest-GUI:
-    runs-on: windows-latest
+            conda activate anaconda-client-env && \
+            export PATH=$PATH:$PWD/Release && \
+            echo $PATH && \
+            cd treerec/tests && python -m pytest -xv
+  tests-Unix-GUI:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: ucrt64, env: ucrt-x86_64 }
-    name: Windows GUI (${{ matrix.sys }}, ${{ matrix.env }})
+          # Ubuntu with the oldest supported Qt and GCC.
+          - {os: ubuntu-20.04, qt: 5.9.5, gcc: 7}
+          # Ubuntu with the most recent Qt and GCC.
+          - {os: ubuntu-20.04, qt: 5.15.2, gcc: 11}
+          # Ubuntu with the most recent Qt and GCC.
+          - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
+          # old macOS with oldest supported Qt.
+          - {os: macos-12, qt: 5.9.5}
+          # new macOS with most recent Qt
+          - {os: macos-13, qt: 5.15.2}
+    runs-on: ${{ matrix.os }}
+    env:
+      CXXFLAGS: -D NO_QT_VERSION_ERROR
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Workaround for gcc-11
+        if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+          sudo apt-get update -y
+      - name: Set up default GCC (in Ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }} && \
+          sudo update-alternatives \
+            --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
+            --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt }}
+      - name: Release build with SLiMGUI
+        run: |
+          mkdir Release && \
+          cd Release  && \
+          cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..  && \
+          make -j 2 && make test
+  tests-Windows-GUI:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {sys: mingw64, env: x86_64}
+          - {sys: ucrt64, env: ucrt-x86_64}
+    runs-on: windows-latest
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
+      - name: Check out repository code
+        uses: actions/checkout@v4
       - name: Setup MSYS2 ${{matrix.sys}}
         uses: msys2/setup-msys2@v2
         with:
@@ -348,18 +248,16 @@ jobs:
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
             mingw-w64-${{matrix.env}}-qt5-base
-
-      - name: Build (cmake)
+      - name: Release build
         run: |
-          cd .
-          cd windows_compat/gnulib
-          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
-          cd ../..
-          # Just do a release build.
-          mkdir Release
-          cd Release
-          cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release ..
-          make -j 2
+          cd . && \
+          cd windows_compat/gnulib && \
+          touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in && \
+          cd ../.. && \
+          mkdir Release && \
+          cd Release && \
+          cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release .. && \
+          make -j 2 && make test
 
   tests-windows-latest-pacman:
     runs-on: windows-latest
@@ -367,18 +265,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: ucrt64, env: ucrt-x86_64 }
-    name: Windows pacman (${{ matrix.sys }}, ${{ matrix.env }})
+          - {sys: mingw64, env: x86_64}
+          - {sys: ucrt64, env: ucrt-x86_64}
     defaults:
       run:
         shell: msys2 {0}
     steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-        with:
-          submodules: true
-
+      - name: Check out repository code
+        uses: actions/checkout@v4
       - name: Setup MSYS2 ${{matrix.sys}}
         uses: msys2/setup-msys2@v2
         with:
@@ -386,7 +280,6 @@ jobs:
           update: true
           install: >-
             mingw-w64-${{matrix.env}}-slim-simulator
-
       - name: Test
         run: |
           eidos -testEidos
