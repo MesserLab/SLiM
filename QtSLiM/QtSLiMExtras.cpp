@@ -1256,6 +1256,86 @@ void QtSLiMEllipsisLabel::mousePressEvent(QMouseEvent *p_event)
         emit pressed();     // triggers QtSLiMWindow::jumpToPopupButtonPressed()
 }
 
+// Natural sorting (sorting numerically when the first difference is a numeric substring)
+bool EidosNaturalSort(QString &a, QString &b)
+{
+    QChar *aptr = a.data();
+    int alen = a.length();
+    
+    QChar *bptr = b.data();
+    int blen = b.length();
+    
+    do {
+        // look for a shared non-numeric prefix and remove it
+        while ((alen >= 1) && (blen >= 1))
+        {
+            QChar ach = *aptr;
+            QChar bch = *bptr;
+            
+            if ((ach == bch) && !ach.isDigit())
+            {
+                aptr++;
+                alen--;
+                
+                bptr++;
+                blen--;
+            }
+            else break;
+        }
+        
+        // parse a leading integer from both strings
+        bool anum = false;
+        int aval = 0;
+        
+        while ((alen >= 1) && aptr->isDigit())
+        {
+            char ach = aptr->toLatin1();    // we assume that if isDigit() is true, the digit is ASCII
+            
+            if ((ach >= '0') && (ach <= '9'))
+            {
+                aval = aval * 10 + (ach - '0');
+                aptr++;
+                alen--;
+                anum = true;
+            }
+        }
+        
+        bool bnum = false;
+        int bval = 0;
+        
+        while ((blen >= 1) && bptr->isDigit())
+        {
+            char bch = bptr->toLatin1();    // we assume that if isDigit() is true, the digit is ASCII
+            
+            if ((bch >= '0') && (bch <= '9'))
+            {
+                bval = bval * 10 + (bch - '0');
+                bptr++;
+                blen--;
+                bnum = true;
+            }
+        }
+        
+        // look for a shared numeric (integer) prefix
+        if (anum && bnum)
+        {
+            // if a numeric prefix is present in both, compare numerically
+            if (aval != bval)
+            {
+                return aval < bval;
+            }
+            // else if the numeric prefixes are identical, drop through and repeat the process
+        }
+        else
+        {
+            // if one or both strings do not have a numeric prefix, compare alphabetically
+            return a < b;
+        }
+    } while (true);
+    
+    return a < b;
+}
+
 
 
 

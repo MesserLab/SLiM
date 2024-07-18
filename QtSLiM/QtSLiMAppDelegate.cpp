@@ -33,6 +33,7 @@
 #include "QtSLiMTablesDrawer.h"
 #include "QtSLiMDebugOutputWindow.h"
 #include "QtSLiMConsoleTextEdit.h"
+#include "QtSLiMExtras.h"
 
 #include <QApplication>
 #include <QOpenGLWidget>
@@ -40,7 +41,6 @@
 #include <QMenu>
 #include <QAction>
 #include <QDir>
-#include <QCollator>
 #include <QKeyEvent>
 #include <QtGlobal>
 #include <QMenuBar>
@@ -425,12 +425,8 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
     // Find recipes in our resources and sort by numeric order
     QDir recipesDir(":/recipes/", "Recipe *.*", QDir::NoSort, QDir::Files | QDir::NoSymLinks);
     QStringList entryList = recipesDir.entryList(QStringList("Recipe *.*"));   // the previous name filter seems to be ignored
-    QCollator collator;
     
-    // BCH 11/14/2023: Note that on certain platforms, QCollator seems to do the wrong thing here.  This may be
-    // related to https://bugreports.qt.io/browse/QTBUG-54537.  It's their bug, and fairly harmless; so it goes.
-    collator.setNumericMode(true);
-    std::sort(entryList.begin(), entryList.end(), collator);
+    std::sort(entryList.begin(), entryList.end(), EidosNaturalSort);
     //qDebug() << entryList;
     
     // Append an action for each, organized into submenus

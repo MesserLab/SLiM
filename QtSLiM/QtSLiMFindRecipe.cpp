@@ -24,9 +24,9 @@
 #include "QtSLiMPreferences.h"
 #include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMExtras.h"
 
 #include <QDir>
-#include <QCollator>
 #include <QTextStream>
 #include <QDebug>
 
@@ -96,10 +96,8 @@ void QtSLiMFindRecipe::loadRecipes(void)
 {
     QDir recipesDir(":/recipes/", "Recipe *.*", QDir::NoSort, QDir::Files | QDir::NoSymLinks);
     QStringList entryList = recipesDir.entryList(QStringList("Recipe *.*"));   // the previous name filter seems to be ignored
-    QCollator collator;
     
-    collator.setNumericMode(true);
-    std::sort(entryList.begin(), entryList.end(), collator);
+    std::sort(entryList.begin(), entryList.end(), EidosNaturalSort);
     
     recipeFilenames = entryList;
     matchRecipeFilenames = entryList;

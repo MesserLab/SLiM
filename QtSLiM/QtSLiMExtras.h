@@ -262,6 +262,9 @@ private:
     QString m_text;
 };
 
+// Natural sorting (sorting numerically when the first difference is a numeric substring)
+bool EidosNaturalSort(QString &a, QString &b);
+
 
 // Incremental sorting
 //
