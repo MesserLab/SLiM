@@ -13,6 +13,7 @@ development head (in the master branch):
 	send debug output to the main window as well as the debug output tab, to avoid important messages getting lost
 	add a label next to the Jump button that shows the declaration of the script block containing the selection; clicking it runs the Jump menu
 	sort recipes by correct numerical order, in both the Recipes menu and the Find Recipe panel, on all platforms
+	update Robin Hood Hashing to 3.11.5 to get some minor fixes
 	
 
 version 4.2.2 (Eidos version 3.2.2):
