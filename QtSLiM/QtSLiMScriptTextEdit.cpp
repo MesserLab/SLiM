@@ -1044,6 +1044,12 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
         {
             statusBar->clearMessage();
         }
+        
+        // show the script block's declaration to the right of the Jump button
+        QtSLiMWindow *windowSLiMController = dynamic_cast<QtSLiMWindow *>(window());
+        
+        if (windowSLiMController)
+            windowSLiMController->setScriptBlockLabelTextFromSelection();
     }
 }
 

@@ -35,6 +35,7 @@
 #include <QSplitterHandle>
 #include <QStatusBar>
 #include <QPlainTextEdit>
+#include <QLabel>
 
 #include <cmath>
 #include <algorithm>
@@ -237,6 +238,29 @@ protected:
 QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap);
 
 void QtSLiMFlashHighlightInTextEdit(QPlainTextEdit *te);
+
+// A QLabel subclass that shows shortened text with an ellipsis; see https://stackoverflow.com/a/73316405/2752221
+class QtSLiMEllipsisLabel : public QLabel
+{
+    Q_OBJECT
+    
+public:
+    explicit QtSLiMEllipsisLabel(QWidget *parent = nullptr);
+    explicit QtSLiMEllipsisLabel(QString text, QWidget *parent = nullptr);
+    void setText(QString);
+    virtual QSize minimumSizeHint() const;
+    
+signals:
+    void pressed(void);
+    
+protected:
+    void resizeEvent(QResizeEvent *p_event);
+    void mousePressEvent(QMouseEvent *p_event);
+    
+private:
+    void updateText();
+    QString m_text;
+};
 
 
 // Incremental sorting

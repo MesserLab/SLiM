@@ -1207,6 +1207,54 @@ void QtSLiMFlashHighlightInTextEdit(QPlainTextEdit *te)
     QTimer::singleShot(delayMillisec * 3, te, [te]() { te->setPalette(qApp->palette(te)); });
 }
 
+// A QLabel that shows shortened text with an ellipsis; see https://stackoverflow.com/a/73316405/2752221
+QtSLiMEllipsisLabel::QtSLiMEllipsisLabel(QWidget *parent)
+    : QtSLiMEllipsisLabel("", parent)
+{
+}
+
+QtSLiMEllipsisLabel::QtSLiMEllipsisLabel(QString text, QWidget *parent)
+    : QLabel(parent)
+{
+    setText(text);
+}
+
+void QtSLiMEllipsisLabel::setText(QString text)
+{
+    m_text = text;
+    updateText();
+}
+
+QSize QtSLiMEllipsisLabel::minimumSizeHint() const
+{
+    return QSize(0, QLabel::minimumSizeHint().height());
+}
+
+void QtSLiMEllipsisLabel::resizeEvent(QResizeEvent *p_event)
+{
+    QLabel::resizeEvent(p_event);
+    updateText();
+}
+
+void QtSLiMEllipsisLabel::updateText()
+{
+    QFontMetrics metrics(font());
+    QString elided = metrics.elidedText(m_text, Qt::ElideRight, width());
+    QLabel::setText(elided);
+}
+
+void QtSLiMEllipsisLabel::mousePressEvent(QMouseEvent *p_event)
+{
+    // check the mouse position and only take the click if it is within the displayed label's extent
+    QPoint curPoint = p_event->pos();
+    int clickX = curPoint.x();
+    
+    QFontMetrics metrics(font());
+    int labelLength = metrics.size(0, text()).width();
+    
+    if ((clickX >= 0) && (clickX <= labelLength + 1))
+        emit pressed();     // triggers QtSLiMWindow::jumpToPopupButtonPressed()
+}
 
 
 

@@ -669,6 +669,12 @@ void QtSLiMWindow::initializeUI(void)
     ui->outputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
     ui->outputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     
+    // set up the script block label, to the right of the Jump menu
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::displayFontPrefChanged, this, &QtSLiMWindow::displayFontPrefChanged);
+    displayFontPrefChanged();
+    
     // set button states
     ui->toggleDrawerButton->setChecked(false);
     
@@ -735,6 +741,17 @@ void QtSLiMWindow::initializeUI(void)
     
     // Set up the Window menu, which updates on demand
     connect(ui->menuWindow, &QMenu::aboutToShow, this, &QtSLiMWindow::updateWindowMenu);
+}
+
+void QtSLiMWindow::displayFontPrefChanged(void)
+{
+    // Xcode doesn't use its monospace for this, and it does look a bit out of place in the UI
+    // So let's try it allowing the font to remain the default system font...?
+//    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+//    QFont displayFont = prefs.displayFontPref(nullptr);
+    
+//    displayFont.setPointSize(13);
+//    ui->scriptBlockLabel->setFont(displayFont);
 }
 
 void QtSLiMWindow::applicationPaletteChanged(void)
@@ -5553,6 +5570,144 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
     jumpToPopupButtonReleased();
+}
+
+void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
+{
+    // this does a subset of the parsing logic of QtSLiMWindow::jumpToPopupButtonRunMenu()
+    // it is used to get the label text for the script block label, to the right of the Jump button
+    QPlainTextEdit *scriptTE = ui->scriptTextEdit;
+    QString currentScriptString = scriptTE->toPlainText();
+    QByteArray utf8bytes = currentScriptString.toUtf8();
+    const char *cstr = utf8bytes.constData();
+    
+    QTextCursor selection_cursor(scriptTE->textCursor());
+    int selStart = selection_cursor.selectionStart();
+    int selEnd = selection_cursor.selectionEnd();
+    
+    if (cstr)
+    {
+        // Figure out whether we have multispecies avatars, and thus want to use the "low brightness symbol" emoji for "ticks all" blocks.
+        // This emoji provides nicely lined up spacing in the menu, and indicates "ticks all" clearly; seems better than nothing.  It would
+        // be even better, perhaps, to have a spacer of emoji width, to make things line up without having a symbol displayed; unfortunately
+        // such a spacer does not seem to exist.  https://stackoverflow.com/questions/66496671/is-there-a-blank-unicode-character-matching-emoji-width
+        QString ticksAllAvatar;
+        
+        if (community && community->is_explicit_species_ && (community->all_species_.size() > 0))
+        {
+            bool hasAvatars = false;
+            
+            for (Species *species : community->all_species_)
+                if (species->avatar_.length() > 0)
+                    hasAvatars = true;
+            
+            if (hasAvatars)
+                ticksAllAvatar = QString::fromUtf8("\xF0\x9F\x94\x85");     // "low brightness symbol", https://www.compart.com/en/unicode/U+1F505
+        }
+        
+        SLiMEidosScript script(cstr);
+        
+        try {
+            script.Tokenize(true, false);            // make bad tokens as needed, do not keep nonsignificant tokens
+            script.ParseSLiMFileToAST(true);        // make bad nodes as needed (i.e. never raise, and produce a correct tree)
+            
+            // Extract SLiMEidosBlocks from the parse tree
+            const EidosASTNode *root_node = script.AST();
+            QString specifierAvatar;
+            
+            for (EidosASTNode *script_block_node : root_node->children_)
+            {
+                // handle species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+                if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+                {
+                    EidosASTNode *specifierChild = script_block_node->children_[0];
+                    std::string specifierSpeciesName = specifierChild->token_->token_string_;
+                    Species *specifierSpecies = (community ? community->SpeciesWithName(specifierSpeciesName) : nullptr);
+                    
+                    if (specifierSpecies && specifierSpecies->avatar_.length())
+                        specifierAvatar = QString::fromStdString(specifierSpecies->avatar_);
+                    else if (!specifierSpecies && (specifierSpeciesName == "all"))
+                        specifierAvatar = ticksAllAvatar;
+                    
+                    continue;
+                }
+                
+                // Create the block and use it to find the string from the start of its declaration to the start of its code
+                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
+                int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
+                int32_t code_end = new_script_block->compound_statement_node_->token_->token_UTF16_end_;
+                
+                if ((selStart >= decl_start) && (selStart <= code_end) && (selEnd <= code_end + 2))     // +2 allows a selection through the end brace and one more character (typically a newline)
+                {
+                    int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
+                    QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
+                    
+                    // Remove everything including and after the first newline
+                    if (decl.indexOf(QChar::LineFeed) != -1)
+                        decl.truncate(decl.indexOf(QChar::LineFeed));
+                    if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                        decl.truncate(decl.indexOf(0x0C));
+                    if (decl.indexOf(QChar::CarriageReturn) != -1)
+                        decl.truncate(decl.indexOf(QChar::CarriageReturn));
+                    if (decl.indexOf(QChar::ParagraphSeparator) != -1)
+                        decl.truncate(decl.indexOf(QChar::ParagraphSeparator));
+                    if (decl.indexOf(QChar::LineSeparator) != -1)
+                        decl.truncate(decl.indexOf(QChar::LineSeparator));
+                    
+                    // Extract a comment at the end and put it after a em-dash in the string
+                    int simpleCommentStart = decl.indexOf("//");
+                    int blockCommentStart = decl.indexOf("/*");
+                    QString comment;
+                    
+                    if ((simpleCommentStart != -1) && ((blockCommentStart == -1) || (simpleCommentStart < blockCommentStart)))
+                    {
+                        // extract a simple comment
+                        comment = decl.right(decl.length() - simpleCommentStart - 2);
+                        decl.truncate(simpleCommentStart);
+                    }
+                    else if ((blockCommentStart != -1) && ((simpleCommentStart == -1) || (blockCommentStart < simpleCommentStart)))
+                    {
+                        // extract a block comment
+                        comment = decl.right(decl.length() - blockCommentStart - 2);
+                        decl.truncate(blockCommentStart);
+                        
+                        int blockCommentEnd = comment.indexOf("*/");
+                        
+                        if (blockCommentEnd != -1)
+                            comment.truncate(blockCommentEnd);
+                    }
+                    
+                    // Calculate the end of the declaration string; trim off whitespace at the end
+                    decl = decl.trimmed();
+                    
+                    // Remove trailing whitespace, replace tabs with spaces, etc.
+                    decl = decl.simplified();
+                    comment = comment.trimmed();
+                    
+                    if (comment.length() > 0)
+                        decl = decl + "  —  " + comment;
+                               
+                               // If a species/ticks specifier was previously seen that provides us with an avatar, prepend that
+                               if (specifierAvatar.length())
+                        {
+                            decl = specifierAvatar + " " + decl;
+                            specifierAvatar.clear();
+                        }
+                    
+                    delete new_script_block;
+                        
+                    ui->scriptBlockLabel->setText(decl);
+                }
+                
+                delete new_script_block;
+            }
+        }
+        catch (...)
+        {
+        }
+    }
+    
+    ui->scriptBlockLabel->setText(QString(""));
 }
 
 void QtSLiMWindow::clearOutputClicked(void)

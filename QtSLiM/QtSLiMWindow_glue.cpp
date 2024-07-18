@@ -110,6 +110,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->browserButton, &QPushButton::released, this, &QtSLiMWindow::showBrowserReleased);
     connect(ui->jumpToPopupButton, &QPushButton::pressed, this, &QtSLiMWindow::jumpToPopupButtonPressed);
     connect(ui->jumpToPopupButton, &QPushButton::released, this, &QtSLiMWindow::jumpToPopupButtonReleased);
+    connect(ui->scriptBlockLabel, &QtSLiMEllipsisLabel::pressed, this, &QtSLiMWindow::jumpToPopupButtonPressed);
+    //connect(ui->scriptBlockLabel, &QtSLiMEllipsisLabel::released, this, &QtSLiMWindow::jumpToPopupButtonReleased);    // seems to be unnecessary
     connect(ui->clearOutputButton, &QPushButton::pressed, this, &QtSLiMWindow::clearOutputPressed);
     connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMWindow::clearOutputReleased);
     connect(ui->dumpPopulationButton, &QPushButton::pressed, this, &QtSLiMWindow::dumpPopulationPressed);

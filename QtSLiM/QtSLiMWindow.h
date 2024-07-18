@@ -228,6 +228,7 @@ public:
     bool changedSinceRecycle(void);
     void resetSLiMChangeCount(void);
     void scriptTexteditChanged(void);
+    void setScriptBlockLabelTextFromSelection(void);
     
     bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);   
     
@@ -284,6 +285,7 @@ public slots:
     //
     
 private slots:
+    void displayFontPrefChanged(void);
     void applicationPaletteChanged(void);
     
     bool save(void);
