@@ -5697,6 +5697,7 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
                     delete new_script_block;
                         
                     ui->scriptBlockLabel->setText(decl);
+                    return;
                 }
                 
                 delete new_script_block;
