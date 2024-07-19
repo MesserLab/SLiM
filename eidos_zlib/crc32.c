@@ -1021,6 +1021,9 @@ unsigned long ZEXPORT crc32(unsigned long crc, const unsigned char FAR *buf,
     return crc32_z(crc, buf, len);
 }
 
+#if 0
+// BCH 7/18/2024: These don't seem to be used in the way we use zlib, and cause
+// warnings due to missing prototypes; hard to unravel, so I'll just #ifdef out
 /* ========================================================================= */
 uLong ZEXPORT crc32_combine64(uLong crc1, uLong crc2, z_off64_t len2) {
 #ifdef DYNAMIC_CRC_TABLE
@@ -1051,3 +1054,5 @@ uLong ZEXPORT crc32_combine_gen(z_off_t len2) {
 uLong ZEXPORT crc32_combine_op(uLong crc1, uLong crc2, uLong op) {
     return multmodp(op, crc1) ^ (crc2 & 0xffffffff);
 }
+#endif
+
