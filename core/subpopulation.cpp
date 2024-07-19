@@ -7734,9 +7734,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;
 		
-		if (last_candidate_index > buffer_capacity)		// just make it big enough for last_candidate_index, not worth worrying
+		if (last_candidate_index + 1 > buffer_capacity)		// just make it big enough for last_candidate_index, not worth worrying
 		{
-			buffer_capacity = last_candidate_index * 2;		// double whenever we go over capacity, to avoid reallocations
+			buffer_capacity = (last_candidate_index + 1) * 2;		// double whenever we go over capacity, to avoid reallocations
 			if (index_buffer)
 				free(index_buffer);
 			index_buffer = (int *)malloc(buffer_capacity * sizeof(int));	// no need to realloc, we don't need the old data
