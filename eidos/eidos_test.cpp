@@ -1521,7 +1521,7 @@ void _RunInternalFilesystemTests(void)
 		gEidosTestSuccessCount++;
 	}
 	
-	// Eidos_AbsolutePath(): the current working directory should be prepended; it might end in / or \
+	// Eidos_AbsolutePath(): the current working directory should be prepended; it might end in \ or in /
 	try {
 		std::string result = Eidos_AbsolutePath("foo/bar.baz");
 		if ((Eidos_string_hasSuffix(result, "/foo/bar.baz")) || (Eidos_string_hasSuffix(result, "\\foo/bar.baz")))
