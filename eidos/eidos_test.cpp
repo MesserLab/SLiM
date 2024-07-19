@@ -1536,7 +1536,7 @@ void _RunInternalFilesystemTests(void)
 		std::cerr << "Eidos_AbsolutePath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
 	}
 	
-	// Eidos_StripTrailingSlash(): remove a / or \ at the end of a path, pass everything else through
+	// Eidos_StripTrailingSlash(): remove a / or \\ at the end of a path, pass everything else through
 	try {
 		std::string result = Eidos_StripTrailingSlash("~/foo/foobar/");
 		if (result == "~/foo/foobar")
@@ -1552,17 +1552,17 @@ void _RunInternalFilesystemTests(void)
 	}
 	
 	try {
-		std::string result = Eidos_StripTrailingSlash("~\foo\foobar\");
-		if (result == "~/foo/foobar")
+		std::string result = Eidos_StripTrailingSlash("~\\foo\\foobar\\");
+		if (result == "~\\foo\\foobar")
 			gEidosTestSuccessCount++;
 		else
 		{
 			gEidosTestFailureCount++;
-			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+			std::cerr << "Eidos_StripTrailingSlash(\"~\\foo\\foobar\\\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
 		}
 	} catch (...) {
 		gEidosTestFailureCount++;
-		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+		std::cerr << "Eidos_StripTrailingSlash(\"~\\foo\\foobar\\\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
 	}
 	
 	try {
