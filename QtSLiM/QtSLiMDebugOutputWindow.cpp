@@ -537,8 +537,8 @@ void QtSLiMDebugOutputWindow::logFileRightClick(const QPoint &pos)
                     else if (action)    // graphData2DAction
                     {
                         // all values are convertible to double; guaranteed above
-                        QVariant data = action->data();
-                        int xColumnIndex = data.toInt();
+                        QVariant actiondata = action->data();
+                        int xColumnIndex = actiondata.toInt();
                         bool makeScatterPlot = false;
                         
                         if (xColumnIndex >= 10000)
