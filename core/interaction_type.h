@@ -89,7 +89,7 @@ struct _InteractionsData
 	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
 	bool periodic_z_ = false;
 	
-	double bounds_x1_, bounds_y1_, bounds_z1_;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
+	double bounds_x1_ = 0.0, bounds_y1_ = 0.0, bounds_z1_ = 0.0;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
 	
 	// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions for all subpop individuals regardless of constraints
 	double *positions_ = nullptr;
