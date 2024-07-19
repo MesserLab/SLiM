@@ -318,6 +318,7 @@ int RunEidosTests(void)
 	free(temp_path_cstr);
 	
 	// Run tests
+	_RunInternalFilesystemTests();
 	_RunLiteralsIdentifiersAndTokenizationTests();
 	_RunSymbolsAndVariablesTests();
 	_RunParsingTests();
@@ -1387,6 +1388,254 @@ int RunEidosTests(void)
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gEidosTestFailureCount > 0) ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+#pragma mark internal filesystem tests
+void _RunInternalFilesystemTests(void)
+{
+	// test some of the core Eidos C++ filesystem functions directly for correct behavior
+	// the behaviors are quite different on Windows, so that is handled entirely separately
+#ifndef _WIN32
+	// Eidos_ResolvedPath(): look for replacement of a leading ~, pass-through of the rest
+	try {
+		std::string result = Eidos_ResolvedPath("foo/bar.baz");
+		if (result == "foo/bar.baz")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_ResolvedPath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_ResolvedPath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_ResolvedPath("~/foo/bar.baz");
+		if ((result.length() > 0) && (result[0] != '~') && Eidos_string_hasSuffix(result, "/foo/bar.baz"))
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_ResolvedPath(\"~/foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_ResolvedPath(\"~/foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	// Eidos_AbsolutePath(): the current working directory should be prepended
+	try {
+		std::string result = Eidos_AbsolutePath("foo/bar.baz");
+		if (Eidos_string_hasSuffix(result, "/foo/bar.baz"))
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_AbsolutePath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_AbsolutePath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	// Eidos_StripTrailingSlash(): remove a / at the end of a path, pass everything else through
+	try {
+		std::string result = Eidos_StripTrailingSlash("~/foo/foobar/");
+		if (result == "~/foo/foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_StripTrailingSlash("~/foo/foobar");
+		if (result == "~/foo/foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	// Eidos_LastPathComponent(): extract the last component of the path using / as the separator
+	try {
+		std::string result = Eidos_LastPathComponent("foo/foobar/bar.baz");
+		if (result == "bar.baz")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo/foobar/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo/foobar/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_LastPathComponent("foo/foobar/");
+		if (result == "foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+#else
+	// Eidos_ResolvedPath(): on Windows this is not supported, and should raise if a leading ~ is present
+	try {
+		std::string result = Eidos_ResolvedPath("foo/bar.baz");
+		if (result == "foo/bar.baz")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_ResolvedPath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_ResolvedPath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_ResolvedPath("~/foo/bar.baz");
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_ResolvedPath(\"~/foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << " (raise expected)" << std::endl;
+	} catch (...) {
+		gEidosTestSuccessCount++;
+	}
+	
+	// Eidos_AbsolutePath(): the current working directory should be prepended; it might end in / or \
+	try {
+		std::string result = Eidos_AbsolutePath("foo/bar.baz");
+		if ((Eidos_string_hasSuffix(result, "/foo/bar.baz")) || (Eidos_string_hasSuffix(result, "\\foo/bar.baz")))
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_AbsolutePath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_AbsolutePath(\"foo/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	// Eidos_StripTrailingSlash(): remove a / or \ at the end of a path, pass everything else through
+	try {
+		std::string result = Eidos_StripTrailingSlash("~/foo/foobar/");
+		if (result == "~/foo/foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_StripTrailingSlash("~\foo\foobar\");
+		if (result == "~/foo/foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_StripTrailingSlash("~/foo/foobar");
+		if (result == "~/foo/foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_StripTrailingSlash(\"~/foo/foobar\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	// Eidos_LastPathComponent(): extract the last component of the path using / and \ as the separators
+	try {
+		std::string result = Eidos_LastPathComponent("foo/foobar/bar.baz");
+		if (result == "bar.baz")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo/foobar/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo/foobar/bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+	
+	try {
+		std::string result = Eidos_LastPathComponent("foo\\foobar\\bar.baz");
+		if (result == "bar.baz")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo\\foobar\\bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo\\foobar\\bar.baz\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+
+	try {
+		std::string result = Eidos_LastPathComponent("foo/foobar/");
+		if (result == "foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo/foobar/\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+
+	try {
+		std::string result = Eidos_LastPathComponent("foo\\foobar\\");
+		if (result == "foobar")
+			gEidosTestSuccessCount++;
+		else
+		{
+			gEidosTestFailureCount++;
+			std::cerr << "Eidos_LastPathComponent(\"foo\\foobar\\\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : incorrect result " << result << std::endl;
+		}
+	} catch (...) {
+		gEidosTestFailureCount++;
+		std::cerr << "Eidos_LastPathComponent(\"foo\\foobar\\\")" << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during execution" << std::endl;
+	}
+#endif
 }
 
 #pragma mark literals & identifiers

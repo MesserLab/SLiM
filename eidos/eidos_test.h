@@ -71,6 +71,7 @@ extern void EidosAssertScriptRaise(const std::string &p_script_string, const int
 
 
 // Test subfunction prototypes
+extern void _RunInternalFilesystemTests(void);
 extern void _RunLiteralsIdentifiersAndTokenizationTests(void);
 extern void _RunSymbolsAndVariablesTests(void);
 extern void _RunParsingTests(void);

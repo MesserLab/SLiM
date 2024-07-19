@@ -2187,8 +2187,8 @@ std::string Eidos_ResolvedPath(const std::string &p_path)
 {
 	std::string path = p_path;
 	
-	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows... It doesn't..
-	#ifndef _WIN32
+	// if there is a leading '~', replace it with the user's home directory; this does not work on Windows
+#ifndef _WIN32
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
 		long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -2224,12 +2224,12 @@ std::string Eidos_ResolvedPath(const std::string &p_path)
 			}
 		}
 	}
-	#else
+#else
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
 		EIDOS_TERMINATION << "ERROR (Eidos_ResolvedPath): Could not resolve ~ in path because it is not supported on Windows." << EidosTerminate();
 	}
-	#endif	
+#endif	
 	
 	return path;
 }
@@ -2264,11 +2264,15 @@ std::string Eidos_AbsolutePath(const std::string &p_path)
 		
 		if (current_dir_length > 0)
 		{
-			// Figure out whether we need to append a '/' to the CWD or not; I'm not sure whether this is standard
+			// Figure out whether we need to append a slash to the CWD or not
+#ifdef _WIN32
+			if ((current_dir[current_dir_length - 1] == '/') || (current_dir[current_dir_length - 1] == '\\'))
+#else
 			if (current_dir[current_dir_length - 1] == '/')
+#endif
 				resolved_file_path = current_dir + resolved_file_path;
 			else
-				resolved_file_path = current_dir + "/" + resolved_file_path;
+				resolved_file_path = current_dir + "/" + resolved_file_path;	// append / in all cases to avoid quoting issues
 		}
 		else
 		{
@@ -2283,6 +2287,11 @@ std::string Eidos_AbsolutePath(const std::string &p_path)
 std::string Eidos_LastPathComponent(const std::string &p_path)
 {
 	std::string path = Eidos_StripTrailingSlash(p_path);
+	
+#ifdef _WIN32
+	// replace \ with / first, so the split works correctly with both separators
+	std::replace(path.begin(), path.end(), '\\', '/'); 
+#endif
 	
 	auto components = Eidos_string_split(path, "/");
 	
@@ -2306,6 +2315,10 @@ std::string Eidos_CurrentDirectory(void)
 	errno = 0;
 	char *buf = getcwd(path_buffer, MAXPATHLEN * 8 * sizeof(char));
 	
+	// BCH 7/19/2024: Arguably we should convert \ to / here on Windows, as
+	// Eidos_TemporaryDirectory() does, but I'm not going to make that breaking
+	// change unless someone complains.
+	
 	if (!buf)
 	{
 		std::cout << "Eidos_CurrentDirectory(): Unable to get the current working directory (error " << errno << ")" << std::endl;
@@ -2319,7 +2332,12 @@ std::string Eidos_CurrentDirectory(void)
 std::string Eidos_StripTrailingSlash(const std::string &p_path)
 {
 	int path_length = (int)p_path.length();
+	
+#ifdef _WIN32
+	bool path_ends_in_slash = (path_length > 0) && ((p_path[path_length-1] == '/') || (p_path[path_length-1] == '\\'));
+#else
 	bool path_ends_in_slash = (path_length > 0) && (p_path[path_length-1] == '/');
+#endif
 	
 	if (path_ends_in_slash)
 	{
@@ -2387,7 +2405,7 @@ bool Eidos_CreateDirectory(const std::string &p_path, std::string *p_error_strin
 // This is /tmp/ (with trailing slash!) on macOS and Linux, but will be elsewhere on Windows.  Should be used instead of /tmp/ everywhere.
 std::string Eidos_TemporaryDirectory(void)
 {
-	#ifdef _WIN32
+#ifdef _WIN32
 	std::string temp_path;
 	char charPath[MAX_PATH];
 	if (GetTempPathA(MAX_PATH, charPath))
@@ -2398,9 +2416,9 @@ std::string Eidos_TemporaryDirectory(void)
 	// which is understood by both linux and Windows.
 	std::replace(temp_path.begin(), temp_path.end(), '\\', '/'); 
 	return temp_path;
-	#else
+#else
 	return "/tmp/";
-	#endif
+#endif
 }
 
 bool Eidos_TemporaryDirectoryExists(void)
