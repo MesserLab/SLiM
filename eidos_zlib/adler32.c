@@ -7,8 +7,6 @@
 
 #include "zutil.h"
 
-local uLong adler32_combine_ OF((uLong adler1, uLong adler2, z_off64_t len2));
-
 #define BASE 65521U     /* largest prime smaller than 65536 */
 #define NMAX 5552
 /* NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1 */
@@ -60,8 +58,7 @@ local uLong adler32_combine_ OF((uLong adler1, uLong adler2, z_off64_t len2));
 #endif
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len)	// BCH: rearranged to get rid of prototype warning
-{
+uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len) {
     unsigned long sum2;
     unsigned n;
 
@@ -128,14 +125,12 @@ uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len)	// BCH: rea
 }
 
 /* ========================================================================= */
-uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len)	// BCH: rearranged to get rid of prototype warning
-{
+uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len) {
     return adler32_z(adler, buf, len);
 }
 
 /* ========================================================================= */
-local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2)	// BCH: rearranged to get rid of prototype warning
-{
+local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2) {
     unsigned long sum1;
     unsigned long sum2;
     unsigned rem;
@@ -160,19 +155,14 @@ local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2)	// BCH:
 }
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2, z_off_t len2)	// BCH: rearranged to get rid of prototype warning
-{
+uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2, z_off_t len2) {
     return adler32_combine_(adler1, adler2, len2);
 }
 
 // BCH 9/29/2021: This function appears to be unused in this branch of the code,
 // and produces a warning on Windows, so I'm going to just #if it out.
 #if 0
-uLong ZEXPORT adler32_combine64(adler1, adler2, len2)
-    uLong adler1;
-    uLong adler2;
-    z_off64_t len2;
-{
+uLong ZEXPORT adler32_combine64(uLong adler1, uLong adler2, z_off64_t len2) {
     return adler32_combine_(adler1, adler2, len2);
 }
 #endif

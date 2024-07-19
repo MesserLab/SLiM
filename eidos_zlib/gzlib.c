@@ -1,5 +1,5 @@
 /* gzlib.c -- zlib functions common to reading and writing gzip files
- * Copyright (C) 2004-2019 Mark Adler
+ * Copyright (C) 2004-2024 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
@@ -15,10 +15,6 @@
 #endif
 #endif
 
-/* Local functions */
-local void gz_reset OF((gz_statep));
-local gzFile gz_open OF((const void *, int, const char *));
-
 #if defined UNDER_CE
 
 /* Map the Windows error number in ERROR to a locale-dependent error message
@@ -30,9 +26,7 @@ local gzFile gz_open OF((const void *, int, const char *));
 
    The gz_strwinerror function does not change the current setting of
    GetLastError. */
-char ZLIB_INTERNAL *gz_strwinerror(error)
-     DWORD error;
-{
+char ZLIB_INTERNAL *gz_strwinerror(DWORD error) {
     static char buf[1024];
 
     wchar_t *msgbuf;
@@ -72,8 +66,7 @@ char ZLIB_INTERNAL *gz_strwinerror(error)
 #endif /* UNDER_CE */
 
 /* Reset gzip file state */
-local void gz_reset(gz_statep state)	// BCH: rearranged to get rid of prototype warning
-{
+local void gz_reset(gz_statep state) {
     state->x.have = 0;              /* no output data available */
     if (state->mode == GZ_READ) {   /* for reading ... */
         state->eof = 0;             /* not at end of file */
@@ -89,8 +82,7 @@ local void gz_reset(gz_statep state)	// BCH: rearranged to get rid of prototype 
 }
 
 /* Open a gzip file either by name or file descriptor. */
-local gzFile gz_open(const void *path, int fd, const char *mode)	// BCH: rearranged to get rid of prototype warning
-{
+local gzFile gz_open(const void *path, int fd, const char *mode) {
     gz_statep state;
     z_size_t len;
     int oflag;
@@ -265,20 +257,17 @@ local gzFile gz_open(const void *path, int fd, const char *mode)	// BCH: rearran
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzopen(const char *path, const char *mode)	// BCH: rearranged to get rid of prototype warning
-{
+gzFile ZEXPORT gzopen(const char *path, const char *mode) {
     return gz_open(path, -1, mode);
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzopen64(const char *path, const char *mode)	// BCH: rearranged to get rid of prototype warning
-{
+gzFile ZEXPORT gzopen64(const char *path, const char *mode) {
     return gz_open(path, -1, mode);
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzdopen(int fd, const char *mode)	// BCH: rearranged to get rid of prototype warning
-{
+gzFile ZEXPORT gzdopen(int fd, const char *mode) {
     char *path;         /* identifier for error messages */
     gzFile gz;
 
@@ -296,17 +285,13 @@ gzFile ZEXPORT gzdopen(int fd, const char *mode)	// BCH: rearranged to get rid o
 
 /* -- see zlib.h -- */
 #ifdef WIDECHAR
-gzFile ZEXPORT gzopen_w(path, mode)
-    const wchar_t *path;
-    const char *mode;
-{
+gzFile ZEXPORT gzopen_w(const wchar_t *path, const char *mode) {
     return gz_open(path, -2, mode);
 }
 #endif
 
 /* -- see zlib.h -- */
-int ZEXPORT gzbuffer(gzFile file, unsigned size)	// BCH: rearranged to get rid of prototype warning
-{
+int ZEXPORT gzbuffer(gzFile file, unsigned size) {
     gz_statep state;
 
     /* get internal structure and check integrity */
@@ -323,15 +308,14 @@ int ZEXPORT gzbuffer(gzFile file, unsigned size)	// BCH: rearranged to get rid o
     /* check and set requested size */
     if ((size << 1) < size)
         return -1;              /* need to be able to double it */
-    if (size < 2)
-        size = 2;               /* need two bytes to check magic header */
+    if (size < 8)
+        size = 8;               /* needed to behave well with flushing */
     state->want = size;
     return 0;
 }
 
 /* -- see zlib.h -- */
-int ZEXPORT gzrewind(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+int ZEXPORT gzrewind(gzFile file) {
     gz_statep state;
 
     /* get internal structure */
@@ -352,8 +336,7 @@ int ZEXPORT gzrewind(gzFile file)	// BCH: rearranged to get rid of prototype war
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gzseek64(gzFile file, z_off64_t offset, int whence)	// BCH: rearranged to get rid of prototype warning
-{
+z_off64_t ZEXPORT gzseek64(gzFile file, z_off64_t offset, int whence) {
     unsigned n;
     z_off64_t ret;
     gz_statep state;
@@ -426,8 +409,7 @@ z_off64_t ZEXPORT gzseek64(gzFile file, z_off64_t offset, int whence)	// BCH: re
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gzseek(gzFile file, z_off_t offset, int whence)	// BCH: rearranged to get rid of prototype warning
-{
+z_off_t ZEXPORT gzseek(gzFile file, z_off_t offset, int whence) {
     z_off64_t ret;
 
     ret = gzseek64(file, (z_off64_t)offset, whence);
@@ -435,8 +417,7 @@ z_off_t ZEXPORT gzseek(gzFile file, z_off_t offset, int whence)	// BCH: rearrang
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gztell64(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+z_off64_t ZEXPORT gztell64(gzFile file) {
     gz_statep state;
 
     /* get internal structure and check integrity */
@@ -451,8 +432,7 @@ z_off64_t ZEXPORT gztell64(gzFile file)	// BCH: rearranged to get rid of prototy
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gztell(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+z_off_t ZEXPORT gztell(gzFile file) {
     z_off64_t ret;
 
     ret = gztell64(file);
@@ -460,8 +440,7 @@ z_off_t ZEXPORT gztell(gzFile file)	// BCH: rearranged to get rid of prototype w
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gzoffset64(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+z_off64_t ZEXPORT gzoffset64(gzFile file) {
     z_off64_t offset;
     gz_statep state;
 
@@ -482,8 +461,7 @@ z_off64_t ZEXPORT gzoffset64(gzFile file)	// BCH: rearranged to get rid of proto
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gzoffset(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+z_off_t ZEXPORT gzoffset(gzFile file) {
     z_off64_t ret;
 
     ret = gzoffset64(file);
@@ -491,8 +469,7 @@ z_off_t ZEXPORT gzoffset(gzFile file)	// BCH: rearranged to get rid of prototype
 }
 
 /* -- see zlib.h -- */
-int ZEXPORT gzeof(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+int ZEXPORT gzeof(gzFile file) {
     gz_statep state;
 
     /* get internal structure and check integrity */
@@ -507,8 +484,7 @@ int ZEXPORT gzeof(gzFile file)	// BCH: rearranged to get rid of prototype warnin
 }
 
 /* -- see zlib.h -- */
-const char * ZEXPORT gzerror(gzFile file, int *errnum)	// BCH: rearranged to get rid of prototype warning
-{
+const char * ZEXPORT gzerror(gzFile file, int *errnum) {
     gz_statep state;
 
     /* get internal structure and check integrity */
@@ -526,8 +502,7 @@ const char * ZEXPORT gzerror(gzFile file, int *errnum)	// BCH: rearranged to get
 }
 
 /* -- see zlib.h -- */
-void ZEXPORT gzclearerr(gzFile file)	// BCH: rearranged to get rid of prototype warning
-{
+void ZEXPORT gzclearerr(gzFile file) {
     gz_statep state;
 
     /* get internal structure and check integrity */
@@ -551,8 +526,7 @@ void ZEXPORT gzclearerr(gzFile file)	// BCH: rearranged to get rid of prototype 
    memory).  Simply save the error message as a static string.  If there is an
    allocation failure constructing the error message, then convert the error to
    out of memory. */
-void ZLIB_INTERNAL gz_error(gz_statep state, int err, const char *msg)	// BCH: rearranged to get rid of prototype warning
-{
+void ZLIB_INTERNAL gz_error(gz_statep state, int err, const char *msg) {
     /* free previously allocated message and clear */
     if (state->msg != NULL) {
         if (state->err != Z_MEM_ERROR)
@@ -589,21 +563,20 @@ void ZLIB_INTERNAL gz_error(gz_statep state, int err, const char *msg)	// BCH: r
 #endif
 }
 
-#ifndef INT_MAX
 /* portably return maximum value for an int (when limits.h presumed not
    available) -- we need to do this to cover cases where 2's complement not
    used, since C standard permits 1's complement and sign-bit representations,
    otherwise we could just use ((unsigned)-1) >> 1 */
-unsigned ZLIB_INTERNAL gz_intmax()
-{
-    unsigned p, q;
-
-    p = 1;
+unsigned ZLIB_INTERNAL gz_intmax(void) {
+#ifdef INT_MAX
+    return INT_MAX;
+#else
+    unsigned p = 1, q;
     do {
         q = p;
         p <<= 1;
         p++;
     } while (p > q);
     return q >> 1;
-}
 #endif
+}
