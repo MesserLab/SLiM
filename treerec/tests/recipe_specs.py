@@ -35,6 +35,8 @@ recipe_specs = {
     "test_____retain_and_remember_individuals.slim": {"marked_mutations": True, "individuals": True},
     "test_____retain_individuals_nonWF_unary.slim": {"marked_mutations": True, "individuals": True},
     "test_097 modeling nucleotides.slim":     {"mutations": True},
+    "test_____pop_names_pX.slim":		      {"mutations": True},
+    "test_____pop_names_nondefault.slim":     {"mutations": True},
 }
 
 

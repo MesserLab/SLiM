@@ -136,3 +136,37 @@ class TestIndividualsInGeneration:
                         treenodes_at_gen = set(tree.nodes()) & set(nodes)
                         assert len(treenodes_at_gen) < self.num_lineages_at_time(
                             ts, gen, tree.interval.left)
+
+
+class TestPopNames:
+    """
+    Test that population names are correctly retained
+    """
+
+    @pytest.mark.parametrize('recipe', indirect=True, argvalues=[
+        'test_____pop_names_pX.slim',
+    ])
+    def test_still_has_name_default(self, recipe):
+        """
+        Even if p1 is gone by the time we write out the tree sequence,
+        it should still have a name in the population table.
+        """
+        for result in recipe["results"]:
+            for ts in result.get_ts():
+                pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
+                assert pop_names[1] == "p1"
+                assert pop_names[3] == "p3"
+
+    @pytest.mark.parametrize('recipe', indirect=True, argvalues=[
+        'test_____pop_names_nondefault.slim',
+    ])
+    def test_still_has_name_assigned(self, recipe):
+        """
+        Even if p1 is gone by the time we write out the tree sequence,
+        it should still have a name in the population table.
+        """
+        for result in recipe["results"]:
+            for ts in result.get_ts():
+                pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
+                assert pop_names[1] == "the_p1"
+                assert pop_names[3] == "the_p3"
