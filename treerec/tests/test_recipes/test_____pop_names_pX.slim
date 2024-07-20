@@ -1,0 +1,31 @@
+initialize() {
+
+	// TREE SEQUENCE TEST OUTPUT
+	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
+	source("init.slim");
+	initializeTreeSeq(); 
+	
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0); // Neutral mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1000);
+	initializeRecombinationRate(1e-8);
+}
+
+1 early() {
+	sim.addSubpop("p1", 100);
+}
+
+10 early() {
+	sim.addSubpopSplit("p3", 101, p1);
+}
+
+11 early() {
+	p1.setSubpopulationSize(0);
+}
+
+20 late() {
+	// TREE SEQUENCE TEST OUTPUT
+	outputMutationResult();
+	sim.simulationFinished();
+}
