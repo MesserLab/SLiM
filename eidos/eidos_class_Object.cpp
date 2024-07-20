@@ -631,10 +631,10 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
-	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
-	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &match_string = (has_match_string ? methodName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	bool method_name_specified = (methodName_value->Type() == EidosValueType::kValueString);
+	const std::string &match_string = (method_name_specified ? methodName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	
@@ -646,8 +646,11 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 		
 		const std::string &method_name = method_sig->call_name_;
 		
-		if (has_match_string && (method_name.compare(match_string) != 0))
+		if (method_name_specified && (method_name.compare(match_string) != 0))
 			continue;
+		
+		if (!method_name_specified && (method_name.substr(0, 1).compare("_") == 0))
+			continue;	// skip internal methods that start with an underscore, unless specifically requested
 		
 		output_stream << *method_sig << std::endl;
 		signature_found = true;
@@ -661,14 +664,17 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 		
 		const std::string &method_name = method_sig->call_name_;
 		
-		if (has_match_string && (method_name.compare(match_string) != 0))
+		if (method_name_specified && (method_name.compare(match_string) != 0))
 			continue;
+		
+		if (!method_name_specified && (method_name.substr(0, 1).compare("_") == 0))
+			continue;	// skip internal methods that start with an underscore, unless specifically requested
 		
 		output_stream << *method_sig << std::endl;
 		signature_found = true;
 	}
 	
-	if (has_match_string && !signature_found)
+	if (method_name_specified && !signature_found)
 		output_stream << "No method signature found for '" << match_string << "'." << std::endl;
 	
 	return gStaticEidosValueVOID;

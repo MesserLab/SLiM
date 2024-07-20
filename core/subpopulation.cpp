@@ -1025,8 +1025,11 @@ void Subpopulation::SetName(const std::string &p_name)
 		if (community_.SubpopulationNameInUse(p_name))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetName): property name must be unique across all subpopulations; " << p_name << " is already in use, or was previously used." << EidosTerminate();
 		
-		species_.subpop_names_.emplace(p_name);	// added; never removed unless the simulation state is reset
+		species_.used_subpop_names_.emplace(p_name);	// added; never removed unless the simulation state is reset
 	}
+	
+	// we also need to keep track of the last used name for each subpop id, even if it is the generic name
+	species_.used_subpop_ids_[subpopulation_id_] = p_name;
 	
 	name_ = p_name;
 }

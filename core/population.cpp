@@ -215,7 +215,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
-	species_.subpop_ids_.emplace(p_subpop_id);
+	species_.used_subpop_ids_.emplace(p_subpop_id, new_subpop->name_);
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 	InvalidateMutationReferencesCache();
@@ -259,7 +259,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
-	species_.subpop_ids_.emplace(p_subpop_id);
+	species_.used_subpop_ids_.emplace(p_subpop_id, new_subpop->name_);
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;

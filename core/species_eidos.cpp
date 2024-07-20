@@ -1705,6 +1705,7 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_treeSeqSimplify:					return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqRememberIndividuals:		return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqOutput:						return ExecuteMethod_treeSeqOutput(p_method_id, p_arguments, p_interpreter);
+		case gID__debug:							return ExecuteMethod__debug(p_method_id, p_arguments, p_interpreter);
 		default:									return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -3305,6 +3306,29 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)_debug(void)
+//
+EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	// This method is a debugging hook to make it easier to do things on demand during a debugging session.
+	// It is not user-visible (e.g., with the methods() method) since it starts with an underscore.
+	
+	//std::unordered_map<slim_objectid_t, std::string> used_subpop_ids_;
+	//std::unordered_set<std::string> used_subpop_names_;
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	output_stream << "used_subpop_ids_: " << std::endl;
+	for (const auto &element : used_subpop_ids_)
+		output_stream << "   " << element.first << " : " << element.second << std::endl;
+	
+	output_stream << "used_subpop_names_: " << std::endl;
+	for (const auto &element : used_subpop_names_)
+		output_stream << "   " << element << std::endl;
+	
+	return gStaticEidosValueVOID;
+}
+
 
 //
 //	Species_Class
@@ -3390,6 +3414,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__debug, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

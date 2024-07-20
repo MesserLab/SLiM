@@ -426,8 +426,8 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
     // have to persist the list of known ids/names in metadata, which isn't worth the effort.
 	// BCH 3/13/2022: Note that now in multispecies, we forget only the names/ids that we ourselves
 	// have used; the other species in the community still remember and block their own usages.
-    subpop_ids_.clear();
-	subpop_names_.clear();
+	used_subpop_ids_.clear();
+	used_subpop_names_.clear();
 	
 	// Read in the file.  The SLiM file-reading methods are not tree-sequence-aware, so we bracket them
 	// with calls that fix the tree sequence recording state around them.  The treeSeq output methods
@@ -5411,10 +5411,16 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 	ret = tsk_population_table_clear(&p_tables->populations);
 	if (ret != 0) handle_error("WritePopulationTable tsk_population_table_clear()", ret);
 
+	// figure out the last subpop id we need to write out to the table; this is the greatest value from (a) the number
+	// of rows in the current population table (to carry over non-SLiM pop table entries we loaded in), (b) the subpop
+	// references found in the node table, which might reference subpops that no longer exist, and (c) the subpop ids
+	// found in our "previously used" information, whcih references every subpop id we have seen during execution.
 	slim_objectid_t last_subpop_id = (slim_objectid_t)population_table_copy->num_rows - 1;	// FIXME note this assumes the number of rows fits into 32 bits
 	for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
 		last_subpop_id = std::max(last_subpop_id, p_tables->nodes.population[j]);
-
+	for (const auto &used_id_name : used_subpop_ids_)
+		last_subpop_id = std::max(last_subpop_id, used_id_name.first);
+	
 	// write out an entry for each subpop
 	slim_objectid_t last_id_written = -1;
 	
@@ -5427,6 +5433,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		// binary metadata got translated to JSON by _InstantiateSLiMObjectsFromTables() on read
 		while (last_id_written < subpop_id - 1)
 		{
+			bool got_metadata = false;
 			std::string new_metadata_string("null");
 			
 			if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
@@ -5439,6 +5446,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 				{
 					// The metadata present, if any, is not SLiM metadata, so it should be carried over.
 					new_metadata_string = std::string(tsk_population_object.metadata, tsk_population_object.metadata_length);
+					got_metadata = true;
 				}
 				else
 				{
@@ -5463,9 +5471,27 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 						nlohmann::json new_metadata = nlohmann::json::object();
 						new_metadata["name"] = old_metadata["name"];
 						new_metadata_string = new_metadata.dump();
+						got_metadata = true;
 					}
 				}
 			}
+			// BCH 7/20/2024: To fix #447, we have some new logic here.  If we didn't get any useful
+			// metadata from the population table, we're on our own.  If we have previously seen a
+			// subpop with this id at any point, we use the name we last saw for that id.
+			if (!got_metadata)
+			{
+				auto used_id_name_iter = used_subpop_ids_.find(last_id_written);
+				
+				if (used_id_name_iter != used_subpop_ids_.end())
+				{
+					new_metadata_string = (*used_id_name_iter).second;
+					got_metadata = true;
+				}
+			}
+			
+			// otherwise, we will use the "null" metadata we set as the default above,
+			// producing a simple placeholder row that implies the id has never been used.
+			
 			tsk_population_id = tsk_population_table_add_row(
 					&p_tables->populations,
 					new_metadata_string.data(),
@@ -5535,10 +5561,11 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		assert(tsk_population_id == last_id_written);
 	}
 	
-	// finally, write out empty entries for the rest of the table; empty entries are needed
-	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
+	// finally, write out entries for the rest of the table; entries are needed up to
+	// largest_subpop_id_ because there could be ancestral nodes that reference them
 	while (last_id_written < (slim_objectid_t) last_subpop_id)
 	{
+		bool got_metadata = false;
 		std::string new_metadata_string("null");
 		
 		if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
@@ -5551,6 +5578,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 			{
 				// The metadata present, if any, is not SLiM metadata, so it should be carried over; note that
 				new_metadata_string = std::string(tsk_population_object.metadata, tsk_population_object.metadata_length);
+				got_metadata = true;
 			}
 			else
 			{
@@ -5564,7 +5592,21 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 					nlohmann::json new_metadata = nlohmann::json::object();
 					new_metadata["name"] = old_metadata["name"];
 					new_metadata_string = new_metadata.dump();
+					got_metadata = true;
 				}
+			}
+		}
+		// BCH 7/20/2024: To fix #447, we have some new logic here.  If we didn't get any useful
+		// metadata from the population table, we're on our own.  If we have previously seen a
+		// subpop with this id at any point, we use the name we last saw for that id.
+		if (!got_metadata)
+		{
+			auto used_id_name_iter = used_subpop_ids_.find(last_id_written);
+			
+			if (used_id_name_iter != used_subpop_ids_.end())
+			{
+				new_metadata_string = (*used_id_name_iter).second;
+				got_metadata = true;
 			}
 		}
 		
@@ -5577,6 +5619,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		
 		assert(tsk_population_id == last_id_written);
 	}
+	
 	ret = tsk_population_table_free(population_table_copy);
 	if (ret != 0) handle_error("tsk_population_table_free", ret);
 	free(population_table_copy);

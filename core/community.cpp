@@ -1232,7 +1232,7 @@ bool Community::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	
 	// First check our own data structures; we now do not allow reuse of subpop ids, even disjoint in time
 	for (Species *species : all_species_)
-		if (species->subpop_ids_.count(p_subpop_id))
+		if (species->used_subpop_ids_.find(p_subpop_id) != species->used_subpop_ids_.end())
 			return true;
 	
 	// Then have each species check for a conflict with its tree-sequence population table
@@ -1250,7 +1250,7 @@ bool Community::SubpopulationNameInUse(const std::string &p_subpop_name)
 	
 	// First check our own data structures; we now do not allow reuse of subpop names, even disjoint in time
 	for (Species *species : all_species_)
-		if (species->subpop_names_.count(p_subpop_name))
+		if (species->used_subpop_names_.count(p_subpop_name))
 			return true;
 	
 	// The tree-sequence population table does not keep names for populations, so no conflicts can occur

@@ -377,8 +377,10 @@ public:
 	bool any_dominance_coeff_changed_ = false;
 	
 	// state about what symbols/names/identifiers have been used or are being used
-	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
-	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
+	// used_subpop_ids_ has every subpop id ever used, even if no longer in use, with the *last* name used for that subpop
+	// used_subpop_names_ has every name ever used EXCEPT standard p1, p2... names, even if the name got replaced by a new name later
+	std::unordered_map<slim_objectid_t, std::string> used_subpop_ids_;
+	std::unordered_set<std::string> used_subpop_names_;
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
@@ -668,6 +670,7 @@ public:
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod__debug(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 class Species_Class : public EidosDictionaryUnretained_Class

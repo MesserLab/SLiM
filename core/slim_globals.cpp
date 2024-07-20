@@ -1345,6 +1345,7 @@ const std::string &gStr_treeSeqCoalesced = EidosRegisteredString("treeSeqCoalesc
 const std::string &gStr_treeSeqSimplify = EidosRegisteredString("treeSeqSimplify", gID_treeSeqSimplify);
 const std::string &gStr_treeSeqRememberIndividuals = EidosRegisteredString("treeSeqRememberIndividuals", gID_treeSeqRememberIndividuals);
 const std::string &gStr_treeSeqOutput = EidosRegisteredString("treeSeqOutput", gID_treeSeqOutput);
+const std::string &gStr__debug = EidosRegisteredString("_debug", gID__debug);
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);
 const std::string &gStr_deviatePositions = EidosRegisteredString("deviatePositions", gID_deviatePositions);
 const std::string &gStr_pointDeviated = EidosRegisteredString("pointDeviated", gID_pointDeviated);

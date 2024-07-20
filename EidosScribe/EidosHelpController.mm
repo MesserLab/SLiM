@@ -675,24 +675,28 @@
 				
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-					std::string &&prefix_string = methodSignature->CallPrefix();
-					NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "–\u00A0", or "+\u00A0"
 					NSString *methodNameString = [NSString stringWithUTF8String:methodSignature->call_name_.c_str()];
-					NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
-					NSUInteger docIndex = [docMethods indexOfObject:methodString];
 					
-					if (docIndex != NSNotFound)
+					if (![methodNameString hasPrefix:@"_"])
 					{
-						// If the method is defined in this class doc, consider it documented
-						[docMethods removeObjectAtIndex:docIndex];
-					}
-					else
-					{
-						// If the method is not defined in this class doc, then that is an error unless it is a superclass method
-						bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+						std::string &&prefix_string = methodSignature->CallPrefix();
+						NSString *prefixString = [NSString stringWithUTF8String:prefix_string.c_str()];	// "", "–\u00A0", or "+\u00A0"
+						NSString *methodString = [NSString stringWithFormat:@"%@%@()", prefixString, methodNameString];
+						NSUInteger docIndex = [docMethods indexOfObject:methodString];
 						
-						if (!isSuperclassMethod)
-							NSLog(@"*** no documentation found for class %@ method %@", classString, methodString);
+						if (docIndex != NSNotFound)
+						{
+							// If the method is defined in this class doc, consider it documented
+							[docMethods removeObjectAtIndex:docIndex];
+						}
+						else
+						{
+							// If the method is not defined in this class doc, then that is an error unless it is a superclass method
+							bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+							
+							if (!isSuperclassMethod)
+								NSLog(@"*** no documentation found for class %@ method %@", classString, methodString);
+						}
 					}
 				}
 				

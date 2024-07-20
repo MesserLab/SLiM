@@ -18,6 +18,7 @@ development head (in the master branch):
 	some fixes under the hood to make filesystem paths on Windows, using \ instead of /, be better understood by Eidos
 	fix an occasional crash in sampleIndividuals() due to an off-by-one error in buffer sizing
 	further extend tick range expressions, for scheduling events/callbacks, to allow the use of constants that are not defined until later in a run (variable-length burn-in, etc.)
+	improve recording of subpopulations in the tree-sequence recording population table (#447)
 	
 
 version 4.2.2 (Eidos version 3.2.2):

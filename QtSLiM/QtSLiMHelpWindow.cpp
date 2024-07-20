@@ -984,23 +984,27 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
                 
 				for (const EidosMethodSignature_CSP &methodSignature : *classMethods)
 				{
-                    const std::string &&prefix_string = methodSignature->CallPrefix();
-                    const std::string &method_name_string = methodSignature->call_name_;
-                    QString method_string = QString::fromStdString(prefix_string) + QString::fromStdString(method_name_string) + QString("()");
-                    int docIndex = docMethods.indexOf(method_string);
-                    
-                    if (docIndex != -1)
-                    {
-						// If the method is defined in this class doc, consider it documented
-                        docMethods.removeAt(docIndex);
-                    }
-                    else
-                    {
-                        // If the method is not defined in this class doc, then that is an error unless it is a superclass method
-                        bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+					const std::string &method_name_string = methodSignature->call_name_;
 					
-                        if (!isSuperclassMethod)
-							qDebug() << "*** no documentation found for class " << className << " method " << method_string;
+					if ((method_name_string.length() == 0) || (method_name_string[0] != '_'))
+					{
+						const std::string &&prefix_string = methodSignature->CallPrefix();
+						QString method_string = QString::fromStdString(prefix_string) + QString::fromStdString(method_name_string) + QString("()");
+						int docIndex = docMethods.indexOf(method_string);
+						
+						if (docIndex != -1)
+						{
+							// If the method is defined in this class doc, consider it documented
+							docMethods.removeAt(docIndex);
+						}
+						else
+						{
+							// If the method is not defined in this class doc, then that is an error unless it is a superclass method
+							bool isSuperclassMethod = superclassMethods && (std::find(superclassMethods->begin(), superclassMethods->end(), methodSignature) != superclassMethods->end());
+							
+							if (!isSuperclassMethod)
+								qDebug() << "*** no documentation found for class " << className << " method " << method_string;
+						}
 					}
 				}
 				
