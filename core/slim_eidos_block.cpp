@@ -1006,6 +1006,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 			const EidosASTNode *callback_node = block_children[child_index];
 			const EidosToken *callback_token = callback_node->token_;
 			
+			// Note that except for initialize() callbacks, this method leaves tick_range_evaluated_ as false; the tick
+			// range is defined by the node, and evaluation of that is deferred to when EvaluateScriptBlockTickRanges()
+			// is called, as for example by Community::FinishInitialization().
+			
 			if (callback_token->token_type_ != EidosTokenType::kTokenLBrace)
 			{
 				EidosTokenType callback_type = callback_token->token_type_;
@@ -1044,6 +1048,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 					if (start_tick_node_ || colon_node_ || end_tick_node_)
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a tick range cannot be specified for an initialize() callback." << EidosTerminate(callback_token);
 					
+					tick_range_evaluated_ = true;
 					tick_range_is_sequence_ = true;
 					tick_start_ = 0;
 					tick_end_ = 0;
@@ -1240,7 +1245,7 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), tick_range_evaluated_(true), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
 {
 	// this constructor is used by the various registerX() methods that register a new script block; they all take a start and end tick,
 	// with no option to supply a vector of ticks instead, which is why there is no constructor here taking a vector of ticks
@@ -1594,6 +1599,8 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gEidosID_start:
 		{
+			if (!tick_range_evaluated_)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): the tick range for this script block has not yet been evaluated, so the start property is undefined." << EidosTerminate();
 			if (!tick_range_is_sequence_)
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): this script block does not have a sequential tick range, so the start property is undefined." << EidosTerminate();
 			
@@ -1601,6 +1608,8 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gEidosID_end:
 		{
+			if (!tick_range_evaluated_)
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): the tick range for this script block has not yet been evaluated, so the end property is undefined." << EidosTerminate();
 			if (!tick_range_is_sequence_)
 				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::GetProperty): this script block does not have a sequential tick range, so the end property is undefined." << EidosTerminate();
 			

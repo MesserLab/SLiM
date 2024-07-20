@@ -1107,8 +1107,10 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
-                else if (scriptBlock->tick_range_is_sequence_ == false)
+                else if (!scriptBlock->tick_range_evaluated_)
                     return QVariant("?");
+                else if (scriptBlock->tick_range_is_sequence_ == false)
+                    return QVariant("...");
                 else if (scriptBlock->tick_start_ == -1)
                     return QVariant("MIN");
                 else
@@ -1118,8 +1120,10 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
             {
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
                     return QVariant("—");
-                else if (scriptBlock->tick_range_is_sequence_ == false)
+                else if (!scriptBlock->tick_range_evaluated_)
                     return QVariant("?");
+                else if (scriptBlock->tick_range_is_sequence_ == false)
+                    return QVariant("...");
                 else if (scriptBlock->tick_end_ == SLIM_MAX_TICK + 1)
                     return QVariant("MAX");
                 else

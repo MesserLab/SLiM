@@ -637,6 +637,8 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		for (int arg_index = 0; arg_index < argc; ++arg_index)
 		community->cli_params_.emplace_back(argv[arg_index]);
 		
+		community->FinishInitialization();
+		
 		if (tree_seq_checks)
 			community->AllSpecies_TSXC_Enable();
         if (tree_seq_force && !tree_seq_checks)

@@ -2032,6 +2032,8 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
         community = new Community();
         community->InitializeFromFile(infile);
         community->InitializeRNGFromSeed(nullptr);
+        community->FinishInitialization();
+        
         community->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
 		// Swap out our RNG

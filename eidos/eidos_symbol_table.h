@@ -138,6 +138,7 @@ private:
 	// Utility methods called by the public methods to do the real work
 	std::vector<std::string> _SymbolNames(bool p_include_constants, bool p_include_variables) const;
 	EidosValue_SP _GetValue(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
+	EidosValue_SP _GetValue_SpecialRaise(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
 	EidosValue *_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const;
 	EidosValue_SP _GetValue_IsConstIsLocal(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token, bool *p_is_const, bool *p_is_local) const;
 	void _RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant);
@@ -180,6 +181,7 @@ public:
 	
 	// Get a value, with an optional token used if the call raises due to an undefined symbol
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode(const EidosASTNode *p_symbol_node) const { return _GetValue(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
+	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForASTNode_SpecialRaise(const EidosASTNode *p_symbol_node) const { return _GetValue_SpecialRaise(p_symbol_node->cached_stringID_, p_symbol_node->token_); }
 	inline __attribute__((always_inline)) EidosValue_SP GetValueOrRaiseForSymbol(EidosGlobalStringID p_symbol_name) const { return _GetValue(p_symbol_name, nullptr); }
 	
 	// Get a value, with an optional token used if the call raises due to an undefined symbol; these variants return an unwrapped EidosValue *

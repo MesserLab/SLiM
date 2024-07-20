@@ -72,7 +72,7 @@ private:
 	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
 	
 	// a cache of the last tick for the simulation, for speed
-	bool tick_ranges_available_ = false;											// false until tick ranges have been determined, after initialize() callbacks
+	bool all_tick_ranges_evaluated_ = false;										// false until all tick ranges have been determined
 	bool last_script_block_tick_cached_ = false;
 	slim_tick_t last_script_block_tick_;											// the last tick in which a bounded script block is scheduled to run
 	
@@ -199,6 +199,7 @@ public:
 	
 	void InitializeFromFile(std::istream &p_infile);								// parse an input file; call after construction
 	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// call after InitializeFromFile(), generally
+	void FinishInitialization(void);												// call last, after InitializeRNGFromSeed()
 	
 	void TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols);		// used by outputUsage() and SLiMgui profiling
 	
@@ -262,8 +263,9 @@ public:
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
 	
-	EidosValue_SP _EvaluateTickRangeNode(const EidosASTNode *node);					// evaluate a node that represents a tick range expression
+	EidosValue_SP _EvaluateTickRangeNode(const EidosASTNode *p_node, std::string &p_error_string);	// evaluate a node that represents a tick range expression
 	void EvaluateScriptBlockTickRanges(void);										// evaluate tick range expressions to find when a block is scheduled
+	void FlagUnevaluatedScriptBlockTickRanges(void);								// error for script blocks whose tick range is unevaluated
 	slim_tick_t FirstTick(void);													// derived from the first tick in which an Eidos block is registered
 	slim_tick_t EstimatedLastTick(void);											// derived from the last tick in which an Eidos block is registered
 	void SimulationHasFinished(void);

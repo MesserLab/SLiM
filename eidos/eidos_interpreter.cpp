@@ -1878,7 +1878,9 @@ EidosValue_SP EidosInterpreter::Evaluate_MemberRef(const EidosASTNode *p_node)
 	
 	const EidosASTNode *first_child_node = p_node->children_[0];
 	
-	if (first_child_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+	// use_custom_undefined_identifier_raise_ is tested here because when it is set, we want EidosInterpreter::Evaluate_Identifier() to be
+	// called, to receive the special treatment of that flag that that method implements; Evaluate_Identifier_RAW() doesn't do it.
+	if ((first_child_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && !use_custom_undefined_identifier_raise_)
 	{
 		// <identifier>.<identifier> is an extremely common pattern so we optimize for it here
 		// with Evaluate_Identifier_RAW(), which avoids EidosValue_SP, call logging, and other overhead
@@ -5073,7 +5075,18 @@ EidosValue_SP EidosInterpreter::Evaluate_Identifier(const EidosASTNode *p_node)
 	EidosValue_SP result_SP = p_node->cached_literal_value_;
 	
 	if (!result_SP)
-		result_SP = global_symbols_->GetValueOrRaiseForASTNode(p_node);	// raises if undefined
+	{
+		if (use_custom_undefined_identifier_raise_)
+		{
+			// This branch raises a special exception if the identifier is undefined in the symbol table.
+			// This facility is used by Community::_EvaluateTickRangeNode() for tolerant evaluation.
+			result_SP = global_symbols_->GetValueOrRaiseForASTNode_SpecialRaise(p_node);	// raises if undefined
+		}
+		else
+		{
+			result_SP = global_symbols_->GetValueOrRaiseForASTNode(p_node);	// raises if undefined
+		}
+	}
 	
 	EIDOS_EXIT_EXECUTION_LOG("Evaluate_Identifier()");
 	return result_SP;

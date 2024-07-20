@@ -144,6 +144,8 @@ public:
 	const EidosASTNode *colon_node_ = nullptr;					// NOT OWNED
 	const EidosASTNode *end_tick_node_ = nullptr;				// NOT OWNED
 	
+	bool tick_range_evaluated_ = false;							// if false, the start/end ticks are unknown because the tick range expression has not yet been evaluated
+	std::string unevaluated_error_string_;						// contains the error message from the error that prevented evaluation, if any
 	bool tick_range_is_sequence_ = true;						// if true, tick_start_ and tick_end_ are used; if false, tick_set_ is used
 	slim_tick_t tick_start_ = -1;								// the first tick to which the block is limited
 	slim_tick_t tick_end_ = SLIM_MAX_TICK + 1;					// the last tick to which the block is limited

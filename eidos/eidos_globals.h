@@ -489,6 +489,23 @@ void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) __attri
 std::string Eidos_GetTrimmedRaiseMessage(void);
 std::string Eidos_GetUntrimmedRaiseMessage(void);
 
+// This custom exception subclass is used to allow tick range evaluation in SLiM to be error-tolerant,
+// for the specific case of expressions that reference global constants that are not yet defined.
+// See Community::_EvaluateTickRangeNode() for the use of this facility.  It is thrown by
+// EidosSymbolTable::_GetValue_SpecialRaise() when a specific flag is set on the interpreter.
+// The message property is used by SLiM to pass up the name of the identifier that was undefined.
+class SLiMUndefinedIdentifierException : public std::exception
+{ 
+private: 
+	std::string message;
+	
+public: 
+	SLiMUndefinedIdentifierException(const char* msg) : message(msg) {}
+	SLiMUndefinedIdentifierException(const std::string &msg) : message(msg) {}
+	
+	const char* what() const noexcept { return message.c_str(); } 
+}; 
+
 
 // *******************************************************************************************************************
 //

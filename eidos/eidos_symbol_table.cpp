@@ -347,6 +347,37 @@ EidosValue_SP EidosSymbolTable::_GetValue(EidosGlobalStringID p_symbol_name, con
 	EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_GetValue): undefined identifier " << EidosStringRegistry::StringForGlobalStringID(p_symbol_name) << "." << EidosTerminate(p_symbol_token);
 }
 
+EidosValue_SP EidosSymbolTable::_GetValue_SpecialRaise(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
+{
+	// Conceptually, this is a recursive function that walks up the symbol table chain.  Doing the recursive calls
+	// is a bit slow, though, so I have unwrapped the recursion.
+	const EidosSymbolTable *current_table = this;
+	
+	do
+	{
+		// try the current table, if the symbol is within its capacity
+		if (p_symbol_name < current_table->capacity_)
+		{
+			EidosValue_SP slot_value(current_table->slots_[p_symbol_name].symbol_value_SP_);
+			
+			if (slot_value)
+				return slot_value;
+		}
+		
+		// We didn't get a hit, so try our chained table
+		current_table = current_table->chain_symbol_table_;
+	}
+	while (current_table);
+	
+	// This "SpecialRaise" version of _GetValue() raises a special type of exception that can be
+	// caught and ignored.  This facility is used by Community::_EvaluateTickRangeNode() to
+	// implement tolerant evaluation of tick range expressions.  We have to set up the error
+	// info manually here, since "<< EidosTerminate(p_symbol_token)' is not doing it for us.
+	PushErrorPositionFromToken(p_symbol_token);
+	
+	throw SLiMUndefinedIdentifierException(EidosStringRegistry::StringForGlobalStringID(p_symbol_name));
+}
+
 EidosValue *EidosSymbolTable::_GetValue_RAW(EidosGlobalStringID p_symbol_name, const EidosToken *p_symbol_token) const
 {
 	// This follows _GetValue() but returns a raw EidosValue * for temporary use

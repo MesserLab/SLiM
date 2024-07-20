@@ -659,9 +659,6 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 EidosValue_SP Community::ExecuteMethod_estimatedLastTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (!tick_ranges_available_)
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_estimatedLastTick): estimatedLastTick() cannot be called until script block tick ranges have been evaluated, after initialize() callbacks have finished executing." << EidosTerminate();
-	
 	slim_tick_t last_tick = EstimatedLastTick();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_tick));
@@ -1203,6 +1200,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		
 		CheckScheduling(start, stage);
 		
+		block->tick_range_evaluated_ = true;
 		block->tick_range_is_sequence_ = true;
 		block->tick_start_ = start;
 		block->tick_end_ = end;
@@ -1231,6 +1229,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		if (tick_count == 0)
 		{
 			// set to run in no ticks; we do this with an empty set
+			block->tick_range_evaluated_ = true;
 			block->tick_range_is_sequence_ = false;
 			block->tick_set_.clear();
 		}
@@ -1261,6 +1260,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			
 			if (is_sequential)
 			{
+				block->tick_range_evaluated_ = true;
 				block->tick_range_is_sequence_ = true;
 				block->tick_start_ = (slim_tick_t)first_value;
 				block->tick_end_ = (slim_tick_t)prev_value;
@@ -1273,6 +1273,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 				std::unordered_set<slim_tick_t> &set = block->tick_set_;
 				slim_tick_t min_tick = SLIM_MAX_TICK;
 				
+				block->tick_range_evaluated_ = true;
 				block->tick_range_is_sequence_ = false;
 				set.clear();
 				

@@ -2396,6 +2396,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} seq(1, 10, by=3) early() { if (community.tick == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} seq(1, 10, by=3)*2 early() { if (community.tick == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} c(1, 5, 10) early() { if (community.tick == 10) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess("initialize() { defineConstant('N', 5); } 1 early() {} integer(0) early() { stop(); } 10 early() {}", __LINE__);
 	
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 1.5 early() { stop(); }", "must evaluate to an integer value", __LINE__);
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} 1:1.5 early() { stop(); }", "must evaluate to an integer value", __LINE__);
@@ -2404,9 +2405,79 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} : early() { stop(); }", "unexpected token", __LINE__);
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} N+40:(N+50) early() { stop(); }", "must both be simple expressions", __LINE__);
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} (N+40):N+50 early() { stop(); }", "must both be simple expressions", __LINE__);
-	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} R early() { stop(); }", "undefined identifier", __LINE__);
-	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); defineGlobal('R', 5); } 1 early() {} R early() { stop(); }", "undefined identifier", __LINE__);	// would be nice if this gave a better error message...
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} R early() { stop(); }", "global constant, R, that was never defined", __LINE__);
+	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); defineGlobal('R', 5); } 1 early() {} R early() { stop(); }", "not visible in tick range expressions", __LINE__);
 	SLiMAssertScriptRaise("initialize() { defineConstant('N', 5); } 1 early() {} c(1, 5, 10, 5) early() { stop(); }", "duplicate elements", __LINE__);
+	
+	// More advanced tick range expressions, involving deferral of the definition of the constant and such
+	// First just a basic script with a deferred block:
+	std::string tickexpr1(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptStop(tickexpr1);
+	
+	// Then a second deferred block scheduled by the first:
+	std::string tickexpr2(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { defineConstant("TIME2", 10); }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptStop(tickexpr2);
+	
+	// A deferred block scheduled into the past:
+	std::string tickexpr3(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { defineConstant("TIME2", 4); }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptRaise(tickexpr3, "past/present", __LINE__);
+	
+	// A deferred block scheduled into the present, which is still illegal:
+	std::string tickexpr4(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { defineConstant("TIME2", 5); }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptRaise(tickexpr4, "past/present", __LINE__);
+	
+	// A deferred block that never gets scheduled because global variables aren't used:
+	std::string tickexpr5(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { defineGlobal("TIME2", 5); }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptRaise(tickexpr5, "global constant, TIME2, that was never defined", __LINE__);
+	
+	// A deferred block that never gets scheduled because the constant never gets set:
+	std::string tickexpr6(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptRaise(tickexpr6, "global constant, TIME2, that was never defined", __LINE__);
+	
+	// A deferred block that never gets scheduled, but is deregistered before the simulation ends, avoiding the error:
+	std::string tickexpr7(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 early() { }
+		s1 TIME2 early() { stop(); }
+		20 late() { community.deregisterScriptBlock(s1); }
+		)V0G0N");
+	SLiMAssertScriptSuccess(tickexpr7);
 }
 
 

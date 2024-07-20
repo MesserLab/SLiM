@@ -547,6 +547,7 @@
 		community = new Community();
 		community->InitializeFromFile(infile);
 		community->InitializeRNGFromSeed(nullptr);
+		community->FinishInitialization();
 		
 		// Swap out our RNG
 #ifndef _OPENMP
@@ -5018,8 +5019,10 @@
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->tick_range_is_sequence_ == false)
+					else if (!scriptBlock->tick_range_evaluated_)
 						return @"?";
+					else if (scriptBlock->tick_range_is_sequence_ == false)
+						return @"...";
 					else if (scriptBlock->tick_start_ == -1)
 						return @"MIN";
 					else
@@ -5029,8 +5032,10 @@
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->tick_range_is_sequence_ == false)
+					else if (!scriptBlock->tick_range_evaluated_)
 						return @"?";
+					else if (scriptBlock->tick_range_is_sequence_ == false)
+						return @"...";
 					else if (scriptBlock->tick_end_ == SLIM_MAX_TICK + 1)
 						return @"MAX";
 					else
