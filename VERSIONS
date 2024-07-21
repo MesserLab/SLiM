@@ -18,6 +18,7 @@ development head (in the master branch):
 	some fixes under the hood to make filesystem paths on Windows, using \ instead of /, be better understood by Eidos
 	fix an occasional crash in sampleIndividuals() due to an off-by-one error in buffer sizing
 	further extend tick range expressions, for scheduling events/callbacks, to allow the use of constants that are not defined until later in a run (variable-length burn-in, etc.)
+		add recipe 17.6 II, to illustrate this new capability
 	improve recording of subpopulations in the tree-sequence recording population table (#447)
 	add calcPi() and calcTajimasD() functions thanks to Nick Bailey
 	

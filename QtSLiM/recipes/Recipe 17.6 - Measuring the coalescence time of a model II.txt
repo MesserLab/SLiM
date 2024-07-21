@@ -1,0 +1,28 @@
+// Keywords: tree-sequence recording, tree sequence recording, deferred scheduling, variable-length burn-in
+
+initialize() {
+	initializeTreeSeq(checkCoalescence=T);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 500);
+}
+1: late() {
+	if (sim.treeSeqCoalesced())
+	{
+		catn(community.tick + ": COALESCED");
+		defineConstant("COALESCE", community.tick);
+		community.deregisterScriptBlock(self);
+	}
+}
+COALESCE+100 late() {
+	catn(community.tick + ": FINISHED");
+	sim.simulationFinished();
+}
+100000 late() {
+	catn("NO COALESCENCE BY CYCLE 100000");
+}
