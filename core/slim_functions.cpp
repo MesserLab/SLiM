@@ -71,6 +71,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPi", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcTajimasD", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		
 		// Other built-in SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
@@ -352,6 +354,127 @@ R"V0G0N({
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
 	return (sum(q*s) - sum(q^2*s) - 2*sum(q*(1-q)*s*h));
+})V0G0N";
+
+// function (float$)calcPi(object<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+const char *gSLiMSourceCode_calcPi = 
+R"V0G0N({
+	if (genomes.length() == 0)
+		stop("ERROR (calcPi()): genomes must be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcPi()): genomes must all belong to the same species.");
+		if (!isNULL(muts))
+			if (!all(muts.mutationType.species == species))
+				stop("ERROR (calcPi()): muts must all belong to the same species as genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
+	length = species.chromosome.lastPosition + 1;
+	
+	if (isNULL(muts))
+		muts = species.mutations;
+	
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcPi()): start must be less than or equal to end.");
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcPi()): start and end must both be NULL or both be non-NULL.");
+	}
+	
+	// narrow down to the mutations that are actually present in the genomes and aren't fixed
+	p = genomes.mutationFrequenciesInGenomes(muts);
+	muts = muts[(p != 0.0) & (p != 1.0)];
+	
+	// do the calculation
+	// obtain counts of variant sequences for all segregating sites
+	varCount = genomes.mutationCountsInGenomes(muts);
+	// total count of sequences subtracted by count of variant sequences equals count of invariant sequences
+	invarCount = genomes.size() - varCount;
+	// count of pairwise differences per site is the product of counts of both alleles (equation 1 in Korunes and Samuk 2021), this is then summed for all sites 
+	diffs = sum(varCount * invarCount);
+	// pi is the ratio of pairwise differences to number of possible combinations of the given sequences
+	// the latter is calculated by a standard formula defined in combinationTwo function (not by default in SLiM)
+	pi = sum(varCount * invarCount) / ((genomes.size() * (genomes.size() - 1)) / 2);;
+	// pi is conventionally averaged per site and this is consistent with SLiM's calculation of Watterson's theta
+	avg_pi = pi / length;
+	return avg_pi;
+})V0G0N";
+
+//function (float$)calcTajimasD(object<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+const char *gSLiMSourceCode_calcTajimasD = 
+R"V0G0N({
+	if (genomes.length() == 0)
+		stop("ERROR (calcTajimasD()): genomes must be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcTajimasD()): genomes must all belong to the same species.");
+		if (!isNULL(muts))
+			if (!all(muts.mutationType.species == species))
+				stop("ERROR (calcTajimasD()): muts must all belong to the same species as genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
+	length = species.chromosome.lastPosition + 1;
+	
+	if (isNULL(muts))
+		muts = species.mutations;
+	
+	// handle windowing
+	if (!isNULL(start) & !isNULL(end))
+	{
+		if (start > end)
+			stop("ERROR (calcTajimasD()): start must be less than or equal to end.");
+		mpos = muts.position;
+		muts = muts[(mpos >= start) & (mpos <= end)];
+		length = end - start + 1;
+	}
+	else if (!isNULL(start) | !isNULL(end))
+	{
+		stop("ERROR (calcTajimasD()): start and end must both be NULL or both be non-NULL.");
+	}
+	
+	// narrow down to the mutations that are actually present in the genomes and aren't fixed
+	p = genomes.mutationFrequenciesInGenomes(muts);
+	muts = muts[(p != 0.0) & (p != 1.0)];
+	
+	// do the calculation
+	// Pi and Watterson's theta functions divide by sequence length so this must be undone in Tajima's D
+	// Sequence length is constant (i.e. no missing data or indels) so this can be applied equally over both metrics
+	diff = (calcPi(genomes, muts, start, end) - calcWattersonsTheta(genomes, muts, start, end)) * length;
+	// calculate standard deviation of covariance of pi and Watterson's theta
+	// note that first 3 variables defined below are sufficient for Watterson's theta calculation as well, though the function is used above for proper interval handling and clarity 
+	k = size(muts);
+	n = genomes.size();
+	a_1 = sum(1 / 1:(n - 1));
+	a_2 = sum(1 / (1:(n - 1)) ^ 2);
+	b_1 = (n + 1) / (3 * (n - 1));
+	b_2 = 2 * (n ^ 2 + n + 3) / (9 * n * (n - 1));
+	c_1 = b_1 - 1 / a_1;
+	c_2 = b_2 - (n + 2) / (a_1 * n) + a_2 / a_1 ^ 2;
+	e_1 = c_1 / a_1;
+	e_2 = c_2 / (a_1 ^ 2 + a_2);
+	covar = e_1 * k + e_2 * k * (k - 1);
+	stdev = sqrt(covar);
+	tajima_d = diff / stdev;
+	return tajima_d;
 })V0G0N";
 
 
