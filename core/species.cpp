@@ -5484,7 +5484,9 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 				
 				if (used_id_name_iter != used_subpop_ids_.end())
 				{
-					new_metadata_string = (*used_id_name_iter).second;
+					nlohmann::json new_metadata = nlohmann::json::object();
+					new_metadata["name"] = (*used_id_name_iter).second;
+					new_metadata_string = new_metadata.dump();
 					got_metadata = true;
 				}
 			}
@@ -5605,7 +5607,9 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 			
 			if (used_id_name_iter != used_subpop_ids_.end())
 			{
-				new_metadata_string = (*used_id_name_iter).second;
+				nlohmann::json new_metadata = nlohmann::json::object();
+				new_metadata["name"] = (*used_id_name_iter).second;
+				new_metadata_string = new_metadata.dump();
 				got_metadata = true;
 			}
 		}
