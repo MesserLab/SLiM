@@ -3310,7 +3310,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 //
 EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	// This method is a debugging hook to make it easier to do things on demand during a debugging session.
 	// It is not user-visible (e.g., with the methods() method) since it starts with an underscore.
 	
