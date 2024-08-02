@@ -78,10 +78,14 @@ public:
 	};
 	
 public:
-	SpatialKernel(const SpatialKernel&) = delete;							// no copying
+	// This static member function should be called before beginning to construct kernels from an argument list
+	// When you then use the constructor below, all arguments must be the same, to avoid missing errors
+	static int PreprocessArguments(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density, SpatialKernelType *p_kernel_type, int *p_k_param_count);
+	
+	SpatialKernel(const SpatialKernel&) = default;							// can copy spatial kernels
 	SpatialKernel& operator=(const SpatialKernel&) = delete;				// no copying
 	SpatialKernel(void) = delete;											// no null construction
-	SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density);
+	SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, int p_kernel_arg_index, bool p_expect_max_density, SpatialKernelType p_kernel_type, int p_k_param_count);
 	~SpatialKernel(void);
 	
 	void CalculateGridValues(SpatialMap &p_map);

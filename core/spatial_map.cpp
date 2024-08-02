@@ -2347,18 +2347,30 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// Our arguments go to SpatialKernel::SpatialKernel(), which creates the kernel object that we use
 	EidosValue *point_value = p_arguments[0].get();
-	size_t point_count = point_value->Count();
+	size_t coordinate_count = point_value->Count();
+	
+	if (coordinate_count % spatiality_ != 0)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	
+	int point_count = (int)(coordinate_count / spatiality_);
+	
+	if (point_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
 	
 	EidosValue *maxDistance_value = p_arguments[1].get();
 	double max_distance = maxDistance_value->FloatAtIndex_NOCAST(0, nullptr);
 	
-	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false);	// uses our arguments starting at index 2
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false, &k_type, &k_param_count);
+	
+	if ((kernel_count != 1) && (kernel_count != point_count))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of points being processed (" << kernel_count << " kernels defined; " << (int)(point_count / spatiality_) << " individuals processed)." << EidosTerminate();
+	
+	SpatialKernel kernel0(spatiality_, max_distance, p_arguments, 2, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 2
 	
 	if (values_min_ < 0.0)
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires that all map values are non-negative." << EidosTerminate(nullptr);
-	
-	if (point_count % spatiality_ != 0)
-		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
 	
 	// Require all/nothing for periodicity
 	if (((spatiality_ == 2) && (periodic_a_ != periodic_b_)) ||
@@ -2370,17 +2382,16 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(coordinate_count);
 	double *result_ptr = float_result->data_mutable();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
-	point_count /= spatiality_;
 	
 	if (spatiality_ == 1)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
@@ -2427,8 +2438,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	else if (spatiality_ == 2)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
 			
@@ -2492,8 +2504,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	else // (spatiality_ == 3)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
 			double point_c = *(point_buf_ptr)++;
@@ -2578,15 +2591,27 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// Our arguments go to SpatialKernel::SpatialKernel(), which creates the kernel object that we use
 	EidosValue *point_value = p_arguments[0].get();
-	size_t point_count = point_value->Count();
+	size_t coordinate_count = point_value->Count();
+	
+	if (coordinate_count % spatiality_ != 0)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	
+	int point_count = (int)(coordinate_count / spatiality_);
+	
+	if (point_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
 	
 	EidosValue *maxDistance_value = p_arguments[1].get();
 	double max_distance = maxDistance_value->FloatAtIndex_NOCAST(0, nullptr);
 	
-	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false);	// uses our arguments starting at index 2
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false, &k_type, &k_param_count);
 	
-	if (point_count % spatiality_ != 0)
-		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	if ((kernel_count != 1) && (kernel_count != point_count))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of points being processed (" << kernel_count << " kernels defined; " << (int)(point_count / spatiality_) << " individuals processed)." << EidosTerminate();
+	
+	SpatialKernel kernel0(spatiality_, max_distance, p_arguments, 2, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 2
 	
 	// Require all/nothing for periodicity
 	if (((spatiality_ == 2) && (periodic_a_ != periodic_b_)) ||
@@ -2598,17 +2623,16 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	const double *point_buf = point_value->FloatData();
 	const double *point_buf_ptr = point_buf;
 	
-	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(point_count);
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(coordinate_count);
 	double *result_ptr = float_result->data_mutable();
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
-	point_count /= spatiality_;
 	
 	if (spatiality_ == 1)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			double displaced_point[1];
 			double map_value;
@@ -2656,8 +2680,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	else if (spatiality_ == 2)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
 			double displaced_point[2];
@@ -2716,9 +2741,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	else // (spatiality_ == 3)
 	{
 		// FIXME: TO BE PARALLELIZED
-		for (size_t point_index = 0; point_index < point_count; point_index++)
+		for (int point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
+			SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(spatiality_, max_distance, p_arguments, 2, point_index, /* p_expect_max_density */ false, k_type, k_param_count));
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
 			double point_c = *(point_buf_ptr)++;
@@ -2798,7 +2823,15 @@ EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, 
 	EidosValue *maxDistance_value = p_arguments[0].get();
 	double max_distance = maxDistance_value->FloatAtIndex_NOCAST(0, nullptr);
 	
-	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 1, /* p_expect_max_density */ false);	// uses our arguments starting at index 1
+	// SpatialKernel parses and bounds-checks our arguments for us
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(spatiality_, max_distance, p_arguments, 1, /* p_expect_max_density */ false, &k_type, &k_param_count);
+	
+	if (kernel_count != 1)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_smooth): smooth() requires a single kernel; all kernel definition arguments must be singletons." << EidosTerminate();
+	
+	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 1, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 1
 	
 	// Ask the kernel to create a discrete grid of values, at our spatial scale (we define the
 	// relationship between spatial bounds and pixels, used by the kernel to make its grid)

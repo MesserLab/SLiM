@@ -5981,7 +5981,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	EidosValue *maxDistance_value = p_arguments[2].get();
 	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
 	
-	SpatialKernel kernel(dimensionality, max_distance, p_arguments, 3, /* p_expect_max_density */ false);	// uses our arguments starting at index 3
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(dimensionality, max_distance, p_arguments, 3, /* p_expect_max_density */ false, &k_type, &k_param_count);
+	
+	if ((kernel_count != 1) && (kernel_count != individuals_count))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): deviatePositions() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of individuals being processed (" << kernel_count << " kernels defined; " << individuals_count << " individuals processed)." << EidosTerminate();
+	
+	SpatialKernel kernel0(dimensionality, max_distance, p_arguments, 3, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 3
 	
 	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
 	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
@@ -5991,10 +5998,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
 	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
 	// are common, though.
-	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
+	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
 		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-		double stddev = kernel.kernel_param2_;
+		double stddev = kernel0.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
 		
@@ -6083,6 +6090,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 		return gStaticEidosValueVOID;
 	}
 	
+	// main code path; note that here we may have multiple kernels defined, one per individual
 	switch (dimensionality)
 	{
 		case 1:
@@ -6092,6 +6100,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			// FIXME: TO BE PARALLELIZED
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 3, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				Individual *ind = individuals[individual_index];
 				double a[1];
 				
@@ -6137,6 +6146,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			// FIXME: TO BE PARALLELIZED
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 3, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				Individual *ind = individuals[individual_index];
 				double a[2];
 				
@@ -6201,6 +6211,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			// FIXME: TO BE PARALLELIZED
 			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
 			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 3, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				Individual *ind = individuals[individual_index];
 				double a[3];
 				
@@ -6350,7 +6361,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	EidosValue *maxDistance_value = p_arguments[3].get();
 	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
 	
-	SpatialKernel kernel(dimensionality, max_distance, p_arguments, 4, /* p_expect_max_density */ false);	// uses our arguments starting at index 3
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(dimensionality, max_distance, p_arguments, 4, /* p_expect_max_density */ false, &k_type, &k_param_count);
+	
+	if ((kernel_count != 1) && (kernel_count != point_count))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of points being processed (" << kernel_count << " kernels defined; " << point_count << " individuals processed)." << EidosTerminate();
+	
+	SpatialKernel kernel0(dimensionality, max_distance, p_arguments, 4, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 4
 	
 	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
 	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
@@ -6360,10 +6378,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
 	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
 	// are common, though.
-	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
+	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
 		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-		double stddev = kernel.kernel_param2_;
+		double stddev = kernel0.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
 		
@@ -6454,6 +6472,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
 				double a[1];
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, result_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				
 			reprise_1:
 				kernel.DrawDisplacement_S1(a);
@@ -6498,6 +6517,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 			
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, result_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				double a[2];
 				
 			reprise_2:
@@ -6562,6 +6582,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 			
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, result_index, /* p_expect_max_density */ false, k_type, k_param_count));
 				double a[3];
 				
 			reprise_3:

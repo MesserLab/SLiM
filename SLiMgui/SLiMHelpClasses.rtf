@@ -6983,23 +6983,10 @@ The
 \f3\fs18 sampleNearbyPoint()
 \f4\fs20  samples a Metropolis\'96Hastings move on the spatial map.  See 
 \f3\fs18 sampleNearbyPoint()
-\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of individuals that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that individuals will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.\
-Note that unlike 
+\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of individuals that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that individuals will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.  Note that unlike 
 \f3\fs18 sampleNearbyPoint()
 \f4\fs20 , this method requires that all map values are non-negative.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \'96\'a0(float)sampleNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 For a spatial point supplied in 
-\f3\fs18 point
-\f4\fs20 , returns a nearby point sampled from a kernel weighted by the spatial map\'92s values.  Only points within the maximum distance of the kernel, 
-\f3\fs18 maxDistance
-\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.  The point returned will be within spatial bounds, respecting periodic boundaries if in effect (so there is no need to call 
-\f3\fs18 pointPeriodic()
-\f4\fs20  on the result).\
-The kernel is specified with a kernel shape, 
+The kernel is specified with a kernel type, 
 \f3\fs18 functionType
 \f4\fs20 , followed by zero or more ellipsis arguments; see 
 \f3\fs18 smooth()
@@ -7015,7 +7002,48 @@ The kernel is specified with a kernel shape,
 \f3\fs18 "t"
 \f4\fs20  are supported, and type 
 \f3\fs18 "t"
-\f4\fs20  is not presently supported for 3D kernels.\
+\f4\fs20  is not presently supported for 3D kernels.  The parameters that define the kernel\'92s shape \'96 the ellipsis arguments that follow 
+\f3\fs18 functionType
+\f4\fs20  \'96 may each, independently, be either a singleton or a vector with length equal to the number of points, providing a separate value for each point being processed.  In this way, all of the nearby points can be drawn from the same kernel, or each from a separately defined kernel.  Since 
+\f3\fs18 maxDistance
+\f4\fs20  and 
+\f3\fs18 functionType
+\f4\fs20  are required to be singletons, however, their values cannot vary from point to point in the present design.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)sampleNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 For a spatial point supplied in 
+\f3\fs18 point
+\f4\fs20 , returns a nearby point sampled from a kernel weighted by the spatial map\'92s values.  Only points within the maximum distance of the kernel, 
+\f3\fs18 maxDistance
+\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.  The point returned will be within spatial bounds, respecting periodic boundaries if in effect (so there is no need to call 
+\f3\fs18 pointPeriodic()
+\f4\fs20  on the result).\
+The kernel is specified with a kernel type, 
+\f3\fs18 functionType
+\f4\fs20 , followed by zero or more ellipsis arguments; see 
+\f3\fs18 smooth()
+\f4\fs20  for further information.  For this method, at present only kernel types 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , and 
+\f3\fs18 "t"
+\f4\fs20  are supported, and type 
+\f3\fs18 "t"
+\f4\fs20  is not presently supported for 3D kernels.  The parameters that define the kernel\'92s shape \'96 the ellipsis arguments that follow 
+\f3\fs18 functionType
+\f4\fs20  \'96 may each, independently, be either a singleton or a vector with length equal to the number of points, providing a separate value for each point being processed.  In this way, all of the nearby points can be drawn from the same kernel, or each from a separately defined kernel.  Since 
+\f3\fs18 maxDistance
+\f4\fs20  and 
+\f3\fs18 functionType
+\f4\fs20  are required to be singletons, however, their values cannot vary from point to point in the present design.\
 This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.  See 
 \f3\fs18 sampleImprovedNearbyPoint()
 \f4\fs20  for a variant that may be useful for directed movement across a landscape.  Note that the algorithm for 
@@ -9807,7 +9835,19 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3\fs18 ...
 \f4\fs20  supplying kernel configuration parameters appropriate for that kernel type; see 
 \f3\fs18 pointDeviated()
-\f4\fs20  for further details.\
+\f4\fs20  for further details.  As with 
+\f3\fs18 pointDeviated()
+\f4\fs20 , the ellipsis parameters that follow 
+\f3\fs18 functionType
+\f4\fs20  may each, independently, be either a singleton or a vector of length equal to 
+\f3\fs18 n
+\f4\fs20 .  This allows each individual\'92s position to be deviated with a different kernel, representing, for example, the movements of individuals with differing dispersal capabilities/propensities.  (However, other parameters such as 
+\f3\fs18 boundary
+\f4\fs20 , 
+\f3\fs18 maxDistance
+\f4\fs20 , and 
+\f3\fs18 functionType
+\f4\fs20  must be the same for all of the points, in the present design.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
@@ -10049,7 +10089,19 @@ The dispersal kernel is specified similarly to other kernel-based methods, such 
 \f3\fs18 "t"
 \f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  See the 
 \f3\fs18 InteractionType
-\f4\fs20  class documentation for more detailed discussion of the available kernel types and their parameters and probability distribution functions.\
+\f4\fs20  class documentation (section 25.8) for more detailed discussion of the available kernel types and their parameters and probability distribution functions.  For 
+\f3\fs18 pointDeviated()
+\f4\fs20 , the ellipsis parameters that follow 
+\f3\fs18 functionType
+\f4\fs20  may each, independently, be either a singleton or a vector of length equal to 
+\f3\fs18 n
+\f4\fs20 .  This allows each point to be deviated with a different kernel, representing, for example, the movements of individuals with differing dispersal capabilities/propensities.  (However, other parameters such as 
+\f3\fs18 boundary
+\f4\fs20 , 
+\f3\fs18 maxDistance
+\f4\fs20 , and 
+\f3\fs18 functionType
+\f4\fs20  must be the same for all of the points, in the present design.)\
 The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the kernel \'96 in other words, at distance 
 \f1\i r
 \f4\i0  the density is proportional to the kernel type referred to by 

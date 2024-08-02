@@ -47,41 +47,27 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type)
 #pragma mark SpatialKernel
 #pragma mark -
 
-SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density) : dimensionality_(p_dimensionality), max_distance_(p_maxDistance)
+int SpatialKernel::PreprocessArguments(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density, SpatialKernelType *p_kernel_type, int *p_k_param_count)
 {
-	// This constructs a kernel from the arguments given, beginning at argument p_first_kernel_arg.
-	// For example, take the smooth() method of SpatialKernel:
-	//
-	//	- (void)smooth(float$ maxDistance, string$ functionType, ...)
-	//
-	// It parses out maxDistance and passes it to us; it then forwards its remaining
-	// arguments, with p_first_kernel_arg == 1, to define the shape of the kernel it wants.
-	// The ellipsis arguments are patterned after setInteractionFunction(); this class is
-	// basically a grid-sampled version of the same style of kernel that InteractionType
-	// uses, and indeed, InteractionType now uses SpatialKernel for some of its work.
-	// If p_expect_max_density is true, a maximum kernel density is expected and the kernel
-	// specification is as it is for setInteractionFunction(); if p_expect_max_density is
-	// false, the maximum kernel density is not expected, as for the smooth() method of
-	// SpatialMap.
-	//
-	// The grid sampling is based upon the spatial scale established by a given SpatialMap;
-	// the max distance and other kernel parameters are in terms of that scale.
-	
-	if ((dimensionality_ < 0) || (dimensionality_ > 3))
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel dimensionality must be 0, 1, 2, or 3." << EidosTerminate();
-	if (max_distance_ <= 0)
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel maxDistance must be greater than zero." << EidosTerminate();
+	// This method pre-processes the kernel definition arguments, counting how many kernels are being defined,
+	// and doing shared checks across all of the kernels being defined to save cycles in defining each one
+	if ((p_dimensionality < 0) || (p_dimensionality > 3))
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel dimensionality must be 0, 1, 2, or 3." << EidosTerminate();
+	if (p_maxDistance <= 0)
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel maxDistance must be greater than zero." << EidosTerminate();
 	
 	// Parse the arguments that define our kernel shape
 	if (p_arguments[p_first_kernel_arg]->Type() != EidosValueType::kValueString)
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): (internal error) functionType is not a string." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): (internal error) functionType is not a string." << EidosTerminate();
 	
 	EidosValue_String *functionType_value = (EidosValue_String *)p_arguments[p_first_kernel_arg].get();
+	
+	if (functionType_value->Count() != 1)
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): (internal error) functionType must be a singleton string." << EidosTerminate();
 	
 	const std::string &k_type_string = functionType_value->StringRefAtIndex_NOCAST(0, nullptr);
 	SpatialKernelType k_type;
 	int expected_k_param_count = 0;
-	std::vector<double> k_parameters;
 	
 	if (k_type_string.compare(gStr_f) == 0)
 	{
@@ -92,16 +78,16 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		// It makes sense – a kernel that doesn't fall off with distance at all shouldn't have infinite extent.
 		// For totalOfNeighborStrengths(), for example, this would become simply a count of all interacting
 		// individuals across the whole landscape - it is no longer really a spatial query at all.
-		if ((dimensionality_ > 0) && std::isinf(max_distance_))
-			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'f' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
+		if ((p_dimensionality > 0) && std::isinf(p_maxDistance))
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel type 'f' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (k_type_string.compare(gStr_l) == 0)
 	{
 		k_type = SpatialKernelType::kLinear;
 		expected_k_param_count = (p_expect_max_density ? 1 : 0);
 		
-		if (std::isinf(max_distance_))
-			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'l' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
+		if (std::isinf(p_maxDistance))
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel type 'l' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (k_type_string.compare(gStr_e) == 0)
 	{
@@ -124,13 +110,16 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		expected_k_param_count = (p_expect_max_density ? 3 : 2);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType '" << k_type_string << "' must be 'f', 'l', 'e', 'n', 'c', or 't'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel functionType '" << k_type_string << "' must be 'f', 'l', 'e', 'n', 'c', or 't'." << EidosTerminate();
 	
-	if ((dimensionality_ == 0) && (k_type != SpatialKernelType::kFixed))
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType 'f' is required for non-spatial interactions." << EidosTerminate();
+	if ((p_dimensionality == 0) && (k_type != SpatialKernelType::kFixed))
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel functionType 'f' is required for non-spatial interactions." << EidosTerminate();
 	
 	if ((int)p_arguments.size() - p_first_kernel_arg != 1 + expected_k_param_count)
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType '" << k_type << "' requires exactly " << expected_k_param_count << " kernel configuration parameter" << (expected_k_param_count == 1 ? "" : "s") << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): spatial kernel functionType '" << k_type << "' requires exactly " << expected_k_param_count << " kernel configuration parameter" << (expected_k_param_count == 1 ? "" : "s") << "." << EidosTerminate();
+	
+	// This is the crux of this method: determining how many kernels the user is requesting that we should construct.
+	int kernel_count = 1;
 	
 	for (int k_param_index = 0; k_param_index < expected_k_param_count; ++k_param_index)
 	{
@@ -138,19 +127,80 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		EidosValueType k_param_type = k_param_value->Type();
 		
 		if ((k_param_type != EidosValueType::kValueFloat) && (k_param_type != EidosValueType::kValueInt))
-			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): the parameters for this spatial kernel type must be numeric (integer or float)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): the parameters for this spatial kernel type must be numeric (integer or float)." << EidosTerminate();
 		
-		k_parameters.emplace_back(k_param_value->NumericAtIndex_NOCAST(0, nullptr));
+		int k_param_count = k_param_value->Count();
+		
+		if (k_param_count != 1)
+		{
+			if (kernel_count == 1)
+			{
+				// the first time we see a non-1 value, we accept it as defining the kernel count
+				kernel_count = k_param_count;
+			}
+			else
+			{
+				// subsequent times, it must match the kernel count we already inferred
+				if (k_param_count != kernel_count)
+					EIDOS_TERMINATION << "ERROR (SpatialKernel::PreprocessArguments): an inconsistent number of kernels is defined; all kernel definition parameters must either be singleton, or have the same non-singleton count." << EidosTerminate();
+			}
+		}
 	}
 	
+	// OK, we're accepting this kernel definition; keep track of what we're doing
+	// these values will get passed back in to the SpatialKernel constructor,
+	// but we only need to figure them out once
+	*p_kernel_type = k_type;
+	*p_k_param_count = expected_k_param_count;
+	
+	return kernel_count;
+}
+
+SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, int p_kernel_arg_index, bool p_expect_max_density, SpatialKernelType p_kernel_type, int p_k_param_count) : dimensionality_(p_dimensionality), max_distance_(p_maxDistance), kernel_type_(p_kernel_type)
+{
+	// This constructs a kernel from the arguments given, beginning at argument p_first_kernel_arg.
+	// For example, take the smooth() method of SpatialKernel:
+	//
+	//	- (void)smooth(float$ maxDistance, string$ functionType, ...)
+	//
+	// It parses out maxDistance and passes it to us; it then forwards its remaining
+	// arguments, with p_first_kernel_arg == 1, to define the shape of the kernel it wants.
+	// The ellipsis arguments are patterned after setInteractionFunction(); this class is
+	// basically a grid-sampled version of the same style of kernel that InteractionType
+	// uses, and indeed, InteractionType now uses SpatialKernel for some of its work.
+	// If p_expect_max_density is true, a maximum kernel density is expected and the kernel
+	// specification is as it is for setInteractionFunction(); if p_expect_max_density is
+	// false, the maximum kernel density is not expected, as for the smooth() method of
+	// SpatialMap.
+	//
+	// The grid sampling is based upon the spatial scale established by a given SpatialMap;
+	// the max distance and other kernel parameters are in terms of that scale.
+	
+	// Note that SpatialKernel::PreprocessArguments() must be called prior to calling this,
+	// to check the correctness of the arguments and count how many kernels are being made.
+	
+	// Parse kernel arguments; checks are done by SpatialKernel::PreprocessArguments().
 	// Internally, we always have a max kernel density.  If one was not expected from the arguments,
 	// we insert a value of 1.0 for the max kernel density.
+	std::vector<double> k_parameters;
+	
 	if (!p_expect_max_density)
-		k_parameters.insert(k_parameters.begin(), 1.0);
+		k_parameters.emplace_back(1.0);
+	
+	for (int k_param_index = 0; k_param_index < p_k_param_count; ++k_param_index)
+	{
+		EidosValue *k_param_value = p_arguments[1 + k_param_index + p_first_kernel_arg].get();
+		
+		// each parameter can be either singleton, or a vector from which we use index p_kernel_arg_index
+		if (k_param_value->Count() == 1)
+			k_parameters.emplace_back(k_param_value->NumericAtIndex_NOCAST(0, nullptr));
+		else
+			k_parameters.emplace_back(k_param_value->NumericAtIndex_NOCAST(p_kernel_arg_index, nullptr));
+	}
 	
 	// Bounds-check the IF parameters in the cases where there is a hard bound
 	// NOLINTBEGIN(*-branch-clone) : intentional consecutive branches
-	switch (k_type)
+	switch (kernel_type_)
 	{
 		case SpatialKernelType::kFixed:
 			// no limits on fixed IFs; doesn't make much sense to use 0.0, but it's not illegal
@@ -182,7 +232,6 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	// NOLINTEND(*-branch-clone)
 	
 	// Everything seems to be in order, so replace our kernel info with the new info
-	kernel_type_ = k_type;
 	kernel_param1_ = ((k_parameters.size() >= 1) ? k_parameters[0] : 0.0);
 	kernel_param2_ = ((k_parameters.size() >= 2) ? k_parameters[1] : 0.0);
 	kernel_param3_ = ((k_parameters.size() >= 3) ? k_parameters[2] : 0.0);

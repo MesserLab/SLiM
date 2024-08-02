@@ -5988,7 +5988,14 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << EidosTerminate();
 	
 	// SpatialKernel parses and bounds-checks our arguments for us
-	SpatialKernel kernel(spatiality_, max_distance_, p_arguments, 0, /* p_expect_max_density */ true);
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(spatiality_, max_distance_, p_arguments, 0, /* p_expect_max_density */ true, &k_type, &k_param_count);
+	
+	if (kernel_count != 1)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires a single kernel; all kernel definition arguments must be singletons." << EidosTerminate();
+	
+	SpatialKernel kernel(spatiality_, max_distance_, p_arguments, 0, 0, /* p_expect_max_density */ true, k_type, k_param_count);
 	
 	// Everything seems to be in order, so replace our IF info with the new info
 	// FIXME we could consider actually keeping an internal SpatialKernel instance permanently
