@@ -96,7 +96,7 @@ option(PARALLEL "Build parallel versions of eidos and slim" OFF)
 
 if(PARALLEL)
 	# BCH 12/4/2023: Parallel SLiM is presently unreleased and unsupported.  Caveat lector.
-	message(FATAL_ERROR "Multithreaded SLiM is not released, not thoroughly tested, and generally not yet ready for prime time.  It is not recommended for end-user use, especially not for "production" runs, and the documentation for it is not yet public.  Please do not ask for any kind of support for this feature if you choose to experiment with it.")
+	message(FATAL_ERROR "Multithreaded SLiM is not released, not thoroughly tested, and generally not yet ready for prime time.  It is not recommended for end-user use, especially not for 'production' runs, and the documentation for it is not yet public.  Please do not ask for any kind of support for this feature if you choose to experiment with it." )
 endif(PARALLEL)
 
 # Add "-D PROFILE=ON" to the CMake command to make a build of command-line slim with runtime profiling
