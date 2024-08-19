@@ -1205,7 +1205,7 @@ QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const
     QVBoxLayout *topLayout = new QVBoxLayout;
     
     image_window->setLayout(topLayout);
-    topLayout->setMargin(0);
+    topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     topLayout->addWidget(imageView);
     

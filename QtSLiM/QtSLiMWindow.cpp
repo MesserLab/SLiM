@@ -613,15 +613,15 @@ void QtSLiMWindow::initializeUI(void)
     
     // fix the layout of the window
     ui->scriptHeaderLayout->setSpacing(4);
-    ui->scriptHeaderLayout->setMargin(0);
+    ui->scriptHeaderLayout->setContentsMargins(0, 0, 0, 0);
     ui->scriptHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
     ui->outputHeaderLayout->setSpacing(4);
-    ui->outputHeaderLayout->setMargin(0);
+    ui->outputHeaderLayout->setContentsMargins(0, 0, 0, 0);
     ui->outputHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
     ui->playControlsLayout->setSpacing(8);
-    ui->playControlsLayout->setMargin(0);
+    ui->playControlsLayout->setContentsMargins(0, 0, 0, 0);
     
     // substitute a custom layout subclass for playControlsLayout to lay out the profile button specially
     {
@@ -647,7 +647,7 @@ void QtSLiMWindow::initializeUI(void)
             
             // Transfer properties of the old layout
             newPlayControlsLayout->setSpacing(ui->playControlsLayout->spacing());
-            newPlayControlsLayout->setMargin(ui->playControlsLayout->margin());
+            newPlayControlsLayout->setContentsMargins(ui->playControlsLayout->contentsMargins());
             
             // Get rid of the old layout
             ui->topRightLayout->removeItem(ui->playControlsLayout);
@@ -6020,7 +6020,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     QVBoxLayout *topLayout = new QVBoxLayout;
     
     image_window->setLayout(topLayout);
-    topLayout->setMargin(0);
+    topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     topLayout->addWidget(imageView);
     
@@ -6119,7 +6119,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     QVBoxLayout *topLayout = new QVBoxLayout;
     
     graph_window->setLayout(topLayout);
-    topLayout->setMargin(0);
+    topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     topLayout->addWidget(graphView);
     
@@ -6129,7 +6129,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     {
         buttonLayout = new QHBoxLayout;
         
-        buttonLayout->setMargin(5);
+        buttonLayout->setContentsMargins(5, 5, 5, 5);
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         

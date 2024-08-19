@@ -83,7 +83,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             QVBoxLayout *topLayout = new QVBoxLayout;
             
             window->setLayout(topLayout);
-            topLayout->setMargin(0);
+            topLayout->setContentsMargins(0, 0, 0, 0);
             topLayout->setSpacing(0);
             topLayout->addWidget(haplotypeView);
             
@@ -96,7 +96,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
             {
                 buttonLayout = new QHBoxLayout;
                 
-                buttonLayout->setMargin(5);
+                buttonLayout->setContentsMargins(5, 5, 5, 5);
                 buttonLayout->setSpacing(5);
                 topLayout->addLayout(buttonLayout);
                 
