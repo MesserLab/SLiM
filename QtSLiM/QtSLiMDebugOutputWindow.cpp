@@ -100,7 +100,7 @@ QtSLiMDebugOutputWindow::QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent) :
     
     // fix the layout of the window
     ui->outputHeaderLayout->setSpacing(4);
-    ui->outputHeaderLayout->setMargin(0);
+    ui->outputHeaderLayout->setContentsMargins(0, 0, 0, 0);
     
     // QtSLiMTextEdit attributes
     ui->debugOutputTextEdit->setOptionClickEnabled(false);

@@ -130,12 +130,12 @@ void QtSLiMWindow::glueUI(void)
     
     // menu items that are not visible, for hidden shortcuts
     QAction *actionNewWF_commentless = new QAction("New WF (Commentless)", this);
-    actionNewWF_commentless->setShortcut(Qt::CTRL + Qt::AltModifier + Qt::Key_N);
+    actionNewWF_commentless->setShortcut(Qt::ControlModifier | Qt::AltModifier | Qt::Key_N);
     connect(actionNewWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF_commentless);
     addAction(actionNewWF_commentless);
     
     QAction *actionNewNonWF_commentless = new QAction("New nonWF (Commentless)", this);
-    actionNewNonWF_commentless->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::AltModifier + Qt::Key_N);
+    actionNewNonWF_commentless->setShortcut(Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier | Qt::Key_N);
     connect(actionNewNonWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF_commentless);
     addAction(actionNewNonWF_commentless);
     

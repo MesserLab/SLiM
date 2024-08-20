@@ -1083,13 +1083,13 @@ void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attr
         if (!intervalRect.isEmpty())
 		{
 			// color according to how "hot" the region is
-			double r, g, b, a;
+            float colorRed, colorGreen, colorBlue, colorAlpha;
 			
 			if (intervalRate == 0.0)
 			{
 				// a recombination or mutation rate of 0.0 comes out as black, whereas the lowest brightness below is 0.5; we want to distinguish this
-				r = g = b = 0.0;
-				a = 1.0;
+				colorRed = colorGreen = colorBlue = 0.0;
+				colorAlpha = 1.0;
 			}
 			else
 			{
@@ -1105,10 +1105,21 @@ void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attr
 				else					brightness = 0.5 + lightness;					// goes from 1.0 at lightness 0.5 to 0.5 at lightness 0.0
 				
                 QColor intervalColor = QtSLiMColorWithHSV(hue, saturation, brightness, 1.0);
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+                // In Qt5, getRgbF() expects pointers to qreal, which is double
+                double r, g, b, a;
 				intervalColor.getRgbF(&r, &g, &b, &a);
+                
+                colorRed = static_cast<float>(r);
+                colorGreen = static_cast<float>(g);
+                colorBlue = static_cast<float>(b);
+                colorAlpha = static_cast<float>(a);
+#else
+                // In Qt6, getRgbF() expects pointers to float
+                intervalColor.getRgbF(&colorRed, &colorGreen, &colorBlue, &colorAlpha);
+#endif
 			}
-			
-			float colorRed = static_cast<float>(r), colorGreen = static_cast<float>(g), colorBlue = static_cast<float>(b), colorAlpha = static_cast<float>(a);
 			
 			SLIM_GL_DEFCOORDS(intervalRect);
 			SLIM_GL_PUSHRECT();

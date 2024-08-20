@@ -8,6 +8,9 @@ QT       += core gui opengl
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+# OpenGLWidget moved to openglwidgets in Qt6
+greaterThan(QT_MAJOR_VERSION, 5): QT += openglwidgets
+
 # Note that the target is SLiMgui now, but the old QtSLiM name lives on throughout the project
 TARGET = SLiMgui
 TEMPLATE = app
@@ -42,7 +45,7 @@ DEFINES += GIT_SHA1=$$GIT_HASH
 
 # Warn and error on usage of deprecated Qt APIs; see also -Wno-deprecated-declarations below
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
+DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050F00    # disables all the APIs deprecated before Qt 5.15.0
 
 
 # Bring in flag settings from the environment; see https://stackoverflow.com/a/17578151/2752221
@@ -56,9 +59,18 @@ QMAKE_CFLAGS += $$(CFLAGS)
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
 
-CONFIG += c++11
-CONFIG += c11
-QMAKE_CFLAGS += -std=c11
+greaterThan(QT_MAJOR_VERSION, 5) {
+	# For Qt6 we require C++17 (because Qt6 requires it), but don't use it ourselves
+	CONFIG += c++17
+	CONFIG += c17
+	QMAKE_CFLAGS += -std=c17
+} else {
+	# For Qt5 we require just C++11
+	CONFIG += c++11
+	CONFIG += c11
+	QMAKE_CFLAGS += -std=c11
+}
+
 QMAKE_CFLAGS_DEBUG += -g -Og -DDEBUG=1 -DSLIMPROFILING=0
 QMAKE_CFLAGS_RELEASE += -O3 -DSLIMPROFILING=1
 QMAKE_CXXFLAGS_DEBUG += -g -Og -DDEBUG=1 -DSLIMPROFILING=0

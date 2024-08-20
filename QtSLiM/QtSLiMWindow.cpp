@@ -62,7 +62,6 @@
 #include <QSettings>
 #include <QCheckBox>
 #include <QCloseEvent>
-#include <QDesktopWidget>
 #include <QStandardPaths>
 #include <QToolTip>
 #include <QHBoxLayout>
@@ -75,6 +74,7 @@
 #include <QScreen>
 #include <QMetaMethod>
 #include <QLabel>
+#include <QActionGroup>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -613,15 +613,15 @@ void QtSLiMWindow::initializeUI(void)
     
     // fix the layout of the window
     ui->scriptHeaderLayout->setSpacing(4);
-    ui->scriptHeaderLayout->setMargin(0);
+    ui->scriptHeaderLayout->setContentsMargins(0, 0, 0, 0);
     ui->scriptHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
     ui->outputHeaderLayout->setSpacing(4);
-    ui->outputHeaderLayout->setMargin(0);
+    ui->outputHeaderLayout->setContentsMargins(0, 0, 0, 0);
     ui->outputHeaderLabel->setContentsMargins(8, 0, 15, 0);
 
     ui->playControlsLayout->setSpacing(8);
-    ui->playControlsLayout->setMargin(0);
+    ui->playControlsLayout->setContentsMargins(0, 0, 0, 0);
     
     // substitute a custom layout subclass for playControlsLayout to lay out the profile button specially
     {
@@ -647,7 +647,7 @@ void QtSLiMWindow::initializeUI(void)
             
             // Transfer properties of the old layout
             newPlayControlsLayout->setSpacing(ui->playControlsLayout->spacing());
-            newPlayControlsLayout->setMargin(ui->playControlsLayout->margin());
+            newPlayControlsLayout->setContentsMargins(ui->playControlsLayout->contentsMargins());
             
             // Get rid of the old layout
             ui->topRightLayout->removeItem(ui->playControlsLayout);
@@ -1420,7 +1420,8 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     if (!topFrameWidth)
         topFrameWidth = 40;
     const QPoint position = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
-    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + position))
+    
+    if (this->screen()->availableGeometry().contains(rect().bottomRight() + position))
         move(position);
 }
 
@@ -5280,7 +5281,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             // Exclude comments that contain newlines and similar characters
             if ((comment.indexOf(QChar::LineFeed) != -1) ||
-                    (comment.indexOf(0x0C) != -1) ||
+                    (comment.indexOf(QChar::FormFeed) != -1) ||
                     (comment.indexOf(QChar::CarriageReturn) != -1) ||
                     (comment.indexOf(QChar::ParagraphSeparator) != -1) ||
                     (comment.indexOf(QChar::LineSeparator) != -1))
@@ -5464,8 +5465,8 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
                     decl.truncate(decl.indexOf(QChar::LineFeed));
-                if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                    decl.truncate(decl.indexOf(0x0C));
+                if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                    decl.truncate(decl.indexOf(QChar::FormFeed));
                 if (decl.indexOf(QChar::CarriageReturn) != -1)
                     decl.truncate(decl.indexOf(QChar::CarriageReturn));
                 if (decl.indexOf(QChar::ParagraphSeparator) != -1)
@@ -5647,8 +5648,8 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
                     // Remove everything including and after the first newline
                     if (decl.indexOf(QChar::LineFeed) != -1)
                         decl.truncate(decl.indexOf(QChar::LineFeed));
-                    if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                        decl.truncate(decl.indexOf(0x0C));
+                    if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                        decl.truncate(decl.indexOf(QChar::FormFeed));
                     if (decl.indexOf(QChar::CarriageReturn) != -1)
                         decl.truncate(decl.indexOf(QChar::CarriageReturn));
                     if (decl.indexOf(QChar::ParagraphSeparator) != -1)
@@ -6020,7 +6021,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     QVBoxLayout *topLayout = new QVBoxLayout;
     
     image_window->setLayout(topLayout);
-    topLayout->setMargin(0);
+    topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     topLayout->addWidget(imageView);
     
@@ -6119,7 +6120,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     QVBoxLayout *topLayout = new QVBoxLayout;
     
     graph_window->setLayout(topLayout);
-    topLayout->setMargin(0);
+    topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     topLayout->addWidget(graphView);
     
@@ -6129,7 +6130,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     {
         buttonLayout = new QHBoxLayout;
         
-        buttonLayout->setMargin(5);
+        buttonLayout->setContentsMargins(5, 5, 5, 5);
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         
