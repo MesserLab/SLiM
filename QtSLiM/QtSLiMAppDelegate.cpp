@@ -79,7 +79,7 @@
 #ifdef __APPLE__
 // On macOS we enforce Qt 5.15.2 as a hard limit; macOS does not have Qt preinstalled, and there is
 // not much reason for anybody to use a version prior to 5.15.2 for a build.  5.15.2 is the only
-// LTS version with support for macOS 11, dark mode, and various other things we want.  However,
+// Qt5 LTS version with support for macOS 11, dark mode, and various other things we want.  However,
 // if you need to build against an earlier Qt version (because you're using a macOS version earlier
 // than 10.13, perhaps), you can disable this check using the above flag and your build will probably
 // work; just note that that configuration is unsupported.
@@ -97,7 +97,7 @@
 
 // We now support Qt 6, but do not require it.  Note that SLiM 4.2.2 was the last version that supported only Qt 5.
 #if (QT_VERSION >= QT_VERSION_CHECK(7, 0, 0))
-#error "SLiMgui requires Qt 5.15 or Qt 6.  Qt 7 and later are not supported at this time."
+#error "SLiMgui requires Qt 5 or Qt 6.  Qt 7 and later are not supported at this time."
 #endif
 #if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
 #error "SLiMgui requires Qt 5 or Qt 6.  Qt 4 and earlier are not supported."

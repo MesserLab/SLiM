@@ -5234,6 +5234,14 @@ void QtSLiMWindow::chromosomeActionRunMenu(void)
     chromosomeActionReleased();
 }
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+// In some versions of Qt5, such as 5.9.5, QChar::FormFeed did not yet exist
+#define Eidos_FormFeed 0x0C
+#else
+// In Qt6, QChar::FormFeed is the preferred symbol for this
+#define Eidos_FormFeed QChar::FormFeed
+#endif
+
 void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
 {
     QPlainTextEdit *scriptTE = ui->scriptTextEdit;
@@ -5281,7 +5289,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             // Exclude comments that contain newlines and similar characters
             if ((comment.indexOf(QChar::LineFeed) != -1) ||
-                    (comment.indexOf(QChar::FormFeed) != -1) ||
+                    (comment.indexOf(Eidos_FormFeed) != -1) ||
                     (comment.indexOf(QChar::CarriageReturn) != -1) ||
                     (comment.indexOf(QChar::ParagraphSeparator) != -1) ||
                     (comment.indexOf(QChar::LineSeparator) != -1))
@@ -5465,8 +5473,8 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
                     decl.truncate(decl.indexOf(QChar::LineFeed));
-                if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                    decl.truncate(decl.indexOf(QChar::FormFeed));
+                if (decl.indexOf(Eidos_FormFeed) != -1)
+                    decl.truncate(decl.indexOf(Eidos_FormFeed));
                 if (decl.indexOf(QChar::CarriageReturn) != -1)
                     decl.truncate(decl.indexOf(QChar::CarriageReturn));
                 if (decl.indexOf(QChar::ParagraphSeparator) != -1)
@@ -5648,8 +5656,8 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
                     // Remove everything including and after the first newline
                     if (decl.indexOf(QChar::LineFeed) != -1)
                         decl.truncate(decl.indexOf(QChar::LineFeed));
-                    if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                        decl.truncate(decl.indexOf(QChar::FormFeed));
+                    if (decl.indexOf(Eidos_FormFeed) != -1)
+                        decl.truncate(decl.indexOf(Eidos_FormFeed));
                     if (decl.indexOf(QChar::CarriageReturn) != -1)
                         decl.truncate(decl.indexOf(QChar::CarriageReturn));
                     if (decl.indexOf(QChar::ParagraphSeparator) != -1)
