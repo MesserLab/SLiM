@@ -324,12 +324,17 @@ if(BUILD_SLIMGUI)
   cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
   set(TARGET_NAME_SLIMGUI SLiMgui)
   find_package(OpenGL REQUIRED)
-  find_package(Qt5 REQUIRED
-    Core
-    Gui
-    Widgets
-  )
 
+  # Default to Qt6 if available, fall back to Qt5; this defines QT_VERSION_MAJOR to be either 5 or 6
+  # This is complicated slightly by the modules needed differing between Qt5 and Qt6
+  # see https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html
+  find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets)
+  if(${QT_VERSION_MAJOR} EQUAL 5)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
+  else()
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
+  endif()
+  
   if(WIN32)
     set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME_SLIMGUI}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
   endif()
@@ -343,18 +348,25 @@ if(BUILD_SLIMGUI)
   set_target_properties( ${TARGET_NAME_SLIMGUI} PROPERTIES LINKER_LANGUAGE CXX)
   target_compile_definitions( ${TARGET_NAME_SLIMGUI} PRIVATE EIDOSGUI=1 SLIMGUI=1)
   target_include_directories(${TARGET_NAME_SLIMGUI} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
-
+  
+  # Qt dependencies, which depend on the Qt version used
+  if(${QT_VERSION_MAJOR} EQUAL 5)
+    target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui )
+  else()
+    target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt6::Widgets Qt6::Core Qt6::Gui Qt6::OpenGLWidgets )
+  endif()
+  
   # Operating System-specific install stuff.
   if(APPLE)
-	  target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+    target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib )
   else()
     if(WIN32)
       set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
       set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
       target_include_directories(${TARGET_NAME_SLIMGUI} BEFORE PUBLIC ${GNU_DIR})
-      target_link_libraries(${TARGET_NAME_SLIMGUI} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
+      target_link_libraries(${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib gnu )
     else()
-	    target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+      target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC OpenGL::GL gsl tables eidos_zlib )
 
       # Install icons and desktop files to the data root directory (usually /usr/local/share, or /usr/share).
       if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.14")

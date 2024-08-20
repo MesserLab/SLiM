@@ -28,6 +28,7 @@ development head (in the master branch):
 		for Linux, Qt6 is now the supported platform for Red Hat 8.6/8.8/9.2, openSUSE 15.5, and Ubuntu 22.04 among others
 		these recommendations are based on Qt6's recommended platforms; earlier platforms should use Qt5
 		for more details see https://doc.qt.io/qt-6/linux.html, https://doc.qt.io/qt-6/windows.html, https://doc.qt.io/qt-6/macos.html
+		building with CMake will now default to Qt6 if CMake can find it, and fall back to Qt5 otherwise; should be automatic
 	
 
 version 4.2.2 (Eidos version 3.2.2):
