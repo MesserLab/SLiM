@@ -62,7 +62,6 @@
 #include <QSettings>
 #include <QCheckBox>
 #include <QCloseEvent>
-#include <QDesktopWidget>
 #include <QStandardPaths>
 #include <QToolTip>
 #include <QHBoxLayout>
@@ -75,6 +74,7 @@
 #include <QScreen>
 #include <QMetaMethod>
 #include <QLabel>
+#include <QActionGroup>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -1420,7 +1420,8 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
     if (!topFrameWidth)
         topFrameWidth = 40;
     const QPoint position = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
-    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + position))
+    
+    if (this->screen()->availableGeometry().contains(rect().bottomRight() + position))
         move(position);
 }
 
@@ -5280,7 +5281,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             // Exclude comments that contain newlines and similar characters
             if ((comment.indexOf(QChar::LineFeed) != -1) ||
-                    (comment.indexOf(0x0C) != -1) ||
+                    (comment.indexOf(QChar::FormFeed) != -1) ||
                     (comment.indexOf(QChar::CarriageReturn) != -1) ||
                     (comment.indexOf(QChar::ParagraphSeparator) != -1) ||
                     (comment.indexOf(QChar::LineSeparator) != -1))
@@ -5464,8 +5465,8 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
                     decl.truncate(decl.indexOf(QChar::LineFeed));
-                if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                    decl.truncate(decl.indexOf(0x0C));
+                if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                    decl.truncate(decl.indexOf(QChar::FormFeed));
                 if (decl.indexOf(QChar::CarriageReturn) != -1)
                     decl.truncate(decl.indexOf(QChar::CarriageReturn));
                 if (decl.indexOf(QChar::ParagraphSeparator) != -1)
@@ -5647,8 +5648,8 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
                     // Remove everything including and after the first newline
                     if (decl.indexOf(QChar::LineFeed) != -1)
                         decl.truncate(decl.indexOf(QChar::LineFeed));
-                    if (decl.indexOf(0x0C) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
-                        decl.truncate(decl.indexOf(0x0C));
+                    if (decl.indexOf(QChar::FormFeed) != -1)                       // form feed; apparently QChar::FormFeed did not exist in older Qt versions
+                        decl.truncate(decl.indexOf(QChar::FormFeed));
                     if (decl.indexOf(QChar::CarriageReturn) != -1)
                         decl.truncate(decl.indexOf(QChar::CarriageReturn));
                     if (decl.indexOf(QChar::ParagraphSeparator) != -1)

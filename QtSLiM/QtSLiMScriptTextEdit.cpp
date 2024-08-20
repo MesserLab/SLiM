@@ -650,6 +650,18 @@ void QtSLiMTextEdit::fixMouseCursor(void)
     }
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+void QtSLiMTextEdit::enterEvent(QEnterEvent *p_event)
+{
+    // forward to super
+    QPlainTextEdit::enterEvent(p_event);
+    
+    // modifiersChanged() generally keeps our cursor correct, but we do it on enterEvent
+    // as well just as a fallback; for example, if the mouse is inside us on launch and
+    // the modifier is already down, enterEvent() will fix out initial cursor
+    fixMouseCursor();
+}
+#else
 void QtSLiMTextEdit::enterEvent(QEvent *p_event)
 {
     // forward to super
@@ -660,6 +672,7 @@ void QtSLiMTextEdit::enterEvent(QEvent *p_event)
     // the modifier is already down, enterEvent() will fix out initial cursor
     fixMouseCursor();
 }
+#endif
 
 void QtSLiMTextEdit::modifiersChanged(Qt::KeyboardModifiers __attribute__((unused)) newModifiers)
 {
@@ -2828,7 +2841,7 @@ void QtSLiMScriptTextEdit::toggleDebuggingForLine(int lineNumber)
         {
             QChar qch = blockText[firstNonWhitespace];
             
-            if ((qch != " ") && (qch != "\t"))
+            if ((qch != ' ') && (qch != '\t'))
                 break;
         }
         

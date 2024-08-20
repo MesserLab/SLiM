@@ -686,7 +686,7 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
         QLabel *titleLabel = new QLabel(dialog);
         QFont font;
         font.setBold(true);
-        font.setWeight(75);
+        font.setWeight(QFont::Bold);    // used to be 75, which made little sense; fixed for Qt6
         titleLabel->setText(title);
         titleLabel->setFont(font);
         verticalLayout->addWidget(titleLabel);

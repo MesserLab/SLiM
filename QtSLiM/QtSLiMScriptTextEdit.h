@@ -22,6 +22,7 @@
 
 #include <QPlainTextEdit>
 #include <QPalette>
+#include <QtGlobal>     // for QT_VERSION
 
 #include "eidos_interpreter.h"
 #include "eidos_type_interpreter.h"
@@ -122,7 +123,11 @@ protected:
     
     // used to maintain the correct cursor (pointing hand when option is pressed)
     void fixMouseCursor(void);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    virtual void enterEvent(QEnterEvent *p_event) override;
+#else
     virtual void enterEvent(QEvent *p_event) override;
+#endif
     
     // keeping track of undo/redo availability
     bool undoAvailable_ = false;

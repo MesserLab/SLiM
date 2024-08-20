@@ -53,6 +53,7 @@
 #include <QPlainTextEdit>
 #include <QLabel>
 #include <QDebug>
+#include <QStandardPaths>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -83,21 +84,23 @@
 // than 10.13, perhaps), you can disable this check using the above flag and your build will probably
 // work; just note that that configuration is unsupported.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 15, 2))
-#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 recommended)."
+#error "SLiMgui on macOS requires Qt version 5.15.2 or later.  Please uninstall Qt and then install a more recent version (5.15.2 or later recommended)."
 #endif
 #else
 // On Linux we enforce Qt 5.9.5 as a hard limit, since it is what Ubuntu 18.04 LTS has preinstalled.
 // We don't rely on any specific post 5.9.5 features on Linux, and the best Qt version on Linux is
 // probably the version that a given distro has chosen to preinstall.
 #if (QT_VERSION < QT_VERSION_CHECK(5, 9, 5))
-#error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
+#error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.15 LTS recommended)."
 #endif
 #endif
 
-// Also now check for a Qt version of 6.0 or greater and decline; that is completely untested
-// and probably doesn't even compile.  That will be a whole new adventure.
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
-#error "SLiMgui does not build against Qt 6.  Please uninstall Qt 6 and install Qt 5 (5.15.2 recommended)."
+// We now support Qt 6, but do not require it.  Note that SLiM 4.2.2 was the last version that supported only Qt 5.
+#if (QT_VERSION >= QT_VERSION_CHECK(7, 0, 0))
+#error "SLiMgui requires Qt 5.15 or Qt 6.  Qt 7 and later are not supported at this time."
+#endif
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+#error "SLiMgui requires Qt 5 or Qt 6.  Qt 4 and earlier are not supported."
 #endif
 
 #endif
@@ -812,305 +815,319 @@ void QtSLiMAppDelegate::playStateChanged(void)
 // they will never actually be called.  Conceptually, they are global actions, though, and if a shortcut is
 // added for them later, they will become callable here.  So they are declared here as placeholders.
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+// On Qt 5 we seem to need to combine flags with +, I have no idea why exactly
+static int flagsAndKey(int modifiers, int keys)
+{
+    return modifiers + keys;
+}
+#else
+// On Qt 6 we seem to need to combine flags with |, I have no idea why exactly
+static int flagsAndKey(int modifiers, int keys)
+{
+    return modifiers | keys;
+}
+#endif
+
 void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
 {
     {
         QAction *actionPreferences = new QAction("Preferences", this);
-        actionPreferences->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        actionPreferences->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionPreferences, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_preferences);
         window->addAction(actionPreferences);
     }
     {
         QAction *actionAbout = new QAction("About", this);
-        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionAbout, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_about);
         window->addAction(actionAbout);
     }
     {
         QAction *actionShowCycle_WF = new QAction("Show WF Tick Cycle", this);
-        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
         window->addAction(actionShowCycle_WF);
     }
     {
         QAction *actionShowCycle_nonWF = new QAction("Show nonWF Tick Cycle", this);
-        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
         window->addAction(actionShowCycle_nonWF);
     }
     {
         QAction *actionShowCycle_WF_MS = new QAction("Show WF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF_MS);
         window->addAction(actionShowCycle_WF_MS);
     }
     {
         QAction *actionShowCycle_nonWF_MS = new QAction("Show nonWF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
         window->addAction(actionShowCycle_nonWF_MS);
     }
     {
         QAction *actionHelp = new QAction("Help", this);
-        //actionHelp->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        //actionHelp->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
         window->addAction(actionHelp);
     }
     {
         QAction *actionQuit = new QAction("Quit", this);
-        actionQuit->setShortcut(Qt::CTRL + Qt::Key_Q);
+        actionQuit->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Q));
         connect(actionQuit, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
         window->addAction(actionQuit);
     }
     
     {
         QAction *actionNewWF = new QAction("New WF", this);
-        actionNewWF->setShortcut(Qt::CTRL + Qt::Key_N);
+        actionNewWF->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_N));
         connect(actionNewWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
         window->addAction(actionNewWF);
     }
     {
         QAction *actionNewWF_commentless = new QAction("New WF (Commentless)", this);
-        actionNewWF_commentless->setShortcut(Qt::CTRL + Qt::AltModifier + Qt::Key_N);
+        actionNewWF_commentless->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::AltModifier, Qt::Key_N));
         connect(actionNewWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF_commentless);
         window->addAction(actionNewWF_commentless);
     }
     {
         QAction *actionNewNonWF = new QAction("New nonWF", this);
-        actionNewNonWF->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_N);
+        actionNewNonWF->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_N));
         connect(actionNewNonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF);
         window->addAction(actionNewNonWF);
     }
     {
         QAction *actionNewNonWF_commentless = new QAction("New nonWF (Commentless)", this);
-        actionNewNonWF_commentless->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::AltModifier + Qt::Key_N);
+        actionNewNonWF_commentless->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier, Qt::Key_N));
         connect(actionNewNonWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF_commentless);
         window->addAction(actionNewNonWF_commentless);
     }
     {
         QAction *actionOpen = new QAction("Open", this);
-        actionOpen->setShortcut(Qt::CTRL + Qt::Key_O);
+        actionOpen->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_O));
         connect(actionOpen, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_open);
         window->addAction(actionOpen);
     }
     {
         QAction *actionClose = new QAction("Close", this);
-        actionClose->setShortcut(Qt::CTRL + Qt::Key_W);
+        actionClose->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_W));
         connect(actionClose, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_close);
         window->addAction(actionClose);
     }
     
     {
         QAction *actionFocusOnScript = new QAction("Focus on Script", this);
-        actionFocusOnScript->setShortcut(Qt::CTRL + Qt::Key_1);
+        actionFocusOnScript->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_1));
         connect(actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
         window->addAction(actionFocusOnScript);
     }
     {
         QAction *actionFocusOnConsole = new QAction("Focus on Console", this);
-        actionFocusOnConsole->setShortcut(Qt::CTRL + Qt::Key_2);
+        actionFocusOnConsole->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_2));
         connect(actionFocusOnConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnConsole);
         window->addAction(actionFocusOnConsole);
     }
     {
         QAction *actionCheckScript = new QAction("Check Script", this);
-        actionCheckScript->setShortcut(Qt::CTRL + Qt::Key_Equal);
+        actionCheckScript->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Equal));
         connect(actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
         window->addAction(actionCheckScript);
     }
     {
         QAction *actionPrettyprintScript = new QAction("Prettyprint Script", this);
-        //actionPrettyprintScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Equal);       // this now goes to actionBiggerFont
+        //actionPrettyprintScript->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Equal));       // this now goes to actionBiggerFont
         connect(actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
         window->addAction(actionPrettyprintScript);
     }
     {
         QAction *actionReformatScript = new QAction("Reformat Script", this);               // removed since the shortcut for actionPrettyprintScript was removed
-        //actionReformatScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::ALT + Qt::Key_Equal);
+        //actionReformatScript->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier, Qt::Key_Equal));
         connect(actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);
         window->addAction(actionReformatScript);
     }
     {
         QAction *actionShowScriptHelp = new QAction("Show Script Help", this);
-        //actionShowScriptHelp->setShortcut(Qt::CTRL + Qt::Key_K);
+        //actionShowScriptHelp->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_K));
         connect(actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
         window->addAction(actionShowScriptHelp);
     }
     {
         QAction *actionBiggerFont = new QAction("Bigger Font", this);
-        actionBiggerFont->setShortcut(Qt::CTRL + Qt::Key_Plus);
+        actionBiggerFont->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Plus));
         connect(actionBiggerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_biggerFont);
         window->addAction(actionBiggerFont);
     }
     {
         QAction *actionSmallerFont = new QAction("Smaller Font", this);
-        actionSmallerFont->setShortcut(Qt::CTRL + Qt::Key_Minus);
+        actionSmallerFont->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Minus));
         connect(actionSmallerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_smallerFont);
         window->addAction(actionSmallerFont);
     }
     {
         QAction *actionShowEidosConsole = new QAction("Show Eidos Console", this);
-        actionShowEidosConsole->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_E);
+        actionShowEidosConsole->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_E));
         connect(actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
         window->addAction(actionShowEidosConsole);
     }
     {
         QAction *actionShowVariableBrowser = new QAction("Show Variable Browser", this);
-        actionShowVariableBrowser->setShortcut(Qt::CTRL + Qt::Key_B);
+        actionShowVariableBrowser->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_B));
         connect(actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
         window->addAction(actionShowVariableBrowser);
     }
     {
         QAction *actionClearOutput = new QAction("Clear Output", this);
-        actionClearOutput->setShortcut(Qt::CTRL + Qt::Key_K);
+        actionClearOutput->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_K));
         connect(actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);
         window->addAction(actionClearOutput);
     }
     {
         QAction *actionClearDebug = new QAction("Clear Debug Points", this);
-        actionClearDebug->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_K);
+        actionClearDebug->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::AltModifier, Qt::Key_K));
         connect(actionClearDebug, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearDebugPoints);
         window->addAction(actionClearDebug);
     }
     {
         QAction *actionShowDebuggingOutput = new QAction("Show Debugging Output", this);
-        actionShowDebuggingOutput->setShortcut(Qt::CTRL + Qt::Key_D);
+        actionShowDebuggingOutput->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_D));
         connect(actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
         window->addAction(actionShowDebuggingOutput);
     }
     {
         QAction *actionExecuteSelection = new QAction("Execute Selection", this);
-        actionExecuteSelection->setShortcut(Qt::CTRL + Qt::Key_Return);
+        actionExecuteSelection->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Return));
         connect(actionExecuteSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeSelection);
         window->addAction(actionExecuteSelection);
     }
     {
         QAction *actionExecuteAll = new QAction("Execute All", this);
-        actionExecuteAll->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Return);
+        actionExecuteAll->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Return));
         connect(actionExecuteAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_executeAll);
         window->addAction(actionExecuteAll);
     }
     
     {
         QAction *actionShiftLeft = new QAction("Shift Left", this);
-        actionShiftLeft->setShortcut(Qt::CTRL + Qt::Key_BracketLeft);
+        actionShiftLeft->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_BracketLeft));
         connect(actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);
         window->addAction(actionShiftLeft);
     }
     {
         QAction *actionShiftRight = new QAction("Shift Right", this);
-        actionShiftRight->setShortcut(Qt::CTRL + Qt::Key_BracketRight);
+        actionShiftRight->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_BracketRight));
         connect(actionShiftRight, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftRight);
         window->addAction(actionShiftRight);
     }
     {
         QAction *actionCommentUncomment = new QAction("CommentUncomment", this);
-        actionCommentUncomment->setShortcut(Qt::CTRL + Qt::Key_Slash);
+        actionCommentUncomment->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Slash));
         connect(actionCommentUncomment, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_commentUncomment);
         window->addAction(actionCommentUncomment);
     }
     
     {
         QAction *actionUndo = new QAction("Undo", this);
-        actionUndo->setShortcut(Qt::CTRL + Qt::Key_Z);
+        actionUndo->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Z));
         connect(actionUndo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_undo);
         window->addAction(actionUndo);
     }
     {
         QAction *actionRedo = new QAction("Redo", this);
-        actionRedo->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Z);
+        actionRedo->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_Z));
         connect(actionRedo, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_redo);
         window->addAction(actionRedo);
     }
     {
         QAction *actionCut = new QAction("Cut", this);
-        actionCut->setShortcut(Qt::CTRL + Qt::Key_X);
+        actionCut->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_X));
         connect(actionCut, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_cut);
         window->addAction(actionCut);
     }
     {
         QAction *actionCopy = new QAction("Copy", this);
-        actionCopy->setShortcut(Qt::CTRL + Qt::Key_C);
+        actionCopy->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_C));
         connect(actionCopy, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copy);
         window->addAction(actionCopy);
     }
     {
         QAction *actionPaste = new QAction("Paste", this);
-        actionPaste->setShortcut(Qt::CTRL + Qt::Key_V);
+        actionPaste->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_V));
         connect(actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
         window->addAction(actionPaste);
     }
     {
         QAction *actionDelete = new QAction("Delete", this);
-        //actionDelete->setShortcut(Qt::CTRL + Qt::Key_V);
+        //actionDelete->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_V));
         connect(actionDelete, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_delete);
         window->addAction(actionDelete);
     }
     {
         QAction *actionSelectAll = new QAction("Select All", this);
-        actionSelectAll->setShortcut(Qt::CTRL + Qt::Key_A);
+        actionSelectAll->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_A));
         connect(actionSelectAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_selectAll);
         window->addAction(actionSelectAll);
     }
     
     {
         QAction *actionFindShow = new QAction("Find...", this);
-        actionFindShow->setShortcut(Qt::CTRL + Qt::Key_F);
+        actionFindShow->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_F));
         connect(actionFindShow, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findShow);
         window->addAction(actionFindShow);
     }
     {
         QAction *actionFindNext = new QAction("Find Next", this);
-        actionFindNext->setShortcut(Qt::CTRL + Qt::Key_G);
+        actionFindNext->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_G));
         connect(actionFindNext, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findNext);
         window->addAction(actionFindNext);
     }
     {
         QAction *actionFindPrevious = new QAction("Find Previous", this);
-        actionFindPrevious->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_G);
+        actionFindPrevious->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_G));
         connect(actionFindPrevious, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_findPrevious);
         window->addAction(actionFindPrevious);
     }
     {
         QAction *actionReplaceAndFind = new QAction("Replace and Find", this);
-        actionReplaceAndFind->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_G);
+        actionReplaceAndFind->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::AltModifier, Qt::Key_G));
         connect(actionReplaceAndFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_replaceAndFind);
         window->addAction(actionReplaceAndFind);
     }
     {
         QAction *actionUseSelectionForFind = new QAction("Use Selection for Find", this);
-        actionUseSelectionForFind->setShortcut(Qt::CTRL + Qt::Key_E);
+        actionUseSelectionForFind->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_E));
         connect(actionUseSelectionForFind, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForFind);
         window->addAction(actionUseSelectionForFind);
     }
     {
         QAction *actionUseSelectionForReplace = new QAction("Use Selection for Replace", this);
-        actionUseSelectionForReplace->setShortcut(Qt::CTRL + Qt::ALT + Qt::Key_E);
+        actionUseSelectionForReplace->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::AltModifier, Qt::Key_E));
         connect(actionUseSelectionForReplace, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_useSelectionForReplace);
         window->addAction(actionUseSelectionForReplace);
     }
     {
         QAction *actionJumpToSelection = new QAction("Jump to Selection", this);
-        actionJumpToSelection->setShortcut(Qt::CTRL + Qt::Key_J);
+        actionJumpToSelection->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_J));
         connect(actionJumpToSelection, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToSelection);
         window->addAction(actionJumpToSelection);
     }
     {
         QAction *actionJumpToLine = new QAction("Jump to Line", this);
-        actionJumpToLine->setShortcut(Qt::CTRL + Qt::Key_L);
+        actionJumpToLine->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_L));
         connect(actionJumpToLine, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_jumpToLine);
         window->addAction(actionJumpToLine);
     }
     
     {
         QAction *actionMinimize = new QAction("Minimize", this);
-        actionMinimize->setShortcut(Qt::CTRL + Qt::Key_M);
+        actionMinimize->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_M));
         connect(actionMinimize, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_minimize);
         window->addAction(actionMinimize);
     }
     {
         QAction *actionZoom = new QAction("Zoom", this);
-        //actionZoom->setShortcut(Qt::CTRL + Qt::Key_M);
+        //actionZoom->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_M));
         connect(actionZoom, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_zoom);
         window->addAction(actionZoom);
     }

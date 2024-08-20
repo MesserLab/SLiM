@@ -31,6 +31,7 @@
 #include <QTextDocumentFragment>
 #include <QRegularExpression>
 #include <QTextCursor>
+#include <QFile>
 
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
