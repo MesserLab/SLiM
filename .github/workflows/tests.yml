@@ -91,7 +91,7 @@ jobs:
             export PATH=$PATH:$PWD/Release && \
             echo $PATH && \
             cd treerec/tests && python -m pytest -xv
-
+  
   tests-Windows-CLI:
     runs-on: windows-latest
     strategy:
@@ -173,21 +173,28 @@ jobs:
             export PATH=$PATH:$PWD/Release && \
             echo $PATH && \
             cd treerec/tests && python -m pytest -xv
+  
   tests-Unix-GUI:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Ubuntu with the oldest supported Qt and GCC.
+          # Ubuntu 20.04 with the oldest supported Qt5 and GCC.
           - {os: ubuntu-20.04, qt: 5.9.5, gcc: 7}
-          # Ubuntu with the most recent Qt and GCC.
+          # Ubuntu 20.04 with the most recent Qt5 and GCC.
           - {os: ubuntu-20.04, qt: 5.15.2, gcc: 11}
-          # Ubuntu with the most recent Qt and GCC.
+          # Ubuntu 20.04 with the most recent Qt6 and GCC.
+          - {os: ubuntu-20.04, qt: 6.7.2, gcc: 11}
+          # Ubuntu 22.04 with the most recent Qt5 and GCC.
           - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
-          # old macOS with oldest supported Qt.
+          # Ubuntu 22.04 with the most recent Qt6 and GCC.
+          - {os: ubuntu-22.04, qt: 6.7.2, gcc: 12}
+          # old macOS with oldest supported Qt5
           - {os: macos-12, qt: 5.9.5}
-          # new macOS with most recent Qt
+          # new macOS with most recent Qt5
           - {os: macos-13, qt: 5.15.2}
+          # new macOS with most recent Qt6
+          - {os: macos-13, qt: 6.7.2}
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR
@@ -220,6 +227,7 @@ jobs:
           cd Release  && \
           cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..  && \
           make -j 2 && make test
+  
   tests-Windows-GUI:
     strategy:
       fail-fast: false
