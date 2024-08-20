@@ -349,11 +349,13 @@ if(BUILD_SLIMGUI)
   target_compile_definitions( ${TARGET_NAME_SLIMGUI} PRIVATE EIDOSGUI=1 SLIMGUI=1)
   target_include_directories(${TARGET_NAME_SLIMGUI} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/QtSLiM" "${PROJECT_SOURCE_DIR}/eidos" "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/treerec" "${PROJECT_SOURCE_DIR}/treerec/tskit/kastore")
   
-  # Qt dependencies, which depend on the Qt version used
+  # Qt dependencies, which depend on the Qt version used.  For Qt6, we also need C++17; the last -std flag supplied ought to take priority.
   if(${QT_VERSION_MAJOR} EQUAL 5)
     target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui )
   else()
     target_link_libraries( ${TARGET_NAME_SLIMGUI} PUBLIC Qt6::Widgets Qt6::Core Qt6::Gui Qt6::OpenGLWidgets )
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
   endif()
   
   # Operating System-specific install stuff.
