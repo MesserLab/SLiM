@@ -62,6 +62,9 @@
 #include <QSettings>
 #include <QCheckBox>
 #include <QCloseEvent>
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+#include <QDesktopWidget>
+#endif
 #include <QStandardPaths>
 #include <QToolTip>
 #include <QHBoxLayout>
@@ -1421,7 +1424,12 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
         topFrameWidth = 40;
     const QPoint position = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
     
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    // In some versions of Qt5, such as 5.9.5, QScreen did not yet exist
+    if (QApplication::desktop()->availableGeometry(this).contains(rect().bottomRight() + position))
+#else
     if (this->screen()->availableGeometry().contains(rect().bottomRight() + position))
+#endif
         move(position);
 }
 
