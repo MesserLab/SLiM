@@ -183,11 +183,9 @@ jobs:
           - {os: ubuntu-20.04, qt: 5.9.5, gcc: 7}
           # Ubuntu 20.04 with the most recent Qt5 and GCC.
           - {os: ubuntu-20.04, qt: 5.15.2, gcc: 11}
-          # Ubuntu 20.04 with the most recent Qt6 and GCC.
-          - {os: ubuntu-20.04, qt: 6.7.2, gcc: 11}
           # Ubuntu 22.04 with the most recent Qt5 and GCC.
           - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
-          # Ubuntu 22.04 with the most recent Qt6 and GCC.
+          # Ubuntu 22.04 with the most recent Qt6 and GCC; this is the min for Qt6
           - {os: ubuntu-22.04, qt: 6.7.2, gcc: 12}
           # old macOS with oldest supported Qt5
           - {os: macos-12, qt: 5.9.5}
