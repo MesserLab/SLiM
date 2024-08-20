@@ -540,7 +540,11 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
         fudgeFactor = std::round(fm.horizontalAdvance(" ") / 2.0) + 1;    // added in Qt 5.11
 #endif
         
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         QPoint localPos = p_event->localPos().toPoint();
+#else
+        QPoint localPos = p_event->position().toPoint();
+#endif
         QPoint fudgedPoint(std::max(0, localPos.x() - fudgeFactor), localPos.y());
         int characterPositionClicked = cursorForPosition(fudgedPoint).position();
         
@@ -3207,8 +3211,12 @@ void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
     // and return without doing anything.  Note that Qt::RightButton is set for control-clicks!
     if (p_mouseEvent->button() == Qt::RightButton)
         return;
-    
+        
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QPointF localPos = p_mouseEvent->localPos();
+#else
+    QPointF localPos = p_mouseEvent->position();
+#endif
     qreal localY = localPos.y();
     
     //qDebug() << "localY ==" << localY;

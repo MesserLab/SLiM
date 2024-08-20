@@ -1835,7 +1835,11 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
             std::string mapName;
             
             // If the user has selected a spatial map, extract its name
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
             if (static_cast<QMetaType::Type>(action->data().type()) == QMetaType::QString)  // for some reason this method's return type is apparently misdeclared; see the doc
+#else
+            if (action->data().typeId() == QMetaType::QString)
+#endif
             {
                 QString qMapName = action->data().toString();
                 
@@ -1960,7 +1964,11 @@ void QtSLiMIndividualsWidget::mousePressEvent(QMouseEvent *p_event)
     }
     
     if (subpopForEvent)
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         runContextMenuAtPoint(p_event->globalPos(), subpopForEvent);
+#else
+        runContextMenuAtPoint(p_event->globalPosition().toPoint(), subpopForEvent);
+#endif
     
     // redraw to get rid of action button highlight
     actionButtonHighlightSubpopID_ = -1;

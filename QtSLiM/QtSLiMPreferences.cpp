@@ -54,8 +54,12 @@ static QFont &defaultDisplayFont(void)
     
     if (!defaultFont)
     {
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         QFontDatabase fontdb;
         QStringList families = fontdb.families();
+#else
+        QStringList families = QFontDatabase::families();
+#endif
         
         // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
         if (families.filter("Consola").size() > 0)                 // good on Windows

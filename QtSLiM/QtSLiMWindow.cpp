@@ -3284,7 +3284,7 @@ void QtSLiMWindow::displayProfileResults(void)
     
     profile_window->setLayout(window_layout);
     
-    window_layout->setMargin(0);
+    window_layout->setContentsMargins(0, 0, 0, 0);
     window_layout->setSpacing(0);
     window_layout->addWidget(textEdit);
     
@@ -3317,8 +3317,12 @@ void QtSLiMWindow::displayProfileResults(void)
     QFont optimaFont;
     {
         // We want a body font of Optima on the Mac; on non-Mac platforms we'll just use the default system font for now
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         QFontDatabase fontdb;
         QStringList families = fontdb.families();
+#else
+        QStringList families = QFontDatabase::families();
+#endif
         
         // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
         if (families.filter("Optima").size() > 0)              // good on Mac

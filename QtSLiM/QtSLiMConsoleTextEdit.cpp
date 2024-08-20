@@ -659,7 +659,11 @@ void QtSLiMConsoleTextEdit::adjustSelectionAndReadOnly(void)
 void QtSLiMConsoleTextEdit::dragMoveEvent(QDragMoveEvent *p_event)
 {
     // Figure out where the drop would go
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QTextCursor dropCursor = cursorForPosition(p_event->pos());
+#else
+    QTextCursor dropCursor = cursorForPosition(p_event->position().toPoint());
+#endif
     
     //qDebug() << "dragMoveEvent: " << dropCursor.position();
     

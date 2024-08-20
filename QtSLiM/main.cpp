@@ -262,8 +262,10 @@ int main(int argc, char *argv[])
     linux_ForceDarkMode();
 #endif
     
-    // Tell Qt to use high-DPI pixmaps for icons
+    // Tell Qt to use high-DPI pixmaps for icons; not needed in Qt6, which is always high-DPI
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
     
     // On macOS, turn off the automatic quit on last window close, for Qt 5.15.2.
     // Builds against older Qt versions will just quit on the last window close, because

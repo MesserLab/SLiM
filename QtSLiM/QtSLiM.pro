@@ -44,8 +44,10 @@ DEFINES += GIT_SHA1=$$GIT_HASH
 
 
 # Warn and error on usage of deprecated Qt APIs; see also -Wno-deprecated-declarations below
+# These flags are for development; we don't want production builds warning or erroring due to deprecation
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
-DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050F00    # disables all the APIs deprecated before Qt 5.15.0
+# DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050F00    # disables all the APIs deprecated before Qt 5.15.0
+# DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060500    # disables all the APIs deprecated before Qt 6.5.0
 
 
 # Bring in flag settings from the environment; see https://stackoverflow.com/a/17578151/2752221
