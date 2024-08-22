@@ -328,13 +328,31 @@ if(BUILD_SLIMGUI)
   # Default to Qt6 if available, fall back to Qt5; this defines QT_VERSION_MAJOR to be either 5 or 6
   # This is complicated slightly by the modules needed differing between Qt5 and Qt6
   # see https://doc.qt.io/qt-6/cmake-qt5-and-qt6-compatibility.html
-  find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets)
-  if(${QT_VERSION_MAJOR} EQUAL 5)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets)
+  # I found that find_package(QT NAMES Qt6 Qt5 ...) was behaving oddly, so I shifted to the below
+  find_package(Qt6 COMPONENTS Core Gui Widgets OpenGLWidgets)
+  if(Qt6_FOUND)
+    set(QT_VERSION_MAJOR 6)
+    message(STATUS "Found Qt6 (${Qt6_VERSION}) at ${QT6_INSTALL_PREFIX}")
   else()
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets OpenGLWidgets)
+    find_package(Qt5 COMPONENTS Core Gui Widgets)
+    if(Qt5_FOUND)
+      set(QT_VERSION_MAJOR 5)
+      message(STATUS "Could not find Qt6; if this is unexpected, you may wish to set Qt6_DIR and/or CMAKE_PREFIX_PATH")
+      message(STATUS "Found Qt5 (${Qt5_VERSION}) at ${Qt5_DIR}")
+      # note that on macOS, Qt5 has only the x86_64 architecture, so if you are on macOS-arm64 your build will fail
+      # you can supply -D CMAKE_OSX_ARCHITECTURES="x86_64" at the command line and it should build for x86_64
+    else()
+      message(FATAL_ERROR "Could not find Qt5 or Qt6; you may wish to set Qt6_DIR, Qt5_DIR, and/or CMAKE_PREFIX_PATH")
+    endif()
   endif()
   
+  # a useful bit of debugging code that prints all defined variables
+  #get_cmake_property(_variableNames VARIABLES)
+  #list (SORT _variableNames)
+  #foreach (_variableName ${_variableNames})
+  #  message(STATUS "${_variableName}=${${_variableName}}")
+  #endforeach()
+
   if(WIN32)
     set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME_SLIMGUI}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
   endif()

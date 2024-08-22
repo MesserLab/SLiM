@@ -24,7 +24,7 @@ development head (in the master branch):
 	extend deviatePositions(), pointDeviated(), sampleNearbyPoint(), and sampleImprovedNearbyPoint() to allow vectorization with a different spatial kernel for each iteration
 	fix a line-ending bug in readFile(); a CRLF file from Windows, read on macOS/Linux, would not strip the CR off the ends of the lines
 	shift to supporting Qt6 and C++17 to build SLiMgui; Qt5 with C++11 is still supported
-		for macOS, Qt6 is now the supported plaform for macOS 11/12/13/14; Qt5 should only be used on macOS 10.15
+		for macOS, Qt6 is now the supported platform for macOS 11/12/13/14; Qt5 should only be used on macOS 10.15
 		for Windows, Qt6 is now the supported platform for Windows 10 (1809 or later) and Windows 11
 		for Linux, Qt6 is now the supported platform for Red Hat 8.6/8.8/9.2, openSUSE 15.5, and Ubuntu 22.04 among others
 		these recommendations are based on Qt6's recommended platforms; earlier platforms should use Qt5
