@@ -199,7 +199,15 @@ EidosValue_SP Eidos_ExecuteFunction_readFile(const std::vector<EidosValue_SP> &p
 		std::string line;
 		
 		while (getline(file_stream, line))
+		{
+			// BCH 8/22/2024: files created on Windows have CRLF as their line ending; macOS and Linux use LF only,
+			// which means that a Windows file read on those platforms will have stray \r characters left at the ends,
+			// which we want to strip off for platform inter-operability.
+			if (!line.empty() && line[line.size() - 1] == '\r')
+				line.pop_back();
+			
 			string_result->PushString(line);
+		}
 		
 		if (file_stream.bad())
 		{
