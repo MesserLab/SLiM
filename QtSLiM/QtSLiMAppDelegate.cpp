@@ -33,6 +33,7 @@
 #include "QtSLiMTablesDrawer.h"
 #include "QtSLiMDebugOutputWindow.h"
 #include "QtSLiMConsoleTextEdit.h"
+#include "QtSLiMOpenGL.h"
 #include "QtSLiMExtras.h"
 
 #include <QApplication>
@@ -196,6 +197,9 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     
     // Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
     app_cwd_ = Eidos_CurrentDirectory();
+    
+    // Initialize our OpenGL wrapper state
+    QtSLiM_AllocateGLBuffers();
 
     // Set up the format for OpenGL buffers globally, so that it applies to all windows and contexts
     // This defaults to OpenGL 2.0, which is what we want, so right now we don't customize
@@ -258,6 +262,12 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
 
 QtSLiMAppDelegate::~QtSLiMAppDelegate(void)
 {
+    //qDebug() << "QtSLiMAppDelegate::~QtSLiMAppDelegate";
+    
+#if SLIM_LEAK_CHECKING
+    QtSLiM_FreeGLBuffers();
+#endif
+    
     qtSLiMAppDelegate = nullptr;    // kill the global shared instance, for safety
 }
 

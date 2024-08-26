@@ -27,8 +27,11 @@
 #include <QRect>
 #include <QString>
 #include <QWidget>
+
+#ifndef SLIM_NO_OPENGL
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
+#endif
 
 #include <string>
 
@@ -64,7 +67,10 @@ public:
                            QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     
+#ifndef SLIM_NO_OPENGL
     void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts);
+#endif
+    void qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter);
     
     // Public properties
     QString titleString;
@@ -122,10 +128,18 @@ private:
     void sortGenomes(void);
     void configureDisplayBuffers(void);
     void allocateGLBuffers(void);
-    void drawSubpopStripsInRect(QRect interior);
     void tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &genomeList);
     int64_t distanceForBincounts(int64_t *bincounts1, int64_t *bincounts2);
-    void drawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts);
+    
+    // OpenGL drawing; this is the primary drawing code
+#ifndef SLIM_NO_OPENGL
+    void glDrawSubpopStripsInRect(QRect interior);
+    void glDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts);
+#endif
+    
+    // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
+    void qtDrawSubpopStripsInRect(QRect interior, QPainter &painter);
+    void qtDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts, QPainter &painter);
     
     int64_t *buildDistanceArray(void);
     int64_t *buildDistanceArrayForSubrange(void);
@@ -146,7 +160,11 @@ private:
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
 //
 
+#ifndef SLIM_NO_OPENGL
 class QtSLiMHaplotypeView : public QOpenGLWidget, protected QOpenGLFunctions
+#else
+class QtSLiMHaplotypeView : public QWidget
+#endif
 {
     Q_OBJECT
     
@@ -165,9 +183,13 @@ private:
     bool displayBlackAndWhite_ = false;
     bool showSubpopulationStrips_ = false;
     
+#ifndef SLIM_NO_OPENGL
     virtual void initializeGL() override;
     virtual void resizeGL(int w, int h) override;
     virtual void paintGL() override;
+#else
+    virtual void paintEvent(QPaintEvent *event) override;
+#endif
     
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
 };

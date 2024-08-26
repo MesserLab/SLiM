@@ -21,6 +21,7 @@
 #include "QtSLiMWindow.h"
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
+#include "QtSLiMPreferences.h"
 #include "QtSLiMExtras.h"
 
 #include <QOpenGLFunctions>
@@ -547,105 +548,6 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 	}
 }
 
-static const int kMaxGLRects = 2000;				// 2000 rects
-static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
-
-static float *glArrayVertices = nullptr;
-static float *glArrayColors = nullptr;
-
-void QtSLiMHaplotypeManager::allocateGLBuffers(void)
-{
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
-	
-	if (!glArrayColors)
-		glArrayColors = static_cast<float *>(malloc(kMaxVertices * 4 * sizeof(float)));		// 4 floats per color, kMaxVertices colors
-}
-
-void QtSLiMHaplotypeManager::drawSubpopStripsInRect(QRect interior)
-{
-    int displayListIndex;
-	float *vertices = nullptr, *colors = nullptr;
-	
-	// Set up to draw rects
-	displayListIndex = 0;
-	
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
-	size_t genome_index = 0, genome_count = genomeSubpopIDs.size();
-	float height_divisor = genome_count;
-	float left = static_cast<float>(interior.x());
-	float right = static_cast<float>(interior.x() + interior.width());
-	
-	for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
-	{
-		float top = interior.y() + (genome_index / height_divisor) * interior.height();
-		float bottom = interior.y() + ((genome_index + 1) / height_divisor) * interior.height();
-		
-		if (bottom - top > 1.0f)
-		{
-			// If the range spans a width of more than one pixel, then use the maximal pixel range
-			top = floorf(top);
-			bottom = ceilf(bottom);
-		}
-		else
-		{
-			// If the range spans a pixel or less, make sure that we end up with a range that is one pixel wide, even if the positions span a pixel boundary
-			top = floorf(top);
-			bottom = top + 1;
-		}
-		
-		*(vertices++) = left;		*(vertices++) = top;
-		*(vertices++) = left;		*(vertices++) = bottom;
-		*(vertices++) = right;		*(vertices++) = bottom;
-		*(vertices++) = right;		*(vertices++) = top;
-		
-		float colorRed, colorGreen, colorBlue;
-		double hue = (genome_subpop_id - minSubpopID) / static_cast<double>(maxSubpopID - minSubpopID + 1);
-        QColor hsbColor = QtSLiMColorWithHSV(hue, 1.0, 1.0, 1.0);
-		QColor rgbColor = hsbColor.toRgb();
-        
-		colorRed = static_cast<float>(rgbColor.redF());
-		colorGreen = static_cast<float>(rgbColor.greenF());
-		colorBlue = static_cast<float>(rgbColor.blueF());
-		
-		for (int j = 0; j < 4; ++j) {
-			*(colors++) = colorRed;		*(colors++) = colorGreen;		*(colors++) = colorBlue;	*(colors++) = 1.0;
-		}
-		
-		displayListIndex++;
-		
-		// If we've filled our buffers, get ready to draw more
-		if (displayListIndex == kMaxGLRects)
-		{
-			// Draw our arrays
-			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-			
-			// And get ready to draw more
-			vertices = glArrayVertices;
-			colors = glArrayColors;
-			displayListIndex = 0;
-		}
-		
-		genome_index++;
-	}
-	
-	// Draw any leftovers
-	if (displayListIndex)
-		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-}
-
 void QtSLiMHaplotypeManager::tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &genomeList)
 {
     EIDOS_BZERO(bincounts, 1024 * sizeof(int64_t));
@@ -664,154 +566,7 @@ int64_t QtSLiMHaplotypeManager::distanceForBincounts(int64_t *bincounts1, int64_
 	return distance;
 }
 
-void QtSLiMHaplotypeManager::drawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts)
-{
-    int displayListIndex;
-	float *vertices = nullptr, *colors = nullptr;
-	
-	// Set up to draw rects
-	displayListIndex = 0;
-	
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
-	// decide whether to plot in ascending order or descending order; we do this based on a calculated
-	// similarity to the previously displayed first genome, so that we maximize visual continuity
-	size_t genome_count = displayList->size();
-	bool ascending = true;
-	
-	if (previousFirstBincounts && (genome_count > 1))
-	{
-		std::vector<MutationIndex> &first_genome_list = (*displayList)[0];
-		std::vector<MutationIndex> &last_genome_list = (*displayList)[genome_count - 1];
-		static int64_t *first_genome_bincounts = nullptr;
-		static int64_t *last_genome_bincounts = nullptr;
-		
-		if (!first_genome_bincounts)	first_genome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
-		if (!last_genome_bincounts)		last_genome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
-		
-		tallyBincounts(first_genome_bincounts, first_genome_list);
-		tallyBincounts(last_genome_bincounts, last_genome_list);
-		
-		if (*previousFirstBincounts)
-		{
-			int64_t first_genome_distance = distanceForBincounts(first_genome_bincounts, *previousFirstBincounts);
-			int64_t last_genome_distance = distanceForBincounts(last_genome_bincounts, *previousFirstBincounts);
-			
-			if (first_genome_distance > last_genome_distance)
-				ascending = false;
-			
-			free(*previousFirstBincounts);
-		}
-		
-		// take over one of our buffers, to avoid having to copy values
-		if (ascending) {
-			*previousFirstBincounts = first_genome_bincounts;
-			first_genome_bincounts = nullptr;
-		} else {
-			*previousFirstBincounts = last_genome_bincounts;
-			last_genome_bincounts = nullptr;
-		}
-	}
-	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
-	for (int pass_count = 0; pass_count <= 1; ++pass_count)
-	{
-		bool plotting_neutral = (pass_count == 0);
-		float height_divisor = genome_count;
-		float width_subtractor = (usingSubrange ? subrangeFirstBase : 0);
-		float width_divisor = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
-		
-		for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
-		{
-			std::vector<MutationIndex> &genome_list = (ascending ? (*displayList)[genome_index] : (*displayList)[(genome_count - 1) - genome_index]);
-			float top = interior.y() + (genome_index / height_divisor) * interior.height();
-			float bottom = interior.y() + ((genome_index + 1) / height_divisor) * interior.height();
-			
-			if (bottom - top > 1.0f)
-			{
-				// If the range spans a width of more than one pixel, then use the maximal pixel range
-				top = floorf(top);
-				bottom = ceilf(bottom);
-			}
-			else
-			{
-				// If the range spans a pixel or less, make sure that we end up with a range that is one pixel wide, even if the positions span a pixel boundary
-				top = floorf(top);
-				bottom = top + 1;
-			}
-			
-			for (MutationIndex mut_index : genome_list)
-			{
-				HaploMutation &mut_info = mutationInfo[mut_index];
-				
-				if (mut_info.neutral_ == plotting_neutral)
-				{
-					slim_position_t mut_position = mut_info.position_;
-					float left = interior.x() + ((mut_position - width_subtractor) / width_divisor) * interior.width();
-					float right = interior.x() + ((mut_position - width_subtractor + 1) / width_divisor) * interior.width();
-					
-					if (right - left > 1.0f)
-					{
-						// If the range spans a width of more than one pixel, then use the maximal pixel range
-						left = floorf(left);
-						right = ceilf(right);
-					}
-					else
-					{
-						// If the range spans a pixel or less, make sure that we end up with a range that is one pixel wide, even if the positions span a pixel boundary
-						left = floorf(left);
-						right = left + 1;
-					}
-					
-					*(vertices++) = left;		*(vertices++) = top;
-					*(vertices++) = left;		*(vertices++) = bottom;
-					*(vertices++) = right;		*(vertices++) = bottom;
-					*(vertices++) = right;		*(vertices++) = top;
-					
-					float colorRed, colorGreen, colorBlue;
-					
-					if (displayBW) {
-						colorRed = 0;					colorGreen = 0;						colorBlue = 0;
-					} else {
-						colorRed = mut_info.red_;		colorGreen = mut_info.green_;		colorBlue = mut_info.blue_;
-					}
-					
-					for (int j = 0; j < 4; ++j) {
-						*(colors++) = colorRed;		*(colors++) = colorGreen;		*(colors++) = colorBlue;	*(colors++) = 1.0;
-					}
-					
-					displayListIndex++;
-					
-					// If we've filled our buffers, get ready to draw more
-					if (displayListIndex == kMaxGLRects)
-					{
-						// Draw our arrays
-						glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-						
-						// And get ready to draw more
-						vertices = glArrayVertices;
-						colors = glArrayColors;
-						displayListIndex = 0;
-					}
-				}
-			}
-		}
-	}
-	
-	// Draw any leftovers
-	if (displayListIndex)
-		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-}
-
+#ifndef SLIM_NO_OPENGL
 void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts)
 {
     // Erase the background to either black or white, depending on displayBW
@@ -824,9 +579,6 @@ void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bo
 		glRecti(interior.x(), interior.y(), interior.x() + interior.width(), interior.y() + interior.height());
 	}
 	
-	// Make sure our GL data buffers are allocated; these are shared among all instances and drawing routines
-	allocateGLBuffers();
-	
 	// Draw subpopulation strips if requested
 	if (showSubpopStrips)
 	{
@@ -834,13 +586,38 @@ void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bo
 		QRect subpopStripRect = interior;
 		
         subpopStripRect.setWidth(stripWidth);
-		drawSubpopStripsInRect(subpopStripRect);
+		glDrawSubpopStripsInRect(subpopStripRect);
         
         interior.adjust(stripWidth, 0, 0, 0);
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
-	drawDisplayListInRect(interior, displayBW, previousFirstBincounts);
+	glDrawDisplayListInRect(interior, displayBW, previousFirstBincounts);
+}
+#endif
+
+void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter)
+{
+    // Erase the background to either black or white, depending on displayBW
+    if (eraseBackground)
+    {
+        painter.fillRect(interior, displayBW ? Qt::white : Qt::black);
+    }
+    
+    // Draw subpopulation strips if requested
+    if (showSubpopStrips)
+    {
+        const int stripWidth = 15;
+        QRect subpopStripRect = interior;
+        
+        subpopStripRect.setWidth(stripWidth);
+        qtDrawSubpopStripsInRect(subpopStripRect, painter);
+        
+        interior.adjust(stripWidth, 0, 0, 0);
+    }
+    
+    // Draw the haplotypes in the remaining portion of the interior
+    qtDrawDisplayListInRect(interior, displayBW, previousFirstBincounts, painter);
 }
 
 // Traveling Salesman Problem code
@@ -1708,9 +1485,18 @@ startAgain:
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
 //
 
-QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *p_parent, Qt::WindowFlags f) :
-    QOpenGLWidget(p_parent, f)
+QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *p_parent, Qt::WindowFlags f)
+#ifndef SLIM_NO_OPENGL
+    : QOpenGLWidget(p_parent, f)
+#else
+    : QWidget(p_parent, f)
+#endif
 {
+    // We support both OpenGL and non-OpenGL display, because some platforms seem
+    // to have problems with OpenGL (https://github.com/MesserLab/SLiM/issues/462)
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::useOpenGLPrefChanged, this, [this]() { update(); });
 }
 
 QtSLiMHaplotypeView::~QtSLiMHaplotypeView(void)
@@ -1718,6 +1504,7 @@ QtSLiMHaplotypeView::~QtSLiMHaplotypeView(void)
     delegate_ = nullptr;
 }
 
+#ifndef SLIM_NO_OPENGL
 void QtSLiMHaplotypeView::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -1733,8 +1520,13 @@ void QtSLiMHaplotypeView::resizeGL(int w, int h)
     glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);
 }
+#endif
 
+#ifndef SLIM_NO_OPENGL
 void QtSLiMHaplotypeView::paintGL()
+#else
+void QtSLiMHaplotypeView::paintEvent(QPaintEvent * /* p_paint_event */)
+#endif
 {
     QPainter painter(this);
     
@@ -1749,9 +1541,18 @@ void QtSLiMHaplotypeView::paintGL()
     
     if (delegate_)
     {
-        painter.beginNativePainting();
-        delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr);
-        painter.endNativePainting();
+#ifndef SLIM_NO_OPENGL
+        if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+        {
+            painter.beginNativePainting();
+            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr);
+            painter.endNativePainting();
+        }
+        else
+#endif
+        {
+            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr, painter);
+        }
     }
 }
 
@@ -1792,6 +1593,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
             showSubpopulationStrips_ = !showSubpopulationStrips_;
             update();
         }
+#ifndef SLIM_NO_OPENGL
         if (action == copyPlot)
         {
             QImage snap = grabFramebuffer();
@@ -1817,6 +1619,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
                 interior.save(fileName, "PNG", 100);    // JPG does not come out well; colors washed out
             }
         }
+#endif
     }
 }
 

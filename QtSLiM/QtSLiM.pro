@@ -61,6 +61,14 @@ QMAKE_CFLAGS += $$(CFLAGS)
 DEFINES += EIDOS_GUI
 DEFINES += SLIMGUI=1
 
+
+# Uncomment this define to disable the use of OpenGL in SLiMgui completely.  This, plus removing the
+# link dependency on openglwidgets, should allow you to build SLiMgui without linking OpenGL at all.
+# I don't expect end users to need to do this; it is for testing purposes, to ensure than the code
+# path used when OpenGL is disabled in Preferences does not inadvertently make any OpenGL calls.
+#DEFINES += SLIM_NO_OPENGL
+
+
 greaterThan(QT_MAJOR_VERSION, 5) {
 	# For Qt6 we require C++17 (because Qt6 requires it), but don't use it ourselves
 	CONFIG += c++17
@@ -160,6 +168,8 @@ else:unix: PRE_TARGETDEPS += $$OUT_PWD/../eidos_zlib/libeidos_zlib.a
 
 SOURCES += \
     ../cmake/GitSHA1_qmake.cpp \
+    QtSLiMChromosomeWidget_GL.cpp \
+    QtSLiMChromosomeWidget_QT.cpp \
     QtSLiMDebugOutputWindow.cpp \
     QtSLiMGraphView_1DPopulationSFS.cpp \
     QtSLiMGraphView_1DSampleSFS.cpp \
@@ -172,6 +182,11 @@ SOURCES += \
     QtSLiMGraphView_PopFitnessDist.cpp \
     QtSLiMGraphView_PopSizeOverTime.cpp \
     QtSLiMGraphView_SubpopFitnessDists.cpp \
+    QtSLiMHaplotypeManager_GL.cpp \
+    QtSLiMHaplotypeManager_QT.cpp \
+    QtSLiMIndividualsWidget_GL.cpp \
+    QtSLiMIndividualsWidget_QT.cpp \
+    QtSLiMOpenGL.cpp \
     QtSLiM_Plot.cpp \
     main.cpp \
     QtSLiMWindow.cpp \
@@ -218,6 +233,8 @@ HEADERS += \
     QtSLiMGraphView_PopFitnessDist.h \
     QtSLiMGraphView_PopSizeOverTime.h \
     QtSLiMGraphView_SubpopFitnessDists.h \
+    QtSLiMOpenGL.h \
+    QtSLiMOpenGL_Emulation.h \
     QtSLiMWindow.h \
     QtSLiMAppDelegate.h \
     QtSLiMChromosomeWidget.h \

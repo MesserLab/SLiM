@@ -24,8 +24,11 @@
 #define GL_SILENCE_DEPRECATION
 
 #include <QWidget>
+
+#ifndef SLIM_NO_OPENGL
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
+#endif
 
 #include "slim_globals.h"
 
@@ -37,6 +40,7 @@ class QtSLiMHaplotypeManager;
 class QPainter;
 class QContextMenuEvent;
 
+
 struct QtSLiMRange
 {
     int64_t location, length;
@@ -44,7 +48,17 @@ struct QtSLiMRange
     explicit QtSLiMRange(int64_t p_location, int64_t p_length) : location(p_location), length(p_length) {}
 };
 
+
+// This is a fast macro for when all we need is the offset of a base from the left edge of interiorRect; interiorRect.origin.x is not added here!
+// This is based on the same math as rectEncompassingBase:toBase:interiorRect:displayedRange:, and must be kept in synch with that method.
+#define LEFT_OFFSET_OF_BASE(startBase, interiorRect, displayedRange) (static_cast<int>(floor(((startBase - static_cast<slim_position_t>(displayedRange.location)) / static_cast<double>(displayedRange.length)) * interiorRect.width())))
+
+
+#ifndef SLIM_NO_OPENGL
 class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
+#else
+class QtSLiMChromosomeWidget : public QWidget
+#endif
 {
     Q_OBJECT    
     
@@ -67,10 +81,6 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	slim_position_t trackingStartBase_ = 0, trackingLastBase_ = 0;
 	int trackingXAdjust_ = 0;	// to keep the cursor stuck on a knob that is click-dragged
 	//SLiMSelectionMarker *startMarker, *endMarker;
-    
-    // OpenGL buffers
-	float *glArrayVertices = nullptr;
-	float *glArrayColors = nullptr;
     
     // Haplotype display
     int64_t *haplotype_previous_bincounts = nullptr;    // used by QtSLiMHaplotypeManager to keep the sort order stable
@@ -100,9 +110,13 @@ signals:
     void selectedRangeChanged(void);
     
 protected:
+#ifndef SLIM_NO_OPENGL
     virtual void initializeGL() override;
     virtual void resizeGL(int w, int h) override;
     virtual void paintGL() override;
+#else
+    virtual void paintEvent(QPaintEvent *event) override;
+#endif
     
     QRect rectEncompassingBaseToBase(slim_position_t startBase, slim_position_t endBase, QRect interiorRect, QtSLiMRange displayedRange);
     slim_position_t baseForPosition(double position, QRect interiorRect, QtSLiMRange displayedRange);
@@ -111,17 +125,29 @@ protected:
     
     void drawTicksInContentRect(QRect contentRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
     void overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter);
-    void glDrawRect(Species *displaySpecies);
-    
-    void glDrawGenomicElements(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     void updateDisplayedMutationTypes(Species *displaySpecies);
+    
+    // OpenGL drawing; this is the primary drawing code
+#ifndef SLIM_NO_OPENGL
+    void glDrawRect(Species *displaySpecies);
+    void glDrawGenomicElements(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     void glDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     void glDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
-    
     void _glDrawRateMapIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue);
     void glDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     void glDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     void glDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+#endif
+    
+    // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
+    void qtDrawRect(Species *displaySpecies, QPainter &painter);
+    void qtDrawGenomicElements(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void _qtDrawRateMapIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue, QPainter &painter);
+    void qtDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
     
     virtual void mousePressEvent(QMouseEvent *p_event) override;
     void _mouseTrackEvent(QMouseEvent *p_event);

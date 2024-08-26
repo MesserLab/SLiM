@@ -24,8 +24,11 @@
 #define GL_SILENCE_DEPRECATION
 
 #include <QWidget>
+
+#ifndef SLIM_NO_OPENGL
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
+#endif
 
 #include "slim_globals.h"
 #include "subpopulation.h"
@@ -46,7 +49,11 @@ typedef enum {
     kDisplaySpatialUnified
 } PopulationViewDisplayMode;
 
+#ifndef SLIM_NO_OPENGL
 class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
+#else
+class QtSLiMIndividualsWidget : public QWidget
+#endif
 {
     Q_OBJECT
     
@@ -63,10 +70,6 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
     // action button tracking support
     slim_objectid_t actionButtonHighlightSubpopID_ = -1;
     
-    // OpenGL buffers
-	float *glArrayVertices = nullptr;
-	float *glArrayColors = nullptr;
-    
 public:
     explicit QtSLiMIndividualsWidget(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMIndividualsWidget() override;
@@ -75,28 +78,40 @@ public:
     void runContextMenuAtPoint(QPoint globalPoint, Subpopulation *subpopForEvent);
     
 protected:
+#ifndef SLIM_NO_OPENGL
     virtual void initializeGL() override;
     virtual void resizeGL(int w, int h) override;
     virtual void paintGL() override;
+#else
+    virtual void paintEvent(QPaintEvent *event) override;
+#endif
 
     bool canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations);
     PopulationViewDisplayMode displayModeForSubpopulation(Subpopulation *subpopulation);
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
     QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
     
-    void drawViewFrameInBounds(QRect bounds);
-    
     int squareSizeForSubpopulationInArea(Subpopulation *subpop, QRect bounds);
-    void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize);
-    
-    void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop);
-    void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints);
+    void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop, bool flipped);
     void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *settings, SpatialMap **returnMap, Subpopulation *subpop);
-    void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
-    void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor);
+    
+    // OpenGL drawing; this is the primary drawing code
+#ifndef SLIM_NO_OPENGL
+    void glDrawViewFrameInBounds(QRect bounds);
+    void glDrawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize);
+    void _glDrawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints);
+    void glDrawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
+    void glDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor);
+#endif
+    
+    // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
+    void qtDrawViewFrameInBounds(QRect bounds, QPainter &painter);
+    void qtDrawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize, QPainter &painter);
+    void _qtDrawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints, QPainter &painter);
+    void qtDrawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality, QPainter &painter);
+    void qtDrawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor, QPainter &painter);
     
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
-    
     virtual void mousePressEvent(QMouseEvent *p_event) override;
 };
 

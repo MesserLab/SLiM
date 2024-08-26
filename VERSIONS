@@ -30,6 +30,7 @@ development head (in the master branch):
 		these recommendations are based on Qt6's recommended platforms; earlier platforms should use Qt5
 		for more details see https://doc.qt.io/qt-6/linux.html, https://doc.qt.io/qt-6/windows.html, https://doc.qt.io/qt-6/macos.html
 		building with CMake will now default to Qt6 if CMake can find it, and fall back to Qt5 otherwise; should be automatic
+	add a "Use OpenGL for fast display" checkbox in the Preferences panel, making it possible to disable OpenGL when it doesn't work well (#462)
 	
 
 version 4.2.2 (Eidos version 3.2.2):

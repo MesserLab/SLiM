@@ -37,6 +37,7 @@ public:
     int appStartupPref(void) const;               // 0 == do nothing, 1 == create a new window, 2 == run an open panel
     bool forceDarkModePref(void);
     bool forceFusionStylePref(void);
+    bool useOpenGLPref(void);
     QFont displayFontPref(double *tabWidth = nullptr) const;
     bool scriptSyntaxHighlightPref(void) const;
     bool outputSyntaxHighlightPref(void) const;
@@ -53,6 +54,7 @@ public:
 signals:
     // Get notified when a pref value changes
     void appStartupPrefChanged(void);
+    void useOpenGLPrefChanged(void);
     void displayFontPrefChanged(void);
     void scriptSyntaxHighlightPrefChanged(void);
     void outputSyntaxHighlightPrefChanged(void);
@@ -73,6 +75,7 @@ private slots:
     void startupRadioChanged();
     void forceDarkModeToggled();
     void forceFusionStyleToggled();
+    void useOpenGLToggled();
     void fontChanged(const QFont &font);
     void fontSizeChanged(int newSize);
     void syntaxHighlightScriptToggled();

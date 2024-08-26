@@ -35,6 +35,7 @@
 static const char *QtSLiMAppStartupAction = "QtSLiMAppStartupAction";
 static const char *QtSLiMForceDarkMode = "QtSLiMForceDarkMode";
 static const char *QtSLiMForceFusionStyle = "QtSLiMForceFusionStyle";
+static const char *QtSLiMUseOpenGL = "QtSLiMUseOpenGL";
 static const char *QtSLiMDisplayFontFamily = "QtSLiMDisplayFontFamily";
 static const char *QtSLiMDisplayFontSize = "QtSLiMDisplayFontSize";
 static const char *QtSLiMSyntaxHighlightScript = "QtSLiMSyntaxHighlightScript";
@@ -125,6 +126,17 @@ bool QtSLiMPreferencesNotifier::forceFusionStylePref(void)
     QSettings settings;
     
     return settings.value(QtSLiMForceFusionStyle, QVariant(false)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::useOpenGLPref(void)
+{
+#ifndef SLIM_NO_OPENGL
+    QSettings settings;
+    
+    return settings.value(QtSLiMUseOpenGL, QVariant(true)).toBool();
+#else
+    return false;
+#endif
 }
 
 QFont QtSLiMPreferencesNotifier::displayFontPref(double *tabWidth) const
@@ -285,6 +297,16 @@ void QtSLiMPreferencesNotifier::forceFusionStyleToggled()
     
     // no signal is emitted for this pref; it takes effect on the next restart of the app
     //emit forceFusionStylePrefChanged();
+}
+
+void QtSLiMPreferencesNotifier::useOpenGLToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMUseOpenGL, QVariant(prefsUI.ui->useOpenGL->isChecked()));
+    
+    emit useOpenGLPrefChanged();
 }
 
 void QtSLiMPreferencesNotifier::fontChanged(const QFont &newFont)
@@ -460,10 +482,23 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     connect(ui->resetSuppressedButton, &QPushButton::clicked, notifier, &QtSLiMPreferencesNotifier::resetSuppressedClicked);
     
     // handle the user interface display prefs, which are hidden and disconnected on macOS
+    ui->useOpenGL->setChecked(notifier->useOpenGLPref());
+    
+    connect(ui->useOpenGL, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::useOpenGLToggled);
+
 #ifdef __APPLE__
-    ui->uiAppearanceGroup->setHidden(true);
-    ui->verticalSpacer_uiAppearance->changeSize(0, 0);
-    ui->verticalSpacer_uiAppearance->invalidate();
+    // This old code hid the UI prefs entirely on macOS
+//    ui->uiAppearanceGroup->setHidden(true);
+//    ui->verticalSpacer_uiAppearance->changeSize(0, 0);
+//    ui->verticalSpacer_uiAppearance->invalidate();
+//    ui->verticalLayout->invalidate();
+    
+    // This new code leaves the "Use OpenGL for speed" checkbox visible and hides the rest
+    ui->requireRelaunchLabel->setHidden(true);
+    ui->forceDarkMode->setHidden(true);
+    ui->forceFusionStyle->setHidden(true);
+    ui->verticalSpacer_requireRelaunch->changeSize(0, 0);
+    ui->verticalSpacer_requireRelaunch->invalidate();
     ui->verticalLayout->invalidate();
 #else
     ui->forceDarkMode->setChecked(notifier->forceDarkModePref());

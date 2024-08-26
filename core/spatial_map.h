@@ -86,6 +86,7 @@ public:
 #if defined(SLIMGUI)
 	uint8_t *display_buffer_ = nullptr;	// OWNED POINTER: used by SLiMgui, contains RGB values for pixels in the PopulationView
 	int buffer_width_, buffer_height_;	// the size of the buffer, in pixels, each of which is 3 x sizeof(uint8_t)
+    bool buffer_flipped_;               // true if flipped (for Qt display) false if not (for GL display)
 #endif
 	
 	SpatialMap(const SpatialMap&) = delete;													// no copying
