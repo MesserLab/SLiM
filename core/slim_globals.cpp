@@ -1271,6 +1271,8 @@ const std::string &gStr_maxDistance = EidosRegisteredString("maxDistance", gID_m
 // mostly method names
 const std::string &gStr_ancestralNucleotides = EidosRegisteredString("ancestralNucleotides", gID_ancestralNucleotides);
 const std::string &gStr_nucleotides = EidosRegisteredString("nucleotides", gID_nucleotides);
+const std::string &gStr_genomicElementForPosition = EidosRegisteredString("genomicElementForPosition", gID_genomicElementForPosition);
+const std::string &gStr_hasGenomicElementForPosition = EidosRegisteredString("hasGenomicElementForPosition", gID_hasGenomicElementForPosition);
 const std::string &gStr_setAncestralNucleotides = EidosRegisteredString("setAncestralNucleotides", gID_setAncestralNucleotides);
 const std::string &gStr_setGeneConversion = EidosRegisteredString("setGeneConversion", gID_setGeneConversion);
 const std::string &gStr_setHotspotMap = EidosRegisteredString("setHotspotMap", gID_setHotspotMap);

@@ -170,6 +170,12 @@ void Chromosome::InitializeDraws(void)
 	if (genomic_elements_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << EidosTerminate();
 	
+	// BCH 8/28/2024: we now sort the genomic elements here; we need them to be sorted later on anyway
+	// I avoided doing this before because it changed the behavior, but it is hard to imagine anybody caring
+	// Since elements must be non-overlapping, we only need to sort by start position
+	std::sort(genomic_elements_.begin(), genomic_elements_.end(),
+			  [](GenomicElement *e1, GenomicElement *e2) { return e1->start_position_ < e2->start_position_; });
+	
 	// determine which case we are working with: separate recombination maps for the sexes, or one map
 	auto rec_rates_H_size = recombination_rates_H_.size();
 	auto rec_rates_M_size = recombination_rates_M_.size();
@@ -614,12 +620,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 	// The class we use to represent these constant-rate subregions is GESubrange, declared in chromosome.h.
 	p_subranges.clear();
 	
-	// We need to work with a *sorted* genomic elements vector here.  We sort it internally here, rather than in
-	// genomic_elements_, so that genomic_elements_ reflects exactly what they user gave us (mostly for backward
-	// compatibility).
-	std::vector<GenomicElement *> sorted_ge_vec = genomic_elements_;
-	
-	std::sort(sorted_ge_vec.begin(), sorted_ge_vec.end(), [](GenomicElement *ge1, GenomicElement *ge2) {return ge1->start_position_ < ge2->start_position_;});
+	// We need to work with a *sorted* genomic elements vector here.  BCH 8/28/2024: That is now guaranteed.
 	
 	// This code deals in two different currencies: *requested* mutation rates and *adjusted* mutation rates.
 	// This stems from the fact that, beginning in SLiM 3.5, we unique mutation positions as we're generating
@@ -638,7 +639,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 	unsigned int mutrange_index = 0;
 	slim_position_t end_of_previous_mutrange = -1;
 	
-	for (GenomicElement *ge_ptr : sorted_ge_vec)
+	for (GenomicElement *ge_ptr : genomic_elements_)
 	{
 		GenomicElement &ge = *ge_ptr;
 		
@@ -1858,14 +1859,16 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 {
 	switch (p_method_id)
 	{
-		case gID_ancestralNucleotides:		return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_interpreter);
-		case gID_setAncestralNucleotides:	return ExecuteMethod_setAncestralNucleotides(p_method_id, p_arguments, p_interpreter);
-		case gID_setGeneConversion:			return ExecuteMethod_setGeneConversion(p_method_id, p_arguments, p_interpreter);
-		case gID_setHotspotMap:				return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_interpreter);
-		case gID_setMutationRate:			return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_interpreter);
-		case gID_setRecombinationRate:		return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_interpreter);
-		case gID_drawBreakpoints:			return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_interpreter);
-		default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+		case gID_ancestralNucleotides:			return ExecuteMethod_ancestralNucleotides(p_method_id, p_arguments, p_interpreter);
+		case gID_genomicElementForPosition:		return ExecuteMethod_genomicElementForPosition(p_method_id, p_arguments, p_interpreter);
+		case gID_hasGenomicElementForPosition:	return ExecuteMethod_hasGenomicElementForPosition(p_method_id, p_arguments, p_interpreter);
+		case gID_setAncestralNucleotides:		return ExecuteMethod_setAncestralNucleotides(p_method_id, p_arguments, p_interpreter);
+		case gID_setGeneConversion:				return ExecuteMethod_setGeneConversion(p_method_id, p_arguments, p_interpreter);
+		case gID_setHotspotMap:					return ExecuteMethod_setHotspotMap(p_method_id, p_arguments, p_interpreter);
+		case gID_setMutationRate:				return ExecuteMethod_setMutationRate(p_method_id, p_arguments, p_interpreter);
+		case gID_setRecombinationRate:			return ExecuteMethod_setRecombinationRate(p_method_id, p_arguments, p_interpreter);
+		case gID_drawBreakpoints:				return ExecuteMethod_drawBreakpoints(p_method_id, p_arguments, p_interpreter);
+		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -2015,6 +2018,65 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		return gStaticEidosValue_Integer_ZeroVec;
 	else
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(all_breakpoints));
+}
+
+GenomicElement *Chromosome::ElementForPosition(slim_position_t pos)
+{
+	auto element_iter = std::lower_bound(genomic_elements_.begin(), genomic_elements_.end(), pos,
+		[](const GenomicElement *e, slim_position_t position) { return e->end_position_ < position; });
+	
+	if (element_iter == genomic_elements_.end())
+		return nullptr;
+	
+	GenomicElement *element = *element_iter;
+	
+	if (element->start_position_ > pos)
+		return nullptr;
+	
+	return element;
+}
+
+//	*********************	(object<GenomicElement>)genomicElementForPosition(integer positions)
+//
+EidosValue_SP Chromosome::ExecuteMethod_genomicElementForPosition(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *positions_value = p_arguments[0].get();
+	int positions_count = positions_value->Count();
+	EidosValue_Object_SP obj_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElement_Class));
+	EidosValue_Object *obj_result = obj_result_SP->reserve(positions_count);
+	const int64_t *positions_data = positions_value->IntData();
+	
+	for (int pos_index = 0; pos_index < positions_count; ++pos_index)
+	{
+		int64_t pos = positions_data[pos_index];
+		GenomicElement *element = ElementForPosition(pos);
+		
+		if (element)
+			obj_result->push_object_element_no_check_NORR(element);
+	}
+	
+	return obj_result_SP;
+}
+
+//	*********************	(logical)hasGenomicElementForPosition(integer positions)
+//
+EidosValue_SP Chromosome::ExecuteMethod_hasGenomicElementForPosition(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *positions_value = p_arguments[0].get();
+	int positions_count = positions_value->Count();
+	EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
+	EidosValue_Logical *logical_result = logical_result_SP->reserve(positions_count);
+	const int64_t *positions_data = positions_value->IntData();
+	
+	for (int pos_index = 0; pos_index < positions_count; ++pos_index)
+	{
+		int64_t pos = positions_data[pos_index];
+		logical_result->push_logical_no_check(ElementForPosition(pos) ? true : false);
+	}
+	
+	return logical_result_SP;
 }
 
 //	*********************	(integer$)setAncestralNucleotides(is sequence)
@@ -2577,6 +2639,8 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawBreakpoints, kEidosValueMaskInt))->AddObject_OSN("parent", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OSN("n", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_genomicElementForPosition, kEidosValueMaskObject, gSLiM_GenomicElement_Class))->AddInt("positions"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_hasGenomicElementForPosition, kEidosValueMaskLogical))->AddInt("positions"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setAncestralNucleotides, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntString("sequence"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setGeneConversion, kEidosValueMaskVOID))->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setHotspotMap, kEidosValueMaskVOID))->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));

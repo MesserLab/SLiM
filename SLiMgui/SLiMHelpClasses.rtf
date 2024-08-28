@@ -85,8 +85,8 @@ geneConversionEnabled => (logical$)\
 
 \f4\fs20 \cf0 All of the 
 \f3\fs18 GenomicElement
-\f4\fs20  objects that comprise the chromosome.
-\f5 \
+\f4\fs20  objects that comprise the chromosome\cf2 , in sorted order (not necessarily in the order in which they were defined).
+\f5 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -532,7 +532,48 @@ It is generally recommended that the parent individual be supplied to this metho
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(integer$)setAncestralNucleotides(is\'a0sequence)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<GenomicElement>)genomicElementForPosition(integer\'a0positions)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 GenomicElement
+\f4\fs20  objects corresponding to the given vector 
+\f3\fs18 positions
+\f4\fs20 , which contains base positions along the chromosome.  If every position lies within a defined genomic element, the returned vector will have the same length as 
+\f3\fs18 positions
+\f4\fs20 , and will correspond one-to-one with it.  However, if a position in 
+\f3\fs18 positions
+\f4\fs20  is not within a genomic element, no 
+\f3\fs18 GenomicElement
+\f4\fs20  object will be present for it in the returned vector, and so the returned vector will no longer have the same length as 
+\f3\fs18 positions
+\f4\fs20 , and will no longer correspond one-to-one with it.  The method 
+\f3\fs18 hasGenomicElementForPosition()
+\f4\fs20  can be used to detect this circumstance.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical)hasGenomicElementForPosition(integer\'a0positions)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a 
+\f3\fs18 logical
+\f4\fs20  vector corresponding to the given vector 
+\f3\fs18 positions
+\f4\fs20 , which contains base positions along the chromosome.  The returned vector will have the same length as 
+\f3\fs18 positions
+\f4\fs20 , and will correspond one-to-one with it, containing 
+\f3\fs18 T
+\f4\fs20  if the corresponding position lies inside a genomic element, or 
+\f3\fs18 F
+\f4\fs20  if it does not.  The method 
+\f3\fs18 genomicElementForPosition()
+\f4\fs20  can be used to look up the 
+\f3\fs18 GenomicElement
+\f4\fs20  objects themselves.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(integer$)setAncestralNucleotides(is\'a0sequence)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 This method, which may be called only in nucleotide-based models, replaces the ancestral nucleotide sequence for the model.  The 
