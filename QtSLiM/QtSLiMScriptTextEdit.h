@@ -195,7 +195,10 @@ public:
     void clearScriptBlockColoring(void);
     void addScriptBlockColoring(int startPos, int endPos, Species *species);
     
+    QString exportAsHtml(void);
+    
 public slots:
+    void copyAsHTML(void);
     void shiftSelectionLeft(void);
     void shiftSelectionRight(void);
     void commentUncommentSelection(void);

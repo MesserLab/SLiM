@@ -39,6 +39,8 @@
 #include <QTextDocument>
 #include <QMenu>
 #include <QToolTip>
+#include <QClipboard>
+#include <QMimeData>
 #include <QDebug>
 
 #include <utility>
@@ -2625,9 +2627,23 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
 #endif
 }
 
+void QtSLiMScriptTextEdit::copyAsHTML(void)
+{
+    if (isEnabled())
+    {
+        QString html = exportAsHtml();
+        QClipboard *clipboard = QGuiApplication::clipboard();
+        QMimeData *mimeData = new QMimeData;
+        
+        mimeData->setHtml(html);
+        mimeData->setText(html);
+        clipboard->setMimeData(mimeData);
+    }
+}
+
 void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
 {
-     if (isEnabled() && !isReadOnly())
+    if (isEnabled() && !isReadOnly())
 	{
         QTextCursor &&edit_cursor = textCursor();
         bool movedBack;
@@ -3303,6 +3319,77 @@ void QtSLiMScriptTextEdit::addScriptBlockColoring(int startPos, int endPos, Spec
     blockSpecies.emplace_back(species);
 }
 
+// this method courtesy of SO user Larswad, https://stackoverflow.com/a/15808889/2752221
+QString QtSLiMScriptTextEdit::exportAsHtml(void)
+{
+    // Create a new document from the entire document
+    QTextCursor cursor(document());
+    cursor.select(QTextCursor::Document);
+    QTextDocument *tempDocument = new QTextDocument;
+    QTextCursor tempCursor(tempDocument);
+    
+    tempCursor.insertFragment(cursor.selection());
+    tempCursor.select(QTextCursor::Document);
+    
+    // Set the default foreground for the inserted characters
+    QTextCharFormat textfmt = tempCursor.charFormat();
+    textfmt.setForeground(Qt::black);
+    tempCursor.setCharFormat(textfmt);
+    
+    // Apply the additional formats set by the syntax highlighter
+    QTextBlock start = document()->findBlock(cursor.selectionStart());
+    QTextBlock end = document()->findBlock(cursor.selectionEnd());
+    end = end.next();
+    const int selectionStart = cursor.selectionStart();
+    const int endOfDocument = tempDocument->characterCount() - 1;
+    for (QTextBlock current = start; current.isValid() and current not_eq end; current = current.next()) {
+        const QTextLayout* layout(current.layout());
+        
+        foreach (const QTextLayout::FormatRange &range, layout->formats()) {
+            const int formatStart = current.position() + range.start - selectionStart;
+            const int formatEnd = formatStart + range.length;
+            if(formatEnd <= 0 or formatStart >= endOfDocument)
+                continue;
+            tempCursor.setPosition(qMax(formatStart, 0));
+            tempCursor.setPosition(qMin(formatEnd, endOfDocument), QTextCursor::KeepAnchor);
+            tempCursor.setCharFormat(range.format);
+        }
+    }
+    
+    // Reset the user states since they are not interesting
+    for (QTextBlock block = tempDocument->begin(); block.isValid(); block = block.next())
+        block.setUserState(-1);
+    
+    // Make sure the text appears pre-formatted, and set the background we want
+    tempCursor.select(QTextCursor::Document);
+    QTextBlockFormat blockFormat = tempCursor.blockFormat();
+    blockFormat.setNonBreakableLines(true);
+    //blockFormat.setBackground(Qt::black);
+    tempCursor.setBlockFormat(blockFormat);
+    
+    // Select the same range with tempCursor as is selected in the original document
+    QTextCursor selectedRange = textCursor();
+    tempCursor.setPosition(selectedRange.anchor(), QTextCursor::MoveAnchor);
+    tempCursor.setPosition(selectedRange.position(), QTextCursor::KeepAnchor);
+    
+    // Retrieve the syntax highlighted and formatted html
+    QString html = tempCursor.selection().toHtml();
+    delete tempDocument;
+    
+    // There is a bug where the first line uses <p> instead of <pre>, because
+    // it is a fragment, I guess.  We can fix that with a regex.
+    QRegularExpression pToPreRegex("<p style=(.*)</p>");
+    pToPreRegex.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+    html.replace(pToPreRegex, "<pre style=\\1</pre>");
+    
+    // Change new paragraphs to new lines, so we get one paragraph of text
+    // This doesn't work, you always get a new paragraph for each line; <BR> doesn't work either.
+    //QRegularExpression preRegex("</pre>.?.?<pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">");
+    //preRegex.setPatternOptions(QRegularExpression::DotMatchesEverythingOption | QRegularExpression::CaseInsensitiveOption);
+    //html.replace(preRegex, "\n");
+    
+    return html;
+}
 
 
 

@@ -125,6 +125,7 @@ public slots:
     void dispatch_open(void);
     void dispatch_close(void);
     
+    void dispatch_copyAsHTML(void);
     void dispatch_shiftLeft(void);
     void dispatch_shiftRight(void);
     void dispatch_commentUncomment(void);

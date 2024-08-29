@@ -1352,6 +1352,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionCut"/>
     <addaction name="actionCopy"/>
+    <addaction name="actionCopyAsHTML"/>
     <addaction name="actionPaste"/>
     <addaction name="actionDelete"/>
     <addaction name="actionSelectAll"/>
@@ -2034,6 +2035,17 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="toolTip">
     <string>Show nonWF Tick Cycle (Multispecies)</string>
+   </property>
+  </action>
+  <action name="actionCopyAsHTML">
+   <property name="text">
+    <string>Copy as HTML</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy as HTML</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+C</string>
    </property>
   </action>
  </widget>

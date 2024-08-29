@@ -208,6 +208,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionAboutStickSoftware, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_helpStickSoftware);
     
     // connect custom menu items
+    connect(ui->actionCopyAsHTML, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copyAsHTML);
     connect(ui->actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);
     connect(ui->actionShiftRight, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftRight);
     connect(ui->actionCommentUncomment, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_commentUncomment);

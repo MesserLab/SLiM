@@ -33,6 +33,7 @@ development head (in the master branch):
 	add a "Use OpenGL for fast display" checkbox in the Preferences panel, making it possible to disable OpenGL when it doesn't work well (#462)
 	add genomicElementForPosition() and hasGenomicElementForPosition() methods on Chromosome
 	policy change: genomicElements property is now in sorted order (not in order of declaration)
+	add a "Copy as HTML" command to copy script with syntax coloring and such
 	
 
 version 4.2.2 (Eidos version 3.2.2):

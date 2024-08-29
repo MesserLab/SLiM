@@ -1019,6 +1019,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     
     {
+        QAction *actionCopyAsHTML = new QAction("Copy as HTML", this);
+        actionCopyAsHTML->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::AltModifier, Qt::Key_C));
+        connect(actionCopyAsHTML, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copyAsHTML);
+        window->addAction(actionCopyAsHTML);
+    }
+    {
         QAction *actionShiftLeft = new QAction("Shift Left", this);
         actionShiftLeft->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_BracketLeft));
         connect(actionShiftLeft, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_shiftLeft);
@@ -1375,6 +1381,15 @@ void QtSLiMAppDelegate::dispatch_close(void)
         currentActiveWindow->close();
     else
         qApp->beep();
+}
+
+void QtSLiMAppDelegate::dispatch_copyAsHTML(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled())
+        scriptEdit->copyAsHTML();
 }
 
 void QtSLiMAppDelegate::dispatch_shiftLeft(void)
