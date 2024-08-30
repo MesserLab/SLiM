@@ -52,8 +52,8 @@ class EidosToken;
 
 
 // Eidos version: See also Info.plist
-#define EIDOS_VERSION_STRING	("3.2.2")
-#define EIDOS_VERSION_FLOAT		(3.22)
+#define EIDOS_VERSION_STRING	("3.3")
+#define EIDOS_VERSION_FLOAT		(3.3)
 
 
 #ifdef _OPENMP
