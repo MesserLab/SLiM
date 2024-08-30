@@ -7,7 +7,7 @@
 %endif
 
 Name:           SLiM
-Version:        4.2.2
+Version:        4.3
 Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
