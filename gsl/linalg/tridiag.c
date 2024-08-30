@@ -96,13 +96,17 @@ solve_tridiag(
       /* backsubstitution */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
-#if defined(__has_warning) && __has_warning("-Wmaybe-uninitialized")
+#if defined(__has_warning)
+#if __has_warning("-Wmaybe-uninitialized")
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wuninitialized"
-#if defined(__has_warning) && __has_warning("-Wmaybe-uninitialized")
+#if defined(__has_warning)
+#if __has_warning("-Wmaybe-uninitialized")
 #pragma clang diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #endif
       x[x_stride * (N - 1)] = c[N - 1];
 #pragma clang diagnostic pop
