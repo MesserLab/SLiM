@@ -10,6 +10,11 @@ TEMPLATE = lib
 CONFIG += staticlib
 
 
+# Uncomment this line for a production build, to build for both Intel and Apple Silicon.  This only works with Qt6;
+# Qt5 for macOS is built for Intel only.  Uncomment this for all components or you will get link errors.
+#QMAKE_APPLE_DEVICE_ARCHS = x86_64 arm64
+
+
 # Uncomment the lines below to enable ASAN (Address Sanitizer), for debugging of memory issues, in every
 # .pro file project-wide.  See https://clang.llvm.org/docs/AddressSanitizer.html for discussion of ASAN
 # Also set the ASAN_OPTIONS env. variable, in the Run Settings section of the Project tab in Qt Creator, to
