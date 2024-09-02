@@ -32,22 +32,22 @@ BuildRequires:  Mesa-libGL-devel
 BuildRequires:  gcc-c++
 BuildRequires:  appstream-glib-devel
 %if 0%{?suse_version} < 1600
-BuildRequires:  %qt-qtbase-devel
+BuildRequires:  %{qt}-qtbase-devel
 %endif
 %if 0%{?suse_version} > 1600 # only Tumbleweed officially supports Qt6
-BuildRequires:  %qt-qtbase-devel
+BuildRequires:  %{qt}-qtbase-devel
 %endif
 %else
-BuildRequires:  %qt-qtbase-devel
+BuildRequires:  %{qt}-qtbase-devel
 BuildRequires:  libappstream-glib
 %endif
 ExclusiveArch:  x86_64
 
 # RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
 %if 0%{?rhel} == 8
-Requires: %{qt5}-qtbase >= 5.15.1
+Requires: %{qt}-qtbase >= 5.15.1
 %else
-Requries: %qt-qtbase
+Requries: %{qt}-qtbase
 %endif
 
 %description
