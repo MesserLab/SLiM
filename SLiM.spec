@@ -1,9 +1,14 @@
 # Cross-distribution SLiM RPM spec.
-# Defines:
 %if %{defined suse_version}
-%define qt5 libqt5
+%if 0%{?suse_version} < 1600
+%define qt libqt5
 %else
-%define qt5 qt5
+%define qt libqt6
+%endif
+%endif
+
+%if 0%{?fedora} >= 39
+%define qt qt6
 %endif
 
 Name:           SLiM
@@ -22,21 +27,28 @@ Conflicts:      slim
 BuildRequires:  cmake
 # openSUSE Build Requires
 %if %{defined suse_version}
-%if 0%{?suse_version} >= 1500
 BuildRequires:  glew-devel
 BuildRequires:  Mesa-libGL-devel
 BuildRequires:  gcc-c++
-BuildRequires:  libqt5-qtbase-devel
 BuildRequires:  appstream-glib-devel
+%if 0%{?suse_version} < 1600
+BuildRequires:  %qt-qtbase-devel
+%endif
+%if 0%{?suse_version} > 1600 # only Tumbleweed officially supports Qt6
+BuildRequires:  %qt-qtbase-devel
 %endif
 %else
-BuildRequires:  qt5-qtbase-devel
+BuildRequires:  %qt-qtbase-devel
 BuildRequires:  libappstream-glib
 %endif
 ExclusiveArch:  x86_64
 
 # RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
+%if 0%{?rhel} == 8
 Requires: %{qt5}-qtbase >= 5.15.1
+%else
+Requries: %qt-qtbase
+%endif
 
 %description
 SLiM is an evolutionary simulation framework that combines a powerful engine for
@@ -51,6 +63,11 @@ visualization of simulation output.
 
 %prep
 %setup -q
+# attempt to sidestep issue 440
+%if 0%{?rhel} == 8
+mkdir outputbins
+%define _vpath_builddir outputbins
+%endif
 
 %build
 %cmake -DBUILD_SLIMGUI=ON
@@ -72,6 +89,12 @@ visualization of simulation output.
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Mon Sep 2 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3.-1
+- Changes to the package have occurred. See the following points.
+- Further version checks for various distributions are introduced to allow cross-distribution packaging and building against Qt5 or Qt6, appropriate to the platform.
+- An attempt to fix issue 440 is made
+- See the SLiM release notes on GitHub for information about changes to the packaged software.
+
 * Tue Apr 30 2024 Ben Haller <bhaller@mac.com> - 4.2.2-1
 - No changes to the package have been made since the last release.
 - Ship the fix for the 4.2.1-2 crashing bug as a separate release.
