@@ -83,9 +83,12 @@ mkdir outputbins
 %endif
 
 %build
-%if %_vpath_builddir == %_vpath_srcdir
+%if 0%{?rhel} == 8
+%if "%_vpath_builddir" == "%_vpath_srcdir"
 %(mkdir builddir)
+%{error:"The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"} 	
 %global %_vpath_builddir builddir
+%endif
 %endif
 %cmake -DBUILD_SLIMGUI=ON
 %cmake_build
