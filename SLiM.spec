@@ -83,6 +83,10 @@ mkdir outputbins
 %endif
 
 %build
+%if %_vpath_builddir == %_vpath_srcdir
+%(mkdir builddir)
+%global %_vpath_builddir builddir
+%endif
 %cmake -DBUILD_SLIMGUI=ON
 %cmake_build
 
