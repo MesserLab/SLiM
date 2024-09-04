@@ -7,8 +7,20 @@
 %endif
 %endif
 
+%if %{defined fedora}
 %if 0%{?fedora} >= 39
 %global qtNameAndVersion qt6
+%else
+%global qtNameAndVersion qt5
+%endif
+%endif
+
+%if %{defined rhel}
+%if 0%{?rhel} > 8
+%global qtNameAndVersion qt6
+%else
+%global qtNameAndVersion qt5
+%endif
 %endif
 
 Name:           SLiM
