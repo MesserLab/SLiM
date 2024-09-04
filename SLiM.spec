@@ -1,14 +1,14 @@
 # Cross-distribution SLiM RPM spec.
 %if %{defined suse_version}
 %if 0%{?suse_version} < 1600
-%define qt libqt5
+%global qtNameAndVersion libqt5
 %else
-%define qt libqt6
+%global qtNameAndVersion qt6
 %endif
 %endif
 
 %if 0%{?fedora} >= 39
-%define qt qt6
+%global qtNameAndVersion qt6
 %endif
 
 Name:           SLiM
@@ -32,22 +32,23 @@ BuildRequires:  Mesa-libGL-devel
 BuildRequires:  gcc-c++
 BuildRequires:  appstream-glib-devel
 %if 0%{?suse_version} < 1600
-BuildRequires:  %{qt}-qtbase-devel
+BuildRequires:  %{qtNameAndVersion}-qtbase-devel
 %endif
-%if 0%{?suse_version} > 1600 # only Tumbleweed officially supports Qt6
-BuildRequires:  %{qt}-qtbase-devel
+%if 0%{?suse_version} > 1600
+# only Tumbleweed officially supports Qt6; further, it's "base" not "qtbase" in Tumbleweed. :(
+BuildRequires:  %{qtNameAndVersion}-base-devel
 %endif
 %else
-BuildRequires:  %{qt}-qtbase-devel
+BuildRequires:  %{qtNameAndVersion}-qtbase-devel
 BuildRequires:  libappstream-glib
 %endif
 ExclusiveArch:  x86_64
 
 # RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
 %if 0%{?rhel} == 8
-Requires: %{qt}-qtbase >= 5.15.1
+Requires: %{qtNameAndVersion}-qtbase >= 5.15.1
 %else
-Requries: %{qt}-qtbase
+Requires: %{qtNameAndVersion}-qtbase
 %endif
 
 %description
@@ -89,7 +90,7 @@ mkdir outputbins
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
-* Mon Sep 2 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3.-1
+* Mon Sep 02 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3.-1
 - Changes to the package have occurred. See the following points.
 - Further version checks for various distributions are introduced to allow cross-distribution packaging and building against Qt5 or Qt6, appropriate to the platform.
 - An attempt to fix issue 440 is made
@@ -108,7 +109,7 @@ mkdir outputbins
 - No changes to the package have been made since the last release.
 - Fix for a crashing bug under certain conditions.
 
-* Thu Mar 20 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.2-1
+* Wed Mar 20 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.2-1
 - No changes to the package have been made since the last release. See the SLiM release notes on GitHub for information about changes to the packaged software.
 
 * Mon Dec 4 2023 Bryce Carson <bryce.a.carson@gmail.com> - 4.1-1
