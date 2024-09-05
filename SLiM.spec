@@ -85,8 +85,9 @@ visualization of simulation output.
 %{error:"The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"} 	
 %global _vpath_builddir builddir
 %endif
+%global sourceAndBuilddir "-S %{_vpath_srcdir} -B %{_vpath_builddir}"
 %endif
-%cmake -DBUILD_SLIMGUI=ON
+%cmake %{sourceAndBuilddir} -DBUILD_SLIMGUI=ON 
 %cmake_build
 
 %install
