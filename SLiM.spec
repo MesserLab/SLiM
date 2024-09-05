@@ -16,7 +16,8 @@
 %endif
 
 %if %{defined rhel}
-%if 0%{?rhel} > 8
+%if 0%{?epel} >= 9
+# qt6 is only available through EPEL on RHEL 9 and higher
 %global qtNameAndVersion qt6
 %else
 %global qtNameAndVersion qt5
@@ -45,12 +46,12 @@ BuildRequires:  gcc-c++
 BuildRequires:  appstream-glib-devel
 %if 0%{?suse_version} < 1600
 BuildRequires:  %{qtNameAndVersion}-qtbase-devel
-%endif
-%if 0%{?suse_version} > 1600
+%else
 # only Tumbleweed officially supports Qt6; further, it's "base" not "qtbase" in Tumbleweed. :(
 BuildRequires:  %{qtNameAndVersion}-base-devel
 %endif
 %else
+# if not on openSUSE
 BuildRequires:  %{qtNameAndVersion}-qtbase-devel
 BuildRequires:  libappstream-glib
 %endif
@@ -58,7 +59,7 @@ ExclusiveArch:  x86_64
 
 # RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
 %if 0%{?rhel} == 8
-Requires: %{qtNameAndVersion}-qtbase >= 5.15.1
+Requires: qt5-qtbase >= 5.15.1
 %else
 Requires: %{qtNameAndVersion}-qtbase
 %endif
@@ -76,18 +77,13 @@ visualization of simulation output.
 
 %prep
 %setup -q
-# attempt to sidestep issue 440
-%if 0%{?rhel} == 8
-mkdir outputbins
-%define _vpath_builddir outputbins
-%endif
 
 %build
 %if 0%{?rhel} == 8
 %if "%_vpath_builddir" == "%_vpath_srcdir"
 %(mkdir builddir)
 %{error:"The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"} 	
-%global %_vpath_builddir builddir
+%global _vpath_builddir builddir
 %endif
 %endif
 %cmake -DBUILD_SLIMGUI=ON
