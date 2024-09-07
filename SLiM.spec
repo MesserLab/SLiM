@@ -1,27 +1,27 @@
 # Cross-distribution SLiM RPM spec.
 %if %{defined suse_version}
-%if 0%{?suse_version} < 1600
-%global qtNameAndVersion libqt5
-%else
-%global qtNameAndVersion qt6
-%endif
+  %if 0%{?suse_version} < 1600
+    %global qtNameAndVersion libqt5
+  %else
+    %global qtNameAndVersion qt6
+  %endif
 %endif
 
 %if %{defined fedora}
-%if 0%{?fedora} >= 39
-%global qtNameAndVersion qt6
-%else
-%global qtNameAndVersion qt5
-%endif
+  %if 0%{?fedora} >= 39
+    %global qtNameAndVersion qt6
+  %else
+    %global qtNameAndVersion qt5
+  %endif
 %endif
 
 %if %{defined rhel}
-%if 0%{?epel} >= 9
-# qt6 is only available through EPEL on RHEL 9 and higher
-%global qtNameAndVersion qt6
-%else
-%global qtNameAndVersion qt5
-%endif
+  %if 0%{?epel} >= 9
+    # qt6 is only available through EPEL on RHEL 9 and higher
+    %global qtNameAndVersion qt6
+  %else
+    %global qtNameAndVersion qt5
+  %endif
 %endif
 
 Name:           SLiM
@@ -40,28 +40,28 @@ Conflicts:      slim
 BuildRequires:  cmake
 # openSUSE Build Requires
 %if %{defined suse_version}
-BuildRequires:  glew-devel
-BuildRequires:  Mesa-libGL-devel
-BuildRequires:  gcc-c++
-BuildRequires:  appstream-glib-devel
-%if 0%{?suse_version} < 1600
-BuildRequires:  %{qtNameAndVersion}-qtbase-devel
+  BuildRequires:  glew-devel
+  BuildRequires:  Mesa-libGL-devel
+  BuildRequires:  gcc-c++
+  BuildRequires:  appstream-glib-devel
+  %if 0%{?suse_version} < 1600
+    BuildRequires:  %{qtNameAndVersion}-qtbase-devel
+  %else
+    # only Tumbleweed officially supports Qt6; further, it's "base" not "qtbase" in Tumbleweed. :(
+    BuildRequires:  %{qtNameAndVersion}-base-devel
+  %endif
 %else
-# only Tumbleweed officially supports Qt6; further, it's "base" not "qtbase" in Tumbleweed. :(
-BuildRequires:  %{qtNameAndVersion}-base-devel
-%endif
-%else
-# if not on openSUSE
-BuildRequires:  %{qtNameAndVersion}-qtbase-devel
-BuildRequires:  libappstream-glib
+  # if not on openSUSE
+  BuildRequires:  %{qtNameAndVersion}-qtbase-devel
+  BuildRequires:  libappstream-glib
 %endif
 ExclusiveArch:  x86_64
 
 # RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
 %if 0%{?rhel} == 8
-Requires: qt5-qtbase >= 5.15.1
+  Requires: qt5-qtbase >= 5.15.1
 %else
-Requires: %{qtNameAndVersion}-qtbase
+  Requires: %{qtNameAndVersion}-qtbase
 %endif
 
 %description
@@ -79,21 +79,16 @@ visualization of simulation output.
 %setup -q
 
 %build
-%define errmsg The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
-%if 0%{?rhel} == 8 && "%_vpath_builddir" == "%_vpath_srcdir"
-%error %errmsg
-%endif
-%cmake -DBUILD_SLIMGUI=ON
+%cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
+
 %if 0%{?rhel} == 8 && "%_vpath_builddir" != "%_vpath_srcdir"
-%if "." == "%_vpath_builddir"
-%error %errmsg
-%endif
-cd %_vpath_builddir
-%{lua string.gsub(%{macrobody %{cmake_build}}, "--build .", "--build %_vpath_builddir")}
+  mkdir -p %_vpath_builddir
+  cd %_vpath_builddir
 %else
-# Not on RHEL 8
-%cmake_build
+  %error The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
 %endif
+
+%cmake_build
 
 %install
 %cmake_install
