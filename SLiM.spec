@@ -79,11 +79,21 @@ visualization of simulation output.
 %setup -q
 
 %build
+%define errmsg The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
 %if 0%{?rhel} == 8 && "%_vpath_builddir" == "%_vpath_srcdir"
-%error The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
+%error %errmsg
 %endif
 %cmake -DBUILD_SLIMGUI=ON
+%if 0%{?rhel} == 8 && "%_vpath_builddir" != "%_vpath_srcdir"
+%if "." == "%_vpath_builddir"
+%error %errmsg
+%endif
+cd %_vpath_builddir
+%{lua string.gsub(%{macrobody %{cmake_build}}, "--build .", "--build %_vpath_builddir")}
+%else
+# Not on RHEL 8
 %cmake_build
+%endif
 
 %install
 %cmake_install
