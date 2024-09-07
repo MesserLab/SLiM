@@ -79,16 +79,10 @@ visualization of simulation output.
 %setup -q
 
 %build
-%if 0%{?rhel} == 8
-%if "%_vpath_builddir" == "%_vpath_srcdir"
-%(mkdir builddir)
-%{error:"The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"} 	
-%global _vpath_builddir builddir
+%if 0%{?rhel} == 8 && "%_vpath_builddir" == "%_vpath_srcdir"
+%error The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
 %endif
-%define sourceDirectory -S %{_vpath_srcdir}
-%define buildDirectory -B %{_vpath_builddir}
-%endif
-%cmake %{?sourceDirectory:%sourceDirectory} %{?buildDirectory:%buildDirectory} -DBUILD_SLIMGUI=ON
+%cmake -DBUILD_SLIMGUI=ON
 %cmake_build
 
 %install
