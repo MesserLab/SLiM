@@ -79,15 +79,14 @@ visualization of simulation output.
 %setup -q
 
 %build
-%cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
-
 %if 0%{?rhel} == 8 && "%_vpath_builddir" != "%_vpath_srcdir"
 mkdir -p %_vpath_builddir
 cd %_vpath_builddir
 %else
-%error The build directory is the same as the source directory; even though that shouldn't be, it is what it is!
+%error "The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"
 %endif
 
+%cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
 %cmake_build
 
 %install
