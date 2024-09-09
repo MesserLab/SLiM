@@ -80,14 +80,14 @@ visualization of simulation output.
 
 %build
 %if 0%{?rhel} == 8
-%echo "Enabling trace..."
-%trace
-%echo "Dumping using the %%dump macro..."
-%dump
+%echo "========= PRE DUMP ========="
+%echo "Enabling %{?trace:%trace}..."
+%echo "Dumping using the %dump macro..."
 %echo "Dumping using the rpm commands documented in the RHEL 8 Packaging and Distributing Software documentation..."
 # see https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html-single/packaging_and_distributing_software/index#displaying-the-built-in-macros_more-on-macros
 rpm --showrc
 rpm -ql rpm
+%echo "========= POST DUMP ========="
 
 %if "%_vpath_builddir" != "%_vpath_srcdir"
 %{echo current directory: %(pwd)}
