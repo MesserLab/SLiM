@@ -99,9 +99,13 @@ cd %_vpath_builddir
 %{warn "The build directory is the same as the source directory on RHEL 8!"}
 %endif
 
+%cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
+
+%else
+# rpmbuild is not running on RHEL 8
+%cmake -DBUILD_SLIMGUI=ON
 %endif
 
-%cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
 %cmake_build
 
 %install
