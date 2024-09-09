@@ -80,25 +80,21 @@ visualization of simulation output.
 
 %build
 %if 0%{?rhel} == 8
-%echo "========= PRE DUMP ========="
-%echo "Enabling %{?trace:%trace}..."
-%echo "Dumping using the %dump macro..."
-%echo "Dumping using the rpm commands documented in the RHEL 8 Packaging and Distributing Software documentation..."
-# see https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html-single/packaging_and_distributing_software/index#displaying-the-built-in-macros_more-on-macros
+echo "========= PRE DUMP ========="
 rpm --showrc
 rpm -ql rpm
-%echo "========= POST DUMP ========="
+echo "========= POST DUMP ========="
 
 %if "%_vpath_builddir" != "%_vpath_srcdir"
-%{echo current directory: %(pwd)}
-%{echo source directory: %_vpath_srcdir}
-%{echo build directory: %_vpath_builddir}
+echo "current directory: %(pwd)"
+echo "source directory: %_vpath_srcdir"
+echo "build directory: %_vpath_builddir"
 mkdir -p %_vpath_builddir
-cd %_vpath_builddir
 %else
 %{warn "The build directory is the same as the source directory on RHEL 8!"}
 %endif
 
+## Tell CMake where the source directory and the build directory are, directly.
 %cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
 
 %else
