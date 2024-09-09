@@ -80,11 +80,6 @@ visualization of simulation output.
 
 %build
 %if 0%{?rhel} == 8
-echo "========= PRE DUMP ========="
-rpm --showrc
-rpm -ql rpm
-echo "========= POST DUMP ========="
-
 %if "%_vpath_builddir" != "%_vpath_srcdir"
 echo "current directory: %(pwd)"
 echo "source directory: %_vpath_srcdir"
@@ -96,7 +91,7 @@ mkdir -p %_vpath_builddir
 
 ## Tell CMake where the source directory and the build directory are, directly.
 %cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
-
+cd %_vpath_builddir
 %else
 # rpmbuild is not running on RHEL 8
 %cmake -DBUILD_SLIMGUI=ON
