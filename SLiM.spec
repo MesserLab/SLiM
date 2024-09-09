@@ -79,11 +79,26 @@ visualization of simulation output.
 %setup -q
 
 %build
-%if 0%{?rhel} == 8 && "%_vpath_builddir" != "%_vpath_srcdir"
+%if 0%{?rhel} == 8
+%echo "Enabling trace..."
+%trace
+%echo "Dumping using the %%dump macro..."
+%dump
+%echo "Dumping using the rpm commands documented in the RHEL 8 Packaging and Distributing Software documentation..."
+# see https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/8/html-single/packaging_and_distributing_software/index#displaying-the-built-in-macros_more-on-macros
+rpm --showrc
+rpm -ql rpm
+
+%if "%_vpath_builddir" != "%_vpath_srcdir"
+%{echo current directory: %(pwd)}
+%{echo source directory: %_vpath_srcdir}
+%{echo build directory: %_vpath_builddir}
 mkdir -p %_vpath_builddir
 cd %_vpath_builddir
 %else
-%{error "The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"}
+%{warn "The build directory is the same as the source directory on RHEL 8!"}
+%endif
+
 %endif
 
 %cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
