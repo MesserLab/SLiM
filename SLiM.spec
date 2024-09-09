@@ -83,7 +83,7 @@ visualization of simulation output.
 mkdir -p %_vpath_builddir
 cd %_vpath_builddir
 %else
-%error "The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"
+%{error "The build directory is the same as the source directory; even though that shouldn't be, it is what it is!"}
 %endif
 
 %cmake -S %_vpath_srcdir -B %_vpath_builddir -DBUILD_SLIMGUI=ON
