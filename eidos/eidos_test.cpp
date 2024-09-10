@@ -1162,7 +1162,7 @@ int RunEidosTests(void)
 	
 #if 0
 	// Speed comparison between Poisson and binomial draws in various parameter regimes, using the GSL's own code.
-	// For doing things like drawing the number of recombination or mutation events that happen across a genome,
+	// For doing things like drawing the number of recombination or mutation events that happen across a haplosome,
 	// the binomial distribution is technically correct (# trials, probability per trial), but we have been using
 	// the Poisson distribution because it is an extremely good approximation for the binomial in the regimes we
 	// normally run in (e.g., chromosomes longer than ~100 sites, per-site probabilities less than 1e-3).  And

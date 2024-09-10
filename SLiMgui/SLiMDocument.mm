@@ -47,7 +47,7 @@
 	"	sim.addSubpop(\"p1\", 500);\n"
 	"}\n"
 	"\n"
-	"// output samples of 10 genomes periodically, all fixed mutations at end\n"
+	"// output samples of 10 haplosomes periodically, all fixed mutations at end\n"
 	"1000 late() { p1.outputSample(10); }\n"
 	"2000 late() { p1.outputSample(10); }\n"
 	"2000 late() { sim.outputFixedMutations(); }\n";

@@ -58,13 +58,13 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
     
     if (result == QDialog::Accepted)
     {
-        size_t genomeSampleSize = optionsPanel.genomeSampleSize();
+        size_t haplosomeSampleSize = optionsPanel.haplosomeSampleSize();
         QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod = optionsPanel.clusteringMethod();
         QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, displaySpecies, genomeSampleSize, true);
+                                                                              controller, displaySpecies, haplosomeSampleSize, true);
         
         if (haplotypeManager->valid_)
         {
@@ -212,23 +212,23 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     titleString = title;
     subpopCount = static_cast<int>(selected_subpops.size());
     
-    // Fetch genomes and figure out what we're going to plot; note that we plot only non-null genomes
+    // Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
     for (Subpopulation *subpop : selected_subpops)
-        for (Genome *genome : subpop->parent_genomes_)
-            if (!genome->IsNull())
-                genomes.emplace_back(genome);
+        for (Haplosome *haplosome : subpop->parent_haplosomes_)
+            if (!haplosome->IsNull())
+				haplosomes.emplace_back(haplosome);
     
     // If a sample is requested, select that now; sampleSize <= 0 means no sampling
-    if ((sampleSize > 0) && (genomes.size() > sampleSize))
+    if ((sampleSize > 0) && (haplosomes.size() > sampleSize))
     {
-        Eidos_random_unique(genomes.begin(), genomes.end(), sampleSize);
-        genomes.resize(sampleSize);
+        Eidos_random_unique(haplosomes.begin(), haplosomes.end(), sampleSize);
+		haplosomes.resize(sampleSize);
     }
     
     // Cache all the information about the mutations that we're going to need
     configureMutationInfoBuffer();
     
-    // Keep track of the range of subpop IDs we reference, even if not represented by any genomes here
+    // Keep track of the range of subpop IDs we reference, even if not represented by any haplosomes here
     maxSubpopID = 0;
     minSubpopID = SLIM_MAX_ID_VALUE;
     
@@ -246,7 +246,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         int progressSteps = (clusterOptimization == QtSLiMHaplotypeManager::ClusterOptimizeWith2opt) ? 3 : 2;
         
         progressPanel_ = new QtSLiMHaplotypeProgress(controller_);
-        progressPanel_->runProgressWithGenomeCount(genomes.size(), progressSteps);
+        progressPanel_->runProgressWithHaplosomeCount(haplosomes.size(), progressSteps);
     }
     
     // Do the clustering analysis synchronously, updating the progress panel as we go
@@ -295,25 +295,25 @@ Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
 void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 {
 	// Work out an approximate best sort order
-	sortGenomes();
+	sortHaplosomes();
 	
     if (valid_ && progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
         valid_ = false;
     
     if (valid_)
 	{
-		// Remember the subpop ID for each genome
-		for (Genome *genome : genomes)
-			genomeSubpopIDs.emplace_back(genome->individual_->subpopulation_->subpopulation_id_);
+		// Remember the subpop ID for each haplosome
+		for (Haplosome *haplosome : haplosomes)
+			haplosomeSubpopIDs.emplace_back(haplosome->individual_->subpopulation_->subpopulation_id_);
 		
 		// Build our plotting data vectors.  Because we are a snapshot, we can't rely on our controller's data
 		// at all after this method returns; we have to remember everything we need to create our display list.
 		configureDisplayBuffers();
 	}
 	
-	// Now we are done with the genomes vector; clear it
-	genomes.clear();
-	genomes.resize(0);
+	// Now we are done with the haplosomes vector; clear it
+	haplosomes.clear();
+	haplosomes.resize(0);
 }
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
@@ -378,14 +378,14 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	mutationLastPosition = graphSpecies->chromosome_->last_position_;
 }
 
-void QtSLiMHaplotypeManager::sortGenomes(void)
+void QtSLiMHaplotypeManager::sortHaplosomes(void)
 {
-    size_t genome_count = genomes.size();
+    size_t haplosome_count = haplosomes.size();
 	
-	if (genome_count == 0)
+	if (haplosome_count == 0)
 		return;
 	
-	std::vector<Genome *> original_genomes = genomes;	// copy the vector because we will need to reorder it below
+	std::vector<Haplosome *> original_haplosomes = haplosomes;	// copy the vector because we will need to reorder it below
 	std::vector<int> final_path;
 	
 	// first get our distance matrix; these are inter-city distances
@@ -412,18 +412,18 @@ void QtSLiMHaplotypeManager::sortGenomes(void)
 	switch (clusterMethod)
 	{
 		case ClusterNearestNeighbor:
-			nearestNeighborSolve(distances, genome_count, final_path);
+			nearestNeighborSolve(distances, haplosome_count, final_path);
 			break;
 			
 		case ClusterGreedy:
-			greedySolve(distances, genome_count, final_path);
+			greedySolve(distances, haplosome_count, final_path);
 			break;
 	}
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
 	
-	checkPath(final_path, genome_count);
+	checkPath(final_path, haplosome_count);
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
@@ -436,22 +436,22 @@ void QtSLiMHaplotypeManager::sortGenomes(void)
 				break;
 				
 			case ClusterOptimizeWith2opt:
-				do2optOptimizationOfSolution(final_path, distances, genome_count);
+				do2optOptimizationOfSolution(final_path, distances, haplosome_count);
 				break;
 		}
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
             goto cancelledExit;
 		
-		checkPath(final_path, genome_count);
+		checkPath(final_path, haplosome_count);
 	}
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
 	
-	// reorder the genomes vector according to the path we found
-	for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
-		genomes[genome_index] = original_genomes[static_cast<size_t>(final_path[genome_index])];
+	// reorder the haplosomes vector according to the path we found
+	for (size_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
+		haplosomes[haplosome_index] = original_haplosomes[static_cast<size_t>(final_path[haplosome_index])];
 	
 cancelledExit:
 	free(distances);
@@ -459,32 +459,32 @@ cancelledExit:
 
 void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 {
-    size_t genome_count = genomes.size();
+    size_t haplosome_count = haplosomes.size();
 	
-	// Allocate our display list and size it so it has one std::vector<MutationIndex> per genome
+	// Allocate our display list and size it so it has one std::vector<MutationIndex> per haplosome
 	displayList = new std::vector<std::vector<MutationIndex>>;
 	
-	displayList->resize(genome_count);
+	displayList->resize(haplosome_count);
 	
-	// Then save off the information for each genome into the display list
-	for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
+	// Then save off the information for each haplosome into the display list
+	for (size_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
 	{
-		Genome &genome = *genomes[genome_index];
-		std::vector<MutationIndex> &genome_display = (*displayList)[genome_index];
+		Haplosome &haplosome = *haplosomes[haplosome_index];
+		std::vector<MutationIndex> &haplosome_display = (*displayList)[haplosome_index];
 		
 		if (!usingSubrange)
 		{
-			// Size our display list to fit the number of mutations in the genome
-			size_t mut_count = static_cast<size_t>(genome.mutation_count());
+			// Size our display list to fit the number of mutations in the haplosome
+			size_t mut_count = static_cast<size_t>(haplosome.mutation_count());
 			
-			genome_display.reserve(mut_count);
+			haplosome_display.reserve(mut_count);
 			
 			// Loop through mutations to get the mutation indices
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -496,25 +496,25 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						MutationIndex mut_index = *mut_ptr;
 						
 						if ((mutationInfo + mut_index)->display_)
-							genome_display.emplace_back(*mut_ptr);
+							haplosome_display.emplace_back(*mut_ptr);
 					}
 				}
 				else
 				{
 					// displaying all mutation types, no need to check
 					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-						genome_display.emplace_back(*mut_ptr);
+						haplosome_display.emplace_back(*mut_ptr);
 				}
 			}
 		}
 		else
 		{
 			// We are using a subrange, so we need to check the position of each mutation before adding it
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -528,7 +528,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
 							if ((mutationInfo + mut_index)->display_)
-								genome_display.emplace_back(mut_index);
+								haplosome_display.emplace_back(mut_index);
 					}
 				}
 				else
@@ -540,7 +540,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						slim_position_t mut_position = *(mutationPositions + mut_index);
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
-							genome_display.emplace_back(mut_index);
+							haplosome_display.emplace_back(mut_index);
 					}
 				}
 			}
@@ -548,11 +548,11 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 	}
 }
 
-void QtSLiMHaplotypeManager::tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &genomeList)
+void QtSLiMHaplotypeManager::tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &haplosomeList)
 {
     EIDOS_BZERO(bincounts, 1024 * sizeof(int64_t));
 	
-	for (MutationIndex mut_index : genomeList)
+	for (MutationIndex mut_index : haplosomeList)
 		bincounts[mutationInfo[mut_index].position_ % 1024]++;
 }
 
@@ -622,19 +622,19 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
 
 // Traveling Salesman Problem code
 //
-// We have a set of genomes, each of which may be defined as being a particular distance from each other genome (defined here
-// as the number of differences in the mutations contained).  We want to sort the genomes into an order that groups similar
-// genomes together, minimizing the overall distance through "genome space" traveled from top to bottom of our display.  This
+// We have a set of haplosomes, each of which may be defined as being a particular distance from each other haplosome (defined here
+// as the number of differences in the mutations contained).  We want to sort the haplosomes into an order that groups similar
+// haplosomes together, minimizing the overall distance through "haplosome space" traveled from top to bottom of our display.  This
 // is exactly the Traveling Salesman Problem, without returning to the starting "city".  This is a very intensively studied
-// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of genomes,
-// whereas we will routinely have thousands of genomes.  We will find an approximate solution using a fast heuristic algorithm,
+// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of haplosomes,
+// whereas we will routinely have thousands of haplosomes.  We will find an approximate solution using a fast heuristic algorithm,
 // because we are not greatly concerned with the quality of the solution and we are extremely concerned with runtime.  The
 // nearest-neighbor method is the fastest heuristic, and is O(N^2) in the number of cities; the Greedy algorithm is slower but
 // produces significantly better results.  We can refine our initial solution using the 2-opt method.
 
 #pragma mark Traveling salesman problem
 
-// This allocates and builds an array of distances between genomes.  The returned array is owned by the caller.  This is where
+// This allocates and builds an array of distances between haplosomes.  The returned array is owned by the caller.  This is where
 // we spend the large majority of our time, at present; this algorithm is O(N^2), but has a large constant (because really also
 // it depends on the length of the chromosome, the configuration of mutation runs, etc.).  This method runs prior to the actual
 // Traveling Salesman Problem; here we're just figuring out the distances between our "cities".  We have four versions of this
@@ -642,54 +642,54 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
 // subset of all of the mutation types.
 int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 {
-    size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+    size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
-				int genome1_mutcount = genome1_mutrun->size();
-				int genome2_mutcount = genome2_mutrun->size();
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
+				int haplosome1_mutcount = haplosome1_mutrun->size();
+				int haplosome2_mutcount = haplosome2_mutrun->size();
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
-				else if (genome1_mutcount == 0)
-					distance += genome2_mutcount;
-				else if (genome2_mutcount == 0)
-					distance += genome1_mutcount;
+				else if (haplosome1_mutcount == 0)
+					distance += haplosome2_mutcount;
+				else if (haplosome2_mutcount == 0)
+					distance += haplosome1_mutcount;
 				else
 				{
 					// We use a radix strategy to count the number of mismatches; assume up front that all mutations are mismatched,
 					// and then subtract two for each mutation that turns out to be shared, using a uint8_t buffer to track usage.
-					distance += genome1_mutcount + genome2_mutcount;
+					distance += haplosome1_mutcount + haplosome2_mutcount;
 					
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 						mutation_seen[*mutrun1_ptr] = seen_marker;
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 						if (mutation_seen[*mutrun2_ptr] == seen_marker)
 							distance -= 2;
 					
@@ -707,7 +707,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -723,31 +723,31 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 {
     slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -757,18 +757,18 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -780,9 +780,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -810,7 +810,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -826,44 +826,44 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses only mutations of a mutation type that is chosen for display
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses only mutations of a mutation type that is chosen for display
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 {
-    size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+    size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						
@@ -874,9 +874,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						
@@ -903,7 +903,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -919,31 +919,31 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome, and only mutations of mutation types being displayed
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome, and only mutations of mutation types being displayed
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 {
     slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -953,18 +953,18 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -979,9 +979,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -1012,7 +1012,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -1032,21 +1032,21 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 // may be quite important to the solution we get.  It seems reasonable to start at the city that is the most isolated, i.e. has
 // the largest distance from itself to any other city.  By starting with this city, we avoid having to have two edges connecting
 // to it, both of which would be relatively long.  However, this is just a guess, and might be modified by refinement later.
-int QtSLiMHaplotypeManager::indexOfMostIsolatedGenomeWithDistances(int64_t *distances, size_t genome_count)
+int QtSLiMHaplotypeManager::indexOfMostIsolatedHaplosomeWithDistances(int64_t *distances, size_t haplosome_count)
 {
 	int64_t greatest_isolation = -1;
 	int greatest_isolation_index = -1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
 		int64_t isolation = INT64_MAX;
-		int64_t *row_ptr = distances + i * genome_count;
+		int64_t *row_ptr = distances + i * haplosome_count;
 		
-		for (size_t j = 0; j < genome_count; ++j)
+		for (size_t j = 0; j < haplosome_count; ++j)
 		{
 			int64_t distance = row_ptr[j];
 			
-			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of genomes
+			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of haplosomes
 			// this also serves to take care of the j == i case for us without special-casing, which is nice...
 			if (distance == 0)
 				continue;
@@ -1066,53 +1066,53 @@ int QtSLiMHaplotypeManager::indexOfMostIsolatedGenomeWithDistances(int64_t *dist
 }
 
 // The nearest-neighbor method provides an initial solution for the Traveling Salesman Problem by beginning with a chosen city
-// (see indexOfMostIsolatedGenomeWithDistances:size: above) and adding successive cities according to which is closest to the
+// (see indexOfMostIsolatedHaplosomeWithDistances:size: above) and adding successive cities according to which is closest to the
 // city we have reached thus far.  This is quite simple to implement, and runs in O(N^2) time.  However, the greedy algorithm
 // below runs only a little more slowly, and produces significantly better results, so unless speed is essential it is better.
-void QtSLiMHaplotypeManager::nearestNeighborSolve(int64_t *distances, size_t genome_count, std::vector<int> &solution)
+void QtSLiMHaplotypeManager::nearestNeighborSolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution)
 {
-    size_t genomes_left = genome_count;
+    size_t haplosomes_left = haplosome_count;
 	
-	solution.reserve(genome_count);
+	solution.reserve(haplosome_count);
 	
 	// we have to make a copy of the distances matrix, as we modify it internally
-	int64_t *distances_copy = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	int64_t *distances_copy = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	
-	memcpy(distances_copy, distances, genome_count * genome_count * sizeof(int64_t));
+	memcpy(distances_copy, distances, haplosome_count * haplosome_count * sizeof(int64_t));
 	
-	// find the genome that is farthest from any other genome; this will be our starting point, for now
-	int last_path_index = indexOfMostIsolatedGenomeWithDistances(distances_copy, genome_count);
+	// find the haplosome that is farthest from any other haplosome; this will be our starting point, for now
+	int last_path_index = indexOfMostIsolatedHaplosomeWithDistances(distances_copy, haplosome_count);
 	
 	do
 	{
-		// add the chosen genome to our path
+		// add the chosen haplosome to our path
 		solution.emplace_back(last_path_index);
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
             break;
 		
         if (progressPanel_)
-            progressPanel_->setHaplotypeProgress(genome_count - genomes_left + 1, 1);
+            progressPanel_->setHaplotypeProgress(haplosome_count - haplosomes_left + 1, 1);
 		
-		// if we just added the last genome, we're done
-		if (--genomes_left == 0)
+		// if we just added the last haplosome, we're done
+		if (--haplosomes_left == 0)
 			break;
 		
-		// otherwise, mark the chosen genome as unavailable by setting distances to it to INT64_MAX
+		// otherwise, mark the chosen haplosome as unavailable by setting distances to it to INT64_MAX
 		int64_t *column_ptr = distances_copy + last_path_index;
 		
-		for (size_t i = 0; i < genome_count; ++i)
+		for (size_t i = 0; i < haplosome_count; ++i)
 		{
 			*column_ptr = INT64_MAX;
-			column_ptr += genome_count;
+			column_ptr += haplosome_count;
 		}
 		
 		// now we need to find the next city, which will be the nearest neighbor of the last city
-		int64_t *row_ptr = distances_copy + last_path_index * static_cast<int>(genome_count);
+		int64_t *row_ptr = distances_copy + last_path_index * static_cast<int>(haplosome_count);
 		int64_t nearest_neighbor_distance = INT64_MAX;
 		int nearest_neighbor_index = -1;
 		
-		for (size_t i = 0; i < genome_count; ++i)
+		for (size_t i = 0; i < haplosome_count; ++i)
 		{
 			int64_t distance = row_ptr[i];
 			
@@ -1149,19 +1149,19 @@ static bool operator>(const greedy_edge &i, const greedy_edge &j) { return (i.d 
 static bool operator==(const greedy_edge &i, const greedy_edge &j) { return (i.d == j.d); }
 static bool operator!=(const greedy_edge &i, const greedy_edge &j) { return (i.d != j.d); }
 
-void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count, std::vector<int> &solution)
+void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution)
 {
     // The first thing we need to do is sort all possible edges in ascending order by length;
 	// we don't need to differentiate a->b versus b->a since our distances are symmetric
 	std::vector<greedy_edge> edge_buf;
-	size_t edge_count = (genome_count * (genome_count - 1)) / 2;
+	size_t edge_count = (haplosome_count * (haplosome_count - 1)) / 2;
 	
 	edge_buf.reserve(edge_count);	// one of the two factors is even so /2 is safe
 	
-	for (size_t i = 0; i < genome_count - 1; ++i)
+	for (size_t i = 0; i < haplosome_count - 1; ++i)
 	{
-		for (size_t k = i + 1; k < genome_count; ++k)
-			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * genome_count)});
+		for (size_t k = i + 1; k < haplosome_count; ++k)
+			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * haplosome_count)});
 	}
     
 	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
@@ -1172,9 +1172,9 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
         // We have a progress panel, so we do an incremental sort
         BareBoneIIQS<greedy_edge> sorter(edge_buf.data(), edge_count);
         
-        for (size_t i = 0; i < genome_count - 1; ++i)
+        for (size_t i = 0; i < haplosome_count - 1; ++i)
         {
-            for (size_t k = i + 1; k < genome_count; ++k)
+            for (size_t k = i + 1; k < haplosome_count; ++k)
                 sorter.next();
             
             if (progressPanel_->haplotypeProgressIsCancelled())
@@ -1199,11 +1199,11 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	// in the same group creates a cycle and is thus illegal (maybe there's a better way to detect cycles but I
 	// haven't thought of it yet :->).
 	std::vector<greedy_edge> path_components;
-	uint8_t *node_degrees = static_cast<uint8_t *>(calloc(sizeof(uint8_t), genome_count));
-	int *node_groups = static_cast<int *>(calloc(sizeof(int), genome_count));
+	uint8_t *node_degrees = static_cast<uint8_t *>(calloc(sizeof(uint8_t), haplosome_count));
+	int *node_groups = static_cast<int *>(calloc(sizeof(int), haplosome_count));
 	int next_node_group = 1;
 	
-	path_components.reserve(genome_count);
+	path_components.reserve(haplosome_count);
 	
 	for (size_t edge_index = 0; edge_index < edge_count; ++edge_index)
 	{
@@ -1253,12 +1253,12 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 		{
 			// joining two groups; one gets assimilated
 			// the assimilation could probably be done more efficiently but this overhead won't matter
-			for (size_t node_index = 0; node_index < genome_count; ++node_index)
+			for (size_t node_index = 0; node_index < haplosome_count; ++node_index)
 				if (node_groups[node_index] == group_k)
 					node_groups[node_index] = group_i;
 		}
 		
-		if (path_components.size() == genome_count - 1)		// no return edge
+		if (path_components.size() == haplosome_count - 1)		// no return edge
 			break;
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
@@ -1269,7 +1269,7 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	{
 		int degree1_count = 0, degree2_count = 0, universal_group = node_groups[0];
 		
-		for (size_t node_index = 0; node_index < genome_count; ++node_index)
+		for (size_t node_index = 0; node_index < haplosome_count; ++node_index)
 		{
 			if (node_degrees[node_index] == 1) ++degree1_count;
 			else if (node_degrees[node_index] == 2) ++degree2_count;
@@ -1290,10 +1290,10 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	// Finally, we have a jumble of edges that are in no order, and we need to make a coherent path from them.
 	// We start at the first degree-1 node we find, which is one of the two ends; doesn't matter which.
 	{
-		size_t remaining_edge_count = genome_count - 1;
+		size_t remaining_edge_count = haplosome_count - 1;
 		size_t last_index;
 		
-		for (last_index = 0; last_index < genome_count; ++last_index)
+		for (last_index = 0; last_index < haplosome_count; ++last_index)
 			if (node_degrees[last_index] == 1)
 				break;
 		
@@ -1339,25 +1339,25 @@ cancelExit:
 }
 
 // check that a given path visits every city exactly once
-bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t genome_count)
+bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t haplosome_count)
 {
-    uint8_t *visits = static_cast<uint8_t *>(calloc(sizeof(uint8_t), genome_count));
+    uint8_t *visits = static_cast<uint8_t *>(calloc(sizeof(uint8_t), haplosome_count));
 	
-	if (path.size() != genome_count)
+	if (path.size() != haplosome_count)
 	{
 		qDebug() << "checkPath:size: path is wrong length";
 		free(visits);
 		return false;
 	}
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
 		int city_index = path[i];
 		
 		visits[city_index]++;
 	}
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 		if (visits[i] != 1)
 		{
 			qDebug() << "checkPath:size: city visited wrong count (" << visits[i] << ")";
@@ -1370,16 +1370,16 @@ bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t genome_cou
 }
 
 // calculate the length of a given path
-int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *distances, size_t genome_count)
+int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *distances, size_t haplosome_count)
 {
 	int64_t length = 0;
 	int current_city = path[0];
 	
-	for (size_t city_index = 1; city_index < genome_count; city_index++)
+	for (size_t city_index = 1; city_index < haplosome_count; city_index++)
 	{
 		int next_city = path[city_index];
 		
-		length += *(distances + static_cast<size_t>(current_city) * genome_count + next_city);
+		length += *(distances + static_cast<size_t>(current_city) * haplosome_count + next_city);
 		current_city = next_city;
 	}
 	
@@ -1391,10 +1391,10 @@ int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *di
 // might be useful to provide as an option.  This method always takes the first optimization it sees that moves in a
 // positive direction; I tried taking the best optimization available at each step, instead, and it ran half as fast
 // and achieved results that were no better on average, so I didn't even keep that code.
-void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t genome_count)
+void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t haplosome_count)
 {
     // Figure out the length of the current path
-	int64_t original_distance = lengthOfPath(path, distances, genome_count);
+	int64_t original_distance = lengthOfPath(path, distances, haplosome_count);
 	int64_t best_distance = original_distance;
 	
 	//NSLog(@"2-opt initial length: %lld", (long long int)best_distance);
@@ -1403,9 +1403,9 @@ void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path
 	size_t farthest_i = 0;	// for our progress bar
 	
 startAgain:
-	for (size_t i = 0; i < genome_count - 1; i++)
+	for (size_t i = 0; i < haplosome_count - 1; i++)
 	{
-		for (size_t k = i + 1; k < genome_count; ++k)
+		for (size_t k = i + 1; k < haplosome_count; ++k)
 		{
 			// First, try the proposed path without actually constructing it; we just need to subtract the lengths of the
 			// edges being removed and add the lengths of the edges being added, rather than constructing the whole new
@@ -1420,8 +1420,8 @@ startAgain:
 			// we can only get away with juggling the distances this way because our problem is symmetric; the length of
 			// 3-4-5 is guaranteed the same as the length of the reversed segment 5-4-3.  If the reversed segment is at
 			// one or the other end of the path, we only need to patch up one edge; we don't return to the start city.
-			// Note also that i and k are not genome indexes; they are indexes into our current path, which provides us
-			// with the relevant genomes indexes.
+			// Note also that i and k are not haplosome indexes; they are indexes into our current path, which provides us
+			// with the relevant haplosomes indexes.
 			int64_t new_distance = best_distance;
 			size_t index_i = static_cast<size_t>(path[i]);
 			size_t index_k = static_cast<size_t>(path[k]);
@@ -1430,15 +1430,15 @@ startAgain:
 			{
 				size_t index_i_minus_1 = static_cast<size_t>(path[i - 1]);
 				
-				new_distance -= *(distances + index_i_minus_1 + index_i * genome_count);	// remove edge (i-1)-(i)
-				new_distance += *(distances + index_i_minus_1 + index_k * genome_count);	// add edge (i-1)-(k)
+				new_distance -= *(distances + index_i_minus_1 + index_i * haplosome_count);	// remove edge (i-1)-(i)
+				new_distance += *(distances + index_i_minus_1 + index_k * haplosome_count);	// add edge (i-1)-(k)
 			}
-			if (k < genome_count - 1)
+			if (k < haplosome_count - 1)
 			{
 				size_t index_k_plus_1 = static_cast<size_t>(path[k + 1]);
 				
-				new_distance -= *(distances + index_k + index_k_plus_1 * genome_count);		// remove edge (k)-(k+1)
-				new_distance += *(distances + index_i + index_k_plus_1 * genome_count);		// add edge (i)-(k+1)
+				new_distance -= *(distances + index_k + index_k_plus_1 * haplosome_count);		// remove edge (k)-(k+1)
+				new_distance += *(distances + index_i + index_k_plus_1 * haplosome_count);		// add edge (i)-(k+1)
 			}
 			
 			if (new_distance < best_distance)
@@ -1459,7 +1459,7 @@ startAgain:
 				best_distance = new_distance;
 				
 				//NSLog(@"Improved path length: %lld (inverted from %d to %d)", (long long int)best_distance, i, k);
-				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:genome_count]);
+				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:haplosome_count]);
 				goto startAgain;
 			}
 		}

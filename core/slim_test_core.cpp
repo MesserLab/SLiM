@@ -369,12 +369,12 @@ void _RunSpeciesTests(const std::string &temp_path)
 	// Test sim properties
 	SLiMAssertScriptStop(gen1_setup + "1 first() { } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { } " + gen2_stop, __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosome; } " + gen2_stop, __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosome = sim.chromosome; } " + gen2_stop, "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.chromosomeType == 'A') stop(); } ", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomeType = 'A'; } " + gen2_stop, "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 early() { if (sim.chromosomeType == 'X') stop(); } ", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex + "1 early() { sim.chromosomeType = 'X'; } " + gen2_stop, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosomes; } " + gen2_stop, __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomes = sim.chromosomes; } " + gen2_stop, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.chromosomes.type == 'A') stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomes.type = 'A'; } " + gen2_stop, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 early() { if (sim.chromosomes.type == 'X') stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex + "1 early() { sim.chromosomes.type = 'X'; } " + gen2_stop, "read-only property", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.cycle; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.cycle = 7; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { community.tick = 7; } " + gen2_stop, __LINE__);
@@ -842,8 +842,8 @@ void _RunSubpopulationTests(void)
 	// Test Subpopulation properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.cloningRate == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.firstMaleIndex == p1.firstMaleIndex) stop(); }", __LINE__);					// legal but undefined value in non-sexual sims
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (size(p1.genomes) == 20) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (size(p1.genomesNonNull) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (size(p1.haplosomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (size(p1.haplosomesNonNull) == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (size(p1.individuals) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }", __LINE__);
@@ -870,8 +870,8 @@ void _RunSubpopulationTests(void)
 
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.cloningRate = 0.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.genomes = p1.genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.genomesNonNull = p1.genomesNonNull[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomes = p1.haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomesNonNull = p1.haplosomesNonNull[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.individuals = p1.individuals[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.id = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.immigrantSubpopFractions = 1.0; stop(); }", "read-only property", __LINE__);
@@ -883,8 +883,8 @@ void _RunSubpopulationTests(void)
 	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (p1.firstMaleIndex == 5) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (size(p1.genomes) == 20) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (size(p1.genomesNonNull) == 15) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (size(p1.haplosomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (size(p1.haplosomesNonNull) == 15) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (size(p1.individuals) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (p1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }", __LINE__);
@@ -911,8 +911,8 @@ void _RunSubpopulationTests(void)
 	
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.cloningRate = 0.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.genomes = p1.genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.genomesNonNull = p1.genomesNonNull[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.haplosomes = p1.haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.haplosomesNonNull = p1.haplosomesNonNull[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.individuals = p1.individuals[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.id = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.immigrantSubpopFractions = 1.0; stop(); }", "read-only property", __LINE__);
@@ -1097,7 +1097,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(10); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(20); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(30); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(30, F); stop(); }", "not enough eligible genomes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(30, F); stop(); }", "not enough eligible haplosomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputMSSample(30, T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, F, 'M'); stop(); }", "non-sexual simulation", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputMSSample(1, F, 'F'); stop(); }", "non-sexual simulation", __LINE__);
@@ -1113,7 +1113,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(10); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(20); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(30); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(30, F); stop(); }", "not enough eligible genomes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(30, F); stop(); }", "not enough eligible haplosomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(30, T); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, F, 'M'); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputMSSample(1, F, 'F'); stop(); }", __LINE__);
@@ -1130,7 +1130,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(10); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(20); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(30); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(30, F); stop(); }", "not enough eligible genomes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(30, F); stop(); }", "not enough eligible haplosomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 late() { p1.outputSample(30, T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(1, F, 'M'); stop(); }", "non-sexual simulation", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 late() { p1.outputSample(1, F, 'F'); stop(); }", "non-sexual simulation", __LINE__);
@@ -1146,7 +1146,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(10); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(20); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(30); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputSample(30, F); stop(); }", "not enough eligible genomes", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 late() { p1.outputSample(30, F); stop(); }", "not enough eligible haplosomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(30, T); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, F, 'M'); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 late() { p1.outputSample(1, F, 'F'); stop(); }", __LINE__);
@@ -1785,12 +1785,12 @@ void _RunIndividualTests(void)
 	
 	// Test Individual properties
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.color == '')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.genome1) == 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.genome2) == 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.genomesNonNull) == 20) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (identical(i.genome1, i.genomes[0:9 * 2])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (identical(i.genome2, i.genomes[0:9 * 2 + 1])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesFromParent1) == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesFromParent2) == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesNonNull) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (identical(i.haplosomesFromParent1, i.haplosomes[0:9 * 2])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (identical(i.haplosomesFromParent2, i.haplosomes[0:9 * 2 + 1])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.sex == rep('H', 10))) stop(); }", __LINE__);
@@ -1844,22 +1844,22 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 early() { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.genome1 = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.genome2 = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.genomesNonNull = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.haplosomesFromParent1 = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.haplosomesFromParent2 = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.haplosomes = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.haplosomesNonNull = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.index = i[0].index; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.subpopulation = i[0].subpopulation; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.sex = i[0].sex; stop(); }", "read-only property", __LINE__);
 	//SLiMAssertScriptRaise(gen1_setup_p1 + "10 early() { i = p1.individuals; i.uniqueMutations = sim.mutations[0]; stop(); }", "read-only property", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.color == '')) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.genome1) == 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.genome2) == 10) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.genomesNonNull) == 15) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (identical(i.genome1, i.genomes[0:9 * 2])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (identical(i.genome2, i.genomes[0:9 * 2 + 1])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesFromParent1) == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesFromParent2) == 10) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (size(i.haplosomesNonNull) == 15) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (identical(i.haplosomesFromParent1, i.haplosomes[0:9 * 2])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (identical(i.haplosomesFromParent2, i.haplosomes[0:9 * 2 + 1])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.sex == repEach(c('F','M'), 5))) stop(); }", __LINE__);
@@ -1881,10 +1881,10 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.z = 135.0; if (all(i.z == 135.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 early() { i = p1.individuals; i.uniqueMutations; stop(); }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.genome1 = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.genome2 = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.genomesNonNull = i[0].genomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.haplosomesFromParent1 = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.haplosomesFromParent2 = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.haplosomes = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.haplosomesNonNull = i[0].haplosomes[0]; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.index = i[0].index; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.subpopulation = i[0].subpopulation; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.sex = i[0].sex; stop(); }", "read-only property", __LINE__);
@@ -1986,7 +1986,7 @@ void _RunIndividualTests(void)
 		1:200 late() {
 			for (i in p1.individuals) {
 				um1 = i.uniqueMutations;
-				um2 = sortBy(unique(i.genomes.mutations), "position");
+				um2 = sortBy(unique(i.haplosomes.mutations), "position");
 				if (!identical(um1.position, um2.position))
 					stop("Mismatch!");
 			}
@@ -2008,7 +2008,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", "has not been enabled", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_rel + "5 early() { if (mean(p1.lifetimeReproductiveOutputM) > 0) stop(); }", "separate sexes are not enabled", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_rel + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", "separate sexes are not enabled", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.genomes.genomePedigreeID == -1)) stop(); }", "is not available", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.haplosomes.haplosomePedigreeID == -1)) stop(); }", "is not available", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 early() { if (p1.individuals[0].sharedParentCount(p1.individuals[0]) == 2) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[1]) == 0.0) stop(); }", __LINE__);
@@ -2025,7 +2025,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutput) > 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutputM) > 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.genomes.genomePedigreeID != -1)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.haplosomes.haplosomePedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].sharedParentCount(p1.individuals[0]) == 2) stop(); }", __LINE__);
 	// In certain inbreeding scenarios, which can happen by chance, relatedness of individuals can be 1.0 (maybe even higher?) so these tests are no good
@@ -2145,7 +2145,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1.0; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return individual.genome1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return individual.haplosomesFromParent1; } 10 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; ; } 10 early() { ; }", "must explicitly return a value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return F; } 10 early() { ; }", "return value", __LINE__);
@@ -2153,7 +2153,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1.0; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return individual.genome1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return individual.haplosomesFromParent1; } 10 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { individual; subpop; sourceSubpop; return weights; } 10 early() { stop(); }", __LINE__);
 	
@@ -2217,7 +2217,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return subpop; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { individual; genome1; genome2; subpop; breakpoints; return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { individual; haplosome1; haplosome2; subpop; breakpoints; return T; } 10 early() { stop(); }", __LINE__);
 	
 	// interaction() callbacks
 	static std::string gen1_setup_p1p2p3_i1(gen1_setup_p1p2p3 + "initialize() { initializeInteractionType('i1', ''); } early() { i1.evaluate(sim.subpopulations); i1.strength(p1.individuals[0]); } ");
@@ -2344,7 +2344,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1.0; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; genome; element; originalNuc; parent; subpop; return T; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; haplosome; element; originalNuc; parent; subpop; return T; } 100 early() { stop(); }", __LINE__);
 	
 	// survival() callbacks
 	static std::string gen1_setup_p1p2p3_nonWF_clonal(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } ");

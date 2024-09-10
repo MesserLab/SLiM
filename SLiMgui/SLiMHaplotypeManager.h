@@ -27,13 +27,13 @@
 
 @class SLiMWindowController;
 class Species;
-class Genome;
+class Haplosome;
 
 
 // Display list data structures.  We map every Mutation in the registry to a struct we define that keeps the necessary information
 // to display that mutation: position and color.  We use MutationIndex to index into a vector of those structs, using the same
-// index values used by the registry for simplicity.  Each genome is then turned into a vector of MutationIndex that lets
-// us plot the mutations for that genome.
+// index values used by the registry for simplicity.  Each haplosome is then turned into a vector of MutationIndex that lets
+// us plot the mutations for that haplosome.
 typedef struct {
 	slim_position_t position_;
 	float red_, green_, blue_;
@@ -62,20 +62,20 @@ typedef enum
 	SLiMHaplotypeClusteringMethod clusterMethod;
 	SLiMHaplotypeClusteringOptimization clusterOptimization;
 	
-	// Genomes: note that this vector points back into SLiM's data structures, so using it is not safe in general.  It is used
+	// Haplosomes: note that this vector points back into SLiM's data structures, so using it is not safe in general.  It is used
 	// by this class only while building the display list below; after that stage, we clear this vector.  The work to build the
 	// display list gets done on a background thread, but the SLiMgui window is blocked by the progress panel during that time.
-	std::vector<Genome *> genomes;
+	std::vector<Haplosome *> haplosomes;
 	
 	// Display list
 	SLiMHaploMutation *mutationInfo;						// a buffer of SLiMHaploMutation providing display information per mutation
 	slim_position_t *mutationPositions;						// the same info as in mutationInfo, but in a single buffer for access efficiency
 	slim_position_t mutationLastPosition;					// from the chromosome
 	int mutationIndexCount;									// the number of MutationIndex values in use
-	std::vector<std::vector<MutationIndex>> *displayList;	// a vector of genome information, where each genome is a vector of MutationIndex
+	std::vector<std::vector<MutationIndex>> *displayList;	// a vector of haplosome information, where each haplosome is a vector of MutationIndex
 	
 	// Subpopulation information
-	std::vector<slim_objectid_t> genomeSubpopIDs;			// the subpop ID for each genome, corresponding to the display list order
+	std::vector<slim_objectid_t> haplosomeSubpopIDs;			// the subpop ID for each haplosome, corresponding to the display list order
 	slim_objectid_t maxSubpopID;
 	slim_objectid_t minSubpopID;
 	

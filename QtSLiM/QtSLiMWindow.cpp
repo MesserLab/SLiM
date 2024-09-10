@@ -126,7 +126,7 @@ static std::string defaultWFScriptString(void)
                 "	sim.addSubpop(\"p1\", 500);\n"
                 "}\n"
                 "\n"
-                "// output samples of 10 genomes periodically, all fixed mutations at end\n"
+                "// output samples of 10 haplosomes periodically, all fixed mutations at end\n"
                 "1000 late() { p1.outputSample(10); }\n"
                 "2000 late() { p1.outputSample(10); }\n"
                 "2000 late() { sim.outputFixedMutations(); }\n");
@@ -3907,7 +3907,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			if (power_tallies[power] > 0)
 			{
 				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-				tc.insertText(QString(" of ticks : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+				tc.insertText(QString(" of ticks : %1 mutation runs per haplosome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
 			}
 		}
 		
@@ -3960,7 +3960,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
 		
 		tc.insertText(QString("%1%").arg(((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / static_cast<double>(focal_species->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation runs shared among genomes", optima13_d);
+		tc.insertText(" of mutation runs shared among haplosomes", optima13_d);
 	}
 #endif
 	
@@ -4015,29 +4015,29 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(attributedStringForByteCount(mem_last_C.communityObjects, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : Community object\n", optima13_d);
 		
-		// Genome
+		// Haplosome
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot_S.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Haplosome objects (%1 / %2)\n").arg(mem_tot_S.haplosomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.haplosomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationRun* buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// GenomicElement

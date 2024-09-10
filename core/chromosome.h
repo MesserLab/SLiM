@@ -40,7 +40,7 @@
 #include "eidos_value.h"
 
 struct GESubrange;
-class Genome;
+class Haplosome;
 class Species;
 
 
@@ -59,6 +59,8 @@ public:
 #else
 private:
 #endif
+	
+	std::string name_;
 	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
@@ -134,7 +136,8 @@ public:
 	
 	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
 	
-	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
+	slim_position_t first_position_;						// first valid position
+	slim_position_t last_position_;							// last valid position; used to be called length_ but it is (length - 1) really
 	EidosValue_SP cached_value_lastpos_;					// a cached value for last_position_; reset() if that changes
 	
 	double overall_mutation_rate_H_;						// overall mutation rate (AFTER intersection with GEs)
@@ -163,7 +166,7 @@ public:
 	
 	int32_t mutrun_count_base_;								// minimum number of mutruns used (number of threads, typically); can be multiplied by a factor
 	int32_t mutrun_count_multiplier_;						// the current factor by which mutrun_count_base_ is multiplied; a power of two in [1, 1024]
-	int32_t mutrun_count_;									// the number of mutation runs being used for all genomes: base x multiplier
+	int32_t mutrun_count_;									// the number of mutation runs being used for all haplosomes: base x multiplier
 	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run might not use its full length
 	slim_position_t last_position_mutrun_;					// (mutrun_count_ * mutrun_length_ - 1), for complete coverage in crossover-mutation
 	
@@ -210,8 +213,8 @@ public:
 	MutationIndex DrawNewMutation(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick) const;
 	
 	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
-	Mutation *ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const;
-	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
+	Mutation *ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplosome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const;
+	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;

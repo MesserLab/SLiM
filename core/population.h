@@ -44,7 +44,7 @@ class Community;
 class Species;
 class Subpopulation;
 class Individual;
-class Genome;
+class Haplosome;
 
 
 #pragma mark -
@@ -63,17 +63,17 @@ public:
 	SLiM_DeferredReproductionType type_;
 	Individual *parent1_;
 	Individual *parent2_;
-	Genome *child_genome_1_;
-	Genome *child_genome_2_;
+	Haplosome *child_haplosome_1_;
+	Haplosome *child_haplosome_2_;
 	IndividualSex child_sex_;
 	
 	SLiM_DeferredReproduction_NonRecombinant(SLiM_DeferredReproductionType p_type,
 							  Individual *p_parent1,
 							  Individual *p_parent2,
-							  Genome *p_child_genome_1,
-							  Genome *p_child_genome_2,
+							  Haplosome *p_child_haplosome_1,
+							  Haplosome *p_child_haplosome_2,
 							  IndividualSex p_child_sex) :
-		type_(p_type), parent1_(p_parent1), parent2_(p_parent2), child_genome_1_(p_child_genome_1), child_genome_2_(p_child_genome_2), child_sex_(p_child_sex)
+		type_(p_type), parent1_(p_parent1), parent2_(p_parent2), child_haplosome_1_(p_child_haplosome_1), child_haplosome_2_(p_child_haplosome_2), child_sex_(p_child_sex)
 	{};
 };
 
@@ -81,20 +81,20 @@ class SLiM_DeferredReproduction_Recombinant {
 public:
 	SLiM_DeferredReproductionType type_;
 	Subpopulation *mutorigin_subpop_;
-	Genome *child_genome_;
-	Genome *strand1_;
-	Genome *strand2_;
+	Haplosome *child_haplosome_;
+	Haplosome *strand1_;
+	Haplosome *strand2_;
 	std::vector<slim_position_t> break_vec_;
 	IndividualSex sex_;
 	
 	SLiM_DeferredReproduction_Recombinant(SLiM_DeferredReproductionType p_type,
 							  Subpopulation *p_mutorigin_subpop,
-							  Genome *p_strand1,
-							  Genome *p_strand2,
+							  Haplosome *p_strand1,
+							  Haplosome *p_strand2,
 							  std::vector<slim_position_t> &p_break_vec,
-							  Genome *p_child_genome,
+							  Haplosome *p_child_haplosome,
 							  IndividualSex p_sex) :
-		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), child_genome_(p_child_genome), strand1_(p_strand1), strand2_(p_strand2), sex_(p_sex)
+		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), child_haplosome_(p_child_haplosome), strand1_(p_strand1), strand2_(p_strand2), sex_(p_sex)
 	{
 		std::swap(break_vec_, p_break_vec);		// take ownership of the passed vector with std::swap(), to avoid copying
 	};
@@ -127,7 +127,7 @@ class Population
 	
 	// Cache info for TallyMutationReferences...(); see those functions
 	std::vector<Subpopulation*> last_tallied_subpops_;		// NOT OWNED POINTERS
-	slim_refcount_t cached_tally_genome_count_ = 0;			// a value of 0 indicates that the cache is invalid
+	slim_refcount_t cached_tally_haplosome_count_ = 0;			// a value of 0 indicates that the cache is invalid
 	
 public:
 	
@@ -137,20 +137,20 @@ public:
 	Community &community_;
 	Species &species_;
 	
-	// Object pools for individuals and genomes, kept population-wide
-	EidosObjectPool species_genome_pool_;					// a pool out of which genomes are allocated, for within-species locality of memory usage across genomes
+	// Object pools for individuals and haplosomes, kept population-wide
+	EidosObjectPool species_haplosome_pool_;					// a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
 	EidosObjectPool species_individual_pool_;				// a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
-	std::vector<Genome *> species_genome_junkyard_nonnull;	// non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	std::vector<Genome *> species_genome_junkyard_null;		// null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Haplosome *> species_haplosomes_junkyard_nonnull;	// non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Haplosome *> species_haplosomes_junkyard_null;		// null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
 #endif
 	
-	slim_refcount_t total_genome_count_ = 0;				// the number of non-null genomes in the population; a fixed mutation has this count
+	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count
 #ifdef SLIMGUI
-	slim_refcount_t gui_total_genome_count_ = 0;			// the number of non-null genomes in the selected subpopulations in SLiMgui
+	slim_refcount_t gui_total_haplosome_count_ = 0;			// the number of non-null haplosomes in the selected subpopulations in SLiMgui
 #endif
 	
 	std::vector<SLiM_DeferredReproduction_NonRecombinant> deferred_reproduction_nonrecombinant_;
@@ -228,17 +228,17 @@ public:
 	bool ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
 	// apply recombination() callbacks to a generated child; a return of true means the breakpoints were changed
-	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
+	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
 	
-	// generate a child genome from parental genomes, with recombination, gene conversion, and mutation
-	void DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Genome *p_parent_genome_1, Genome *p_parent_genome_2, Genome *p_child_genome);
+	// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
+	void DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &p_child_haplosome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);
 	
-	// generate a child genome from parental genomes, with predetermined recombination and mutation
-	void DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	// generate a child haplosome from parental haplosomes, with predetermined recombination and mutation
+	void DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Haplosome &p_child_haplosome, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
-	// generate a child genome from a single parental genome, without recombination or gene conversion, but with mutation
-	void DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	// generate a child haplosome from a single parental haplosome, without recombination or gene conversion, but with mutation
+	void DoClonalMutation(Subpopulation *p_mutorigin_subpop, Haplosome &p_child_haplosome, Haplosome &p_parent_haplosome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
 	// An internal method that validates cached fitness values kept by Mutation objects
 	void ValidateMutationFitnessCaches(void);
@@ -249,7 +249,7 @@ public:
 	// Scan through all mutation runs in the simulation and unique them
 	void UniqueMutationRuns(void);
 	
-	// Scan through all genomes and either split or join their mutation runs, to double or halve the number of runs per genome
+	// Scan through all haplosomes and either split or join their mutation runs, to double or halve the number of runs per haplosome
 	void SplitMutationRuns(int32_t p_new_mutrun_count);
 	void JoinMutationRuns(int32_t p_new_mutrun_count);
 	
@@ -260,47 +260,47 @@ public:
 	// the same use_count_ counter kept by MutationRun, so a new tally wipes the results of the previous tally.
 	// Also note that the mutation tallying methods below call these methods to tally mutation runs first, so
 	// the mutation run tallies will be altered as a side effect of doing a mutation tally.  The return value
-	// for all of these methods is the number of non-null genomes that were tallied across.
+	// for all of these methods is the number of non-null haplosomes that were tallied across.
 	slim_refcount_t TallyMutationRunReferencesForPopulation(void);
 	slim_refcount_t TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
-	slim_refcount_t TallyMutationRunReferencesForGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count);
+	slim_refcount_t TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
 	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferencesForPopulation()!
 	
 	// Tally Mutation usage; these count the total number of times that each Mutation in the registry is referenced
-	// by a population (or a set of subpopulations, or a set of genomes), putting the usage counts into the refcount
+	// by a population (or a set of subpopulations, or a set of haplosomes), putting the usage counts into the refcount
 	// block kept by Mutation.  For the whole population, and for a set of subpops, cache info is maintained so the
-	// tally can be reused when possible.  For a set of genomes, the result is not cached, and so the cache is
-	// always invalidated.  The maximum number of references (the total number of non-null genomes tallied) is
-	// always returned.  When tallying across all subpopulations, total_genome_count_ is also set to this same
+	// tally can be reused when possible.  For a set of haplosomes, the result is not cached, and so the cache is
+	// always invalidated.  The maximum number of references (the total number of non-null haplosomes tallied) is
+	// always returned.  When tallying across all subpopulations, total_haplosome_count_ is also set to this same
 	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
-	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tally_genome_count_ = 0; }
+	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tally_haplosome_count_ = 0; }
 	
 	slim_refcount_t TallyMutationReferencesAcrossPopulation(bool p_force_recache);
 	slim_refcount_t TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
-	slim_refcount_t TallyMutationReferencesAcrossGenomes(const Genome * const *genomes, slim_popsize_t genomes_count);
+	slim_refcount_t TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	
-	slim_refcount_t _CountNonNullGenomes(void);
+	slim_refcount_t _CountNonNullHaplosomes(void);
 #ifdef SLIMGUI
 	void _CopyRefcountsToSLiMgui(void);
 #endif
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
 #if DEBUG
-	void _CheckMutationTallyAcrossGenomes(const Genome * const *genomes_ptr, slim_popsize_t genomes_count);
+	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
 #endif
 	
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
 	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
 	// to return the correct frequency/count values to the user as an EidosValue_SP.
-	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
-	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
+	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_haplosome_count);
+	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_haplosome_count);
 	
 	// Handle negative fixation (remove from the registry) and positive fixation (convert to Substitution).
 	// This uses reference counts from TallyMutationReferencesAcrossPopulation(), which must be called before this method.
 	void RemoveAllFixedMutations(void);
 	
 	// check the registry for any bad entries (i.e. zombies, mutations with an incorrect state_)
-	void CheckMutationRegistry(bool p_check_genomes);
+	void CheckMutationRegistry(bool p_check_haplosomes);
 	inline void SetMutationRegistryNeedsCheck(void) { registry_needs_consistency_check_ = true; }
 	inline bool MutationRegistryNeedsCheck(void) { return registry_needs_consistency_check_; }
 	
@@ -327,8 +327,8 @@ public:
 	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
 	
-	// Clear all parental genomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
-	void ClearParentalGenomes(void);
+	// Clear all parental haplosomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
+	void ClearParentalHaplosomes(void);
 	
 	//********** nonWF methods
 
@@ -338,10 +338,10 @@ public:
 	// move individuals as requested by survival() callbacks
 	void ResolveSurvivalPhaseMovement(void);
 	
-	// checks for deferred genomes in queue right now; allows optimization when none are present
-	inline bool HasDeferredGenomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
-	void CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, const std::string &p_caller);
-	void CheckForDeferralInGenomes(EidosValue_Object *p_genomes, const std::string &p_caller);
+	// checks for deferred haplosomes in queue right now; allows optimization when none are present
+	inline bool HasDeferredHaplosomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
+	void CheckForDeferralInHaplosomesVector(Haplosome **p_haplosomes, size_t p_elements_size, const std::string &p_caller);
+	void CheckForDeferralInHaplosomes(EidosValue_Object *p_haplosomes, const std::string &p_caller);
 	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller);
 	
 	void DoDeferredReproduction(void);
@@ -350,17 +350,17 @@ public:
 	
 	void PurgeRemovedSubpopulations(void);
 
-	// print all mutations and all genomes to a stream
+	// print all mutations and all haplosomes to a stream
 	void PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const;
 	void PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const;
 	
-	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using SLiM's own format
+	// print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using SLiM's own format
 	void PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const;
 	
-	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
+	// print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format
 	void PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_filter_monomorphic) const;
 	
-	// print sample of p_sample_size genomes from subpopulation p_subpop_id, using "vcf" format
+	// print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "vcf" format
 	void PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const;
 	
 	// remove subpopulations, purge all mutations and substitutions, etc.; called before InitializePopulationFrom[Text|Binary]File()

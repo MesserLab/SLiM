@@ -37,7 +37,7 @@ public:
     explicit QtSLiMHaplotypeOptions(QWidget *p_parent = nullptr);
     virtual ~QtSLiMHaplotypeOptions() override;
     
-    size_t genomeSampleSize(void);    // 0 indicates "all genomes"
+    size_t haplosomeSampleSize(void);    // 0 indicates "all haplosomes"
     QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod(void);
     QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization(void);
     

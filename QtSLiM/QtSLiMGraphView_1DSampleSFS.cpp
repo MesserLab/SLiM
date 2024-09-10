@@ -37,7 +37,7 @@
 
 QtSLiMGraphView_1DSampleSFS::QtSLiMGraphView_1DSampleSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    histogramBinCount_ = 20;        // this is also the genome sample size
+    histogramBinCount_ = 20;        // this is also the haplosome sample size
     allowBinCountRescale_ = false;
     
     x0_ = 0;
@@ -143,7 +143,7 @@ QString QtSLiMGraphView_1DSampleSFS::graphTitle(void)
 
 QString QtSLiMGraphView_1DSampleSFS::aboutString(void)
 {
-    return "The 1D Sample SFS graph shows a Site Frequency Spectrum (SFS) for a sample of genomes taken "
+    return "The 1D Sample SFS graph shows a Site Frequency Spectrum (SFS) for a sample of haplosomes taken "
            "(with replacement) from a given subpopulation, for mutations of a given mutation type.  The x axis "
            "here is the occurrence count of a given mutation within the sample, from 1 to the sample size.  The "
            "y axis is the number of mutations in the sample with that specific occurrence count, on a log "
@@ -274,15 +274,15 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         
         // Get frequencies for a sample taken (with replacement) from subpop1
         {
-            std::vector<Genome *> sampleGenomes;
-            std::vector<Genome *> &subpopGenomes = subpop1->CurrentGenomes();
-            size_t subpopGenomeCount = subpopGenomes.size();
+            std::vector<Haplosome *> sampleHaplosomes;
+            std::vector<Haplosome *> &subpopHaplosomes = subpop1->CurrentHaplosomes();
+            size_t subpopHaplosomeCount = subpopHaplosomes.size();
             
-            if (subpopGenomeCount)
+            if (subpopHaplosomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sampleGenomes.emplace_back(subpopGenomes[random() % subpopGenomeCount]);
+                    sampleHaplosomes.emplace_back(subpopHaplosomes[random() % subpopHaplosomeCount]);
             
-            tallyGUIMutationReferences(sampleGenomes, selectedMutationTypeIndex_);
+            tallyGUIMutationReferences(sampleHaplosomes, selectedMutationTypeIndex_);
         }
         
         // Tally into our bins

@@ -20,7 +20,7 @@
 
 #include "community.h"
 
-#include "genome.h"
+#include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
@@ -932,11 +932,11 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "      Recombination rate maps: " << PrintBytes(usage_all_species.chromosomeRecombinationRateMaps) << std::endl;
 	out << "      Ancestral nucleotides: " << PrintBytes(usage_all_species.chromosomeAncestralSequence) << std::endl;
 	
-	// Genome
-	out << "   Genome objects (" << usage_all_species.genomeObjects_count << "): " << PrintBytes(usage_all_species.genomeObjects) << std::endl;
-	out << "      External MutationRun* buffers: " << PrintBytes(usage_all_species.genomeExternalBuffers) << std::endl;
-	out << "      Unused pool space: " << PrintBytes(usage_all_species.genomeUnusedPoolSpace) << std::endl;
-	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.genomeUnusedPoolBuffers) << std::endl;
+	// Haplosome
+	out << "   Haplosome objects (" << usage_all_species.haplosomeObjects_count << "): " << PrintBytes(usage_all_species.haplosomeObjects) << std::endl;
+	out << "      External MutationRun* buffers: " << PrintBytes(usage_all_species.haplosomeExternalBuffers) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_all_species.haplosomeUnusedPoolSpace) << std::endl;
+	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.haplosomeUnusedPoolBuffers) << std::endl;
 	
 	// GenomicElement
 	out << "   GenomicElement objects (" << usage_all_species.genomicElementObjects_count << "): " << PrintBytes(usage_all_species.genomicElementObjects) << std::endl;

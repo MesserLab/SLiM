@@ -1484,7 +1484,7 @@
 	// Run the options sheet for the haplotype plot.  If OK is pressed there, -createHaplotypePlot does the real work.
 	[self runHaplotypePlotOptionsSheet];
 	
-	// The sequence of events involved in this is actually quite complicated, because the genome clustering work happens in
+	// The sequence of events involved in this is actually quite complicated, because the haplosome clustering work happens in
 	// a background thread, which gets launched halfway through the setup of the plot window, and there is a progress panel
 	// that is run in SLiMWindowController's window as a sheet even though the clustering is done in SLiMHaplotypeManager,
 	// and there is a configuration sheet that runs first, and so forth.  The sequence of events involved here is:
@@ -1497,8 +1497,8 @@
 	//		- configureForDisplayWithSlimWindowController: is called on the SLiMHaplotypeGraphView
 	//			* the SLiMHaplotypeManager is created by the SLiMHaplotypeGraphView
 	//			- initWithClusteringMethod:... is called on the SLiMHaplotypeManager
-	//				* the first stage of the haplotype analysis is done; genome references are kept
-	//				- runHaplotypePlotProgressSheetWithGenomeCount: is called to start the progress sheet
+	//				* the first stage of the haplotype analysis is done; haplosome references are kept
+	//				- runHaplotypePlotProgressSheetWithHaplosomeCount: is called to start the progress sheet
 	//					* the progress sheet nib is loaded
 	//					* haplotypeProgressTaskCancelled is set to NO to indicate we are not cancelled
 	//					* the progress sheet starts running; it will run until haplotypeProgressSheetOK: below
@@ -1515,7 +1515,7 @@
 	//					* the sheet completion handler spins until the background task sees haplotypeProgressTaskCancelled and drops out
 	//					* the progress sheet is released and goes away
 	//		* OTHERWISE (NO CANCELLATION):
-	//			* the genomes are clustered
+	//			* the haplosomes are clustered
 	//			* the display list is created
 	//		* IN EITHER CASE:
 	//			- haplotypeProgressTaskFinished is called on SLiMWindowController
@@ -2077,7 +2077,7 @@
 			if (power_tallies[power] > 0)
 			{
 				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per haplosome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
 			}
 		}
 		
@@ -2130,7 +2130,7 @@
 		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation runs shared among genomes" attributes:optima13_d];
+		[content eidosAppendString:@" of mutation runs shared among haplosomes" attributes:optima13_d];
 	}
 #endif
 	
@@ -2183,29 +2183,29 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.communityObjects total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : Community object\n" attributes:optima13_d];
 		
-		// Genome
+		// Haplosome
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, (long long int)mem_last_S.genomeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Haplosome objects (%0.2f / %lld)\n", mem_tot_S.haplosomeObjects_count / ddiv, (long long int)mem_last_S.haplosomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeExternalBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeExternalBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeExternalBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : external MutationRun* buffers\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// GenomicElement
@@ -3508,7 +3508,7 @@
 			[graphView configureForDisplayWithSlimWindowController:self];
 			
 			// The call above will create a background thread for clustering and return quickly.  As a side
-			// effect, however, it will call runHaplotypePlotProgressSheetWithGenomeCount:
+			// effect, however, it will call runHaplotypePlotProgressSheetWithHaplosomeCount:
 			// which will show the plot window once it is ready, using newHaplotypeGraphView.
 			newHaplotypeGraphView = [graphView retain];
 			
@@ -3527,7 +3527,7 @@
 	graphWindow = nil;
 }
 
-- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count
+- (void)runHaplotypePlotProgressSheetWithHaplosomeCount:(int)haplosome_count
 {
 	// Nil out our outlets for a bit of safety, and then load our sheet nib
 	_haplotypeProgressSheet = nil;
@@ -3551,9 +3551,9 @@
 		haplotypeProgressTaskClustering_Value = 0;
 		haplotypeProgressTaskOptimization_Value = 0;
 		
-		[_haplotypeProgressDistances setMaxValue:genome_count];
-		[_haplotypeProgressClustering setMaxValue:genome_count];
-		[_haplotypeProgressOptimization setMaxValue:genome_count];
+		[_haplotypeProgressDistances setMaxValue:haplosome_count];
+		[_haplotypeProgressClustering setMaxValue:haplosome_count];
+		[_haplotypeProgressOptimization setMaxValue:haplosome_count];
 		
 		[_haplotypeProgressDistances setDoubleValue:0.0];
 		[_haplotypeProgressClustering setDoubleValue:0.0];
@@ -4245,8 +4245,8 @@
 									break;
 								case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome1,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome2,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
@@ -4254,7 +4254,7 @@
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_element,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_GenomicElement_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;

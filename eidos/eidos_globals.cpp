@@ -3967,7 +3967,7 @@ const std::string &gEidosStr_color = EidosRegisteredString("color", gEidosID_col
 const std::string &gEidosStr_filePath = EidosRegisteredString("filePath", gEidosID_filePath);
 
 const std::string &gEidosStr_Mutation = EidosRegisteredString("Mutation", gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-const std::string &gEidosStr_Genome = EidosRegisteredString("Genome", gEidosID_Genome);			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string &gEidosStr_Haplosome = EidosRegisteredString("Haplosome", gEidosID_Haplosome);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 const std::string &gEidosStr_Individual = EidosRegisteredString("Individual", gEidosID_Individual);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 std::vector<std::string> gEidosConstantNames;

@@ -179,7 +179,7 @@ protected:
     bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID = -1);
     bool addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex);
     size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
-    size_t tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index);
+    size_t tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index);
     
     // Properties; initialized in the constructor, these defaults are just zero-fill
     // Note that the bounds in user coordinates (x0_/x1_/y0_/y1_) are now separate from

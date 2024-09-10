@@ -310,7 +310,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 				EidosValue_Object *symbol_object = (static_pointer_cast<EidosValue_Object>(symbol_value)).get();
 				const EidosClass *symbol_class = symbol_object->Class();
 				
-				if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
+				if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Haplosome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
 				{
 					// BCH 5/7/2022: For multispecies, we now have to be careful to clear out only state related to the target species!
 					// This is truly disgusting, because it means we have to go down into the elements of the value to check their species
@@ -332,11 +332,11 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 							}
 						}
 					}
-					else if (symbol_class == gSLiM_Genome_Class)
+					else if (symbol_class == gSLiM_Haplosome_Class)
 					{
 						for (int i = 0; i < symbol_object->Count(); ++i)
 						{
-							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
+							Haplosome *element = (Haplosome *)symbol_object->ObjectElementAtIndex_NOCAST(i, nullptr);
 							
 							if (&element->individual_->subpopulation_->species_ == this)
 							{
@@ -635,7 +635,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		
 		if (line.length() == 0)
 			continue;
-		if (line.find("Genomes") != std::string::npos)
+		if (line.find("Haplosomes") != std::string::npos)
 			break;
 		if (line.find("Individuals") != std::string::npos)	// SLiM 2.0 added this section
 			break;
@@ -714,7 +714,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		
 		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, tick, nucleotide);
 		
-		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		mutations.emplace(polymorphism_id, new_mut_index);
 		population_.MutationRegistryAdd(new_mut);
 		
@@ -745,7 +745,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			
 			if (line.length() == 0)
 				continue;
-			if (line.find("Genomes") != std::string::npos)
+			if (line.find("Haplosomes") != std::string::npos)
 				break;
 			
 			std::istringstream iss(line);
@@ -782,8 +782,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (PedigreesEnabled())
 				{
 					individual.SetPedigreeID(pedigree_id);
-					individual.genome1_->SetGenomeID(pedigree_id * 2);
-					individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
+					individual.haplosome1_->SetHaplosomeID(pedigree_id * 2);
+					individual.haplosome2_->SetHaplosomeID(pedigree_id * 2 + 1);
 					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				}
 			}
@@ -793,8 +793,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if ((sub == "F") || (sub == "M") || (sub == "H"))
 				iss >> sub;
 			
-			;					// pX:Y – genome 1 identifier, which we do not presently need to parse [already fetched]
-			iss >> sub;			// pX:Y – genome 2 identifier, which we do not presently need to parse
+			;					// pX:Y – haplosome 1 identifier, which we do not presently need to parse [already fetched]
+			iss >> sub;			// pX:Y – haplosome 2 identifier, which we do not presently need to parse
 			
 			// Parse the optional fields at the end of each individual line.  This is a bit tricky.
 			// First we read all of the fields in, then we decide how to use them.
@@ -837,7 +837,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		}
 	}
 	
-	// Now we are in the Genomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
+	// Now we are in the Haplosomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
@@ -865,53 +865,53 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int64_t genome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+		int64_t haplosome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		
-		if ((genome_index_long < 0) || (genome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome index out of permitted range." << EidosTerminate();
-		slim_popsize_t genome_index = static_cast<slim_popsize_t>(genome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
+		if ((haplosome_index_long < 0) || (haplosome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome index out of permitted range." << EidosTerminate();
+		slim_popsize_t haplosome_index = static_cast<slim_popsize_t>(haplosome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
-		Genome &genome = *subpop->parent_genomes_[genome_index];
+		Haplosome &haplosome = *subpop->parent_haplosomes_[haplosome_index];
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
 		{
-			// check whether this token is a genome type
+			// check whether this token is a haplosome type
 			if ((sub.compare(gStr_A) == 0) || (sub.compare(gStr_X) == 0) || (sub.compare(gStr_Y) == 0))
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
-				if ((sub.compare(gStr_A) == 0) && genome.Type() != GenomeType::kAutosome)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome is specified as A (autosome), but the instantiated genome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_X) == 0) && genome.Type() != GenomeType::kXChromosome)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome is specified as X (X-chromosome), but the instantiated genome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_Y) == 0) && genome.Type() != GenomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome is specified as Y (Y-chromosome), but the instantiated genome does not match." << EidosTerminate();
+				if ((sub.compare(gStr_A) == 0) && haplosome.Type() != HaplosomeType::kAutosome)
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as A (autosome), but the instantiated haplosome does not match." << EidosTerminate();
+				if ((sub.compare(gStr_X) == 0) && haplosome.Type() != HaplosomeType::kXChromosome)
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as X (X-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
+				if ((sub.compare(gStr_Y) == 0) && haplosome.Type() != HaplosomeType::kYChromosome)
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as Y (Y-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
 				
 				if (iss >> sub)
 				{
-					// BCH 9/27/2021: We instantiate null genomes only in the case where we expect them: in sex-chromosome models,
-					// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any genome is now
-					// allowed to be null, at the user's discretion, so we transform the instantiated genome to a null genome
-					// if necessary.  AddSubpopulation() created the genomes above, before we knew which would be null.
+					// BCH 9/27/2021: We instantiate null haplosomes only in the case where we expect them: in sex-chromosome models,
+					// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any haplosome is now
+					// allowed to be null, at the user's discretion, so we transform the instantiated haplosome to a null haplosome
+					// if necessary.  AddSubpopulation() created the haplosomes above, before we knew which would be null.
 					if (sub == "<null>")
 					{
-						if (!genome.IsNull())
+						if (!haplosome.IsNull())
 						{
-							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (genome.Type() == GenomeType::kAutosome))
+							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.Type() == HaplosomeType::kAutosome))
 							{
-								genome.MakeNull();
-								subpop->has_null_genomes_ = true;
+								haplosome.MakeNull();
+								subpop->has_null_haplosomes_ = true;
 							}
 							else
-								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
 						}
 						
 						continue;	// this line is over
 					}
 					else
 					{
-						if (genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
+						if (haplosome.IsNull())
+							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
 						
 						// drop through, and sub will be interpreted as a mutation id below
 					}
@@ -920,7 +920,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 					continue;
 			}
 			
-			slim_position_t mutrun_length_ = genome.mutrun_length_;
+			slim_position_t mutrun_length_ = haplosome.mutrun_length_;
 			slim_mutrun_index_t current_mutrun_index = -1;
 			MutationRun *current_mutrun = nullptr;
 			
@@ -942,17 +942,17 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (mutrun_index != current_mutrun_index)
 				{
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the genome
+					// When parallel, the MutationRunContext depends upon the position in the haplosome
 					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 #endif
 					
 					current_mutrun_index = mutrun_index;
 					
 					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
-					// we created them empty, nobody has modified them but us, and we process each genome separately.
+					// we created them empty, nobody has modified them but us, and we process each haplosome separately.
 					// However, using WillModifyRun() would generally be fine since we hit this call only once
-					// per mutrun per genome anyway, as long as the mutations are sorted by position.
-					current_mutrun = genome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
+					// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
+					current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1101,14 +1101,14 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	{
 		int32_t double_size;
 		double double_test;
-		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_genomeid_t_size;
+		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size;
 		int64_t flags = 0;
 		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_tick) + sizeof(section_end_tag);
 		
 		if (file_version >= 2)
 			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
 		if (file_version >= 6)
-			header_length += sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_genomeid_t);
+			header_length += sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t);
 		if (file_version >= 5)
 			header_length += sizeof(flags);
 		if (file_version >= 7)
@@ -1176,15 +1176,15 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			memcpy(&slim_pedigreeid_t_size, p, sizeof(slim_pedigreeid_t_size));
 			p += sizeof(slim_pedigreeid_t_size);
 			
-			memcpy(&slim_genomeid_t_size, p, sizeof(slim_genomeid_t_size));
-			p += sizeof(slim_genomeid_t_size);
+			memcpy(&slim_haplosomeid_t_size, p, sizeof(slim_haplosomeid_t_size));
+			p += sizeof(slim_haplosomeid_t_size);
 		}
 		else
 		{
 			// Version <= 5 file; backfill correct values
 			slim_age_t_size = sizeof(slim_age_t);
 			slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);
-			slim_genomeid_t_size = sizeof(slim_genomeid_t);
+			slim_haplosomeid_t_size = sizeof(slim_haplosomeid_t);
 		}
 		
 		memcpy(&file_tick, p, sizeof(file_tick));
@@ -1233,7 +1233,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
 			(slim_age_t_size != sizeof(slim_age_t)) ||
 			(slim_pedigreeid_t_size != sizeof(slim_pedigreeid_t)) ||
-			(slim_genomeid_t_size != sizeof(slim_genomeid_t)))
+			(slim_haplosomeid_t_size != sizeof(slim_haplosomeid_t)))
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
 		if ((spatial_output_count < 0) || (spatial_output_count > 3))
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
@@ -1425,7 +1425,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, tick, nucleotide);
 		
-		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		mutations[polymorphism_id] = new_mut_index;
 		population_.MutationRegistryAdd(new_mut);
 		
@@ -1455,14 +1455,14 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 	}
 	
-	// Genomes section
+	// Haplosomes section
 	if (pedigree_output_count)
 		gSLiM_next_pedigree_id = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
-	std::unique_ptr<MutationIndex[]> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
-	MutationIndex *genomebuf = raii_genomebuf.get();
+	std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
+	MutationIndex *haplosomebuf = raii_haplosomebuf.get();
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
@@ -1470,28 +1470,28 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	while (true)
 	{
 		slim_objectid_t subpop_id;
-		slim_popsize_t genome_index;
-		int32_t genome_type;
+		slim_popsize_t haplosome_index;
+		int32_t haplosome_type;
 		int32_t total_mutations;
 		
-		// If there isn't enough buffer left to read a full genome record, we assume we are done with this section
-		if (p + sizeof(genome_type) + sizeof(subpop_id) + sizeof(genome_index) + sizeof(total_mutations) > buf_end)
+		// If there isn't enough buffer left to read a full haplosome record, we assume we are done with this section
+		if (p + sizeof(haplosome_type) + sizeof(subpop_id) + sizeof(haplosome_index) + sizeof(total_mutations) > buf_end)
 			break;
 		
 		// First check the first 32 bits to see if it is a section end tag
-		memcpy(&genome_type, p, sizeof(genome_type));
+		memcpy(&haplosome_type, p, sizeof(haplosome_type));
 		
-		if (genome_type == (int32_t)0xFFFF0000)
+		if (haplosome_type == (int32_t)0xFFFF0000)
 			break;
 		
-		// If not, proceed with reading the genome entry
-		p += sizeof(genome_type);
+		// If not, proceed with reading the haplosome entry
+		p += sizeof(haplosome_type);
 		
 		memcpy(&subpop_id, p, sizeof(subpop_id));
 		p += sizeof(subpop_id);
 		
-		memcpy(&genome_index, p, sizeof(genome_index));
-		p += sizeof(genome_index);
+		memcpy(&haplosome_index, p, sizeof(haplosome_index));
+		p += sizeof(haplosome_index);
 		
 		// Look up the subpopulation
 		Subpopulation *subpop = SubpopulationWithID(subpop_id);
@@ -1500,13 +1500,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 		
 		// Read in individual spatial position information.  Added in version 3.
-		if (spatial_output_count && ((genome_index % 2) == 0))
+		if (spatial_output_count && ((haplosome_index % 2) == 0))
 		{
 			// do another buffer length check
 			if (p + spatial_output_count * sizeof(double) + sizeof(total_mutations) > buf_end)
 				break;
 			
-			int individual_index = genome_index / 2;
+			int individual_index = haplosome_index / 2;
 			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
 			if (spatial_output_count >= 1)
@@ -1527,7 +1527,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		// Read in individual pedigree ID information.  Added in version 6.
-		if (pedigree_output_count  && ((genome_index % 2) == 0))
+		if (pedigree_output_count  && ((haplosome_index % 2) == 0))
 		{
 			// do another buffer length check
 			if (p + sizeof(slim_pedigreeid_t) + sizeof(total_mutations) > buf_end)
@@ -1535,15 +1535,15 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			
 			if (PedigreesEnabled())
 			{
-				int individual_index = genome_index / 2;
+				int individual_index = haplosome_index / 2;
 				Individual &individual = *subpop->parent_individuals_[individual_index];
 				slim_pedigreeid_t pedigree_id;
 				
 				memcpy(&pedigree_id, p, sizeof(pedigree_id));
 				
 				individual.SetPedigreeID(pedigree_id);
-				individual.genome1_->SetGenomeID(pedigree_id * 2);
-				individual.genome2_->SetGenomeID(pedigree_id * 2 + 1);
+				individual.haplosome1_->SetHaplosomeID(pedigree_id * 2);
+				individual.haplosome2_->SetHaplosomeID(pedigree_id * 2 + 1);
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			}
 			
@@ -1551,13 +1551,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		// Read in individual age information.  Added in version 4.
-		if (age_output_count && ((genome_index % 2) == 0))
+		if (age_output_count && ((haplosome_index % 2) == 0))
 		{
 			// do another buffer length check
 			if (p + sizeof(slim_age_t) + sizeof(total_mutations) > buf_end)
 				break;
 			
-			int individual_index = genome_index / 2;
+			int individual_index = haplosome_index / 2;
 			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
 			memcpy(&individual.age_, p, sizeof(individual.age_));
@@ -1567,38 +1567,38 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		memcpy(&total_mutations, p, sizeof(total_mutations));
 		p += sizeof(total_mutations);
 		
-		// Look up the genome
-		if ((genome_index < 0) || (genome_index > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): genome index out of permitted range." << EidosTerminate();
+		// Look up the haplosome
+		if ((haplosome_index < 0) || (haplosome_index > SLIM_MAX_SUBPOP_SIZE * 2))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome index out of permitted range." << EidosTerminate();
 		
-		Genome &genome = *subpop->parent_genomes_[genome_index];
+		Haplosome &haplosome = *subpop->parent_haplosomes_[haplosome_index];
 		
-		// Error-check the genome type
-		if (genome_type != (int32_t)genome.Type())
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << EidosTerminate();
+		// Error-check the haplosome type
+		if (haplosome_type != (int32_t)haplosome.Type())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome type does not match the instantiated haplosome." << EidosTerminate();
 		
-		// Check the null genome state
-		// BCH 9/27/2021: We instantiate null genomes only in the case where we expect them: in sex-chromosome models,
-		// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any genome is now
-		// allowed to be null, at the user's discretion, so we transform the instantiated genome to a null genome
-		// if necessary.  AddSubpopulation() created the genomes above, before we knew which would be null.
+		// Check the null haplosome state
+		// BCH 9/27/2021: We instantiate null haplosomes only in the case where we expect them: in sex-chromosome models,
+		// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any haplosome is now
+		// allowed to be null, at the user's discretion, so we transform the instantiated haplosome to a null haplosome
+		// if necessary.  AddSubpopulation() created the haplosomes above, before we knew which would be null.
 		if (total_mutations == (int32_t)0xFFFF1000)
 		{
-			if (!genome.IsNull())
+			if (!haplosome.IsNull())
 			{
-				if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (genome.Type() == GenomeType::kAutosome))
+				if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.Type() == HaplosomeType::kAutosome))
 				{
-					genome.MakeNull();
-					subpop->has_null_genomes_ = true;
+					haplosome.MakeNull();
+					subpop->has_null_haplosomes_ = true;
 				}
 				else
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
 			}
 		}
 		else
 		{
-			if (genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): genome is specified as non-null, but the instantiated genome is null." << EidosTerminate();
+			if (haplosome.IsNull())
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
 			
 			// Read in the mutation list
 			int32_t mutcount = 0;
@@ -1609,18 +1609,18 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				uint16_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
 					memcpy(&mutation_id, p, sizeof(mutation_id));
 					p += sizeof(mutation_id);
 					
-					// Add mutation to genome
+					// Add mutation to haplosome
 					if (/*(mutation_id < 0) ||*/ (mutation_id >= mutation_map_size)) 
 						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
-					genomebuf[mutcount] = mutations[mutation_id];
+					haplosomebuf[mutcount] = mutations[mutation_id];
 				}
 			}
 			else
@@ -1629,44 +1629,44 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				int32_t mutation_id;
 				
 				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
 					memcpy(&mutation_id, p, sizeof(mutation_id));
 					p += sizeof(mutation_id);
 					
-					// Add mutation to genome
+					// Add mutation to haplosome
 					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
 						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
 					
-					genomebuf[mutcount] = mutations[mutation_id];
+					haplosomebuf[mutcount] = mutations[mutation_id];
 				}
 			}
 			
-			slim_position_t mutrun_length_ = genome.mutrun_length_;
+			slim_position_t mutrun_length_ = haplosome.mutrun_length_;
 			slim_mutrun_index_t current_mutrun_index = -1;
 			MutationRun *current_mutrun = nullptr;
 			
 			for (int mut_index = 0; mut_index < mutcount; ++mut_index)
 			{
-				MutationIndex mutation = genomebuf[mut_index];
+				MutationIndex mutation = haplosomebuf[mut_index];
 				slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
 				
 				if (mutrun_index != current_mutrun_index)
 				{
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the genome
+					// When parallel, the MutationRunContext depends upon the position in the haplosome
 					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 #endif
 					
 					current_mutrun_index = mutrun_index;
 					
 					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
-					// we created them empty, nobody has modified them but us, and we process each genome separately.
+					// we created them empty, nobody has modified them but us, and we process each haplosome separately.
 					// However, using WillModifyRun() would generally be fine since we hit this call only once
-					// per mutrun per genome anyway, as long as the mutations are sorted by position.
-					current_mutrun = genome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
+					// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
+					current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1675,7 +1675,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	}
 	
 	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after genomes." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after haplosomes." << EidosTerminate();
 	else
 	{
 		memcpy(&section_end_tag, p, sizeof(section_end_tag));
@@ -1683,7 +1683,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		(void)p;	// dead store above is deliberate
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after genomes." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after haplosomes." << EidosTerminate();
 	}
 	
 	// Ancestral sequence section, for nucleotide-based models
@@ -1847,7 +1847,7 @@ void Species::RunInitializeCallbacks(void)
 		// cannot be achieved any other way; in particular, we have no genomic element types, no mutation types, and no
 		// genomic elements; normally that is illegal, but we deliberately carve out this special case.
 		// BCH 22 May 2022: No-genetics species cannot use tree-sequence recording or be nucleotide-based, for simplicity.
-		// They always use null genomes, so any attempt to access their genetics is illegal.  They have no mutruns.
+		// They always use null haplosomes, so any attempt to access their genetics is illegal.  They have no mutruns.
 		if (recording_tree_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
@@ -2058,7 +2058,7 @@ void Species::SetUpMutationRunContexts(void)
 	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent MutationRunContexts" << std::endl;
 	
 	// Make per-thread MutationRunContexts; the number of threads that we set up for here is NOT gEidosMaxThreads,
-	// but rather, the "base" number of mutation runs per genome chosen by Chromosome.  The chromosome is divided
+	// but rather, the "base" number of mutation runs per haplosome chosen by Chromosome.  The chromosome is divided
 	// into that many chunks along its length (or a multiple thereof), and there is one thread per "base" chunk.
 	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
 	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
@@ -2186,29 +2186,29 @@ void Species::EmptyGraveyard(void)
 {
 	// Individuals end up in graveyard_ due to killIndividuals(); they get disposed of here.
 	// Since graveyard individuals don't belong to any subpopulation, we use the population junkyards directly.
-	std::vector<Genome *> &genome_junkyard_null = population_.species_genome_junkyard_null;
-	std::vector<Genome *> &genome_junkyard_nonnull = population_.species_genome_junkyard_nonnull;
+	std::vector<Haplosome *> &haplosomes_junkyard_null = population_.species_haplosomes_junkyard_null;
+	std::vector<Haplosome *> &haplosomes_junkyard_nonnull = population_.species_haplosomes_junkyard_nonnull;
 	
 	for (Individual *individual : graveyard_)
 	{
-		// Free genome1; this is the same logic as Subpopulation::FreeSubpopGenome()
+		// Free haplosome1; this is the same logic as Subpopulation::FreeSubpopHaplosome()
 		{
-			Genome *genome1 = individual->genome1_;
+			Haplosome *haplosome1 = individual->haplosome1_;
 			
-			if (genome1->IsNull())
-				genome_junkyard_null.emplace_back(genome1);
+			if (haplosome1->IsNull())
+				haplosomes_junkyard_null.emplace_back(haplosome1);
 			else
-				genome_junkyard_nonnull.emplace_back(genome1);
+				haplosomes_junkyard_nonnull.emplace_back(haplosome1);
 		}
 		
-		// Free genome2; this is the same logic as Subpopulation::FreeSubpopGenome()
+		// Free haplosome2; this is the same logic as Subpopulation::FreeSubpopHaplosome()
 		{
-			Genome *genome2 = individual->genome2_;
+			Haplosome *haplosome2 = individual->haplosome2_;
 			
-			if (genome2->IsNull())
-				genome_junkyard_null.emplace_back(genome2);
+			if (haplosome2->IsNull())
+				haplosomes_junkyard_null.emplace_back(haplosome2);
 			else
-				genome_junkyard_nonnull.emplace_back(genome2);
+				haplosomes_junkyard_nonnull.emplace_back(haplosome2);
 		}
 		
 		individual->~Individual();
@@ -2360,7 +2360,7 @@ void Species::WF_SwitchToChildGeneration(void)
 	// we no longer refcount those, but they still need to be zeroed out so they're ready for reuse
 	MUTRUNEXP_START_TIMING(x_clock0);
 	
-	population_.ClearParentalGenomes();
+	population_.ClearParentalHaplosomes();
 	
 	MUTRUNEXP_END_TIMING(x_clock0);
 }
@@ -2457,7 +2457,7 @@ void Species::nonWF_MergeOffspring(void)
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->MergeReproductionOffspring();
 	
-	// then generate any deferred genomes; note that the deferred offspring got merged in above already
+	// then generate any deferred haplosomes; note that the deferred offspring got merged in above already
 	population_.DoDeferredReproduction();
 	
 	// clear the "migrant" property on all individuals
@@ -2914,23 +2914,23 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 {
 	EIDOS_BZERO(p_usage, sizeof(SLiMMemoryUsage_Species));
 	
-	// Gather genomes in preparation for the work below
-	std::vector<Genome *> all_genomes_in_use, all_genomes_not_in_use;
-	size_t genome_pool_usage = 0, individual_pool_usage = 0;
+	// Gather haplosomes in preparation for the work below
+	std::vector<Haplosome *> all_haplosomes_in_use, all_haplosomes_not_in_use;
+	size_t haplosome_pool_usage = 0, individual_pool_usage = 0;
 	
 	for (auto iter : population_.subpops_)
 	{
 		Subpopulation &subpop = *iter.second;
 		
-		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
-		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
-		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
+		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.parent_haplosomes_.begin(), subpop.parent_haplosomes_.end());
+		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.child_haplosomes_.begin(), subpop.child_haplosomes_.end());
+		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.nonWF_offspring_haplosomes_.begin(), subpop.nonWF_offspring_haplosomes_.end());
 	}
 	
-	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_nonnull.begin(), population_.species_genome_junkyard_nonnull.end());
-	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_null.begin(), population_.species_genome_junkyard_null.end());
+	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_nonnull.begin(), population_.species_haplosomes_junkyard_nonnull.end());
+	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_null.begin(), population_.species_haplosomes_junkyard_null.end());
 	
-	genome_pool_usage = population_.species_genome_pool_.MemoryUsageForAllNodes();
+	haplosome_pool_usage = population_.species_haplosome_pool_.MemoryUsageForAllNodes();
 	individual_pool_usage = population_.species_individual_pool_.MemoryUsageForAllNodes();
 	
 	// Chromosome
@@ -2943,18 +2943,18 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		p_usage->chromosomeAncestralSequence = chromosome_->MemoryUsageForAncestralSequence();
 	}
 	
-	// Genome
+	// Haplosome
 	{
-		p_usage->genomeObjects_count = all_genomes_in_use.size();
-		p_usage->genomeObjects = sizeof(Genome) * p_usage->genomeObjects_count;
+		p_usage->haplosomeObjects_count = all_haplosomes_in_use.size();
+		p_usage->haplosomeObjects = sizeof(Haplosome) * p_usage->haplosomeObjects_count;
 		
-		for (Genome *genome : all_genomes_in_use)
-			p_usage->genomeExternalBuffers += genome->MemoryUsageForMutrunBuffers();
+		for (Haplosome *haplosome : all_haplosomes_in_use)
+			p_usage->haplosomeExternalBuffers += haplosome->MemoryUsageForMutrunBuffers();
 		
-		p_usage->genomeUnusedPoolSpace = genome_pool_usage - p_usage->genomeObjects;	// includes junkyard objects and unused space
+		p_usage->haplosomeUnusedPoolSpace = haplosome_pool_usage - p_usage->haplosomeObjects;	// includes junkyard objects and unused space
 		
-		for (Genome *genome : all_genomes_not_in_use)
-			p_usage->genomeUnusedPoolBuffers += genome->MemoryUsageForMutrunBuffers();
+		for (Haplosome *haplosome : all_haplosomes_not_in_use)
+			p_usage->haplosomeUnusedPoolBuffers += haplosome->MemoryUsageForMutrunBuffers();
 	}
 	
 	// GenomicElement
@@ -3470,7 +3470,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			{
 				// OK, it looks like something has changed about our scenario, so we should come out of stasis and re-test.
 				// We don't have any information about the new state of affairs, so we have no directional preference.
-				// Let's try a larger number of mutation runs first, since genomes tend to fill up, unless we're at the max.
+				// Let's try a larger number of mutation runs first, since haplosomes tend to fill up, unless we're at the max.
 				if (x_current_mutcount_ * 2 > SLIM_MUTRUN_MAXIMUM_COUNT)
 					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ / 2);
 				else
@@ -3658,8 +3658,8 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	// Promulgate the new mutation run count
 	if (x_current_mutcount_ != chromosome_->mutrun_count_)
 	{
-		// Fix all genomes.  We could do this by brute force, by making completely new mutation runs for every
-		// existing genome and then calling Population::UniqueMutationRuns(), but that would be inefficient,
+		// Fix all haplosomes.  We could do this by brute force, by making completely new mutation runs for every
+		// existing haplosome and then calling Population::UniqueMutationRuns(), but that would be inefficient,
 		// and would also cause a huge memory usage spike.  Instead, we want to preserve existing redundancy.
 		
 		while (x_current_mutcount_ > chromosome_->mutrun_count_)
@@ -3720,7 +3720,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #if SLIM_USE_NONNEUTRAL_CACHES
 void Species::CollectMutationProfileInfo(void)
 {
-	// maintain our history of the number of mutruns per genome and the nonneutral regime
+	// maintain our history of the number of mutruns per haplosome and the nonneutral regime
 	profile_mutcount_history_.emplace_back(chromosome_->mutrun_count_);
 	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
 	
@@ -3736,12 +3736,12 @@ void Species::CollectMutationProfileInfo(void)
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+		std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 		
-		for (Genome *genome : subpop_genomes)
+		for (Haplosome *haplosome : subpop_haplosome)
 		{
-			const MutationRun **mutruns = genome->mutruns_;
-			int32_t mutrun_count = genome->mutrun_count_;
+			const MutationRun **mutruns = haplosome->mutruns_;
+			int32_t mutrun_count = haplosome->mutrun_count_;
 			
 			profile_mutrun_total_usage_ += mutrun_count;
 			
@@ -4145,53 +4145,53 @@ void Species::SimplifyTreeSequence(void)
 	
 	std::vector<tsk_id_t> samples;
 	
-	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_genomes_,
+	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_haplosomes_,
 	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
-	// We need to be able to find out the index of an entry, in remembered_genomes_, once we have found it;
+	// We need to be able to find out the index of an entry, in remembered_haplosomes_, once we have found it;
 	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
 	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
 	{
 #if EIDOS_ROBIN_HOOD_HASHING
-		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
+		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_haplosomes_lookup;
 		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
-		std::unordered_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
+		std::unordered_map<tsk_id_t, uint32_t> remembered_haplosomes_lookup;
 		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #endif
 		
-		// the remembered_genomes_ come first in the list of samples
+		// the remembered_haplosomes_ come first in the list of samples
 		uint32_t index = 0;
 		
-		for (tsk_id_t sid : remembered_genomes_)
+		for (tsk_id_t sid : remembered_haplosomes_)
 		{
 			samples.emplace_back(sid);
-			remembered_genomes_lookup.emplace(sid, index);
+			remembered_haplosomes_lookup.emplace(sid, index);
 			index++;
 		}
 		
-		// and then come all the genomes of the extant individuals
-		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_genomes_.size();
+		// and then come all the haplosomes of the extant individuals
+		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_haplosomes_.size();
 		
 		for (auto it : population_.subpops_)
 		{
-			std::vector<Genome *> &subpopulationGenomes = it.second->parent_genomes_;
+			std::vector<Haplosome *> &subpopulationHaplosomes = it.second->parent_haplosomes_;
 			
-			for (Genome *genome : subpopulationGenomes)
+			for (Haplosome *haplosome : subpopulationHaplosomes)
 			{
-				tsk_id_t M = genome->tsk_node_id_;
+				tsk_id_t M = haplosome->tsk_node_id_;
 				
 				// check if this sample is already being remembered, and assign the correct tsk_node_id_
 				// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
-				auto iter = remembered_genomes_lookup.find(M);
+				auto iter = remembered_haplosomes_lookup.find(M);
 				
-				if (iter == remembered_genomes_lookup.end())
+				if (iter == remembered_haplosomes_lookup.end())
 				{
 					samples.emplace_back(M);
-					genome->tsk_node_id_ = newValueInNodeTable++;
+					haplosome->tsk_node_id_ = newValueInNodeTable++;
 				}
 				else
 				{
-					genome->tsk_node_id_ = (tsk_id_t)(iter->second);
+					haplosome->tsk_node_id_ = (tsk_id_t)(iter->second);
 				}
 			}
 		}
@@ -4256,9 +4256,9 @@ void Species::SimplifyTreeSequence(void)
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_CORE);
 	}
 	
-	// update map of remembered_genomes_, which are now the first n entries in the node table
-	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_genomes_.size(); i++)
-		remembered_genomes_[i] = i;
+	// update map of remembered_haplosomes_, which are now the first n entries in the node table
+	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_haplosomes_.size(); i++)
+		remembered_haplosomes_[i] = i;
 	
 	// remake our hash table of pedigree ids to tsk_ids, since simplify reordered the individuals table
 	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);
@@ -4301,18 +4301,18 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	ret = tsk_treeseq_init(&ts, &tables_copy, 0);
 	if (ret < 0) handle_error("tsk_treeseq_init", ret);
 	
-	// Collect a vector of all extant genome node IDs
+	// Collect a vector of all extant haplosome node IDs
 	std::vector<tsk_id_t> all_extant_nodes;
 	
 	for (auto subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
-		std::vector<Genome *> &genomes = subpop->parent_genomes_;
-		slim_popsize_t genome_count = subpop->parent_subpop_size_ * 2;
-		Genome **genome_ptr = genomes.data();
+		std::vector<Haplosome *> &haplosomes = subpop->parent_haplosomes_;
+		slim_popsize_t haplosome_count = subpop->parent_subpop_size_ * 2;
+		Haplosome **haplosome_ptr = haplosomes.data();
 		
-		for (slim_popsize_t genome_index = 0; genome_index < genome_count; ++genome_index)
-			all_extant_nodes.emplace_back(genome_ptr[genome_index]->tsk_node_id_);
+		for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
+			all_extant_nodes.emplace_back(haplosome_ptr[haplosome_index]->tsk_node_id_);
 	}
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
@@ -4338,7 +4338,7 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	for (; (ret == 1) && fully_coalesced; ret = tsk_tree_next(&t))
 	{
 #if 0
-		// If we didn't keep first-generation lineages, or remember genomes, >1 root would mean not coalesced
+		// If we didn't keep first-generation lineages, or remember haplosomes, >1 root would mean not coalesced
 		if (tsk_tree_get_num_roots(&t) > 1)
 		{
 			fully_coalesced = false;
@@ -4471,12 +4471,12 @@ void Species::RetractNewIndividual()
 	tsk_table_collection_truncate(&tables_, &table_position_);
 }
 
-void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
-		const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome)
+void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
+		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
 #if DEBUG
 	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (Species::RecordNewGenome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
 	// This records information about an individual in both the Node and Edge tables.
@@ -4485,31 +4485,31 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
-	// add genome node; we mark all nodes with TSK_NODE_IS_SAMPLE here because we have full genealogical information on all of them
+	// add haplosome node; we mark all nodes with TSK_NODE_IS_SAMPLE here because we have full genealogical information on all of them
 	// (until simplify, which clears TSK_NODE_IS_SAMPLE from nodes that are not kept in the sample).
 	double time = (double) -1 * (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
 	tsk_flags_t flags = TSK_NODE_IS_SAMPLE;
-	GenomeMetadataRec metadata_rec;
+	HaplosomeMetadataRec metadata_rec;
 	
-	MetadataForGenome(p_new_genome, &metadata_rec);
+	MetadataForHaplosome(p_new_haplosome, &metadata_rec);
 	
 	const char *metadata = (char *)&metadata_rec;
-	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
-	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
+	size_t metadata_length = sizeof(HaplosomeMetadataRec)/sizeof(char);
+	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_haplosome->individual_->subpopulation_->subpopulation_id_,
 		TSK_NULL, metadata, (tsk_size_t)metadata_length);
 	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
-	p_new_genome->tsk_node_id_ = offspringTSKID;
+	p_new_haplosome->tsk_node_id_ = offspringTSKID;
 	
 	// if there is no parent then no need to record edges
-	if (!p_initial_parental_genome && !p_second_parental_genome)
+	if (!p_initial_parental_haplosome && !p_second_parental_haplosome)
 		return;
 	
-	assert(p_initial_parental_genome);	// this cannot be nullptr if p_second_parental_genome is non-null, so now it is guaranteed non-null
+	assert(p_initial_parental_haplosome);	// this cannot be nullptr if p_second_parental_haplosome is non-null, so now it is guaranteed non-null
 	
-	// map the Parental Genome SLiM Id's to TSK IDs.
-	tsk_id_t genome1TSKID = p_initial_parental_genome->tsk_node_id_;
-	tsk_id_t genome2TSKID = (!p_second_parental_genome) ? genome1TSKID : p_second_parental_genome->tsk_node_id_;
+	// map the Parental Haplosome SLiM Id's to TSK IDs.
+	tsk_id_t haplosome1TSKID = p_initial_parental_haplosome->tsk_node_id_;
+	tsk_id_t haplosome2TSKID = (!p_second_parental_haplosome) ? haplosome1TSKID : p_second_parental_haplosome->tsk_node_id_;
 	
 	// fix possible excess past-the-end breakpoint
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
@@ -4526,7 +4526,7 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	{
 		right = (*p_breakpoints)[i];
 
-		tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
+		tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
 		int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 		if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 		
@@ -4535,12 +4535,12 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	}
 	
 	right = (double)chromosome_->last_position_+1;
-	tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
+	tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
 	int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 }
 
-void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
+void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
 {
 #if DEBUG
 	if (!recording_mutations_)
@@ -4548,30 +4548,30 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 #endif
 	
 	// This records information in the Site and Mutation tables.
-	// This is called whenever a new mutation is added to a genome.  Because
+	// This is called whenever a new mutation is added to a haplosome.  Because
 	// mutation stacking makes things complicated, this hook supplies not just
 	// the new mutation, but the entire new derived state – all of the
-	// mutations that exist at the given position in the given genome,
+	// mutations that exist at the given position in the given haplosome,
 	// post-addition.  This derived state may involve the removal of some
 	// ancestral mutations (or may not), in addition to the new mutation that
 	// was added.  The new state is not even guaranteed to be different from
 	// the ancestral state; because of the way new mutations are added in some
 	// paths (with bulk operations) we may not know.  This method will also be
-	// called when a mutation is removed from a given genome; if no mutations
+	// called when a mutation is removed from a given haplosome; if no mutations
 	// remain at the given position, p_derived_mutations will be empty.  The
 	// vector of mutations passed in here is reused internally, so this method
 	// must not keep a pointer to it; any information that needs to be kept
 	// from it must be copied out.  See treerec/implementation.md for more.
 	
-	// BCH 4/29/2018: Null genomes should never contain any mutations at all,
+	// BCH 4/29/2018: Null haplosomes should never contain any mutations at all,
 	// including fixed mutations; the simplest thing is to just disallow derived
 	// states for them altogether.
-	if (p_genome->IsNull())
-		EIDOS_TERMINATION << "ERROR (Species::RecordNewDerivedState): new derived states cannot be recorded for null genomes." << EidosTerminate();
+	if (p_haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewDerivedState): new derived states cannot be recorded for null haplosomes." << EidosTerminate();
 	
-	tsk_id_t genomeTSKID = p_genome->tsk_node_id_;
+	tsk_id_t haplosomeTSKID = p_haplosome->tsk_node_id_;
 
-	// Identify any previous mutations at this site in this genome, and add a new site.
+	// Identify any previous mutations at this site in this haplosome, and add a new site.
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
 	double tsk_position = (double) p_position;
 
@@ -4596,7 +4596,7 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
 	// BCH 5/14/2019: Note that this means that derived states will be recorded that look "stacked" even when those mutations would
-	// not have stacked, by the stacking policy, had they occurred in the same genome at the same time.  So this is a bit weird.
+	// not have stacked, by the stacking policy, had they occurred in the same haplosome at the same time.  So this is a bit weird.
 	// For example, you can end up with a derived state that appears to show two nucleotides stacked at the same position; but one
 	// fixed before the other one occurred, so they aren't stacked really, the new one just occurred on the ancestral background of
 	// the old one.  Possibly we ought to do something different about this (and not record a stacked derived state), but that
@@ -4619,15 +4619,15 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
 	double time = -(double) (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
-	int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, genomeTSKID, TSK_NULL, 
+	int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
 					time,
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
 					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 	
 #if DEBUG
-	if (time < tables_.nodes.time[genomeTSKID]) 
-		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " genome " << genomeTSKID << " id " << p_genome->genome_id_ << " with time " << time << " >= " << tables_.nodes.time[genomeTSKID] << std::endl;
+	if (time < tables_.nodes.time[haplosomeTSKID]) 
+		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tables_.nodes.time[haplosomeTSKID] << std::endl;
 #endif
 }
 
@@ -4848,11 +4848,11 @@ void Species::TreeSequenceDataFromAscii(const std::string &NodeFileName,
 	
 	/***** De-ascii-ify Node Table *****/
 	{
-		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = tables_.nodes.metadata;
 		tsk_size_t *metadata_offset = tables_.nodes.metadata_offset;
-		std::vector<GenomeMetadataRec> binary_metadata;
+		std::vector<HaplosomeMetadataRec> binary_metadata;
 		std::vector<tsk_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
@@ -4866,24 +4866,24 @@ void Species::TreeSequenceDataFromAscii(const std::string &NodeFileName,
 			if (metadata_parts.size() != 3)
 				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 			
-			GenomeMetadataRec metarec;
-			metarec.genome_id_ = (slim_genomeid_t)std::stoll(metadata_parts[0]);
+			HaplosomeMetadataRec metarec;
+			metarec.haplosome_id_ = (slim_haplosomeid_t)std::stoll(metadata_parts[0]);
 			
 			if (metadata_parts[1] == "T")		metarec.is_null_ = true;
 			else if (metadata_parts[1] == "F")	metarec.is_null_ = false;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node is_null value; this file cannot be read." << EidosTerminate();
 			
-			if (metadata_parts[2] == gStr_A)		metarec.type_ = GenomeType::kAutosome;
-			else if (metadata_parts[2] == gStr_X)	metarec.type_ = GenomeType::kXChromosome;
-			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = GenomeType::kYChromosome;
+			if (metadata_parts[2] == gStr_A)		metarec.type_ = HaplosomeType::kAutosome;
+			else if (metadata_parts[2] == gStr_X)	metarec.type_ = HaplosomeType::kXChromosome;
+			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = HaplosomeType::kYChromosome;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node type value; this file cannot be read." << EidosTerminate();
 			
 			binary_metadata.emplace_back(metarec);
 			
 			metadata_total_part_count++;
-			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
+			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(HaplosomeMetadataRec)));
 		}
 		
 		ret = tsk_node_table_set_columns(&tables_.nodes,
@@ -5056,7 +5056,7 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	
 	/***** Ascii-ify Node Table *****/
 	{
-		static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = p_tables->nodes.metadata;
 		tsk_size_t *metadata_offset = p_tables->nodes.metadata_offset;
@@ -5067,13 +5067,13 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 		
 		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
 		{
-			GenomeMetadataRec *struct_genome_metadata = (GenomeMetadataRec *)(metadata + metadata_offset[j]);
+			HaplosomeMetadataRec *struct_haplosome_metadata = (HaplosomeMetadataRec *)(metadata + metadata_offset[j]);
 			
-			text_metadata.append(std::to_string(struct_genome_metadata->genome_id_));
+			text_metadata.append(std::to_string(struct_haplosome_metadata->haplosome_id_));
 			text_metadata.append(",");
-			text_metadata.append(struct_genome_metadata->is_null_ ? "T" : "F");
+			text_metadata.append(struct_haplosome_metadata->is_null_ ? "T" : "F");
 			text_metadata.append(",");
-			text_metadata.append(StringForGenomeType(struct_genome_metadata->type_));
+			text_metadata.append(StringForHaplosomeType(struct_haplosome_metadata->type_));
 			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 		}
 		
@@ -5300,16 +5300,16 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			p_individuals_hash->emplace(ped_id, tsk_individual);
 
 			// Update node table
-			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
-			p_tables->nodes.individual[ind->genome1_->tsk_node_id_] = tsk_individual;
-			p_tables->nodes.individual[ind->genome2_->tsk_node_id_] = tsk_individual;
+			assert(ind->haplosome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->haplosome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			p_tables->nodes.individual[ind->haplosome1_->tsk_node_id_] = tsk_individual;
+			p_tables->nodes.individual[ind->haplosome2_->tsk_node_id_] = tsk_individual;
 
-			// update remembered genomes
+			// update remembered haplosomes
 			if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 			{
-				remembered_genomes_.emplace_back(ind->genome1_->tsk_node_id_);
-				remembered_genomes_.emplace_back(ind->genome2_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosome1_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosome2_->tsk_node_id_);
 			}
 		} else {
 			// This individual is already there; we need to update the information.
@@ -5325,12 +5325,12 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			
 			// It could have been previously inserted but not with the 
 			// SLIM_TSK_INDIVIDUAL_REMEMBERED flag: if so, it now needs adding to the
-			// list of remembered_genomes_
+			// list of remembered_haplosomes_
 			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
 				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
 			{
-				remembered_genomes_.emplace_back(ind->genome1_->tsk_node_id_);
-				remembered_genomes_.emplace_back(ind->genome2_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosome1_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosome2_->tsk_node_id_);
 			}
 
 			memcpy(p_tables->individuals.location
@@ -5342,14 +5342,14 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
 			// Check node table
-			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			assert(ind->haplosome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->haplosome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
 			
 			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
 			// would work even if they were violated.  But they're a nice invariant to guarantee,
 			// and right now they are always true.
-			assert(p_tables->nodes.individual[ind->genome1_->tsk_node_id_] == (tsk_id_t)tsk_individual);
-			assert(p_tables->nodes.individual[ind->genome2_->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[ind->haplosome1_->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[ind->haplosome2_->tsk_node_id_] == (tsk_id_t)tsk_individual);
 		}
 	}
 }
@@ -5774,7 +5774,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	char *provenance_str;
 	provenance_str = (char *)malloc(1024);
 	sprintf(provenance_str, "{\"program\": \"SLiM\", \"version\": \"%s\", \"file_version\": \"%s\", \"model_type\": \"%s\", \"generation\": %d, \"remembered_node_count\": %ld}",
-			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_genomes_.size());
+			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_haplosomes_.size());
 	
 	time(&timer);
 	tm_info = localtime(&timer);
@@ -5810,7 +5810,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["slim"]["name"] = name_;
 	if (description_.length())
 		j["slim"]["description"] = description_;
-	//j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();	// no longer writing this key!
+	//j["slim"]["remembered_node_count"] = (long)remembered_haplosomes_.size();	// no longer writing this key!
 	
 	// compute the SHA-256 hash of the script string
 	const std::string &scriptString = community_.ScriptString();
@@ -6014,7 +6014,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	*p_tick = (slim_tick_t)gen_ll;			// assumed to be the same as the generation, for this file format version
 	*p_cycle = (slim_tick_t)gen_ll;
 	
-	// read the remembered genome count and bounds-check it
+	// read the remembered haplosome count and bounds-check it
 	long long rem_count_ll = 0;
 	
 	try {
@@ -6028,7 +6028,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	if (rem_count_ll < 0)
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): remembered node count value out of range; this file cannot be read." << EidosTerminate();
 	
-	*p_remembered_genome_count = (size_t)rem_count_ll;
+	*p_remembered_haplosome_count = (size_t)rem_count_ll;
 #else
 	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); 
 	
@@ -6348,7 +6348,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			tsk_id_t node_id = individual->genome1_->tsk_node_id_;
+			tsk_id_t node_id = individual->haplosome1_->tsk_node_id_;
 			tsk_id_t ind_id = output_tables.nodes.individual[node_id];
 			
 			individual_map.emplace_back(ind_id);
@@ -6492,7 +6492,7 @@ void Species::FreeTreeSequence()
 		tsk_table_collection_free(&tables_);
 		tables_initialized_ = false;
 		
-		remembered_genomes_.clear();
+		remembered_haplosomes_.clear();
 		tabled_individuals_hash_.clear();
 	}
 }
@@ -6509,30 +6509,30 @@ void Species::RecordAllDerivedStatesFromSLiM(void)
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
 	// been initiated with AllocateTreeSequenceTables(); it might be good for this method to do a sanity check that all
 	// of the recording tables are indeed allocated but empty, I guess.  This method then records every extant individual
-	// by making calls to SetCurrentNewIndividual(), and RecordNewGenome(). Note
+	// by making calls to SetCurrentNewIndividual(), and RecordNewHaplosome(). Note
 	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
 	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
-	// mutations in a genome will be added with a single derived state call here.
+	// mutations in a haplosome will be added with a single derived state call here.
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			Genome *genome1 = individual->genome1_;
-			Genome *genome2 = individual->genome2_;
+			Haplosome *haplosome1 = individual->haplosome1_;
+			Haplosome *haplosome2 = individual->haplosome2_;
 			
 			// This is done for us, at present, as a side effect of the readPopulationFile() code...
 			//SetCurrentNewIndividual(individual);
-			//RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-			//RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+			//RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+			//RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 			
 			if (recording_mutations_)
 			{
-				if (!genome1->IsNull())
-					genome1->record_derived_states(this);
-				if (!genome2->IsNull())
-					genome2->record_derived_states(this);
+				if (!haplosome1->IsNull())
+					haplosome1->record_derived_states(this);
+				if (!haplosome2->IsNull())
+					haplosome2->record_derived_states(this);
 			}
 		}
 	}
@@ -6566,16 +6566,16 @@ void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	p_metadata->nucleotide_ = p_substitution->nucleotide_;
 }
 
-void Species::MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata)
+void Species::MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec *p_metadata)
 {
-	static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
 	
-	if (!p_genome || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForGenome): (internal error) bad parameters to MetadataForGenome()." << EidosTerminate();
+	if (!p_haplosome || !p_metadata)
+		EIDOS_TERMINATION << "ERROR (Species::MetadataForHaplosome): (internal error) bad parameters to MetadataForHaplosome()." << EidosTerminate();
 	
-	p_metadata->genome_id_ = p_genome->genome_id_;
-	p_metadata->is_null_ = p_genome->IsNull();
-	p_metadata->type_ = p_genome->genome_type_;
+	p_metadata->haplosome_id_ = p_haplosome->haplosome_id_;
+	p_metadata->is_null_ = p_haplosome->IsNull();
+	p_metadata->type_ = p_haplosome->haplosome_type_;
 }
 
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
@@ -6672,37 +6672,37 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mismatch between SLiM substitutions and the treeseq substitution multimap." << EidosTerminate();
 	}
 	
-	// get all genomes from all subpopulations; we will cross-check them all simultaneously
-	static std::vector<Genome *> genomes;
-	genomes.clear();
+	// get all haplosomes from all subpopulations; we will cross-check them all simultaneously
+	static std::vector<Haplosome *> haplosomes;
+	haplosomes.clear();
 	
 	for (auto pop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = pop_iter.second;
 		
-		for (Genome *genome : subpop->parent_genomes_)
-			genomes.emplace_back(genome);
+		for (Haplosome *haplosome : subpop->parent_haplosomes_)
+			haplosomes.emplace_back(haplosome);
 	}
 	
-	// if we have no genomes to check, we return; we could check that the tree sequences are also empty, but we don't
-	size_t genome_count = genomes.size();
+	// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
+	size_t haplosome_count = haplosomes.size();
 	
-	if (genome_count == 0)
+	if (haplosome_count == 0)
 		return;
 	
-	// check for correspondence between SLiM's genomes and the tree_seq's nodes, including their metadata
+	// check for correspondence between SLiM's haplosomes and the tree_seq's nodes, including their metadata
 	// FIXME unimplemented
 	
 	// if we're recording mutations, we can check all of them
 	if (recording_mutations_)
 	{
-		// prepare to walk all the genomes by making GenomeWalker objects for them all
-		static std::vector<GenomeWalker> genome_walkers;
-		genome_walkers.clear();
-		genome_walkers.reserve(genome_count);
+		// prepare to walk all the haplosomes by making HaplosomeWalker objects for them all
+		static std::vector<HaplosomeWalker> haplosome_walkers;
+		haplosome_walkers.clear();
+		haplosome_walkers.reserve(haplosome_count);
 		
-		for (Genome *genome : genomes)
-			genome_walkers.emplace_back(genome);
+		for (Haplosome *haplosome : haplosomes)
+			haplosome_walkers.emplace_back(haplosome);
 		
 		// make a copy of the full table collection, so that we can sort/clean/simplify without modifying anything
 		int ret;
@@ -6727,8 +6727,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			std::vector<tsk_id_t> samples;
 			
 			for (auto iter : population_.subpops_)
-				for (Genome *genome : iter.second->parent_genomes_)
-					samples.emplace_back(genome->tsk_node_id_);
+				for (Haplosome *haplosome : iter.second->parent_haplosomes_)
+					samples.emplace_back(haplosome->tsk_node_id_);
 			
 			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
@@ -6778,11 +6778,11 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
 			
 			// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
-			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-			// in the sample are using them.  We will then check that all the genomes that the variant claims to involve have
-			// the allele the variant attributes to them, and that no genomes contain any alleles at the position that are not
+			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which haplosomes
+			// in the sample are using them.  We will then check that all the haplosomes that the variant claims to involve have
+			// the allele the variant attributes to them, and that no haplosomes contain any alleles at the position that are not
 			// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
-			// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
+			// every extant haplosome's mutruns, advance those pointers a step at a time, and check that everything matches at every
 			// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
 			slim_position_t variant_pos_int = (slim_position_t)variant.site.position;		// should be no loss of precision, fingers crossed
 			
@@ -6794,58 +6794,58 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
 				fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
 			
-			// Check all the genomes against the variant's belief about this site
-			for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
+			// Check all the haplosomes against the variant's belief about this site
+			for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 			{
-				GenomeWalker &genome_walker = genome_walkers[genome_index];
-				int32_t genome_variant = variant.genotypes[genome_index];
-				tsk_size_t genome_allele_length = variant.allele_lengths[genome_variant];
+				HaplosomeWalker &haplosome_walker = haplosome_walkers[haplosome_index];
+				int32_t haplosome_variant = variant.genotypes[haplosome_index];
+				tsk_size_t haplosome_allele_length = variant.allele_lengths[haplosome_variant];
 				
-				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
+				if (haplosome_allele_length % sizeof(slim_mutationid_t) != 0)
 					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-				genome_allele_length /= sizeof(slim_mutationid_t);
+				haplosome_allele_length /= sizeof(slim_mutationid_t);
 				
-				//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
+				//std::cout << "variant for haplosome: " << (int)haplosome_variant << " (allele length == " << haplosome_allele_length << ")" << std::endl;
 				
-				// BCH 4/29/2018: null genomes shouldn't ever contain any mutations, including fixed mutations
-				if (genome_walker.WalkerGenome()->IsNull())
+				// BCH 4/29/2018: null haplosomes shouldn't ever contain any mutations, including fixed mutations
+				if (haplosome_walker.WalkerHaplosome()->IsNull())
 				{
-					if (genome_allele_length == 0)
+					if (haplosome_allele_length == 0)
 						continue;
 					
-					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null haplosome has non-zero treeseq allele length " << haplosome_allele_length << "." << EidosTerminate();
 				}
 				
-				// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
+				// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a haplosome contains no
 				// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
-				// check that the next mutation in the genome in question exists and has the right mutation id; (3) if the variant's
+				// check that the next mutation in the haplosome in question exists and has the right mutation id; (3) if the variant's
 				// allele has more than one mutation id, we have to check them all against all the mutations at the given position
-				// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
-				// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
+				// in the haplosome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
+				// the variant is for a mutation that has fixed, it will not be present in the haplosome; we check for a substitution
 				// with the right ID.
-				slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant.alleles[genome_variant];
+				slim_mutationid_t *haplosome_allele = (slim_mutationid_t *)variant.alleles[haplosome_variant];
 				
-				if (genome_allele_length == 0)
+				if (haplosome_allele_length == 0)
 				{
-					// If there are no fixed mutations at this site, we can continue; genomes that have a mutation at this site will
+					// If there are no fixed mutations at this site, we can continue; haplosomes that have a mutation at this site will
 					// raise later when they realize they have been skipped over, so we don't have to check for that now...
 					if (fixed_mutids.size() == 0)
 						continue;
 					
 					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 				}
-				else if (genome_allele_length == 1)
+				else if (haplosome_allele_length == 1)
 				{
 					// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
-					slim_mutationid_t allele_mutid = *genome_allele;
-					Mutation *current_mut = genome_walker.CurrentMutation();
+					slim_mutationid_t allele_mutid = *haplosome_allele;
+					Mutation *current_mut = haplosome_walker.CurrentMutation();
 					
 					if (current_mut)
 					{
 						slim_position_t current_mut_pos = current_mut->position_;
 						
 						if (current_mut_pos < variant_pos_int)
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (single case)." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (single case)." << EidosTerminate();
 						if (current_mut->position_ > variant_pos_int)
 							current_mut = nullptr;	// not a candidate for this position, we'll see it again later
 					}
@@ -6867,44 +6867,44 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 					else
 					{
 						// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 					}
 					
-					genome_walker.NextMutation();
+					haplosome_walker.NextMutation();
 					
 					// Check the next mutation to see if it's at this position as well, and is missing from the tree;
 					// this would get caught downstream, but for debugging it is clearer to catch it here
-					Mutation *next_mut = genome_walker.CurrentMutation();
+					Mutation *next_mut = haplosome_walker.CurrentMutation();
 					
 					if (next_mut && next_mut->position_ == variant_pos_int)
 						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
 				}
-				else // (genome_allele_length > 1)
+				else // (haplosome_allele_length > 1)
 				{
 					static std::vector<slim_mutationid_t> allele_mutids;
-					static std::vector<slim_mutationid_t> genome_mutids;
+					static std::vector<slim_mutationid_t> haplosome_mutids;
 					allele_mutids.clear();
-					genome_mutids.clear();
+					haplosome_mutids.clear();
 					
 					// tabulate all tree mutations
-					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-						allele_mutids.emplace_back(genome_allele[mutid_index]);
+					for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
+						allele_mutids.emplace_back(haplosome_allele[mutid_index]);
 					
 					// tabulate segregating SLiM mutations
 					while (true)
 					{
-						Mutation *current_mut = genome_walker.CurrentMutation();
+						Mutation *current_mut = haplosome_walker.CurrentMutation();
 						
 						if (current_mut)
 						{
 							slim_position_t current_mut_pos = current_mut->position_;
 							
 							if (current_mut_pos < variant_pos_int)
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (bulk case)." << EidosTerminate();
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (bulk case)." << EidosTerminate();
 							else if (current_mut_pos == variant_pos_int)
 							{
-								genome_mutids.emplace_back(current_mut->mutation_id_);
-								genome_walker.NextMutation();
+								haplosome_mutids.emplace_back(current_mut->mutation_id_);
+								haplosome_walker.NextMutation();
 							}
 							else break;
 						}
@@ -6912,27 +6912,27 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 					}
 					
 					// tabulate fixed SLiM mutations
-					genome_mutids.insert(genome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
+					haplosome_mutids.insert(haplosome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
 					
 					// crosscheck, sorting so there is no order-dependency
-					if (allele_mutids.size() != genome_mutids.size())
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (genome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+					if (allele_mutids.size() != haplosome_mutids.size())
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (haplosome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 					
 					std::sort(allele_mutids.begin(), allele_mutids.end());
-					std::sort(genome_mutids.begin(), genome_mutids.end());
+					std::sort(haplosome_mutids.begin(), haplosome_mutids.end());
 					
-					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-						if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele bulk mutid mismatch." << EidosTerminate();
+					for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
+						if (allele_mutids[mutid_index] != haplosome_mutids[mutid_index])
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele bulk mutid mismatch." << EidosTerminate();
 				}
 			}
 		}
 		
-		// we have finished all variants, so all the genomes we're tracking should be at their ends; any left-over mutations
+		// we have finished all variants, so all the haplosomes we're tracking should be at their ends; any left-over mutations
 		// should have been in the trees but weren't, so this is an error
-		for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
-			if (!genome_walkers[genome_index].Finished())
-				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in genome beyond those in tree." << EidosTerminate();
+		for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
+			if (!haplosome_walkers[haplosome_index].Finished())
+				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in haplosome beyond those in tree." << EidosTerminate();
 		
 		// free
 		ret = tsk_variant_free(&variant);
@@ -7739,59 +7739,59 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		size_t node0_metadata_length = node_table.metadata_offset[node0 + 1] - node_table.metadata_offset[node0];
 		size_t node1_metadata_length = node_table.metadata_offset[node1 + 1] - node_table.metadata_offset[node1];
 		
-		if ((node0_metadata_length != sizeof(GenomeMetadataRec)) || (node1_metadata_length != sizeof(GenomeMetadataRec)))
+		if ((node0_metadata_length != sizeof(HaplosomeMetadataRec)) || (node1_metadata_length != sizeof(HaplosomeMetadataRec)))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 		
-		GenomeMetadataRec *node0_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node0]);
-		GenomeMetadataRec *node1_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node1]);
+		HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node0]);
+		HaplosomeMetadataRec *node1_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node1]);
 		
-		if ((node0_metadata->genome_id_ != metadata->pedigree_id_ * 2) || (node1_metadata->genome_id_ != metadata->pedigree_id_ * 2 + 1))
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): genome id mismatch; this file cannot be read." << EidosTerminate();
+		if ((node0_metadata->haplosome_id_ != metadata->pedigree_id_ * 2) || (node1_metadata->haplosome_id_ != metadata->pedigree_id_ * 2 + 1))
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): haplosome id mismatch; this file cannot be read." << EidosTerminate();
 		
 		bool expected_is_null_0 = false, expected_is_null_1 = false;
-		GenomeType expected_genome_type_0 = GenomeType::kAutosome, expected_genome_type_1 = GenomeType::kAutosome;
+		HaplosomeType expected_haplosome_type_0 = HaplosomeType::kAutosome, expected_haplosome_type_1 = HaplosomeType::kAutosome;
 		
 		if (sex_enabled_)
 		{
 			// NOLINTBEGIN(*-branch-clone) : ok, this is a little weird, but it makes it explicit what happens for males versus females
-			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
+			if (modeled_chromosome_type_ == HaplosomeType::kXChromosome)
 			{
 				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : false;
 				expected_is_null_1 = (sex == IndividualSex::kMale) ? true : false;
-				expected_genome_type_0 = (sex == IndividualSex::kMale) ? GenomeType::kXChromosome : GenomeType::kXChromosome;
-				expected_genome_type_1 = (sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome;
+				expected_haplosome_type_0 = (sex == IndividualSex::kMale) ? HaplosomeType::kXChromosome : HaplosomeType::kXChromosome;
+				expected_haplosome_type_1 = (sex == IndividualSex::kMale) ? HaplosomeType::kYChromosome : HaplosomeType::kXChromosome;
 			}
-			else if (modeled_chromosome_type_ == GenomeType::kYChromosome)
+			else if (modeled_chromosome_type_ == HaplosomeType::kYChromosome)
 			{
 				expected_is_null_0 = (sex == IndividualSex::kMale) ? true : true;
 				expected_is_null_1 = (sex == IndividualSex::kMale) ? false : true;
-				expected_genome_type_0 = (sex == IndividualSex::kMale) ? GenomeType::kXChromosome : GenomeType::kXChromosome;
-				expected_genome_type_1 = (sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome;
+				expected_haplosome_type_0 = (sex == IndividualSex::kMale) ? HaplosomeType::kXChromosome : HaplosomeType::kXChromosome;
+				expected_haplosome_type_1 = (sex == IndividualSex::kMale) ? HaplosomeType::kYChromosome : HaplosomeType::kXChromosome;
 			}
 			// NOLINTEND(*-branch-clone)
 		}
 		
-		// BCH 9/27/2021: Null genomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
+		// BCH 9/27/2021: Null haplosomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
 		if (node0_metadata->is_null_ != expected_is_null_0)
 		{
-			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_genome_type_0 == GenomeType::kAutosome))
+			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_haplosome_type_0 == HaplosomeType::kAutosome))
 				;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
 		}
 		if (node1_metadata->is_null_ != expected_is_null_1)
 		{
-			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_genome_type_1 == GenomeType::kAutosome))
+			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_haplosome_type_1 == HaplosomeType::kAutosome))
 				;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
 		}
-		if ((node0_metadata->type_ != expected_genome_type_0) || (node1_metadata->type_ != expected_genome_type_1))
+		if ((node0_metadata->type_ != expected_haplosome_type_0) || (node1_metadata->type_ != expected_haplosome_type_1))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node type unexpected; this file cannot be read." << EidosTerminate();
 	}
 }
 
-void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap)
+void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap)
 {
 	// We will keep track of all pedigree IDs used, and check at the end that they do not collide; faster than checking as we go
 	// This could be done with a hash table, but I imagine that would be slower until the number of individuals becomes very large
@@ -7820,7 +7820,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 		
 		community_.SymbolTable().InitializeConstantSymbolEntry(symbol_entry);
 		
-		// connect up the individuals and genomes in the new subpop with the tree-seq table entries
+		// connect up the individuals and haplosomes in the new subpop with the tree-seq table entries
 		int sex_count = sex_enabled_ ? 2 : 1;
 		
 		for (int sex_index = 0; sex_index < sex_count; ++sex_index)
@@ -7854,11 +7854,11 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				tsk_id_t node_id_0 = subpop_info.nodes_[(size_t)tabulation_index * 2];
 				tsk_id_t node_id_1 = subpop_info.nodes_[(size_t)tabulation_index * 2 + 1];
 				
-				individual->genome1_->tsk_node_id_ = node_id_0;
-				individual->genome2_->tsk_node_id_ = node_id_1;
+				individual->haplosome1_->tsk_node_id_ = node_id_0;
+				individual->haplosome2_->tsk_node_id_ = node_id_1;
 				
-				p_nodeToGenomeMap.emplace(node_id_0, individual->genome1_);
-				p_nodeToGenomeMap.emplace(node_id_1, individual->genome2_);
+				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosome1_);
+				p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosome2_);
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
@@ -7871,8 +7871,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
-				individual->genome1_->genome_id_ = pedigree_id * 2;
-				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
+				individual->haplosome1_->haplosome_id_ = pedigree_id * 2;
+				individual->haplosome2_->haplosome_id_ = pedigree_id * 2 + 1;
 				
 				individual->age_ = subpop_info.age_[tabulation_index];
 				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
@@ -7880,43 +7880,43 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
 				
 				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
-				// here we crosscheck the node information against the realized values in the genomes of the individual
+				// here we crosscheck the node information against the realized values in the haplosomes of the individual
 				tsk_node_table_t &node_table = tables_.nodes;
 				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
 				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
 				
-				if ((node0_metadata_length != sizeof(GenomeMetadataRec)) || (node1_metadata_length != sizeof(GenomeMetadataRec)))
+				if ((node0_metadata_length != sizeof(HaplosomeMetadataRec)) || (node1_metadata_length != sizeof(HaplosomeMetadataRec)))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 				
-				GenomeMetadataRec *node0_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
-				GenomeMetadataRec *node1_metadata = (GenomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_1]);
-				Genome *genome0 = individual->genome1_, *genome1 = individual->genome2_;
+				HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
+				HaplosomeMetadataRec *node1_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_1]);
+				Haplosome *haplosome0 = individual->haplosome1_, *haplosome1 = individual->haplosome2_;
 				
-				if ((node0_metadata->genome_id_ != genome0->genome_id_) || (node1_metadata->genome_id_ != genome1->genome_id_))
-					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-genome id mismatch; this file cannot be read." << EidosTerminate();
-				// BCH 9/27/2021: Null genomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
-				if (node0_metadata->is_null_ != genome0->IsNull())
+				if ((node0_metadata->haplosome_id_ != haplosome0->haplosome_id_) || (node1_metadata->haplosome_id_ != haplosome1->haplosome_id_))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
+				// BCH 9/27/2021: Null haplosomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
+				if (node0_metadata->is_null_ != haplosome0->IsNull())
 				{
-					if (node0_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node0_metadata->type_ == GenomeType::kAutosome))
+					if (node0_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node0_metadata->type_ == HaplosomeType::kAutosome))
 					{
-						genome0->MakeNull();
-						new_subpop->has_null_genomes_ = true;
+						haplosome0->MakeNull();
+						new_subpop->has_null_haplosomes_ = true;
 					}
 					else
-						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
 				}
-				if (node1_metadata->is_null_ != genome1->IsNull())
+				if (node1_metadata->is_null_ != haplosome1->IsNull())
 				{
-					if (node1_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node1_metadata->type_ == GenomeType::kAutosome))
+					if (node1_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node1_metadata->type_ == HaplosomeType::kAutosome))
 					{
-						genome1->MakeNull();
-						new_subpop->has_null_genomes_ = true;
+						haplosome1->MakeNull();
+						new_subpop->has_null_haplosomes_ = true;
 					}
 					else
-						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
 				}
-				if ((node0_metadata->type_ != genome0->Type()) || (node1_metadata->type_ != genome1->Type()))
-					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-genome type mismatch; this file cannot be read." << EidosTerminate();
+				if ((node0_metadata->type_ != haplosome0->Type()) || (node1_metadata->type_ != haplosome1->Type()))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome type mismatch; this file cannot be read." << EidosTerminate();
 			}
 		}
 	}
@@ -8240,7 +8240,7 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 	}
 }
 
-void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts)
+void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts)
 {
 	// allocate and set up the tsk_variant object we'll use to walk through sites
 	tsk_variant_t *variant;
@@ -8252,42 +8252,42 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 			variant, p_ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_init()", ret);
 	
-	// set up a map from sample indices in the variant to Genome objects; the sample
+	// set up a map from sample indices in the variant to Haplosome objects; the sample
 	// may contain nodes that are ancestral and need to be excluded
-	std::vector<Genome *> indexToGenomeMap;
+	std::vector<Haplosome *> indexToHaplosomeMap;
 	size_t sample_count = variant->num_samples;
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
 		tsk_id_t sample_node_id = variant->samples[sample_index];
-		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
+		auto sample_nodeToHaplosome_iter = p_nodeToHaplosomeMap.find(sample_node_id);
 		
-		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
-			indexToGenomeMap.emplace_back(sample_nodeToGenome_iter->second);
+		if (sample_nodeToHaplosome_iter != p_nodeToHaplosomeMap.end())
+			indexToHaplosomeMap.emplace_back(sample_nodeToHaplosome_iter->second);
 		else
-			indexToGenomeMap.emplace_back(nullptr);	// this sample is not extant; no corresponding genome
+			indexToHaplosomeMap.emplace_back(nullptr);	// this sample is not extant; no corresponding haplosome
 	}
 	
-	// add mutations to genomes by looping through variants
+	// add mutations to haplosomes by looping through variants
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
 		ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
 		if (ret < 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_decode()", ret);
 		
 		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
-		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-		// in the sample are using them.  We want to find any mutations that are shared across all non-null genomes.
+		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which haplosomes
+		// in the sample are using them.  We want to find any mutations that are shared across all non-null haplosomes.
 		for (tsk_size_t allele_index = 0; allele_index < variant->num_alleles; ++allele_index)
 		{
 			tsk_size_t allele_length = variant->allele_lengths[allele_index];
 			
 			if (allele_length > 0)
 			{
-				// Calculate the number of extant genomes that reference this allele
+				// Calculate the number of extant haplosomes that reference this allele
 				int32_t allele_refs = 0;
 				
 				for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
-					if ((variant->genotypes[sample_index] == (int32_t)allele_index) && (indexToGenomeMap[sample_index] != nullptr))
+					if ((variant->genotypes[sample_index] == (int32_t)allele_index) && (indexToHaplosomeMap[sample_index] != nullptr))
 						allele_refs++;
 				
 				// If that count is greater than zero (might be zero if only non-extant nodes reference the allele), tally it
@@ -8325,12 +8325,12 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 
 void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap)
 {
-	// count the number of non-null genomes there are; this is the count that would represent fixation
+	// count the number of non-null haplosomes there are; this is the count that would represent fixation
 	slim_refcount_t fixation_count = 0;
 	
 	for (auto pop_iter : population_.subpops_)
-		for (Genome *genome : pop_iter.second->parent_genomes_)
-			if (!genome->IsNull())
+		for (Haplosome *haplosome : pop_iter.second->parent_haplosomes_)
+			if (!haplosome->IsNull())
 				fixation_count++;
 	
 	// instantiate mutations
@@ -8348,7 +8348,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if (gSLiM_next_mutation_id <= mutation_id)
 			gSLiM_next_mutation_id = mutation_id + 1;
 		
-		// a mutation might not be refered by any extant genome; it might be present in an ancestral node,
+		// a mutation might not be refered by any extant haplosome; it might be present in an ancestral node,
 		// but have been lost in all descendants, in which we do not need to instantiate it
 		if (mut_info.ref_count == 0)
 			continue;
@@ -8383,7 +8383,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			
 			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
 			
-			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
 			population_.MutationRegistryAdd(new_mut);
 			
@@ -8402,7 +8402,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	}
 }
 
-void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts)
+void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts)
 {
 	// This code is based on Species::CrosscheckTreeSeqIntegrity(), but it can be much simpler.
 	// We also don't need to sort/deduplicate/simplify; the tables read in should be simplified already.
@@ -8414,34 +8414,34 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 
 	variant = (tsk_variant_t *)malloc(sizeof(tsk_variant_t));
 	if (!variant)
-		EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToHaplosomes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	int ret = tsk_variant_init(variant, p_ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
-	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_init()", ret);
+	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToHaplosomes tsk_variant_init()", ret);
 	
-	// set up a map from sample indices in the variant to Genome objects; the sample
+	// set up a map from sample indices in the variant to Haplosome objects; the sample
 	// may contain nodes that are ancestral and need to be excluded
-	std::vector<Genome *> indexToGenomeMap;
+	std::vector<Haplosome *> indexToHaplosomeMap;
 	size_t sample_count = variant->num_samples;
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
 		tsk_id_t sample_node_id = variant->samples[sample_index];
-		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
+		auto sample_nodeToHaplosome_iter = p_nodeToHaplosomeMap.find(sample_node_id);
 		
-		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
+		if (sample_nodeToHaplosome_iter != p_nodeToHaplosomeMap.end())
 		{
-			// we found a genome for this sample, so record it
-			indexToGenomeMap.emplace_back(sample_nodeToGenome_iter->second);
+			// we found a haplosome for this sample, so record it
+			indexToHaplosomeMap.emplace_back(sample_nodeToHaplosome_iter->second);
 		}
 		else
 		{
-			// this sample is not extant; no corresponding genome, so record nullptr
-			indexToGenomeMap.emplace_back(nullptr);
+			// this sample is not extant; no corresponding haplosome, so record nullptr
+			indexToHaplosomeMap.emplace_back(nullptr);
 		}
 	}
 	
-	// add mutations to genomes by looping through variants
+	// add mutations to haplosomes by looping through variants
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
@@ -8449,54 +8449,54 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
 		ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
-		if (ret < 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_decode()", ret);
+		if (ret < 0) handle_error("__AddMutationsFromTreeSequenceToHaplosomes tsk_variant_decode()", ret);
 		
 		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
-		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-		// in the sample are using them.  We will then set all the genomes that the variant claims to involve to have
+		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which haplosomes
+		// in the sample are using them.  We will then set all the haplosomes that the variant claims to involve to have
 		// the allele the variant attributes to them.  The variants are returned in sorted order by position, so we can
-		// always add new mutations to the ends of genomes.
+		// always add new mutations to the ends of haplosomes.
 		slim_position_t variant_pos_int = (slim_position_t)variant->site.position;
 		
 		for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
 		{
-			Genome *genome = indexToGenomeMap[sample_index];
+			Haplosome *haplosome = indexToHaplosomeMap[sample_index];
 			
-			if (genome)
+			if (haplosome)
 			{
-				int32_t genome_variant = variant->genotypes[sample_index];
-				tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
+				int32_t haplosome_variant = variant->genotypes[sample_index];
+				tsk_size_t haplosome_allele_length = variant->allele_lengths[haplosome_variant];
 				
-				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
-					EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-				genome_allele_length /= sizeof(slim_mutationid_t);
+				if (haplosome_allele_length % sizeof(slim_mutationid_t) != 0)
+					EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToHaplosomes): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+				haplosome_allele_length /= sizeof(slim_mutationid_t);
 				
-				if (genome_allele_length > 0)
+				if (haplosome_allele_length > 0)
 				{
-					if (genome->IsNull())
-						EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+					if (haplosome->IsNull())
+						EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToHaplosomes): (internal error) null haplosome has non-zero treeseq allele length " << haplosome_allele_length << "." << EidosTerminate();
 					
-					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
-					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
+					slim_mutationid_t *haplosome_allele = (slim_mutationid_t *)variant->alleles[haplosome_variant];
+					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / haplosome->mutrun_length_);
 					
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the genome
+					// When parallel, the MutationRunContext depends upon the position in the haplosome
 					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(run_index);
 #endif
 					
 					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
-					// we created them empty, nobody has modified them but us, and we process each genome separately.
-					MutationRun *mutrun = genome->WillModifyRun_UNSHARED(run_index, mutrun_context);
+					// we created them empty, nobody has modified them but us, and we process each haplosome separately.
+					MutationRun *mutrun = haplosome->WillModifyRun_UNSHARED(run_index, mutrun_context);
 					
-					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+					for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
 					{
-						slim_mutationid_t mut_id = genome_allele[mutid_index];
+						slim_mutationid_t mut_id = haplosome_allele[mutid_index];
 						auto mut_index_iter = p_mutIndexMap.find(mut_id);
 						
 						if (mut_index_iter == p_mutIndexMap.end())
-							EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToHaplosomes): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
 						
-						// Add the mutation to the genome unless it is fixed (mut_index == -1)
+						// Add the mutation to the haplosome unless it is fixed (mut_index == -1)
 						MutationIndex mut_index = mut_index_iter->second;
 						
 						if (mut_index != -1)
@@ -8509,14 +8509,14 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	
 	// free
 	ret = tsk_variant_free(variant);
-	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_free()", ret);
+	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToHaplosomes tsk_variant_free()", ret);
 	free(variant);
 }
 
 void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 {
 	// Make sure our next pedigree ID is safe; right now it only accounts for pedigree IDs used by individuals, but maybe there
-	// could be nodes in the node table with genome pedigree IDs greater than those in use by individuals, in nonWF models.
+	// could be nodes in the node table with haplosome pedigree IDs greater than those in use by individuals, in nonWF models.
 	// See https://github.com/MesserLab/SLiM/pull/420 for an example model that does this very easily.
 	
 	// Also, check for duplicate pedigree IDs, just in case.  __CreateSubpopulationsFromTabulation() does this for individual
@@ -8525,7 +8525,7 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 	// due to the nature of the values being inserted.  Shouldn't be a big deal in the grand scheme of things.
 	tsk_node_table_t &node_table = tables_.nodes;
 	tsk_size_t node_count = node_table.num_rows;
-	std::vector<slim_genomeid_t> genome_id_check;
+	std::vector<slim_haplosomeid_t> haplosome_id_check;
 	
 	for (tsk_size_t j = 0; (size_t)j < node_count; j++)
 	{
@@ -8534,15 +8534,15 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 		tsk_size_t length = (offset2 - offset1);
 		
 		// allow nodes with other types of metadata; but if the metadata length metches ours, we have to assume it's ours
-		if (length == sizeof(GenomeMetadataRec))
+		if (length == sizeof(HaplosomeMetadataRec))
 		{
-			// get the metadata record and check the genome pedigree ID
-			GenomeMetadataRec *metadata_rec = (GenomeMetadataRec *)(node_table.metadata + offset1);
-			slim_genomeid_t genome_id = metadata_rec->genome_id_;
+			// get the metadata record and check the haplosome pedigree ID
+			HaplosomeMetadataRec *metadata_rec = (HaplosomeMetadataRec *)(node_table.metadata + offset1);
+			slim_haplosomeid_t haplosome_id = metadata_rec->haplosome_id_;
 			
-			genome_id_check.emplace_back(genome_id);	// we will test for collisions below
+			haplosome_id_check.emplace_back(haplosome_id);	// we will test for collisions below
 			
-			slim_pedigreeid_t pedigree_id = genome_id / 2;			// rounds down to integer
+			slim_pedigreeid_t pedigree_id = haplosome_id / 2;			// rounds down to integer
 			
 			if (pedigree_id >= gSLiM_next_pedigree_id)
 			{
@@ -8551,7 +8551,7 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 				if (!been_here)
 				{
 					// decided to keep this as a warning; this circumstance is not necessarily pathological, but it probably usually is...
-					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a genome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
+					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a haplosome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
 					been_here = true;
 				}
 				
@@ -8560,12 +8560,12 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 		}
 	}
 	
-	// Check for genome pedigree ID collisions by sorting and looking for duplicates
-	std::sort(genome_id_check.begin(), genome_id_check.end());
-	const auto duplicate = std::adjacent_find(genome_id_check.begin(), genome_id_check.end());
+	// Check for haplosome pedigree ID collisions by sorting and looking for duplicates
+	std::sort(haplosome_id_check.begin(), haplosome_id_check.end());
+	const auto duplicate = std::adjacent_find(haplosome_id_check.begin(), haplosome_id_check.end());
 	
-	if (duplicate != genome_id_check.end())
-		EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): the genome pedigree ID value " << *duplicate << " was used more than once; genome pedigree IDs must be unique." << EidosTerminate();
+	if (duplicate != haplosome_id_check.end())
+		EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): the haplosome pedigree ID value " << *duplicate << " was used more than once; haplosome pedigree IDs must be unique." << EidosTerminate();
 }
 
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
@@ -8607,14 +8607,14 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	ret = tsk_treeseq_init(ts, &tables_, TSK_TS_INIT_BUILD_INDEXES);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_init()", ret);
 	
-	std::unordered_map<tsk_id_t, Genome *> nodeToGenomeMap;
+	std::unordered_map<tsk_id_t, Haplosome *> nodeToHaplosomeMap;
 	
 	{
 		std::unordered_map<slim_objectid_t, ts_subpop_info> subpopInfoMap;
 		
 		__PrepareSubpopulationsFromTables(subpopInfoMap);
 		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts, p_file_model_type);
-		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter, nodeToGenomeMap);
+		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter, nodeToHaplosomeMap);
 		__ConfigureSubpopulationsFromTables(p_interpreter);
 	}
 	
@@ -8624,11 +8624,11 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
 		__TabulateMutationsFromTables(mutInfoMap, p_file_version);
-		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToGenomeMap, ts);
+		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap);
 	}
 	
-	__AddMutationsFromTreeSequenceToGenomes(mutIndexMap, nodeToGenomeMap, ts);
+	__AddMutationsFromTreeSequenceToHaplosomes(mutIndexMap, nodeToHaplosomeMap, ts);
 	
 	ret = tsk_treeseq_free(ts);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
@@ -8638,9 +8638,9 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	// and that there are no duplicate node pedigree IDs in the input file (whether in use or not).
 	__CheckNodePedigreeIDs(p_interpreter);
 	
-	// Set up the remembered genomes by looking though the list of nodes and their individuals
-	if (remembered_genomes_.size() != 0)
-		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): (internal error) remembered_genomes_ is not empty." << EidosTerminate();
+	// Set up the remembered haplosomes by looking though the list of nodes and their individuals
+	if (remembered_haplosomes_.size() != 0)
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): (internal error) remembered_haplosomes_ is not empty." << EidosTerminate();
 	
 	for (tsk_id_t j = 0; (size_t) j < tables_.nodes.num_rows; j++)
 	{
@@ -8649,14 +8649,14 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		{
 			uint32_t flags = tables_.individuals.flags[ind];
 			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-				remembered_genomes_.emplace_back(j);
+				remembered_haplosomes_.emplace_back(j);
 		}
 	}
-	assert(remembered_genomes_.size() % 2 == 0);
+	assert(remembered_haplosomes_.size() % 2 == 0);
 
 	// Sort them to match the order of the individual table, so that they satisfy
 	// the invariants asserted in Species::AddIndividualsToTable(); see the comments there
-	std::sort(remembered_genomes_.begin(), remembered_genomes_.end(), [this](tsk_id_t l, tsk_id_t r) {
+	std::sort(remembered_haplosomes_.begin(), remembered_haplosomes_.end(), [this](tsk_id_t l, tsk_id_t r) {
 		tsk_id_t l_ind = tables_.nodes.individual[l];
 		tsk_id_t r_ind = tables_.nodes.individual[r];
 		if (l_ind != r_ind)
@@ -8715,7 +8715,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
 	
-	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
+	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
 	std::string directory_path(p_file);
 	
 	if (recording_tree_)
@@ -8782,7 +8782,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
 	
-	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
+	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
 	int ret;
 
 	if (recording_tree_)
@@ -8988,7 +8988,7 @@ size_t Species::MemoryUsageForTables(tsk_table_collection_t &p_tables)
 	if (t.provenances.record)
 		usage += t.provenances.max_record_length * sizeof(char);
 	
-	usage += remembered_genomes_.size() * sizeof(tsk_id_t);
+	usage += remembered_haplosomes_.size() * sizeof(tsk_id_t);
 	
 	return usage;
 }

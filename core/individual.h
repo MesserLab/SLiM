@@ -20,12 +20,12 @@
 /*
  
  The class Individual is a simple placeholder for individual simulated organisms.  It is not used by SLiM's core engine at all;
- it is provided solely for scripting convenience, as a bag containing the two genomes associated with an individual.  This
- makes it easy to sample a subpopulation's individuals, rather than its genomes; to determine whether individuals have a given
- mutation on either of their genomes; and other similar tasks.
+ it is provided solely for scripting convenience, as a bag containing the two haplosomes associated with an individual.  This
+ makes it easy to sample a subpopulation's individuals, rather than its haplosomes; to determine whether individuals have a given
+ mutation on either of their haplosomes; and other similar tasks.
  
  Individuals are kept by Subpopulation, and have the same lifetime as the Subpopulation to which they belong.  Since they do not
- actually contain any information specific to a particular individual – just an index in the Subpopulation's genomes vector –
+ actually contain any information specific to a particular individual – just an index in the Subpopulation's haplosomes vector –
  they do not get deallocated and reallocated between cycles; the same object continues to represent individual #17 of the
  subpopulation for as long as that subpopulation exists.  This is safe because of the way that objects cannot live across code
  block boundaries in SLiM.  The tag values of particular Individual objects will persist between cycles, even though the
@@ -37,7 +37,7 @@
 #define __SLiM__individual__
 
 
-#include "genome.h"
+#include "haplosome.h"
 
 
 class Subpopulation;
@@ -84,7 +84,7 @@ private:
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
-	// If these are maintained, genome pedigree IDs are also maintained in parallel; see genome.h.
+	// If these are maintained, haplosome pedigree IDs are also maintained in parallel; see haplosome.h.
 	float mean_parent_age_;				// the mean age of this individual's parents; 0 if parentless, -1 in WF models
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
 	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
@@ -132,7 +132,7 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
+	Haplosome *haplosome1_, *haplosome2_;	// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -149,7 +149,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	inline virtual ~Individual(void) override { }
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
@@ -160,8 +160,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
+		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;
@@ -190,8 +190,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
+		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent.pedigree_id_;
 		pedigree_p2_ = p_parent.pedigree_id_;
@@ -220,8 +220,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
+		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Parentless()
@@ -234,7 +234,7 @@ public:
 	double RelatednessToIndividual(Individual &p_ind);
 	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-							   IndividualSex A_sex, IndividualSex B_sex, GenomeType modeledChromosomeType);
+							   IndividualSex A_sex, IndividualSex B_sex, HaplosomeType modeledChromosomeType);
 	
 	int SharedParentCountWithIndividual(Individual &p_ind);
 	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);
@@ -307,8 +307,8 @@ public:
 	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomesFromParent1(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomesFromParent2(EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
 	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
@@ -327,7 +327,7 @@ public:
 	static void SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	static void SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
-	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
+	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentHaplosomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
 	// BCH 5/24/2022: Note that these globals are shared across species, so if one species uses a given facility, all
 	// species will suffer the associated speed penalty for it.  This is a bit unfortunate, but keeps the design simple.
@@ -336,7 +336,7 @@ public:
 	static bool s_any_individual_tag_set_;
 	static bool s_any_individual_tagF_set_;
 	static bool s_any_individual_tagL_set_;
-	static bool s_any_genome_tag_set_;
+	static bool s_any_haplosome_tag_set_;
 	static bool s_any_individual_fitness_scaling_set_;
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()

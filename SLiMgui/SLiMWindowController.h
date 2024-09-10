@@ -291,7 +291,7 @@ class Community;
 @property (nonatomic, assign) IBOutlet NSTextField *haplotypeSampleTextField;
 @property (nonatomic, assign) IBOutlet NSButton *haplotypeOKButton;
 
-@property (nonatomic) int haplotypeSample;		// 0 = all genomes, 1 = sample
+@property (nonatomic) int haplotypeSample;		// 0 = all haplosomes, 1 = sample
 @property (nonatomic) int haplotypeClustering;	// 0 = nearest neighbor, 1 = greedy, 2 = greedy + 2-opt
 @property (nonatomic) int haplotypeSampleSize;	// from haplotypeSampleTextField
 
@@ -314,7 +314,7 @@ class Community;
 @property (nonatomic, assign) IBOutlet NSTextField *haplotypeProgressOptimizationLabel;
 @property (nonatomic, assign) IBOutlet NSLayoutConstraint *haplotypeProgressNoOptConstraint;
 
-- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count;
+- (void)runHaplotypePlotProgressSheetWithHaplosomeCount:(int)haplosome_count;
 
 - (IBAction)haplotypeProgressSheetCancel:(id)sender;
 

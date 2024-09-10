@@ -21,7 +21,7 @@
 #include "species.h"
 
 #include "community.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
@@ -958,11 +958,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	std::string chromosome_type = chromosomeType_value->StringAtIndex_NOCAST(0, nullptr);
 	
 	if (chromosome_type.compare(gStr_A) == 0)
-		modeled_chromosome_type_ = GenomeType::kAutosome;
+		modeled_chromosome_type_ = HaplosomeType::kAutosome;
 	else if (chromosome_type.compare(gStr_X) == 0)
-		modeled_chromosome_type_ = GenomeType::kXChromosome;
+		modeled_chromosome_type_ = HaplosomeType::kXChromosome;
 	else if (chromosome_type.compare(gStr_Y) == 0)
-		modeled_chromosome_type_ = GenomeType::kYChromosome;
+		modeled_chromosome_type_ = HaplosomeType::kYChromosome;
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of 'A', 'X', or 'Y' ('" << chromosome_type << "' supplied)." << EidosTerminate();
 	
@@ -1448,18 +1448,8 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(avatar_));
 		}
-		case gID_chromosome:
+		case gID_chromosomes:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome_, gSLiM_Chromosome_Class));
-		case gID_chromosomeType:
-		{
-			switch (modeled_chromosome_type_)
-			{
-				case GenomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
-			}
-			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
-		}
 		case gEidosID_color:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_));
@@ -1743,8 +1733,8 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	{
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option in WF models." << EidosTerminate();
-		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when simulating sex chromosomes; in sex chromosome models, null genomes are determined by sex." << EidosTerminate();
+		if (sex_enabled_ && (modeled_chromosome_type_ != HaplosomeType::kAutosome))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when simulating sex chromosomes; in sex chromosome models, null haplosomes are determined by sex." << EidosTerminate();
 	}
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
@@ -2017,8 +2007,8 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
 				
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1];
+				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2];
+				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2 + 1];
 			}
 			
 			if (source_first_male - 1 < source_subpop_size - 1)
@@ -2028,13 +2018,13 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 				backfill->index_ = source_first_male - 1;
 				
-				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
+				source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2];
+				source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
+			source_subpop->parent_haplosomes_.resize((size_t)source_subpop_size * 2);
 			
 			source_subpop->parent_first_male_index_ = --source_first_male;
 		}
@@ -2048,13 +2038,13 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
 				
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
+				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2];
+				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
+			source_subpop->parent_haplosomes_.resize((size_t)source_subpop_size * 2);
 		}
 		
 		// add the doomed individual to our temporary graveyard
@@ -2073,15 +2063,15 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	
 	if (killed_count)
 	{
-		// First, clear our genome and individual caches in all subpopulations; any subpops involved in
+		// First, clear our haplosome and individual caches in all subpopulations; any subpops involved in
 		// this method would be invalidated anyway so this probably isn't even that much overkill in
-		// most models.  Note that the child genomes/individuals caches don't need to be thrown away,
+		// most models.  Note that the child haplosomes/individuals caches don't need to be thrown away,
 		// because they aren't used in nonWF models and this is a nonWF-only method.
 		for (auto subpop_pair : population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
-			subpop->cached_parent_genomes_value_.reset();
+			subpop->cached_parent_haplosomes_value_.reset();
 			subpop->cached_parent_individuals_value_.reset();
 		}
 		
@@ -2105,13 +2095,13 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *mutations_value = p_arguments[1].get();
 	
-	slim_refcount_t total_genome_count = 0;
+	slim_refcount_t total_haplosome_count = 0;
 	
 	// tally across the requested subpops
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
-		total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+		total_haplosome_count = population_.TallyMutationReferencesAcrossPopulation(false);
 	}
 	else
 	{
@@ -2138,9 +2128,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.
 		// Since we uniqued the subpops_to_tally vector above, we can check for equality by just comparing sizes.
 		if (subpops_to_tally.size() == population_.subpops_.size())
-			total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+			total_haplosome_count = population_.TallyMutationReferencesAcrossPopulation(false);
 		else
-			total_genome_count = population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally, false);
+			total_haplosome_count = population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally, false);
 	}
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2155,9 +2145,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	// OK, now construct our result vector from the tallies for just the requested mutations
 	// We now have utility methods on Population that do this for us
 	if (p_method_id == gID_mutationFrequencies)
-		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value, total_genome_count);
+		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value, total_haplosome_count);
 	else // p_method_id == gID_mutationCounts
-		return population_.Eidos_CountsForTalliedMutations(mutations_value, total_genome_count);
+		return population_.Eidos_CountsForTalliedMutations(mutations_value, total_haplosome_count);
 }
 
 //	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
@@ -2439,7 +2429,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	// BCH 3/6/2022: Note that in SLiM 4 we now output the species cycle after the tick.  This breaks backward compatibility
 	// for code that parses the output from outputFull(), but in a minor way.  It is necessary so that we can round-trip a model
 	// with outputFull()/readFromPopulationFile(); that needs to restore the species cycle.  The cycle is also added to
-	// the other text output formats, except those on Genome (where the genomes might come from multiple species).
+	// the other text output formats, except those on Haplosome (where the haplosomes might come from multiple species).
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -2547,7 +2537,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		if (mutations_species != this)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputMutations): outputMutations() requires that all mutations belong to the target species." << EidosTerminate();
 		
-		// as we scan through genomes building the polymorphism map, we want to process only mutations that are
+		// as we scan through haplosomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
 		int registry_size;
@@ -2576,12 +2566,12 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			
 			for (slim_popsize_t i = 0; i < 2 * subpop->parent_subpop_size_; i++)	// go through all parents
 			{
-				Genome &genome = *subpop->parent_genomes_[i];
-				int mutrun_count = genome.mutrun_count_;
+				Haplosome &haplosome = *subpop->parent_haplosomes_[i];
+				int mutrun_count = haplosome.mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = genome.mutruns_[run_index];
+					const MutationRun *mutrun = haplosome.mutruns_[run_index];
 					int mut_count = mutrun->size();
 					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					
@@ -3351,8 +3341,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomes,			true,	kEidosValueMaskObject, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

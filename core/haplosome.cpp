@@ -1,5 +1,5 @@
 //
-//  genome.cpp
+//  haplosome.cpp
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#include "genome.h"
+#include "haplosome.h"
 #include "slim_globals.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
@@ -38,16 +38,16 @@
 
 
 #pragma mark -
-#pragma mark Genome
+#pragma mark Haplosome
 #pragma mark -
 
-// Static class variables in support of Genome's bulk operation optimization; see Genome::WillModifyRunForBulkOperation()
-int64_t Genome::s_bulk_operation_id_ = 0;
-slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
-SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
+// Static class variables in support of Haplosome's bulk operation optimization; see Haplosome::WillModifyRunForBulkOperation()
+int64_t Haplosome::s_bulk_operation_id_ = 0;
+slim_mutrun_index_t Haplosome::s_bulk_operation_mutrun_index_ = -1;
+SLiMBulkOperationHashTable Haplosome::s_bulk_operation_runs_;
 
 
-Genome::~Genome(void)
+Haplosome::~Haplosome(void)
 {
 	if (mutruns_ != run_buffer_)
 		free(mutruns_);
@@ -57,16 +57,16 @@ Genome::~Genome(void)
 }
 
 // prints an error message, a stacktrace, and exits; called only for DEBUG
-void Genome::NullGenomeAccessError(void) const
+void Haplosome::NullHaplosomeAccessError(void) const
 {
-	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (Haplosome::NullHaplosomeAccessError): (internal error) a null haplosome was accessed." << EidosTerminate();
 }
 
-MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
+MutationRun *Haplosome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
 {
 #if DEBUG
 	if (p_run_index >= mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
 	
 	// This method used to support in-place modification for mutruns with a use count of 1,
@@ -82,11 +82,11 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunC
 	return new_run;
 }
 
-MutationRun *Genome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
+MutationRun *Haplosome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
 {
 #if DEBUG
 	if (p_run_index >= mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun_UNSHARED): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRun_UNSHARED): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
 	
 	// This method avoids the new mutation run allocation, unless the mutation run is empty.
@@ -116,39 +116,39 @@ MutationRun *Genome::WillModifyRun_UNSHARED(slim_mutrun_index_t p_run_index, Mut
 	}
 }
 
-void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+void Haplosome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::BulkOperationStart(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::BulkOperationStart(): s_bulk_operation_id_");
 	
 	if (s_bulk_operation_id_ != 0)
 	{
-		//EIDOS_TERMINATION << "ERROR (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << EidosTerminate();
+		//EIDOS_TERMINATION << "ERROR (Haplosome::BulkOperationStart): (internal error) unmatched bulk operation start." << EidosTerminate();
 		
 		// It would be nice to be able to throw an exception here, but in the present design, the
 		// bulk operation info can get messed up if the bulk operation throws an exception that
-		// blows through the call to Genome::BulkOperationEnd().
+		// blows through the call to Haplosome::BulkOperationEnd().
 		// Note this warning is not suppressed by gEidosSuppressWarnings; that is deliberate
-		std::cout << "WARNING (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << std::endl;
+		std::cout << "WARNING (Haplosome::BulkOperationStart): (internal error) unmatched bulk operation start." << std::endl;
 		
 		// For now, we assume that the end call got blown through, and we close out the old operation.
-		Genome::BulkOperationEnd(s_bulk_operation_id_, s_bulk_operation_mutrun_index_);
+		Haplosome::BulkOperationEnd(s_bulk_operation_id_, s_bulk_operation_mutrun_index_);
 	}
 	
 	s_bulk_operation_id_ = p_operation_id;
 	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
-MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
+MutationRun *Haplosome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
 {
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
 	
 	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
 	if (p_mutrun_index >= mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 	
 #if 0
-#warning Genome::WillModifyRunForBulkOperation disabled...
+#warning Haplosome::WillModifyRunForBulkOperation disabled...
 	// The trivial version of this function just calls WillModifyRun(),
 	// requesting that the caller perform the operation
 	return WillModifyRun(p_run_index);
@@ -158,7 +158,7 @@ MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_
 	const MutationRun *original_run = mutruns_[p_mutrun_index];
 	
 	if (p_operation_id != s_bulk_operation_id_)
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << EidosTerminate();
 	
 	auto found_run_pair = s_bulk_operation_runs_.find(original_run);
 	
@@ -173,7 +173,7 @@ MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_
 		try {
 			s_bulk_operation_runs_.emplace(original_run, product_run);
 		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Haplosome::WillModifyRunForBulkOperation): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 		}
 		
 		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
@@ -192,9 +192,9 @@ MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_
 #endif
 }
 
-void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+void Haplosome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::BulkOperationEnd(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::BulkOperationEnd(): s_bulk_operation_id_");
 	
 	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
@@ -204,15 +204,15 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutr
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Genome::BulkOperationEnd): (internal error) unmatched bulk operation end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::BulkOperationEnd): (internal error) unmatched bulk operation end." << EidosTerminate();
 	}
 }
 
-void Genome::TallyGenomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
+void Haplosome::TallyHaplosomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
 {
 #if DEBUG
 	if (mutrun_count_ == 0)
-		NullGenomeAccessError();
+		NullHaplosomeAccessError();
 #endif
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
@@ -225,7 +225,7 @@ void Genome::TallyGenomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally
 	}
 }
 
-void Genome::MakeNull(void)
+void Haplosome::MakeNull(void)
 {
 	if (mutrun_count_)
 	{
@@ -238,19 +238,19 @@ void Genome::MakeNull(void)
 	}
 }
 
-void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
+void Haplosome::ReinitializeHaplosomeToMutruns(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
 {
-	genome_type_ = p_genome_type;
+	haplosome_type_ = p_haplosome_type;
 	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
 		{
-			// was a null genome, needs to become not null
+			// was a null haplosome, needs to become not null
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
 			
-			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 				mutruns_ = run_buffer_;
 			else
 				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
@@ -264,7 +264,7 @@ void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mut
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
 			
-			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 				mutruns_ = run_buffer_;
 			else
 				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
@@ -281,7 +281,7 @@ void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mut
 	{
 		if (mutrun_count_)
 		{
-			// was a non-null genome, needs to become null
+			// was a non-null haplosome, needs to become null
 			if (mutruns_ != run_buffer_)
 				free(mutruns_);
 			mutruns_ = nullptr;
@@ -292,22 +292,22 @@ void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mut
 	}
 }
 
-void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
+void Haplosome::ReinitializeHaplosomeNullptr(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
 {
-	genome_type_ = p_genome_type;
+	haplosome_type_ = p_haplosome_type;
 	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
 		{
-			// was a null genome, needs to become not null
+			// was a null haplosome, needs to become not null
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
 			
-			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 			}
 			else
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
@@ -321,10 +321,10 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
 			
-			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 			}
 			else
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
@@ -332,8 +332,8 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 		else
 		{
 			// the number of mutruns has not changed; need to zero out
-			if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+			if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
+				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 			else
 				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 		}
@@ -344,7 +344,7 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 	{
 		if (mutrun_count_)
 		{
-			// was a non-null genome, needs to become null
+			// was a non-null haplosome, needs to become null
 			if (mutruns_ != run_buffer_)
 				free(mutruns_);
 			mutruns_ = nullptr;
@@ -355,14 +355,14 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 	}
 }
 
-void Genome::record_derived_states(Species *p_species) const
+void Haplosome::record_derived_states(Species *p_species) const
 {
 	// This is called by Species::RecordAllDerivedStatesFromSLiM() to record all the derived states present
-	// in a given genome that was just created by readFromPopulationFile() or some similar situation.  It should
-	// make calls to record the derived state at each position in the genome that has any mutation.
+	// in a given haplosome that was just created by readFromPopulationFile() or some similar situation.  It should
+	// make calls to record the derived state at each position in the haplosome that has any mutation.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::record_derived_states(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome::record_derived_states(): usage of statics");
 
 	static std::vector<Mutation *> record_vec;
 	
@@ -413,26 +413,26 @@ void Genome::record_derived_states(Species *p_species) const
 #pragma mark Eidos support
 #pragma mark -
 
-void Genome::GenerateCachedEidosValue(void)
+void Haplosome::GenerateCachedEidosValue(void)
 {
 	// Note that this cache cannot be invalidated as long as a symbol table might exist that this value has been placed into
-	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Genome_Class));
+	self_value_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Haplosome_Class));
 }
 
-const EidosClass *Genome::Class(void) const
+const EidosClass *Haplosome::Class(void) const
 {
-	return gSLiM_Genome_Class;
+	return gSLiM_Haplosome_Class;
 }
 
-void Genome::Print(std::ostream &p_ostream) const
+void Haplosome::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName() << "<";
 	
-	switch (genome_type_)
+	switch (haplosome_type_)
 	{
-		case GenomeType::kAutosome:		p_ostream << gStr_A; break;
-		case GenomeType::kXChromosome:	p_ostream << gStr_X; break;
-		case GenomeType::kYChromosome:	p_ostream << gStr_Y; break;
+		case HaplosomeType::kAutosome:		p_ostream << gStr_A; break;
+		case HaplosomeType::kXChromosome:	p_ostream << gStr_X; break;
+		case HaplosomeType::kYChromosome:	p_ostream << gStr_Y; break;
 	}
 	
 	if (mutrun_count_ == 0)
@@ -441,39 +441,35 @@ void Genome::Print(std::ostream &p_ostream) const
 		p_ostream << ":" << mutation_count() << ">";
 }
 
-EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
+EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
 			// constants
-		case gID_genomePedigreeID:		// ACCELERATED
+		case gID_chromosome:
+		{
+			Chromosome *chromosome = individual_->subpopulation_->species_.chromosome_;
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
+		}
+		case gID_haplosomePedigreeID:		// ACCELERATED
 		{
 			if (!individual_->subpopulation_->species_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(genome_id_));
-		}
-		case gID_genomeType:
-		{
-			switch (genome_type_)
-			{
-				case GenomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
-			}
-			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): (internal error) unknown value for genome_type_." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(haplosome_id_));
 		}
 		case gID_individual:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(individual_, gSLiM_Individual_Class));
 		}
-		case gID_isNullGenome:		// ACCELERATED
+		case gID_isNullHaplosome:		// ACCELERATED
 			return ((mutrun_count_ == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
 			if (IsDeferred())
-				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int mut_count = mutation_count();
@@ -500,7 +496,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			slim_usertag_t tag_value = tag_value_;
 			
 			if (tag_value == SLIM_TAG_UNSET_VALUE)
-				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property tag accessed on genome before being set." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property tag accessed on haplosome before being set." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(tag_value));
 		}
@@ -511,7 +507,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
-EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	size_t value_index = 0;
@@ -519,32 +515,32 @@ EidosValue *Genome::GetProperty_Accelerated_genomePedigreeID(EidosObject **p_val
 	// check that pedigrees are enabled, once
 	if (value_index < p_values_size)
 	{
-		Genome *value = (Genome *)(p_values[value_index]);
+		Haplosome *value = (Haplosome *)(p_values[value_index]);
 		
 		if (!value->individual_->subpopulation_->species_.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property genomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property haplosomePedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 		
-		int_result->set_int_no_check(value->genome_id_, value_index);
+		int_result->set_int_no_check(value->haplosome_id_, value_index);
 		++value_index;
 	}
 	
 	for ( ; value_index < p_values_size; ++value_index)
 	{
-		Genome *value = (Genome *)(p_values[value_index]);
+		Haplosome *value = (Haplosome *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->genome_id_, value_index);
+		int_result->set_int_no_check(value->haplosome_id_, value_index);
 	}
 	
 	return int_result;
 }
 
-EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_isNullHaplosome(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		Genome *value = (Genome *)(p_values[value_index]);
+		Haplosome *value = (Haplosome *)(p_values[value_index]);
 		
 		logical_result->set_logical_no_check(value->mutrun_count_ == 0, value_index);
 	}
@@ -552,17 +548,17 @@ EidosValue *Genome::GetProperty_Accelerated_isNullGenome(EidosObject **p_values,
 	return logical_result;
 }
 
-EidosValue *Genome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
+EidosValue *Haplosome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
-		Genome *value = (Genome *)(p_values[value_index]);
+		Haplosome *value = (Haplosome *)(p_values[value_index]);
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (Genome::GetProperty): property tag accessed on genome before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome::GetProperty): property tag accessed on haplosome before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}
@@ -570,7 +566,7 @@ EidosValue *Genome::GetProperty_Accelerated_tag(EidosObject **p_values, size_t p
 	return int_result;
 }
 
-void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
+void Haplosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
 {
 	switch (p_property_id)
 	{
@@ -579,7 +575,7 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
-			Individual::s_any_genome_tag_set_ = true;
+			Individual::s_any_haplosome_tag_set_ = true;
 			return;
 		}
 			
@@ -590,9 +586,9 @@ void Genome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_
 	}
 }
 
-void Genome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+void Haplosome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	Individual::s_any_genome_tag_set_ = true;
+	Individual::s_any_haplosome_tag_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
@@ -600,18 +596,18 @@ void Genome::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values
 		int64_t source_value = p_source.IntAtIndex_NOCAST(0, nullptr);
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((Genome *)(p_values[value_index]))->tag_value_ = source_value;
+			((Haplosome *)(p_values[value_index]))->tag_value_ = source_value;
 	}
 	else
 	{
 		const int64_t *source_data = p_source.IntData();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((Genome *)(p_values[value_index]))->tag_value_ = source_data[value_index];
+			((Haplosome *)(p_values[value_index]))->tag_value_ = source_data[value_index];
 	}
 }
 
-EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	switch (p_method_id)
 	{
@@ -628,7 +624,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 
 //	*********************	- (Nlo<Mutation>$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position, [returnMutation$ = F])
 //
-EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
@@ -638,27 +634,27 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 	if (p_elements_size)
 	{
 		// SPECIES CONSISTENCY CHECK
-		Species *genomes_species = Community::SpeciesForGenomesVector((Genome **)p_elements, (int)p_elements_size);
+		Species *haplosomes_species = Community::SpeciesForHaplosomesVector((Haplosome **)p_elements, (int)p_elements_size);
 		
-		if (!genomes_species)
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() requires that all target genomes belong to the same species." << EidosTerminate();
+		if (!haplosomes_species)
+			EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() requires that all target haplosomes belong to the same species." << EidosTerminate();
 		
-		genomes_species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_containsMarkerMutation");
+		haplosomes_species->population_.CheckForDeferralInHaplosomesVector((Haplosome **)p_elements, p_elements_size, "Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation");
 		
-		Species &species = *genomes_species;
+		Species &species = *haplosomes_species;
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "containsMarkerMutation()");		// SPECIES CONSISTENCY CHECK
 		slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(0, nullptr));
 		slim_position_t last_position = species.TheChromosome().last_position_;
 		
 		if (marker_position > last_position)
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
 		
 		eidos_logical_t returnMutation = returnMutation_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		if (p_elements_size == 1)
 		{
 			// separate singleton case to return gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
-			Genome *element = (Genome *)(p_elements[0]);
+			Haplosome *element = (Haplosome *)(p_elements[0]);
 			
 			if (!element->IsNull())
 			{
@@ -672,19 +668,19 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 		}
 		else if (returnMutation == false)
 		{
-			// We will return a logical vector, T/F for each target genome; parallelized
+			// We will return a logical vector, T/F for each target haplosome; parallelized
 			EidosValue_Logical *result_logical_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
-			bool null_genome_seen = false;
+			bool null_haplosome_seen = false;
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CONTAINS_MARKER_MUT);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(p_elements_size) firstprivate(p_elements, mutation_type_ptr, marker_position, last_position, result_logical_vec) reduction(||: null_genome_seen) if(p_elements_size >= EIDOS_OMPMIN_CONTAINS_MARKER_MUT) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(p_elements_size) firstprivate(p_elements, mutation_type_ptr, marker_position, last_position, result_logical_vec) reduction(||: null_haplosome_seen) if(p_elements_size >= EIDOS_OMPMIN_CONTAINS_MARKER_MUT) num_threads(thread_count)
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
-				Genome *element = (Genome *)(p_elements[element_index]);
+				Haplosome *element = (Haplosome *)(p_elements[element_index]);
 				
 				if (element->IsNull())
 				{
-					null_genome_seen = true;
+					null_haplosome_seen = true;
 					continue;
 				}
 				
@@ -693,22 +689,22 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 				result_logical_vec->set_logical_no_check(mut != nullptr, element_index);
 			}
 			
-			if (!null_genome_seen)
+			if (!null_haplosome_seen)
 				return EidosValue_SP(result_logical_vec);
 		}
 		else // (returnMutation == true)
 		{
-			// We will return an object<Mutation> vector, one Mutation (or NULL) for each target genome; not parallelized, for now
+			// We will return an object<Mutation> vector, one Mutation (or NULL) for each target haplosome; not parallelized, for now
 			EidosValue_Object *result_obj_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->reserve(p_elements_size);
-			bool null_genome_seen = false;
+			bool null_haplosome_seen = false;
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
-				Genome *element = (Genome *)(p_elements[element_index]);
+				Haplosome *element = (Haplosome *)(p_elements[element_index]);
 				
 				if (element->IsNull())
 				{
-					null_genome_seen = true;
+					null_haplosome_seen = true;
 					continue;
 				}
 				
@@ -718,12 +714,12 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 					result_obj_vec->push_object_element_RR(mut);
 			}
 			
-			if (!null_genome_seen)
+			if (!null_haplosome_seen)
 				return EidosValue_SP(result_obj_vec);
 		}
 		
-		// we drop through to here when a null genome is encountered
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
+		// we drop through to here when a null haplosome is encountered
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() cannot be called on a null haplosome." << EidosTerminate();
 	}
 	else
 	{
@@ -733,18 +729,18 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 
 //	*********************	- (logical)containsMutations(object<Mutation> mutations)
 //
-EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMutations(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_elements_size)
 	{
 		// SPECIES CONSISTENCY CHECK
-		Species *genomes_species = Community::SpeciesForGenomesVector((Genome **)p_elements, (int)p_elements_size);
+		Species *haplosomes_species = Community::SpeciesForHaplosomesVector((Haplosome **)p_elements, (int)p_elements_size);
 		
-		if (!genomes_species)
-			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all target genomes belong to the same species." << EidosTerminate();
+		if (!haplosomes_species)
+			EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
 		
-		genomes_species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_containsMutations");
+		haplosomes_species->population_.CheckForDeferralInHaplosomesVector((Haplosome **)p_elements, p_elements_size, "Haplosome::ExecuteMethod_Accelerated_containsMutations");
 		
 		EidosValue *mutations_value = p_arguments[0].get();
 		int mutations_count = mutations_value->Count();
@@ -753,8 +749,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 		{
 			Species *mutations_species = Community::SpeciesForMutations(mutations_value);
 			
-			if (mutations_species != genomes_species)
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
+			if (mutations_species != haplosomes_species)
+				EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all mutations belong to the same species as the target haplosomes." << EidosTerminate();
 		}
 		
 		if ((mutations_count == 1) && (p_elements_size == 1))
@@ -762,12 +758,12 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 			// We want to be smart enough to return gStaticEidosValue_LogicalT or gStaticEidosValue_LogicalF in the singleton/singleton case
 			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
 			MutationIndex mut_block_index = mut->BlockIndex();
-			slim_position_t mutrun_length = ((Genome *)(p_elements[0]))->mutrun_length_;		// assume all Genome objects have the same mutrun_length_; better be true...
+			slim_position_t mutrun_length = ((Haplosome *)(p_elements[0]))->mutrun_length_;		// assume all Haplosome objects have the same mutrun_length_; better be true...
 			slim_position_t mutrun_index = mut->position_ / mutrun_length;
-			Genome *element = (Genome *)(p_elements[0]);
+			Haplosome *element = (Haplosome *)(p_elements[0]);
 			
 			if (element->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null haplosome." << EidosTerminate();
 			
 			bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
 			
@@ -783,10 +779,10 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 			
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
-				Genome *element = (Genome *)(p_elements[element_index]);
+				Haplosome *element = (Haplosome *)(p_elements[element_index]);
 				
 				if (element->IsNull())
-					EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null haplosome." << EidosTerminate();
 				
 				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
@@ -809,25 +805,25 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 
 //	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 //
-EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_elements_size == 0)
 		return gStaticEidosValue_Integer_ZeroVec;
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomesVector((Genome **)p_elements, (int)p_elements_size);
+	Species *species = Community::SpeciesForHaplosomesVector((Haplosome **)p_elements, (int)p_elements_size);
 	
 	if (species == nullptr)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_countOfMutationsOfType");
+	species->population_.CheckForDeferralInHaplosomesVector((Haplosome **)p_elements, p_elements_size, "Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
-	const int32_t mutrun_count = ((Genome *)(p_elements[0]))->mutrun_count_;
+	const int32_t mutrun_count = ((Haplosome *)(p_elements[0]))->mutrun_count_;
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
 	bool saw_error = false;
@@ -836,7 +832,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, integer_result, mutrun_count) reduction(||: saw_error) if(p_elements_size >= EIDOS_OMPMIN_G_COUNT_OF_MUTS_OF_TYPE) num_threads(thread_count)
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
-		Genome *element = (Genome *)(p_elements[element_index]);
+		Haplosome *element = (Haplosome *)(p_elements[element_index]);
 		
 		if (element->IsNull())
 		{
@@ -861,22 +857,22 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 	}
 	
 	if (saw_error)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null haplosome." << EidosTerminate();
 	
 	return EidosValue_SP(integer_result);
 }
 
 //	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
 //
-EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	if (IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_mutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null haplosome." << EidosTerminate();
 	
 	Species &species = individual_->subpopulation_->species_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "mutationsOfType()");		// SPECIES CONSISTENCY CHECK
@@ -943,18 +939,18 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 
 //	*********************	– (is)nucleotides([Ni$ start = NULL], [Ni$ end = NULL], [s$ format = "string"])
 //
-EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	
 	Species *species = &individual_->subpopulation_->species_;
 	Chromosome &chromosome = species->TheChromosome();
 	slim_position_t last_position = chromosome.last_position_;
 	
 	if (!species->IsNucleotideBased())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): nucleotides() may only be called in nucleotide-based models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): nucleotides() may only be called in nucleotide-based models." << EidosTerminate();
 	
 	NucleotideArray *sequence = species->TheChromosome().AncestralSequence();
 	EidosValue *start_value = p_arguments[0].get();
@@ -964,14 +960,14 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 	int64_t end = (end_value->Type() == EidosValueType::kValueNULL) ? last_position : end_value->IntAtIndex_NOCAST(0, nullptr);
 	
 	if ((start < 0) || (end < 0) || (start > last_position) || (end > last_position) || (start > end))
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): start and end must be within the chromosome's extent, and start must be <= end." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): start and end must be within the chromosome's extent, and start must be <= end." << EidosTerminate();
 	if (((std::size_t)start >= sequence->size()) || ((std::size_t)end >= sequence->size()))
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): (internal error) start and end must be within the ancestral sequence's length." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): (internal error) start and end must be within the ancestral sequence's length." << EidosTerminate();
 	
 	int64_t length = end - start + 1;
 	
 	if (length > INT_MAX)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
 	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
 	const std::string &format = format_value->StringRefAtIndex_NOCAST(0, nullptr);
@@ -983,7 +979,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		// patch the sequence with nucleotide mutations
 		// no singleton case; we force a vector return from NucleotidesAsCodonVector() for simplicity
 		int64_t *int_vec = ((EidosValue_Int *)(codon_value.get()))->data_mutable();
-		GenomeWalker walker(this);
+		HaplosomeWalker walker(this);
 		
 		walker.MoveToPosition(start);
 		
@@ -1039,7 +1035,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		if (start == end)
 		{
 			// singleton case: replace string_value entirely
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1070,7 +1066,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 			// vector case: replace the appropriate character in string_value
 			std::string &string_string = ((EidosValue_String *)(string_value.get()))->StringData_Mutable()[0];
 			char *string_ptr = &string_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1102,7 +1098,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		if (start == end)
 		{
 			// singleton case: replace integer_value entirely
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1132,7 +1128,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		{
 			// vector case: replace the appropriate element in integer_value
 			int64_t *int_vec = ((EidosValue_Int *)(integer_value.get()))->data_mutable();
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1164,7 +1160,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		if (start == end)
 		{
 			// singleton case: replace char_value entirely
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1194,7 +1190,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		{
 			// vector case: replace the appropriate element in char_value
 			std::string &char_vec = char_value->StringData_Mutable()[0];
-			GenomeWalker walker(this);
+			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
 			
@@ -1219,20 +1215,20 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 		return char_value;
 	}
 	
-	EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): parameter format must be either 'string', 'char', 'integer', or 'codon'." << EidosTerminate();
 }
 
 //	*********************	- (integer)positionsOfMutationsOfType(io<MutationType>$ mutType)
 //
-EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	if (IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_positionsOfMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null haplosome." << EidosTerminate();
 	
 	Species &species = individual_->subpopulation_->species_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "positionsOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
@@ -1261,15 +1257,15 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 
 //	*********************	- (integer$)sumOfMutationsOfType(io<MutationType>$ mutType)
 //
-EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	if (IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null haplosome." << EidosTerminate();
 	
 	Species &species = individual_->subpopulation_->species_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
@@ -1282,12 +1278,12 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	for (int run_index = 0; run_index < mutrun_count; ++run_index)
 	{
 		const MutationRun *mutrun = mutruns_[run_index];
-		int genome1_count = mutrun->size();
-		const MutationIndex *genome_ptr = mutrun->begin_pointer_const();
+		int haplosome1_count = mutrun->size();
+		const MutationIndex *haplosome_ptr = mutrun->begin_pointer_const();
 		
-		for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+		for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
 		{
-			Mutation *mut_ptr = mut_block_ptr + genome_ptr[mut_index];
+			Mutation *mut_ptr = mut_block_ptr + haplosome_ptr[mut_index];
 			
 			if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 				selcoeff_sum += mut_ptr->selection_coeff_;
@@ -1297,25 +1293,25 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selcoeff_sum));
 }
 
-// print the sample represented by genomes, using SLiM's own format
-void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id)
+// print the sample represented by haplosomes, using SLiM's own format
+void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, slim_objectid_t p_source_subpop_id)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
 	
 	// get the polymorphisms within the sample
 	PolymorphismMap polymorphisms;
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome = *p_genomes[s];
+		Haplosome &haplosome = *p_haplosomes[s];
 		
-		if (genome.IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_SLiM): cannot output null genomes." << EidosTerminate();
+		if (haplosome.IsNull())
+			EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_SLiM): cannot output null haplosomes." << EidosTerminate();
 		
-		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
+		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
-			const MutationRun *mutrun = genome.mutruns_[run_index];
+			const MutationRun *mutrun = haplosome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1331,23 +1327,23 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 	for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 		polymorphism_pair.second.Print_ID(p_out);
 	
-	// print the sample's genomes
-	p_out << "Genomes:" << std::endl;
+	// print the sample's haplosomes
+	p_out << "Haplosomes:" << std::endl;
 	
 	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
 	{
-		Genome &genome = *p_genomes[j];
+		Haplosome &haplosome = *p_haplosomes[j];
 		
 		if (p_source_subpop_id == -1)
 			p_out << "p*:" << j;
 		else
 			p_out << "p" << p_source_subpop_id << ":" << j;
 		
-		p_out << " " << genome.Type();
+		p_out << " " << haplosome.Type();
 		
-		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
+		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
-			const MutationRun *mutrun = genome.mutruns_[run_index];
+			const MutationRun *mutrun = haplosome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1356,7 +1352,7 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 				slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 				
 				if (polymorphism_id == -1)
-					EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_SLiM): (internal error) polymorphism not found." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_SLiM): (internal error) polymorphism not found." << EidosTerminate();
 				
 				p_out << " " << polymorphism_id;
 			}
@@ -1366,11 +1362,11 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 	}
 }
 
-// print the sample represented by genomes, using "ms" format
-void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genomes, const Chromosome &p_chromosome, bool p_filter_monomorphic)
+// print the sample represented by haplosomes, using "ms" format
+void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
 	
 	// BCH 7 Nov. 2016: sort the polymorphisms by position since that is the expected sort
 	// order in MS output.  In other types of output, sorting by the mutation id seems to
@@ -1383,14 +1379,14 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		
 		for (slim_popsize_t s = 0; s < sample_size; s++)
 		{
-			Genome &genome = *p_genomes[s];
+			Haplosome &haplosome = *p_haplosomes[s];
 			
-			if (genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_MS): cannot output null genomes." << EidosTerminate();
+			if (haplosome.IsNull())
+				EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_MS): cannot output null haplosomes." << EidosTerminate();
 			
-			for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
+			for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1431,7 +1427,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		for (const Polymorphism &polymorphism : sorted_polymorphisms) 
 			genotype_string_positions.emplace(polymorphism.mutation_ptr_, genotype_string_position++);
 	} catch (...) {
-		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_MS): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_MS): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
 	
 	// print header
@@ -1463,12 +1459,12 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 	// print the sample's genotypes
 	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
 	{
-		Genome &genome = *p_genomes[j];
+		Haplosome &haplosome = *p_haplosomes[j];
 		std::string genotype(sorted_polymorphisms.size(), '0'); // fill with 0s
 		
-		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
+		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
-			const MutationRun *mutrun = genome.mutruns_[run_index];
+			const MutationRun *mutrun = haplosome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1477,7 +1473,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 				const Mutation *mutation = mut_block_ptr + mut_ptr[mut_index];
 				auto found_position = genotype_string_positions.find(mutation);
 				
-				// BCH 4/24/2019: when p_filter_monomorphic is true, mutations in a given genome may not exist in the position map
+				// BCH 4/24/2019: when p_filter_monomorphic is true, mutations in a given haplosome may not exist in the position map
 				if (found_position != genotype_string_positions.end())
 					genotype.replace(found_position->second, 1, "1");
 			}
@@ -1487,14 +1483,14 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 	}
 }
 
-// print the sample represented by genomes, using "vcf" format
-void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_genomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
+// print the sample represented by haplosomes, using "vcf" format
+void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)p_genomes.size();
+	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
 	
 	if (sample_size % 2 == 1)
-		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_VCF): Genome vector must be an even length, since genomes are paired into individuals." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_VCF): Haplosome vector must be an even length, since haplosomes are paired into individuals." << EidosTerminate();
 	
 	sample_size /= 2;
 	
@@ -1503,14 +1499,14 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome1 = *p_genomes[(size_t)s * 2];
-		Genome &genome2 = *p_genomes[(size_t)s * 2 + 1];
+		Haplosome &haplosome1 = *p_haplosomes[(size_t)s * 2];
+		Haplosome &haplosome2 = *p_haplosomes[(size_t)s * 2 + 1];
 		
-		if (!genome1.IsNull())
+		if (!haplosome1.IsNull())
 		{
-			for (int run_index = 0; run_index < genome1.mutrun_count_; ++run_index)
+			for (int run_index = 0; run_index < haplosome1.mutrun_count_; ++run_index)
 			{
-				const MutationRun *mutrun = genome1.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome1.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1519,11 +1515,11 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 			}
 		}
 		
-		if (!genome2.IsNull())
+		if (!haplosome2.IsNull())
 		{
-			for (int run_index = 0; run_index < genome2.mutrun_count_; ++run_index)
+			for (int run_index = 0; run_index < haplosome2.mutrun_count_; ++run_index)
 			{
-				const MutationRun *mutrun = genome2.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome2.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1550,21 +1546,21 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	
 	p_out << "##source=SLiM" << std::endl;
 	
-	// BCH 10 July 2019: output genome pedigree IDs, if available, for all of the genomes being output.
+	// BCH 10 July 2019: output haplosome pedigree IDs, if available, for all of the haplosomes being output.
 	// It would be nice to be able to output individual pedigree IDs, but since we are working with a
-	// vector of genomes there is no guarantee that the pairs of genomes here come from the same individuals.
-	if (p_genomes.size() > 0)
+	// vector of haplosomes there is no guarantee that the pairs of haplosomes here come from the same individuals.
+	if (p_haplosomes.size() > 0)
 	{
-		Genome *genome0 = p_genomes[0];
+		Haplosome *haplosome0 = p_haplosomes[0];
 		
-		if (genome0->individual_->subpopulation_->species_.PedigreesEnabledByUser())
+		if (haplosome0->individual_->subpopulation_->species_.PedigreesEnabledByUser())
 		{
-			p_out << "##slimGenomePedigreeIDs=";
-			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_genomes.size(); index++)
+			p_out << "##slimHaplosomePedigreeIDs=";
+			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_haplosomes.size(); index++)
 			{
 				if (index > 0)
 					p_out << ",";
-				p_out << p_genomes[index]->genome_id_;
+				p_out << p_haplosomes[index]->haplosome_id_;
 			}
 			p_out << std::endl;
 		}
@@ -1729,37 +1725,37 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					// emit the individual calls
 					for (slim_popsize_t s = 0; s < sample_size; s++)
 					{
-						Genome &g1 = *p_genomes[(size_t)s * 2];
-						Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
+						Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
+						Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
 						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 						
 						if (g1_null && g2_null)
 						{
-							// Both genomes are null; we should have eliminated the possibility of this with the check above
-							EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+							// Both haplosomes are null; we should have eliminated the possibility of this with the check above
+							EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
 						}
 						
 						p_out << '\t';
 						
-						for (int genome_index = 0; genome_index <= 1; ++genome_index)
+						for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
 						{
-							Genome &genome = (genome_index == 0) ? g1 : g2;
+							Haplosome &haplosome = (haplosome_index == 0) ? g1 : g2;
 							
-							if (!genome.IsNull())
+							if (!haplosome.IsNull())
 							{
-								// Find and emit the nuc-based mut contained by this genome, if any.  If more than one nuc-based mut is contained, it is an error.
+								// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
 								int contained_mut_index = -1;
 								
 								for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
 								{
 									const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
 									
-									if (genome.contains_mutation(mutation->BlockIndex()))
+									if (haplosome.contains_mutation(mutation->BlockIndex()))
 									{
 										if (contained_mut_index == -1)
 											contained_mut_index = muts_index;
 										else
-											EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same genome; the nucleotide cannot be called." << EidosTerminate();
+											EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
 									}
 								}
 								
@@ -1769,8 +1765,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 									p_out << allele_index_for_nuc[nuc_based[contained_mut_index]->mutation_ptr_->nucleotide_];
 							}
 							
-							// If both genomes are non-null, emit a separator
-							if ((genome_index == 0) && !g1_null && !g2_null)
+							// If both haplosomes are non-null, emit a separator
+							if ((haplosome_index == 0) && !g1_null && !g2_null)
 								p_out << '|';
 						}
 					}
@@ -1871,37 +1867,37 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				// emit the individual calls
 				for (slim_popsize_t s = 0; s < sample_size; s++)
 				{
-					Genome &g1 = *p_genomes[(size_t)s * 2];
-					Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
+					Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
+					Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
 					bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 					
 					if (g1_null && g2_null)
 					{
-						// Both genomes are null; we should have eliminated the possibility of this with the check above
-						EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+						// Both haplosomes are null; we should have eliminated the possibility of this with the check above
+						EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
 					}
 					
 					p_out << '\t';
 					
-					for (int genome_index = 0; genome_index <= 1; ++genome_index)
+					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
 					{
-						Genome &genome = (genome_index == 0) ? g1 : g2;
+						Haplosome &haplosome = (haplosome_index == 0) ? g1 : g2;
 						
-						if (!genome.IsNull())
+						if (!haplosome.IsNull())
 						{
-							// Find and emit the nuc-based mut contained by this genome, if any.  If more than one nuc-based mut is contained, it is an error.
+							// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
 							int contained_mut_index = -1;
 							
 							for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
 							{
 								const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
 								
-								if (genome.contains_mutation(mutation->BlockIndex()))
+								if (haplosome.contains_mutation(mutation->BlockIndex()))
 								{
 									if (contained_mut_index == -1)
 										contained_mut_index = muts_index;
 									else
-										EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same genome; the nucleotide cannot be called." << EidosTerminate();
+										EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
 								}
 							}
 							
@@ -1911,8 +1907,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 								p_out << (contained_mut_index + 1);
 						}
 						
-						// If both genomes are non-null, emit a separator
-						if ((genome_index == 0) && !g1_null && !g2_null)
+						// If both haplosomes are non-null, emit a separator
+						if ((haplosome_index == 0) && !g1_null && !g2_null)
 							p_out << '|';
 					}
 				}
@@ -1961,14 +1957,14 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					// emit the individual calls
 					for (slim_popsize_t s = 0; s < sample_size; s++)
 					{
-						Genome &g1 = *p_genomes[(size_t)s * 2];
-						Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
+						Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
+						Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
 						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 						
 						if (g1_null && g2_null)
 						{
-							// Both genomes are null; we should have eliminated the possibility of this with the check above
-							EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): (internal error) no non-null genome to output for individual." << EidosTerminate();
+							// Both haplosomes are null; we should have eliminated the possibility of this with the check above
+							EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
 						}
 						else if (g1_null)
 						{
@@ -1982,7 +1978,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 						}
 						else
 						{
-							// Both genomes are non-null; emit an x|y pair that indicates the data is phased
+							// Both haplosomes are non-null; emit an x|y pair that indicates the data is phased
 							bool g1_has_mut = g1.contains_mutation(mutation->BlockIndex());
 							bool g2_has_mut = g2.contains_mutation(mutation->BlockIndex());
 							
@@ -2002,7 +1998,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	}
 }
 
-size_t Genome::MemoryUsageForMutrunBuffers(void)
+size_t Haplosome::MemoryUsageForMutrunBuffers(void)
 {
 	if (mutruns_ == run_buffer_)
 		return 0;
@@ -2012,31 +2008,31 @@ size_t Genome::MemoryUsageForMutrunBuffers(void)
 
 
 //
-//	Genome_Class
+//	Haplosome_Class
 //
 #pragma mark -
-#pragma mark Genome_Class
+#pragma mark Haplosome_Class
 #pragma mark -
 
-EidosClass *gSLiM_Genome_Class = nullptr;
+EidosClass *gSLiM_Haplosome_Class = nullptr;
 
 
-const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) const
+const std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties(void) const
 {
 	static std::vector<EidosPropertySignature_CSP> *properties = nullptr;
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Haplosome_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomeType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_haplosomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individual,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullGenome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_isNullGenome));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullHaplosome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_isNullHaplosome));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Genome::SetProperty_Accelerated_tag));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Haplosome::SetProperty_Accelerated_tag));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -2044,25 +2040,25 @@ const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) co
 	return properties;
 }
 
-const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
+const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) const
 {
 	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Haplosome_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMarkerMutation));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations));
-		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_countOfMutationsOfType));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_containsMutations));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Haplosome::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationCountsInGenomes, kEidosValueMaskInt))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationFrequenciesInGenomes, kEidosValueMaskFloat))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationCountsInHaplosomes, kEidosValueMaskInt))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationFrequenciesInHaplosomes, kEidosValueMaskFloat))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
@@ -2079,15 +2075,15 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 	return methods;
 }
 
-EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 	switch (p_method_id)
 	{
 		case gID_addMutations:					return ExecuteMethod_addMutations(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_addNewDrawnMutation:
 		case gID_addNewMutation:				return ExecuteMethod_addNewMutation(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_mutationCountsInGenomes:
-		case gID_mutationFrequenciesInGenomes:	return ExecuteMethod_mutationFreqsCountsInGenomes(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_mutationCountsInHaplosomes:
+		case gID_mutationFrequenciesInHaplosomes:	return ExecuteMethod_mutationFreqsCountsInHaplosomes(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_output:
 		case gID_outputMS:
 		case gID_outputVCF:						return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
@@ -2100,7 +2096,7 @@ EidosValue_SP Genome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, 
 
 //	*********************	+ (void)addMutations(object mutations)
 //
-EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	EidosValue *mutations_value = p_arguments[0].get();
@@ -2114,30 +2110,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		return gStaticEidosValueVOID;
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomes(p_target);
+	Species *species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() requires that all target genomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): " << "addMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_addMutations");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_addMutations");
 	
 	Community &community = species->community_;
 	
-	// use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-	Genome * const *targets = (Genome * const *)p_target->ObjectData();
-	Genome *genome_0 = targets[0];
-	slim_position_t mutrun_length = genome_0->mutrun_length_;
+	// use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
+	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
+	Haplosome *haplosome_0 = targets[0];
+	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	if ((community.ModelType() == SLiMModelType::kModelTypeNonWF) && species->RecordingTreeSequence())
 	{
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			Genome *target_genome = targets[genome_index];
-			Individual *target_individual = target_genome->OwningIndividual();
+			Haplosome *target_haplosome = targets[haplosome_index];
+			Individual *target_individual = target_haplosome->OwningIndividual();
 			
 			if (target_individual->age_ > 0)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): " << "addMutations() cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
 	
@@ -2154,7 +2150,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a first() or early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a first() or early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2167,49 +2163,49 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	{
 		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only haplosomes being modified belong to the new child.
 			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
 			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			// Note that the other Haplosome methods that add/remove mutations perform the same check, and should be maintained in parallel.
 			Individual *focal_modification_child = community.focal_modification_child_;
 			
 			if (focal_modification_child)
 			{
-				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
 				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
-					Genome *target_genome = targets[genome_index];
+					Haplosome *target_haplosome = targets[haplosome_index];
 					
-					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
 		}
 		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
 				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
 	
-	// check that the same genome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
+	// check that the same haplosome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
-		Genome *target_genome = targets[target_index];
+		Haplosome *target_haplosome = targets[target_index];
 		
-		if (target_genome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null genome." << EidosTerminate();
+		if (target_haplosome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on a null haplosome." << EidosTerminate();
 		
-		target_genome->scratch_ = 1;
+		target_haplosome->scratch_ = 1;
 	}
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
-		Genome *target_genome = targets[target_index];
+		Haplosome *target_haplosome = targets[target_index];
 		
-		if (target_genome->scratch_ != 1)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
+		if (target_haplosome->scratch_ != 1)
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the same haplosome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
-		target_genome->scratch_ = 0;
+		target_haplosome->scratch_ = 0;
 	}
 	
 	// Construct a vector of mutations to add that is sorted by position
@@ -2223,7 +2219,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		
 		if ((mut_to_add->state_ == MutationState::kFixedAndSubstituted) ||
 			(mut_to_add->state_ == MutationState::kRemovedWithSubstitution))
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot add a mutation that has already been fixed/substituted." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot add a mutation that has already been fixed/substituted." << EidosTerminate();
 		
 		mutations_to_add.emplace_back(mut_to_add);
 	}
@@ -2236,23 +2232,23 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		Species *mutations_species = Community::SpeciesForMutations(mutations_value);
 		
 		if (mutations_species != species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() requires that all mutations belong to the same species as the target haplosomes." << EidosTerminate();
 	}
 	
 	// TREE SEQUENCE RECORDING
 	// First, pre-plan the positions of new tree-seq derived states in anticipation of doing the addition.  We have to check
 	// whether the mutation being added is already present, to avoid recording a new derived state identical to the old one state.
-	// The algorithm used here, with GenomeWalker, depends upon the fact that we just sorted the mutations to add by position.
+	// The algorithm used here, with HaplosomeWalker, depends upon the fact that we just sorted the mutations to add by position.
 	// However, we do still have to think about multiple muts being added at the same position, and existing stacked mutations.
 	bool recording_tree_sequence_mutations = species->RecordingTreeSequenceMutations();
-	std::vector<std::pair<Genome *, std::vector<slim_position_t>>> new_derived_state_positions;
+	std::vector<std::pair<Haplosome *, std::vector<slim_position_t>>> new_derived_state_positions;
 	
 	if (recording_tree_sequence_mutations)
 	{
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			Genome *target_genome = targets[genome_index];
-			GenomeWalker walker(target_genome);
+			Haplosome *target_haplosome = targets[haplosome_index];
+			HaplosomeWalker walker(target_haplosome);
 			slim_position_t last_added_pos = -1;
 			
 			for (Mutation *mut : mutations_to_add)
@@ -2285,16 +2281,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 				// we have decided that the new derived state at this position will need to be recorded, so note that
 				if (last_added_pos == -1)
 				{
-					// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
-					new_derived_state_positions.emplace_back(target_genome, std::vector<slim_position_t>(1, mut_pos));
+					// no pair entry in new_derived_state_positions yet, so make a new pair entry for this haplosome
+					new_derived_state_positions.emplace_back(target_haplosome, std::vector<slim_position_t>(1, mut_pos));
 				}
 				else
 				{
-					// we have an existing pair entry for this genome, so add this position to its position vector
-					std::pair<Genome *, std::vector<slim_position_t>> &genome_entry = new_derived_state_positions.back();
-					std::vector<slim_position_t> &genome_list = genome_entry.second;
+					// we have an existing pair entry for this haplosome, so add this position to its position vector
+					std::pair<Haplosome *, std::vector<slim_position_t>> &haplosome_entry = new_derived_state_positions.back();
+					std::vector<slim_position_t> &haplosome_list = haplosome_entry.second;
 					
-					genome_list.emplace_back(mut_pos);
+					haplosome_list.emplace_back(mut_pos);
 				}
 				
 				last_added_pos = mut_pos;
@@ -2317,16 +2313,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
 		int64_t operation_id = MutationRun::GetNextOperationID();
 		
-		Genome::BulkOperationStart(operation_id, mutrun_index);
+		Haplosome::BulkOperationStart(operation_id, mutrun_index);
 		
 		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 		
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			Genome *target_genome = targets[genome_index];
+			Haplosome *target_haplosome = targets[haplosome_index];
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+			MutationRun *target_run = target_haplosome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 			
 			if (target_run)
 			{
@@ -2350,7 +2346,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			}
 		}
 		
-		Genome::BulkOperationEnd(operation_id, mutrun_index);
+		Haplosome::BulkOperationEnd(operation_id, mutrun_index);
 		
 		// now we have handled all mutations at this index (and all previous indices)
 		last_handled_mutrun_index = mutrun_index;
@@ -2365,13 +2361,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	// previous derived state.  This is maybe a bug, but nobody has complained and it looks hard to fix.  People don't use policy 'f' much.
 	if (recording_tree_sequence_mutations)
 	{
-		for (std::pair<Genome *, std::vector<slim_position_t>> &genome_pair : new_derived_state_positions)
+		for (std::pair<Haplosome *, std::vector<slim_position_t>> &haplosome_pair : new_derived_state_positions)
 		{
-			Genome *target_genome = genome_pair.first;
-			std::vector<slim_position_t> &genome_positions = genome_pair.second;
+			Haplosome *target_haplosome = haplosome_pair.first;
+			std::vector<slim_position_t> &haplosome_positions = haplosome_pair.second;
 			
-			for (slim_position_t position : genome_positions)
-				species->RecordNewDerivedState(target_genome, position, *target_genome->derived_mutation_ids_at_position(position));
+			for (slim_position_t position : haplosome_positions)
+				species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(position));
 		}
 	}
 	
@@ -2381,7 +2377,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 //	*********************	+ (object<Mutation>)addNewDrawnMutation(io<MutationType> mutationType, integer position, [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
 //	*********************	+ (object<Mutation>)addNewMutation(io<MutationType> mutationType, numeric selectionCoeff, integer position, [Nio<Subpopulation> originSubpop = NULL], [Nis nucleotide = NULL])
 //
-EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
@@ -2404,31 +2400,31 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	method_name.append("()");
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomes(p_target);
+	Species *species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that all target genomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_addNewMutation");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_addNewMutation");
 	
 	Community &community = species->community_;
 	
-	// get the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-	Genome * const *targets = (Genome * const *)p_target->ObjectData();
-	Genome *genome_0 = targets[0];
-	int mutrun_count = genome_0->mutrun_count_;
-	slim_position_t mutrun_length = genome_0->mutrun_length_;
+	// get the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
+	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
+	Haplosome *haplosome_0 = targets[0];
+	int mutrun_count = haplosome_0->mutrun_count_;
+	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
 	if ((community.ModelType() == SLiMModelType::kModelTypeNonWF) && species->RecordingTreeSequence())
 	{
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			Genome *target_genome = targets[genome_index];
-			Individual *target_individual = target_genome->OwningIndividual();
+			Haplosome *target_haplosome = targets[haplosome_index];
+			Individual *target_individual = target_haplosome->OwningIndividual();
 			
 			if (target_individual->age_ > 0)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
 	
@@ -2437,7 +2433,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	bool nucleotide_based = species->IsNucleotideBased();
 	
 	if (!nucleotide_based && (arg_nucleotide->Type() != EidosValueType::kValueNULL))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be NULL in non-nucleotide-based models." << EidosTerminate();
 	
 	species->CheckMutationStackPolicy();
 	
@@ -2449,7 +2445,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a first() or early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a first() or early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2462,28 +2458,28 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	{
 		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only haplosomes being modified belong to the new child.
 			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
 			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			// Note that the other Haplosome methods that add/remove mutations perform the same check, and should be maintained in parallel.
 			Individual *focal_modification_child = community.focal_modification_child_;
 			
 			if (focal_modification_child)
 			{
-				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
 				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
-					Genome *target_genome = targets[genome_index];
+					Haplosome *target_haplosome = targets[haplosome_index];
 					
-					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
 		}
 		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
 				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
 	
 	// position and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
@@ -2505,7 +2501,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		((position_count != 1) && (position_count != count_to_add)) ||
 		((origin_subpop_count != 1) && (origin_subpop_count != count_to_add)) ||
 		((nucleotide_count != 1) && (nucleotide_count != count_to_add)))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that mutationType, " << ((p_method_id == gID_addNewMutation) ? "selectionCoeff, " : "") << "position, originSubpop, and nucleotide be either (1) singleton, or (2) equal in length to the other non-singleton argument(s), or (3) NULL, for originSubpop and nucleotide." << EidosTerminate();
 	
 	EidosValue_Object_SP retval(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	
@@ -2521,7 +2517,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		slim_position_t position = SLiMCastToPositionTypeOrRaise(arg_position->IntAtIndex_NOCAST(position_index, nullptr));
 		
 		if (position > last_position)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " position " << position << " is past the end of the chromosome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " position " << position << " is past the end of the chromosome." << EidosTerminate();
 	}
 	
 	// similarly, check nucleotide values for validity
@@ -2535,7 +2531,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 			
 			if (mutation_type_ptr->nucleotide_based_)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be non-NULL when nucleotide-based mutation types are used." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be non-NULL when nucleotide-based mutation types are used." << EidosTerminate();
 		}
 	}
 	else
@@ -2546,7 +2542,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(arg_muttype, muttype_index, &community, species, method_name.c_str());		// SPECIES CONSISTENCY CHECK
 			
 			if (!mutation_type_ptr->nucleotide_based_)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be NULL when non-nucleotide-based mutation types are used." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires nucleotide to be NULL when non-nucleotide-based mutation types are used." << EidosTerminate();
 		}
 		
 		// And then nucleotide values must also be within bounds
@@ -2557,7 +2553,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				int64_t nuc_int = arg_nucleotide->IntAtIndex_NOCAST(nucleotide_index, nullptr);
 				
 				if ((nuc_int < 0) || (nuc_int > 3))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires integer nucleotide values to be in [0,3]." << EidosTerminate();
 			}
 		}
 		else if (arg_nucleotide->Type() == EidosValueType::kValueString)
@@ -2567,30 +2563,30 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				uint8_t nuc = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex_NOCAST(nucleotide_index, nullptr)[0])];
 				
 				if (nuc > 3)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
 			}
 		}
 	}
 	
-	// check that the same genome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
+	// check that the same haplosome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
-		Genome *target_genome = targets[target_index];
+		Haplosome *target_haplosome = targets[target_index];
 		
-		if (target_genome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on a null genome." << EidosTerminate();
+		if (target_haplosome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on a null haplosome." << EidosTerminate();
 		
-		target_genome->scratch_ = 1;
+		target_haplosome->scratch_ = 1;
 	}
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 	{
-		Genome *target_genome = targets[target_index];
+		Haplosome *target_haplosome = targets[target_index];
 		
-		if (target_genome->scratch_ != 1)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the same genome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
+		if (target_haplosome->scratch_ != 1)
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the same haplosome more than once (you must eliminate duplicates in the target vector)." << EidosTerminate();
 		
-		target_genome->scratch_ = 0;
+		target_haplosome->scratch_ = 0;
 	}
 	
 	// each bulk operation is performed on a single mutation run, so we need to figure out which runs we're influencing
@@ -2628,10 +2624,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	{
 		singleton_origin_subpop_id = -1;
 		
-		// We set the origin subpopulation based on the first genome in the target
+		// We set the origin subpopulation based on the first haplosome in the target
 		if (target_size >= 1)
 		{
-			Genome *first_target = targets[0];
+			Haplosome *first_target = targets[0];
 			singleton_origin_subpop_id = first_target->individual_->subpopulation_->subpopulation_id_;
 		}
 	}
@@ -2649,7 +2645,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		
 		// SPECIES CONSISTENCY CHECK
 		if (&origin_subpop->species_ != species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that originSubpop belong to the same species as the target genomes." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that originSubpop belong to the same species as the target haplosomes." << EidosTerminate();
 		
 		singleton_origin_subpop_id = origin_subpop->subpopulation_id_;
 	}
@@ -2672,7 +2668,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		std::vector<MutationIndex> mutations_to_add;
 		
 		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
-		// It is possible that some mutations will not actually be added to any genome, due to stacking; they will be cleared from the
+		// It is possible that some mutations will not actually be added to any haplosome, due to stacking; they will be cleared from the
 		// registry as lost mutations in the next cycle.  All mutations are returned to the user, whether actually added or not.
 		MutationType *mutation_type_ptr = singleton_mutation_type_ptr;
 		double selection_coeff = singleton_selection_coeff;
@@ -2736,7 +2732,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 						mutation_type_ptr->all_pure_neutral_DFE_ = false;
 				}
 				
-				// add to the registry, return value, genome, etc.
+				// add to the registry, return value, haplosome, etc.
 				if (new_mut->state_ != MutationState::kInRegistry)
 					pop.MutationRegistryAdd(new_mut);
 				retval->push_object_element_RR(new_mut);
@@ -2753,18 +2749,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			std::sort(mutations_to_add.begin(), mutations_to_add.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 		}
 		
-		// Now start the bulk operation and add mutations_to_add to every target genome
-		Genome::BulkOperationStart(operation_id, mutrun_index);
+		// Now start the bulk operation and add mutations_to_add to every target haplosome
+		Haplosome::BulkOperationStart(operation_id, mutrun_index);
 		
 		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 		
 		for (int target_index = 0; target_index < target_size; ++target_index)
 		{
-			Genome *target_genome = targets[target_index];
+			Haplosome *target_haplosome = targets[target_index];
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			const MutationRun *original_run = target_genome->mutruns_[mutrun_index];
-			MutationRun *modifiable_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+			const MutationRun *original_run = target_haplosome->mutruns_[mutrun_index];
+			MutationRun *modifiable_mutrun = target_haplosome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 			
 			if (modifiable_mutrun)
 			{
@@ -2789,14 +2785,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					
 					if (pos != previous_position)
 					{
-						species->RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
+						species->RecordNewDerivedState(target_haplosome, pos, *target_haplosome->derived_mutation_ids_at_position(pos));
 						previous_position = pos;
 					}
 				}
 			}
 		}
 		
-		Genome::BulkOperationEnd(operation_id, mutrun_index);
+		Haplosome::BulkOperationEnd(operation_id, mutrun_index);
 		
 		// invalidate cached mutation refcounts; refcounts have changed
 		pop.InvalidateMutationReferencesCache();
@@ -2805,54 +2801,54 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	return retval;
 }
 
-//	*********************	+ (float)mutationFrequenciesInGenomes([No<Mutation> mutations = NULL])
-//	*********************	+ (integer)mutationCountsInGenomes([No<Mutation> mutations = NULL])
+//	*********************	+ (float)mutationFrequenciesInHaplosomes([No<Mutation> mutations = NULL])
+//	*********************	+ (integer)mutationCountsInHaplosomes([No<Mutation> mutations = NULL])
 //
-EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutations_value = p_arguments[0].get();
 	
-	// get our target vector, handle the zero-length case, and do a pre-check for null genomes so we don't have to worry about it later on
+	// get our target vector, handle the zero-length case, and do a pre-check for null haplosomes so we don't have to worry about it later on
 	int target_size = p_target->Count();
 	
 	if (target_size == 0)
 	{
 		// With a zero-length target, frequencies are undefined so it is an error; to keep life simple, we make it an error for counts too
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot calculate counts/frequencies in a zero-length Genome vector (divide by zero)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot calculate counts/frequencies in a zero-length Haplosome vector (divide by zero)." << EidosTerminate();
 	}
 	
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(): usage of statics");
 	
-	Genome * const *target_data = (Genome * const *)p_target->ObjectData();
+	Haplosome * const *target_data = (Haplosome * const *)p_target->ObjectData();
 	
 	for (int target_index = 0; target_index < target_size; ++target_index)
 		if (target_data[target_index]->IsNull())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot be called on a null genome." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot be called on a null haplosome." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomesVector(target_data, target_size);
+	Species *species = Community::SpeciesForHaplosomesVector(target_data, target_size);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all target genomes belong to a single species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all target haplosomes belong to a single species." << EidosTerminate();
 	
 	if (mutations_value->Count() >= 1)
 	{
 		Species *mut_species = Community::SpeciesForMutations(mutations_value);
 		
 		if (mut_species != species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all mutations belong to the same species as the target haplosomes." << EidosTerminate();
 	}
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes");
 	
 	Population &population = species->population_;
 	
-	// Have the Population tally for the target genomes
-	population.TallyMutationReferencesAcrossGenomes(target_data, target_size);
+	// Have the Population tally for the target haplosomes
+	population.TallyMutationReferencesAcrossHaplosomes(target_data, target_size);
 	
 	// Use the back-end code in Population to do the counting
-	if (p_method_id == gID_mutationFrequenciesInGenomes)
+	if (p_method_id == gID_mutationFrequenciesInHaplosomes)
 		return population.Eidos_FrequenciesForTalliedMutations(mutations_value, target_size);
 	else
 		return population.Eidos_CountsForTalliedMutations(mutations_value, target_size);
@@ -2862,7 +2858,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 //	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
 //	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
-EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
@@ -2894,29 +2890,29 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 	if (p_method_id == gID_outputMS)
 		filter_monomorphic = filterMonomorphic_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
-	// Get all the genomes we're sampling from p_target; they must all be in the same species, which we determine here
-	// We require at least one genome because otherwise we can't determine the species
+	// Get all the haplosomes we're sampling from p_target; they must all be in the same species, which we determine here
+	// We require at least one haplosome because otherwise we can't determine the species
 	int sample_size = p_target->Count();
-	std::vector<Genome *> genomes;
+	std::vector<Haplosome *> haplosomes;
 	Species *species = nullptr;
 	
 	if (sample_size <= 0)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): output of a zero-length genome vector is illegal; at least one genome is required for output." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): output of a zero-length haplosome vector is illegal; at least one haplosome is required for output." << EidosTerminate();
 	
 	for (int index = 0; index < sample_size; ++index)
 	{
-		Genome *genome = (Genome *)p_target->ObjectElementAtIndex_NOCAST(index, nullptr);
-		Species *genome_species = &genome->individual_->subpopulation_->species_;
+		Haplosome *haplosome = (Haplosome *)p_target->ObjectElementAtIndex_NOCAST(index, nullptr);
+		Species *haplosome_species = &haplosome->individual_->subpopulation_->species_;
 		
 		if (!species)
-			species = genome_species;
-		else if (species != genome_species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): all genomes for output must belong to the same species." << EidosTerminate();
+			species = haplosome_species;
+		else if (species != haplosome_species)
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): all haplosomes for output must belong to the same species." << EidosTerminate();
 		
-		genomes.emplace_back(genome);
+		haplosomes.emplace_back(haplosome);
 	}
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_outputX");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_outputX");
 
 	Community &community = species->community_;
 	Chromosome &chromosome = species->TheChromosome();
@@ -2942,11 +2938,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_output)
-			Genome::PrintGenomes_SLiM(output_stream, genomes, -1);	// -1 represents unknown source subpopulation
+			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, -1);	// -1 represents unknown source subpopulation
 		else if (p_method_id == gID_outputMS)
-			Genome::PrintGenomes_MS(output_stream, genomes, chromosome, filter_monomorphic);
+			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
-			Genome::PrintGenomes_VCF(output_stream, genomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
+			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
 	}
 	else
 	{
@@ -2965,23 +2961,23 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
 					// BCH 3/6/2022: Note the species cycle is NOT output; might be a mixed-species sample
 					outfile << "#OUT: " << community.Tick() << " GS " << sample_size << " " << outfile_path << std::endl;
-					Genome::PrintGenomes_SLiM(outfile, genomes, -1);	// -1 represents unknown source subpopulation
+					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
-					Genome::PrintGenomes_MS(outfile, genomes, chromosome, filter_monomorphic);
+					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
-					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
+					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
 					break;
 				default:
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();
 			}
 			
 			outfile.close(); 
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << EidosTerminate();
 		}
 	}
 	
@@ -2990,10 +2986,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 
 //	*********************	+ (o<Mutation>)readFromMS(s$ filePath = NULL, io<MutationType> mutationType)
 //
-EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
@@ -3006,9 +3002,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 		mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, nullptr, "ExecuteMethod_readFromMS()");	// this dictates the focal species
 	
 	if (!mutation_type_ptr)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): mutation type not found." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): mutation type not found." << EidosTerminate();
 	
-	// Get the species of interest from the mutation type; we will check that all target genomes belong to it below
+	// Get the species of interest from the mutation type; we will check that all target haplosomes belong to it below
 	Species &species = mutation_type_ptr->species_;
 	Population &pop = species.population_;
 	slim_position_t last_position = species.TheChromosome().last_position_;
@@ -3019,19 +3015,19 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	// SPECIES CONSISTENCY CHECK
 	if (target_size > 0)
 	{
-		Species *target_species = Community::SpeciesForGenomes(p_target);
+		Species *target_species = Community::SpeciesForHaplosomes(p_target);
 		
 		if (target_species != &species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target genomes belong to the same species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	}
 	
-	species.population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromMS");
+	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromMS");
 	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
 	
 	if (!infile)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): could not read file at path " << file_path << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): could not read file at path " << file_path << "." << EidosTerminate();
 	
 	std::string line, sub;
 	int parse_state = 0;
@@ -3055,20 +3051,20 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				
 				iss >> sub;
 				if (sub != "segsites:")
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
 				
 				if (!(iss >> sub))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): missing segsites value." << EidosTerminate();
 				
 				int64_t segsites_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				
 				if ((segsites_long <= 0) || (segsites_long > 1000000))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readMS() requires segsites in (0,1000000]." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readMS() requires segsites in (0,1000000]." << EidosTerminate();
 				
 				segsites = (int)segsites_long;
 				
 				if (iss >> sub)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
 				
 				parse_state = 1;
 				break;
@@ -3080,17 +3076,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				
 				iss >> sub;
 				if (sub != "positions:")
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): expecting 'positions:', found '" << sub << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): expecting 'positions:', found '" << sub << "'." << EidosTerminate();
 				
 				for (int pos_index = 0; pos_index < segsites; ++pos_index)
 				{
 					if (!(iss >> sub))
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): missing positions value." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): missing positions value." << EidosTerminate();
 					
 					double pos_double = EidosInterpreter::FloatForString(sub, nullptr);
 					
 					if ((pos_double < 0.0) || (pos_double > 1.0))
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
 					
 					// BCH 26 Jan. 2020: There is a little subtlety here.  This equation, round(pos * L), provides
 					// the exact inverse of what outputMS() / outputMSSample() do, so it should exactly recover
@@ -3104,7 +3100,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				}
 				
 				if (iss >> sub)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
 				
 				parse_state = 2;
 				break;
@@ -3113,22 +3109,22 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 			{
 				// Expecting "001010011001101111010..." of length segsites
 				if (line.find_first_not_of("01") != std::string::npos)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): call lines must be composed entirely of 0 and 1." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): call lines must be composed entirely of 0 and 1." << EidosTerminate();
 				if ((int)line.length() != segsites)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): call lines must be equal in length to the segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): call lines must be equal in length to the segsites value." << EidosTerminate();
 				
 				calls.emplace_back(line);
 				break;
 			}
 			default:
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): (internal error) unhandled case." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
 	infile.close();
 	
 	if ((int)calls.size() != target_size)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): target genome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): target haplosome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
@@ -3167,7 +3163,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				mutation_type_ptr->all_pure_neutral_DFE_ = false;
 		}
 		
-		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		pop.MutationRegistryAdd(new_mut);
 		mutation_indices.emplace_back(new_mut_index);
 	}
@@ -3178,25 +3174,25 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	
 	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 	
-	// Add the mutations to the target genomes, recording a new derived state with each addition
+	// Add the mutations to the target haplosomes, recording a new derived state with each addition
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
-	Genome * const *targets_data = (Genome * const *)p_target->ObjectData();
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
 	
-	for (int genome_index = 0; genome_index < target_size; ++genome_index)
+	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 	{
-		Genome *genome = targets_data[genome_index];
-		bool genome_started_empty = (genome->mutation_count() == 0);
-		slim_position_t mutrun_length = genome->mutrun_length_;
+		Haplosome *haplosome = targets_data[haplosome_index];
+		bool haplosome_started_empty = (haplosome->mutation_count() == 0);
+		slim_position_t mutrun_length = haplosome->mutrun_length_;
 		slim_mutrun_index_t current_run_index = -1;
 		MutationRun *current_mutrun = nullptr;
-		std::string &genome_string = calls[genome_index];
+		std::string &haplosome_string = calls[haplosome_index];
 		
 		for (int segsite_index = 0; segsite_index < segsites; ++segsite_index)
 		{
 			int64_t call_index = order_vec[segsite_index];
-			char call = genome_string[call_index];
+			char call = haplosome_string[call_index];
 			
 			if (call == '1')
 			{
@@ -3208,25 +3204,25 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				if (mut_mutrun_index != current_run_index)
 				{
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the genome
+					// When parallel, the MutationRunContext depends upon the position in the haplosome
 					MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
 #endif
 					
 					current_run_index = mut_mutrun_index;
 					
-					// We use WillModifyRun() because these are existing genomes we didn't create, and their runs may be shared; we have
-					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per genome.
-					current_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
+					// We use WillModifyRun() because these are existing haplosomes we didn't create, and their runs may be shared; we have
+					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per haplosome.
+					current_mutrun = haplosome->WillModifyRun(mut_mutrun_index, mutrun_context);
 				}
 				
-				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
-				if (genome_started_empty)
+				// If the haplosome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
+				if (haplosome_started_empty)
 					current_mutrun->emplace_back(mut_index);
 				else
 					current_mutrun->insert_sorted_mutation(mut_index);
 				
 				if (recording_mutations)
-					species.RecordNewDerivedState(genome, mut_pos, *genome->derived_mutation_ids_at_position(mut_pos));
+					species.RecordNewDerivedState(haplosome, mut_pos, *haplosome->derived_mutation_ids_at_position(mut_pos));
 			}
 		}
 	}
@@ -3243,24 +3239,24 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 
 //	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
 //
-EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (p_target->Count() == 0)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires a target Genome vector of length 1 or more, so that the species of the target can be determined." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires a target Haplosome vector of length 1 or more, so that the species of the target can be determined." << EidosTerminate();
 	
-	Species *species = Community::SpeciesForGenomes(p_target);
+	Species *species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target genomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromVCF");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;
@@ -3277,7 +3273,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	std::ifstream infile(file_path);
 	
 	if (!infile)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
 	
 	std::string line, sub;
 	int parse_state = 0;
@@ -3320,9 +3316,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					for (const char *header_field : header_fields)
 					{
 						if (!(iss >> sub))
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
 						if (sub != header_field)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
 					}
 					
 					// the remaining columns are sample IDs; we don't care what they are, we just count them
@@ -3334,7 +3330,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
 				}
 				break;
 			}
@@ -3353,47 +3349,47 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				int64_t pos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr) - 1;		// -1 because VCF uses 1-based positions
 				
 				if ((pos < 0) || (pos > last_position))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
 				
 				call_lines.emplace_back(pos, line);
 				break;
 			}
 			default:
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): (internal error) unhandled case." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
 	infile.close();
 	
-	// sort the call lines by position, so that we can add them to empty genomes efficiently
+	// sort the call lines by position, so that we can add them to empty haplosomes efficiently
 	std::sort(call_lines.begin(), call_lines.end(), [ ](const std::pair<slim_position_t, std::string> &l1, const std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
 	
-	// cache target genomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
-	std::vector<Genome *> targets;
+	// cache target haplosomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
+	std::vector<Haplosome *> targets;
 	std::vector<slim_mutrun_index_t> target_last_mutrun_modified;
 	std::vector<MutationRun *> target_last_mutrun;
-	bool all_target_genomes_started_empty = true;
-	Genome * const *targets_data = (Genome * const *)p_target->ObjectData();
+	bool all_target_haplosomes_started_empty = true;
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
 	
-	for (int genome_index = 0; genome_index < target_size; ++genome_index)
+	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 	{
-		Genome *genome = targets_data[genome_index];
+		Haplosome *haplosome = targets_data[haplosome_index];
 		
-		// null genomes are silently excluded from the target list, for convenience
-		if (!genome->IsNull())
+		// null haplosomes are silently excluded from the target list, for convenience
+		if (!haplosome->IsNull())
 		{
-			if (genome->mutation_count() != 0)
-				all_target_genomes_started_empty = false;
+			if (haplosome->mutation_count() != 0)
+				all_target_haplosomes_started_empty = false;
 			
-			targets.emplace_back(genome);
+			targets.emplace_back(haplosome);
 			target_last_mutrun_modified.emplace_back(-1);
 			target_last_mutrun.emplace_back(nullptr);
 		}
 	}
 	
-	target_size = (int)targets.size();	// adjust for possible exclusion of null genomes
+	target_size = (int)targets.size();	// adjust for possible exclusion of null haplosomes
 	
-	// parse all the call lines, instantiate their mutations, and add the mutations to the target genomes
+	// parse all the call lines, instantiate their mutations, and add the mutations to the target haplosomes
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
@@ -3423,7 +3419,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 		else if (ref_str == "C")	ref_nuc = 1;
 		else if (ref_str == "G")	ref_nuc = 2;
 		else if (ref_str == "T")	ref_nuc = 3;
-		else						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
+		else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
 		
 		// parse/validate the ALT nucleotides
 		std::vector<std::string> alt_substrs = Eidos_string_split(alt_str, ",");
@@ -3435,7 +3431,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			else if (alt_substr == "C")		alt_nucs.emplace_back(1);
 			else if (alt_substr == "G")		alt_nucs.emplace_back(2);
 			else if (alt_substr == "T")		alt_nucs.emplace_back(3);
-			else							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
+			else							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
 		}
 		
 		std::size_t alt_allele_count = alt_nucs.size();
@@ -3466,7 +3462,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					{
 						if (!community.warned_readFromVCF_mutIDs_unused_)
 						{
-							p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
+							p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
 							community.warned_readFromVCF_mutIDs_unused_ = true;
 						}
 					}
@@ -3526,7 +3522,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				else if (aa_str == "C")		info_ancestral_nuc = 1;
 				else if (aa_str == "G")		info_ancestral_nuc = 2;
 				else if (aa_str == "T")		info_ancestral_nuc = 3;
-				else						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
+				else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
 			}
 			else if (info_NONNUC_defined && (info_substr == "NONNUC"))				// Non-nucleotide-based
 			{
@@ -3534,17 +3530,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			}
 			
 			if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
 			if ((info_selcoeffs.size() != 0) && (info_selcoeffs.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
 			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
 			if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
 			if ((info_tickorigin.size() != 0) && (info_tickorigin.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for GO or TO field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for GO or TO field." << EidosTerminate();
 			if ((info_muttype.size() != 0) && (info_muttype.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
 		}
 		
 		// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
@@ -3553,7 +3549,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 		for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
 		{
 			if (iss.eof())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
 			
 			std::getline(iss, sub, '\t');
 			
@@ -3578,7 +3574,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					int genotype_call2 = (int)(sub_ch2 - '0');
 					
 					if ((genotype_call1 < 0) || (genotype_call1 > (int)alt_allele_count) || (genotype_call2 < 0) || (genotype_call2 > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.emplace_back(genotype_call1);
 					genotype_calls.emplace_back(genotype_call2);
@@ -3595,7 +3591,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					int genotype_call = (int)(sub_ch - '0');
 					
 					if ((genotype_call < 0) || (genotype_call > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.emplace_back(genotype_call);
 					call_handled = true;
@@ -3614,7 +3610,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					genotype_substrs.emplace_back(sub);					// haploid, presumably
 				
 				if ((genotype_substrs.size() < 1) || (genotype_substrs.size() > 2))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
 				
 				// extract the calls' integer values, validate them, and keep them; we don't care which call was in which sample, we just preserve their order
 				for (std::string &genotype_substr : genotype_substrs)
@@ -3622,7 +3618,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					std::size_t genotype_call = EidosInterpreter::NonnegativeIntegerForString(genotype_substr, nullptr);
 					
 					if (/*(genotype_call < 0) ||*/ (genotype_call > alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.emplace_back((int)genotype_call);
 				}
@@ -3630,9 +3626,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 		}
 		
 		if (!iss.eof())
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
 		if ((int)genotype_calls.size() != target_size)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): target genome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): target haplosome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
 		
 		// instantiate the mutations involved in this call line; the REF allele represents no mutation, ALT alleles are each separate mutations
 		std::vector<MutationIndex> alt_allele_mut_indices;
@@ -3649,17 +3645,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
                 mutation_type_ptr = species->MutationTypeWithID(mutation_type_id);
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
 			}
 			
 			if (!mutation_type_ptr)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 			
 			// check the dominance coefficient of DOM against that of the mutation type
 			if (info_domcoeffs.size() > 0)
 			{
 				if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
 			}
 			
 			// get the selection coefficient from S, or draw one
@@ -3697,7 +3693,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					{
 						// This call line is marked NONNUC, so there is no associated nucleotide; check against the mutation type
 						if (mutation_type_ptr->nucleotide_based_)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
 						
 						nucleotide = -1;
 					}
@@ -3705,14 +3701,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					{
 						// This call line is not marked NONNUC, so it represents nucleotide-based alleles
 						if (!mutation_type_ptr->nucleotide_based_)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
 						if (ref_nuc != info_ancestral_nuc)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
 						
 						int8_t ancestral = (int8_t)species->TheChromosome().AncestralSequence()->NucleotideAtIndex(mut_position);
 						
 						if (ancestral != ref_nuc)
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readFromVCF()." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readFromVCF()." << EidosTerminate();
 						
 						nucleotide = alt_allele_nuc;
 					}
@@ -3736,7 +3732,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			{
 				// We are a non-nucleotide-based model, so NONNUC should not be defined; we do not understand nucleotides and will ignore them
 				if (info_NONNUC_defined)
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
 				
 				nucleotide = -1;
 			}
@@ -3768,47 +3764,47 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					mutation_type_ptr->all_pure_neutral_DFE_ = false;
 			}
 			
-			// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
+			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			pop.MutationRegistryAdd(new_mut);
 			alt_allele_mut_indices.emplace_back(new_mut_index);
 			mutation_indices.emplace_back(new_mut_index);
 		}
 		
-		// add the mutations to the appropriate genomes and record the new derived states
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		// add the mutations to the appropriate haplosomes and record the new derived states
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			int call = genotype_calls[genome_index];
+			int call = genotype_calls[haplosome_index];
 			
 			if (call != 0)
 			{
-				Genome *genome = targets[genome_index];
-				slim_mutrun_index_t &genome_last_mutrun_modified = target_last_mutrun_modified[genome_index];
-				MutationRun *&genome_last_mutrun = target_last_mutrun[genome_index];
-				slim_position_t mutrun_length = genome->mutrun_length_;
+				Haplosome *haplosome = targets[haplosome_index];
+				slim_mutrun_index_t &haplosome_last_mutrun_modified = target_last_mutrun_modified[haplosome_index];
+				MutationRun *&haplosome_last_mutrun = target_last_mutrun[haplosome_index];
+				slim_position_t mutrun_length = haplosome->mutrun_length_;
 				MutationIndex mut_index = alt_allele_mut_indices[call - 1];
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 				
-				if (mut_mutrun_index != genome_last_mutrun_modified)
+				if (mut_mutrun_index != haplosome_last_mutrun_modified)
 				{
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the genome
+					// When parallel, the MutationRunContext depends upon the position in the haplosome
 					MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
 #endif
 					
-					// We use WillModifyRun() because these are existing genomes we didn't create, and their runs may be shared; we have
-					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per genome.
-					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
-					genome_last_mutrun_modified = mut_mutrun_index;
+					// We use WillModifyRun() because these are existing haplosomes we didn't create, and their runs may be shared; we have
+					// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per haplosome.
+					haplosome_last_mutrun = haplosome->WillModifyRun(mut_mutrun_index, mutrun_context);
+					haplosome_last_mutrun_modified = mut_mutrun_index;
 				}
 				
-				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
-				if (all_target_genomes_started_empty)
-					genome_last_mutrun->emplace_back(mut_index);
+				// If the haplosome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
+				if (all_target_haplosomes_started_empty)
+					haplosome_last_mutrun->emplace_back(mut_index);
 				else
-					genome_last_mutrun->insert_sorted_mutation(mut_index);
+					haplosome_last_mutrun->insert_sorted_mutation(mut_index);
 				
 				if (recording_mutations)
-					species->RecordNewDerivedState(genome, mut_position, *genome->derived_mutation_ids_at_position(mut_position));
+					species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_position));
 			}
 		}
 	}
@@ -3826,7 +3822,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 
 //	*********************	+ (void)removeMutations([No<Mutation> mutations = NULL], [logical$ substitute = F])
 //
-EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	EidosValue *mutations_value = p_arguments[0].get();
@@ -3839,12 +3835,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		return gStaticEidosValueVOID;
 	
 	// SPECIES CONSISTENCY CHECK
-	Species *species = Community::SpeciesForGenomes(p_target);
+	Species *species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target genomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromVCF");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;
@@ -3853,113 +3849,113 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	bool recording_tree_sequence_mutations = species->RecordingTreeSequenceMutations();
 	bool any_nonneutral_removed = false;
 	
-	// Use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
-	Genome * const *targets_data = (Genome * const *)p_target->ObjectData();
-	Genome *genome_0 = targets_data[0];
-	slim_position_t mutrun_length = genome_0->mutrun_length_;
+	// Use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
+	Haplosome *haplosome_0 = targets_data[0];
+	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
 	// TIMING RESTRICTION
 	if (community.executing_species_ == species)
 	{
 		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only haplosomes being modified belong to the new child.
 			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
 			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			// Note that the other Haplosome methods that add/remove mutations perform the same check, and should be maintained in parallel.
 			Individual *focal_modification_child = community.focal_modification_child_;
 			
 			if (focal_modification_child)
 			{
-				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
 				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
-					Genome *target_genome = targets_data[genome_index];
+					Haplosome *target_haplosome = targets_data[haplosome_index];
 					
-					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
 			
 			// This is actually only a problem when tree recording is on, but for consistency we outlaw it in all cases.  When a substitution
-			// is created, it is added to the derived state of every genome, which is a side effect that can't be retracted if the modifyChild()
+			// is created, it is added to the derived state of every haplosome, which is a side effect that can't be retracted if the modifyChild()
 			// callback rejects the proposed child, so it has to be prohibited up front.  Anyway it would be a very strange thing to do.
 			if (create_substitutions)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to create a substitution, because that would have side effects on genomes other than those of the focal child being generated." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to create a substitution, because that would have side effects on haplosomes other than those of the focal child being generated." << EidosTerminate();
 		}
 		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
 				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
 	
 	if (mutations_value->Type() == EidosValueType::kValueNULL)
 	{
 		// This is the "remove all mutations" case, for which we have no vector of mutations to remove.  In this case we do the tree
 		// sequence recording first, since we can add new empty derived states just at the locations where mutations presently exist.
-		// Then we just go through and clear out the target genomes.
+		// Then we just go through and clear out the target haplosomes.
 		if (create_substitutions)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): in removeMutations() substitute may not be T if mutations is NULL; an explicit vector of mutations to be substituted must be supplied." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): in removeMutations() substitute may not be T if mutations is NULL; an explicit vector of mutations to be substituted must be supplied." << EidosTerminate();
 		
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_sequence_mutations)
 		{
 			const std::vector<Mutation *> empty_mut_vector;
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			{
-				Genome *target_genome = targets_data[genome_index];
+				Haplosome *target_haplosome = targets_data[haplosome_index];
 				
-				if (target_genome->IsNull())
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
+				if (target_haplosome->IsNull())
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null haplosome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 				
-				for (GenomeWalker target_walker(target_genome); !target_walker.Finished(); target_walker.NextMutation())
+				for (HaplosomeWalker target_walker(target_haplosome); !target_walker.Finished(); target_walker.NextMutation())
 				{
 					Mutation *mut = target_walker.CurrentMutation();
 					slim_position_t pos = mut->position_;
 					
-					species->RecordNewDerivedState(target_genome, pos, empty_mut_vector);
+					species->RecordNewDerivedState(target_haplosome, pos, empty_mut_vector);
 				}
 			}
 		}
 		
-		// Fetch genome pointers and check for null genomes up front
-		std::vector<Genome *>target_genomes;
+		// Fetch haplosome pointers and check for null haplosomes up front
+		std::vector<Haplosome *>target_haplosomes;
 		
-		for (int genome_index = 0; genome_index < target_size; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
-			Genome *target_genome = targets_data[genome_index];
+			Haplosome *target_haplosome = targets_data[haplosome_index];
 			
-			if (target_genome->IsNull())
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
+			if (target_haplosome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null haplosome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 			
-			target_genomes.push_back(target_genome);
+			target_haplosomes.push_back(target_haplosome);
 		}
 		
 		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
 		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
-		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
-		int mutrun_count = genome_0->mutrun_count_;
+		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second haplosome in modifyChild(), etc.
+		int mutrun_count = haplosome_0->mutrun_count_;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
 			MutationRun *shared_empty_run = nullptr;	// different shared empty run for each mutrun index
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			{
-				Genome *target_genome = target_genomes[genome_index];
-				const MutationRun *mutrun = target_genome->mutruns_[run_index];
+				Haplosome *target_haplosome = target_haplosomes[haplosome_index];
+				const MutationRun *mutrun = target_haplosome->mutruns_[run_index];
 				
 				if (mutrun->size())
 				{
-					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from genomes that are empty already)
+					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from haplosomes that are empty already)
 					if (!shared_empty_run)
 					{
 						MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(run_index);
 						shared_empty_run = MutationRun::NewMutationRun(mutrun_context);
 					}
 					
-					target_genome->mutruns_[run_index] = shared_empty_run;
+					target_haplosome->mutruns_[run_index] = shared_empty_run;
 				}
 			}
 		}
@@ -3976,10 +3972,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		// we don't have a mutation still segregating while a substitution for it has also been created; see CheckMutationRegistry()
 		// BCH 9/24/2021: Note that we cannot do the opposite check: checking that we only substitute a mutation when it has, in fact,
 		// fixed.  We can't do that because there are models, such as the PAR (pseudo-autosomal region) recipe, that have different
-		// fixation frequences for different parts of the genome because multiple chromosomes of different ploidy are being simulated.
+		// fixation frequences for different parts of the haplosome because multiple chromosomes of different ploidy are being simulated.
 		// Until we support multiple chromosomes more intrinsically, and can do that properly, substitution at less than frequency
 		// 1.0 must be supported.  Note that this also means that we have to record new derived states here, because in some cases
-		// (those same cases), the derived state for some genomes will have changed; if we do multiple chromosomes properly some day,
+		// (those same cases), the derived state for some haplosomes will have changed; if we do multiple chromosomes properly some day,
 		// the recording of new derived states can probably be removed here, since no genetic state will have changed.
 		if (create_substitutions)
 			pop.SetMutationRegistryNeedsCheck();
@@ -3992,7 +3988,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			Species *mutations_species = Community::SpeciesForMutations(mutations_value);
 			
 			if (mutations_species != species)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all mutations belong to the same species as the target haplosomes." << EidosTerminate();
 		}
 		
 		// Construct a vector of mutations to remove that is sorted by position
@@ -4004,7 +4000,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			Mutation *mut = mutations_data[value_index];
 			
 			if (mut->state_ != MutationState::kInRegistry)
-				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot remove mutations that are not currently segregating (i.e., have either been fixed/substituted or lost)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot remove mutations that are not currently segregating (i.e., have either been fixed/substituted or lost)." << EidosTerminate();
 			
 			if (create_substitutions)
 				mut->state_ = MutationState::kRemovedWithSubstitution;		// mark removed/substituted mutations with a special state so they get handled correctly later
@@ -4020,19 +4016,19 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		// TREE SEQUENCE RECORDING
 		// First, pre-plan the positions of new tree-seq derived states in anticipation of doing the removal.  We have to check
 		// whether the mutation being added is already absent, to avoid recording a new derived state identical to the old one state.
-		// The algorithm used here, with GenomeWalker, depends upon the fact that we just sorted the mutations to add by position.
+		// The algorithm used here, with HaplosomeWalker, depends upon the fact that we just sorted the mutations to add by position.
 		// However, we do still have to think about multiple muts being removed from the same position, and existing stacked mutations.
-		// Note that when we are not creating substitutions, the genomes that possess a given mutation are the ones that change; but
-		// when we are creating substitutions, the genomes that do *not* possess a given mutation are the ones that change, because
-		// they gain the substitutuon, whereas the other genomes lose the mutation and gain the substitution, and are thus unchanged.
-		std::vector<std::pair<Genome *, std::vector<slim_position_t>>> new_derived_state_positions;
+		// Note that when we are not creating substitutions, the haplosomes that possess a given mutation are the ones that change; but
+		// when we are creating substitutions, the haplosomes that do *not* possess a given mutation are the ones that change, because
+		// they gain the substitutuon, whereas the other haplosomes lose the mutation and gain the substitution, and are thus unchanged.
+		std::vector<std::pair<Haplosome *, std::vector<slim_position_t>>> new_derived_state_positions;
 		
 		if (recording_tree_sequence_mutations)
 		{
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			{
-				Genome *target_genome = targets_data[genome_index];
-				GenomeWalker walker(target_genome);
+				Haplosome *target_haplosome = targets_data[haplosome_index];
+				HaplosomeWalker walker(target_haplosome);
 				slim_position_t last_added_pos = -1;
 				
 				for (Mutation *mut : mutations_to_remove)
@@ -4062,16 +4058,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 					// we have decided that the new derived state at this position will need to be recorded, so note that
 					if (last_added_pos == -1)
 					{
-						// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
-						new_derived_state_positions.emplace_back(target_genome, std::vector<slim_position_t>(1, mut_pos));
+						// no pair entry in new_derived_state_positions yet, so make a new pair entry for this haplosome
+						new_derived_state_positions.emplace_back(target_haplosome, std::vector<slim_position_t>(1, mut_pos));
 					}
 					else
 					{
-						// we have an existing pair entry for this genome, so add this position to its position vector
-						std::pair<Genome *, std::vector<slim_position_t>> &genome_entry = new_derived_state_positions.back();
-						std::vector<slim_position_t> &genome_list = genome_entry.second;
+						// we have an existing pair entry for this haplosome, so add this position to its position vector
+						std::pair<Haplosome *, std::vector<slim_position_t>> &haplosome_entry = new_derived_state_positions.back();
+						std::vector<slim_position_t> &haplosome_list = haplosome_entry.second;
 						
-						genome_list.emplace_back(mut_pos);
+						haplosome_list.emplace_back(mut_pos);
 					}
 					
 					last_added_pos = mut_pos;
@@ -4099,21 +4095,21 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			
 			// TREE SEQUENCE RECORDING
 			// When doing tree recording, if a given mutation is converted to a substitution by script, it may not be contained in some
-			// genomes, but at the moment it fixes it is then considered to belong to the derived state of every non-null genome.  We
-			// therefore need to go through all of the non-target genomes and record their new derived states at all positions
+			// haplosomes, but at the moment it fixes it is then considered to belong to the derived state of every non-null haplosome.  We
+			// therefore need to go through all of the non-target haplosomes and record their new derived states at all positions
 			// containing a new substitution.  If they already had a copy of the mutation, and didn't have it removed here, that is
 			// pretty weird, but in practice it just means that their derived state will contain that mutation id twice – once for the
 			// segregating mutation they still contain, and once for the new substitution.  We don't check for that case, but it should
 			// just work automatically.
 			if (recording_tree_sequence_mutations)
 			{
-				// Mark all non-null genomes in the simulation that are not among the target genomes
+				// Mark all non-null haplosomes in the simulation that are not among the target haplosomes
 				for (auto subpop_pair : species->population_.subpops_)
-					for (Genome *genome : subpop_pair.second->parent_genomes_)
-						genome->scratch_ = (genome->IsNull() ? 0 : 1);
+					for (Haplosome *haplosome : subpop_pair.second->parent_haplosomes_)
+						haplosome->scratch_ = (haplosome->IsNull() ? 0 : 1);
 				
-				for (int genome_index = 0; genome_index < target_size; ++genome_index)
-					targets_data[genome_index]->scratch_ = 0;
+				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+					targets_data[haplosome_index]->scratch_ = 0;
 				
 				// Figure out the unique chromosome positions that have changed (the uniqued set of mutation positions)
 				std::vector<slim_position_t> unique_positions;
@@ -4130,14 +4126,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 					}
 				}
 				
-				// Loop through those genomes and log the new derived state at each (unique) position
+				// Loop through those haplosomes and log the new derived state at each (unique) position
 				for (auto subpop_pair : species->population_.subpops_)
-					for (Genome *genome : subpop_pair.second->parent_genomes_)
-						if (genome->scratch_ == 1)
+					for (Haplosome *haplosome : subpop_pair.second->parent_haplosomes_)
+						if (haplosome->scratch_ == 1)
 						{
 							for (slim_position_t position : unique_positions)
-								species->RecordNewDerivedState(genome, position, *genome->derived_mutation_ids_at_position(position));
-							genome->scratch_ = 0;
+								species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(position));
+							haplosome->scratch_ = 0;
 						}
 			}
 		}
@@ -4157,34 +4153,34 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
 			int64_t operation_id = MutationRun::GetNextOperationID();
 			
-			Genome::BulkOperationStart(operation_id, mutrun_index);
+			Haplosome::BulkOperationStart(operation_id, mutrun_index);
 			
 			MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			{
-				Genome *target_genome = targets_data[genome_index];
+				Haplosome *target_haplosome = targets_data[haplosome_index];
 				
-				if (target_genome->IsNull())
+				if (target_haplosome->IsNull())
 				{
-					Genome::BulkOperationEnd(operation_id, mutrun_index);	// clean up for SLiMgui
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
+					Haplosome::BulkOperationEnd(operation_id, mutrun_index);	// clean up for SLiMgui
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null haplosome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 				}
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+				MutationRun *mutrun = target_haplosome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 				
 				if (mutrun)
 				{
 					// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-					MutationIndex *genome_iter = mutrun->begin_pointer();
-					MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
-					MutationIndex *genome_max = mutrun->end_pointer();
+					MutationIndex *haplosome_iter = mutrun->begin_pointer();
+					MutationIndex *haplosome_backfill_iter = mutrun->begin_pointer();
+					MutationIndex *haplosome_max = mutrun->end_pointer();
 					
-					// genome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
-					while (genome_iter != genome_max)
+					// haplosome_iter advances through the mutation list; for each entry it hits, the entry is either removed (skip it) or not removed (copy it backward to the backfill pointer)
+					while (haplosome_iter != haplosome_max)
 					{
-						MutationIndex candidate_mutation = *genome_iter;
+						MutationIndex candidate_mutation = *haplosome_iter;
 						const slim_position_t candidate_pos = (mut_block_ptr + candidate_mutation)->position_;
 						bool should_remove = false;
 						
@@ -4207,25 +4203,25 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 						if (should_remove)
 						{
 							// Removed mutation; we want to omit it, so we just advance our pointer
-							++genome_iter;
+							++haplosome_iter;
 						}
 						else
 						{
-							// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-							if (genome_backfill_iter != genome_iter)
-								*genome_backfill_iter = *genome_iter;
+							// Unremoved mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as haplosome_iter
+							if (haplosome_backfill_iter != haplosome_iter)
+								*haplosome_backfill_iter = *haplosome_iter;
 							
-							++genome_backfill_iter;
-							++genome_iter;
+							++haplosome_backfill_iter;
+							++haplosome_iter;
 						}
 					}
 					
 					// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-					mutrun->set_size(mutrun->size() - (int)(genome_iter - genome_backfill_iter));
+					mutrun->set_size(mutrun->size() - (int)(haplosome_iter - haplosome_backfill_iter));
 				}
 			}
 			
-			Genome::BulkOperationEnd(operation_id, mutrun_index);
+			Haplosome::BulkOperationEnd(operation_id, mutrun_index);
 			
 			// now we have handled all mutations at this index (and all previous indices)
 			last_handled_mutrun_index = mutrun_index;
@@ -4238,13 +4234,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		// Now that all the bulk operations are done, record all the new derived states
 		if (recording_tree_sequence_mutations)
 		{
-			for (std::pair<Genome *, std::vector<slim_position_t>> &genome_pair : new_derived_state_positions)
+			for (std::pair<Haplosome *, std::vector<slim_position_t>> &haplosome_pair : new_derived_state_positions)
 			{
-				Genome *target_genome = genome_pair.first;
-				std::vector<slim_position_t> &genome_positions = genome_pair.second;
+				Haplosome *target_haplosome = haplosome_pair.first;
+				std::vector<slim_position_t> &haplosome_positions = haplosome_pair.second;
 				
-				for (slim_position_t position : genome_positions)
-					species->RecordNewDerivedState(target_genome, position, *target_genome->derived_mutation_ids_at_position(position));
+				for (slim_position_t position : haplosome_positions)
+					species->RecordNewDerivedState(target_haplosome, position, *target_haplosome->derived_mutation_ids_at_position(position));
 			}
 		}
 	}
@@ -4262,7 +4258,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from a first() or early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from a first() or early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_remove_ = true;
 			}
 		}
@@ -4275,13 +4271,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 
 
 //
-//	GenomeWalker
+//	HaplosomeWalker
 //
 #pragma mark -
-#pragma mark GenomeWalker
+#pragma mark HaplosomeWalker
 #pragma mark -
 
-void GenomeWalker::NextMutation(void)
+void HaplosomeWalker::NextMutation(void)
 {
 	// the !mutrun_ptr_ is actually not necessary, but ASAN wants it to be here...
 	if (!mutrun_ptr_ || (++mutrun_ptr_ >= mutrun_end_))
@@ -4289,14 +4285,14 @@ void GenomeWalker::NextMutation(void)
 		// finished the current mutation, so move to the next until we find a mutation
 		do
 		{
-			if (++mutrun_index_ >= genome_->mutrun_count_)
+			if (++mutrun_index_ >= haplosome_->mutrun_count_)
 			{
 				// finished all mutation runs, so we're done
 				mutation_ = nullptr;
 				return;
 			}
 			
-			const MutationRun *mutrun = genome_->mutruns_[mutrun_index_];
+			const MutationRun *mutrun = haplosome_->mutruns_[mutrun_index_];
 			mutrun_ptr_ = mutrun->begin_pointer_const();
 			mutrun_end_ = mutrun->end_pointer_const();
 		}
@@ -4306,30 +4302,30 @@ void GenomeWalker::NextMutation(void)
 	mutation_ = gSLiM_Mutation_Block + *mutrun_ptr_;
 }
 
-void GenomeWalker::MoveToPosition(slim_position_t p_position)
+void HaplosomeWalker::MoveToPosition(slim_position_t p_position)
 {
 	// Move the the first mutation that is at or after the given position.  Using this to move to a
 	// given position is more efficient than iteratively advancing mutation by mutation, because
 	// we can (1) go to the correct mutation run directly, and (2) do a binary search inside the
 	// mutation run for the correct position.
-	Genome *genome = genome_;
+	Haplosome *haplosome = haplosome_;
 	
 	// start at the mutrun dictated by the position we are moving to; positions < 0 start at 0
-	mutrun_index_ = (int32_t)(p_position / genome->mutrun_length_);
+	mutrun_index_ = (int32_t)(p_position / haplosome->mutrun_length_);
 	if (mutrun_index_ < 0)
 		mutrun_index_ = 0;
 	
 	while (true)
 	{
 		// if the mutrun is past the end of the last mutrun, we're done
-		if (mutrun_index_ >= genome->mutrun_count_)
+		if (mutrun_index_ >= haplosome->mutrun_count_)
 		{
 			mutation_ = nullptr;
 			return;
 		}
 		
 		// get the information on the mutrun
-		const MutationRun *mutrun = genome->mutruns_[mutrun_index_];
+		const MutationRun *mutrun = haplosome->mutruns_[mutrun_index_];
 		mutrun_ptr_ = mutrun->begin_pointer_const();
 		mutrun_end_ = mutrun->end_pointer_const();
 		
@@ -4354,22 +4350,22 @@ void GenomeWalker::MoveToPosition(slim_position_t p_position)
 	while (!Finished() && (Position() < p_position));
 }
 
-bool GenomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
+bool HaplosomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
 {
 	// We have reached some chromosome position (presumptively the *first mutation* at that position,
 	// which we do not check here), and the caller wants to know if a given mutation, which is
-	// located at that position, is contained in this genome.  This requires that we look ahead
+	// located at that position, is contained in this haplosome.  This requires that we look ahead
 	// through all of the mutations at the current position, since they are not sorted.  We are
 	// guaranteed to stay inside the current mutation run, though, so this lookahead is simple.
 	if (Finished())
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called on a finished walker." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called on a finished walker." << EidosTerminate();
 	if (!p_search_mut)
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a nullptr mutation to search for." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a nullptr mutation to search for." << EidosTerminate();
 	
 	slim_position_t pos = mutation_->position_;
 	
 	if (p_search_mut->position_ != pos)
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a mutation that is not at the current walker position." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::MutationIsStackedAtCurrentPosition): (internal error) MutationIsStackedAtCurrentPosition() called with a mutation that is not at the current walker position." << EidosTerminate();
 	
 	for (const MutationIndex *search_ptr_ = mutrun_ptr_; search_ptr_ != mutrun_end_; ++search_ptr_)
 	{
@@ -4385,14 +4381,14 @@ bool GenomeWalker::MutationIsStackedAtCurrentPosition(Mutation *p_search_mut)
 	return false;
 }
 
-bool GenomeWalker::IdenticalAtCurrentPositionTo(GenomeWalker &p_other_walker)
+bool HaplosomeWalker::IdenticalAtCurrentPositionTo(HaplosomeWalker &p_other_walker)
 {
 	if (Finished())
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
 	if (p_other_walker.Finished())
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called on a finished walker." << EidosTerminate();
 	if (Position() != p_other_walker.Position())
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called with walkers at different positions." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::IdenticalAtCurrentPositionTo): (internal error) IdenticalAtCurrentPositionTo() called with walkers at different positions." << EidosTerminate();
 	
 	// If the two walkers are using the same mutation run, they are identical by definition
 	if (mutrun_ptr_ == p_other_walker.mutrun_ptr_)
@@ -4433,10 +4429,10 @@ bool GenomeWalker::IdenticalAtCurrentPositionTo(GenomeWalker &p_other_walker)
 	while (true);
 }
 
-int8_t GenomeWalker::NucleotideAtCurrentPosition(void)
+int8_t HaplosomeWalker::NucleotideAtCurrentPosition(void)
 {
 	if (Finished())
-		EIDOS_TERMINATION << "ERROR (GenomeWalker::NucleotideAtCurrentPosition): (internal error) NucleotideAtCurrentPosition() called on a finished walker." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (HaplosomeWalker::NucleotideAtCurrentPosition): (internal error) NucleotideAtCurrentPosition() called on a finished walker." << EidosTerminate();
 	
 	// First check the mutation we're at, since we already have it
 	int8_t nuc = mutation_->nucleotide_;

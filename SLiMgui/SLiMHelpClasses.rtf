@@ -144,13 +144,70 @@ hotspotEndPositions => (integer)\
 \f4\fs20 , when using sex-specific hotspot maps; unavailable otherwise.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 lastPosition => (integer$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 firstPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The last valid position in the chromosome; its length, essentially.\cf2   Note that the chromosome length is determined by the 
+\f4\fs20 \cf2 The first valid position in the chromosome, as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  For an implicitly defined chromosome, the chromosome\'92s first position is 
+\f3\fs18 0
+\f4\fs20 .  See also 
+\f3\fs18 lastPosition
+\f4\fs20  and 
+\f3\fs18 length
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 id => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The id for the chromosome, as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  For an implicitly defined chromosome, the 
+\f3\fs18 id
+\f4\fs20  will be 
+\f3\fs18 1
+\f4\fs20 .  The 
+\f3\fs18 id
+\f4\fs20  can be used to refer to the chromosome; see also 
+\f3\fs18 symbol
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 lastPosition => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The last valid position in the chromosome; equal to 
+\f3\fs18 firstPosition+length-1
+\f4\fs20 , where 
+\f3\fs18 firstPosition
+\f4\fs20  and 
+\f3\fs18 length
+\f4\fs20  are the first position and length as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  For an implicitly defined chromosome, the chromosome\'92s last position is determined by the 
 \f1\i maximum
-\f4\i0  of the end of the last genomic element, the end of the last recombination region, and the end of the last mutation map region (or hotspot map region).
-\f5 \cf0 \
+\f4\i0  of the end of the last genomic element, the end of the last recombination region, and the end of the last mutation map region (or hotspot map region).  See also 
+\f3\fs18 firstPosition
+\f4\fs20  and 
+\f3\fs18 length
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 length => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The length of the chromosome (meaning the number of valid base positions it contains), as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  For an implicitly defined chromosome, the length is simply equal to the last position plus 
+\f3\fs18 1
+\f4\fs20 , since the first position is 
+\f3\fs18 0
+\f4\fs20 .  See also 
+\f3\fs18 firstPosition
+\f4\fs20  and 
+\f3\fs18 lastPosition
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 mutationEndPositions => (integer)\
@@ -219,7 +276,15 @@ The mutation rate for each of the mutation rate regions specified by
 This property is unavailable in nucleotide-based models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 overallMutationRate => (float$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 name <\'96> (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The name of the chromosome, as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  The chromosome name is not used by SLiM, and may be whatever you wish.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 overallMutationRate => (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -347,7 +412,23 @@ The recombination rate for each of the recombination regions specified by
 The species to which the target object belongs.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 tag <\'96> (integer$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 symbol => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The symbol for the chromosome, as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 .  For an implicitly defined chromosome, the 
+\f3\fs18 symbol
+\f4\fs20  will be 
+\f3\fs18 "1"
+\f4\fs20 .  The 
+\f3\fs18 symbol
+\f4\fs20  can be used to refer to the chromosome; see also 
+\f3\fs18 id
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 tag <\'96> (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 A user-defined 
@@ -357,8 +438,20 @@ The species to which the target object belongs.\
 \f4\fs20  is initially undefined\cf2 \expnd0\expndtw0\kerning0
 , and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
-\f4\fs20  is not used by SLiM; it is free for you to use.
-\f5 \
+\f4\fs20  is not used by SLiM; it is free for you to use.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 type => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The type of the chromosome, as given to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 ; see the documentation for that function for a list of the supported chromosome types.  For an implicitly defined chromosome, the type is 
+\f3\fs18 "A"
+\f4\fs20  for non-sexual models, and for sexual models (for historical reasons) is determined by the model type passed to 
+\f3\fs18 initializeSex()
+\f4\fs20  as documented there.
+\f5 \cf0 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.2.2  
@@ -372,7 +465,7 @@ The species to which the target object belongs.\
 
 \f4\fs20 \cf2 Returns the ancestral nucleotide sequence originally supplied to 
 \f3\fs18 initializeAncestralNucleotides()
-\f4\fs20 , including any sequence changes due to nucleotide mutations that have fixed and substituted.  This nucleotide sequence is the reference sequence for positions in a genome that do not contain a nucleotide-based mutation.  The range of the returned sequence may be constrained by a start position given in 
+\f4\fs20 , including any sequence changes due to nucleotide mutations that have fixed and substituted.  This nucleotide sequence is the reference sequence for positions in a haplosome that do not contain a nucleotide-based mutation.  The range of the returned sequence may be constrained by a start position given in 
 \f3\fs18 start
 \f4\fs20  and/or an end position given in 
 \f3\fs18 end
@@ -499,9 +592,9 @@ It is generally recommended that the parent individual be supplied to this metho
 \f4\fs20  callbacks (
 \f3\fs18 individual
 \f4\fs20 , 
-\f3\fs18 genome1
+\f3\fs18 haplosome1
 \f4\fs20 , 
-\f3\fs18 genome2
+\f3\fs18 haplosome2
 \f4\fs20 , 
 \f3\fs18 subpop
 \f4\fs20 ), and the subpopulation to which 
@@ -516,18 +609,18 @@ It is generally recommended that the parent individual be supplied to this metho
 \f3\fs18 NULL
 \f4\fs20 .  Apart from these two uses, 
 \f3\fs18 parent
-\f4\fs20  is not used, and the caller does not guarantee that the generated breakpoints will actually be used to recombine the genomes of 
+\f4\fs20  is not used, and the caller does not guarantee that the generated breakpoints will actually be used to recombine the haplosomes of 
 \f3\fs18 parent
 \f4\fs20  in particular.\kerning1\expnd0\expndtw0   If a 
 \f3\fs18 recombination()
 \f4\fs20  callback is called, 
-\f3\fs18 genome1
+\f3\fs18 haplosome1
 \f4\fs20  for that callback will always be 
-\f3\fs18 parent.genome1
+\f3\fs18 parent.haplosome1
 \f4\fs20 ; in other words, 
 \f3\fs18 drawBreakpoints()
 \f4\fs20  will always treat 
-\f3\fs18 parent.genome1
+\f3\fs18 parent.haplosome1
 \f4\fs20  as the initial copy strand.  If the caller wishes to randomly choose an initial copy strand (which is usually desirable), they should do that themselves.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1423,59 +1516,56 @@ Note that new script blocks can also be created and scheduled using the
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.4  Class Genome\
+\f0\b\fs22 \cf0 5.4  Class Haplosome\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 5.4.1  
-\f2\fs18 Genome
+\f2\fs18 Haplosome
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-genomePedigreeID => (integer$)\
+\f3\i0\fs18 \cf2 chromosome => (object<Chromosome>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Chromosome
+\f4\fs20  object which this haplosome represents; for example, if this haplosome represents the X sex chromosome in a particular individual, then this property provides the 
+\f3\fs18 Chromosome
+\f4\fs20  object that defines the genetic structure of the X sex chromosome in that individual\'92s species.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+haplosomePedigreeID => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
-\f3\fs18 genomePedigreeID
-\f4\fs20  is a unique non-negative identifier for each genome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
-\f3\fs18 genomePedigreeID
-\f4\fs20  of a given genome will be equal to either 
+\f3\fs18 haplosomePedigreeID
+\f4\fs20  is a unique non-negative identifier for each haplosome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f3\fs18 haplosomePedigreeID
+\f4\fs20  of a given haplosome will be equal to either 
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the genome belongs to (the former for the first genome of the individual, the latter for the second genome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not enabled, this property is unavailable.\expnd0\expndtw0\kerning0
+\f4\fs20  of the individual that the haplosome belongs to (the former for the first haplosome of the individual, the latter for the second haplosome of the individual); this invariant relationship is guaranteed.  If pedigree tracking is not enabled, this property is unavailable.\expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomeType => (string$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The type of chromosome represented by this genome; one of 
-\f3\fs18 "A"
-\f4\fs20 , 
-\f3\fs18 "X"
-\f4\fs20 , or 
-\f3\fs18 "Y"
-\f5\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-individual => (object<Individual>$)\
+\f3\fs18 \cf2 individual => (object<Individual>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Individual
-\f4\fs20  object to which this genome belongs.\
+\f4\fs20  object to which this haplosome belongs.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 isNullGenome => (logical$)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 isNullHaplosome => (logical$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 T
-\f4\fs20  if the genome is a \'93null\'94 genome, 
+\f4\fs20  if the haplosome is a \'93null\'94 haplosome, 
 \f3\fs18 F
-\f4\fs20  if it is an ordinary genome object.  When a sex chromosome (X or Y) is simulated, the other sex chromosome also exists in the simulation, but it is a \'93null\'94 genome that does not carry any mutations.  Instead, it is a placeholder, present to allow SLiM\'92s code to operate in much the same way as it does when an autosome is simulated.  Null genomes should not be accessed or manipulated.
+\f4\fs20  if it is an ordinary haplosome object.  When a sex chromosome (X or Y) is simulated, the other sex chromosome also exists in the simulation, but it is a \'93null\'94 haplosome that does not carry any mutations.  Instead, it is a placeholder, present to allow SLiM\'92s code to operate in much the same way as it does when an autosome is simulated.  Null haplosomes should not be accessed or manipulated.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1484,7 +1574,7 @@ individual => (object<Individual>$)\
 
 \f4\fs20 \cf0 All of the 
 \f3\fs18 Mutation
-\f4\fs20  objects present in this genome.\
+\f4\fs20  objects present in this haplosome.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 tag <\'96> (integer$)\
@@ -1498,7 +1588,7 @@ individual => (object<Individual>$)\
 , and it is an error to try to read it\cf0 \kerning1\expnd0\expndtw0 ; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 tag
 \f4\fs20  is not used by SLiM; it is free for you to use.  Note that the 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  objects used by SLiM are new with every new individual, so the 
 \f3\fs18 tag
 \f4\fs20  value of each new offspring generated in each tick will be initially undefined.
@@ -1506,7 +1596,7 @@ individual => (object<Individual>$)\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.4.2  
-\f2\fs18 Genome
+\f2\fs18 Haplosome
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1516,7 +1606,7 @@ individual => (object<Individual>$)\
 
 \f4\fs20 \cf0 Add the existing mutations in 
 \f3\fs18 mutations
-\f4\fs20  to the genome, if they are not already present (if they are already present, they will be ignored), and if the addition is not prevented by the mutation stacking policy (see the 
+\f4\fs20  to the haplosome, if they are not already present (if they are already present, they will be ignored), and if the addition is not prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
 \f3\fs18 MutationType
@@ -1539,7 +1629,7 @@ Calling this will normally affect the fitness values calculated toward the end o
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add new mutations to the target genome(s) with the specified 
+\f4\fs20 \cf0 Add new mutations to the target haplosome(s) with the specified 
 \f3\fs18 mutationType
 \f4\fs20  (specified by the 
 \f3\fs18 MutationType
@@ -1555,7 +1645,7 @@ Calling this will normally affect the fitness values calculated toward the end o
 \f3\fs18 integer
 \f4\fs20  identifier, or by 
 \f3\fs18 NULL
-\f4\fs20 , the default, to specify the subpopulation to which the first target genome belongs).  If 
+\f4\fs20 , the default, to specify the subpopulation to which the first target haplosome belongs).  If 
 \f3\fs18 originSubpop
 \f4\fs20  is supplied as an 
 \f3\fs18 integer
@@ -1612,11 +1702,11 @@ The new mutations created by this method are returned, even if their actual addi
 \f4\fs20  parameter is specified in ascending order.  In other words, pre-sorting the parameters to this method into ascending order by position, using 
 \f3\fs18 order()
 \f4\fs20  and subsetting, will guarantee that the order of the returned vector of mutations corresponds to the order of elements in the parameters to this method; otherwise, no such guarantee exists.\
-Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation objects to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutations to multiple genomes, it was necessary to call 
+Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation objects to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutations to multiple haplosomes, it was necessary to call 
 \f3\fs18 addNewDrawnMutation()
-\f4\fs20  on one of the genomes, and then add the returned 
+\f4\fs20  on one of the haplosomes, and then add the returned 
 \f3\fs18 Mutation
-\f4\fs20  object to all of the other genomes using 
+\f4\fs20  object to all of the other haplosomes using 
 \f3\fs18 addMutations()
 \f5\fs20 .
 \f4   That is not necessary in SLiM 2.1 and later, because of this change (although doing it the old way does no harm and produces identical behavior).  Pre-2.1 code that actually relied upon the old multiplexing behavior will no longer work correctly (but this is expected to be an extremely rare pattern of usage).\
@@ -1630,7 +1720,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1643,7 +1732,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add new mutations to the target genome(s) with the specified 
+\f4\fs20 \cf0 Add new mutations to the target haplosome(s) with the specified 
 \f3\fs18 mutationType
 \f4\fs20  (specified by the 
 \f3\fs18 MutationType
@@ -1661,7 +1750,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 integer
 \f4\fs20  identifier, or by 
 \f3\fs18 NULL
-\f4\fs20 , the default, to specify the subpopulation to which the first target genome belongs).  If 
+\f4\fs20 , the default, to specify the subpopulation to which the first target haplosome belongs).  If 
 \f3\fs18 originSubpop
 \f4\fs20  is supplied as an 
 \f3\fs18 integer
@@ -1717,11 +1806,11 @@ In non-nucleotide-based models,
 \f4\fs20  parameter is specified in ascending order.  In other words, pre-sorting the parameters to this method into ascending order by position, using 
 \f3\fs18 order()
 \f4\fs20  and subsetting, will guarantee that the order of the returned vector of mutations corresponds to the order of elements in the parameters to this method; otherwise, no such guarantee exists.\
-Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation object to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutation to multiple genomes, it was necessary to call 
+Beginning in SLiM 2.1, this is a class method, not an instance method.  This means that it does not get multiplexed out to all of the elements of the receiver (which would add a different new mutation to each element); instead, it is performed as a single operation, adding the same new mutation object to all of the elements of the receiver.  Before SLiM 2.1, to add the same mutation to multiple haplosomes, it was necessary to call 
 \f3\fs18 addNewMutation()
-\f4\fs20  on one of the genomes, and then add the returned 
+\f4\fs20  on one of the haplosomes, and then add the returned 
 \f3\fs18 Mutation
-\f4\fs20  object to all of the other genomes using 
+\f4\fs20  object to all of the other haplosomes using 
 \f3\fs18 addMutations()
 \f5\fs20 .
 \f4   That is not necessary in SLiM 2.1 and later, because of this change (although doing it the old way does no harm and produces identical behavior).  Pre-2.1 code that actually relied upon the old multiplexing behavior will no longer work correctly (but this is expected to be an extremely rare pattern of usage).\
@@ -1735,7 +1824,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1755,7 +1843,7 @@ Nlo<Mutation>$\cf0 \kerning1\expnd0\expndtw0 )containsMarkerMutation(io<Mutation
 
 \f4\fs20 \cf0 Returns 
 \f3\fs18 T
-\f4\fs20  if the genome contains a mutation of type 
+\f4\fs20  if the haplosome contains a mutation of type 
 \f3\fs18 mutType
 \f4\fs20  at 
 \f3\fs18 position
@@ -1766,15 +1854,15 @@ Nlo<Mutation>$\cf0 \kerning1\expnd0\expndtw0 )containsMarkerMutation(io<Mutation
 \f3\fs18 returnMutation
 \f4\fs20  has its default value of 
 \f3\fs18 F
-\f4\fs20 ; see below)\cf0 \kerning1\expnd0\expndtw0 .  This method is, as its name suggests, intended for checking for \'93marker mutations\'94: mutations of a special mutation type that are not literally mutations in the usual sense, but instead are added in to particular genomes to mark them as possessing some property.  Marker mutations are not typically added by SLiM\'92s mutation-generating machinery; instead they are added explicitly with 
+\f4\fs20 ; see below)\cf0 \kerning1\expnd0\expndtw0 .  This method is, as its name suggests, intended for checking for \'93marker mutations\'94: mutations of a special mutation type that are not literally mutations in the usual sense, but instead are added in to particular haplosomes to mark them as possessing some property.  Marker mutations are not typically added by SLiM\'92s mutation-generating machinery; instead they are added explicitly with 
 \f3\fs18 addNewMutation()
 \f4\fs20  or 
 \f3\fs18 addNewDrawnMutation()
-\f4\fs20  at a known, constant position in the genome.  This method provides a check for whether a marker mutation of a given type exists in a particular genome; because the position to check is known in advance, that check can be done much faster than the equivalent check with 
+\f4\fs20  at a known, constant position in the haplosome.  This method provides a check for whether a marker mutation of a given type exists in a particular haplosome; because the position to check is known in advance, that check can be done much faster than the equivalent check with 
 \f3\fs18 containsMutations()
 \f4\fs20  or 
 \f3\fs18 countOfMutationsOfType()
-\f4\fs20 , using a binary search of the genome.
+\f4\fs20 , using a binary search of the haplosome.
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1793,7 +1881,7 @@ If
 \f3\fs18 mutType
 \f4\fs20  at 
 \f3\fs18 position
-\f4\fs20  will be returned; if more than one such mutation exists in the target genome, which one is returned is not defined.  If 
+\f4\fs20  will be returned; if more than one such mutation exists in the target haplosome, which one is returned is not defined.  If 
 \f3\fs18 returnMutation
 \f4\fs20  is T and no mutation of 
 \f3\fs18 mutType
@@ -1812,7 +1900,7 @@ If
 \f3\fs18 logical
 \f4\fs20  vector indicating whether each of the mutations in 
 \f3\fs18 mutations
-\f4\fs20  is present in the genome; each element in the returned vector indicates whether the corresponding mutation is present (
+\f4\fs20  is present in the haplosome; each element in the returned vector indicates whether the corresponding mutation is present (
 \f3\fs18 T
 \f4\fs20 ) or absent (
 \f3\fs18 F
@@ -1827,7 +1915,7 @@ If
 
 \f4\fs20 \cf0 Returns the number of mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the genome.  If you need a vector of the matching 
+\f4\fs20 , out of all of the mutations in the haplosome.  If you need a vector of the matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, rather than just a count, use 
 \f3\fs18 -mutationsOfType()
@@ -1836,7 +1924,7 @@ If
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(integer)mutationCountsInGenomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(integer)mutationCountsInHaplosomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Return an 
@@ -1846,7 +1934,7 @@ If
 \f4\fs20  objects passed in 
 \f3\fs18 mutations
 \f4\fs20 , within the target 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  vector.  If the optional 
 \f3\fs18 mutations
 \f4\fs20  argument is 
@@ -1861,7 +1949,7 @@ If
 \f3\fs18 sim
 \f4\fs20 , in other words.\
 See the 
-\f3\fs18 +mutationFrequenciesInGenomes()
+\f3\fs18 +mutationFrequenciesInHaplosomes()
 \f4\fs20  method to obtain 
 \f3\fs18 float
 \f4\fs20  frequencies instead of 
@@ -1875,7 +1963,7 @@ See the
 \f4\fs20 , which may be more efficient for getting counts/frequencies for whole subpopulations or for the whole simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(float)mutationFrequenciesInGenomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
+\f3\fs18 \cf2 +\'a0(float)mutationFrequenciesInHaplosomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Return a 
@@ -1885,7 +1973,7 @@ See the
 \f4\fs20  objects passed in 
 \f3\fs18 mutations
 \f4\fs20 , within the target 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  vector.  If the optional 
 \f3\fs18 mutations
 \f4\fs20  argument is 
@@ -1900,7 +1988,7 @@ See the
 \f3\fs18 sim
 \f4\fs20 , in other words.\
 See the 
-\f3\fs18 +mutationCountsInGenomes()
+\f3\fs18 +mutationCountsInHaplosomes()
 \f4\fs20  method to obtain 
 \f3\fs18 integer
 \f4\fs20  counts instead of 
@@ -1924,7 +2012,7 @@ See the
 \f3\fs18 object
 \f4\fs20  vector of all the mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the genome.  If you just need a count of the matching 
+\f4\fs20 , out of all of the mutations in the haplosome.  If you just need a count of the matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, rather than a vector of the matches, use 
 \f3\fs18 -countOfMutationsOfType()
@@ -1945,11 +2033,11 @@ See the
 \'96\'a0(is)nucleotides([Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [string$\'a0format\'a0=\'a0"string"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns the nucleotide sequence for the genome.  This is the current ancestral sequence, as would be returned by the 
+\f4\fs20 \cf2 Returns the nucleotide sequence for the haplosome.  This is the current ancestral sequence, as would be returned by the 
 \f3\fs18 Chromosome
 \f4\fs20  method 
 \f3\fs18 ancestralNucleotides()
-\f4\fs20 , with the nucleotides for any nucleotide-based mutations in the genome overlaid.  The range of the returned sequence may be constrained by a start position given in 
+\f4\fs20 , with the nucleotides for any nucleotide-based mutations in the haplosome overlaid.  The range of the returned sequence may be constrained by a start position given in 
 \f3\fs18 start
 \f4\fs20  and/or an end position given in 
 \f3\fs18 end
@@ -2030,8 +2118,8 @@ Several helper functions are provided for working with sequences, such as
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output the target genomes in SLiM\'92s native format.  This low-level output method may be used to output any sample of 
-\f3\fs18 Genome
+\f4\fs20 \cf0 Output the target haplosomes in SLiM\'92s native format.  This low-level output method may be used to output any sample of 
+\f3\fs18 Haplosome
 \f4\fs20  objects (the Eidos function 
 \f3\fs18 sample()
 \f4\fs20  may be useful for constructing custom samples, as may the SLiM class 
@@ -2073,8 +2161,8 @@ Several helper functions are provided for working with sequences, such as
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output the target genomes in MS format.  This low-level output method may be used to output any sample of 
-\f3\fs18 Genome
+\f4\fs20 \cf0 Output the target haplosomes in MS format.  This low-level output method may be used to output any sample of 
+\f3\fs18 Haplosome
 \f4\fs20  objects (the Eidos function 
 \f3\fs18 sample()
 \f4\fs20  may be useful for constructing custom samples, as may the SLiM class 
@@ -2109,9 +2197,9 @@ If
 \f3\fs18 F
 \f4\fs20  (the default), all mutations that are present in the sample will be included in the output.  This means that some mutations may be included that are actually monomorphic within the sample (i.e., that exist in 
 \f1\i every
-\f4\i0  sampled genome, and are thus apparently fixed).  These may be filtered out with 
+\f4\i0  sampled haplosome, and are thus apparently fixed).  These may be filtered out with 
 \f3\fs18 filterMonomorphic = T
-\f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled genomes might not be included in the output, simply because they exist in every sampled genome.\
+\f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled haplosomes might not be included in the output, simply because they exist in every sampled haplosome.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 See 
 \f3\fs18 output()
@@ -2127,8 +2215,8 @@ If
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output the target genomes in VCF format.  The target genomes are treated as pairs comprising individuals for purposes of structuring the VCF output, so an even number of genomes is required.  This low-level output method may be used to output any sample of 
-\f3\fs18 Genome
+\f4\fs20 \cf0 Output the target haplosomes in VCF format.  The target haplosomes are treated as pairs comprising individuals for purposes of structuring the VCF output, so an even number of haplosomes is required.  This low-level output method may be used to output any sample of 
+\f3\fs18 Haplosome
 \f4\fs20  objects (the Eidos function 
 \f3\fs18 sample()
 \f4\fs20  may be useful for constructing custom samples, as may the SLiM class 
@@ -2181,7 +2269,7 @@ The parameters
 
 \f4\fs20 \cf0 Returns the positions of mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the genome.  If you need a vector of the matching 
+\f4\fs20 , out of all of the mutations in the haplosome.  If you need a vector of the matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, rather than just positions, use 
 \f3\fs18 -mutationsOfType()
@@ -2196,10 +2284,10 @@ The parameters
 
 \f4\fs20 \cf2 Read new mutations from the MS format file at 
 \f3\fs18 filePath
-\f4\fs20  and add them to the target genomes.  The number of target genomes must match the number of genomes represented in the MS file.  To read into all of the genomes in a given subpopulation 
+\f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the MS file.  To read into all of the haplosomes in a given subpopulation 
 \f3\fs18 pN
 \f4\fs20 , simply call 
-\f3\fs18 pN.genomes.readFromMS()
+\f3\fs18 pN.haplosomes.readFromMS()
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the MS file.  A vector containing all of the mutations created by 
 \f3\fs18 readFromMS()
 \f4\fs20  is returned.\
@@ -2210,7 +2298,7 @@ Each mutation is created at the position specified in the file, using the mutati
 \f4\fs20 , and the tick of origin is set to the current tick.  In a nucleotide-based model, if 
 \f3\fs18 mutationType
 \f4\fs20  is nucleotide-based, a random nucleotide different from the ancestral nucleotide at the position will be chosen with equal probability.\
-The target genomes correspond, in order, to the call lines in the MS file.  In sex-based models that simulate the X or Y chromosome, null genomes in the target vector will be skipped, and will not be used to correspond to any call line; however, care should be taken in this case that the lines in the MS file correspond to the target genomes in the manner desired.\
+The target haplosomes correspond, in order, to the call lines in the MS file.  In sex-based models that simulate the X or Y chromosome, null haplosomes in the target vector will be skipped, and will not be used to correspond to any call line; however, care should be taken in this case that the lines in the MS file correspond to the target haplosomes in the manner desired.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(\cf0 \kerning1\expnd0\expndtw0 object\cf2 \expnd0\expndtw0\kerning0
@@ -2219,10 +2307,10 @@ The target genomes correspond, in order, to the call lines in the MS file.  In s
 
 \f4\fs20 \cf2 Read new mutations from the VCF format file at 
 \f3\fs18 filePath
-\f4\fs20  and add them to the target genomes.  The number of target genomes must match the number of genomes represented in the VCF file (i.e., two times the number of samples, if each sample is diploid).  To read into all of the genomes in a given subpopulation 
+\f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the VCF file (i.e., two times the number of samples, if each sample is diploid).  To read into all of the haplosomes in a given subpopulation 
 \f3\fs18 pN
 \f4\fs20 , simply call 
-\f3\fs18 pN.genomes.readFromVCF()
+\f3\fs18 pN.haplosomes.readFromVCF()
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the VCF file taking ploidy into account.  A vector containing all of the mutations created by 
 \f3\fs18 readFromVCF()
 \f4\fs20  is returned.\
@@ -2319,18 +2407,18 @@ If multiple alleles using the same nucleotide at the same position are specified
 \f3\fs18 MULTIALLELIC
 \f4\fs20  flag is ignored by 
 \f3\fs18 readFromVCF()
-\f4\fs20 ; call lines for mutations at the same base position in the same genome will result in stacked mutations whether or not 
+\f4\fs20 ; call lines for mutations at the same base position in the same haplosome will result in stacked mutations whether or not 
 \f3\fs18 MULTIALLELIC
 \f4\fs20  is present.\
-The target genomes correspond, in order, to the haploid or diploid calls provided for 
+The target haplosomes correspond, in order, to the haploid or diploid calls provided for 
 \f3\fs18 i0
 \f4\fs20 \'85
 \f3\fs18 iN
-\f4\fs20  (the sample IDs) in the VCF file.  In sex-based models that simulate the X or Y chromosome, null genomes in the target vector will be skipped, and will not be used to correspond to any of 
+\f4\fs20  (the sample IDs) in the VCF file.  In sex-based models that simulate the X or Y chromosome, null haplosomes in the target vector will be skipped, and will not be used to correspond to any of 
 \f3\fs18 i0
 \f4\fs20 \'85
 \f3\fs18 iN
-\f4\fs20 ; however, care should be taken in this case that the genomes in the VCF file correspond to the target genomes in the manner desired.\
+\f4\fs20 ; however, care should be taken in this case that the haplosomes in the VCF file correspond to the target haplosomes in the manner desired.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)removeMutations([No<Mutation>\'a0mutations\'a0=\'a0NULL], [logical$\'a0substitute\'a0=\'a0F])\
@@ -2338,11 +2426,11 @@ The target genomes correspond, in order, to the haploid or diploid calls provide
 
 \f4\fs20 \cf2 Remove the mutations in 
 \f3\fs18 mutations
-\f4\fs20  from the target genome(s), if they are present (if they are not present, they will be ignored).  If 
+\f4\fs20  from the target haplosome(s), if they are present (if they are not present, they will be ignored).  If 
 \f3\fs18 NULL
 \f4\fs20  is passed for 
 \f3\fs18 mutations
-\f4\fs20  (which is the default), then all mutations will be removed from the target genomes; in this case, 
+\f4\fs20  (which is the default), then all mutations will be removed from the target haplosomes; in this case, 
 \f3\fs18 substitute
 \f4\fs20  must be 
 \f3\fs18 F
@@ -2377,7 +2465,7 @@ The optional parameter
 \f4\fs20  will only be set to 
 \f3\fs18 T
 \f4\fs20  in the context of calls like 
-\f3\fs18 sim.subpopulations.genomes.removeMutations(muts, T)
+\f3\fs18 sim.subpopulations.haplosomes.removeMutations(muts, T)
 \f4\fs20 , such that the substituted mutations are guaranteed to be entirely removed from circulation.  As mentioned above, 
 \f3\fs18 substitute
 \f4\fs20  may not be 
@@ -2397,11 +2485,11 @@ The optional parameter
 
 \f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the genome.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosome.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
 \f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
 \f3\fs18 Individual
-\f4\fs20 , for cases in which the sum across both genomes of an individual is desired.
+\f4\fs20 , for cases in which the sum across both haplosomes of an individual is desired.
 \f5 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
@@ -2639,50 +2727,53 @@ The value of
 \f4\fs20  every tick, so that any scaling factor set lasts for only a single tick.  This reset occurs immediately after fitness values are calculated, in both WF and nonWF models.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomes => (object<Genome>)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 haplosomes => (object<Haplosome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The pair of 
-\f3\fs18 Genome
-\f4\fs20  objects associated with this individual.\cf2 \expnd0\expndtw0\kerning0
-  If only one of the two genomes is desired, the 
-\f3\fs18 genome1
-\f4\fs20  or 
-\f3\fs18 genome2
-\f4\fs20  property may be used.
-\f5 \cf0 \kerning1\expnd0\expndtw0 \
+\f4\fs20 \cf2 A vector of all 
+\f3\fs18 Haplosome
+\f4\fs20  objects associated with this individual, in the order in which the chromosomes were defined for the species.  See also the 
+\f3\fs18 haplosomesNonNull
+\f4\fs20 , 
+\f3\fs18 haplosomesFromParent1
+\f4\fs20 , and 
+\f3\fs18 haplosomesFromParent2
+\f4\fs20  properties and the 
+\f3\fs18 haplosomesForChromosomes()
+\f4\fs20  method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 genomesNonNull => (object<Genome>)\
+\f3\fs18 \cf2 haplosomesNonNull => (object<Haplosome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The pair of 
-\f3\fs18 Genome
-\f4\fs20  objects associated with this individual, as with the 
-\f3\fs18 genomes
-\f4\fs20  property, if both are not null genomes.  If one or both 
-\f1\i are
-\f4\i0  null genomes, the null genomes are excluded from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null genomes.\
+\f4\fs20 \cf2 A vector of all 
+\f3\fs18 Haplosome
+\f4\fs20  objects associated with this individual, in the order in which the chromosomes were defined for the species (as with the 
+\f3\fs18 haplosomes
+\f4\fs20  property), but excluding any null haplosomes from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null haplosomes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-genome1 => (object<Genome>$)\
+\f3\fs18 \cf2 haplosomesFromParent1 => (object<Haplosome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The first 
-\f3\fs18 Genome
-\f4\fs20  object associated with this individual.  This property is particularly useful when you want the first genome from each of a vector of individuals, as often arises in haploid models.\
+\f4\fs20 \cf2 A vector of all 
+\f3\fs18 Haplosome
+\f4\fs20  objects associated with this individual that were inherited from its first parent.  Null haplosomes are never included in this vector, since they are never inherited.  See also the 
+\f3\fs18 haplosomesForChromosomes()
+\f4\fs20  method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 genome2 => (object<Genome>$)\
+\f3\fs18 \cf2 haplosomesFromParent2 => (object<Haplosome>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The second 
-\f3\fs18 Genome
-\f4\fs20  object associated with this individual.  This property is particularly useful when you want the second genome from each of a vector of individuals, as often arises in haploid models.\
+\f4\fs20 \cf2 A vector of all 
+\f3\fs18 Haplosome
+\f4\fs20  objects associated with this individual that were inherited from its second parent.  Null haplosomes are never included in this vector, since they are never inherited.  See also the 
+\f3\fs18 haplosomesForChromosomes()
+\f4\fs20  method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 index => (integer$)\
+\f3\fs18 \cf0 index => (integer$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The index of the individual in the 
@@ -3036,16 +3127,16 @@ See the description of the
 
 \f4\fs20 \cf0 All of the 
 \f3\fs18 Mutation
-\f4\fs20  objects present in this individual.  Mutations present in both genomes will occur only once in this property, and the mutations will be given in sorted order by 
+\f4\fs20  objects present in this individual.  Mutations present in both haplosomes will occur only once in this property, and the mutations will be given in sorted order by 
 \f3\fs18 position
 \f4\fs20 , so this property is similar to 
-\f3\fs18 sortBy(unique(individual.genomes.mutations), "position")
+\f3\fs18 sortBy(unique(individual.haplosomes.mutations), "position")
 \f5\fs20 .
 \f4   It is not identical to that call, only because if multiple mutations exist at the exact same position, they may be sorted differently by this method than they would be by 
 \f3\fs18 sortBy()
 \f5\fs20 .
 \f4   This method is provided primarily for speed; it executes much faster than the Eidos equivalent above.  Indeed, it is faster than just 
-\f3\fs18 individual.genomes.mutations
+\f3\fs18 individual.haplosomes.mutations
 \f4\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3214,7 +3305,7 @@ See the description of the
 \f3\fs18 logical
 \f4\fs20  vector indicating whether each of the mutations in 
 \f3\fs18 mutations
-\f4\fs20  is present in the individual (in either of its genomes); each element in the returned vector indicates whether the corresponding mutation is present (
+\f4\fs20  is present in the individual (in either of its haplosomes); each element in the returned vector indicates whether the corresponding mutation is present (
 \f3\fs18 T
 \f4\fs20 ) or absent (
 \f3\fs18 F
@@ -3229,10 +3320,10 @@ See the description of the
 
 \f4\fs20 \cf0 Returns the number of mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the individual (in both of its genomes; a mutation that is present in both genomes counts twice).  If you need a vector of the matching 
+\f4\fs20 , out of all of the mutations in the individual (in both of its haplosomes; a mutation that is present in both haplosomes counts twice).  If you need a vector of the matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, rather than just a count, use the 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  method 
 \f3\fs18 -mutationsOfType()
 \f5\fs20 .
@@ -3505,11 +3596,11 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 
 \f4\fs20 \cf0 Returns the sum of the selection coefficients of all mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the genomes of the individual.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
+\f4\fs20 , out of all of the mutations in the haplosomes of the individual.  This is often useful in models that use a particular mutation type to represent QTLs with additive effects; in that context, 
 \f3\fs18 sumOfMutationsOfType()
 \f4\fs20  will provide the sum of the additive effects of the QTLs for the given mutation type.  This method is provided for speed; it is much faster than the corresponding Eidos code.  Note that this method also exists on 
-\f3\fs18 Genome
-\f4\fs20 , for cases in which the sum for just one genome is desired.
+\f3\fs18 Haplosome
+\f4\fs20 , for cases in which the sum for just one haplosome is desired.
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3523,10 +3614,10 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f3\fs18 object
 \f4\fs20  vector of all the mutations that are of the type specified by 
 \f3\fs18 mutType
-\f4\fs20 , out of all of the mutations in the individual.  Mutations present in both genomes will occur only once in the result of this method, and the mutations will be given in sorted order by 
+\f4\fs20 , out of all of the mutations in the individual.  Mutations present in both haplosomes will occur only once in the result of this method, and the mutations will be given in sorted order by 
 \f3\fs18 position
 \f4\fs20 , so this method is similar to 
-\f3\fs18 sortBy(unique(individual.genomes.mutationsOfType(mutType)), "position")
+\f3\fs18 sortBy(unique(individual.haplosomes.mutationsOfType(mutType)), "position")
 \f5\fs20 .
 \f4   It is not identical to that call, only because if multiple mutations exist at the exact same position, they may be sorted differently by this method than they would be by 
 \f3\fs18 sortBy()
@@ -3536,7 +3627,7 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f4\fs20  objects, rather than a vector of the matches, use 
 \f3\fs18 -countOfMutationsOfType()
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.  Indeed, it is faster than just 
-\f3\fs18 individual.genomes.mutationsOfType(mutType)
+\f3\fs18 individual.haplosomes.mutationsOfType(mutType)
 \f4\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.
 \f5 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -5507,9 +5598,9 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f3\fs18 \cf2 haploidDominanceCoeff\cf0  <\cf2 \'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null genome (as in sex-chromosome models and models involving haploids).  This defaults to 
+\f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null haplosome (as in sex-chromosome models and models involving haploids).  This defaults to 
 \f3\fs18 1.0
-\f4\fs20 , and is used only in models where null genomes are present; the 
+\f4\fs20 , and is used only in models where null haplosomes are present; the 
 \f3\fs18 dominanceCoeff
 \f4\fs20  property is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
@@ -5591,7 +5682,7 @@ This property is
 \f4 \cf2 \expnd0\expndtw0\kerning0
 In nucleotide-based models, the stacking policy for nucleotide-based mutation types is always 
 \f3\fs18 "l"
-\f4\fs20 , and cannot be changed.  This ensures that new nucleotide mutations always replace the previous nucleotide at a site, and that more than one nucleotide mutation is never present at the same position in a single genome.\
+\f4\fs20 , and cannot be changed.  This ensures that new nucleotide mutations always replace the previous nucleotide at a site, and that more than one nucleotide mutation is never present at the same position in a single haplosome.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 nucleotideBased => (logical$)\
@@ -7205,26 +7296,12 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 chromosome => (object<Chromosome>$)\
+\f3\fs18 \cf2 chromosomes => (object<Chromosome>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The 
+\f4\fs20 \cf2 The 
 \f3\fs18 Chromosome
-\f4\fs20  
-\f3\fs18 object
-\f4\fs20  used by the species.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 chromosomeType => (string$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The type of chromosome being simulated by this species; this will be one of 
-\f3\fs18 "A"
-\f4\fs20 , 
-\f3\fs18 "X"
-\f4\fs20 , or 
-\f3\fs18 "Y"
-\f5\fs20 .\
+\f4\fs20  objects used by the species, in the order in which they were defined.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 color => (string$)\
@@ -7445,16 +7522,15 @@ The spatial periodicity of the simulation for this species, as specified in
 \f4\fs20 \cf2 \expnd0\expndtw0\kerning0
  (as the male fraction, M:M+F)\cf0 \kerning1\expnd0\expndtw0 ; if it is not specified, a default of 
 \f3\fs18 0.5
-\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty genomes. In order to model subpopulations that split from an already existing subpopulation, use 
+\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty haplosomes. In order to model subpopulations that split from an already existing subpopulation, use 
 \f3\fs18 addSubpopSplit()
 \f5\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4 \cf2 Only in nonWF models, the 
 \f3\fs18 haploid
 \f4\fs20  parameter may be 
 \f3\fs18 T
-\f4\fs20 ; in this case, the second genome of each new individual will be a null genome, rather than an empty genome.  For even greater control in nonWF models, you can call 
+\f4\fs20 ; in this case, the second haplosome of each new individual will be a null haplosome, rather than an empty haplosome.  For even greater control in nonWF models, you can call 
 \f3\fs18 addSubpop()
 \f4\fs20  with an initial size of 
 \f3\fs18 0
@@ -7552,10 +7628,10 @@ To find individuals within all subpopulations, pass the default of
 \f3\fs18 -1
 \f4\fs20 .  The 
 \f3\fs18 Individual
-\f4\fs20  objects are not freed immediately, since references to them could still exist in local Eidos variables; instead, the individuals are kept in a temporary \'93graveyard\'94 until they can be freed safely.  It therefore continues to be safe to use them and their genomes, except that accessing their 
+\f4\fs20  objects are not freed immediately, since references to them could still exist in local Eidos variables; instead, the individuals are kept in a temporary \'93graveyard\'94 until they can be freed safely.  It therefore continues to be safe to use them and their haplosomes, except that accessing their 
 \f3\fs18 subpopulation
 \f4\fs20  property will raise an error since they no longer have a subpopulation.\
-Note that the indices and order of individuals and genomes in all source subpopulations will change unpredictably as a side effect of this method.  All evaluated interactions are invalidated as a side effect of calling this method.\
+Note that the indices and order of individuals and haplosomes in all source subpopulations will change unpredictably as a side effect of this method.  All evaluated interactions are invalidated as a side effect of calling this method.\
 Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.  In nonWF models, mortality normally occurs during the survival stage of the tick cycle, based upon the fitness values calculated by SLiM, and 
 \f3\fs18 survival()
 \f4\fs20  callbacks can influence the outcome of that survival stage.  Calls to 
@@ -7612,11 +7688,11 @@ See the
 \f4\fs20  frequencies instead of 
 \f3\fs18 integer
 \f4\fs20  counts.\cf2   See also the 
-\f3\fs18 Genome
-\f4\fs20  methods 
-\f3\fs18 mutationCountsInGenomes()
+\f3\fs18 \cf0 Haplosome
+\f4\fs20 \cf2  methods 
+\f3\fs18 mutationCountsIn\cf0 Haplosome\cf2 s()
 \f4\fs20  and 
-\f3\fs18 mutationFrequenciesInGenomes()
+\f3\fs18 mutationFrequenciesIn\cf0 Haplosome\cf2 s()
 \f4\fs20 .
 \f5 \cf0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7664,11 +7740,11 @@ See the
 \f4\fs20  counts instead of 
 \f3\fs18 float
 \f4\fs20  frequencies.\cf2   See also the 
-\f3\fs18 Genome
-\f4\fs20  methods 
-\f3\fs18 mutationCountsInGenomes()
+\f3\fs18 \cf0 Haplosome
+\f4\fs20 \cf2  methods 
+\f3\fs18 mutationCountsIn\cf0 Haplosome\cf2 s()
 \f4\fs20  and 
-\f3\fs18 mutationFrequenciesInGenomes()
+\f3\fs18 mutationFrequenciesIn\cf0 Haplosome\cf2 s()
 \f4\fs20 .
 \f5 \cf0 \
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7885,8 +7961,8 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f4\fs20  and have element type 
 \f3\fs18 Subpopulation
 \f4\fs20 , 
-\f3\fs18 Genome
-\f4\fs20 , 
+\f3\fs18 \cf0 Haplosome
+\f4\fs20 \cf2 , 
 \f3\fs18 Mutation
 \f4\fs20 , 
 \f3\fs18 Individual
@@ -7938,7 +8014,7 @@ In SLiM 3.0 when using the nonWF model, calling
 \f3\fs18 outputFull()
 \f4\fs20 .  Only information saved by 
 \f3\fs18 outputFull()
-\f4\fs20  will be restored; all other state associated with the species \'96 subpopulations, individuals, genomes, mutations, and substitutions \'96 will be lost, and should be re-established by the model if it is still needed.\
+\f4\fs20  will be restored; all other state associated with the species \'96 subpopulations, individuals, haplosomes, mutations, and substitutions \'96 will be lost, and should be re-established by the model if it is still needed.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space (see 
 \f3\fs18 outputFull()
@@ -7949,7 +8025,7 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
+\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -8548,7 +8624,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f3\fs18 simplify
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all genomes since the last simplification will be marked as samples in the resulting tree sequence.)  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all haplosomes since the last simplification will be marked as samples in the resulting tree sequence.)  A binary tree sequence file will be written to the specified path; a filename extension of 
 \f3\fs18 .trees
 \f4\fs20  is suggested for this type of file.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -8616,12 +8692,12 @@ There are two ways to keep individuals across simplification.  If
 \f3\fs18 permanent
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), then the specified individuals will be permanently remembered: their genomes will be added to the current sample, and they will always be present in the tree sequence.  Permanently remembering a large number of individuals will, of course, markedly increase memory usage and runtime.\
+\f4\fs20  (the default), then the specified individuals will be permanently remembered: their haplosomes will be added to the current sample, and they will always be present in the tree sequence.  Permanently remembering a large number of individuals will, of course, markedly increase memory usage and runtime.\
 Supplying 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 permanent
-\f4\fs20  will instead mark the individuals only for (temporary) retention: their genomes will not be added to the sample, and they will appear in the final tree sequence only if one of their genomes is retained across simplification.  In other words, the rule of thumb for retained individuals is simple: if a genome is kept by simplification, the genome\'92s corresponding individual is kept also, 
+\f4\fs20  will instead mark the individuals only for (temporary) retention: their haplosomes will not be added to the sample, and they will appear in the final tree sequence only if one of their haplosomes is retained across simplification.  In other words, the rule of thumb for retained individuals is simple: if a haplosome is kept by simplification, the haplosome\'92s corresponding individual is kept also, 
 \f1\i if
 \f4\i0  it is retained.  Note that permanent remembering takes priority; calling this function with 
 \f3\fs18 permanent=F
@@ -8632,21 +8708,21 @@ The behavior of simplification for individuals retained with
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  flag passed to 
 \f3\fs18 initializeTreeSeq()
-\f4\fs20 ; here we will discuss the behavior of that flag in detail.  First of all, genomes are 
+\f4\fs20 ; here we will discuss the behavior of that flag in detail.  First of all, haplosomes are 
 \f1\i always
-\f4\i0  removed by simplification unless they are (a) part of the final generation (i.e., in a living individual when simplification occurs), (b) ancestral to the final generation, (c) a genome of a permanently remembered individual, or (d) ancestral to a permanently remembered individual.  If 
+\f4\i0  removed by simplification unless they are (a) part of the final generation (i.e., in a living individual when simplification occurs), (b) ancestral to the final generation, (c) a haplosome of a permanently remembered individual, or (d) ancestral to a permanently remembered individual.  If 
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  is 
 \f3\fs18 T
 \f4\fs20  (the default), they are 
 \f1\i also
-\f4\i0  always removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a genome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be enabled by setting 
+\f4\i0  always removed if they are not a branch point (i.e., a coalescent node or most recent common ancestor) in the tree sequence.  In some cases it may be useful to retain a haplosome and its associated individual when it is simply an intermediate node in the ancestry (i.e., in the middle of a branch).  This can be enabled by setting 
 \f3\fs18 retainCoalescentOnly
 \f4\fs20  to 
 \f3\fs18 F
 \f4\fs20  in your call to 
 \f3\fs18 initializeTreeSeq()
-\f4\fs20 .  In this case, ancestral genomes that are intermediate (\'93unary nodes\'94, in 
+\f4\fs20 .  In this case, ancestral haplosomes that are intermediate (\'93unary nodes\'94, in 
 \f3\fs18 tskit
 \f4\fs20  parlance) and are within an individual that has been retained using the 
 \f3\fs18 permanent=F
@@ -8720,10 +8796,10 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 The index of the first male individual in the subpopulation.  The 
-\f3\fs18 genomes
+\f3\fs18 haplosomes
 \f4\fs20  vector is sorted into females first and males second; 
 \f3\fs18 firstMaleIndex
-\f4\fs20  gives the position of the boundary between those sections.  Note, however, that there are two genomes per diploid individual, and the 
+\f4\fs20  gives the position of the boundary between those sections.  Note, however, that there are two haplosomes per diploid individual, and the 
 \f3\fs18 firstMaleIndex
 \f4\fs20  is 
 \f1\i not
@@ -8732,8 +8808,8 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \f4\fs20 ; you must multiply it by 
 \f3\fs18 2
 \f4\fs20  before using it to decide whether a given index into 
-\f3\fs18 genomes
-\f4\fs20  is a genome for a male or a female.  The 
+\f3\fs18 haplosomes
+\f4\fs20  is a haplosome for a male or a female.  The 
 \f3\fs18 firstMaleIndex
 \f4\fs20  property is also the number of females in the subpopulation, given this design.  For non-sexual (i.e. hermaphroditic) simulations, this property has an undefined value and should not be used.
 \f5 \
@@ -8760,19 +8836,19 @@ fitnessScaling <\'96> (float$)\
 \f4\fs20  every tick, so that any scaling factor set lasts for only a single tick.  This reset occurs immediately after fitness values are calculated, in both WF and nonWF models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 genomes => (object<Genome>)\
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 haplosomes => (object<Haplosome>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 All of the genomes contained by the subpopulation; there are two genomes per diploid individual.
+\f4\fs20 \cf0 All of the haplosomes contained by the subpopulation; there are two haplosomes per diploid individual.
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 genomesNonNull => (object<Genome>)\
+\f3\fs18 \cf2 haplosomesNonNull => (object<Haplosome>)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 All of the genomes contained by the subpopulation, as with the 
-\f3\fs18 genomes
-\f4\fs20  property, if all of them are not null genomes; any null genomes present are excluded from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null genomes.\
+\f4\fs20 \cf2 All of the haplosomes contained by the subpopulation, as with the 
+\f3\fs18 haplosomes
+\f4\fs20  property, if all of them are not null haplosomes; any null haplosomes present are excluded from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null haplosomes.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 id => (integer$)\
@@ -8802,14 +8878,14 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 \cf0 individualCount => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The number of individuals in the subpopulation; one-half of the number of genomes.\
+\f4\fs20 \cf0 The number of individuals in the subpopulation; one-half of the number of haplosomes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 individuals => (object<Individual>)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 All of the individuals contained by the subpopulation.  Each individual is diploid and thus contains two 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  objects.\cf2 \expnd0\expndtw0\kerning0
   See the 
 \f3\fs18 sampleIndividuals()
@@ -8994,15 +9070,15 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
-\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
-\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring haplosome generation when running single-threaded; in that case, the default of 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring haplosome generation allows that task to be done in parallel (which is the reason this option exists).\
 Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent
 \f4\fs20 ; more specifically, the 
@@ -9133,17 +9209,17 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  or 
 \f3\fs18 recombination()
-\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
-\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring haplosome generation when running single-threaded; in that case, the default of 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring haplosome generation allows that task to be done in parallel (which is the reason this option exists).\
 Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent1
 \f4\fs20 ; more specifically, the 
@@ -9165,10 +9241,10 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(object<Individual>)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0genome1Null\'a0=\'a0NULL], [Nl$\'a0genome2Null\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01])\
+\'96\'a0(object<Individual>)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0haplosome1Null\'a0=\'a0NULL], [Nl$\'a0haplosome2Null\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  No 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual with empty haplosomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  No 
 \f3\fs18 recombination()
 \f4\fs20  or 
 \f3\fs18 mutation()
@@ -9182,24 +9258,24 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f3\fs18 addCrossed()
 \f4\fs20 .\
 By default \'96 when 
-\f3\fs18 genome1Null
+\f3\fs18 haplosome1Null
 \f4\fs20  and 
-\f3\fs18 genome2Null
+\f3\fs18 haplosome2Null
 \f4\fs20  are both 
 \f3\fs18 NULL
-\f4\fs20  \'96 null genomes will be generated instead of empty genomes only in sex-chromosome simulations, where the sex chromosome that is not being simulated is represented by a null genome; otherwise, empty genomes rather than null genomes will be created.  This default behavior can be changed by passing 
+\f4\fs20  \'96 null haplosomes will be generated instead of empty haplosomes only in sex-chromosome simulations, where the sex chromosome that is not being simulated is represented by a null haplosome; otherwise, empty haplosomes rather than null haplosomes will be created.  This default behavior can be changed by passing 
 \f3\fs18 T
 \f4\fs20  or 
 \f3\fs18 F
 \f4\fs20  for 
-\f3\fs18 genome1Null
+\f3\fs18 haplosome1Null
 \f4\fs20  or 
-\f3\fs18 genome2Null
-\f4\fs20 , which will force the corresponding offspring genome to be null (
+\f3\fs18 haplosome2Null
+\f4\fs20 , which will force the corresponding offspring haplosome to be null (
 \f3\fs18 T
 \f4\fs20 ) or non-null (
 \f3\fs18 F
-\f4\fs20 ).  The behavior in sex-chromosome simulations cannot be changed, since the presence of null genomes there is dictated by sex, but 
+\f4\fs20 ).  The behavior in sex-chromosome simulations cannot be changed, since the presence of null haplosomes there is dictated by sex, but 
 \f3\fs18 T
 \f4\fs20  or 
 \f3\fs18 F
@@ -9207,9 +9283,9 @@ By default \'96 when
 \f3\fs18 F
 \f4\fs20  (since that would be the default behavior anyway), but passing 
 \f3\fs18 T
-\f4\fs20  can be used to make one or both genomes be null genomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
+\f4\fs20  can be used to make one or both haplosomes be null haplosomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
 \f1\i second
-\f4\i0  genome is usually a null genome in SLiM).\
+\f4\i0  haplosome is usually a null haplosome in SLiM).\
 Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
@@ -9229,10 +9305,10 @@ Note that this method is only for use in nonWF models.  See
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(object<Individual>)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [logical$\'a0randomizeStrands\'a0=\'a0F], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
+\'96\'a0(object<Individual>)addRecombinant(No<Haplosome>$\'a0strand1, No<Haplosome>$\'a0strand2, Ni\'a0breaks1, No<Haplosome>$\'a0strand3, No<Haplosome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [logical$\'a0randomizeStrands\'a0=\'a0F], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
+\f4\fs20 \cf2 Generates a new offspring individual from the given parental haplosomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
 \f3\fs18 mutation()
 \f4\fs20  and 
 \f3\fs18 modifyChild()
@@ -9265,9 +9341,9 @@ This method supports several possible configurations for
 \f3\fs18 strand2
 \f4\fs20  are both 
 \f3\fs18 NULL
-\f4\fs20 , the corresponding genome in the generated offspring will be empty, as from 
+\f4\fs20 , the corresponding haplosome in the generated offspring will be empty, as from 
 \f3\fs18 addEmpty()
-\f4\fs20 , with no parental genomes and no added mutations; in this case, 
+\f4\fs20 , with no parental haplosomes and no added mutations; in this case, 
 \f3\fs18 breaks1
 \f4\fs20  must be 
 \f3\fs18 NULL
@@ -9279,7 +9355,7 @@ This method supports several possible configurations for
 \f3\fs18 strand2
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 , the corresponding genome in the generated offspring will be a clonal copy of 
+\f4\fs20 , the corresponding haplosome in the generated offspring will be a clonal copy of 
 \f3\fs18 strand1
 \f4\fs20  with mutations added, as from 
 \f3\fs18 addCloned()
@@ -9293,7 +9369,7 @@ This method supports several possible configurations for
 \f3\fs18 strand2
 \f4\fs20  are both non-
 \f3\fs18 NULL
-\f4\fs20 , the corresponding genome in the generated offspring will result from recombination between 
+\f4\fs20 , the corresponding haplosome in the generated offspring will result from recombination between 
 \f3\fs18 strand1
 \f4\fs20  and 
 \f3\fs18 strand2
@@ -9349,13 +9425,13 @@ This method supports several possible configurations for
 \f3\fs18 strand1
 \f4\fs20  and 
 \f3\fs18 strand2
-\f4\fs20  must be X genomes (or 
+\f4\fs20  must be X haplosomes (or 
 \f3\fs18 NULL
 \f4\fs20 ), and 
 \f3\fs18 strand3
 \f4\fs20  and 
 \f3\fs18 strand4
-\f4\fs20  must both be X genomes or both be Y genomes (or 
+\f4\fs20  must both be X haplosomes or both be Y haplosomes (or 
 \f3\fs18 NULL
 \f4\fs20 ).\
 By default, the offspring is considered to have no parents for the purposes of pedigree tracking, since there may be more than two \'93parents\'94 in the general case.  If pedigree tracking of parentage is desired, 
@@ -9426,9 +9502,9 @@ These semantics allow several uses for
 \f3\fs18 strand3
 \f4\fs20  are supplied, it is very similar to 
 \f3\fs18 addCloned()
-\f4\fs20 , creating a clonal offspring, except that the two parental genomes need not belong to the same individual (whatever that might mean biologically).  Supplying only 
+\f4\fs20 , creating a clonal offspring, except that the two parental haplosomes need not belong to the same individual (whatever that might mean biologically).  Supplying only 
 \f3\fs18 strand1
-\f4\fs20  is useful for modeling clonally reproducing haploids; the second genome of every offspring will be kept empty and will not receive new mutations.  For a model of clonally reproducing haploids that undergo horizontal gene transfer (HGT), supplying only 
+\f4\fs20  is useful for modeling clonally reproducing haploids; the second haplosome of every offspring will be kept empty and will not receive new mutations.  For a model of clonally reproducing haploids that undergo horizontal gene transfer (HGT), supplying only 
 \f3\fs18 strand1
 \f4\fs20  and 
 \f3\fs18 strand2
@@ -9436,19 +9512,19 @@ These semantics allow several uses for
 \f3\fs18 strand2
 \f4\fs20  to replace segments of an otherwise clonal copy of 
 \f3\fs18 strand1
-\f4\fs20 , while the second genome of the generated offspring will again be kept empty; this could be useful for modeling bacterial conjugation, for example.  Other variations are also possible.\
+\f4\fs20 , while the second haplosome of the generated offspring will again be kept empty; this could be useful for modeling bacterial conjugation, for example.  Other variations are also possible.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \kerning1\expnd0\expndtw0 The value of the 
 \f3\fs18 meanParentAge
-\f4\fs20  property of the generated offspring is calculated from the mean parent age of each of its two genomes (whether they turn out to be null genomes or not); that may be an average of two values (if both offspring genomes have at least one parent), a single value (if one offspring genome has no parent), or no values (if both offspring genomes have no parent, in which case 
+\f4\fs20  property of the generated offspring is calculated from the mean parent age of each of its two haplosomes (whether they turn out to be null haplosomes or not); that may be an average of two values (if both offspring haplosomes have at least one parent), a single value (if one offspring haplosome has no parent), or no values (if both offspring haplosomes have no parent, in which case 
 \f3\fs18 0.0
-\f4\fs20  results).  The mean parent age of a given offspring genome is the mean of the ages of the parents of the two strands used to generate that offspring genome; if one strand is 
+\f4\fs20  results).  The mean parent age of a given offspring haplosome is the mean of the ages of the parents of the two strands used to generate that offspring haplosome; if one strand is 
 \f3\fs18 NULL
-\f4\fs20  then the mean parent age for that offspring genome is the age of the parent of the non-
+\f4\fs20  then the mean parent age for that offspring haplosome is the age of the parent of the non-
 \f3\fs18 NULL
 \f4\fs20  strand, while if both strands are 
 \f3\fs18 NULL
-\f4\fs20  then that offspring genome is parentless and is not used in the final calculation.  In other words, if one offspring genome has two parents with ages A and B, and the other offspring genome has one parent with age C, the 
+\f4\fs20  then that offspring haplosome is parentless and is not used in the final calculation.  In other words, if one offspring haplosome has two parents with ages A and B, and the other offspring haplosome has one parent with age C, the 
 \f3\fs18 meanParentAge
 \f4\fs20  of the offspring will be (A+B+C+C)\'a0/\'a04, not (A+B+C)\'a0/\'a03.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -9474,15 +9550,15 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
-\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
-\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring haplosome generation when running single-threaded; in that case, the default of 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring haplosome generation allows that task to be done in parallel (which is the reason this option exists).\
 Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent1
 \f4\fs20 ; more specifically, the 
@@ -9549,17 +9625,17 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  or 
 \f3\fs18 recombination()
-\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
-\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring haplosome generation when running single-threaded; in that case, the default of 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring haplosome generation allows that task to be done in parallel (which is the reason this option exists).\
 Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent
 \f4\fs20 ; more specifically, the 
@@ -9896,7 +9972,7 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output a random sample from the subpopulation in MS format.  Positions in the output will span the interval [0,1].  A sample of genomes (not entire individuals, note) of size 
+\f4\fs20 \cf0 Output a random sample from the subpopulation in MS format.  Positions in the output will span the interval [0,1].  A sample of haplosomes (not entire individuals, note) of size 
 \f3\fs18 sampleSize
 \f4\fs20  from the subpopulation will be output.  The sample may be done either with or without replacement, as specified by 
 \f3\fs18 replace
@@ -9908,10 +9984,10 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3\fs18 requestedSex
 \f4\fs20 ; passing 
 \f3\fs18 "*"
-\f4\fs20 , the default, indicates that genomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
+\f4\fs20 , the default, indicates that haplosomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
 \f3\fs18 outputMS()
 \f4\fs20  method of 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\
 If the optional parameter 
 \f3\fs18 filePath
@@ -9937,9 +10013,9 @@ If
 \f3\fs18 F
 \f4\fs20  (the default), all mutations that are present in the sample will be included in the output.  This means that some mutations may be included that are actually monomorphic within the sample (i.e., that exist in 
 \f1\i every
-\f4\i0  sampled genome, and are thus apparently fixed).  These may be filtered out with 
+\f4\i0  sampled haplosome, and are thus apparently fixed).  These may be filtered out with 
 \f3\fs18 filterMonomorphic = T
-\f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled genomes might not be included in the output, simply because they exist in every sampled genome.\
+\f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled haplosomes might not be included in the output, simply because they exist in every sampled haplosome.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 See 
 \f3\fs18 outputSample()
@@ -9954,7 +10030,7 @@ If
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output a random sample from the subpopulation in SLiM\'92s native format.  A sample of genomes (not entire individuals, note) of size 
+\f4\fs20 \cf0 Output a random sample from the subpopulation in SLiM\'92s native format.  A sample of haplosomes (not entire individuals, note) of size 
 \f3\fs18 sampleSize
 \f4\fs20  from the subpopulation will be output.  The sample may be done either with or without replacement, as specified by 
 \f3\fs18 replace
@@ -9966,10 +10042,10 @@ If
 \f3\fs18 requestedSex
 \f4\fs20 ; passing 
 \f3\fs18 "*"
-\f4\fs20 , the default, indicates that genomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
+\f4\fs20 , the default, indicates that haplosomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
 \f3\fs18 output()
 \f4\fs20  method of 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\
 If the optional parameter 
 \f3\fs18 filePath
@@ -10002,7 +10078,7 @@ If the optional parameter
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output a random sample from the subpopulation in VCF format.  A sample of individuals (not genomes, note \'96 unlike the 
+\f4\fs20 \cf0 Output a random sample from the subpopulation in VCF format.  A sample of individuals (not haplosomes, note \'96 unlike the 
 \f3\fs18 outputSample()
 \f4\fs20  and 
 \f3\fs18 outputMSSample()
@@ -10018,10 +10094,10 @@ If the optional parameter
 \f3\fs18 requestedSex
 \f4\fs20 ; passing 
 \f3\fs18 "*"
-\f4\fs20 , the default, indicates that genomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
+\f4\fs20 , the default, indicates that haplosomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
 \f3\fs18 outputVCF()
 \f4\fs20  method of 
-\f3\fs18 Genome
+\f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\
 If the optional parameter 
 \f3\fs18 filePath
@@ -10835,7 +10911,7 @@ This method is shorthand for getting the
 \f3\fs18 migrants
 \f4\fs20  to the target subpopulation (removing them from their previous subpopulation).  Individuals in 
 \f3\fs18 migrants
-\f4\fs20  that are already in the target subpopulation are unaffected.  Note that the indices and order of individuals and genomes in both the target and source subpopulations will change unpredictably as a side effect of this method.\
+\f4\fs20  that are already in the target subpopulation are unaffected.  Note that the indices and order of individuals and haplosomes in both the target and source subpopulations will change unpredictably as a side effect of this method.\
 Note that this method is only for use in nonWF models, in which migration is managed manually by the model script.  In WF models, migration is managed automatically by the SLiM core based upon the migration rates set for each subpopulation with 
 \f3\fs18 setMigrationRates()
 \f4\fs20 .

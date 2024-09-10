@@ -172,7 +172,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displ
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Population &pop = displaySpecies->population_;
-	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
+	double totalHaplosomeCount = pop.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
     int registry_size;
     const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -207,7 +207,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displ
 					RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
 				}
 				
-                int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+                int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
                 mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
                 
 				SLIM_GL_DEFCOORDS(mutationTickRect);
@@ -274,7 +274,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displ
 								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-								int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+								int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
 								
 								if ((xPos >= 0) && (xPos < displayPixelWidth))
 									if (barHeight > heightBuffer[xPos])
@@ -350,7 +350,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displ
 						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
 						slim_position_t mutationPosition = mutation->position_;
                         QRect mutationTickRect = rectEncompassingBaseToBase(mutationPosition, mutationPosition, interiorRect, displayedRange);
-                        int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+                        int height_adjust = mutationTickRect.height() - static_cast<int>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
 						
                         mutationTickRect.setTop(mutationTickRect.top() + height_adjust);
 						RGBForSelectionCoeff(static_cast<double>(mutation->selection_coeff_), &colorRed, &colorGreen, &colorBlue, scalingFactor);
@@ -382,7 +382,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displ
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalGenomeCount) * interiorRect.height()));
+						int16_t barHeight = static_cast<int16_t>(ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.height()));
 						
 						if ((xPos >= 0) && (xPos < displayPixelWidth))
 						{

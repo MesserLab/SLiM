@@ -6,6 +6,56 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+	multi-chromosome transition:
+		API changes:
+		x	class Genome -> class Haplosome
+		x	Haplosome class (from Genome class):
+		x		property genomeType -> removed in favor of `chromosome.type`
+		x		property isNullGenome -> isNullHaplosome
+		x		property genomePedigreeID -> haplosomePedigreeID
+		x		method mutationCountsInGenomes -> mutationCountsInHaplosomes
+		x		method mutationFrequenciesInGenomes -> mutationFrequenciesInHaplosomes
+		x	Subpopulation class:
+		x		property genomes -> haplosomes
+		x		property genomesNonNull -> haplosomesNonNull
+		x	Individual class:
+		x		property genomes -> haplosomes
+		x		property genomesNonNull -> haplosomesNonNull
+		x		property genome1 -> haplosomesFromParent1
+		x		property genome2 -> haplosomesFromParent2
+		x	Species class:
+		x		property chromosome -> chromosomes
+		x		property chromosomeType -> removed in favor of `chromosomes.type`
+		x	mutation() callbacks:
+		x		pseudo-parameter genome -> haplosome
+		x	recombination() callbacks:
+		x		pseudo-parameter genome1 -> haplosome1
+		x		pseudo-parameter genome2 -> haplosome2
+		x	parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
+		x	parameter name changes: addEmpty(), addRecombinant()
+		API additions:
+			(object<Chromosome>$)initializeChromosome(integer$ id, integer$ start, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL])
+			initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
+		x	Haplosome class:
+		x		property: chromosome => (object<Chromosome>$)
+		x	Chromosome class:
+		x		property id => (integer$)
+		x		property firstPosition => (integer$)
+		x		property length => (integer$)
+		x		property type => (string$)
+		x		property symbol => (string$)
+		x		property name <-> (string$)
+			Species class:
+				method: (object<Chromosome>)chromosomesWithIDs(integer ids)
+				method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
+			Individual class:
+				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
+			Mutation class:
+				property: chromosome => (object<Chromosome>$)
+			Subpopulation class:
+				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
+				method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
+							[No<Individual>$ parent2 = NULL], [logical$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
 
 
 version 4.3 (Eidos version 3.3):

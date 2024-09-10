@@ -19,8 +19,8 @@
 
 /*
  
- The class MutationRun represents a run of mutations inside a genome.  It is used internally by Genome; it is not visible to Eidos
- code in SLiM, since the Genome class hides it behind a simplified API.  Most clients of Genome should strive to use the Genome
+ The class MutationRun represents a run of mutations inside a haplosome.  It is used internally by Haplosome; it is not visible to Eidos
+ code in SLiM, since the Haplosome class hides it behind a simplified API.  Most clients of Haplosome should strive to use the Haplosome
  APIs directly; it would be nice if MutationRun could be kept as a private implementation detail in most (all?) cases.
  
  */
@@ -68,18 +68,18 @@ typedef struct MutationRunContext {
 } MutationRunContext;
 
 
-// BCH 4/19/2023: We want MutationRuns to be able to be shared between Genomes; that's the whole point, leveraging shared
+// BCH 4/19/2023: We want MutationRuns to be able to be shared between Haplosomes; that's the whole point, leveraging shared
 // haplohype blocks to reduce redundant processing.  We also need to modify MutationRun objects, particularly when they are
 // first created, adding the mutations that they contain.  These goals are somewhat in opposition, because once a MutationRun
-// is shared by more than one Genome it needs to be immutable, in general, otherwise changes to it (intended for one Genome)
-// will change it for the other Genomes that share it, too.  We used to enforce that with the refcount of the MutationRun;
-// if a run's refcount was 1, it was used by only a single Genome and could be modified.  That was not actually used in many
-// places, though; it was not an important optimization, because usually code that modified the genome sequence made new
+// is shared by more than one Haplosome it needs to be immutable, in general, otherwise changes to it (intended for one Haplosome)
+// will change it for the other Haplosomes that share it, too.  We used to enforce that with the refcount of the MutationRun;
+// if a run's refcount was 1, it was used by only a single Haplosome and could be modified.  That was not actually used in many
+// places, though; it was not an important optimization, because usually code that modified the haplosome sequence made new
 // mutation runs anyway.  Now that we're shifting away from refcounts (towards explicit usage tallies that are only valid
 // at a particular point in the tick cycle), I'm getting rid of this refcount-based locking mechanism.  Instead, the fact
 // that mutation runs should not be modified after they are initially created will be enforced by using const pointers in
 // most places in the code.  When a new run is created, you get a non-const pointer and can modify it as you wish; once you
-// put it into a Genome, it becomes a const pointer and should not be modified, in general.  In some spots we cast away the
+// put it into a Haplosome, it becomes a const pointer and should not be modified, in general.  In some spots we cast away the
 // constness; this is legal because the underlying object was not declared const, so the const pointer is just an additional
 // constraint we imposed upon ourselves.  https://www.ibm.com/docs/en/zos/2.3.0?topic=expressions-const-cast-operator-c-only
 
@@ -102,7 +102,7 @@ class MutationRun
 	
 private:
 	
-	// MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
+	// MutationRun has a marking mechanism to let us loop through all haplosomes and perform an operation on each MutationRun once.
 	// This counter is used to do that; a client wishing to perform such an operation should increment the counter and then use it
 	// in conjuction with operation_id_ below.  Note this is shared by all species.
 	static int64_t sOperationID;								// use MutationRun::GetNextOperationID() to access this
@@ -117,7 +117,7 @@ private:
 	int32_t mutation_count_ = 0;								// the number of entries presently in mutations_
 	int32_t mutation_capacity_;									// the capacity of mutations_
 	
-	mutable uint32_t use_count_ = 0;							// the usage count for this run across all genomes that are tallied
+	mutable uint32_t use_count_ = 0;							// the usage count for this run across all haplosomes that are tallied
 #ifdef DEBUG_LOCKS_ENABLED
 	mutable EidosDebugLock mutrun_use_count_LOCK;
 #endif
@@ -162,16 +162,16 @@ private:
 	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
 	// The last regime used (for the previous cycle) is remembered in sim.last_nonneutral_regime_.
 	//
-	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one genome.
+	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one haplosome.
 	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral
 	// cache must be invalidated.  This means that any code that calls use_count() on a mutrun, and modifies it
 	// if the count is 1, must also invalidate the nonneutral cache.  This is done automatically by the existing
 	// methods – in particular, MutationRun::will_modify_run(), which should be a funnel for all such code.
 	// Newly created mutation runs are also routinely modified on the (valid) assumption that they are referred
-	// to by only one genome (or no genomes at all, more likely); this is fine since they don't have a nonneutral
+	// to by only one haplosome (or no haplosomes at all, more likely); this is fine since they don't have a nonneutral
 	// cache yet anyway.
 	//
-	// These caches are only used for mutation runs that are accessed by the FitnessOfParentWithGenomeIndices...()
+	// These caches are only used for mutation runs that are accessed by the FitnessOfParentWithHaplosomeIndices...()
 	// suite of methods; pure neutral models and non-chromosome-dependent models will never touch these caches
 	// and the buffer will never be allocated.
 	//
@@ -302,7 +302,7 @@ public:
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers;
 		// avoiding that free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
 		// We are given a pointer to a const MutationRun, but the fact that we're freeing it means it is
-		// unused by Genomes, and so we can cast away the const (see comment at the header top about this).
+		// unused by Haplosomes, and so we can cast away the const (see comment at the header top about this).
 		MutationRun *freed_run = const_cast<MutationRun *>(p_run);
 		
 		freed_run->mutation_count_ = 0;						// empty the mutation buffer
@@ -422,7 +422,7 @@ public:
 			// use a whole lot of memory, so we start expanding at a linear rate instead of a geometric rate.  This policy is based
 			// on guesswork; the optimal policy would depend strongly on the particular details of the simulation being run.  The
 			// goal, though, is twofold: (1) to avoid excessive reallocations early on, and (2) to avoid the peak memory usage,
-			// when all genomes have grown to their stable equilibrium size, being drastically higher than necessary.  The policy
+			// when all haplosomes have grown to their stable equilibrium size, being drastically higher than necessary.  The policy
 			// chosen here is intended to try to achieve both of those goals.  The size sequence we follow now is:
 			//
 			//	16 (initial size)

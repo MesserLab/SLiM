@@ -46,7 +46,7 @@
 
 #include "species.h"
 #include "subpopulation.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "mutation_run.h"
 
 
@@ -2422,7 +2422,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
         return 0;
     
     Population &population = graphSpecies->population_;
-    size_t subpop_total_genome_count = 0;
+    size_t subpop_total_haplosome_count = 0;
     
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     
@@ -2439,41 +2439,41 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     
     if (subpop)	// tally only within our chosen subpop
     {
-        slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-        std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+        slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
+        std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
         
-        for (int i = 0; i < subpop_genome_count; i++)
+        for (int i = 0; i < subpop_haplosome_count; i++)
         {
-            Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
+            Haplosome &haplosome = *subpop_haplosome[static_cast<size_t>(i)];
             
-            if (!genome.IsNull())
+            if (!haplosome.IsNull())
             {
-                int mutrun_count = genome.mutrun_count_;
+                int mutrun_count = haplosome.mutrun_count_;
                 
                 for (int run_index = 0; run_index < mutrun_count; ++run_index)
                 {
-                    const MutationRun *mutrun = genome.mutruns_[run_index];
-                    const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-                    const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                    const MutationRun *mutrun = haplosome.mutruns_[run_index];
+                    const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+                    const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                     
-                    for (; genome_iter != genome_end_iter; ++genome_iter)
+                    for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
                     {
-                        const Mutation *mutation = mut_block_ptr + *genome_iter;
+                        const Mutation *mutation = mut_block_ptr + *haplosome_iter;
                         
                         if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
                             (mutation->gui_scratch_reference_count_)++;
                     }
                 }
                 
-                subpop_total_genome_count++;
+                subpop_total_haplosome_count++;
             }
         }
     }
     
-    return subpop_total_genome_count;
+    return subpop_total_haplosome_count;
 }
 
-size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index)
+size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index)
 {
     //
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
@@ -2498,21 +2498,21 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-	for (const Genome *genome : genomes)
+	for (const Haplosome *haplosome : haplosomes)
 	{
-        if (!genome->IsNull())
+        if (!haplosome->IsNull())
         {
-            int mutrun_count = genome->mutrun_count_;
+            int mutrun_count = haplosome->mutrun_count_;
             
             for (int run_index = 0; run_index < mutrun_count; ++run_index)
             {
-                const MutationRun *mutrun = genome->mutruns_[run_index];
-                const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-                const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                const MutationRun *mutrun = haplosome->mutruns_[run_index];
+                const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+                const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                 
-                for (; genome_iter != genome_end_iter; ++genome_iter)
+                for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
                 {
-                    const Mutation *mutation = mut_block_ptr + *genome_iter;
+                    const Mutation *mutation = mut_block_ptr + *haplosome_iter;
                     
                     if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
                         (mutation->gui_scratch_reference_count_)++;
@@ -2521,7 +2521,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
         }
     }
     
-    return genomes.size();
+    return haplosomes.size();
 }
 
 

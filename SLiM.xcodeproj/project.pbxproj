@@ -407,7 +407,7 @@
 		9861521C2B167AED0083E68F /* community.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9836867227CD40CF00683639 /* community.cpp */; };
 		9861521D2B167AED0083E68F /* genomic_element_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6941A3CD51A000AD4FC /* genomic_element_type.cpp */; };
 		9861521E2B167AED0083E68F /* substitution.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69D1A3CD551000AD4FC /* substitution.cpp */; };
-		9861521F2B167AED0083E68F /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		9861521F2B167AED0083E68F /* haplosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */; };
 		986152202B167AED0083E68F /* slim_test_genetics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */; };
 		986152212B167AED0083E68F /* slim_test_core.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9807C0F324BA21B7008CC658 /* slim_test_core.cpp */; };
 		986152222B167AED0083E68F /* subpopulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */; };
@@ -1049,7 +1049,7 @@
 		98CF528B294A3FC900557BBA /* genotypes.c in Sources */ = {isa = PBXBuildFile; fileRef = 9854D2572278B9F7001D43BC /* genotypes.c */; };
 		98CF528C294A3FC900557BBA /* SLiMPDFView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 988794721EA8C42200AE0C8D /* SLiMPDFView.mm */; };
 		98CF528D294A3FC900557BBA /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
-		98CF528E294A3FC900557BBA /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98CF528E294A3FC900557BBA /* haplosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */; };
 		98CF528F294A3FC900557BBA /* stats.c in Sources */ = {isa = PBXBuildFile; fileRef = 9854D25B2278B9F8001D43BC /* stats.c */; };
 		98CF5290294A3FC900557BBA /* adler32.c in Sources */ = {isa = PBXBuildFile; fileRef = 98076612244934A800F6CBB4 /* adler32.c */; };
 		98CF5291294A3FC900557BBA /* EidosVariableBrowserController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 987AD8851B2CC0C10035D6C8 /* EidosVariableBrowserController.mm */; };
@@ -1324,7 +1324,7 @@
 		98D4C1DD1A6F543600FFB083 /* chromosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6971A3CD52A000AD4FC /* chromosome.cpp */; };
 		98D4C1DE1A6F543900FFB083 /* polymorphism.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */; };
 		98D4C1DF1A6F543C00FFB083 /* substitution.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69D1A3CD551000AD4FC /* substitution.cpp */; };
-		98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98D4C1E11A6F544500FFB083 /* haplosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */; };
 		98D4C1E21A6F544800FFB083 /* subpopulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */; };
 		98D4C1E31A6F544B00FFB083 /* population.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AC1A3CD5D3000AD4FC /* population.cpp */; };
 		98D4C1E61A6FD8D600FFB083 /* change_sex_ratio.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98D4C1E51A6FD8D600FFB083 /* change_sex_ratio.pdf */; };
@@ -1513,7 +1513,7 @@
 		98D7ECC528CE58FC00DEAAC4 /* psi.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C8211C1C7A980000548839 /* psi.c */; };
 		98D7ECC628CE58FC00DEAAC4 /* binomial_tpe.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C820F81C7A980000548839 /* binomial_tpe.c */; };
 		98D7ECC728CE58FC00DEAAC4 /* eidos_test_functions_math.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3EF624BA2DD300E712E0 /* eidos_test_functions_math.cpp */; };
-		98D7ECC828CE58FC00DEAAC4 /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98D7ECC828CE58FC00DEAAC4 /* haplosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */; };
 		98D7ECC928CE58FC00DEAAC4 /* zutil.c in Sources */ = {isa = PBXBuildFile; fileRef = 98076609244934A800F6CBB4 /* zutil.c */; };
 		98D7ECCA28CE58FC00DEAAC4 /* trees.c in Sources */ = {isa = PBXBuildFile; fileRef = 9854D25D2278B9F8001D43BC /* trees.c */; };
 		98D7ECCB28CE58FC00DEAAC4 /* init.c in Sources */ = {isa = PBXBuildFile; fileRef = 98332B011FDBCFC300274FF0 /* init.c */; };
@@ -1633,7 +1633,7 @@
 		98E9A6991A3CD52A000AD4FC /* chromosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6971A3CD52A000AD4FC /* chromosome.cpp */; };
 		98E9A69C1A3CD542000AD4FC /* polymorphism.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */; };
 		98E9A69F1A3CD551000AD4FC /* substitution.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69D1A3CD551000AD4FC /* substitution.cpp */; };
-		98E9A6A81A3CD5A0000AD4FC /* genome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* genome.cpp */; };
+		98E9A6A81A3CD5A0000AD4FC /* haplosome.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */; };
 		98E9A6AB1A3CD5BB000AD4FC /* subpopulation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */; };
 		98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6AC1A3CD5D3000AD4FC /* population.cpp */; };
 		98E9A6B81A3CE35E000AD4FC /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
@@ -2192,8 +2192,8 @@
 		98E9A69B1A3CD542000AD4FC /* polymorphism.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymorphism.h; sourceTree = "<group>"; };
 		98E9A69D1A3CD551000AD4FC /* substitution.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = substitution.cpp; sourceTree = "<group>"; };
 		98E9A69E1A3CD551000AD4FC /* substitution.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = substitution.h; sourceTree = "<group>"; };
-		98E9A6A61A3CD5A0000AD4FC /* genome.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = genome.cpp; sourceTree = "<group>"; };
-		98E9A6A71A3CD5A0000AD4FC /* genome.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = genome.h; sourceTree = "<group>"; };
+		98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = haplosome.cpp; sourceTree = "<group>"; };
+		98E9A6A71A3CD5A0000AD4FC /* haplosome.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = haplosome.h; sourceTree = "<group>"; };
 		98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = subpopulation.cpp; sourceTree = "<group>"; };
 		98E9A6AA1A3CD5BB000AD4FC /* subpopulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = subpopulation.h; sourceTree = "<group>"; };
 		98E9A6AC1A3CD5D3000AD4FC /* population.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = population.cpp; sourceTree = "<group>"; };
@@ -2485,8 +2485,8 @@
 				98E9A6A91A3CD5BB000AD4FC /* subpopulation.cpp */,
 				98C92AEC1D0B07A6001C82BC /* individual.h */,
 				98C92AEB1D0B07A6001C82BC /* individual.cpp */,
-				98E9A6A71A3CD5A0000AD4FC /* genome.h */,
-				98E9A6A61A3CD5A0000AD4FC /* genome.cpp */,
+				98E9A6A71A3CD5A0000AD4FC /* haplosome.h */,
+				98E9A6A61A3CD5A0000AD4FC /* haplosome.cpp */,
 				98606AED1DED0DCD00821CFF /* mutation_run.h */,
 				98606AEC1DED0DCD00821CFF /* mutation_run.cpp */,
 				98E9A6891A3CCFD0000AD4FC /* mutation.h */,
@@ -3806,7 +3806,7 @@
 				98C8213D1C7A980000548839 /* psi.c in Sources */,
 				98C8212A1C7A980000548839 /* binomial_tpe.c in Sources */,
 				985F3EF724BA2DD300E712E0 /* eidos_test_functions_math.cpp in Sources */,
-				98E9A6A81A3CD5A0000AD4FC /* genome.cpp in Sources */,
+				98E9A6A81A3CD5A0000AD4FC /* haplosome.cpp in Sources */,
 				98CEFD202AAFABAA00D2C9B4 /* akima.c in Sources */,
 				981DC35028E26F8B000ABE91 /* eidos_functions_files.cpp in Sources */,
 				98CEFD882AAFB4F000D2C9B4 /* view.c in Sources */,
@@ -3940,7 +3940,7 @@
 				986152612B167B4E0083E68F /* dgemv.c in Sources */,
 				986152482B167B4E0083E68F /* fdist.c in Sources */,
 				9861525A2B167B4E0083E68F /* interp.c in Sources */,
-				9861521F2B167AED0083E68F /* genome.cpp in Sources */,
+				9861521F2B167AED0083E68F /* haplosome.cpp in Sources */,
 				986152572B167B4E0083E68F /* mt.c in Sources */,
 				986152182B167AED0083E68F /* slim_eidos_block.cpp in Sources */,
 				9861520D2B167AED0083E68F /* slim_globals.cpp in Sources */,
@@ -4412,7 +4412,7 @@
 				98CF528C294A3FC900557BBA /* SLiMPDFView.mm in Sources */,
 				98CF528D294A3FC900557BBA /* eidos_class_DataFrame.cpp in Sources */,
 				98CEFD802AAFB23E00D2C9B4 /* tridiag.c in Sources */,
-				98CF528E294A3FC900557BBA /* genome.cpp in Sources */,
+				98CF528E294A3FC900557BBA /* haplosome.cpp in Sources */,
 				98CF528F294A3FC900557BBA /* stats.c in Sources */,
 				98CF5290294A3FC900557BBA /* adler32.c in Sources */,
 				98CF5291294A3FC900557BBA /* EidosVariableBrowserController.mm in Sources */,
@@ -4754,7 +4754,7 @@
 				988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */,
 				9890D1EE27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				98CEFD7F2AAFB23E00D2C9B4 /* tridiag.c in Sources */,
-				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
+				98D4C1E11A6F544500FFB083 /* haplosome.cpp in Sources */,
 				9854D2662278B9F8001D43BC /* stats.c in Sources */,
 				98076627244934A800F6CBB4 /* adler32.c in Sources */,
 				987AD8861B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
@@ -4965,7 +4965,7 @@
 				98D7ECC628CE58FC00DEAAC4 /* binomial_tpe.c in Sources */,
 				98D7ECC728CE58FC00DEAAC4 /* eidos_test_functions_math.cpp in Sources */,
 				98CEFD272AAFABAA00D2C9B4 /* akima.c in Sources */,
-				98D7ECC828CE58FC00DEAAC4 /* genome.cpp in Sources */,
+				98D7ECC828CE58FC00DEAAC4 /* haplosome.cpp in Sources */,
 				98CEFD8F2AAFB4F000D2C9B4 /* view.c in Sources */,
 				98D7ECC928CE58FC00DEAAC4 /* zutil.c in Sources */,
 				98CEFD4F2AAFABAA00D2C9B4 /* interp2d.c in Sources */,

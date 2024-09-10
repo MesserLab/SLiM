@@ -44,27 +44,27 @@ bool Individual::s_any_individual_dictionary_set_ = false;
 bool Individual::s_any_individual_tag_set_ = false;
 bool Individual::s_any_individual_tagF_set_ = false;
 bool Individual::s_any_individual_tagL_set_ = false;
-bool Individual::s_any_genome_tag_set_ = false;
+bool Individual::s_any_haplosome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
 	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	sex_(p_sex), migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
 	cached_unscaled_fitness_(p_fitness),
 #endif
-	genome1_(p_genome1), genome2_(p_genome2), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
+	haplosome1_(p_haplosome1), haplosome2_(p_haplosome2), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
 {
 #if DEBUG
-	if (!p_genome1 || !p_genome2)
-		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for genome." << EidosTerminate();
+	if (!p_haplosome1 || !p_haplosome2)
+		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for haplosome." << EidosTerminate();
 #endif
 	
-	// Set up the pointers from our genomes to us
-	p_genome1->individual_ = this;
-	p_genome2->individual_ = this;
+	// Set up the pointers from our haplosomes to us
+	p_haplosome1->individual_ = this;
+	p_haplosome2->individual_ = this;
 	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -75,8 +75,8 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	tagL3_set_ = false;
 	tagL4_set_ = false;
 	
-	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
-	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
+	p_haplosome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
+	p_haplosome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
     
     // Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
 #if SLIM_LEAK_CHECKING
@@ -130,7 +130,7 @@ static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_ped
 
 double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-								IndividualSex A_sex, IndividualSex B_sex, GenomeType modeledChromosomeType)
+								IndividualSex A_sex, IndividualSex B_sex, HaplosomeType modeledChromosomeType)
 {
 	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
 	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
@@ -144,7 +144,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 	// seems appropriate still.
 	
 #if DEBUG
-	if ((modeledChromosomeType != GenomeType::kAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
+	if ((modeledChromosomeType != HaplosomeType::kAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
 	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
@@ -155,7 +155,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
 #endif
 	
-	if (modeledChromosomeType == GenomeType::kXChromosome)
+	if (modeledChromosomeType == HaplosomeType::kXChromosome)
 	{
 		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
 		A_G4 = A_G3;
@@ -179,7 +179,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 			B_G4 = B_G2;
 		}
 	}
-	else if (modeledChromosomeType == GenomeType::kYChromosome)
+	else if (modeledChromosomeType == HaplosomeType::kYChromosome)
 	{
 		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
 		if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
@@ -246,7 +246,7 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
 	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
 	
-	GenomeType chrtype = subpopulation_->species_.ModeledChromosomeType();
+	HaplosomeType chrtype = subpopulation_->species_.ModeledChromosomeType();
 	
 	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
 }
@@ -346,49 +346,49 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(index_));
 		}
-		case gID_genomes:
+		case gID_haplosomes:
 		{
-			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(2);
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(2);
 			
-			vec->set_object_element_no_check_NORR(genome1_, 0);
-			vec->set_object_element_no_check_NORR(genome2_, 1);
+			vec->set_object_element_no_check_NORR(haplosome1_, 0);
+			vec->set_object_element_no_check_NORR(haplosome2_, 1);
 			
 			return EidosValue_SP(vec);
 		}
-		case gID_genomesNonNull:
+		case gID_haplosomesNonNull:
 		{
-			bool genome1null = genome1_->IsNull();
-			bool genome2null = genome2_->IsNull();
+			bool haplosome1null = haplosome1_->IsNull();
+			bool haplosome2null = haplosome2_->IsNull();
 			
-			if (genome1null)
+			if (haplosome1null)
 			{
-				if (genome2null)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class));
+				if (haplosome2null)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class));
 				else
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome2_, gSLiM_Genome_Class));
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(haplosome2_, gSLiM_Haplosome_Class));
 			}
 			else
 			{
-				if (genome2null)
-					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome1_, gSLiM_Genome_Class));
+				if (haplosome2null)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(haplosome1_, gSLiM_Haplosome_Class));
 				else
 				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(2);
+					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(2);
 					
-					vec->set_object_element_no_check_NORR(genome1_, 0);
-					vec->set_object_element_no_check_NORR(genome2_, 1);
+					vec->set_object_element_no_check_NORR(haplosome1_, 0);
+					vec->set_object_element_no_check_NORR(haplosome2_, 1);
 					
 					return EidosValue_SP(vec);
 				}
 			}
 		}
-		case gID_genome1:			// ACCELERATED
+		case gID_haplosomesFromParent1:			// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome1_, gSLiM_Genome_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(haplosome1_, gSLiM_Haplosome_Class));
 		}
-		case gID_genome2:			// ACCELERATED
+		case gID_haplosomesFromParent2:			// ACCELERATED
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(genome2_, gSLiM_Genome_Class));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(haplosome2_, gSLiM_Haplosome_Class));
 		}
 		case gID_sex:
 		{
@@ -490,29 +490,29 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_uniqueMutations:
 		{
-			if (genome1_->IsDeferred() || genome2_->IsDeferred())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+			if (haplosome1_->IsDeferred() || haplosome2_->IsDeferred())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 			
-			// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
-			int genome1_size = (genome1_->IsNull() ? 0 : genome1_->mutation_count());
-			int genome2_size = (genome2_->IsNull() ? 0 : genome2_->mutation_count());
+			// We reserve a vector large enough to hold all the mutations from both haplosomes; probably usually overkill, but it does little harm
+			int haplosome1_size = (haplosome1_->IsNull() ? 0 : haplosome1_->mutation_count());
+			int haplosome2_size = (haplosome2_->IsNull() ? 0 : haplosome2_->mutation_count());
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			if ((genome1_size == 0) && (genome2_size == 0))
+			if ((haplosome1_size == 0) && (haplosome2_size == 0))
 				return result_SP;
 			
-			vec->reserve(genome1_size + genome2_size);
+			vec->reserve(haplosome1_size + haplosome2_size);
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			int mutrun_count = (genome1_size ? genome1_->mutrun_count_ : genome2_->mutrun_count_);
+			int mutrun_count = (haplosome1_size ? haplosome1_->mutrun_count_ : haplosome2_->mutrun_count_);
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+				// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
 				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-				const MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index] : nullptr);
-				const MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index] : nullptr);
+				const MutationRun *mutrun1 = (haplosome1_size ? haplosome1_->mutruns_[run_index] : nullptr);
+				const MutationRun *mutrun2 = (haplosome2_size ? haplosome2_->mutruns_[run_index] : nullptr);
 				int g1_size = (mutrun1 ? mutrun1->size() : 0);
 				int g2_size = (mutrun2 ? mutrun2->size() : 0);
 				int g1_index = 0, g2_index = 0;
@@ -523,7 +523,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 					MutationIndex g1_mut = (*mutrun1)[g1_index], g2_mut = (*mutrun2)[g2_index];
 					slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_, pos2 = (mut_block_ptr + g2_mut)->position_;
 					
-					// Process mutations as long as both genomes still have mutations left in them
+					// Process mutations as long as both haplosomes still have mutations left in them
 					do
 					{
 						if (pos1 < pos2)
@@ -1084,29 +1084,29 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomesFromParent1(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check_NORR(value->genome1_, value_index);
+		object_result->set_object_element_no_check_NORR(value->haplosome1_, value_index);
 	}
 	
 	return object_result;
 }
 
-EidosValue *Individual::GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size)
+EidosValue *Individual::GetProperty_Accelerated_haplosomesFromParent2(EidosObject **p_values, size_t p_values_size)
 {
-	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->resize_no_initialize(p_values_size);
+	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(p_values_size);
 	
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		object_result->set_object_element_no_check_NORR(value->genome2_, value_index);
+		object_result->set_object_element_no_check_NORR(value->haplosome2_, value_index);
 	}
 	
 	return object_result;
@@ -1642,8 +1642,8 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (genome1_->IsDeferred() || genome2_->IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+	if (haplosome1_->IsDeferred() || haplosome2_->IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	
 	EidosValue *mutations_value = p_arguments[0].get();
 	int mutations_count = mutations_value->Count();
@@ -1662,7 +1662,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		// treat the singleton case separately to return gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
 		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr)))->BlockIndex();
 		
-		if ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)))
+		if ((!haplosome1_->IsNull() && haplosome1_->contains_mutation(mut)) || (!haplosome2_->IsNull() && haplosome2_->contains_mutation(mut)))
 			return gStaticEidosValue_LogicalT;
 		else
 			return gStaticEidosValue_LogicalF;
@@ -1675,7 +1675,7 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
 			MutationIndex mut = mutations[value_index]->BlockIndex();
-			bool contains_mut = ((!genome1_->IsNull() && genome1_->contains_mutation(mut)) || (!genome2_->IsNull() && genome2_->contains_mutation(mut)));
+			bool contains_mut = ((!haplosome1_->IsNull() && haplosome1_->contains_mutation(mut)) || (!haplosome2_->IsNull() && haplosome2_->contains_mutation(mut)));
 			
 			logical_result->set_logical_no_check(contains_mut, value_index);
 		}
@@ -1714,37 +1714,37 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
-		Genome *genome1 = element->genome1_;
-		Genome *genome2 = element->genome2_;
+		Haplosome *haplosome1 = element->haplosome1_;
+		Haplosome *haplosome2 = element->haplosome2_;
 		int match_count = 0;
 	
-		if (!genome1->IsNull())
+		if (!haplosome1->IsNull())
 		{
-			int mutrun_count = genome1->mutrun_count_;
+			int mutrun_count = haplosome1->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome1->mutruns_[run_index];
-				int genome1_count = mutrun->size();
-				const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
+				const MutationRun *mutrun = haplosome1->mutruns_[run_index];
+				int haplosome1_count = mutrun->size();
+				const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
 				
-				for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
-					if ((mut_block_ptr + genome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+				for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+					if ((mut_block_ptr + haplosome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
 						++match_count;
 			}
 		}
-		if (!genome2->IsNull())
+		if (!haplosome2->IsNull())
 		{
-			int mutrun_count = genome2->mutrun_count_;
+			int mutrun_count = haplosome2->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome2->mutruns_[run_index];
-				int genome2_count = mutrun->size();
-				const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
+				const MutationRun *mutrun = haplosome2->mutruns_[run_index];
+				int haplosome2_count = mutrun->size();
+				const MutationIndex *haplosome2_ptr = mutrun->begin_pointer_const();
 				
-				for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
-					if ((mut_block_ptr + genome2_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+				for (int mut_index = 0; mut_index < haplosome2_count; ++mut_index)
+					if ((mut_block_ptr + haplosome2_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
 						++match_count;
 			}
 		}
@@ -1878,42 +1878,42 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
-		Genome *genome1 = element->genome1_;
-		Genome *genome2 = element->genome2_;
+		Haplosome *haplosome1 = element->haplosome1_;
+		Haplosome *haplosome2 = element->haplosome2_;
 		double selcoeff_sum = 0.0;
 		
-		if (!genome1->IsNull())
+		if (!haplosome1->IsNull())
 		{
-			int mutrun_count = genome1->mutrun_count_;
+			int mutrun_count = haplosome1->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome1->mutruns_[run_index];
-				int genome1_count = mutrun->size();
-				const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
+				const MutationRun *mutrun = haplosome1->mutruns_[run_index];
+				int haplosome1_count = mutrun->size();
+				const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
 				
-				for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+				for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
 				{
-					Mutation *mut_ptr = mut_block_ptr + genome1_ptr[mut_index];
+					Mutation *mut_ptr = mut_block_ptr + haplosome1_ptr[mut_index];
 					
 					if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 						selcoeff_sum += mut_ptr->selection_coeff_;
 				}
 			}
 		}
-		if (!genome2->IsNull())
+		if (!haplosome2->IsNull())
 		{
-			int mutrun_count = genome2->mutrun_count_;
+			int mutrun_count = haplosome2->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome2->mutruns_[run_index];
-				int genome2_count = mutrun->size();
-				const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
+				const MutationRun *mutrun = haplosome2->mutruns_[run_index];
+				int haplosome2_count = mutrun->size();
+				const MutationIndex *haplosome2_ptr = mutrun->begin_pointer_const();
 				
-				for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
+				for (int mut_index = 0; mut_index < haplosome2_count; ++mut_index)
 				{
-					Mutation *mut_ptr = mut_block_ptr + genome2_ptr[mut_index];
+					Mutation *mut_ptr = mut_block_ptr + haplosome2_ptr[mut_index];
 					
 					if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
 						selcoeff_sum += mut_ptr->selection_coeff_;
@@ -1932,8 +1932,8 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (genome1_->IsDeferred() || genome2_->IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+	if (haplosome1_->IsDeferred() || haplosome2_->IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	
 	EidosValue *mutType_value = p_arguments[0].get();
 	
@@ -1943,26 +1943,26 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	// This code is adapted from uniqueMutations and follows its logic closely
 	
 	// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
-	int genome1_size = (genome1_->IsNull() ? 0 : genome1_->mutation_count());
-	int genome2_size = (genome2_->IsNull() ? 0 : genome2_->mutation_count());
+	int haplosome1_size = (haplosome1_->IsNull() ? 0 : haplosome1_->mutation_count());
+	int haplosome2_size = (haplosome2_->IsNull() ? 0 : haplosome2_->mutation_count());
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
 	
-	if ((genome1_size == 0) && (genome2_size == 0))
+	if ((haplosome1_size == 0) && (haplosome2_size == 0))
 		return result_SP;
 	
-	if (genome1_size + genome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-		vec->reserve(genome1_size + genome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
+	if (haplosome1_size + haplosome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+		vec->reserve(haplosome1_size + haplosome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int mutrun_count = (genome1_size ? genome1_->mutrun_count_ : genome2_->mutrun_count_);
+	int mutrun_count = (haplosome1_size ? haplosome1_->mutrun_count_ : haplosome2_->mutrun_count_);
 	
 	for (int run_index = 0; run_index < mutrun_count; ++run_index)
 	{
-		// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
+		// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
 		// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-		const MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index] : nullptr);
-		const MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index] : nullptr);
+		const MutationRun *mutrun1 = (haplosome1_size ? haplosome1_->mutruns_[run_index] : nullptr);
+		const MutationRun *mutrun2 = (haplosome2_size ? haplosome2_->mutruns_[run_index] : nullptr);
 		int g1_size = (mutrun1 ? mutrun1->size() : 0);
 		int g2_size = (mutrun2 ? mutrun2->size() : 0);
 		int g1_index = 0, g2_index = 0;
@@ -1991,7 +1991,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 				slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_;
 				slim_position_t pos2 = (mut_block_ptr + g2_mut)->position_;
 				
-				// Process mutations as long as both genomes still have mutations left in them
+				// Process mutations as long as both haplosomes still have mutations left in them
 				do
 				{
 					// Now we have mutations of the right type, so we can start working with them by position
@@ -2126,7 +2126,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	 {
 	 // check m1
 	 um1 = i.uniqueMutationsOfType(m1);
-	 um2 = sortBy(unique(i.genomes.mutationsOfType(m1)), "position");
+	 um2 = sortBy(unique(i.haplosomes.mutationsOfType(m1)), "position");
 	 
 	 if (!identical(um1.position, um2.position))
 	 {
@@ -2162,10 +2162,10 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,				true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomesNonNull,			true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genome1,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Genome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_genome1));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genome2,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Genome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_genome2));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomes,				true,	kEidosValueMaskObject, gSLiM_Haplosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomesNonNull,		true,	kEidosValueMaskObject, gSLiM_Haplosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomesFromParent1,	true,	kEidosValueMaskObject, gSLiM_Haplosome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_haplosomesFromParent1));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomesFromParent2,	true,	kEidosValueMaskObject, gSLiM_Haplosome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_haplosomesFromParent2));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagF)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagF));

@@ -60,6 +60,7 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark -
 
 Chromosome::Chromosome(Species &p_species) :
+	name_(),
 
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
@@ -72,6 +73,7 @@ Chromosome::Chromosome(Species &p_species) :
 	
 	community_(p_species.community_),
 	species_(p_species),
+	first_position_(0),
 	last_position_(0),
 	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
 	overall_mutation_rate_H_userlevel_(0.0), overall_mutation_rate_M_userlevel_(0.0), overall_mutation_rate_F_userlevel_(0.0),
@@ -369,7 +371,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	{
 #ifdef _OPENMP
 		// When running multi-threaded, we prefer the base number of mutruns to equal the number of threads
-		// This allows us to subdivide responsibility along the genome equally among threads
+		// This allows us to subdivide responsibility along the haplosome equally among threads
 		mutrun_count_base_ = gEidosMaxThreads;
 		mutrun_count_multiplier_ = 1;
 		
@@ -387,7 +389,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		{
 			// The user has given us a mutation run count, so use that count and divide the chromosome evenly
 			if (p_preferred_count < 1)
-				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per haplosome." << EidosTerminate();
 			
 			// If the preferred number of mutation runs is actually larger than the number of discrete positions,
 			// it gets clipped.  No warning is emitted; this is pretty obvious, and the verbose output line suffices
@@ -453,7 +455,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	}
 	else
 	{
-		// No-genetics species use null genomes, and have no mutruns
+		// No-genetics species use null haplosomes, and have no mutruns
 		mutrun_count_base_ = 0;
 		mutrun_count_multiplier_ = 1;
 		mutrun_count_ = 0;
@@ -794,7 +796,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	
 	double selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
 	
-	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT GENOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
+	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
@@ -808,7 +810,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 }
 
 // apply mutation() to a generated mutation; we might return nullptr (proposed mutation rejected), the original proposed mutation (it was accepted), or a replacement Mutation *
-Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
+Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplosome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationCallbacks(): running Eidos callback");
 	
@@ -890,13 +892,13 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 						callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 					}
 					if (mutation_callback->contains_parent_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_parent, p_genome->OwningIndividual()->CachedEidosValue());
-					if (mutation_callback->contains_genome_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome, p_genome->CachedEidosValue());
+						callback_symbols.InitializeConstantSymbolEntry(gID_parent, p_haplosome->OwningIndividual()->CachedEidosValue());
+					if (mutation_callback->contains_haplosome_)
+						callback_symbols.InitializeConstantSymbolEntry(gID_haplosome, p_haplosome->CachedEidosValue());
 					if (mutation_callback->contains_element_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_element, p_genomic_element->CachedEidosValue());
 					if (mutation_callback->contains_subpop_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_genome->OwningIndividual()->subpopulation_->SymbolTableEntry().second);
+						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_haplosome->OwningIndividual()->subpopulation_->SymbolTableEntry().second);
 					if (mutation_callback->contains_originalNuc_)
 					{
 						local_originalNuc.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
@@ -981,10 +983,10 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 		}
 	}
 	
-	// If a replacement mutation has been accepted at this point, we now check that it is not already present in the background genome; if it is present, the mutation is a no-op (implemented as a rejection)
+	// If a replacement mutation has been accepted at this point, we now check that it is not already present in the background haplosome; if it is present, the mutation is a no-op (implemented as a rejection)
 	if (mutation_replaced && mutation_accepted)
 	{
-		if (p_genome->contains_mutation(p_mut->BlockIndex()))
+		if (p_haplosome->contains_mutation(p_mut->BlockIndex()))
 			mutation_accepted = false;
 	}
 	
@@ -999,14 +1001,14 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 }
 
 // draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
-MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
+MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
 {
 	slim_position_t position = p_position.first;
 	GenomicElement &source_element = *(p_position.second);
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	
-	// Determine which parental genome the mutation will be atop (so we can get the genetic context for it)
-	bool on_first_genome = true;
+	// Determine which parental haplosome the mutation will be atop (so we can get the genetic context for it)
+	bool on_first_haplosome = true;
 	
 	if (all_breakpoints)
 	{
@@ -1015,11 +1017,11 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 			if (breakpoint > position)
 				break;
 			
-			on_first_genome = !on_first_genome;
+			on_first_haplosome = !on_first_haplosome;
 		}
 	}
 	
-	Genome *background_genome = (on_first_genome ? parent_genome_1 : parent_genome_2);
+	Haplosome *background_haplosome = (on_first_haplosome ? parent_haplosome_1 : parent_haplosome_2);
 	
 	// Determine whether the mutation will be created at all, and if it is, what nucleotide to use
 	int8_t original_nucleotide = -1, nucleotide = -1;
@@ -1032,7 +1034,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		if (mm_count == 16)
 		{
 			// The mutation matrix only cares about the single-nucleotide context; figure it out
-			GenomeWalker walker(background_genome);
+			HaplosomeWalker walker(background_haplosome);
 			
 			walker.MoveToPosition(position);
 			
@@ -1081,7 +1083,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		{
 			// The mutation matrix cares about the trinucleotide context; figure it out
 			int8_t background_nuc1 = -1, background_nuc3 = -1;
-			GenomeWalker walker(background_genome);
+			HaplosomeWalker walker(background_haplosome);
 			
 			walker.MoveToPosition(position - 1);
 			
@@ -1169,7 +1171,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)
 	{
-		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_genome, &source_element, original_nucleotide, *p_mutation_callbacks);
+		Mutation *post_callback_mut = ApplyMutationCallbacks(gSLiM_Mutation_Block + new_mut_index, background_haplosome, &source_element, original_nucleotide, *p_mutation_callbacks);
 		
 		// If the callback didn't return the proposed mutation, it will not be used; dispose of it
 		if (post_callback_mut != mutation)
@@ -1186,7 +1188,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 		}
 		
 		// Otherwise, we will request the addition of whatever mutation it returned (which might be the proposed mutation).
-		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background genome.
+		// Note that if an existing mutation was returned, ApplyMutationCallbacks() guarantees that it is not already present in the background haplosome.
 		MutationIndex post_callback_mut_index = post_callback_mut->BlockIndex();
 		
 		if (new_mut_index != post_callback_mut_index)
@@ -1590,11 +1592,23 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_firstPosition:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(first_position_));
+		}
+		case gID_id:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1));
+		}
 		case gID_lastPosition:
 		{
 			if (!cached_value_lastpos_)
 				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
 			return cached_value_lastpos_;
+		}
+		case gEidosID_length:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_ - first_position_ + 1));
 		}
 			
 		case gID_hotspotEndPositions:
@@ -1783,6 +1797,21 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
+		case gID_symbol:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("\"1\""));
+		}
+		case gEidosID_type:
+		{
+			// FIXME needs to be updated to the new chromosome types
+			switch (species_.ModeledChromosomeType())
+			{
+				case HaplosomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
+				case HaplosomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
+				case HaplosomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
+			}
+			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
+		}
 			
 			// variables
 		case gID_colorSubstitution:
@@ -1813,6 +1842,10 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionSimpleConversionFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(simple_conversion_fraction_));
 		}
+		case gID_name:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(name_));
+		}
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -1839,6 +1872,11 @@ void Chromosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			color_sub_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			if (!color_sub_.empty())
 				Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+			return;
+		}
+		case gID_name:
+		{
+			name_ = p_value.StringAtIndex_NOCAST(0, nullptr);
 			return;
 		}
 		case gID_tag:
@@ -1975,7 +2013,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	std::vector<slim_position_t> all_breakpoints;
 	std::vector<slim_position_t> heteroduplex;				// never actually used since simple_conversion_fraction_ must be 1.0
 	
-	// Note that for calling recombination() callbacks below, we always treat the parent's first genome as the initial copy strand.
+	// Note that for calling recombination() callbacks below, we always treat the parent's first haplosome as the initial copy strand.
 	// This is documented; it is perhaps a weakness of the API here, but if randomly chose an initial copy strand it would not be used downstream, so.
 	
 	// draw the breakpoints based on the recombination rate map, and sort and unique the result
@@ -1989,7 +2027,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		if (parent && recombination_callbacks.size())
 		{
 			// a non-zero number of breakpoints, with recombination callbacks
-			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
+			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosome1_, parent->haplosome2_, parent_subpop, all_breakpoints, recombination_callbacks);
 			
 			if (all_breakpoints.size() > 1)
 			{
@@ -2001,7 +2039,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	else if (parent && recombination_callbacks.size())
 	{
 		// zero breakpoints from the SLiM core, but we have recombination() callbacks
-		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
+		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosome1_, parent->haplosome2_, parent_subpop, all_breakpoints, recombination_callbacks);
 		
 		if (all_breakpoints.size() > 1)
 		{
@@ -2587,7 +2625,10 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,										true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstPosition,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_length,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositions,					true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsM,					true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositionsF,					true,	kEidosValueMaskInt)));
@@ -2600,6 +2641,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRates,							true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesM,							true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationRatesF,							true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,									false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRate,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateM,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_overallMutationRateF,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
@@ -2613,12 +2655,14 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,								true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_symbol,									true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionEnabled,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionGCBias,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionNonCrossoverFraction,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionMeanLength,				true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionSimpleConversionFraction,	true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,									false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_type,								true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_colorSubstitution,						false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);

@@ -1377,10 +1377,10 @@ void _RunContinuousSpaceTests(void)
 		 o1 = subpop.addCrossed(individual, mate);
 		 o2 = subpop.addCloned(individual);
 		 o3 = subpop.addSelfed(individual);
-		 ig = sample(individual.genomes, 2, F);
-		 mg = sample(mate.genomes, 2, F);
-		 o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(),
-					 mg[0], mg[1], sim.chromosome.drawBreakpoints(),
+		 ig = sample(individual.haplosomes, 2, F);
+		 mg = sample(mate.haplosomes, 2, F);
+		 o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosomes.drawBreakpoints(),
+					 mg[0], mg[1], sim.chromosomes.drawBreakpoints(),
 					 parent1=individual, parent2=mate);
 		 for (o in c(o1, o2, o3, o4))
 			 if ((o.x != individual.x) | (o.y != individual.y))
@@ -1450,7 +1450,7 @@ void _RunContinuousSpaceTests(void)
 					model_string.append("initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeMutationRate(1e-7); initializeRecombinationRate(1e-8); } ");
 					
 					model_string.append("reproduction() { mate = subpop.sampleIndividuals(1); o1 = subpop.addCrossed(individual, mate); o2 = subpop.addCloned(individual); o3 = subpop.addSelfed(individual); ");
-					model_string.append("ig = sample(individual.genomes, 2, F); mg = sample(mate.genomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(), mg[0], mg[1], sim.chromosome.drawBreakpoints(), parent1=individual, parent2=mate); ");
+					model_string.append("ig = sample(individual.haplosomes, 2, F); mg = sample(mate.haplosomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosomes.drawBreakpoints(), mg[0], mg[1], sim.chromosomes.drawBreakpoints(), parent1=individual, parent2=mate); ");
 					
 					if (dimcount == 1)
 						model_string.append("for (o in c(o1, o2, o3, o4)) if (o.x != individual.x) stop('child does not match parent!'); }");
@@ -2022,32 +2022,32 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until generating children
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); } 2 early() { if (p1.individualCount == 0) stop(); }", "undefined identifier", __LINE__);
 	
-	// Test that deferred generation of offspring genomes does not cause vulnerabilities in properties/methods
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutations; }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.containsMutations(sim.mutations); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.countOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.sumOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	// Test that deferred generation of offspring haplosomes does not cause vulnerabilities in properties/methods
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutations; }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.containsMutations(sim.mutations); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.countOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.sumOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
 	
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutations; }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addMutations(sim.mutations); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addNewDrawnMutation(m1, 10); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addNewMutation(m1, 0.0, 10); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.containsMarkerMutation(m1, 10); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.containsMutations(sim.mutations); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.countOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationCountsInGenomes(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationFrequenciesInGenomes(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationsOfType(m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.nucleotides(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.output(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.outputMS(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.outputVCF(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.positionsOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.readFromMS('foo', m1); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.readFromVCF('foo'); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.removeMutations(); }", "deferred genomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.sumOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutations; }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.addMutations(sim.mutations); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.addNewDrawnMutation(m1, 10); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.addNewMutation(m1, 0.0, 10); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.containsMarkerMutation(m1, 10); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.containsMutations(sim.mutations); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.countOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutationCountsInHaplosomes(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutationFrequenciesInHaplosomes(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.nucleotides(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.output(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputMS(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputVCF(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.positionsOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.readFromMS('foo', m1); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.readFromVCF('foo'); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.removeMutations(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.sumOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
 }
 
 #pragma mark treeseq tests
@@ -2372,15 +2372,15 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeHotspotMap(1.0); } ", "only be called in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationTypeNuc(1, 0.5, 'f', 0.0); } ", "only be called in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mutationMatrix=mmJukesCantor(1e-7)); } ", "to be NULL in non-nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotEndPositions; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotEndPositionsM; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotEndPositionsF; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotMultipliers; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotMultipliersM; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.hotspotMultipliersF; }", "only defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.ancestralNucleotides(); }", "only be called in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosome.setHotspotMap(1.0); }", "only be called in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.genomes[0].nucleotides(); }", "only be called in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotEndPositions; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotEndPositionsM; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotEndPositionsF; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotMultipliers; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotMultipliersM; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.hotspotMultipliersF; }", "only defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.ancestralNucleotides(); }", "only be called in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.chromosomes.setHotspotMap(1.0); }", "only be called in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.haplosomes[0].nucleotides(); }", "only be called in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { g1.mutationMatrix; }", "only defined in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { g1.setMutationMatrix(mmJukesCantor(1e-7)); }", "only be called in nucleotide-based models", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "10 early() { mut = sim.mutations[0]; mut.nucleotide; }", "only defined for nucleotide-based mutations", __LINE__);
@@ -2389,8 +2389,8 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(gen1_setup_fixmut_p1 + "30 early() { sub = sim.substitutions[0]; sub.nucleotideValue; }", "only defined for nucleotide-based mutations", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (sim.nucleotideBased == F) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (m1.nucleotideBased == F) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, nucleotide='A'); stop(); }", "NULL in non-nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.0, 5000, nucleotide='A'); stop(); }", "NULL in non-nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(m1, 5000, nucleotide='A'); stop(); }", "NULL in non-nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.0, 5000, nucleotide='A'); stop(); }", "NULL in non-nucleotide-based models", __LINE__);
 	
 	// Test that some APIs are correctly disabled in nucleotide-based models
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(nucleotideBased=T); initializeMutationRate(1e-7); } ", "may not be called in nucleotide-based models", __LINE__);
@@ -2399,18 +2399,18 @@ void _RunNucleotideMethodTests(void)
 	std::string nuc_model_start("initialize() { initializeSLiMOptions(nucleotideBased=T); ");
 	std::string nuc_model_init(nuc_model_start + "initializeAncestralNucleotides(randomNucleotides(1e2)); initializeMutationTypeNuc(1, 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-7)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } ");
 	
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationEndPositions; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationEndPositionsF; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationEndPositionsM; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationRates; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationRatesF; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.mutationRatesM; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.overallMutationRate; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.overallMutationRateF; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.overallMutationRateM; }", "not defined in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setMutationRate(1e-7); }", "may not be called in nucleotide-based models", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.genomes[0]; mut = gen.addNewDrawnMutation(m1, 50); }", "requires nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.genomes[0]; mut = gen.addNewMutation(m1, 0.0, 50); }", "requires nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationEndPositions; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationEndPositionsF; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationEndPositionsM; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationRates; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationRatesF; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.mutationRatesM; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.overallMutationRate; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.overallMutationRateF; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.overallMutationRateM; }", "not defined in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setMutationRate(1e-7); }", "may not be called in nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.haplosomes[0]; mut = gen.addNewDrawnMutation(m1, 50); }", "requires nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop('p1', 10); gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.0, 50); }", "requires nucleotide to be non-NULL", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 early() { m1.mutationStackGroup = 2; }", "for nucleotide-based mutation types", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_init + "1 early() { m1.mutationStackPolicy = 'f'; }", "for nucleotide-based mutation types", __LINE__);
 	
@@ -2514,85 +2514,85 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGenomicElementType('g2', m1, 1.0, mm16To256(mmJukesCantor(0.25))); stop(); } ", __LINE__);
 	
 	// hotspotEndPositions, hotspotEndPositionsM, hotspotEndPositionsF
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (sim.chromosome.hotspotEndPositions == 1e2-1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(2.0); } 1 early() { if (sim.chromosome.hotspotEndPositions == 1e2-1) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); } 1 early() { if (identical(sim.chromosome.hotspotEndPositions, c(10, 1e2-1))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (sim.chromosomes.hotspotEndPositions == 1e2-1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(2.0); } 1 early() { if (sim.chromosomes.hotspotEndPositions == 1e2-1) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); } 1 early() { if (identical(sim.chromosomes.hotspotEndPositions, c(10, 1e2-1))) stop(); }", __LINE__);
 	
 	// hotspotMultipliers, hotspotMultipliersM, hotspotMultipliersF
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (sim.chromosome.hotspotMultipliers == 1.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(2.0); } 1 early() { if (sim.chromosome.hotspotMultipliers == 2.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); } 1 early() { if (identical(sim.chromosome.hotspotMultipliers, c(1.0, 1.2))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (sim.chromosomes.hotspotMultipliers == 1.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(2.0); } 1 early() { if (sim.chromosomes.hotspotMultipliers == 2.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); } 1 early() { if (identical(sim.chromosomes.hotspotMultipliers, c(1.0, 1.2))) stop(); }", __LINE__);
 	
 	// ancestralNucleotides()
 	std::string ances_setup_string = "initialize() { initializeSLiMOptions(nucleotideBased=T); defineConstant('AS', randomNucleotides(1e2, format='string')); initializeAncestralNucleotides(AS); initializeMutationTypeNuc(1, 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-7)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } ";
 	std::string ances_setup_char = "initialize() { initializeSLiMOptions(nucleotideBased=T); defineConstant('AS', randomNucleotides(1e2, format='char')); initializeAncestralNucleotides(AS); initializeMutationTypeNuc(1, 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-7)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } ";
 	std::string ances_setup_integer = "initialize() { initializeSLiMOptions(nucleotideBased=T); defineConstant('AS', randomNucleotides(1e2, format='integer')); initializeAncestralNucleotides(AS); initializeMutationTypeNuc(1, 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0, mmJukesCantor(1e-7)); initializeGenomicElement(g1, 0, 1e2-1); initializeRecombinationRate(1e-8); } ";
 	
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(format='string'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(end=49, format='string'), substr(AS, 0, 49))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=50, format='string'), substr(AS, 50, 99))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=25, end=69, format='string'), substr(AS, 25, 69))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(substr(AS, 10, 39)))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(format='string'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(end=49, format='string'), substr(AS, 0, 49))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=50, format='string'), substr(AS, 50, 99))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=25, end=69, format='string'), substr(AS, 25, 69))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(substr(AS, 10, 39)))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(format='char'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(end=49, format='char'), AS[0:49])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=50, format='char'), AS[50:99])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=25, end=69, format='char'), AS[25:69])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(format='char'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(end=49, format='char'), AS[0:49])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=50, format='char'), AS[50:99])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=25, end=69, format='char'), AS[25:69])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(format='integer'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(end=49, format='integer'), AS[0:49])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=50, format='integer'), AS[50:99])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=25, end=69, format='integer'), AS[25:69])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosome.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(format='integer'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(end=49, format='integer'), AS[0:49])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=50, format='integer'), AS[50:99])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=25, end=69, format='integer'), AS[25:69])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { if (identical(sim.chromosomes.ancestralNucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosome.ancestralNucleotides(start=-1, end=50, format='integer'); }", "within the chromosome's extent", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosome.ancestralNucleotides(start=50, end=100, format='integer'); }", "within the chromosome's extent", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosome.ancestralNucleotides(start=75, end=25, format='integer'); }", "start must be <= end", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosome.ancestralNucleotides(format='foo'); }", "format must be either", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosomes.ancestralNucleotides(start=-1, end=50, format='integer'); }", "within the chromosome's extent", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosomes.ancestralNucleotides(start=50, end=100, format='integer'); }", "within the chromosome's extent", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosomes.ancestralNucleotides(start=75, end=25, format='integer'); }", "start must be <= end", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.chromosomes.ancestralNucleotides(format='foo'); }", "format must be either", __LINE__);
 	
 	// setHotspotMap()
 	std::string nuc_w_hotspot = nuc_model_init + "initialize() { initializeHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); } ";
 	
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(float(0)); }", "to be a singleton if", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, integer(0)); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(float(0), 1e2-1); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(float(0), integer(0)); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, sex='A'); }", "sex 'A' unsupported", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, sex='M'); }", "original configuration", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2)); }", "to be a singleton if", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(-0.1); }", "multipliers must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(0.1, c(10, 20)); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2), 10); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2), c(20, 10)); }", "strictly ascending order", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, -1.2), c(10, 20)); }", "multipliers must be >= 0", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2), c(10, 20)); }", "must end at the last position", __LINE__);
-	SLiMAssertScriptStop(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.2); stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(float(0)); }", "to be a singleton if", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(1.0, integer(0)); }", "equal and nonzero size", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(float(0), 1e2-1); }", "equal and nonzero size", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(float(0), integer(0)); }", "equal and nonzero size", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(1.0, sex='A'); }", "sex 'A' unsupported", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(1.0, sex='M'); }", "original configuration", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, 1.2)); }", "to be a singleton if", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(-0.1); }", "multipliers must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(0.1, c(10, 20)); }", "equal and nonzero size", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, 1.2), 10); }", "equal and nonzero size", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, 1.2), c(20, 10)); }", "strictly ascending order", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, -1.2), c(10, 20)); }", "multipliers must be >= 0", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, 1.2), c(10, 20)); }", "must end at the last position", __LINE__);
+	SLiMAssertScriptStop(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(1.2); stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_w_hotspot + "1 early() { sim.chromosomes.setHotspotMap(c(1.0, 1.2), c(10, 1e2-1)); stop(); }", __LINE__);
 	
 	// nucleotides()
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(format='string'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(end=49, format='string'), substr(AS, 0, 49))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=50, format='string'), substr(AS, 50, 99))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=25, end=69, format='string'), substr(AS, 25, 69))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(substr(AS, 10, 39)))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(format='string'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(end=49, format='string'), substr(AS, 0, 49))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=50, format='string'), substr(AS, 50, 99))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=25, end=69, format='string'), substr(AS, 25, 69))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_string + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(substr(AS, 10, 39)))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(format='char'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(end=49, format='char'), AS[0:49])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=50, format='char'), AS[50:99])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=25, end=69, format='char'), AS[25:69])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(format='char'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(end=49, format='char'), AS[0:49])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=50, format='char'), AS[50:99])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=25, end=69, format='char'), AS[25:69])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_char + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(format='integer'), AS)) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(end=49, format='integer'), AS[0:49])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=50, format='integer'), AS[50:99])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=25, end=69, format='integer'), AS[25:69])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.genomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(format='integer'), AS)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(end=49, format='integer'), AS[0:49])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=50, format='integer'), AS[50:99])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=25, end=69, format='integer'), AS[25:69])) stop(); }", __LINE__);
+	SLiMAssertScriptStop(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); if (identical(p1.haplosomes[0].nucleotides(start=10, end=39, format='codon'), nucleotidesToCodons(AS[10:39]))) stop(); }", __LINE__);
 	
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].nucleotides(start=-1, end=50, format='integer'); }", "within the chromosome's extent", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].nucleotides(start=50, end=100, format='integer'); }", "within the chromosome's extent", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].nucleotides(start=75, end=25, format='integer'); }", "start must be <= end", __LINE__);
-	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].nucleotides(format='foo'); }", "format must be either", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].nucleotides(start=-1, end=50, format='integer'); }", "within the chromosome's extent", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].nucleotides(start=50, end=100, format='integer'); }", "within the chromosome's extent", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].nucleotides(start=75, end=25, format='integer'); }", "start must be <= end", __LINE__);
+	SLiMAssertScriptRaise(ances_setup_integer + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].nucleotides(format='foo'); }", "format must be either", __LINE__);
 	
 	// mutationMatrix()
 	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (identical(g1.mutationMatrix, mmJukesCantor(1e-7))) stop(); }", __LINE__);
@@ -2623,36 +2623,36 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptStop(nuc_fixmut + "30 early() { sub = sim.substitutions[0]; sub.nucleotideValue; stop(); }", __LINE__);
 	
 	// addNewDrawnMutation()
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide='D'); }", "string nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide=-1); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide=4); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide='A'); stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewDrawnMutation(m1, 10, nucleotide=0); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c('A','D','G','C')); }", "string nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c(0,-1,2,3)); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c(0,4,2,3)); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c('A','C','G','T')); stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=0:3); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide='D'); }", "string nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide=-1); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide=4); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide='A'); stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewDrawnMutation(m1, 10, nucleotide=0); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c('A','D','G','C')); }", "string nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c(0,-1,2,3)); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c(0,4,2,3)); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=c('A','C','G','T')); stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewDrawnMutation(m1, 10, nucleotide=0:3); stop(); }", __LINE__);
 	
 	// addNewMutation()
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide='D'); }", "string nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide=-1); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide=4); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide='A'); stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0].addNewMutation(m1, 0.5, 10, nucleotide=0); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c('A','D','G','C')); }", "string nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c(0,-1,2,3)); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c(0,4,2,3)); }", "integer nucleotide values", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c('A','C','G','T')); stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=0:3); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide='D'); }", "string nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide=-1); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide=4); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide='A'); stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0].addNewMutation(m1, 0.5, 10, nucleotide=0); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=NULL); }", "nucleotide to be non-NULL", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c('A','D','G','C')); }", "string nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c(0,-1,2,3)); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c(0,4,2,3)); }", "integer nucleotide values", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c('A','C','G','T')); stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.addSubpop(1, 10); p1.haplosomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=0:3); stop(); }", __LINE__);
 	
 	// Species.nucleotideBased
 	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (sim.nucleotideBased == T) stop(); }", __LINE__);
@@ -2661,28 +2661,28 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptStop(nuc_model_init + "1 early() { if (m1.nucleotideBased == T) stop(); }", __LINE__);
 	
 	// initializeGeneConversion() tests using GC bias != 0
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosome.geneConversionGCBias == -0.01) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosomes.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosomes.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosomes.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosomes.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "initialize() { initializeGeneConversion(0.2, 1234.5, 0.75, -0.01); } 1 early() { if (sim.chromosomes.geneConversionGCBias == -0.01) stop(); }", __LINE__);
 	
 	// Chromosome.setGeneConversion() tests using GC bias != 0
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionEnabled == T) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
-	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosome.geneConversionGCBias == -0.01) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosomes.geneConversionEnabled == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosomes.geneConversionNonCrossoverFraction == 0.2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosomes.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosomes.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
+	SLiMAssertScriptStop(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75, -0.01); if (sim.chromosomes.geneConversionGCBias == -0.01) stop(); }", __LINE__);
 	
 	// Chromosome.setGeneConversion() bounds tests
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(-0.001, 10000000000000, 0.0); stop(); }", "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(1.001, 10000000000000, 0.0); stop(); }", "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.5, -0.01, 0.0); stop(); }", "meanLength must be >= 0.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.5, 1000, -0.001); stop(); }", "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.5, 1000, 1.001); stop(); }", "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, -1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosome.setGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", "must be 0.0 in non-nucleotide-based models", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(-0.001, 10000000000000, 0.0); stop(); }", "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(1.001, 10000000000000, 0.0); stop(); }", "nonCrossoverFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.5, -0.01, 0.0); stop(); }", "meanLength must be >= 0.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, -0.001); stop(); }", "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, 1.001); stop(); }", "simpleConversionFraction must be between 0.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, 0.0, -1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_init + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, 0.0, 1.001); stop(); }", "bias must be between -1.0 and 1.0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", "must be 0.0 in non-nucleotide-based models", __LINE__);
 }
 
 

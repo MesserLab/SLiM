@@ -77,7 +77,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// Genome -containsMarkerMutation()							// EIDOS_OMPMIN_CONTAINS_MARKER_MUT
+// Haplosome -containsMarkerMutation()						// EIDOS_OMPMIN_CONTAINS_MARKER_MUT
 
 initialize() {
 	initializeMutationRate(1e-6);
@@ -91,8 +91,8 @@ initialize() {
 mutationEffect(m2) { return 1.0; }
 1 early() { sim.addSubpop("p1", 100); }
 199 late() {
-	sim.chromosome.setMutationRate(0.0);
-	sim.chromosome.setRecombinationRate(0.0);
+	sim.chromosomes.setMutationRate(0.0);
+	sim.chromosomes.setRecombinationRate(0.0);
 	p1.setCloningRate(1.0);
 	p1.setSubpopulationSize(100000);
 	
@@ -104,19 +104,19 @@ mutationEffect(m2) { return 1.0; }
 	defineGlobal("MUT", muts[i]);
 }
 200 late() {
-	genomes = sim.subpopulations.genomes;
+ haplosomes = sim.subpopulations.haplosomes;
 
-	a = genomes.containsMarkerMutation(MUT.mutationType, MUT.position, returnMutation=F);
+	a = haplosomes.containsMarkerMutation(MUT.mutationType, MUT.position, returnMutation=F);
 	parallelSetNumThreads(1);
-	b = genomes.containsMarkerMutation(MUT.mutationType, MUT.position, returnMutation=F);
+	b = haplosomes.containsMarkerMutation(MUT.mutationType, MUT.position, returnMutation=F);
 	
 	if (!identical(a, b))
-		stop("parallel Genome -containsMarkerMutation() failed test");
+		stop("parallel Haplosome -containsMarkerMutation() failed test");
 }
 
 // ***********************************************************************************************
 
-// Genome -countOfMutationsOfType()						// EIDOS_OMPMIN_G_COUNT_OF_MUTS_OF_TYPE
+// Haplosome -countOfMutationsOfType()					// EIDOS_OMPMIN_G_COUNT_OF_MUTS_OF_TYPE
 
 initialize() {
 	initializeMutationRate(1e-3);
@@ -130,12 +130,12 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 1 late() {
-	a = p1.individuals.genomes.countOfMutationsOfType(m2);
+	a = p1.individuals.haplosomes.countOfMutationsOfType(m2);
 	parallelSetNumThreads(1);
-	c = p1.individuals.genomes.countOfMutationsOfType(m2);
+	c = p1.individuals.haplosomes.countOfMutationsOfType(m2);
 	
 	if (!identical(a, c))
-		stop("parallel Genome -countOfMutationsOfType() failed test");
+		stop("parallel Haplosome -countOfMutationsOfType() failed test");
 }
 
 // ***********************************************************************************************

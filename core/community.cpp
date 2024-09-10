@@ -1396,19 +1396,19 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
 }
 
-Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int value_count)
+Species *Community::SpeciesForHaplosomesVector(const Haplosome * const *haplosomes, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
 	
-	Species *consensus_species = &genomes[0]->OwningIndividual()->subpopulation_->species_;
+	Species *consensus_species = &haplosomes[0]->OwningIndividual()->subpopulation_->species_;
 	
 	if (consensus_species->community_.all_species_.size() == 1)	// with only one species, all objects must be in this species
 		return consensus_species;
 	
 	for (int value_index = 1; value_index < value_count; ++value_index)
 	{
-		const Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
+		const Species *species = &haplosomes[value_index]->OwningIndividual()->subpopulation_->species_;
 		
 		if (species != consensus_species)
 			return nullptr;
@@ -1417,10 +1417,10 @@ Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int v
 	return consensus_species;
 }
 
-Species *Community::SpeciesForGenomes(EidosValue *value)
+Species *Community::SpeciesForHaplosomes(EidosValue *value)
 {
 	if (value->Type() != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of type object." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of type object." << EidosTerminate();
 	
 	EidosValue_Object *object_value = (EidosValue_Object *)value;
 	
@@ -1429,16 +1429,16 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
 		return nullptr;
 	
-	if (object_value->Class() != gSLiM_Genome_Class)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
+	if (object_value->Class() != gSLiM_Haplosome_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of class Haplosome." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+		return &((Haplosome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	const Genome * const *genomes = (Genome **)object_vector_value->data();
+	const Haplosome * const *haplosomes = (Haplosome **)object_vector_value->data();
 	
-	return Community::SpeciesForGenomesVector(genomes, value_count);
+	return Community::SpeciesForHaplosomesVector(haplosomes, value_count);
 }
 
 Species *Community::SpeciesForMutationsVector(const Mutation * const *mutations, int value_count)
@@ -2346,7 +2346,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 void Community::AllSpecies_CheckIntegrity(void)
 {
 #if DEBUG
-	// Check the integrity of all the information in the individuals and genomes of the parental population
+	// Check the integrity of all the information in the individuals and haplosomes of the parental population
 	for (Species *species : all_species_)
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
 			subpop_pair.second->CheckIndividualIntegrity();

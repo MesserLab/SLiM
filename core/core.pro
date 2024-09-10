@@ -88,9 +88,9 @@ SOURCES += \
     chromosome.cpp \
     community.cpp \
     community_eidos.cpp \
-    genome.cpp \
     genomic_element_type.cpp \
     genomic_element.cpp \
+    haplosome.cpp \
     individual.cpp \
     interaction_type.cpp \
     log_file.cpp \
@@ -117,9 +117,9 @@ SOURCES += \
 HEADERS += \
     chromosome.h \
     community.h \
-    genome.h \
     genomic_element_type.h \
     genomic_element.h \
+    haplosome.h \
     individual.h \
     interaction_type.h \
     log_file.h \

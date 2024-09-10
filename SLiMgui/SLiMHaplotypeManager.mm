@@ -107,23 +107,23 @@
 		[self setTitleString:title];
 		[self setSubpopCount:(int)selected_subpops.size()];
 		
-		// Fetch genomes and figure out what we're going to plot; note that we plot only non-null genomes
+		// Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
 		for (Subpopulation *subpop : selected_subpops)
-			for (Genome *genome : subpop->parent_genomes_)
-				if (!genome->IsNull())
-					genomes.emplace_back(genome);
+			for (Haplosome *haplosome : subpop->parent_haplosomes_)
+				if (!haplosome->IsNull())
+					haplosomes.emplace_back(haplosome);
 		
 		// If a sample is requested, select that now; sampleSize <= 0 means no sampling
-		if ((sampleSize > 0) && ((int)genomes.size() > sampleSize))
+		if ((sampleSize > 0) && ((int)haplosomes.size() > sampleSize))
 		{
-			Eidos_random_unique(genomes.begin(), genomes.end(), sampleSize);
-			genomes.resize(sampleSize);
+			Eidos_random_unique(haplosomes.begin(), haplosomes.end(), sampleSize);
+			haplosomes.resize(sampleSize);
 		}
 		
 		// Cache all the information about the mutations that we're going to need
 		[self configureMutationInfoBufferForController:controller];
 		
-		// Keep track of the range of subpop IDs we reference, even if not represented by any genomes here
+		// Keep track of the range of subpop IDs we reference, even if not represented by any haplosomes here
 		maxSubpopID = 0;
 		minSubpopID = SLIM_MAX_ID_VALUE;
 		
@@ -139,7 +139,7 @@
 		if (clusterInBackground)
 		{
 			// start up a progress sheet since we could take a while...
-			[controller runHaplotypePlotProgressSheetWithGenomeCount:(int)genomes.size()];
+			[controller runHaplotypePlotProgressSheetWithHaplosomeCount:(int)haplosomes.size()];
 			
 			[self performSelectorInBackground:@selector(finishClusteringAnalysisWithBackgroundController:) withObject:controller];
 		}
@@ -174,26 +174,26 @@
 	
 #if 0
 	// Choose a random order
-	std::random_shuffle(genomes.begin(), genomes.end());
+	std::random_shuffle(haplosomes.begin(), haplosomes.end());
 #else
 	// Work out an approximate best sort order
-	[self sortGenomesWithBackgroundController:backgroundController];
+	[self sortHaplosomesWithBackgroundController:backgroundController];
 #endif
 	
 	if (![backgroundController haplotypeProgressIsCancelled])
 	{
-		// Remember the subpop ID for each genome
-		for (Genome *genome : genomes)
-			genomeSubpopIDs.emplace_back(genome->individual_->subpopulation_->subpopulation_id_);
+		// Remember the subpop ID for each haplosome
+		for (Haplosome *haplosome : haplosomes)
+			haplosomeSubpopIDs.emplace_back(haplosome->individual_->subpopulation_->subpopulation_id_);
 		
 		// Build our plotting data vectors.  Because we are a snapshot, we can't rely on our controller's data
 		// at all after this method returns; we have to remember everything we need to create our display list.
 		[self configureDisplayBuffers];
 	}
 	
-	// Now we are done with the genomes vector; clear it
-	genomes.clear();
-	genomes.resize(0);
+	// Now we are done with the haplosomes vector; clear it
+	haplosomes.clear();
+	haplosomes.resize(0);
 	
 	// If we're in the background, tell our backgroundController that we're done
 	[backgroundController haplotypeProgressTaskFinished];
@@ -285,15 +285,15 @@
 	mutationLastPosition = displaySpecies->TheChromosome().last_position_;
 }
 
-// Delegate the genome sorting to the appropriate method based on our configuration
-- (void)sortGenomesWithBackgroundController:(SLiMWindowController *)backgroundController
+// Delegate the haplosome sorting to the appropriate method based on our configuration
+- (void)sortHaplosomesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int64_t genome_count = (int64_t)genomes.size();
+	int64_t haplosome_count = (int64_t)haplosomes.size();
 	
-	if (genome_count == 0)
+	if (haplosome_count == 0)
 		return;
 	
-	std::vector<Genome *> original_genomes = genomes;	// copy the vector because we will need to reorder it below
+	std::vector<Haplosome *> original_haplosomes = haplosomes;	// copy the vector because we will need to reorder it below
 	std::vector<int> final_path;
 	
 	// first get our distance matrix; these are inter-city distances
@@ -320,18 +320,18 @@
 	switch (clusterMethod)
 	{
 		case kSLiMHaplotypeClusterNearestNeighbor:
-			[self nearestNeighborSolveWithDistances:distances size:genome_count solution:final_path backgroundController:backgroundController];
+			[self nearestNeighborSolveWithDistances:distances size:haplosome_count solution:final_path backgroundController:backgroundController];
 			break;
 			
 		case kSLiMHaplotypeClusterGreedy:
-			[self greedySolveWithDistances:distances size:genome_count solution:final_path backgroundController:backgroundController];
+			[self greedySolveWithDistances:distances size:haplosome_count solution:final_path backgroundController:backgroundController];
 			break;
 	}
 	
 	if ([backgroundController haplotypeProgressIsCancelled])
 		goto cancelledExit;
 	
-	[self checkPath:final_path size:genome_count];
+	[self checkPath:final_path size:haplosome_count];
 	
 	if ([backgroundController haplotypeProgressIsCancelled])
 		goto cancelledExit;
@@ -344,22 +344,22 @@
 				break;
 				
 			case kSLiMHaplotypeClusterOptimizeWith2opt:
-				[self do2optOptimizationOfSolution:final_path withDistances:distances size:genome_count backgroundController:backgroundController];
+				[self do2optOptimizationOfSolution:final_path withDistances:distances size:haplosome_count backgroundController:backgroundController];
 				break;
 		}
 		
 		if ([backgroundController haplotypeProgressIsCancelled])
 			goto cancelledExit;
 		
-		[self checkPath:final_path size:genome_count];
+		[self checkPath:final_path size:haplosome_count];
 	}
 	
 	if ([backgroundController haplotypeProgressIsCancelled])
 		goto cancelledExit;
 	
-	// reorder the genomes vector according to the path we found
-	for (int genome_index = 0; genome_index < genome_count; ++genome_index)
-		genomes[genome_index] = original_genomes[final_path[genome_index]];
+	// reorder the haplosomes vector according to the path we found
+	for (int haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
+		haplosomes[haplosome_index] = original_haplosomes[final_path[haplosome_index]];
 	
 cancelledExit:
 	free(distances);
@@ -367,32 +367,32 @@ cancelledExit:
 
 - (void)configureDisplayBuffers
 {
-	int64_t genome_count = (int64_t)genomes.size();
+	int64_t haplosome_count = (int64_t)haplosomes.size();
 	
-	// Allocate our display list and size it so it has one std::vector<MutationIndex> per genome
+	// Allocate our display list and size it so it has one std::vector<MutationIndex> per haplosome
 	displayList = new std::vector<std::vector<MutationIndex>>;
 	
-	displayList->resize(genome_count);
+	displayList->resize(haplosome_count);
 	
-	// Then save off the information for each genome into the display list
-	for (int genome_index = 0; genome_index < genome_count; ++genome_index)
+	// Then save off the information for each haplosome into the display list
+	for (int haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
 	{
-		Genome &genome = *genomes[genome_index];
-		std::vector<MutationIndex> &genome_display = (*displayList)[genome_index];
+		Haplosome &haplosome = *haplosomes[haplosome_index];
+		std::vector<MutationIndex> &haplosome_display = (*displayList)[haplosome_index];
 		
 		if (!usingSubrange)
 		{
-			// Size our display list to fit the number of mutations in the genome
-			int mut_count = genome.mutation_count();
+			// Size our display list to fit the number of mutations in the haplosome
+			int mut_count = haplosome.mutation_count();
 			
-			genome_display.reserve(mut_count);
+			haplosome_display.reserve(mut_count);
 			
 			// Loop through mutations to get the mutation indices
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -404,25 +404,25 @@ cancelledExit:
 						MutationIndex mut_index = *mut_ptr;
 						
 						if ((mutationInfo + mut_index)->display_)
-							genome_display.emplace_back(*mut_ptr);
+							haplosome_display.emplace_back(*mut_ptr);
 					}
 				}
 				else
 				{
 					// displaying all mutation types, no need to check
 					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-						genome_display.emplace_back(*mut_ptr);
+						haplosome_display.emplace_back(*mut_ptr);
 				}
 			}
 		}
 		else
 		{
 			// We are using a subrange, so we need to check the position of each mutation before adding it
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -436,7 +436,7 @@ cancelledExit:
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
 							if ((mutationInfo + mut_index)->display_)
-								genome_display.emplace_back(mut_index);
+								haplosome_display.emplace_back(mut_index);
 					}
 				}
 				else
@@ -448,7 +448,7 @@ cancelledExit:
 						slim_position_t mut_position = *(mutationPositions + mut_index);
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
-							genome_display.emplace_back(mut_index);
+							haplosome_display.emplace_back(mut_index);
 					}
 				}
 			}
@@ -488,17 +488,17 @@ static float *glArrayColors = nil;
 	glEnableClientState(GL_COLOR_ARRAY);
 	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
 	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
-	int genome_index = 0, genome_count = (int)genomeSubpopIDs.size();
-	double height_divisor = genome_count;
+	// Loop through the haplosomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
+	int haplosome_index = 0, haplosome_count = (int)haplosomeSubpopIDs.size();
+	double height_divisor = haplosome_count;
 	float left = (float)(interior.origin.x);
 	float right = (float)(interior.origin.x + interior.size.width);
 	NSColorSpace *rgbColorSpace = [NSColorSpace deviceRGBColorSpace];
 	
-	for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
+	for (slim_objectid_t haplosome_subpop_id : haplosomeSubpopIDs)
 	{
-		float top = (float)(interior.origin.y + (genome_index / height_divisor) * interior.size.height);
-		float bottom = (float)(interior.origin.y + ((genome_index + 1) / height_divisor) * interior.size.height);
+		float top = (float)(interior.origin.y + (haplosome_index / height_divisor) * interior.size.height);
+		float bottom = (float)(interior.origin.y + ((haplosome_index + 1) / height_divisor) * interior.size.height);
 		
 		if (bottom - top > 1.0)
 		{
@@ -519,7 +519,7 @@ static float *glArrayColors = nil;
 		*(vertices++) = right;		*(vertices++) = top;
 		
 		float colorRed, colorGreen, colorBlue;
-		float hue = (genome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
+		float hue = (haplosome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
 		NSColor *hsbColor = [NSColor colorWithCalibratedHue:hue saturation:1.0 brightness:1.0 alpha:1.0];
 		NSColor *rgbColor = [hsbColor colorUsingColorSpace:rgbColorSpace];
 		
@@ -545,7 +545,7 @@ static float *glArrayColors = nil;
 			displayListIndex = 0;
 		}
 		
-		genome_index++;
+		haplosome_index++;
 	}
 	
 	// Draw any leftovers
@@ -556,11 +556,11 @@ static float *glArrayColors = nil;
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-- (void)tallyBincounts:(int64_t *)bincounts fromGenomeList:(std::vector<MutationIndex> &)genomeList
+- (void)tallyBincounts:(int64_t *)bincounts fromHaplosomeList:(std::vector<MutationIndex> &)haplosomeList
 {
 	EIDOS_BZERO(bincounts, 1024 * sizeof(int64_t));
 	
-	for (MutationIndex mut_index : genomeList)
+	for (MutationIndex mut_index : haplosomeList)
 		bincounts[mutationInfo[mut_index].position_ % 1024]++;
 }
 
@@ -591,29 +591,29 @@ static float *glArrayColors = nil;
 	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
 	
 	// decide whether to plot in ascending order or descending order; we do this based on a calculated
-	// similarity to the previously displayed first genome, so that we maximize visual continuity
-	int genome_count = (int)displayList->size();
+	// similarity to the previously displayed first haplosome, so that we maximize visual continuity
+	int haplosome_count = (int)displayList->size();
 	bool ascending = true;
 	
-	if (previousFirstBincounts && (genome_count > 1))
+	if (previousFirstBincounts && (haplosome_count > 1))
 	{
-		std::vector<MutationIndex> &first_genome_list = (*displayList)[0];
-		std::vector<MutationIndex> &last_genome_list = (*displayList)[genome_count - 1];
-		static int64_t *first_genome_bincounts = nullptr;
-		static int64_t *last_genome_bincounts = nullptr;
+		std::vector<MutationIndex> &first_haplosome_list = (*displayList)[0];
+		std::vector<MutationIndex> &last_haplosome_list = (*displayList)[haplosome_count - 1];
+		static int64_t *first_haplosome_bincounts = nullptr;
+		static int64_t *last_haplosome_bincounts = nullptr;
 		
-		if (!first_genome_bincounts)	first_genome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
-		if (!last_genome_bincounts)		last_genome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
+		if (!first_haplosome_bincounts)	first_haplosome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
+		if (!last_haplosome_bincounts)		last_haplosome_bincounts = (int64_t *)malloc(1024 * sizeof(int64_t));
 		
-		[self tallyBincounts:first_genome_bincounts fromGenomeList:first_genome_list];
-		[self tallyBincounts:last_genome_bincounts fromGenomeList:last_genome_list];
+		[self tallyBincounts:first_haplosome_bincounts fromHaplosomeList:first_haplosome_list];
+		[self tallyBincounts:last_haplosome_bincounts fromHaplosomeList:last_haplosome_list];
 		
 		if (*previousFirstBincounts)
 		{
-			int64_t first_genome_distance = [self distanceForBincounts:first_genome_bincounts fromBincounts:*previousFirstBincounts];
-			int64_t last_genome_distance = [self distanceForBincounts:last_genome_bincounts fromBincounts:*previousFirstBincounts];
+			int64_t first_haplosome_distance = [self distanceForBincounts:first_haplosome_bincounts fromBincounts:*previousFirstBincounts];
+			int64_t last_haplosome_distance = [self distanceForBincounts:last_haplosome_bincounts fromBincounts:*previousFirstBincounts];
 			
-			if (first_genome_distance > last_genome_distance)
+			if (first_haplosome_distance > last_haplosome_distance)
 				ascending = false;
 			
 			free(*previousFirstBincounts);
@@ -621,27 +621,27 @@ static float *glArrayColors = nil;
 		
 		// take over one of our buffers, to avoid having to copy values
 		if (ascending) {
-			*previousFirstBincounts = first_genome_bincounts;
-			first_genome_bincounts = nullptr;
+			*previousFirstBincounts = first_haplosome_bincounts;
+			first_haplosome_bincounts = nullptr;
 		} else {
-			*previousFirstBincounts = last_genome_bincounts;
-			last_genome_bincounts = nullptr;
+			*previousFirstBincounts = last_haplosome_bincounts;
+			last_haplosome_bincounts = nullptr;
 		}
 	}
 	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
+	// Loop through the haplosomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
 	for (int pass_count = 0; pass_count <= 1; ++pass_count)
 	{
 		BOOL plotting_neutral = (pass_count == 0);
-		double height_divisor = genome_count;
+		double height_divisor = haplosome_count;
 		double width_subtractor = (usingSubrange ? subrangeFirstBase : 0);
 		double width_divisor = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
 		
-		for (int genome_index = 0; genome_index < genome_count; ++genome_index)
+		for (int haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
 		{
-			std::vector<MutationIndex> &genome_list = (ascending ? (*displayList)[genome_index] : (*displayList)[(genome_count - 1) - genome_index]);
-			float top = (float)(interior.origin.y + (genome_index / height_divisor) * interior.size.height);
-			float bottom = (float)(interior.origin.y + ((genome_index + 1) / height_divisor) * interior.size.height);
+			std::vector<MutationIndex> &haplosome_list = (ascending ? (*displayList)[haplosome_index] : (*displayList)[(haplosome_count - 1) - haplosome_index]);
+			float top = (float)(interior.origin.y + (haplosome_index / height_divisor) * interior.size.height);
+			float bottom = (float)(interior.origin.y + ((haplosome_index + 1) / height_divisor) * interior.size.height);
 			
 			if (bottom - top > 1.0)
 			{
@@ -656,7 +656,7 @@ static float *glArrayColors = nil;
 				bottom = top + 1;
 			}
 			
-			for (MutationIndex mut_index : genome_list)
+			for (MutationIndex mut_index : haplosome_list)
 			{
 				SLiMHaploMutation &mut_info = mutationInfo[mut_index];
 				
@@ -762,7 +762,7 @@ static float *glArrayColors = nil;
 - (NSBitmapImageRep *)bitmapImageRepForPlotInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips;
 {
 	const int stripWidth = 15;
-	int genome_count = (int)displayList->size();
+	int haplosome_count = (int)displayList->size();
 	slim_position_t width = (int)interior.size.width;
 	int height = (int)interior.size.height;
 	
@@ -775,8 +775,8 @@ static float *glArrayColors = nil;
 	
 	if (width > ideal_pixel_width)
 		width = ideal_pixel_width;
-	if (height > genome_count)
-		height = genome_count;
+	if (height > haplosome_count)
+		height = haplosome_count;
 	
 	// Make a new bitmap rep.  This is laid out as 0xAABBGGRR, if addressed using a uint32_t pointer.
 	NSBitmapImageRep *imageRep = [[[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL
@@ -808,15 +808,15 @@ static float *glArrayColors = nil;
 	if (showSubpopStrips)
 	{
 		NSColorSpace *rgbColorSpace = [NSColorSpace deviceRGBColorSpace];
-		int genome_index = 0;
+		int haplosome_index = 0;
 		
-		for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
+		for (slim_objectid_t haplosome_subpop_id : haplosomeSubpopIDs)
 		{
-			int pixel_y = (int)((genome_index / (double)genome_count) * height);
+			int pixel_y = (int)((haplosome_index / (double)haplosome_count) * height);
 			uint32_t *rowPtr = (uint32_t *)(plotBase + (height - 1 - pixel_y) * plotRowbytes);
 			
 			int colorRed, colorGreen, colorBlue;
-			float hue = (genome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
+			float hue = (haplosome_subpop_id - minSubpopID) / (float)(maxSubpopID - minSubpopID + 1);
 			NSColor *hsbColor = [NSColor colorWithCalibratedHue:hue saturation:1.0 brightness:1.0 alpha:1.0];
 			NSColor *rgbColor = [hsbColor colorUsingColorSpace:rgbColorSpace];
 			
@@ -829,7 +829,7 @@ static float *glArrayColors = nil;
 			for (int pixel_count = 0; pixel_count < stripWidth; ++pixel_count)
 				*(rowPtr + pixel_count) = pixel_value;
 			
-			genome_index++;
+			haplosome_index++;
 		}
 		
 		plotBase += (stripWidth * 4);
@@ -840,18 +840,18 @@ static float *glArrayColors = nil;
 	for (int pass_count = 0; pass_count <= 1; ++pass_count)
 	{
 		BOOL plotting_neutral = (pass_count == 0);
-		int genome_index = 0;
-		double height_divisor = genome_count;
+		int haplosome_index = 0;
+		double height_divisor = haplosome_count;
 		double width_subtractor = (usingSubrange ? subrangeFirstBase : 0);
 		double width_divisor = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
 		
-		for (std::vector<MutationIndex> &genome_list : *displayList)
+		for (std::vector<MutationIndex> &haplosome_list : *displayList)
 		{
-			float top = (float)((genome_index / height_divisor) * height);
+			float top = (float)((haplosome_index / height_divisor) * height);
 			int pixel_y = (int)floorf(top);
 			uint32_t *rowPtr = (uint32_t *)(plotBase + (height - 1 - pixel_y) * plotRowbytes);
 			
-			for (MutationIndex mut_index : genome_list)
+			for (MutationIndex mut_index : haplosome_list)
 			{
 				SLiMHaploMutation &mut_info = mutationInfo[mut_index];
 				
@@ -875,7 +875,7 @@ static float *glArrayColors = nil;
 				}
 			}
 			
-			genome_index++;
+			haplosome_index++;
 		}
 	}
 	
@@ -885,18 +885,18 @@ static float *glArrayColors = nil;
 
 // Traveling Salesman Problem code
 //
-// We have a set of genomes, each of which may be defined as being a particular distance from each other genome (defined here
-// as the number of differences in the mutations contained).  We want to sort the genomes into an order that groups similar
-// genomes together, minimizing the overall distance through "genome space" traveled from top to bottom of our display.  This
+// We have a set of haplosomes, each of which may be defined as being a particular distance from each other haplosome (defined here
+// as the number of differences in the mutations contained).  We want to sort the haplosomes into an order that groups similar
+// haplosomes together, minimizing the overall distance through "haplosome space" traveled from top to bottom of our display.  This
 // is exactly the Traveling Salesman Problem, without returning to the starting "city".  This is a very intensively studied
-// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of genomes,
-// whereas we will routinely have thousands of genomes.  We will find an approximate solution using a fast heuristic algorithm,
+// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of haplosomes,
+// whereas we will routinely have thousands of haplosomes.  We will find an approximate solution using a fast heuristic algorithm,
 // because we are not greatly concerned with the quality of the solution and we are extremely concerned with runtime.  The
 // nearest-neighbor method is the fastest heuristic, and is O(N^2) in the number of cities; the Greedy algorithm is slower but
 // produces significantly better results.  We can refine our initial solution using the 2-opt method.
 #pragma mark Traveling salesman problem
 
-// This allocates and builds an array of distances between genomes.  The returned array is owned by the caller.  This is where
+// This allocates and builds an array of distances between haplosomes.  The returned array is owned by the caller.  This is where
 // we spend the large majority of our time, at present; this algorithm is O(N^2), but has a large constant (because really also
 // it depends on the length of the chromosome, the configuration of mutation runs, etc.).  This method runs prior to the actual
 // Traveling Salesman Problem; here we're just figuring out the distances between our "cities".  We have four versions of this
@@ -904,54 +904,54 @@ static float *glArrayColors = nil;
 // subset of all of the mutation types.
 - (int64_t *)buildDistanceArrayWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int64_t genome_count = (int64_t)genomes.size();
-	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	int64_t haplosome_count = (int64_t)haplosomes.size();
+	int64_t *distances = (int64_t *)malloc(haplosome_count * haplosome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (int j = i + 1; j < genome_count; ++j)
+		for (int j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
-				int genome1_mutcount = genome1_mutrun->size();
-				int genome2_mutcount = genome2_mutrun->size();
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
+				int haplosome1_mutcount = haplosome1_mutrun->size();
+				int haplosome2_mutcount = haplosome2_mutrun->size();
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
-				else if (genome1_mutcount == 0)
-					distance += genome2_mutcount;
-				else if (genome2_mutcount == 0)
-					distance += genome1_mutcount;
+				else if (haplosome1_mutcount == 0)
+					distance += haplosome2_mutcount;
+				else if (haplosome2_mutcount == 0)
+					distance += haplosome1_mutcount;
 				else
 				{
 					// We use a radix strategy to count the number of mismatches; assume up front that all mutations are mismatched,
 					// and then subtract two for each mutation that turns out to be shared, using a uint8_t buffer to track usage.
-					distance += genome1_mutcount + genome2_mutcount;
+					distance += haplosome1_mutcount + haplosome2_mutcount;
 					
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 						mutation_seen[*mutrun1_ptr] = seen_marker;
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 						if (mutation_seen[*mutrun2_ptr] == seen_marker)
 							distance -= 2;
 					
@@ -969,7 +969,7 @@ static float *glArrayColors = nil;
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -984,31 +984,31 @@ static float *glArrayColors = nil;
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome
 - (int64_t *)buildDistanceArrayForSubrangeWithBackgroundController:(SLiMWindowController *)backgroundController
 {
 	slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	int64_t genome_count = (int64_t)genomes.size();
-	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	int64_t haplosome_count = (int64_t)haplosomes.size();
+	int64_t *distances = (int64_t *)malloc(haplosome_count * haplosome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (int j = i + 1; j < genome_count; ++j)
+		for (int j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -1018,18 +1018,18 @@ static float *glArrayColors = nil;
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -1041,9 +1041,9 @@ static float *glArrayColors = nil;
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -1071,7 +1071,7 @@ static float *glArrayColors = nil;
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -1086,44 +1086,44 @@ static float *glArrayColors = nil;
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses only mutations of a mutation type that is chosen for display
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses only mutations of a mutation type that is chosen for display
 - (int64_t *)buildDistanceArrayForSubtypesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
-	int64_t genome_count = (int64_t)genomes.size();
-	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	int64_t haplosome_count = (int64_t)haplosomes.size();
+	int64_t *distances = (int64_t *)malloc(haplosome_count * haplosome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (int j = i + 1; j < genome_count; ++j)
+		for (int j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						
@@ -1134,9 +1134,9 @@ static float *glArrayColors = nil;
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						
@@ -1163,7 +1163,7 @@ static float *glArrayColors = nil;
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -1178,31 +1178,31 @@ static float *glArrayColors = nil;
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome, and only mutations of mutation types being displayed
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome, and only mutations of mutation types being displayed
 - (int64_t *)buildDistanceArrayForSubrangeAndSubtypesWithBackgroundController:(SLiMWindowController *)backgroundController
 {
 	slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	int64_t genome_count = (int64_t)genomes.size();
-	int64_t *distances = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	int64_t haplosome_count = (int64_t)haplosomes.size();
+	int64_t *distances = (int64_t *)malloc(haplosome_count * haplosome_count * sizeof(int64_t));
 	uint8_t *mutation_seen = (uint8_t *)calloc(mutationIndexCount, sizeof(uint8_t));
 	uint8_t seen_marker = 1;
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (int j = i + 1; j < genome_count; ++j)
+		for (int j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -1212,18 +1212,18 @@ static float *glArrayColors = nil;
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -1238,9 +1238,9 @@ static float *glArrayColors = nil;
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -1271,7 +1271,7 @@ static float *glArrayColors = nil;
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -1290,21 +1290,21 @@ static float *glArrayColors = nil;
 // may be quite important to the solution we get.  It seems reasonable to start at the city that is the most isolated, i.e. has
 // the largest distance from itself to any other city.  By starting with this city, we avoid having to have two edges connecting
 // to it, both of which would be relatively long.  However, this is just a guess, and might be modified by refinement later.
-- (int)indexOfMostIsolatedGenomeWithDistances:(int64_t *)distances size:(int64_t)genome_count
+- (int)indexOfMostIsolatedHaplosomeWithDistances:(int64_t *)distances size:(int64_t)haplosome_count
 {
 	int64_t greatest_isolation = -1;
 	int greatest_isolation_index = -1;
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
 		int64_t isolation = INT64_MAX;
-		int64_t *row_ptr = distances + i * genome_count;
+		int64_t *row_ptr = distances + i * haplosome_count;
 		
-		for (int j = 0; j < genome_count; ++j)
+		for (int j = 0; j < haplosome_count; ++j)
 		{
 			int64_t distance = row_ptr[j];
 			
-			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of genomes
+			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of haplosomes
 			// this also serves to take care of the j == i case for us without special-casing, which is nice...
 			if (distance == 0)
 				continue;
@@ -1324,52 +1324,52 @@ static float *glArrayColors = nil;
 }
 
 // The nearest-neighbor method provides an initial solution for the Traveling Salesman Problem by beginning with a chosen city
-// (see indexOfMostIsolatedGenomeWithDistances:size: above) and adding successive cities according to which is closest to the
+// (see indexOfMostIsolatedHaplosomeWithDistances:size: above) and adding successive cities according to which is closest to the
 // city we have reached thus far.  This is quite simple to implement, and runs in O(N^2) time.  However, the greedy algorithm
 // below runs only a little more slowly, and produces significantly better results, so unless speed is essential it is better.
-- (void)nearestNeighborSolveWithDistances:(int64_t *)distances size:(int64_t)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
+- (void)nearestNeighborSolveWithDistances:(int64_t *)distances size:(int64_t)haplosome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
 {
-	int64_t genomes_left = genome_count;
+	int64_t haplosomes_left = haplosome_count;
 	
-	solution.reserve(genome_count);
+	solution.reserve(haplosome_count);
 	
 	// we have to make a copy of the distances matrix, as we modify it internally
-	int64_t *distances_copy = (int64_t *)malloc(genome_count * genome_count * sizeof(int64_t));
+	int64_t *distances_copy = (int64_t *)malloc(haplosome_count * haplosome_count * sizeof(int64_t));
 	
-	memcpy(distances_copy, distances, genome_count * genome_count * sizeof(int64_t));
+	memcpy(distances_copy, distances, haplosome_count * haplosome_count * sizeof(int64_t));
 	
-	// find the genome that is farthest from any other genome; this will be our starting point, for now
-	int last_path_index = [self indexOfMostIsolatedGenomeWithDistances:distances_copy size:genome_count];
+	// find the haplosome that is farthest from any other haplosome; this will be our starting point, for now
+	int last_path_index = [self indexOfMostIsolatedHaplosomeWithDistances:distances_copy size:haplosome_count];
 	
 	do
 	{
-		// add the chosen genome to our path
+		// add the chosen haplosome to our path
 		solution.emplace_back(last_path_index);
 		
 		if ([backgroundController haplotypeProgressIsCancelled])
 			break;
 		
-		[backgroundController setHaplotypeProgress:(int)(genome_count - genomes_left + 1) forStage:1];
+		[backgroundController setHaplotypeProgress:(int)(haplosome_count - haplosomes_left + 1) forStage:1];
 		
-		// if we just added the last genome, we're done
-		if (--genomes_left == 0)
+		// if we just added the last haplosome, we're done
+		if (--haplosomes_left == 0)
 			break;
 		
-		// otherwise, mark the chosen genome as unavailable by setting distances to it to INT64_MAX
+		// otherwise, mark the chosen haplosome as unavailable by setting distances to it to INT64_MAX
 		int64_t *column_ptr = distances_copy + last_path_index;
 		
-		for (int i = 0; i < genome_count; ++i)
+		for (int i = 0; i < haplosome_count; ++i)
 		{
 			*column_ptr = INT64_MAX;
-			column_ptr += genome_count;
+			column_ptr += haplosome_count;
 		}
 		
 		// now we need to find the next city, which will be the nearest neighbor of the last city
-		int64_t *row_ptr = distances_copy + last_path_index * genome_count;
+		int64_t *row_ptr = distances_copy + last_path_index * haplosome_count;
 		int64_t nearest_neighbor_distance = INT64_MAX;
 		int nearest_neighbor_index = -1;
 		
-		for (int i = 0; i < genome_count; ++i)
+		for (int i = 0; i < haplosome_count; ++i)
 		{
 			int64_t distance = row_ptr[i];
 			
@@ -1434,19 +1434,19 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	[pool release];
 }
 
-- (void)greedySolveWithDistances:(int64_t *)distances size:(int64_t)genome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
+- (void)greedySolveWithDistances:(int64_t *)distances size:(int64_t)haplosome_count solution:(std::vector<int> &)solution backgroundController:(SLiMWindowController *)backgroundController
 {
 	// The first thing we need to do is sort all possible edges in ascending order by length;
 	// we don't need to differentiate a->b versus b->a since our distances are symmetric
 	std::vector<greedy_edge> edge_buf;
-	int64_t edge_count = ((int64_t)genome_count * (genome_count - 1)) / 2;
+	int64_t edge_count = ((int64_t)haplosome_count * (haplosome_count - 1)) / 2;
 	
 	edge_buf.reserve(edge_count);	// one of the two factors is even so /2 is safe
 	
-	for (int i = 0; i < genome_count - 1; ++i)
+	for (int i = 0; i < haplosome_count - 1; ++i)
 	{
-		for (int k = i + 1; k < genome_count; ++k)
-			edge_buf.emplace_back(greedy_edge{i, k, *(distances + i + k * genome_count)});
+		for (int k = i + 1; k < haplosome_count; ++k)
+			edge_buf.emplace_back(greedy_edge{i, k, *(distances + i + k * haplosome_count)});
 	}
 	
 	if ([backgroundController haplotypeProgressIsCancelled])
@@ -1467,7 +1467,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 		// bars will be incorrect.  I can live with it.
 		slim_greedy_progress_max = (int64_t)(edge_count * log2(edge_count) / 2);	// n log n estimated comparisons; seems to be half that for some reason, in practice
 		slim_greedy_progress = 0;
-		slim_greedy_progress_scale = (int)genome_count;					// this is the GUI progress bar's max scale
+		slim_greedy_progress_scale = (int)haplosome_count;					// this is the GUI progress bar's max scale
 		
 		backgroundController->haplotypeProgressGreedySortProgressFlag = 1;	// indicate we are running the sort
 		
@@ -1481,7 +1481,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 		while (backgroundController->haplotypeProgressGreedySortProgressFlag == 0)
 			;
 		
-		[backgroundController setHaplotypeProgress:(int)genome_count forStage:1];	// fill out the bar
+		[backgroundController setHaplotypeProgress:(int)haplosome_count forStage:1];	// fill out the bar
 	}
 	else
 	{
@@ -1499,11 +1499,11 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	// in the same group creates a cycle and is thus illegal (maybe there's a better way to detect cycles but I
 	// haven't thought of it yet :->).
 	std::vector<greedy_edge> path_components;
-	uint8_t *node_degrees = (uint8_t *)calloc(sizeof(uint8_t), genome_count);
-	int *node_groups = (int *)calloc(sizeof(int), genome_count);
+	uint8_t *node_degrees = (uint8_t *)calloc(sizeof(uint8_t), haplosome_count);
+	int *node_groups = (int *)calloc(sizeof(int), haplosome_count);
 	int next_node_group = 1;
 	
-	path_components.reserve(genome_count);
+	path_components.reserve(haplosome_count);
 	
 	for (int64_t edge_index = 0; edge_index < edge_count; ++edge_index)
 	{
@@ -1553,12 +1553,12 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 		{
 			// joining two groups; one gets assimilated
 			// the assimilation could probably be done more efficiently but this overhead won't matter
-			for (int node_index = 0; node_index < genome_count; ++node_index)
+			for (int node_index = 0; node_index < haplosome_count; ++node_index)
 				if (node_groups[node_index] == group_k)
 					node_groups[node_index] = group_i;
 		}
 		
-		if ((int)path_components.size() == genome_count - 1)		// no return edge
+		if ((int)path_components.size() == haplosome_count - 1)		// no return edge
 			break;
 		
 		if ([backgroundController haplotypeProgressIsCancelled])
@@ -1569,7 +1569,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	{
 		int degree1_count = 0, degree2_count = 0, universal_group = node_groups[0];
 		
-		for (int node_index = 0; node_index < genome_count; ++node_index)
+		for (int node_index = 0; node_index < haplosome_count; ++node_index)
 		{
 			if (node_degrees[node_index] == 1) ++degree1_count;
 			else if (node_degrees[node_index] == 2) ++degree2_count;
@@ -1586,10 +1586,10 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 	// Finally, we have a jumble of edges that are in no order, and we need to make a coherent path from them.
 	// We start at the first degree-1 node we find, which is one of the two ends; doesn't matter which.
 	{
-		int remaining_edge_count = (int)genome_count - 1;
+		int remaining_edge_count = (int)haplosome_count - 1;
 		int last_index;
 		
-		for (last_index = 0; last_index < genome_count; ++last_index)
+		for (last_index = 0; last_index < haplosome_count; ++last_index)
 			if (node_degrees[last_index] == 1)
 				break;
 		
@@ -1635,25 +1635,25 @@ cancelExit:
 }
 
 // check that a given path visits every city exactly once
-- (BOOL)checkPath:(std::vector<int> &)path size:(int64_t)genome_count
+- (BOOL)checkPath:(std::vector<int> &)path size:(int64_t)haplosome_count
 {
-	uint8_t *visits = (uint8_t *)calloc(sizeof(uint8_t), genome_count);
+	uint8_t *visits = (uint8_t *)calloc(sizeof(uint8_t), haplosome_count);
 	
-	if ((int)path.size() != genome_count)
+	if ((int)path.size() != haplosome_count)
 	{
 		NSLog(@"checkPath:size: path is wrong length");
 		free(visits);
 		return NO;
 	}
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 	{
 		int city_index = path[i];
 		
 		visits[city_index]++;
 	}
 	
-	for (int i = 0; i < genome_count; ++i)
+	for (int i = 0; i < haplosome_count; ++i)
 		if (visits[i] != 1)
 		{
 			NSLog(@"checkPath:size: city visited wrong count (%d)", (int)visits[i]);
@@ -1666,16 +1666,16 @@ cancelExit:
 }
 
 // calculate the length of a given path
-- (int64_t)lengthOfPath:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)genome_count
+- (int64_t)lengthOfPath:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)haplosome_count
 {
 	int64_t length = 0;
 	int current_city = path[0];
 	
-	for (int city_index = 1; city_index < genome_count; city_index++)
+	for (int city_index = 1; city_index < haplosome_count; city_index++)
 	{
 		int next_city = path[city_index];
 		
-		length += *(distances + current_city * genome_count + next_city);
+		length += *(distances + current_city * haplosome_count + next_city);
 		current_city = next_city;
 	}
 	
@@ -1687,10 +1687,10 @@ cancelExit:
 // might be useful to provide as an option.  This method always takes the first optimization it sees that moves in a
 // positive direction; I tried taking the best optimization available at each step, instead, and it ran half as fast
 // and achieved results that were no better on average, so I didn't even keep that code.
-- (void)do2optOptimizationOfSolution:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)genome_count backgroundController:(SLiMWindowController *)backgroundController
+- (void)do2optOptimizationOfSolution:(std::vector<int> &)path withDistances:(int64_t *)distances size:(int64_t)haplosome_count backgroundController:(SLiMWindowController *)backgroundController
 {
 	// Figure out the length of the current path
-	int64_t original_distance = [self lengthOfPath:path withDistances:distances size:genome_count];
+	int64_t original_distance = [self lengthOfPath:path withDistances:distances size:haplosome_count];
 	int64_t best_distance = original_distance;
 	
 	//NSLog(@"2-opt initial length: %lld", (long long int)best_distance);
@@ -1699,9 +1699,9 @@ cancelExit:
 	int farthest_i = 0;	// for our progress bar
 	
 startAgain:
-	for (int i = 0; i < genome_count - 1; i++)
+	for (int i = 0; i < haplosome_count - 1; i++)
 	{
-		for (int k = i + 1; k < genome_count; ++k)
+		for (int k = i + 1; k < haplosome_count; ++k)
 		{
 			// First, try the proposed path without actually constructing it; we just need to subtract the lengths of the
 			// edges being removed and add the lengths of the edges being added, rather than constructing the whole new
@@ -1716,8 +1716,8 @@ startAgain:
 			// we can only get away with juggling the distances this way because our problem is symmetric; the length of
 			// 3-4-5 is guaranteed the same as the length of the reversed segment 5-4-3.  If the reversed segment is at
 			// one or the other end of the path, we only need to patch up one edge; we don't return to the start city.
-			// Note also that i and k are not genome indexes; they are indexes into our current path, which provides us
-			// with the relevant genomes indexes.
+			// Note also that i and k are not haplosome indexes; they are indexes into our current path, which provides us
+			// with the relevant haplosomes indexes.
 			int64_t new_distance = best_distance;
 			int index_i = path[i];
 			int index_k = path[k];
@@ -1726,15 +1726,15 @@ startAgain:
 			{
 				int index_i_minus_1 = path[i - 1];
 				
-				new_distance -= *(distances + index_i_minus_1 + index_i * genome_count);	// remove edge (i-1)-(i)
-				new_distance += *(distances + index_i_minus_1 + index_k * genome_count);	// add edge (i-1)-(k)
+				new_distance -= *(distances + index_i_minus_1 + index_i * haplosome_count);	// remove edge (i-1)-(i)
+				new_distance += *(distances + index_i_minus_1 + index_k * haplosome_count);	// add edge (i-1)-(k)
 			}
-			if (k < genome_count - 1)
+			if (k < haplosome_count - 1)
 			{
 				int index_k_plus_1 = path[k + 1];
 				
-				new_distance -= *(distances + index_k + index_k_plus_1 * genome_count);		// remove edge (k)-(k+1)
-				new_distance += *(distances + index_i + index_k_plus_1 * genome_count);		// add edge (i)-(k+1)
+				new_distance -= *(distances + index_k + index_k_plus_1 * haplosome_count);		// remove edge (k)-(k+1)
+				new_distance += *(distances + index_i + index_k_plus_1 * haplosome_count);		// add edge (i)-(k+1)
 			}
 			
 			if (new_distance < best_distance)
@@ -1755,7 +1755,7 @@ startAgain:
 				best_distance = new_distance;
 				
 				//NSLog(@"Improved path length: %lld (inverted from %d to %d)", (long long int)best_distance, i, k);
-				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:genome_count]);
+				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:haplosome_count]);
 				goto startAgain;
 			}
 		}

@@ -57,19 +57,19 @@ PARALLEL changes (now in the master branch, but disabled):
 	parallelize match(), tabulate(), sample (int/float/object, replace=T, weights=NULL), mean(l/i/f)
 	parallelize Individual -relatedness(), -countOfMutationsOfType(), -setSpatialPosition(); Species -individualsWithPedigreeIDs()
 	parallelize Subpopulation -pointInBounds(), -pointReflected(), -pointStopped(), pointPeriodic(), pointUniform()
-	parallelize Genome -containsMarkerMutation()
+	parallelize Haplosome -containsMarkerMutation()
 	change how RNG seeding works, for single-threaded and multi-threaded runs: use /dev/random to generate initial seeds, and for multi-threaded runs, use /dev/random for seeds for all threads beyond thread 0
-	parallelize Genome -countOfMutationsOfType(), Subpopulation -spatialMapValue() and -sampleIndividuals()
+	parallelize Haplosome -countOfMutationsOfType(), Subpopulation -spatialMapValue() and -sampleIndividuals()
 	add unit tests for various SLiM methods that have been parallelized
 	parallelize InteractionType nearestNeighbors(), nearestInteractingNeighbors(), drawByStrength() by adding a returnDict parameter that lets the user get a Dictionary as a result, with one entry per receiver
 		their "receiver" parameter is no longer required to be singleton (when returnDict == T), and their return value is now just "object" since it can be Individual or Dictionary
 	overhaul the internal MutationRun design to allow it to be used multithreaded - get rid of refcounting, switch to usage tallying
 	parallelize offspring generation in WF models, when no callbacks (mateChoice(), modifyChild(), recombination(), mutation()) are active; no tree-seq, no cloning
 	parallelize offspring generation in WF model: add support for cloning
-	parallelize tallying of mutation runs, clearing of parental genomes at the end of WF model ticks, and mutation run uniquing
+	parallelize tallying of mutation runs, clearing of parental haplosomes at the end of WF model ticks, and mutation run uniquing
 	add support for parallel reproduction when a non-default stacking policy is in use
 	add support for parallel reproduction with tree-sequence recording
-	add parallel reproduction in nonWF models, with no callbacks (recombination(), mutation()) active - modifyChild() callbacks are legal but cannot access child genomes since they are deferred
+	add parallel reproduction in nonWF models, with no callbacks (recombination(), mutation()) active - modifyChild() callbacks are legal but cannot access child haplosomes since they are deferred
 		this is achieved by passing defer=T to addCrossed(), addCloned(), addSelfed(), or addRecombinant()
 	thread-safety work - break in backward reproducibility for scripts that use a type 's' DFE, because the code path for that shifted
 	algorithm change for nearestNeighbors() and nearestNeighborsOfPoint(), when count is >1 and <N; the old algorithm was not thread-safe, and was inefficient; breaks backward reproducibility for the relevant case

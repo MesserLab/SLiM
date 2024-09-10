@@ -19,23 +19,23 @@
 
 /*
  
- The class Subpopulation represents one simulated subpopulation, defined primarily by the genomes of the individuals it contains.
- Since one Genome object represents the mutations along one chromosome, and since SLiM presently simulates diploid individuals,
- each individual is represented by two genomes in the genome vector: individual i is represented by genomes 2*i and 2*i+1.
+ The class Subpopulation represents one simulated subpopulation, defined primarily by the haplosomes of the individuals it contains.
+ Since one Haplosome object represents the mutations along one chromosome, and since SLiM presently simulates diploid individuals,
+ each individual is represented by two haplosomes in the haplosome vector: individual i is represented by haplosomes 2*i and 2*i+1.
  A subpopulation also knows its size, its selfing fraction, and what fraction it receives as migrants from other subpopulations.
  
- The way that Subpopulation handles its Genome objects is quite complex, and is at the heart of the operation of the SLiM core,
- so a lengthy comment on it is merited.  Genomes contain MutationRuns, and they can allocate a buffer in which they keep pointers
+ The way that Subpopulation handles its Haplosome objects is quite complex, and is at the heart of the operation of the SLiM core,
+ so a lengthy comment on it is merited.  Haplosomes contain MutationRuns, and they can allocate a buffer in which they keep pointers
  to those runs.  Allocating and deallocating those buffers takes time, and so is to be avoided; for this reason, Subpopulation
- re-uses Genome objects.  When a Genome is done being used, it goes into a "junkyard" vector (which one depends on whether it is
- a null genome or not); FreeSubpopGenome() handles that.  When a new genome is needed, it is preferentially obtained from the
- appropriate junkyard, and is re-purposed to its new use; NewSubpopGenome() handles that.  Those methods should be called to
- handle most create/dispose requests for Genomes, so that those junkyard vectors get used.  When NewSubpopGenome() finds the
- junkyard to be empty, it needs to actually allocate a new Genome object.  This is also complicated.  Genomes are allocated out
- of a memory pool, genome_pool_, that is specific to the subpopulation.  This helps with memory locality; it keeps all of the
- Genome objects used by a given subpop grouped closely together in memory.  (We do the same with Individual objects, with another
- pool, for the same reason).  So allocations of Genomes come out of that pool, and deallocations go back into the pool.  Do not
- use new or delete with Genome objects.  There is one more complication.  In WF models, separate "parent" and "child" generations
+ re-uses Haplosome objects.  When a Haplosome is done being used, it goes into a "junkyard" vector (which one depends on whether it is
+ a null haplosome or not); FreeSubpopHaplosome() handles that.  When a new haplosome is needed, it is preferentially obtained from the
+ appropriate junkyard, and is re-purposed to its new use; NewSubpopHaplosome() handles that.  Those methods should be called to
+ handle most create/dispose requests for Haplosomes, so that those junkyard vectors get used.  When NewSubpopHaplosome() finds the
+ junkyard to be empty, it needs to actually allocate a new Haplosome object.  This is also complicated.  Haplosomes are allocated out
+ of a memory pool, haplosome_pool_, that is specific to the subpopulation.  This helps with memory locality; it keeps all of the
+ Haplosome objects used by a given subpop grouped closely together in memory.  (We do the same with Individual objects, with another
+ pool, for the same reason).  So allocations of Haplosomes come out of that pool, and deallocations go back into the pool.  Do not
+ use new or delete with Haplosome objects.  There is one more complication.  In WF models, separate "parent" and "child" generations
  are kept by the subpop, and which one is active switches back and forth in each cycle, governed by child_generation_valid_.
  In nonWF models, the child generation variables are all unused; in nonWF models, the parental generation is always active.
  New offspring instead get put into the nonWF_offspring_ ivars, which get moved into the parental generation ivars at the end of
@@ -43,8 +43,8 @@
  parental ivars are used by both WF and nonWF models, though.
  
  BCH 23 May 2021: The above description is now somewhat out of date; adding a new comment rather than just revising in order to
- keep a record of what has happened.  The separate genome/individual pools for each subpopulation proved to be a maintenance
- nightmare, because of migrants; a migrating individual and its genome could not simply be moved to the new subpop, because that
+ keep a record of what has happened.  The separate haplosome/individual pools for each subpopulation proved to be a maintenance
+ nightmare, because of migrants; a migrating individual and its haplosome could not simply be moved to the new subpop, because that
  subpop used different object pools, so the object states instead had to be re-created completely in new objects allocated out
  of the new subpop's object pools.  Since the pointer referring to those objects was then actually changing, all references to
  the objects needed to be patched with the new pointers, including inside Eidos objects.  This was slow, and very prone to
@@ -60,7 +60,7 @@
 
 #include "slim_globals.h"
 #include "eidos_rng.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "chromosome.h"
 #include "eidos_value.h"
 #include "slim_eidos_block.h"
@@ -124,38 +124,38 @@ public:
 	std::map<slim_objectid_t,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per cycle
 	
 	// These object pools are owned by Population, and are used by all of its Subpopulations; we have references to them just for efficiency
-	EidosObjectPool &genome_pool_;					// NOT OWNED: a pool out of which genomes are allocated, for within-species locality of memory usage across genomes
+	EidosObjectPool &haplosome_pool_;				// NOT OWNED: a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
 	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
-	std::vector<Genome *> &genome_junkyard_nonnull;	// NOT OWNED: non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	std::vector<Genome *> &genome_junkyard_null;	// NOT OWNED: null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	bool has_null_genomes_ = false;					// false until a null genome is added; NOT set by null genomes for sex chromosome sims; use CouldContainNullGenomes() to check this flag
+	std::vector<Haplosome *> &haplosomes_junkyard_nonnull;	// NOT OWNED: non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	std::vector<Haplosome *> &haplosomes_junkyard_null;	// NOT OWNED: null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	bool has_null_haplosomes_ = false;					// false until a null haplosome is added; NOT set by null haplosomes for sex chromosome sims; use CouldContainNullHaplosomes() to check this flag
 	
-	std::vector<Genome *> parent_genomes_;			// OWNED: all genomes in the parental generation; each individual gets two genomes, males are XY (not YX)
-	EidosValue_SP cached_parent_genomes_value_;		// cached for the genomes property; reset() if changed
+	std::vector<Haplosome *> parent_haplosomes_;			// OWNED: all haplosomes in the parental generation; each individual gets two haplosomes, males are XY (not YX)
+	EidosValue_SP cached_parent_haplosomes_value_;		// cached for the haplosomes property; reset() if changed
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
-	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Genome vector (NOT premultiplied by 2!); equal to the number of females
-	std::vector<Individual *> parent_individuals_;	// OWNED: objects representing simulated individuals, each of which has two genomes
+	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Haplosome vector (NOT premultiplied by 2!); equal to the number of females
+	std::vector<Individual *> parent_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
 	EidosValue_SP cached_parent_individuals_value_;	// cached for the individuals property; self-maintains
-	double parent_sex_ratio_ = 0.0;					// WF only: what sex ratio the parental genomes approximate (M:M+F)
+	double parent_sex_ratio_ = 0.0;					// WF only: what sex ratio the parental haplosomes approximate (M:M+F)
 	
 	// WF only:
 	// In WF models, we actually switch to a "child" generation just after offspring generation; this is then the active generation.
-	// Then, with SwapChildAndParentGenomes(), the child generation gets swapped into the parent generation, which becomes active.
+	// Then, with SwapChildAndParentHaplosomes(), the child generation gets swapped into the parent generation, which becomes active.
 	// I'm not sure this is a great design really, but it's pretty entrenched at this point, and pretty harmless...
 	bool child_generation_valid_ = false;			// this keeps track of whether children have been generated by EvolveSubpopulation() yet, or whether the parents are still in charge
-	std::vector<Genome *> child_genomes_;			// OWNED: all genomes in the child generation; each individual gets two genomes, males are XY (not YX)
-	EidosValue_SP cached_child_genomes_value_;		// cached for the genomes property; reset() if changed
+	std::vector<Haplosome *> child_haplosomes_;			// OWNED: all haplosomes in the child generation; each individual gets two haplosomes, males are XY (not YX)
+	EidosValue_SP cached_child_haplosomes_value_;		// cached for the haplosomes property; reset() if changed
 	slim_popsize_t child_subpop_size_;				// child subpopulation size
-	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Genome vector (NOT premultiplied by 2!); equal to the number of females
-	std::vector<Individual *> child_individuals_;	// OWNED: objects representing simulated individuals, each of which has two genomes
+	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Haplosome vector (NOT premultiplied by 2!); equal to the number of females
+	std::vector<Individual *> child_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
 	EidosValue_SP cached_child_individuals_value_;	// cached for the individuals property; self-maintains
-	double child_sex_ratio_ = 0.0;					// what sex ratio the child genomes approximate (M:M+F)
+	double child_sex_ratio_ = 0.0;					// what sex ratio the child haplosomes approximate (M:M+F)
 	
 	// nonWF only:
 	// In nonWF models, we place generated offspring into a temporary holding pen, but it is never made the "active generation"
 	// the way it is in WF models.  At soon as offspring generation is finished, these individuals get merged back in.  The
 	// individuals here are kept in the order in which they were generated, not in order by sex or anything else.
-	std::vector<Genome *> nonWF_offspring_genomes_;
+	std::vector<Haplosome *> nonWF_offspring_haplosomes_;
 	std::vector<Individual *> nonWF_offspring_individuals_;
 	
 	// nonWF only:
@@ -200,7 +200,7 @@ public:
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
-	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match Species
+	HaplosomeType modeled_chromosome_type_ = HaplosomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match Species
 	
 	// continuous-space info
 	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
@@ -246,22 +246,22 @@ public:
 	Subpopulation(void) = delete;																	// no null construction
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid);
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-				  double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
+				  double p_sex_ratio, HaplosomeType p_modeled_chromosome_type, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
 	
-	slim_refcount_t NullGenomeCount(void);
-	inline bool CouldContainNullGenomes(void) {
-		// sex-chromosome simulations can always contain null genomes
-		if (species_.ModeledChromosomeType() != GenomeType::kAutosome)
+	slim_refcount_t NullHaplosomeCount(void);
+	inline bool CouldContainNullHaplosomes(void) {
+		// sex-chromosome simulations can always contain null haplosomes
+		if (species_.ModeledChromosomeType() != HaplosomeType::kAutosome)
 			return true;
 #if DEBUG
-		// in DEBUG, check that has_null_genomes_ is not false when null genomes in fact exist (we allow the opposite case)
-		if (!has_null_genomes_ && (NullGenomeCount() > 0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CouldContainNullGenomes): (internal error) has_null_genomes_ is not correct." << EidosTerminate();
+		// in DEBUG, check that has_null_haplosomes_ is not false when null haplosomes in fact exist (we allow the opposite case)
+		if (!has_null_haplosomes_ && (NullHaplosomeCount() > 0))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CouldContainNullHaplosomes): (internal error) has_null_haplosomes_ is not correct." << EidosTerminate();
 #endif
-		return (has_null_genomes_);
+		return (has_null_haplosomes_);
 	}
 	
 	slim_popsize_t DrawParentUsingFitness(gsl_rng *rng) const;								// WF only: draw an individual from the subpopulation based upon fitness
@@ -272,38 +272,38 @@ public:
 	slim_popsize_t DrawFemaleParentEqualProbability(gsl_rng *rng) const;					// draw a female from the subpopulation  with equal probabilities; SEX ONLY
 	slim_popsize_t DrawMaleParentEqualProbability(gsl_rng *rng) const;						// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
-	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	Genome *_NewSubpopGenome_NULL(GenomeType p_genome_type);	// internal use only
-	Genome *_NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type);	// internal use only
-	inline __attribute__((always_inline)) Genome *NewSubpopGenome_NULL(GenomeType p_genome_type)
+	// Returns a new haplosome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
+	Haplosome *_NewSubpopHaplosome_NULL(HaplosomeType p_haplosome_type);	// internal use only
+	Haplosome *_NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, HaplosomeType p_haplosome_type);	// internal use only
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(HaplosomeType p_haplosome_type)
 	{
-		if (genome_junkyard_null.size())
+		if (haplosomes_junkyard_null.size())
 		{
-			Genome *back = genome_junkyard_null.back();
-			genome_junkyard_null.pop_back();
+			Haplosome *back = haplosomes_junkyard_null.back();
+			haplosomes_junkyard_null.pop_back();
 			
-			back->genome_type_ = p_genome_type;
+			back->haplosome_type_ = p_haplosome_type;
 			return back;
 		}
 		
-		return _NewSubpopGenome_NULL(p_genome_type);
+		return _NewSubpopHaplosome_NULL(p_haplosome_type);
 	}
-	inline __attribute__((always_inline)) Genome *NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type)
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, HaplosomeType p_haplosome_type)
 	{
 #if DEBUG
 		if (p_mutrun_count == 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome_NONNULL): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopHaplosome_NONNULL): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
 #endif
 		
-		if (genome_junkyard_nonnull.size())
+		if (haplosomes_junkyard_nonnull.size())
 		{
-			Genome *back = genome_junkyard_nonnull.back();
-			genome_junkyard_nonnull.pop_back();
+			Haplosome *back = haplosomes_junkyard_nonnull.back();
+			haplosomes_junkyard_nonnull.pop_back();
 			
-			// Conceptually, we want to call ReinitializeGenomeNoClear() to set the genome up with the
-			// current type, mutrun setup, etc.  But we know that the genome is nonnull, and that we
-			// want it to be nonnull, so we can do less work than ReinitializeGenomeNoClear(), inline.
-			back->genome_type_ = p_genome_type;
+			// Conceptually, we want to call ReinitializeHaplosomeNoClear() to set the haplosome up with the
+			// current type, mutrun setup, etc.  But we know that the haplosome is nonnull, and that we
+			// want it to be nonnull, so we can do less work than ReinitializeHaplosomeNoClear(), inline.
+			back->haplosome_type_ = p_haplosome_type;
 			
 			if (back->mutrun_count_ != p_mutrun_count)
 			{
@@ -314,10 +314,10 @@ public:
 				back->mutrun_count_ = p_mutrun_count;
 				back->mutrun_length_ = p_mutrun_length;
 				
-				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 				{
 					back->mutruns_ = back->run_buffer_;
-					EIDOS_BZERO(back->run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 				}
 				else
 					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
@@ -325,27 +325,27 @@ public:
 			else
 			{
 				// the number of mutruns is unchanged, but we need to zero out the reused buffer here
-				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					EIDOS_BZERO(back->run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
+					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 				else
 					EIDOS_BZERO(back->mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 			}
 			return back;
 		}
 		
-		return _NewSubpopGenome_NONNULL(p_mutrun_count, p_mutrun_length, p_genome_type);
+		return _NewSubpopHaplosome_NONNULL(p_mutrun_count, p_mutrun_length, p_haplosome_type);
 	}
 	
-	// Frees a genome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
-	inline __attribute__((always_inline)) void FreeSubpopGenome(Genome *p_genome)
+	// Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
+	inline __attribute__((always_inline)) void FreeSubpopHaplosome(Haplosome *p_haplosome)
 	{
-		if (p_genome->IsNull())
-			genome_junkyard_null.emplace_back(p_genome);
+		if (p_haplosome->IsNull())
+			haplosomes_junkyard_null.emplace_back(p_haplosome);
 		else
-			genome_junkyard_nonnull.emplace_back(p_genome);
+			haplosomes_junkyard_nonnull.emplace_back(p_haplosome);
 	}
 	
-	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new genomes and individuals to fit
+	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
 	void CheckIndividualIntegrity(void);
 	
 	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid_
@@ -355,19 +355,19 @@ public:
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks);	// update fitness values based upon current mutations
 
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	double FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index);
-	double FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	double FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type);
+	double FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsize_t p_individual_index);
+	double FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	double FitnessOfParentWithHaplosomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type);
 	
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
 	// WF only:
-	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
-	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation genomes and individuals to fit
+	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, std::vector<Haplosome *> &p_haplosomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
+	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation haplosomes and individuals to fit
 	void UpdateWFFitnessBuffers(bool p_pure_neutral);																					// update the WF model fitness buffers after UpdateFitness()
 	void TallyLifetimeReproductiveOutput(void);
-	void SwapChildAndParentGenomes(void);															// switch to the next generation by swapping; the children become the parents
+	void SwapChildAndParentHaplosomes(void);															// switch to the next generation by swapping; the children become the parents
 
 	// nonWF only:
 	void ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index);
@@ -376,23 +376,23 @@ public:
 	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
-	IndividualSex _GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null);
-	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2, EidosValue_Object *p_result)
+	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, HaplosomeType &p_haplosome1_type, HaplosomeType &p_haplosome2_type, bool &p_haplosome1_null, bool &p_haplosome2_null);
+	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Haplosome *p_haplosome1, Haplosome *p_haplosome2, EidosValue_Object *p_result)
 	{
 		if (p_proposed_child_accepted)
 		{
 			// The child was accepted, so add it to our staging area and to the caller's result vector
-			nonWF_offspring_genomes_.emplace_back(p_genome1);
-			nonWF_offspring_genomes_.emplace_back(p_genome2);
+			nonWF_offspring_haplosomes_.emplace_back(p_haplosome1);
+			nonWF_offspring_haplosomes_.emplace_back(p_haplosome2);
 			nonWF_offspring_individuals_.emplace_back(p_individual);
 			
 			p_result->push_object_element_NORR(p_individual);
 		}
 		else
 		{
-			// The child was rejected, so dispose of the genomes and individual
-			FreeSubpopGenome(p_genome1);
-			FreeSubpopGenome(p_genome2);
+			// The child was rejected, so dispose of the haplosomes and individual
+			FreeSubpopHaplosome(p_haplosome1);
+			FreeSubpopHaplosome(p_haplosome2);
 			
 			p_individual->~Individual();
 			individual_pool_.DisposeChunk(const_cast<Individual *>(p_individual));
@@ -408,11 +408,11 @@ public:
 	{
 		return (child_generation_valid_ ? child_individuals_ : parent_individuals_);
 	}
-	inline __attribute__((always_inline)) std::vector<Genome *> &CurrentGenomes(void)
+	inline __attribute__((always_inline)) std::vector<Haplosome *> &CurrentHaplosomes(void)
 	{
-		return (child_generation_valid_ ? child_genomes_ : parent_genomes_);
+		return (child_generation_valid_ ? child_haplosomes_ : parent_haplosomes_);
 	}
-	inline __attribute__((always_inline)) slim_popsize_t CurrentGenomeCount(void)
+	inline __attribute__((always_inline)) slim_popsize_t CurrentHaplosomeCount(void)
 	{
 		return (child_generation_valid_ ? 2*child_subpop_size_ : 2*parent_subpop_size_);
 	}
