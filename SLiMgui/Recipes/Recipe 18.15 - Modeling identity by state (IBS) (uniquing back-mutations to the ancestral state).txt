@@ -25,18 +25,18 @@ late() {
 	for (mut in new_muts)
 	{
 		pos = mut.position;
-		if (mut.nucleotide == sim.chromosome.ancestralNucleotides(pos, pos))
+		if (mut.nucleotide == sim.chromosomes.ancestralNucleotides(pos, pos))
 			back_muts = c(back_muts, mut);
 	}
 	if (size(back_muts))
-		sim.subpopulations.genomes.removeMutations(back_muts);
+		sim.subpopulations.haplosomes.removeMutations(back_muts);
 }
 1000 late() {
 	for (pos in 0:99)
 	{
 		muts = sim.subsetMutations(position=pos);
 		nucs = muts.nucleotide;
-		ancestral = sim.chromosome.ancestralNucleotides(pos, pos);
+		ancestral = sim.chromosomes.ancestralNucleotides(pos, pos);
 		cat(pos + " : " + paste(nucs));
 		if (size(nucs) != size(unique(nucs)))
 			cat("     DUPLICATES!");

@@ -14,8 +14,8 @@ initialize() {
 	sim.addSubpop("p2", 500);
 	sim.treeSeqRememberIndividuals(sim.subpopulations.individuals);
 	
-	p1.genomes.addNewDrawnMutation(m1, asInteger(L * 0.2));
-	p2.genomes.addNewDrawnMutation(m1, asInteger(L * 0.8));
+	p1.haplosomes.addNewDrawnMutation(m1, asInteger(L * 0.2));
+	p2.haplosomes.addNewDrawnMutation(m1, asInteger(L * 0.8));
 	
 	sim.addSubpop("p3", 1000);
 	p3.setMigrationRates(c(p1, p2), c(0.5, 0.5));

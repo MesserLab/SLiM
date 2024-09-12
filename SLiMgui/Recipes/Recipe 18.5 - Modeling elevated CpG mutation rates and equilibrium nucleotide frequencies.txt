@@ -26,6 +26,6 @@ initialize() {
 1:10000000 early() {
 	if (sim.cycle % 10000 == 1) {
 		cat(sim.cycle + ": ");
-		print(nucleotideFrequencies(sim.chromosome.ancestralNucleotides()));
+		print(nucleotideFrequencies(sim.chromosomes.ancestralNucleotides()));
 	}
 }

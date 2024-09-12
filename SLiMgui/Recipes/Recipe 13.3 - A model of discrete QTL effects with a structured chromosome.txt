@@ -52,7 +52,7 @@ initialize() {
 	community.registerEarlyEvent("s2", s1.source, 2, 2);
 	
 	// optional: give m2 mutations to everyone, as standing variation
-	g = sim.subpopulations.genomes;
+	g = sim.subpopulations.haplosomes;
 	
 	for (q in Q)
 	{

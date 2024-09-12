@@ -14,7 +14,7 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 99);
-	p1.genomes.readFromVCF("chr22_filtered.recode.vcf", m1);
+	p1.haplosomes.readFromVCF("chr22_filtered.recode.vcf", m1);
 	p1.setSubpopulationSize(1000);
 }
 5 late() {

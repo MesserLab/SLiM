@@ -186,7 +186,7 @@ R"V0G0N({
 	
 	muts1 = haplosome1.mutations;
 	muts2 = haplosome2.mutations;
-	length = species.chromosome.lastPosition + 1;
+	length = species.chromosomes.lastPosition + 1;
 
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
@@ -231,7 +231,7 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
-	length = species.chromosome.lastPosition + 1;
+	length = species.chromosomes.lastPosition + 1;
 
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
@@ -274,7 +274,7 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
-	length = species.chromosome.lastPosition + 1;
+	length = species.chromosomes.lastPosition + 1;
 	
 	if (isNULL(muts))
 		muts = species.mutations;
@@ -375,7 +375,7 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
-	length = species.chromosome.lastPosition + 1;
+	length = species.chromosomes.lastPosition + 1;
 	
 	if (isNULL(muts))
 		muts = species.mutations;
@@ -432,7 +432,7 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
-	length = species.chromosome.lastPosition + 1;
+	length = species.chromosomes.lastPosition + 1;
 	
 	if (isNULL(muts))
 		muts = species.mutations;

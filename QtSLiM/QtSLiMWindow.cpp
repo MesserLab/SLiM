@@ -1703,12 +1703,18 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     QTextCursor selection = ui->scriptTextEdit->textCursor();
     QString selectionString = selection.selectedText();
     
+    // Note that is important to test the selection string to make sure it makes sense, because the error position might not be correct!
+    
     // get the four characters prior to the selected error range, to recognize if the error is preceded by "sim."; note this is a heuristic, not precise
     QTextCursor beforeSelection4 = selection;
     beforeSelection4.setPosition(beforeSelection4.selectionStart(), QTextCursor::MoveAnchor);
     beforeSelection4.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 4);
     beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
     QString beforeSelection4String = beforeSelection4.selectedText();
+    
+    //
+    //  Changes for SLiM 4.0: multispecies SLiM, mostly, plus fitness() -> mutationEffect() and fitness(NULL) -> fitnessEffect()
+    //
     
     // early() events are no longer default
     if (terminationMessage.contains("unexpected token {") &&
@@ -1718,91 +1724,124 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         return offerAndExecuteAutofix(selection, "early() {", "Script blocks no longer default to `early()`; `early()` must be explicitly specified.", terminationMessage);
     
     // sim to community changes
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "createLogFile") &&
+            terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `createLogFile()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "deregisterScriptBlock") &&
+            terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `deregisterScriptBlock()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerFirstEvent") &&
+            terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerFirstEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerEarlyEvent") &&
+            terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerEarlyEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerLateEvent") &&
+            terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerLateEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "rescheduleScriptBlock") &&
+            terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `rescheduleScriptBlock()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "simulationFinished") &&
+            terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `simulationFinished()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "outputUsage") &&
+            terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `outputUsage()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property logFiles is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "logFiles") &&
+            terminationMessage.contains("property logFiles is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `logFiles` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property generationStage is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "generationStage") &&
+            terminationMessage.contains("property generationStage is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `generationStage` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property modelType is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "modelType") &&
+            terminationMessage.contains("property modelType is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `modelType` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property verbosity is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "verbosity") &&
+            terminationMessage.contains("property verbosity is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `verbosity` property has been moved to the Community class.", terminationMessage);
     
     // generation to tick changes
-    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation"))
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation") &&
+            (selectionString == "originGeneration"))
         return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Mutation; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
 
-    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution"))
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution") &&
+            (selectionString == "originGeneration"))
         return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Substitution; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
 
-    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution"))
+    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution") &&
+            (selectionString == "fixationGeneration"))
         return offerAndExecuteAutofix(selection, "fixationTick", "The `fixationGeneration` property has been removed from Substitution; in its place is `fixationTick` (which measures in ticks, not generations).", terminationMessage);
     
     // generation to cycle changes
-    if (terminationMessage.contains("property generation is not defined for object element type Species"))
+    if (terminationMessage.contains("property generation is not defined for object element type Species") &&
+            (selectionString == "generation"))
         return offerAndExecuteAutofix(selection, "cycle", "The `generation` property of Species has been renamed to `cycle`.", terminationMessage);
     
-    if (terminationMessage.contains("property generationStage is not defined for object element type Community"))
+    if (terminationMessage.contains("property generationStage is not defined for object element type Community") &&
+            (selectionString == "generationStage"))
         return offerAndExecuteAutofix(selection, "cycleStage", "The `generationStage` property of Community has been renamed to `cycleStage`.", terminationMessage);
     
-    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile"))
+    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile") &&
+            (selectionString == "addGeneration"))
         return offerAndExecuteAutofix(selection, "addCycle", "The `addGeneration()` method of Community has been renamed to `addCycle()`.", terminationMessage);
     
-    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile"))
+    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile") &&
+            (selectionString == "addGenerationStage"))
         return offerAndExecuteAutofix(selection, "addCycleStage", "The `addGenerationStage()` method of Community has been renamed to `addCycleStage()`.", terminationMessage);
     
     // removal of various callback pseudo-parameters
-    if (terminationMessage.contains("undefined identifier genome1"))
-        return offerAndExecuteAutofix(selection, "individual.genome1", "The `genome1` pseudo-parameter has been removed; it is now accessed as `individual.genome1`.", terminationMessage);
-
-    if (terminationMessage.contains("undefined identifier genome2"))
-        return offerAndExecuteAutofix(selection, "individual.genome2", "The `genome2` pseudo-parameter has been removed; it is now accessed as `individual.genome2`.", terminationMessage);
-
-    if (terminationMessage.contains("undefined identifier childGenome1"))
+    // genome1 and genome2 are now handled below, since there are two possible fixes now
+    if (terminationMessage.contains("undefined identifier childGenome1") &&
+            (selectionString == "childGenome1"))
         return offerAndExecuteAutofix(selection, "child.genome1", "The `childGenome1` pseudo-parameter has been removed; it is now accessed as `child.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier childGenome2"))
+    if (terminationMessage.contains("undefined identifier childGenome2") &&
+            (selectionString == "childGenome2"))
         return offerAndExecuteAutofix(selection, "child.genome2", "The `childGenome2` pseudo-parameter has been removed; it is now accessed as `child.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent1Genome1"))
+    if (terminationMessage.contains("undefined identifier parent1Genome1") &&
+            (selectionString == "parent1Genome1"))
         return offerAndExecuteAutofix(selection, "parent1.genome1", "The `parent1Genome1` pseudo-parameter has been removed; it is now accessed as `parent1.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent1Genome2"))
+    if (terminationMessage.contains("undefined identifier parent1Genome2") &&
+            (selectionString == "parent1Genome2"))
         return offerAndExecuteAutofix(selection, "parent1.genome2", "The `parent1Genome2` pseudo-parameter has been removed; it is now accessed as `parent1.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent2Genome1"))
+    if (terminationMessage.contains("undefined identifier parent2Genome1") &&
+            (selectionString == "parent2Genome1"))
         return offerAndExecuteAutofix(selection, "parent2.genome1", "The `parent2Genome1` pseudo-parameter has been removed; it is now accessed as `parent2.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent2Genome2"))
+    if (terminationMessage.contains("undefined identifier parent2Genome2") &&
+            (selectionString == "parent2Genome2"))
         return offerAndExecuteAutofix(selection, "parent2.genome2", "The `parent2Genome2` pseudo-parameter has been removed; it is now accessed as `parent2.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier childIsFemale"))
+    if (terminationMessage.contains("undefined identifier childIsFemale") &&
+            (selectionString == "childIsFemale"))
         return offerAndExecuteAutofix(selection, "(child.sex == \"F\")", "The `childIsFemale` pseudo-parameter has been removed; it is now accessed as `child.sex == \"F\"`.", terminationMessage);
     
     // changes to InteractionType -evaluate()
@@ -1915,13 +1954,98 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         return offerAndExecuteAutofix(selection, "effect", "The `relFitness` pseudo-parameter has been renamed to `effect`.", terminationMessage);
     
     // other deprecated APIs, unrelated to multispecies and multi-phenotype
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "inSLiMgui") &&
+            terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
     {
         QTextCursor simAndSelection = beforeSelection4;
         simAndSelection.setPosition(selection.selectionEnd(), QTextCursor::KeepAnchor);
         
         return offerAndExecuteAutofix(simAndSelection, "exists(\"slimgui\")", "The `inSLiMgui` property has been removed; now use `exists(\"slimgui\")`.", terminationMessage);
     }
+    
+    //
+    //  Shift from genome to haplosome, probably for SLiM 5.0
+    //
+    
+    if (terminationMessage.contains("could not find an Eidos class named 'Genome'") &&
+            (selectionString == "Genome"))
+        return offerAndExecuteAutofix(selection, "Haplosome", "The `Genome` class has been renamed to `Haplosome`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomeType is not defined for object element type Haplosome") &&
+            (selectionString == "genomeType"))
+        return offerAndExecuteAutofix(selection, "chromosome.type", "The `genomeType` property of Haplosome has been removed; it is now accessed as `chromosome.type`.", terminationMessage);
+    
+    if (terminationMessage.contains("property isNullGenome is not defined for object element type Haplosome") &&
+            (selectionString == "isNullGenome"))
+        return offerAndExecuteAutofix(selection, "isNullHaplosome", "The `isNullGenome` property of Haplosome has been renamed to `isNullHaplosome`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomePedigreeID is not defined for object element type Haplosome") &&
+            (selectionString == "genomePedigreeID"))
+        return offerAndExecuteAutofix(selection, "haplosomePedigreeID", "The `genomePedigreeID` property of Haplosome has been renamed to `haplosomePedigreeID`.", terminationMessage);
+    
+    if (terminationMessage.contains("method mutationCountsInGenomes() is not defined on object element type Haplosome") &&
+            (selectionString == "mutationCountsInGenomes"))
+        return offerAndExecuteAutofix(selection, "mutationCountsInHaplosomes", "The `mutationCountsInGenomes` method of Haplosome has been renamed to `mutationCountsInHaplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("method mutationFrequenciesInGenomes() is not defined on object element type Haplosome") &&
+            (selectionString == "mutationFrequenciesInGenomes"))
+        return offerAndExecuteAutofix(selection, "mutationFrequenciesInHaplosomes", "The `mutationFrequenciesInGenomes` property of Haplosome has been renamed to `mutationFrequenciesInHaplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomes is not defined for object element type Individual") &&
+            (selectionString == "genomes"))
+        return offerAndExecuteAutofix(selection, "haplosomes", "The `genomes` property of Individual has been renamed to `haplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomesNonNull is not defined for object element type Individual") &&
+            (selectionString == "genomesNonNull"))
+        return offerAndExecuteAutofix(selection, "haplosomesNonNull", "The `genomesNonNull` property of Individual has been renamed to `haplosomesNonNull`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genome1 is not defined for object element type Individual") &&
+            (selectionString == "genome1"))
+        return offerAndExecuteAutofix(selection, "haplosomesFromParent1", "The `genome1` property of Individual has been renamed to `haplosomesFromParent1`.", terminationMessage);
+
+    if (terminationMessage.contains("property genome2 is not defined for object element type Individual") &&
+            (selectionString == "genome2"))
+        return offerAndExecuteAutofix(selection, "haplosomesFromParent2", "The `genome2` property of Individual has been renamed to `haplosomesFromParent2`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomes is not defined for object element type Subpopulation") &&
+            (selectionString == "genomes"))
+        return offerAndExecuteAutofix(selection, "haplosomes", "The `genomes` property of Subpopulation has been renamed to `haplosomes`.", terminationMessage);
+
+    if (terminationMessage.contains("property genomesNonNull is not defined for object element type Subpopulation") &&
+            (selectionString == "genomesNonNull"))
+        return offerAndExecuteAutofix(selection, "haplosomesNonNull", "The `genomesNonNull` property of Subpopulation has been renamed to `haplosomesNonNull`.", terminationMessage);
+
+    if (terminationMessage.contains("property chromosome is not defined for object element type Species") &&
+            (selectionString == "chromosome"))
+        return offerAndExecuteAutofix(selection, "chromosomes", "The `chromosome` property of Species has been renamed to `chromosomes`.", terminationMessage);
+
+    if (terminationMessage.contains("property chromosomeType is not defined for object element type Species") &&
+            (selectionString == "chromosomeType"))
+        return offerAndExecuteAutofix(selection, "chromosomes.type", "The `chromosomeType` property of Species has been removed; it is now accessed as `chromosomes.type`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome") &&
+            (selectionString == "genome"))
+        return offerAndExecuteAutofix(selection, "haplosome", "The `genome` pseudo-parameter has been renamed to `haplosome`.", terminationMessage);
+
+    // genome1 and genome2 for some callback types were removed in favor of individual.genome1 and individual.genome2 for SLiM 4.0,
+    // and used to be autofixed above; however, in recombination() callbacks genome1 has become haplosome1 and genome2 has
+    // become haplosome2, which conflicted with the previous autofix.  This sequence of fixes works for all cases.
+    if (terminationMessage.contains("undefined identifier genome1") &&
+            (selectionString == "genome1"))
+        return offerAndExecuteAutofix(selection, "haplosome1", "The `genome1` pseudo-parameter has been renamed to `haplosome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier haplosome1") &&
+            (selectionString == "haplosome1"))
+        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent1", "The `haplosome1` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome2") &&
+            (selectionString == "genome2"))
+        return offerAndExecuteAutofix(selection, "haplosome2", "The `genome2` pseudo-parameter has been renamed to `haplosome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier haplosome2") &&
+            (selectionString == "haplosome2"))
+        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent2", "The `haplosome2` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent2`.", terminationMessage);
     
     return false;
 }

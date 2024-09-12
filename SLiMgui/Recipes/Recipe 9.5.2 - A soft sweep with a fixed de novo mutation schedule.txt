@@ -15,7 +15,7 @@ initialize() {
 1000:1100 late() {
 	if (sim.cycle % 10 == 0)
 	{
-		target = sample(p1.genomes, 1);
+		target = sample(p1.haplosomes, 1);
 		if (target.countOfMutationsOfType(m2) == 0)
 			target.addNewDrawnMutation(m2, 10000);
 	}
@@ -36,7 +36,7 @@ initialize() {
 			}
 		}
 	}
-	if (all(p1.genomes.countOfMutationsOfType(m2) > 0)) {
+	if (all(p1.haplosomes.countOfMutationsOfType(m2) > 0)) {
 		cat("Soft sweep ended in cycle " + sim.cycle + "\n");
 		cat("Frequencies:\n");
 		print(sim.mutationFrequencies(p1, sim.mutationsOfType(m2)));

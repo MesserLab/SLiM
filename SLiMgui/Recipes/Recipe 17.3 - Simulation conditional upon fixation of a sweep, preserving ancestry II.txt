@@ -23,7 +23,7 @@ initialize() {
 	// record tag values and pedigree IDs in metadata
 	metadataDict = Dictionary("tags", tags, "ids", inds.pedigreeID);
 	
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
 	defineConstant("PATH", tempdir() + "slim_" + simID + ".trees");
 	sim.treeSeqOutput(PATH, metadata=metadataDict);

@@ -15,7 +15,7 @@ initialize() {
 }
 1 late() {
 	sim.addSubpop("p1", 500);
-	sample(p1.genomes, 10).addNewDrawnMutation(m2, 20000);
+	sample(p1.haplosomes, 10).addNewDrawnMutation(m2, 20000);
 }
 2000 late() {
 	print(sim.mutationsOfType(m2));

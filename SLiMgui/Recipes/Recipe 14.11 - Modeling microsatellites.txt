@@ -21,14 +21,14 @@ initialize() {
 	sim.addSubpop("p1", 500);
 	
 	// create some microsatellites at random positions
-	genomes = sim.subpopulations.genomes;
+	haplosomes = sim.subpopulations.haplosomes;
 	positions = rdunif(msatCount, 0, L-1);
 	repeats = rpois(msatCount, 20) + 5;
 	
 	for (msatIndex in 0:(msatCount-1))
 	{
 		pos = positions[msatIndex];
-		mut = genomes.addNewDrawnMutation(m2, pos);
+		mut = haplosomes.addNewDrawnMutation(m2, pos);
 		mut.tag = repeats[msatIndex];
 	}
 	
@@ -37,14 +37,14 @@ initialize() {
 }
 modifyChild() {
 	// mutate microsatellites with rate msatMu
-	for (genome in child.genomes)
+	for (haplosome in child.haplosomes)
 	{
 		mutCount = rpois(1, msatMu * msatCount);
 		
 		if (mutCount)
 		{
 			mutSites = sample(msatPositions, mutCount);
-			msats = genome.mutationsOfType(m2);
+			msats = haplosome.mutationsOfType(m2);
 			
 			for (mutSite in mutSites)
 			{
@@ -66,15 +66,15 @@ modifyChild() {
 					
 					if (matchingMut.size() == 1)
 					{
-						genome.removeMutations(msat);
-						genome.addMutations(matchingMut);
+						haplosome.removeMutations(msat);
+						haplosome.addMutations(matchingMut);
 						next;
 					}
 				}
 				
 				// make a new mutation with the new repeat count
-				genome.removeMutations(msat);
-				msat = genome.addNewDrawnMutation(m2, mutSite);
+				haplosome.removeMutations(msat);
+				msat = haplosome.addNewDrawnMutation(m2, mutSite);
 				msat.tag = repeats;
 			}
 		}

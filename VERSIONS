@@ -50,12 +50,15 @@ development head (in the master branch):
 				method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
 			Individual class:
 				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
-			Mutation class:
-				property: chromosome => (object<Chromosome>$)
+		x	Mutation class:
+		x		property: chromosome => (object<Chromosome>$)
 			Subpopulation class:
 				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
 				method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
 							[No<Individual>$ parent2 = NULL], [logical$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
+		add autofixes in SLiMgui for the above API changes
+		revise recipes for new terminology (but they will require more revision downstream)
+		fix calc...() functions for new terminology (but they will require more revision downstream)
 
 
 version 4.3 (Eidos version 3.3):

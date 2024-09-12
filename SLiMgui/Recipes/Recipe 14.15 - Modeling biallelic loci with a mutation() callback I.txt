@@ -24,7 +24,7 @@ initialize() {
 	sim.addSubpop("p1", 100);
 	
 	// create the canonical mutation objects
-	target = p1.genomes[0];
+	target = p1.haplosomes[0];
 	target.addNewDrawnMutation(m2, 0:99);
 	defineConstant("MUT2", target.mutations);
 	target.removeMutations();
@@ -33,7 +33,7 @@ initialize() {
 	target.removeMutations();
 	
 	// start homozygous "aa" at every position
-	p1.genomes.addMutations(MUT3);
+	p1.haplosomes.addMutations(MUT3);
 	
 	// log results
 	log = community.createLogFile("freq.csv", logInterval=10);

@@ -14,7 +14,7 @@ initialize() {
 }
 1 late() {
 	sim.readFromPopulationFile("coalasex.trees");
-	target = sample(sim.subpopulations.genomes, 1);
+	target = sample(sim.subpopulations.haplosomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 1: late() {

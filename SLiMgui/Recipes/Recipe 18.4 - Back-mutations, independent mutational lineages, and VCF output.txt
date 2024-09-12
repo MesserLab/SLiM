@@ -13,7 +13,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 5000 late() {
-	g = p1.sampleIndividuals(5).genomes;
+	g = p1.sampleIndividuals(5).haplosomes;
 	g.outputVCF(simplifyNucleotides=F);
 	g.outputVCF(simplifyNucleotides=T);
 }
