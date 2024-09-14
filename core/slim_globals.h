@@ -902,6 +902,8 @@ extern const std::string &gStr_drawSelectionCoefficient;
 extern const std::string &gStr_setDistribution;
 extern const std::string &gStr_addSubpop;
 extern const std::string &gStr_addSubpopSplit;
+extern const std::string &gStr_chromosomesWithIDs;
+extern const std::string &gStr_chromosomesWithSymbols;
 extern const std::string &gStr_estimatedLastTick;
 extern const std::string &gStr_deregisterScriptBlock;
 extern const std::string &gStr_genomicElementTypesWithIDs;
@@ -1324,6 +1326,8 @@ enum _SLiMGlobalStringID : int {
 	gID_drawSelectionCoefficient,
 	gID_setDistribution,
 	gID_addSubpop,
+	gID_chromosomesWithIDs,
+	gID_chromosomesWithSymbols,
 	gID_addSubpopSplit,
 	gID_estimatedLastTick,
 	gID_deregisterScriptBlock,

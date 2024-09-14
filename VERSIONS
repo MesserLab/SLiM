@@ -45,9 +45,9 @@ development head (in the master branch):
 		x		property type => (string$)
 		x		property symbol => (string$)
 		x		property name <-> (string$)
-			Species class:
-				method: (object<Chromosome>)chromosomesWithIDs(integer ids)
-				method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
+		x	Species class:
+		x		method: (object<Chromosome>)chromosomesWithIDs(integer ids)
+		x		method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
 			Individual class:
 				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
 		x	Mutation class:

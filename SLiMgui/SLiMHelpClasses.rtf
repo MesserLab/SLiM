@@ -7569,6 +7569,34 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 0.5
 \f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.\
 Subpopulations added by this method will consist of individuals that are clonal copies of individuals from the source subpopulation, randomly chosen with probabilities proportional to fitness.  The fitness of all of these initial individuals is considered to be 1.0, to avoid a doubled round of selection in the initial tick, given that fitness values were already used to choose the individuals to clone.  Once this initial set of individuals has mated to produce offspring, the model is effectively of parental individuals in the source subpopulation mating randomly according to fitness, as usual in SLiM, with juveniles migrating to the newly added subpopulation.  Effectively, then, then new subpopulation is created empty, and is filled by migrating juveniles from the source subpopulation, in accordance with SLiM\'92s usual model of juvenile migration.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Chromosome>)chromosomesWithIDs(integer\'a0ids)\
+\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Chromosome
+\f4\fs20  objects corresponding to the chromosome ids supplied in 
+\f3\fs18 ids
+\f4\fs20 , in the same order.  If any chromosome id in 
+\f3\fs18 ids
+\f4\fs20  does not correspond to a chromosome in the target species, an error will be raised.  See also 
+\f3\fs18 chromosomesWithSymbols()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Chromosome>)chromosomesWithSymbols(string\'a0symbols)\
+\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Chromosome
+\f4\fs20  objects corresponding to the chromosome symbols supplied in 
+\f3\fs18 symbols
+\f4\fs20 , in the same order.  If any chromosome symbol in 
+\f3\fs18 symbols
+\f4\fs20  does not correspond to a chromosome in the target species, an error will be raised.  See also 
+\f3\fs18 chromosomesWithIDs()
+\f4\fs20 .\
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0\cf0 (integer$)countOfMutationsOfType(io<MutationType>$\'a0mutType)
