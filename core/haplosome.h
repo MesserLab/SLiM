@@ -109,7 +109,11 @@ public:
 private:
 #endif
 	
-	HaplosomeType haplosome_type_ = HaplosomeType::kAutosome;		// SEX ONLY: the type of chromosome represented by this haplosome
+	// FIXME remove haplosome_type_ and get it from the chromosome object instead? hmm, our individual could be in the graveyard,
+	// can it still find its species and thus find the chromosomes?  might have an object graph problem with removing this...
+	HaplosomeType /* uint8_t */ haplosome_type_ = HaplosomeType::kAutosome;		// SEX ONLY: the type of chromosome represented by this haplosome
+	// FIXME chromosome_index_ needs to get set up properly
+	slim_chromosome_index_t /* uint8_t */ chromosome_index_ = 0;	// the index of this haplosome's chromosome
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	
 	int32_t mutrun_count_;											// number of runs being used; 0 for a null haplosome, otherwise >= 1
@@ -161,6 +165,7 @@ public:
 	inline __attribute__((always_inline)) void SetHaplosomeID(slim_haplosomeid_t p_new_id)	{ haplosome_id_ = p_new_id; }	// should basically never be called
 	inline __attribute__((always_inline)) Individual *OwningIndividual(void)				{ return individual_; }
 	inline __attribute__((always_inline)) const Individual *OwningIndividual(void) const 	{ return individual_; }
+	Chromosome *AssociatedChromosome(void);
 	
 	void NullHaplosomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	

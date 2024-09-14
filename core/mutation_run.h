@@ -55,8 +55,7 @@ class MutationRun;
 typedef std::vector<const MutationRun *> MutationRunPool;
 
 // This struct groups together all the objects for one context in which MutationRuns are allocated and used.  There is one
-// such context per thread.  The main benefit of the struct is that we can pass a reference to it, saving on parameters to
-// methods that require the context, such as NewMutationRun().
+// such context per thread for each chromosome in the model -- a multiplicity of contexts, for locality and encapsulation.
 typedef struct MutationRunContext {
 	MutationRunPool freed_pool_;						// MutationRun objects that have been allocated, but are not in use
 	MutationRunPool in_use_pool_;						// MutationRun objects currently in use by the simulation
@@ -315,7 +314,7 @@ public:
 		p_mutrun_context.freed_pool_.push_back(freed_run);
 	}
 	
-	static inline void DeleteMutationRunContext(MutationRunContext &p_mutrun_context)
+	static inline void DeleteMutationRunContextContents(MutationRunContext &p_mutrun_context)
 	{
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).

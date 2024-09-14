@@ -114,6 +114,7 @@ extern std::ostringstream gSLiMScheduling;		// information about scheduling in e
 typedef int32_t	slim_tick_t;			// tick numbers, tick durations
 typedef int32_t	slim_age_t;				// individual ages which may be from zero on up
 typedef int64_t	slim_position_t;		// chromosome positions, lengths in base pairs
+typedef uint8_t slim_chromosome_index_t;	// the index of a chromosome within a species, in the order they were defined; in [0, 255]
 typedef int64_t slim_mutrun_index_t;	// indices of mutation runs within haplosomes; SLIM_INF_BASE_POSITION leads to very large values, thus 64-bit
 typedef int32_t	slim_objectid_t;		// identifiers values for objects, like the "5" in p5, g5, m5, s5
 typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include haplosome indices

@@ -2711,6 +2711,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 	//
 	
 	// determine how many mutations and breakpoints we have
+	// FIXME: This will get called for each chromosome, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	
@@ -2898,7 +2899,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 					const MutationIndex *parent2_iter_max	= parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 					const MutationIndex *parent_iter		= parent1_iter;
 					const MutationIndex *parent_iter_max	= parent1_iter_max;
-					MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+					MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
 					MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 					
 					while (true)
@@ -3101,7 +3102,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 				int this_mutrun_index = first_uncompleted_mutrun;
 				const MutationIndex *parent_iter		= parent_haplosome->mutruns_[this_mutrun_index]->begin_pointer_const();
 				const MutationIndex *parent_iter_max	= parent_haplosome->mutruns_[this_mutrun_index]->end_pointer_const();
-				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
 				MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				
 				// add any additional new mutations that occur before the end of the mutation run; there is at least one
@@ -3245,7 +3246,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 				
 				// The event occurs *inside* the run, so process the run by copying mutations and switching strands
 				int this_mutrun_index = first_uncompleted_mutrun;
-				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
 				MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				const MutationIndex *parent1_iter		= parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
 				const MutationIndex *parent1_iter_max	= parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
@@ -3823,6 +3824,10 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// need to be kept apprised of all the changes made.  Note that in some cases a mutation
 	// might have been newly added at a position, and then removed again by mismatch repair;
 	// we will need to make sure that the recorded state is correct when that occurs.
+	
+	// FIXME: This will get called for each chromosome, I think?
+	Chromosome &chromosome = species_.TheChromosome();
+	
 	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
 	{
 		// We loop through the mutation runs in p_child_haplosome, and for each one, if there are
@@ -3841,7 +3846,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		while (run_index < mutrun_count)
 		{
 			// Now we will process *all* additions and removals for run_index
-			MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 			MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(mutrun_context_LOCKED);
 			const MutationRun *old_run = p_child_haplosome->mutruns_[run_index];
 			const MutationIndex *old_run_iter		= old_run->begin_pointer_const();
@@ -4023,7 +4028,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Haplos
 				const MutationIndex *parent2_iter_max	= p_parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 				const MutationIndex *parent_iter		= parent1_iter;
 				const MutationIndex *parent_iter_max	= parent1_iter_max;
-				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
 				MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				
 				while (true)
@@ -4255,7 +4260,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Haplos
 			
 			// The event occurs *inside* the run, so process the run by copying mutations and switching strands
 			int this_mutrun_index = first_uncompleted_mutrun;
-			MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+			MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
 			MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 			const MutationIndex *parent1_iter		= p_parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
 			const MutationIndex *parent1_iter_max	= p_parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
@@ -4725,7 +4730,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Haplosome &
 			else
 			{
 				// interleave the parental haplosome with the new mutations
-				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 				MutationRun *child_run = p_child_haplosome.WillCreateRun_LOCKED(run_index, mutrun_context_LOCKED);
 				const MutationRun *parent_run = p_parent_haplosome.mutruns_[run_index];
 				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
@@ -5318,108 +5323,121 @@ void Population::UniqueMutationRuns(void)
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
 	int64_t operation_id = MutationRun::GetNextOperationID();
 	
-	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
-	int mutrun_count = species_.chromosome_->mutrun_count_;
-	
-	if (mutrun_count_multiplier * mutrun_context_count != mutrun_count)
-		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
-	
-	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
-	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
 	EIDOS_BENCHMARK_START(EidosBenchmarkType::k_UNIQUE_MUTRUNS);
-	EIDOS_THREAD_COUNT(gEidos_OMP_threads_UNIQUE_MUTRUNS);
-#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final) num_threads(thread_count)
-	for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
 	{
-		std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster
+		int64_t count_mutruns = 0, count_hash_collisions = 0, count_identical = 0, count_uniqued_away = 0, count_preexisting = 0, count_final = 0;
+		int mutrun_count_multiplier = chromosome->mutrun_count_multiplier_;
+		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
+		int mutrun_count = chromosome->mutrun_count_;
 		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		if (mutrun_count_multiplier * mutrun_context_count != mutrun_count)
+			EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+		
+		// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
+		// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_UNIQUE_MUTRUNS);
+#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: count_mutruns) reduction(+: count_hash_collisions) reduction(+: count_identical) reduction(+: count_uniqued_away) reduction(+: count_preexisting) reduction(+: count_final) num_threads(thread_count)
+		for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 		{
-			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster
 			
-			for (slim_popsize_t haplosome_index = 0; haplosome_index < subpop_haplosome_count; haplosome_index++)
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
-				Haplosome &haplosome = *subpop_haplosome[haplosome_index];
+				Subpopulation *subpop = subpop_pair.second;
+				slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
+				std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
 				
-				if (haplosome.IsNull())
-					continue;
-				
-				const MutationRun *mut_run = haplosome.mutruns_[mutrun_index];
-				
-				if (mut_run)
+				for (slim_popsize_t haplosome_index = 0; haplosome_index < subpop_haplosome_count; haplosome_index++)
 				{
-					bool first_sight_of_this_mutrun = false;
+					Haplosome &haplosome = *subpop_haplosome[haplosome_index];
 					
-					total_mutruns++;
+					if (haplosome.IsNull())
+						continue;
 					
-					if (mut_run->operation_id_ != operation_id)
+					const MutationRun *mut_run = haplosome.mutruns_[mutrun_index];
+					
+					if (mut_run)
 					{
-						// Mark each new run we encounter with the operation ID, to count the preexisting number of runs
-						total_preexisting++;
-						mut_run->operation_id_ = operation_id;
-						first_sight_of_this_mutrun = true;
-					}
-					
-					// Calculate a hash for this mutrun.  Note that we could store computed hashes into the runs above, so that
-					// we only hash each pre-existing run once; but that would require an int64_t more storage per mutrun, and
-					// the memory overhead doesn't presently seem worth the very slight performance gain it would usually provide
-					int64_t hash = mut_run->Hash();
-					
-					// See if we have any mutruns already defined with this hash.  Note that we actually want to do this search
-					// even when first_sight_of_this_mutrun = true, because we want to find hash collisions, which may be other
-					// runs that are identical to us despite being separate objects.  That is, in fact, kind of the point.
-					auto range = runmap.equal_range(hash);		// pair<Iter, Iter>
-					
-					if (range.first == range.second)
-					{
-						// No previous mutrun found with this hash, so add this mutrun to the multimap
-						runmap.emplace(hash, mut_run);
-						total_final++;
-					}
-					else
-					{
-						// There is at least one hit; first cycle through the hits and see if any of them are pointer-identical
-						for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
+						bool first_sight_of_this_mutrun = false;
+						
+						count_mutruns++;
+						
+						if (mut_run->operation_id_ != operation_id)
 						{
-							if (mut_run == hash_iter->second)
-							{
-								total_identical++;
-								goto is_identical;
-							}
+							// Mark each new run we encounter with the operation ID, to count the preexisting number of runs
+							count_preexisting++;
+							mut_run->operation_id_ = operation_id;
+							first_sight_of_this_mutrun = true;
 						}
 						
-						// OK, we have no pointer-identical matches; check for a duplicate using Identical()
-						for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
+						// Calculate a hash for this mutrun.  Note that we could store computed hashes into the runs above, so that
+						// we only hash each pre-existing run once; but that would require an int64_t more storage per mutrun, and
+						// the memory overhead doesn't presently seem worth the very slight performance gain it would usually provide
+						int64_t hash = mut_run->Hash();
+						
+						// See if we have any mutruns already defined with this hash.  Note that we actually want to do this search
+						// even when first_sight_of_this_mutrun = true, because we want to find hash collisions, which may be other
+						// runs that are identical to us despite being separate objects.  That is, in fact, kind of the point.
+						auto range = runmap.equal_range(hash);		// pair<Iter, Iter>
+						
+						if (range.first == range.second)
 						{
-							const MutationRun *hash_run = hash_iter->second;
+							// No previous mutrun found with this hash, so add this mutrun to the multimap
+							runmap.emplace(hash, mut_run);
+							count_final++;
+						}
+						else
+						{
+							// There is at least one hit; first cycle through the hits and see if any of them are pointer-identical
+							for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
+							{
+								if (mut_run == hash_iter->second)
+								{
+									count_identical++;
+									goto is_identical;
+								}
+							}
 							
-							if (mut_run->Identical(*hash_run))
+							// OK, we have no pointer-identical matches; check for a duplicate using Identical()
+							for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
 							{
-								haplosome.mutruns_[mutrun_index] = hash_run;
-								total_identical++;
+								const MutationRun *hash_run = hash_iter->second;
 								
-								// We will unique away all references to this mutrun, but we only want to count it once
-								if (first_sight_of_this_mutrun)
-									total_uniqued_away++;
-								goto is_identical;
+								if (mut_run->Identical(*hash_run))
+								{
+									haplosome.mutruns_[mutrun_index] = hash_run;
+									count_identical++;
+									
+									// We will unique away all references to this mutrun, but we only want to count it once
+									if (first_sight_of_this_mutrun)
+										count_uniqued_away++;
+									goto is_identical;
+								}
 							}
+							
+							// If there was no identical match, then we have a hash collision; put it in the multimap
+							runmap.emplace(hash, mut_run);
+							count_hash_collisions++;
+							count_final++;
+							
+						is_identical:
+							;
 						}
-						
-						// If there was no identical match, then we have a hash collision; put it in the multimap
-						runmap.emplace(hash, mut_run);
-						total_hash_collisions++;
-						total_final++;
-						
-					is_identical:
-						;
 					}
 				}
 			}
 		}
+		
+		total_mutruns += count_mutruns;
+		total_hash_collisions += count_hash_collisions;
+		total_identical += count_identical;
+		total_uniqued_away += count_uniqued_away;
+		total_preexisting += count_preexisting;
+		total_final += count_final;
 	}
+	
 	EIDOS_BENCHMARK_END(EidosBenchmarkType::k_UNIQUE_MUTRUNS);
 	
 #if SLIM_DEBUG_MUTATION_RUNS
@@ -5514,6 +5532,9 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 			
+			// FIXME: This will get called for each chromosome, I think?
+			Chromosome &chromosome = species_.TheChromosome();
+			
 			// for every haplosome
 			for (slim_popsize_t haplosome_index = 0; haplosome_index < subpop_haplosome_count; haplosome_index++)
 			{
@@ -5532,7 +5553,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
 					{
 						const MutationRun *mutrun = haplosome.mutruns_[run_index];
-						MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+						MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						
 						if (mutrun->use_count() == 1)
 						{
@@ -5710,6 +5731,9 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 			
+			// FIXME: This will get called for each chromosome, I think?
+			Chromosome &chromosome = species_.TheChromosome();
+			
 			// for every haplosome
 			for (slim_popsize_t haplosome_index = 0; haplosome_index < subpop_haplosome_count; haplosome_index++)
 			{
@@ -5729,7 +5753,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					{
 						const MutationRun *mutrun1 = haplosome.mutruns_[run_index];
 						const MutationRun *mutrun2 = haplosome.mutruns_[run_index + 1];
-						MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+						MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						
 						if ((mutrun1->use_count() == 1) || (mutrun2->use_count() == 1))
 						{
@@ -5947,11 +5971,14 @@ void Population::SwapGenerations(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 {
-	slim_refcount_t total_haplosome_count = 0;
-	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	// FIXME: This will probably loop over the chromosomes, I think?
+	Chromosome &chromosome = species_.TheChromosome();
 	
-	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+	slim_refcount_t total_haplosome_count = 0;
+	int mutrun_count_multiplier = chromosome.mutrun_count_multiplier_;
+	int mutrun_context_count = chromosome.ChromosomeMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != chromosome.mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
 	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
@@ -5974,7 +6001,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		// first, zero all use counts across all in-use MutationRun objects
 		// each thread does its own zeroing, for its own MutationRunContext
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());
 			
 			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
 				mutrun->zero_use_count();
@@ -6029,9 +6056,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 	{
 		slim_refcount_t total_haplosome_count_CHECK = 0;
 		
-		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		for (int threadnum = 0; threadnum < chromosome.ChromosomeMutationRunContextCount(); ++threadnum)
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(threadnum);
 			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
 			size_t inuse_pool_count = inuse_pool.size();
 			
@@ -6065,9 +6092,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		if (total_haplosome_count_CHECK != total_haplosome_count)
 			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) total_haplosome_count_CHECK != total_haplosome_count (" << total_haplosome_count_CHECK << " != " << total_haplosome_count << ")." << EidosTerminate();
 		
-		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		for (int threadnum = 0; threadnum < chromosome.ChromosomeMutationRunContextCount(); ++threadnum)
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(threadnum);
 			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
 			size_t inuse_pool_count = inuse_pool.size();
 			
@@ -6089,11 +6116,14 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
 {
-	slim_refcount_t total_haplosome_count = 0;
-	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	// FIXME: This will probably loop over the chromosomes, I think?
+	Chromosome &chromosome = species_.TheChromosome();
 	
-	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+	slim_refcount_t total_haplosome_count = 0;
+	int mutrun_count_multiplier = chromosome.mutrun_count_multiplier_;
+	int mutrun_context_count = chromosome.ChromosomeMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != chromosome.mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpops): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
 	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
@@ -6116,7 +6146,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 		// first, zero all use counts across all in-use MutationRun objects
 		// each thread does its own zeroing, for its own MutationRunContext
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());
 			
 			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
 				mutrun->zero_use_count();
@@ -6169,11 +6199,14 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 
 slim_refcount_t Population::TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count)
 {
-	slim_refcount_t total_haplosome_count = 0;
-	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	// FIXME: This will probably loop over the chromosomes, I think?
+	Chromosome &chromosome = species_.TheChromosome();
 	
-	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+	slim_refcount_t total_haplosome_count = 0;
+	int mutrun_count_multiplier = chromosome.mutrun_count_multiplier_;
+	int mutrun_context_count = chromosome.ChromosomeMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != chromosome.mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForHaplosomes): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
 	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
@@ -6196,7 +6229,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForHaplosomes(const Haplos
 		// first, zero all use counts across all in-use MutationRun objects
 		// each thread does its own zeroing, for its own MutationRunContext
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());
 			
 			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
 				mutrun->zero_use_count();
@@ -6226,18 +6259,21 @@ slim_refcount_t Population::TallyMutationRunReferencesForHaplosomes(const Haplos
 
 void Population::FreeUnusedMutationRuns(void)
 {
+	// FIXME: This will probably loop over the chromosomes, I think?
+	Chromosome &chromosome = species_.TheChromosome();
+	
 	// It is assumed by this method that mutation run tallies are up to date!
 	// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
 	
 	// free all in-use MutationRun objects that are not actually in use (use count == 0)
 	// each thread does its own checking and freeing, for its own MutationRunContext
 #ifdef _OPENMP
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	int mutrun_context_count = Chromosome.ChromosomeMutationRunContextCount();
 #endif
 	
 #pragma omp parallel default(none) num_threads(mutrun_context_count)
 	{
-		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+		MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());
 		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
 		size_t pool_count = inuse_pool.size();
 		
@@ -6715,17 +6751,20 @@ slim_refcount_t Population::TallyMutationReferencesAcrossHaplosomes(const Haplos
 // mutation tallies given that choice.
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 {
+	// FIXME: This will probably loop over the chromosomes, I think?
+	Chromosome &chromosome = species_.TheChromosome();
+	
 	// first zero out the refcounts in all registered Mutation objects
 	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 	
 	// each thread does its own tallying, for its own MutationRunContext
 #ifdef _OPENMP
-	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	int mutrun_context_count = species_.ChromosomeMutationRunContextCount();
 #endif
 	
 #pragma omp parallel default(none) shared(gSLiM_Mutation_Refcounts) num_threads(mutrun_context_count)
 	{
-		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+		MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());
 		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
 		size_t inuse_pool_count = inuse_pool.size();
 		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;

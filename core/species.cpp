@@ -114,7 +114,16 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 #endif
 	
 	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	chromosome_ = new Chromosome(*this);
+	// FIXME this should change to be deferred, created either when we know we have an implicit chromosome, or when initializeChromosome() is called
+	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
+	
+	Chromosome *chromosome = new Chromosome(*this, 1, "1");
+	int64_t id = chromosome->ID();
+	std::string symbol = chromosome->Symbol();
+	
+	chromosomes_.push_back(chromosome);
+	chromosome_from_id_.emplace(id, chromosome);
+	chromosome_from_symbol_.emplace(symbol, chromosome);
 }
 
 Species::~Species(void)
@@ -127,18 +136,6 @@ Species::~Species(void)
 	population_.RemoveAllSubpopulationInfo();
 	
 	DeleteAllMutationRuns();
-	
-#ifndef _OPENMP
-	delete mutation_run_context_SINGLE_.allocation_pool_;
-#else
-	for (size_t threadnum = 0; threadnum < mutation_run_context_PERTHREAD.size(); ++threadnum)
-	{
-		omp_destroy_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
-		delete mutation_run_context_PERTHREAD[threadnum]->allocation_pool_;
-		delete mutation_run_context_PERTHREAD[threadnum];
-	}
-	mutation_run_context_PERTHREAD.clear();
-#endif
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -171,9 +168,13 @@ Species::~Species(void)
 	if (RecordingTreeSequence())
 		FreeTreeSequence();
 	
-	// Let go of our chromosome object
-	chromosome_->Release();
-	chromosome_ = nullptr;
+	// Let go of our chromosome objects
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->Release();
+	
+	chromosomes_.clear();
+	chromosome_from_id_.clear();
+	chromosome_from_symbol_.clear();
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
@@ -837,10 +838,13 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		}
 	}
 	
+	// FIXME need to figure out the file format for multiple chromosomes
+	Chromosome &chromosome = TheChromosome();
+	
 	// Now we are in the Haplosomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+	MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 	
 	while (!infile.eof())
@@ -943,7 +947,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				{
 #ifdef _OPENMP
 					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+					MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 #endif
 					
 					current_mutrun_index = mutrun_index;
@@ -965,7 +969,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	// Conveniently, NucleotideArray supports operator>> to read nucleotides until the EOF
 	if (line.find("Ancestral sequence") != std::string::npos)
 	{
-		infile >> *(chromosome_->AncestralSequence());
+		infile >> *(TheChromosome().AncestralSequence());
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
@@ -1455,6 +1459,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 	}
 	
+	// FIXME need to figure out the file format for multiple chromosomes
+	Chromosome &chromosome = TheChromosome();
+	
 	// Haplosomes section
 	if (pedigree_output_count)
 		gSLiM_next_pedigree_id = 0;
@@ -1464,7 +1471,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
 	MutationIndex *haplosomebuf = raii_haplosomebuf.get();
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+	MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 	
 	while (true)
@@ -1657,7 +1664,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				{
 #ifdef _OPENMP
 					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+					MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 #endif
 					
 					current_mutrun_index = mutrun_index;
@@ -1697,7 +1704,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		else
 		{
-			chromosome_->AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
+			TheChromosome().AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
 			
 			if (p + sizeof(section_end_tag) > buf_end)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
@@ -1780,10 +1787,13 @@ void Species::DeleteAllMutationRuns(void)
 {
 	// This traverses the free and in-use MutationRun pools and frees them all
 	// Note that the allocation pools themselves, and the MutationRunContexts, remain intact
-	for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
+	for (Chromosome *chromosome : chromosomes_)
 	{
-		MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
-		MutationRun::DeleteMutationRunContext(mutrun_context);
+		for (int threadnum = 0; threadnum < chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(threadnum);
+			MutationRun::DeleteMutationRunContextContents(mutrun_context);
+		}
 	}
 }
 
@@ -1835,6 +1845,8 @@ void Species::RunInitializeCallbacks(void)
 		community_.ExecuteEidosEvent(script_block);
 	
 	// check for complete initialization
+	Chromosome *the_chromosome = CurrentlyInitializingChromosome();		// FIXME this code assumes only one chromosome was set up
+	
 	if ((num_mutation_rates_ == 0) && (num_mutation_types_ == 0) && (num_genomic_element_types_ == 0) &&
 		(num_genomic_elements_ == 0) && (num_recombination_rates_ == 0) && (num_hotspot_maps_ == 0) &&
 		(num_gene_conversions_ == 0))
@@ -1859,8 +1871,8 @@ void Species::RunInitializeCallbacks(void)
 		
 		{
 			// initializeMutationRate(): initialize to zero
-			std::vector<slim_position_t> &positions = chromosome_->mutation_end_positions_H_;
-			std::vector<double> &rates = chromosome_->mutation_rates_H_;
+			std::vector<slim_position_t> &positions = the_chromosome->mutation_end_positions_H_;
+			std::vector<double> &rates = the_chromosome->mutation_rates_H_;
 			rates.clear();
 			positions.clear();
 			rates.emplace_back(0.0);
@@ -1868,8 +1880,8 @@ void Species::RunInitializeCallbacks(void)
 		}
 		{
 			// initializeRecombinationRate(): initialize to zero
-			std::vector<slim_position_t> &positions = chromosome_->recombination_end_positions_H_;
-			std::vector<double> &rates = chromosome_->recombination_rates_H_;
+			std::vector<slim_position_t> &positions = the_chromosome->recombination_end_positions_H_;
+			std::vector<double> &rates = the_chromosome->recombination_rates_H_;
 			rates.clear();
 			positions.clear();
 			rates.emplace_back(0.0);
@@ -1897,27 +1909,27 @@ void Species::RunInitializeCallbacks(void)
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
 	
 	
-	if ((chromosome_->recombination_rates_H_.size() != 0) && ((chromosome_->recombination_rates_M_.size() != 0) || (chromosome_->recombination_rates_F_.size() != 0)))
+	if ((the_chromosome->recombination_rates_H_.size() != 0) && ((the_chromosome->recombination_rates_M_.size() != 0) || (the_chromosome->recombination_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
 	
-	if (((chromosome_->recombination_rates_M_.size() == 0) && (chromosome_->recombination_rates_F_.size() != 0)) ||
-		((chromosome_->recombination_rates_M_.size() != 0) && (chromosome_->recombination_rates_F_.size() == 0)))
+	if (((the_chromosome->recombination_rates_M_.size() == 0) && (the_chromosome->recombination_rates_F_.size() != 0)) ||
+		((the_chromosome->recombination_rates_M_.size() != 0) && (the_chromosome->recombination_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
 	
-	if ((chromosome_->mutation_rates_H_.size() != 0) && ((chromosome_->mutation_rates_M_.size() != 0) || (chromosome_->mutation_rates_F_.size() != 0)))
+	if ((the_chromosome->mutation_rates_H_.size() != 0) && ((the_chromosome->mutation_rates_M_.size() != 0) || (the_chromosome->mutation_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
 	
-	if (((chromosome_->mutation_rates_M_.size() == 0) && (chromosome_->mutation_rates_F_.size() != 0)) ||
-		((chromosome_->mutation_rates_M_.size() != 0) && (chromosome_->mutation_rates_F_.size() == 0)))
+	if (((the_chromosome->mutation_rates_M_.size() == 0) && (the_chromosome->mutation_rates_F_.size() != 0)) ||
+		((the_chromosome->mutation_rates_M_.size() != 0) && (the_chromosome->mutation_rates_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
 	
 	
-	if ((chromosome_->hotspot_multipliers_H_.size() != 0) && ((chromosome_->hotspot_multipliers_M_.size() != 0) || (chromosome_->hotspot_multipliers_F_.size() != 0)))
+	if ((the_chromosome->hotspot_multipliers_H_.size() != 0) && ((the_chromosome->hotspot_multipliers_M_.size() != 0) || (the_chromosome->hotspot_multipliers_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
 	
-	if (((chromosome_->hotspot_multipliers_M_.size() == 0) && (chromosome_->hotspot_multipliers_F_.size() != 0)) ||
-		((chromosome_->hotspot_multipliers_M_.size() != 0) && (chromosome_->hotspot_multipliers_F_.size() == 0)))
+	if (((the_chromosome->hotspot_multipliers_M_.size() == 0) && (the_chromosome->hotspot_multipliers_F_.size() != 0)) ||
+		((the_chromosome->hotspot_multipliers_M_.size() != 0) && (the_chromosome->hotspot_multipliers_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
 	
 	
@@ -1970,7 +1982,7 @@ void Species::RunInitializeCallbacks(void)
 	{
 		if (num_ancseq_declarations_ == 0)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralNucleotides()." << EidosTerminate();
-		if (!chromosome_->ancestral_seq_buffer_)
+		if (!the_chromosome->ancestral_seq_buffer_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
 	
@@ -1980,7 +1992,9 @@ void Species::RunInitializeCallbacks(void)
 	if (nucleotide_based_)
 	{
 		CacheNucleotideMatrices();
-		CreateNucleotideMutationRateMap();
+		
+		for (Chromosome *chromosome : chromosomes_)
+			chromosome->CreateNucleotideMutationRateMap();
 	}
 	
 	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
@@ -1990,13 +2004,13 @@ void Species::RunInitializeCallbacks(void)
 	{
 		bool mut_rate_zero = true;
 		
-		for (double rate : chromosome_->mutation_rates_H_)
+		for (double rate : the_chromosome->mutation_rates_H_)
 			if (rate != 0.0) { mut_rate_zero = false; break; }
 		if (mut_rate_zero)
-			for (double rate : chromosome_->mutation_rates_M_)
+			for (double rate : the_chromosome->mutation_rates_M_)
 				if (rate != 0.0) { mut_rate_zero = false; break; }
 		if (mut_rate_zero)
-			for (double rate : chromosome_->mutation_rates_F_)
+			for (double rate : the_chromosome->mutation_rates_F_)
 				if (rate != 0.0) { mut_rate_zero = false; break; }
 		
 		if (!mut_rate_zero)
@@ -2022,17 +2036,19 @@ void Species::RunInitializeCallbacks(void)
 	// always start at cycle 1, regardless of what the starting tick value might be
 	SetCycle(1);
 	
-	// initialize chromosome
-	chromosome_->InitializeDraws();
-	chromosome_->ChooseMutationRunLayout(preferred_mutrun_count_);
-	
-	SetUpMutationRunContexts();
+	// initialize chromosomes
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		chromosome->InitializeDraws();
+		chromosome->ChooseMutationRunLayout(preferred_mutrun_count_);
+		chromosome->SetUpMutationRunContexts();
+	}
 	
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
-		if (chromosome_->ancestral_seq_buffer_->size() != (std::size_t)(chromosome_->last_position_ + 1))
-			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << chromosome_->last_position_ + 1 << " base" << (chromosome_->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome_->ancestral_seq_buffer_->size() << " base" << (chromosome_->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+		if (the_chromosome->ancestral_seq_buffer_->size() != (std::size_t)(the_chromosome->last_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << the_chromosome->last_position_ + 1 << " base" << (the_chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << the_chromosome->ancestral_seq_buffer_->size() << " base" << (the_chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
 	// kick off mutation run experiments, if needed
@@ -2047,44 +2063,6 @@ bool Species::HasDoneAnyInitialization(void)
 {
 	// This is used by Community to make sure that initializeModelType() executes before any other init
 	return ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0) || (num_species_declarations_ > 0));
-}
-
-void Species::SetUpMutationRunContexts(void)
-{
-	// Make an EidosObjectPool to allocate mutation runs from; this is for memory locality, so make it nice and big
-#ifndef _OPENMP
-	mutation_run_context_SINGLE_.allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
-#else
-	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent MutationRunContexts" << std::endl;
-	
-	// Make per-thread MutationRunContexts; the number of threads that we set up for here is NOT gEidosMaxThreads,
-	// but rather, the "base" number of mutation runs per haplosome chosen by Chromosome.  The chromosome is divided
-	// into that many chunks along its length (or a multiple thereof), and there is one thread per "base" chunk.
-	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
-	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
-	
-	if (mutation_run_context_COUNT_ > 0)
-	{
-		// Check that each RNG was initialized by a different thread, as intended below;
-		// this is not required, but it improves memory locality throughout the run
-		bool threadObserved[mutation_run_context_COUNT_];
-		
-#pragma omp parallel default(none) shared(mutation_run_context_PERTHREAD, threadObserved) num_threads(mutation_run_context_COUNT_)
-		{
-			// Each thread allocates and initializes its own MutationRunContext, for "first touch" optimization
-			int threadnum = omp_get_thread_num();
-			
-			mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
-			mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
-			omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
-			threadObserved[threadnum] = true;
-		}	// end omp parallel
-		
-		for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
-			if (!threadObserved[threadnum])
-				std::cerr << "WARNING: parallel MutationRunContexts were not correctly initialized on their corresponding threads; this may cause slower simulation." << std::endl;
-	}
-#endif	// end _OPENMP
 }
 
 void Species::PrepareForCycle(void)
@@ -2817,99 +2795,6 @@ void Species::CacheNucleotideMatrices(void)
 	}
 }
 
-void Species::CreateNucleotideMutationRateMap(void)
-{
-	// In Species::CacheNucleotideMatrices() we find the maximum sequence-based mutation rate requested.  Absent a
-	// hotspot map, this is the overall rate at which we need to generate mutations everywhere along the chromosome,
-	// because any particular spot could have the nucleotide sequence that leads to that maximum rate; we don't want
-	// to have to calculate the mutation rate map every time the sequence changes, so instead we use rejection
-	// sampling.  With a hotspot map, the mutation rate map is the product of the hotspot map and the maximum
-	// sequence-based rate.  Note that we could get more tricky here – even without a hotspot map we could vary
-	// the mutation rate map based upon the genomic elements in the chromosome, since different genomic elements
-	// may have different maximum sequence-based mutation rates.  We do not do that right now, to keep the model
-	// simple.
-	
-	// Note that in nucleotide-based models we completely hide the existence of the mutation rate map from the user;
-	// all the user sees are the mutationMatrix parameters to initializeGenomicElementType() and the hotspot map
-	// defined by initializeHotspotMap().  We still use the standard mutation rate map machinery under the hood,
-	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
-	// rate map to achieve what the user has requested through other APIs.
-	
-	std::vector<slim_position_t> &hotspot_end_positions_H = chromosome_->hotspot_end_positions_H_;
-	std::vector<slim_position_t> &hotspot_end_positions_M = chromosome_->hotspot_end_positions_M_;
-	std::vector<slim_position_t> &hotspot_end_positions_F = chromosome_->hotspot_end_positions_F_;
-	std::vector<double> &hotspot_multipliers_H = chromosome_->hotspot_multipliers_H_;
-	std::vector<double> &hotspot_multipliers_M = chromosome_->hotspot_multipliers_M_;
-	std::vector<double> &hotspot_multipliers_F = chromosome_->hotspot_multipliers_F_;
-	
-	std::vector<slim_position_t> &mut_positions_H = chromosome_->mutation_end_positions_H_;
-	std::vector<slim_position_t> &mut_positions_M = chromosome_->mutation_end_positions_M_;
-	std::vector<slim_position_t> &mut_positions_F = chromosome_->mutation_end_positions_F_;
-	std::vector<double> &mut_rates_H = chromosome_->mutation_rates_H_;
-	std::vector<double> &mut_rates_M = chromosome_->mutation_rates_M_;
-	std::vector<double> &mut_rates_F = chromosome_->mutation_rates_F_;
-	
-	// clear the mutation map; there may be old cruft in there, if we're called by setHotspotMap() for example
-	mut_positions_H.clear();
-	mut_positions_M.clear();
-	mut_positions_F.clear();
-	mut_rates_H.clear();
-	mut_rates_M.clear();
-	mut_rates_F.clear();
-	
-	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
-	{
-		// two sex-specific hotspot maps
-		for (double multiplier_M : hotspot_multipliers_M)
-		{
-			double rate = max_nucleotide_mut_rate_ * multiplier_M;
-			
-			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
-			
-			mut_rates_M.emplace_back(rate);
-		}
-		for (double multiplier_F : hotspot_multipliers_F)
-		{
-			double rate = max_nucleotide_mut_rate_ * multiplier_F;
-			
-			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
-			
-			mut_rates_F.emplace_back(rate);
-		}
-		
-		mut_positions_M = hotspot_end_positions_M;
-		mut_positions_F = hotspot_end_positions_F;
-	}
-	else if (hotspot_multipliers_H.size() > 0)
-	{
-		// one hotspot map
-		for (double multiplier_H : hotspot_multipliers_H)
-		{
-			double rate = max_nucleotide_mut_rate_ * multiplier_H;
-			
-			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
-			
-			mut_rates_H.emplace_back(rate);
-		}
-		
-		mut_positions_H = hotspot_end_positions_H;
-	}
-	else
-	{
-		// No hotspot map specified at all; use a rate of 1.0 across the chromosome with an inferred length
-		if (max_nucleotide_mut_rate_ > 1.0)
-			EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
-		
-		mut_rates_H.emplace_back(max_nucleotide_mut_rate_);
-		//mut_positions_H.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
-	}
-	
-	community_.chromosome_changed_ = true;
-}
-
 void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 {
 	EIDOS_BZERO(p_usage, sizeof(SLiMMemoryUsage_Species));
@@ -2935,12 +2820,18 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	
 	// Chromosome
 	{
-		p_usage->chromosomeObjects_count = 1;
+		p_usage->chromosomeObjects_count = chromosomes_.size();
 		p_usage->chromosomeObjects = sizeof(Chromosome) * p_usage->chromosomeObjects_count;
+		p_usage->chromosomeMutationRateMaps = 0;
+		p_usage->chromosomeRecombinationRateMaps = 0;
+		p_usage->chromosomeAncestralSequence = 0;
 		
-		p_usage->chromosomeMutationRateMaps = chromosome_->MemoryUsageForMutationMaps();
-		p_usage->chromosomeRecombinationRateMaps = chromosome_->MemoryUsageForRecombinationMaps();
-		p_usage->chromosomeAncestralSequence = chromosome_->MemoryUsageForAncestralSequence();
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			p_usage->chromosomeMutationRateMaps += chromosome->MemoryUsageForMutationMaps();
+			p_usage->chromosomeRecombinationRateMaps += chromosome->MemoryUsageForRecombinationMaps();
+			p_usage->chromosomeAncestralSequence += chromosome->MemoryUsageForAncestralSequence();
+		}
 	}
 	
 	// Haplosome
@@ -2959,7 +2850,11 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	
 	// GenomicElement
 	{
-		p_usage->genomicElementObjects_count = chromosome_->GenomicElementCount();
+		p_usage->genomicElementObjects_count = 0;
+		
+		for (Chromosome *chromosome : chromosomes_)
+			p_usage->genomicElementObjects_count += chromosome->GenomicElementCount();
+		
 		p_usage->genomicElementObjects = sizeof(GenomicElement) * p_usage->genomicElementObjects_count;
 	}
 	
@@ -3004,15 +2899,18 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			int64_t mutrun_nonneutralCaches = 0;
 			
 			// each thread has its own inuse pool
-			for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
+			for (Chromosome *chromosome : chromosomes_)
 			{
-				MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
-				
-				for (const MutationRun *inuse_mutrun : mutrun_context.in_use_pool_)
+				for (int threadnum = 0; threadnum < chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
 				{
-					mutrun_objectCount++;
-					mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
-					mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(threadnum);
+					
+					for (const MutationRun *inuse_mutrun : mutrun_context.in_use_pool_)
+					{
+						mutrun_objectCount++;
+						mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
+						mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+					}
 				}
 			}
 			
@@ -3028,15 +2926,18 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			int64_t mutrun_unusedBuffers = 0;
 			
 			// each thread has its own free pool
-			for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
+			for (Chromosome *chromosome : chromosomes_)
 			{
-				MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
-				
-				for (const MutationRun *free_mutrun : mutrun_context.freed_pool_)
+				for (int threadnum = 0; threadnum < chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
 				{
-					mutrun_unusedCount++;
-					mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
-					mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(threadnum);
+					
+					for (const MutationRun *free_mutrun : mutrun_context.freed_pool_)
+					{
+						mutrun_unusedCount++;
+						mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
+						mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+					}
 				}
 			}
 			
@@ -3229,6 +3130,9 @@ void Species::ReturnShuffleBuffer(void)
 
 void Species::InitiateMutationRunExperiments(void)
 {
+	// FIXME: All the mutrun experiment stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	if (preferred_mutrun_count_ != 0)
 	{
 		// If the user supplied a count, go with that and don't run experiments
@@ -3242,7 +3146,7 @@ void Species::InitiateMutationRunExperiments(void)
 		
 		return;
 	}
-	if (chromosome_->mutrun_length_ <= SLIM_MUTRUN_MAXIMUM_COUNT)
+	if (chromosome.mutrun_length_ <= SLIM_MUTRUN_MAXIMUM_COUNT)
 	{
 		// If the chromosome length is too short, go with that and don't run experiments;
 		// we want to guarantee that with SLIM_MUTRUN_MAXIMUM_COUNT runs each mutrun is at
@@ -3260,7 +3164,7 @@ void Species::InitiateMutationRunExperiments(void)
 	
 	x_experiments_enabled_ = true;
 	
-	x_current_mutcount_ = chromosome_->mutrun_count_;
+	x_current_mutcount_ = chromosome.mutrun_count_;
 	x_current_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
 	x_current_buflen_ = 0;
 	
@@ -3350,6 +3254,9 @@ void Species::EnterStasisForMutationRunExperiments(void)
 
 void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 {
+	// FIXME: All the mutrun experiment stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	// Log the last cycle time into our buffer
 	if (x_current_buflen_ >= SLIM_MUTRUN_EXPERIMENT_LENGTH)
 		EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
@@ -3526,7 +3433,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 			
 			int32_t trend_next = (x_current_mutcount_ < x_previous_mutcount_) ? (x_current_mutcount_ / 2) : (x_current_mutcount_ * 2);
-			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? chromosome_->mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, chromosome_->mutrun_count_base_ == 1
+			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? chromosome.mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, chromosome_->mutrun_count_base_ == 1
 			
 			if ((current_mean < previous_mean) || (!means_different_05 && (x_current_mutcount_ < x_previous_mutcount_)))
 			{
@@ -3627,8 +3534,8 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					// run an experiment at the next position in that reversed trend direction.
 					int32_t new_mutcount = ((x_current_mutcount_ > x_previous_mutcount_) ? (x_previous_mutcount_ / 2) : (x_previous_mutcount_ * 2));
 					
-					if ((x_previous_mutcount_ == chromosome_->mutrun_count_base_) || (x_previous_mutcount_ == SLIM_MUTRUN_MAXIMUM_COUNT) ||
-						(new_mutcount < chromosome_->mutrun_count_base_) || (new_mutcount > SLIM_MUTRUN_MAXIMUM_COUNT))
+					if ((x_previous_mutcount_ == chromosome.mutrun_count_base_) || (x_previous_mutcount_ == SLIM_MUTRUN_MAXIMUM_COUNT) ||
+						(new_mutcount < chromosome.mutrun_count_base_) || (new_mutcount > SLIM_MUTRUN_MAXIMUM_COUNT))
 					{
 						// can't jump over the previous mutcount, so we enter stasis at it
 						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
@@ -3656,13 +3563,13 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	}
 	
 	// Promulgate the new mutation run count
-	if (x_current_mutcount_ != chromosome_->mutrun_count_)
+	if (x_current_mutcount_ != chromosome.mutrun_count_)
 	{
 		// Fix all haplosomes.  We could do this by brute force, by making completely new mutation runs for every
 		// existing haplosome and then calling Population::UniqueMutationRuns(), but that would be inefficient,
 		// and would also cause a huge memory usage spike.  Instead, we want to preserve existing redundancy.
 		
-		while (x_current_mutcount_ > chromosome_->mutrun_count_)
+		while (x_current_mutcount_ > chromosome.mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
 			std::clock_t start_clock = std::clock();
@@ -3673,12 +3580,12 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
 			// mutrun indices; every time we encounter the same old index we will substitute the same pair.
-			population_.SplitMutationRuns(chromosome_->mutrun_count_ * 2);
+			population_.SplitMutationRuns(chromosome.mutrun_count_ * 2);
 			
 			// Fix the chromosome values
-			chromosome_->mutrun_count_multiplier_ *= 2;
-			chromosome_->mutrun_count_ *= 2;
-			chromosome_->mutrun_length_ /= 2;
+			chromosome.mutrun_count_multiplier_ *= 2;
+			chromosome.mutrun_count_ *= 2;
+			chromosome.mutrun_length_ /= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbosity_level >= 2)
@@ -3686,23 +3593,23 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 		}
 		
-		while (x_current_mutcount_ < chromosome_->mutrun_count_)
+		while (x_current_mutcount_ < chromosome.mutrun_count_)
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
 			std::clock_t start_clock = std::clock();
 #endif
 			
-			if (chromosome_->mutrun_count_multiplier_ % 2 != 0)
-				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << chromosome_->mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
+			if (chromosome.mutrun_count_multiplier_ % 2 != 0)
+				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << chromosome.mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
 			
 			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
 			// index; every time we encounter the same pair of indices we will substitute the same index.
-			population_.JoinMutationRuns(chromosome_->mutrun_count_ / 2);
+			population_.JoinMutationRuns(chromosome.mutrun_count_ / 2);
 			
 			// Fix the chromosome values
-			chromosome_->mutrun_count_multiplier_ /= 2;
-			chromosome_->mutrun_count_ /= 2;
-			chromosome_->mutrun_length_ *= 2;
+			chromosome.mutrun_count_multiplier_ /= 2;
+			chromosome.mutrun_count_ /= 2;
+			chromosome.mutrun_length_ *= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbosity_level >= 2)
@@ -3710,7 +3617,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 		}
 		
-		if (chromosome_->mutrun_count_ != x_current_mutcount_)
+		if (chromosome.mutrun_count_ != x_current_mutcount_)
 			EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
 	}
 }
@@ -4416,6 +4323,9 @@ void Species::RecordTablePosition(void)
 
 void Species::AllocateTreeSequenceTables(void)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::AllocateTreeSequenceTables): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -4431,7 +4341,7 @@ void Species::AllocateTreeSequenceTables(void)
 	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
 	
 	tables_initialized_ = true;
-	tables_.sequence_length = (double)chromosome_->last_position_ + 1;
+	tables_.sequence_length = (double)chromosome.last_position_ + 1;
 	
 	RecordTablePosition();
 }
@@ -4474,6 +4384,9 @@ void Species::RetractNewIndividual()
 void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
 		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -4514,7 +4427,7 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 	// fix possible excess past-the-end breakpoint
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
 	
-	if (breakpoint_count && (p_breakpoints->back() > chromosome_->last_position_))
+	if (breakpoint_count && (p_breakpoints->back() > chromosome.last_position_))
 		breakpoint_count--;
 	
 	// add an edge for each interval between breakpoints
@@ -4534,7 +4447,7 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 		left = right;
 	}
 	
-	right = (double)chromosome_->last_position_+1;
+	right = (double)chromosome.last_position_+1;
 	tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
 	int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
@@ -6266,6 +6179,9 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 
 void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -6397,13 +6313,13 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		// In nucleotide-based models, put an ASCII representation of the reference sequence into the tables
 		if (nucleotide_based_)
 		{
-			std::size_t buflen = chromosome_->AncestralSequence()->size();
+			std::size_t buflen = chromosome.AncestralSequence()->size();
 			char *buffer = (char *)malloc(buflen);
 			
 			if (!buffer)
 				EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 			
-			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+			chromosome.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
 			ret = tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
 			if (ret < 0) handle_error("tsk_reference_sequence_takeset_data", ret);
@@ -6464,7 +6380,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 				if (!outfile.is_open())
 					EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): treeSeqOutput() could not open "<< RefSeqFileName << "." << EidosTerminate();
 				
-				outfile << *(chromosome_->AncestralSequence());
+				outfile << *(chromosome.AncestralSequence());
 				outfile.close();
 			}
 		}
@@ -8404,6 +8320,9 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 
 void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	// This code is based on Species::CrosscheckTreeSeqIntegrity(), but it can be much simpler.
 	// We also don't need to sort/deduplicate/simplify; the tables read in should be simplified already.
 	if (!recording_mutations_)
@@ -8443,7 +8362,7 @@ void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim
 	
 	// add mutations to haplosomes by looping through variants
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+	MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 	
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
@@ -8481,7 +8400,7 @@ void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim
 					
 #ifdef _OPENMP
 					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(run_index);
+					MutationRunContext &mutrun_context = ChromosomeMutationRunContextForMutationRunIndex(run_index);
 #endif
 					
 					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
@@ -8570,9 +8489,12 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	// set the tick and cycle from the provenance data
-	if (tables_.sequence_length != chromosome_->last_position_ + 1)
-		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population (" << tables_.sequence_length << ") does not match the configured chromosome length (" << (chromosome_->last_position_ + 1) << ")." << EidosTerminate();
+	if (tables_.sequence_length != chromosome.last_position_ + 1)
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population (" << tables_.sequence_length << ") does not match the configured chromosome length (" << (chromosome.last_position_ + 1) << ")." << EidosTerminate();
 	
 	community_.SetTick(p_metadata_tick);
 	SetCycle(p_metadata_cycle);
@@ -8713,6 +8635,9 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 
 slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
@@ -8741,7 +8666,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 		if (!infile.is_open())
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitTextFile): readFromPopulationFile() could not open "<< RefSeqFileName << "; this model is nucleotide-based, but the ancestral sequence is missing or unreadable." << EidosTerminate();
 		
-		infile >> *(chromosome_->AncestralSequence());	// raises if the sequence is the wrong length
+		infile >> *(chromosome.AncestralSequence());	// raises if the sequence is the wrong length
 		infile.close();
 	}
 	
@@ -8780,6 +8705,9 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
+	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
+	Chromosome &chromosome = TheChromosome();
+	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
@@ -8848,10 +8776,10 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 		
 		if (!buffer)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
-		if (buffer_length != chromosome_->AncestralSequence()->size())
+		if (buffer_length != chromosome.AncestralSequence()->size())
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
 		
-		chromosome_->AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
+		chromosome.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
 		
 		// buffer is owned by kastore and is freed by closing the store
 		kastore_close(&store);

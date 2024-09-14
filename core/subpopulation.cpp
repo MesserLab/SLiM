@@ -253,6 +253,8 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 {
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
+	
+	// FIXME we will need to loop over chromosomes and fill out their haplosomes one by one
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -291,7 +293,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 			
 			shared_empty_runs[run_index] = MutationRun::NewMutationRun(mutrun_context);
 		}
@@ -470,9 +472,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
 	SLiMModelType model_type = model_type_;
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	Chromosome &the_chromosome = species_.TheChromosome();
+	int32_t mutrun_count = the_chromosome.mutrun_count_;
+	slim_position_t mutrun_length = the_chromosome.mutrun_length_;
 	bool has_genetics = species_.HasGenetics();
 	
 	if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
@@ -791,24 +793,29 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//
 	// Check that every mutation run is being used at a position corresponding to the pool it was allocated from
 	//
-	slim_mutrun_index_t mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	
-	for (int thread_num = 0; thread_num < species_.SpeciesMutationRunContextCount(); ++thread_num)
+	for (Chromosome *chromosome : chromosomes)
 	{
-		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(thread_num);
-		MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
+		slim_mutrun_index_t mutrun_count_multiplier = chromosome->mutrun_count_multiplier_;
 		
-		for (const MutationRun *mutrun : in_use_pool)
+		for (int thread_num = 0; thread_num < chromosome->ChromosomeMutationRunContextCount(); ++thread_num)
 		{
-			auto found_iter = mutrun_position_map.find(mutrun);
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(thread_num);
+			MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
 			
-			if (found_iter != mutrun_position_map.end())
+			for (const MutationRun *mutrun : in_use_pool)
 			{
-				slim_mutrun_index_t used_at_index = found_iter->second;
-				int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+				auto found_iter = mutrun_position_map.find(mutrun);
 				
-				if (correct_thread_num != thread_num)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
+				if (found_iter != mutrun_position_map.end())
+				{
+					slim_mutrun_index_t used_at_index = found_iter->second;
+					int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+					
+					if (correct_thread_num != thread_num)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
+				}
 			}
 		}
 	}
@@ -4918,7 +4925,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		{
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+				MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 				const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
 				
 				if (!haplosome1_null)

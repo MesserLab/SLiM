@@ -56,6 +56,11 @@ Haplosome::~Haplosome(void)
 	mutrun_count_ = 0;
 }
 
+Chromosome *Haplosome::AssociatedChromosome(void)
+{
+	return individual_->subpopulation_->species_.chromosomes_[chromosome_index_];
+}
+
 // prints an error message, a stacktrace, and exits; called only for DEBUG
 void Haplosome::NullHaplosomeAccessError(void) const
 {
@@ -449,7 +454,7 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_chromosome:
 		{
-			Chromosome *chromosome = individual_->subpopulation_->species_.chromosome_;
+			Chromosome *chromosome = individual_->subpopulation_->species_.chromosomes_[chromosome_index_];
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 		}
@@ -2119,6 +2124,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	
 	Community &community = species->community_;
 	
+	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
+	// chromosome_index_ index directly, which would assume the same species...?
+	Chromosome *chromosome = &species->TheChromosome();
+	
 	// use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
 	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
 	Haplosome *haplosome_0 = targets[0];
@@ -2315,7 +2325,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 		
 		Haplosome::BulkOperationStart(operation_id, mutrun_index);
 		
-		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 		
 		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 		{
@@ -2408,6 +2418,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_addNewMutation");
 	
 	Community &community = species->community_;
+	
+	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
+	// chromosome_index_ index directly, which would assume the same species...?
+	Chromosome *chromosome = &species->TheChromosome();
 	
 	// get the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
 	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
@@ -2752,7 +2767,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		// Now start the bulk operation and add mutations_to_add to every target haplosome
 		Haplosome::BulkOperationStart(operation_id, mutrun_index);
 		
-		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 		
 		for (int target_index = 0; target_index < target_size; ++target_index)
 		{
@@ -3023,6 +3038,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	
 	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromMS");
 	
+	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
+	// chromosome_index_ index directly, which would assume the same species...?
+	Chromosome *chromosome = &species.TheChromosome();
+	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
 	
@@ -3176,7 +3196,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	
 	// Add the mutations to the target haplosomes, recording a new derived state with each addition
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+	MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
 	
@@ -3205,7 +3225,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 				{
 #ifdef _OPENMP
 					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+					MutationRunContext &mutrun_context = species.ChromosomeMutationRunContextForMutationRunIndex(mut_mutrun_index);
 #endif
 					
 					current_run_index = mut_mutrun_index;
@@ -3255,6 +3275,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
+	
+	// FIXME we will need to loop over the chromosomes now, since VCF is a multi-chromosme format...
+	Chromosome *chromosome = &species->TheChromosome();
 	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
 	
@@ -3391,7 +3414,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	
 	// parse all the call lines, instantiate their mutations, and add the mutations to the target haplosomes
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+	MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
 	std::vector<MutationIndex> mutation_indices;
 	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
@@ -3788,7 +3811,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				{
 #ifdef _OPENMP
 					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+					MutationRunContext &mutrun_context = species->ChromosomeMutationRunContextForMutationRunIndex(mut_mutrun_index);
 #endif
 					
 					// We use WillModifyRun() because these are existing haplosomes we didn't create, and their runs may be shared; we have
@@ -3839,6 +3862,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
+	
+	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
+	// chromosome_index_ index directly, which would assume the same species...?
+	Chromosome *chromosome = &species->TheChromosome();
 	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
 	
@@ -3951,7 +3979,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from haplosomes that are empty already)
 					if (!shared_empty_run)
 					{
-						MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(run_index);
+						MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						shared_empty_run = MutationRun::NewMutationRun(mutrun_context);
 					}
 					
@@ -4155,7 +4183,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			
 			Haplosome::BulkOperationStart(operation_id, mutrun_index);
 			
-			MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 			
 			for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			{

@@ -436,7 +436,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	
 	// the change to the mutation matrix means everything downstream has to be recached
 	species_.CacheNucleotideMatrices();
-	species_.CreateNucleotideMutationRateMap();
+	species_.TheChromosome().CreateNucleotideMutationRateMap();
 	species_.TheChromosome().InitializeDraws();
 	
 	return gStaticEidosValueVOID;

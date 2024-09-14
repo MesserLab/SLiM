@@ -74,6 +74,11 @@ enum class SLiMFileFormat
 };
 
 
+// We have a defined maximum number of chromosomes that we resize to immediately, so the chromosome vector never reallocs
+// There would be an upper limit of 256 anyway because Mutation uses uint8_t to keep the index of its chromosome
+#define SLIM_MAX_CHROMOSOMES	256
+
+
 // TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording metadata records
@@ -247,17 +252,6 @@ private:
 	// preferred mutation run length
 	int preferred_mutrun_count_ = 0;												// 0 represents no preference
 	
-	// Species now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
-	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
-	// When running multithreaded, each of these becomes a vector of per-thread objects, so we can alloc/free runs in parallel code.
-	// This stuff is not set up until after initialize() callbacks; nobody should be using MutationRuns before then.
-#ifndef _OPENMP
-	MutationRunContext mutation_run_context_SINGLE_;
-#else
-	int mutation_run_context_COUNT_ = 0;											// the number of PERTHREAD contexts
-	std::vector<MutationRunContext *> mutation_run_context_PERTHREAD;
-#endif
-	
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
@@ -346,9 +340,21 @@ public:
 	
 	SLiMModelType model_type_;
 	Community &community_;						// the community that this species belongs to
-	Chromosome *chromosome_;					// the chromosome, which defines genomic elements
 	Population population_;						// the population, which contains sub-populations
 
+	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
+	// as well as hash tables for quick lookup by id and symbol
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#endif
+	std::vector<Chromosome *> chromosomes_;		// all the chromosomes for the species, in the order in which they were defined
+	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
+	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
+	
 	std::string avatar_;						// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
 	std::string name_;							// the `name` property; "sim" by default, configurable in script (not by setting the property)
 	std::string description_;					// the `description` property; the empty string by default
@@ -411,7 +417,6 @@ public:
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
 	bool HasDoneAnyInitialization(void);
-	void SetUpMutationRunContexts(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(void);
@@ -456,7 +461,6 @@ public:
 	
 	// Nucleotide-based models
 	void CacheNucleotideMatrices(void);
-	void CreateNucleotideMutationRateMap(void);
 	
 	// accessors
 	inline __attribute__((always_inline)) slim_tick_t Cycle(void) const														{ return cycle_; }
@@ -467,52 +471,18 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickModulo(void) { return tick_modulo_; }
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
+	// CurrentlyInitializingChromosome() is useful during initialization; methods that modify the chromosome configuration always operate on the
+	// last chromosome defined.  FIXME this should return nullptr after initialization is complete, or if there is no currently initializing
+	// chromosome (e.g., initializeSex(NULL) has been called but no initializeChromosome() call yet!), for bulletproofness
+#warning remove TheChromosome() step by step
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
+	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	inline __attribute__((always_inline)) Chromosome *CurrentlyInitializingChromosome(void)		{ return chromosomes_.back(); }
+	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
-	
-#ifndef _OPENMP
-	inline int SpeciesMutationRunContextCount(void) { return 1; }
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
-	{
-#if DEBUG
-		if (p_thread_num != 0)
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
-#endif
-		return mutation_run_context_SINGLE_;
-	}
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
-	{
-#if DEBUG
-		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
-#endif
-		return mutation_run_context_SINGLE_;
-	}
-#else
-	inline int SpeciesMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(int p_thread_num)
-	{
-#if DEBUG
-		if ((p_thread_num < 0) || (p_thread_num >= mutation_run_context_COUNT_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
-#endif
-		return *(mutation_run_context_PERTHREAD[p_thread_num]);
-	}
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
-	{
-#if DEBUG
-		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
-#endif
-		// The range of the haplosome that each thread is responsible for does not change across
-		// splits/joins; one mutrun becomes two, or two become one, owned by the same thread
-		int thread_num = (int)(p_mutrun_index / chromosome_->mutrun_count_multiplier_);
-		return *(mutation_run_context_PERTHREAD[thread_num]);
-	}
-#endif
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);

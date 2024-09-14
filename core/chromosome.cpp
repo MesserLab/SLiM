@@ -59,7 +59,9 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(Species &p_species) :
+Chromosome::Chromosome(Species &p_species, int64_t p_id, std::string p_symbol) :
+	id_(p_id),
+	symbol_(p_symbol),
 	name_(),
 
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
@@ -117,6 +119,115 @@ Chromosome::~Chromosome(void)
 	// Dispose of all genomic elements, which we own
 	for (GenomicElement *element : genomic_elements_)
 		delete element;
+	
+	// Dispose of all mutation run contexts
+#ifndef _OPENMP
+	delete mutation_run_context_SINGLE_.allocation_pool_;
+#else
+	for (size_t threadnum = 0; threadnum < mutation_run_context_PERTHREAD.size(); ++threadnum)
+	{
+		omp_destroy_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
+		delete mutation_run_context_PERTHREAD[threadnum]->allocation_pool_;
+		delete mutation_run_context_PERTHREAD[threadnum];
+	}
+	mutation_run_context_PERTHREAD.clear();
+#endif
+	
+}
+
+void Chromosome::CreateNucleotideMutationRateMap(void)
+{
+	// In Species::CacheNucleotideMatrices() we find the maximum sequence-based mutation rate requested.  Absent a
+	// hotspot map, this is the overall rate at which we need to generate mutations everywhere along the chromosome,
+	// because any particular spot could have the nucleotide sequence that leads to that maximum rate; we don't want
+	// to have to calculate the mutation rate map every time the sequence changes, so instead we use rejection
+	// sampling.  With a hotspot map, the mutation rate map is the product of the hotspot map and the maximum
+	// sequence-based rate.  Note that we could get more tricky here – even without a hotspot map we could vary
+	// the mutation rate map based upon the genomic elements in the chromosome, since different genomic elements
+	// may have different maximum sequence-based mutation rates.  We do not do that right now, to keep the model
+	// simple.
+	
+	// Note that in nucleotide-based models we completely hide the existence of the mutation rate map from the user;
+	// all the user sees are the mutationMatrix parameters to initializeGenomicElementType() and the hotspot map
+	// defined by initializeHotspotMap().  We still use the standard mutation rate map machinery under the hood,
+	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
+	// rate map to achieve what the user has requested through other APIs.
+	
+	double max_nucleotide_mut_rate = species_.max_nucleotide_mut_rate_;
+	
+	std::vector<slim_position_t> &hotspot_end_positions_H = hotspot_end_positions_H_;
+	std::vector<slim_position_t> &hotspot_end_positions_M = hotspot_end_positions_M_;
+	std::vector<slim_position_t> &hotspot_end_positions_F = hotspot_end_positions_F_;
+	std::vector<double> &hotspot_multipliers_H = hotspot_multipliers_H_;
+	std::vector<double> &hotspot_multipliers_M = hotspot_multipliers_M_;
+	std::vector<double> &hotspot_multipliers_F = hotspot_multipliers_F_;
+	
+	std::vector<slim_position_t> &mut_positions_H = mutation_end_positions_H_;
+	std::vector<slim_position_t> &mut_positions_M = mutation_end_positions_M_;
+	std::vector<slim_position_t> &mut_positions_F = mutation_end_positions_F_;
+	std::vector<double> &mut_rates_H = mutation_rates_H_;
+	std::vector<double> &mut_rates_M = mutation_rates_M_;
+	std::vector<double> &mut_rates_F = mutation_rates_F_;
+	
+	// clear the mutation map; there may be old cruft in there, if we're called by setHotspotMap() for example
+	mut_positions_H.clear();
+	mut_positions_M.clear();
+	mut_positions_F.clear();
+	mut_rates_H.clear();
+	mut_rates_M.clear();
+	mut_rates_F.clear();
+	
+	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
+	{
+		// two sex-specific hotspot maps
+		for (double multiplier_M : hotspot_multipliers_M)
+		{
+			double rate = max_nucleotide_mut_rate * multiplier_M;
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_M.emplace_back(rate);
+		}
+		for (double multiplier_F : hotspot_multipliers_F)
+		{
+			double rate = max_nucleotide_mut_rate * multiplier_F;
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_F.emplace_back(rate);
+		}
+		
+		mut_positions_M = hotspot_end_positions_M;
+		mut_positions_F = hotspot_end_positions_F;
+	}
+	else if (hotspot_multipliers_H.size() > 0)
+	{
+		// one hotspot map
+		for (double multiplier_H : hotspot_multipliers_H)
+		{
+			double rate = max_nucleotide_mut_rate * multiplier_H;
+			
+			if (rate > 1.0)
+				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			
+			mut_rates_H.emplace_back(rate);
+		}
+		
+		mut_positions_H = hotspot_end_positions_H;
+	}
+	else
+	{
+		// No hotspot map specified at all; use a rate of 1.0 across the chromosome with an inferred length
+		if (max_nucleotide_mut_rate > 1.0)
+			EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+		
+		mut_rates_H.emplace_back(max_nucleotide_mut_rate);
+		//mut_positions_H.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+	}
+	
+	community_.chromosome_changed_ = true;
 }
 
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
@@ -1558,6 +1669,44 @@ size_t Chromosome::MemoryUsageForAncestralSequence(void)
 	return usage;
 }
 
+void Chromosome::SetUpMutationRunContexts(void)
+{
+	// Make an EidosObjectPool to allocate mutation runs from; this is for memory locality, so make it nice and big
+#ifndef _OPENMP
+	mutation_run_context_SINGLE_.allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
+#else
+	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent MutationRunContexts" << std::endl;
+	
+	// Make per-thread MutationRunContexts; the number of threads that we set up for here is NOT gEidosMaxThreads,
+	// but rather, the "base" number of mutation runs per haplosome chosen by Chromosome.  The chromosome is divided
+	// into that many chunks along its length (or a multiple thereof), and there is one thread per "base" chunk.
+	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
+	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
+	
+	if (mutation_run_context_COUNT_ > 0)
+	{
+		// Check that each RNG was initialized by a different thread, as intended below;
+		// this is not required, but it improves memory locality throughout the run
+		bool threadObserved[mutation_run_context_COUNT_];
+		
+#pragma omp parallel default(none) shared(mutation_run_context_PERTHREAD, threadObserved) num_threads(mutation_run_context_COUNT_)
+		{
+			// Each thread allocates and initializes its own MutationRunContext, for "first touch" optimization
+			int threadnum = omp_get_thread_num();
+			
+			mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
+			mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
+			omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
+			threadObserved[threadnum] = true;
+		}	// end omp parallel
+		
+		for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
+			if (!threadObserved[threadnum])
+				std::cerr << "WARNING: parallel MutationRunContexts were not correctly initialized on their corresponding threads; this may cause slower simulation." << std::endl;
+	}
+#endif	// end _OPENMP
+}
+
 
 //
 // Eidos support
@@ -1598,7 +1747,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_id:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(id_));
 		}
 		case gID_lastPosition:
 		{
@@ -1609,6 +1758,25 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_length:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_ - first_position_ + 1));
+		}
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
+		}
+		case gID_symbol:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(symbol_));
+		}
+		case gEidosID_type:
+		{
+			// FIXME needs to be updated to the new chromosome types
+			switch (species_.ModeledChromosomeType())
+			{
+				case HaplosomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
+				case HaplosomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
+				case HaplosomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
+			}
+			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
 		}
 			
 		case gID_hotspotEndPositions:
@@ -1791,26 +1959,6 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_F_));
-		}
-			
-		case gID_species:
-		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
-		}
-		case gID_symbol:
-		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("\"1\""));
-		}
-		case gEidosID_type:
-		{
-			// FIXME needs to be updated to the new chromosome types
-			switch (species_.ModeledChromosomeType())
-			{
-				case HaplosomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case HaplosomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case HaplosomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
-			}
-			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
 		}
 			
 			// variables
@@ -2381,7 +2529,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 		}
 	}
 	
-	species_.CreateNucleotideMutationRateMap();
+	CreateNucleotideMutationRateMap();
 	InitializeDraws();
 	
 	return gStaticEidosValueVOID;

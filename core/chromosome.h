@@ -60,6 +60,8 @@ public:
 private:
 #endif
 	
+	int64_t id_;
+	std::string symbol_;
 	std::string name_;
 	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
@@ -112,6 +114,17 @@ private:
 	std::vector<GESubrange> mutation_subranges_H_;
 	std::vector<GESubrange> mutation_subranges_M_;
 	std::vector<GESubrange> mutation_subranges_F_;
+	
+	// Chromosome now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
+	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
+	// When running multithreaded, each of these becomes a vector of per-thread objects, so we can alloc/free runs in parallel code.
+	// This stuff is not set up until after initialize() callbacks; nobody should be using MutationRuns before then.
+#ifndef _OPENMP
+	MutationRunContext mutation_run_context_SINGLE_;
+#else
+	int mutation_run_context_COUNT_ = 0;											// the number of PERTHREAD contexts
+	std::vector<MutationRunContext *> mutation_run_context_PERTHREAD;
+#endif
 	
 public:
 	
@@ -187,13 +200,18 @@ public:
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
-	explicit Chromosome(Species &p_species);							// construct with a species
-	~Chromosome(void);														// destructor
+	
+	explicit Chromosome(Species &p_species, int64_t p_id, std::string p_symbol);
+	~Chromosome(void);
+	
+	inline __attribute__((always_inline)) int64_t ID(void)	{ return id_; }
+	inline __attribute__((always_inline)) const std::string &Symbol(void)	{ return symbol_; }
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
 	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	void CreateNucleotideMutationRateMap(void);
 	void InitializeDraws(void);
 	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
 	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_requested_overall_rate, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges);
@@ -244,6 +262,51 @@ public:
 	size_t MemoryUsageForMutationMaps(void);
 	size_t MemoryUsageForRecombinationMaps(void);
 	size_t MemoryUsageForAncestralSequence(void);
+	
+	// Mutation run contexts: each chromosome keeps per-thread "contexts" out of which mutation runs get allocated, and
+	// into which they get freed.  This eliminates between-thread locking when working with mutation runs.
+	void SetUpMutationRunContexts(void);
+	
+#ifndef _OPENMP
+	inline int ChromosomeMutationRunContextCount(void) { return 1; }
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
+	{
+#if DEBUG
+		if (p_thread_num != 0)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+#else
+	inline int ChromosomeMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(int p_thread_num)
+	{
+#if DEBUG
+		if ((p_thread_num < 0) || (p_thread_num >= mutation_run_context_COUNT_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return *(mutation_run_context_PERTHREAD[p_thread_num]);
+	}
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		// The range of the haplosome that each thread is responsible for does not change across
+		// splits/joins; one mutrun becomes two, or two become one, owned by the same thread
+		int thread_num = (int)(p_mutrun_index / mutrun_count_multiplier_);
+		return *(mutation_run_context_PERTHREAD[thread_num]);
+	}
+#endif
 	
 	
 	//
