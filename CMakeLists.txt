@@ -137,7 +137,7 @@ if(WIN32)
     set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
     set(GNULIB_NAMESPACE_SOURCES "${PROJECT_SOURCE_DIR}/core/chromosome.cpp" 
-        "${PROJECT_SOURCE_DIR}/core/genome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/haplosome.cpp" 
         "${PROJECT_SOURCE_DIR}/core/population.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
