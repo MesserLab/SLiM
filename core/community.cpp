@@ -2367,8 +2367,18 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (species->species_id_ != (int)species_index)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
 		
-		if (&species->TheChromosome().species_ != species)
-			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->TheChromosome().species_ mismatch." << EidosTerminate();
+		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+		size_t chromosomes_count = chromosomes.size();
+		
+		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
+		{
+			Chromosome *chromosome = chromosomes[chromosome_index];
+			
+			if (&chromosome->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
+			if (chromosome->Index() != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->ID() mismatch." << EidosTerminate();
+		}
 		
 		Population &population = species->population_;
 		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
