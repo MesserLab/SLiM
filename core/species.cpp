@@ -1988,13 +1988,25 @@ void Species::RunInitializeCallbacks(void)
 	
 	CheckMutationStackPolicy();
 	
-	// In nucleotide-based models, process the mutationMatrix parameters for genomic element types, and construct a mutation rate map
+	// In nucleotide-based models, process the mutationMatrix parameters for genomic element types to calculate the maximum mutation rate
 	if (nucleotide_based_)
-	{
 		CacheNucleotideMatrices();
-		
-		for (Chromosome *chromosome : chromosomes_)
+	
+	// initialize chromosomes
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		// In nucleotide-based models, construct a mutation rate map
+		if (nucleotide_based_)
 			chromosome->CreateNucleotideMutationRateMap();
+		
+		chromosome->InitializeDraws();
+	}
+	
+	// set up mutation runs for all chromosomes
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		chromosome->ChooseMutationRunLayout(preferred_mutrun_count_);
+		chromosome->SetUpMutationRunContexts();
 	}
 	
 	// Defining a neutral mutation type when tree-recording is on (with mutation recording) and the mutation rate is non-zero is legal, but causes a warning
@@ -2033,23 +2045,15 @@ void Species::RunInitializeCallbacks(void)
 		}
 	}
 	
-	// always start at cycle 1, regardless of what the starting tick value might be
-	SetCycle(1);
-	
-	// initialize chromosomes
-	for (Chromosome *chromosome : chromosomes_)
-	{
-		chromosome->InitializeDraws();
-		chromosome->ChooseMutationRunLayout(preferred_mutrun_count_);
-		chromosome->SetUpMutationRunContexts();
-	}
-	
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
 		if (the_chromosome->ancestral_seq_buffer_->size() != (std::size_t)(the_chromosome->last_position_ + 1))
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << the_chromosome->last_position_ + 1 << " base" << (the_chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << the_chromosome->ancestral_seq_buffer_->size() << " base" << (the_chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
+	
+	// always start at cycle 1, regardless of what the starting tick value might be
+	SetCycle(1);
 	
 	// kick off mutation run experiments, if needed
 	InitiateMutationRunExperiments();
@@ -2681,6 +2685,17 @@ void Species::_CheckMutationStackPolicy(void)
 	
 	// we're good until the next change
 	mutation_stack_policy_changed_ = false;
+}
+
+void Species::MaxNucleotideMutationRateChanged(void)
+{
+	CacheNucleotideMatrices();
+	
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		chromosome->CreateNucleotideMutationRateMap();
+		chromosome->InitializeDraws();
+	}
 }
 
 void Species::CacheNucleotideMatrices(void)
@@ -3627,8 +3642,10 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #if SLIM_USE_NONNEUTRAL_CACHES
 void Species::CollectMutationProfileInfo(void)
 {
+	Chromosome &chromosome = TheChromosome();
+	
 	// maintain our history of the number of mutruns per haplosome and the nonneutral regime
-	profile_mutcount_history_.emplace_back(chromosome_->mutrun_count_);
+	profile_mutcount_history_.emplace_back(chromosome.mutrun_count_);
 	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
 	
 	// track the maximum number of mutations in existence at one time

@@ -153,7 +153,7 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 	// though.  So this method is, in a sense, an internal call to initializeMutationRate() that sets up the right
 	// rate map to achieve what the user has requested through other APIs.
 	
-	double max_nucleotide_mut_rate = species_.max_nucleotide_mut_rate_;
+	double max_nucleotide_mut_rate = species_.MaxNucleotideMutationRate();
 	
 	std::vector<slim_position_t> &hotspot_end_positions_H = hotspot_end_positions_H_;
 	std::vector<slim_position_t> &hotspot_end_positions_M = hotspot_end_positions_M_;

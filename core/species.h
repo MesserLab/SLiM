@@ -257,7 +257,9 @@ private:
 	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
+	
 	double max_nucleotide_mut_rate_;				// the highest rate for any genetic background in any genomic element type
+	void CacheNucleotideMatrices(void);
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
@@ -460,7 +462,8 @@ public:
 	void _CheckMutationStackPolicy(void);
 	
 	// Nucleotide-based models
-	void CacheNucleotideMatrices(void);
+	inline __attribute__((always_inline)) double MaxNucleotideMutationRate(void)											{ return max_nucleotide_mut_rate_; }
+	void MaxNucleotideMutationRateChanged(void);
 	
 	// accessors
 	inline __attribute__((always_inline)) slim_tick_t Cycle(void) const														{ return cycle_; }
