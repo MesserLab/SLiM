@@ -375,7 +375,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = graphSpecies->chromosome_->last_position_;
+	mutationLastPosition = graphSpecies->TheChromosome().last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortHaplosomes(void)
