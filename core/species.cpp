@@ -117,7 +117,7 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	// FIXME this should change to be deferred, created either when we know we have an implicit chromosome, or when initializeChromosome() is called
 	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
 	
-	Chromosome *chromosome = new Chromosome(*this, 1, "1");
+	Chromosome *chromosome = new Chromosome(*this, 1, "1", 0);
 	int64_t id = chromosome->ID();
 	std::string symbol = chromosome->Symbol();
 	
@@ -713,7 +713,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, tick, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, TheChromosome().Index(), position, selection_coeff, subpop_index, tick, nucleotide);
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		mutations.emplace(polymorphism_id, new_mut_index);
@@ -1427,7 +1427,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, tick, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, TheChromosome().Index(), position, selection_coeff, subpop_index, tick, nucleotide);
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 		mutations[polymorphism_id] = new_mut_index;
@@ -8314,7 +8314,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, TheChromosome().Index(), position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;

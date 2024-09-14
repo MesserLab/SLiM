@@ -607,6 +607,8 @@
 <p class="p6">Returns <span class="s1">T</span> if the log file is configured to log a new row automatically at the end of the current tick; otherwise, returns <span class="s1">F</span>.<span class="Apple-converted-space">  </span>This is useful for calculating a value that will be logged only in ticks when the value is needed.</p>
 <p class="p1"><b>5.10<span class="Apple-converted-space">  </span>Class Mutation</b></p>
 <p class="p2"><i>5.10.1<span class="Apple-converted-space">  </span></i><span class="s1"><i>Mutation</i></span><i> properties</i></p>
+<p class="p5">chromosome =&gt; (object&lt;Chromosome&gt;$)</p>
+<p class="p6">The <span class="s1">Chromosome</span> object with which the mutation is associated.</p>
 <p class="p3">id =&gt; (integer$)</p>
 <p class="p4">The identifier for this mutation.<span class="Apple-converted-space">  </span>Each mutation created during a run receives an immutable identifier that will be unique across the duration of the run.<span class="Apple-converted-space">  </span>These identifiers are not re-used during a run, except that if a population file is loaded from disk, the loaded mutations will receive their original identifier values as saved in the population file.</p>
 <p class="p5">isFixed =&gt; (logical$)</p>

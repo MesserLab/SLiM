@@ -59,10 +59,11 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(Species &p_species, int64_t p_id, std::string p_symbol) :
+Chromosome::Chromosome(Species &p_species, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index) :
 	id_(p_id),
 	symbol_(p_symbol),
 	name_(),
+	index_(p_index),
 
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
@@ -913,7 +914,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, p_position.first, selection_coeff, p_subpop_index, p_tick, -1);
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, p_subpop_index, p_tick, -1);
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1277,7 +1278,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, position, selection_coeff, p_subpop_index, p_tick, nucleotide);
+	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, p_subpop_index, p_tick, nucleotide);
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)

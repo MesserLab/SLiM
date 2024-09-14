@@ -2735,7 +2735,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 				
-				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, origin_subpop_id, origin_tick, (int8_t)nucleotide);
+				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, selection_coeff, origin_subpop_id, origin_tick, (int8_t)nucleotide);
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 				if (selection_coeff != 0.0)
@@ -3171,7 +3171,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 		
 		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, position, selection_coeff, subpop_index, origin_tick, nucleotide);
+		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, selection_coeff, subpop_index, origin_tick, nucleotide);
 		
 		// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
 		if (selection_coeff != 0.0)
@@ -3769,12 +3769,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 				slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 				
-				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			else
 			{
 				// no mutation ID supplied, so use whatever is next
-				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+				new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
 			}
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
