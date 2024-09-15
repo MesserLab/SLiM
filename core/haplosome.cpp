@@ -649,10 +649,6 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosO
 		Species &species = *haplosomes_species;
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "containsMarkerMutation()");		// SPECIES CONSISTENCY CHECK
 		slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex_NOCAST(0, nullptr));
-		slim_position_t last_position = species.TheChromosome().last_position_;
-		
-		if (marker_position > last_position)
-			EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
 		
 		eidos_logical_t returnMutation = returnMutation_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
@@ -663,6 +659,12 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosO
 			
 			if (!element->IsNull())
 			{
+				Chromosome *chromosome = element->AssociatedChromosome();
+				slim_position_t last_position = chromosome->last_position_;
+				
+				if (marker_position > last_position)
+					EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome for the haplosome." << EidosTerminate();
+				
 				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
 				
 				if (returnMutation == false)
@@ -689,6 +691,12 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosO
 					continue;
 				}
 				
+				Chromosome *chromosome = element->AssociatedChromosome();
+				slim_position_t last_position = chromosome->last_position_;
+				
+				if (marker_position > last_position)
+					EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome for the haplosome." << EidosTerminate();
+				
 				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
 				
 				result_logical_vec->set_logical_no_check(mut != nullptr, element_index);
@@ -712,6 +720,12 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosO
 					null_haplosome_seen = true;
 					continue;
 				}
+				
+				Chromosome *chromosome = element->AssociatedChromosome();
+				slim_position_t last_position = chromosome->last_position_;
+				
+				if (marker_position > last_position)
+					EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome for the haplosome." << EidosTerminate();
 				
 				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
 				
@@ -951,13 +965,13 @@ EidosValue_SP Haplosome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_
 		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 	
 	Species *species = &individual_->subpopulation_->species_;
-	Chromosome &chromosome = species->TheChromosome();
-	slim_position_t last_position = chromosome.last_position_;
+	Chromosome *chromosome = AssociatedChromosome();
+	slim_position_t last_position = chromosome->last_position_;
 	
 	if (!species->IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_nucleotides): nucleotides() may only be called in nucleotide-based models." << EidosTerminate();
 	
-	NucleotideArray *sequence = species->TheChromosome().AncestralSequence();
+	NucleotideArray *sequence = chromosome->AncestralSequence();
 	EidosValue *start_value = p_arguments[0].get();
 	EidosValue *end_value = p_arguments[1].get();
 	

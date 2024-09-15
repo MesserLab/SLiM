@@ -472,15 +472,19 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
 	SLiMModelType model_type = model_type_;
-	Chromosome &the_chromosome = species_.TheChromosome();
-	int32_t mutrun_count = the_chromosome.mutrun_count_;
-	slim_position_t mutrun_length = the_chromosome.mutrun_length_;
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	bool has_genetics = species_.HasGenetics();
 	
-	if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
-	else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	for (Chromosome *chromosome : chromosomes)
+	{
+		int32_t mutrun_count = chromosome->mutrun_count_;
+		slim_position_t mutrun_length = chromosome->mutrun_length_;
+		
+		if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
+		else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	}
 	
 	// below we will use this map to check that every mutation run in use is used at only one mutrun index
 	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
@@ -518,10 +522,24 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if ((haplosome1->individual_ != individual) || (haplosome2->individual_ != individual))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome->individual_ and individual." << EidosTerminate();
 		
-		if (!haplosome1->IsNull() && ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length)))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
-		if (!haplosome2->IsNull() && ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length)))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+		if (!haplosome1->IsNull())
+		{
+			Chromosome *chromosome = haplosome1->AssociatedChromosome();
+			slim_position_t mutrun_count = chromosome->mutrun_count_;
+			slim_position_t mutrun_length = chromosome->mutrun_length_;
+			
+			if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
+		}
+		if (!haplosome2->IsNull())
+		{
+			Chromosome *chromosome = haplosome2->AssociatedChromosome();
+			slim_position_t mutrun_count = chromosome->mutrun_count_;
+			slim_position_t mutrun_length = chromosome->mutrun_length_;
+			
+			if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+		}
 		if (!has_genetics && (!haplosome1->IsNull() || !haplosome2->IsNull()))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null haplosomes." << EidosTerminate();
 		
@@ -678,10 +696,24 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if ((haplosome1->individual_ != individual) || (haplosome2->individual_ != individual))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome->individual_ and individual." << EidosTerminate();
 			
-			if (!haplosome1->IsNull() && ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
-			if (!haplosome2->IsNull() && ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+			if (!haplosome1->IsNull())
+			{
+				Chromosome *chromosome = haplosome1->AssociatedChromosome();
+				slim_position_t mutrun_count = chromosome->mutrun_count_;
+				slim_position_t mutrun_length = chromosome->mutrun_length_;
+				
+				if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
+			}
+			if (!haplosome2->IsNull())
+			{
+				Chromosome *chromosome = haplosome2->AssociatedChromosome();
+				slim_position_t mutrun_count = chromosome->mutrun_count_;
+				slim_position_t mutrun_length = chromosome->mutrun_length_;
+				
+				if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+			}
 			if (!has_genetics && (!haplosome1->IsNull() || !haplosome2->IsNull()))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null haplosomes." << EidosTerminate();
 			
@@ -793,8 +825,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//
 	// Check that every mutation run is being used at a position corresponding to the pool it was allocated from
 	//
-	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
-	
 	for (Chromosome *chromosome : chromosomes)
 	{
 		slim_mutrun_index_t mutrun_count_multiplier = chromosome->mutrun_count_multiplier_;
