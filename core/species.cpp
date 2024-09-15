@@ -2446,8 +2446,6 @@ void Species::nonWF_ViabilitySurvival(void)
 			}
 	}
 	
-	TheChromosome().StartMutationRunExperimentClock();
-	
 	if (no_active_callbacks)
 	{
 		// Survival is simple viability selection without callbacks
@@ -2496,8 +2494,6 @@ void Species::nonWF_ViabilitySurvival(void)
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 	population_.InvalidateMutationReferencesCache();
-	
-	TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::FinishMutationRunExperimentTimings(void)
