@@ -101,7 +101,7 @@ cd %_vpath_builddir
 
 %install
 %if 0%{?rhel} == 8
-cmake --install %_vpath_builddir
+cmake --install %_vpath_builddir --prefix %{buildroot}
 %else
 %cmake_install
 %endif
