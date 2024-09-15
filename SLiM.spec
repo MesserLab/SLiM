@@ -100,7 +100,11 @@ cd %_vpath_builddir
 %cmake_build
 
 %install
+%if 0%{?rhel} == 8
+cmake --install %_vpath_builddir
+%else
 %cmake_install
+%endif
 
 %files
 %{_bindir}/eidos
