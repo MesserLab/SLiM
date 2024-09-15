@@ -2348,60 +2348,6 @@ void Chromosome::PrintMutationRunExperimentSummary(void)
 	}
 }
 
-#if (SLIMPROFILING == 1)
-// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
-void Chromosome::CollectMutationProfileInfo(void)
-{
-	Chromosome &chromosome = TheChromosome();
-	
-	// maintain our history of the number of mutruns per haplosome and the nonneutral regime
-	profile_mutcount_history_.emplace_back(mutrun_count_);
-	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
-	
-	// track the maximum number of mutations in existence at one time
-	int registry_size;
-	
-	population_.MutationRegistry(&registry_size);
-	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
-	
-	// tally up the number of mutation runs, mutation usage metrics, etc.
-	int64_t operation_id = MutationRun::GetNextOperationID();
-	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
-		
-		for (Haplosome *haplosome : subpop_haplosome)
-		{
-			const MutationRun **mutruns = haplosome->mutruns_;
-			int32_t mutrun_count = haplosome->mutrun_count_;
-			
-			profile_mutrun_total_usage_ += mutrun_count;
-			
-			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
-			{
-				const MutationRun *mutrun = mutruns[mutrun_index];
-				
-				if (mutrun)
-				{
-					if (mutrun->operation_id_ != operation_id)
-					{
-						mutrun->operation_id_ = operation_id;
-						profile_unique_mutrun_total_++;
-					}
-					
-					// tally the total and nonneutral mutations
-					mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
-				}
-			}
-		}
-	}
-}
-#endif
-#endif
-
 
 //
 // Eidos support

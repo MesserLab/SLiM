@@ -34,6 +34,10 @@
 #include <unordered_map>
 #include <cstdint>
 
+// Workaround for Xcode bug: when you want to debug build problems with a Release build related to profiling, uncomment this,
+// since the target-level definition of SLIMPROFILING doesn't seem to affect syntax highlighting and build errors correctly.
+//#define SLIMPROFILING 1
+
 #if defined(__APPLE__) && defined(__MACH__)
 // On macOS we use mach_absolute_time() for profiling and benchmarking
 #include <mach/mach_time.h>
