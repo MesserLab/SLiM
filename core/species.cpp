@@ -77,14 +77,6 @@ extern "C" {
 #endif
 
 
-// Mutation run experiment timing macros.  We use these to accumulate clocks taken in critical sections of the code.
-// Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very
-// different work from one cycle to the next, this seems best, although it does mean that the impact of the number
-// of mutation runs on the execution time of Eidos events is not measured.
-#define MUTRUNEXP_START_TIMING(var) std::clock_t var = (x_experiments_enabled_ ? std::clock() : 0);
-#define MUTRUNEXP_END_TIMING(var) if (x_experiments_enabled_) x_total_gen_clocks_ += (std::clock() - (var));
-
-
 // This is the version written to the provenance table of .trees files
 static const char *SLIM_TREES_FILE_VERSION_INITIAL __attribute__((unused)) = "0.1";		// SLiM 3.0, before the Inidividual table, etc.; UNSUPPORTED
 static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introduction of nucleotides
@@ -101,7 +93,7 @@ static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, wit
 
 Species::Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(p_name), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Species_Class))),
-    x_experiments_enabled_(false), model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(p_name), species_id_(p_species_id)
+    model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(p_name), species_id_(p_species_id)
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
@@ -144,18 +136,6 @@ Species::~Species(void)
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
 	genomic_element_types_.clear();
-	
-	// Dispose of mutation run experiment data
-	if (x_experiments_enabled_)
-	{
-		if (x_current_runtimes_)
-			free(x_current_runtimes_);
-		x_current_runtimes_ = nullptr;
-		
-		if (x_previous_runtimes_)
-			free(x_previous_runtimes_);
-		x_previous_runtimes_ = nullptr;
-	}
 	
 	// Free the shuffle buffer
 	if (shuffle_buffer_)
@@ -1864,28 +1844,29 @@ void Species::RunInitializeCallbacks(void)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot be nucleotide-based; either add genetic initialization calls, or turn off nucleotides." << EidosTerminate();
-		if (preferred_mutrun_count_ > 0)
-			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot have a specified mutation run count (with initializeSLiMOptions()), since they do not use mutation runs." << EidosTerminate();
 		
 		has_genetics_ = false;
 		
+		for (Chromosome *chromosome : chromosomes_)
 		{
-			// initializeMutationRate(): initialize to zero
-			std::vector<slim_position_t> &positions = the_chromosome->mutation_end_positions_H_;
-			std::vector<double> &rates = the_chromosome->mutation_rates_H_;
-			rates.clear();
-			positions.clear();
-			rates.emplace_back(0.0);
-			num_mutation_rates_++;
-		}
-		{
-			// initializeRecombinationRate(): initialize to zero
-			std::vector<slim_position_t> &positions = the_chromosome->recombination_end_positions_H_;
-			std::vector<double> &rates = the_chromosome->recombination_rates_H_;
-			rates.clear();
-			positions.clear();
-			rates.emplace_back(0.0);
-			num_recombination_rates_++;
+			{
+				// initializeMutationRate(): initialize to zero
+				std::vector<slim_position_t> &positions = chromosome->mutation_end_positions_H_;
+				std::vector<double> &rates = chromosome->mutation_rates_H_;
+				rates.clear();
+				positions.clear();
+				rates.emplace_back(0.0);
+				num_mutation_rates_++;
+			}
+			{
+				// initializeRecombinationRate(): initialize to zero
+				std::vector<slim_position_t> &positions = chromosome->recombination_end_positions_H_;
+				std::vector<double> &rates = chromosome->recombination_rates_H_;
+				rates.clear();
+				positions.clear();
+				rates.emplace_back(0.0);
+				num_recombination_rates_++;
+			}
 		}
 		
 		community_.chromosome_changed_ = true;
@@ -2005,7 +1986,7 @@ void Species::RunInitializeCallbacks(void)
 	// set up mutation runs for all chromosomes
 	for (Chromosome *chromosome : chromosomes_)
 	{
-		chromosome->ChooseMutationRunLayout(preferred_mutrun_count_);
+		chromosome->ChooseMutationRunLayout();
 		chromosome->SetUpMutationRunContexts();
 	}
 	
@@ -2056,7 +2037,8 @@ void Species::RunInitializeCallbacks(void)
 	SetCycle(1);
 	
 	// kick off mutation run experiments, if needed
-	InitiateMutationRunExperiments();
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->InitiateMutationRunExperiments();
 	
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
@@ -2084,36 +2066,19 @@ void Species::PrepareForCycle(void)
 #endif
 	
 	// zero out clock accumulators for mutation run experiments; we will add to these as we do work later
-	if (x_experiments_enabled_)
-	{
-		if (x_total_gen_clocks_ != 0)
-		{
-			// Clocks should only get logged in the interval within which they are used; if there are leftover counts
-			// at this point, somebody is logging counts that are not getting used in the total.  Warn once.
-			static bool beenHere = false;
-			
-			if (!beenHere)
-			{
-				THREAD_SAFETY_IN_ANY_PARALLEL("Species::PrepareForCycle(): usage of statics");
-				
-				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!";
-				beenHere = true;
-			}
-			
-			x_total_gen_clocks_ = 0;
-		}
-	}
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->ZeroMutationRunExperimentClock();
 }
 
 void Species::MaintainMutationRegistry(void)
 {
 	if (has_genetics_)
 	{
-		MUTRUNEXP_START_TIMING(x_clock0);
+		TheChromosome().StartMutationRunExperimentClock();
 		
 		population_.MaintainMutationRegistry();
 		
-		MUTRUNEXP_END_TIMING(x_clock0);
+		TheChromosome().StopMutationRunExperimentClock();
 		
 		// Every hundredth cycle we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
 		// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
@@ -2129,11 +2094,11 @@ void Species::MaintainMutationRegistry(void)
 
 void Species::RecalculateFitness(void)
 {
-	MUTRUNEXP_START_TIMING(x_clock0);
+	TheChromosome().StartMutationRunExperimentClock();
 	
 	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
 	
-	MUTRUNEXP_END_TIMING(x_clock0);
+	TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::MaintainTreeSequence(void)
@@ -2257,12 +2222,12 @@ void Species::WF_GenerateOffspring(void)
 	
 	if (no_active_callbacks)
 	{
-		MUTRUNEXP_START_TIMING(x_clock0);
+		TheChromosome().StartMutationRunExperimentClock();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false, false);
 		
-		MUTRUNEXP_END_TIMING(x_clock0);
+		TheChromosome().StopMutationRunExperimentClock();
 	}
 	else
 	{
@@ -2318,12 +2283,12 @@ void Species::WF_GenerateOffspring(void)
 		}
 		
 		// then evolve each subpop
-		MUTRUNEXP_START_TIMING(x_clock0);
+		TheChromosome().StartMutationRunExperimentClock();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
 		
-		MUTRUNEXP_END_TIMING(x_clock0);
+		TheChromosome().StopMutationRunExperimentClock();
 	}
 }
 
@@ -2340,11 +2305,11 @@ void Species::WF_SwitchToChildGeneration(void)
 	// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
 	// BCH 4/22/2023: this is no longer relevant in terms of accurate MutationRun refcounts, since
 	// we no longer refcount those, but they still need to be zeroed out so they're ready for reuse
-	MUTRUNEXP_START_TIMING(x_clock0);
+	TheChromosome().StartMutationRunExperimentClock();
 	
 	population_.ClearParentalHaplosomes();
 	
-	MUTRUNEXP_END_TIMING(x_clock0);
+	TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::WF_SwapGenerations(void)
@@ -2415,12 +2380,12 @@ void Species::nonWF_GenerateOffspring(void)
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	
-	MUTRUNEXP_START_TIMING(x_clock0);
+	TheChromosome().StartMutationRunExperimentClock();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->ReproduceSubpopulation();
 	
-	MUTRUNEXP_END_TIMING(x_clock0);
+	TheChromosome().StopMutationRunExperimentClock();
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
@@ -2481,7 +2446,7 @@ void Species::nonWF_ViabilitySurvival(void)
 			}
 	}
 	
-	MUTRUNEXP_START_TIMING(x_clock0);
+	TheChromosome().StartMutationRunExperimentClock();
 	
 	if (no_active_callbacks)
 	{
@@ -2532,16 +2497,13 @@ void Species::nonWF_ViabilitySurvival(void)
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 	population_.InvalidateMutationReferencesCache();
 	
-	MUTRUNEXP_END_TIMING(x_clock0);
+	TheChromosome().StopMutationRunExperimentClock();
 }
 
-void Species::FinishMutationRunExperimentTiming(void)
+void Species::FinishMutationRunExperimentTimings(void)
 {
-	if (x_experiments_enabled_)
-	{
-		MaintainMutationRunExperiments(x_total_gen_clocks_ / (double)CLOCKS_PER_SEC);
-		x_total_gen_clocks_ = 0;
-	}
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->FinishMutationRunExperimentTiming();
 }
 
 void Species::SetCycle(slim_tick_t p_new_cycle)
@@ -2563,71 +2525,9 @@ void Species::SimulationHasFinished(void)
 	// This is an opportunity for final calculation/output when a simulation finishes
 	// This is called by Community::SimulationHasFinished() for each species
 	
-#if MUTRUN_EXPERIMENT_OUTPUT
-	// Print a full mutation run count history if MUTRUN_EXPERIMENT_OUTPUT is enabled
-	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
-	{
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutrun count history:" << std::endl;
-		SLIM_OUTSTREAM << "// mutrun_history <- c(";
-		
-		bool first_count = true;
-		
-		for (int32_t count : x_mutcount_history_)
-		{
-			if (first_count)
-				first_count = false;
-			else
-				SLIM_OUTSTREAM << ", ";
-			
-			SLIM_OUTSTREAM << count;
-		}
-		
-		SLIM_OUTSTREAM << ")" << std::endl << std::endl;
-	}
-#endif
-	
-	// If verbose output is enabled and we've been running mutation run experiments,
-	// figure out the modal mutation run count and print that, for the user's benefit.
-	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
-	{
-		int modal_index, modal_tally;
-		int power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		
-		for (int i = 0; i < 20; ++i)		// NOLINT(*-loop-convert) : parallel to the loop below
-			power_tallies[i] = 0;
-		
-		for (int32_t count : x_mutcount_history_)
-		{
-			int32_t power = (int32_t)round(log2(count));
-			
-			power_tallies[power]++;
-		}
-		
-		modal_index = -1;
-		modal_tally = -1;
-		
-		for (int i = 0; i < 20; ++i)
-			if (power_tallies[i] > modal_tally)
-			{
-				modal_tally = power_tallies[i];
-				modal_index = i;
-			}
-		
-		int modal_count = (int)round(pow(2.0, modal_index));
-		double modal_fraction = power_tallies[modal_index] / (double)(x_mutcount_history_.size());
-		
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutation run modal count: " << modal_count << " (" << (modal_fraction * 100) << "% of cycles)" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "// It might (or might not) speed up your model to add a call to:" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "//    initializeSLiMOptions(mutationRuns=" << modal_count << ");" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "// to your initialize() callback.  The optimal value will change" << std::endl;
-		SLIM_OUTSTREAM << "// if your model changes.  See the SLiM manual for more details." << std::endl;
-		SLIM_OUTSTREAM << std::endl;
-	}
+	// Print mutation run experiment results
+	for (Chromosome *chromosome : chromosomes_)
+		chromosome->PrintMutationRunExperimentSummary();
 }
 
 void Species::_CheckMutationStackPolicy(void)
@@ -3134,562 +3034,6 @@ void Species::ReturnShuffleBuffer(void)
 	
 	shuffle_buf_borrowed_ = false;
 }
-
-
-//
-// Mutation run experiments
-//
-#pragma mark -
-#pragma mark Mutation run experiments
-#pragma mark -
-
-void Species::InitiateMutationRunExperiments(void)
-{
-	// FIXME: All the mutrun experiment stuff will move to Chromosome, I think?
-	Chromosome &chromosome = TheChromosome();
-	
-	if (preferred_mutrun_count_ != 0)
-	{
-		// If the user supplied a count, go with that and don't run experiments
-		x_experiments_enabled_ = false;
-		
-		if (SLiM_verbosity_level >= 2)
-		{
-			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// Mutation run experiments disabled since a mutation run count was supplied" << std::endl;
-		}
-		
-		return;
-	}
-	if (chromosome.mutrun_length_ <= SLIM_MUTRUN_MAXIMUM_COUNT)
-	{
-		// If the chromosome length is too short, go with that and don't run experiments;
-		// we want to guarantee that with SLIM_MUTRUN_MAXIMUM_COUNT runs each mutrun is at
-		// least one mutation in length, so the code doesn't break down
-		x_experiments_enabled_ = false;
-		
-		if (SLiM_verbosity_level >= 2)
-		{
-			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// Mutation run experiments disabled since the chromosome is very short" << std::endl;
-		}
-		
-		return;
-	}
-	
-	x_experiments_enabled_ = true;
-	
-	x_current_mutcount_ = chromosome.mutrun_count_;
-	x_current_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
-	x_current_buflen_ = 0;
-	
-	x_previous_mutcount_ = 0;			// marks that no previous experiment has been done
-	x_previous_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
-	x_previous_buflen_ = 0;
-	
-	if (!x_current_runtimes_ || !x_previous_runtimes_)
-		EIDOS_TERMINATION << "ERROR (Species::InitiateMutationRunExperiments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	x_continuing_trend_ = false;
-	
-	x_stasis_limit_ = 5;				// once we reach stasis, we will conduct 5 stasis experiments before exploring again
-	x_stasis_alpha_ = 0.01;				// initially, we use an alpha of 0.01 to break out of stasis due to a change in mean
-	x_stasis_counter_ = 0;
-	x_prev1_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
-	x_prev2_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
-	
-	if (SLiM_verbosity_level >= 2)
-	{
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutation run experiments started" << std::endl;
-	}
-}
-
-void Species::TransitionToNewExperimentAgainstCurrentExperiment(int32_t p_new_mutrun_count)
-{
-	// Save off the old experiment
-	x_previous_mutcount_ = x_current_mutcount_;
-	std::swap(x_current_runtimes_, x_previous_runtimes_);
-	x_previous_buflen_ = x_current_buflen_;
-	
-	// Set up the next experiment
-	x_current_mutcount_ = p_new_mutrun_count;
-	x_current_buflen_ = 0;
-}
-
-void Species::TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count)
-{
-	// Set up the next experiment
-	x_current_mutcount_ = p_new_mutrun_count;
-	x_current_buflen_ = 0;
-}
-
-void Species::EnterStasisForMutationRunExperiments(void)
-{
-	if ((x_current_mutcount_ == x_prev1_stasis_mutcount_) || (x_current_mutcount_ == x_prev2_stasis_mutcount_))
-	{
-		// One of our recent trips to stasis was at the same count, so we broke stasis incorrectly; get stricter.
-		// The purpose for keeping two previous counts is to detect when we are ping-ponging between two values
-		// that produce virtually identical performance; we want to detect that and just settle on one of them.
-		x_stasis_alpha_ *= 0.5;
-		x_stasis_limit_ *= 2;
-		
-#if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbosity_level >= 2)
-			SLIM_OUTSTREAM << "// Remembered previous stasis at " << x_current_mutcount_ << ", strengthening stasis criteria" << std::endl;
-#endif
-	}
-	else
-	{
-		// Our previous trips to stasis were at a different number of mutation runs, so reset our stasis parameters
-		x_stasis_limit_ = 5;
-		x_stasis_alpha_ = 0.01;
-		
-#if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbosity_level >= 2)
-			SLIM_OUTSTREAM << "// No memory of previous stasis at " << x_current_mutcount_ << ", resetting stasis criteria" << std::endl;
-#endif
-	}
-	
-	x_stasis_counter_ = 1;
-	x_continuing_trend_ = false;
-	
-	// Preserve a memory of the last two *different* mutcounts we entered stasis on.  Only forget the old value
-	// in x_prev2_stasis_mutcount_ if x_prev1_stasis_mutcount_ is about to get a new and different value.
-	// This makes the anti-ping-pong mechanism described above effective even if we ping-pong irregularly.
-	if (x_prev1_stasis_mutcount_ != x_current_mutcount_)
-		x_prev2_stasis_mutcount_ = x_prev1_stasis_mutcount_;
-	x_prev1_stasis_mutcount_ = x_current_mutcount_;
-	
-#if MUTRUN_EXPERIMENT_OUTPUT
-	if (SLiM_verbosity_level >= 2)
-		SLIM_OUTSTREAM << "// ****** ENTERING STASIS AT " << x_current_mutcount_ << " : x_stasis_limit_ = " << x_stasis_limit_ << ", x_stasis_alpha_ = " << x_stasis_alpha_ << std::endl;
-#endif
-}
-
-void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
-{
-	// FIXME: All the mutrun experiment stuff will move to Chromosome, I think?
-	Chromosome &chromosome = TheChromosome();
-	
-	// Log the last cycle time into our buffer
-	if (x_current_buflen_ >= SLIM_MUTRUN_EXPERIMENT_LENGTH)
-		EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
-	
-	x_current_runtimes_[x_current_buflen_] = p_last_gen_runtime;
-	
-	// Remember the history of the mutation run count
-	x_mutcount_history_.emplace_back(x_current_mutcount_);
-	
-	// If the current experiment is not over, continue running it
-	++x_current_buflen_;
-	
-	double current_mean = 0.0, previous_mean = 0.0, p = 0.0;
-	
-	if ((x_current_buflen_ == 10) && (x_current_mutcount_ != x_previous_mutcount_) && (x_previous_mutcount_ != 0))
-	{
-		// We want to be able to cut an experiment short if it is clearly a disaster.  So if we're not in stasis, and
-		// we've run for 10 cycles, and the experiment mean is already different from the baseline at alpha 0.01,
-		// and the experiment mean is worse than the baseline mean (if it is better, we want to continue collecting),
-		// let's short-circuit the rest of the experiment and bail – like early termination of a medical trial.
-		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
-		
-		if ((p < 0.01) && (current_mean > previous_mean))
-		{
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-			{
-				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded HIGHLY SIGNIFICANT p of " << p << " with negative results; terminating early." << std::endl;
-			}
-#endif
-			
-			goto early_ttest_passed;
-		}
-#if MUTRUN_EXPERIMENT_OUTPUT
-		else if (SLiM_verbosity_level >= 2)
-		{
-			if (p >= 0.01)
-			{
-				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded not highly significant p of " << p << "; continuing." << std::endl;
-			}
-			else if (current_mean > previous_mean)
-			{
-				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded highly significant p of " << p << " with positive results; continuing data collection." << std::endl;
-			}
-		}
-#endif
-	}
-	
-	if (x_current_buflen_ < SLIM_MUTRUN_EXPERIMENT_LENGTH)
-		return;
-	
-	if (x_previous_mutcount_ == 0)
-	{
-		// FINISHED OUR FIRST EXPERIMENT; move on to the next experiment, which is always double the number of mutruns
-#if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbosity_level >= 2)
-		{
-			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// ** " << cycle_ << " : First mutation run experiment completed with mutrun count " << x_current_mutcount_ << "; will now try " << (x_current_mutcount_ * 2) << std::endl;
-		}
-#endif
-		
-		TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
-	}
-	else
-	{
-		// If we've just finished the second stasis experiment, run another stasis experiment before trying to draw any
-		// conclusions.  We often enter stasis with one cycle's worth of data that was actually collected quite a
-		// while ago, because we did exploration in both directions first.  This can lead to breaking out of stasis
-		// immediately after entering, because we're comparing apples and oranges.  So we avoid doing that here.
-		if ((x_stasis_counter_ <= 1) && (x_current_mutcount_ == x_previous_mutcount_))
-		{
-			TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_);
-			++x_stasis_counter_;
-			
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-			{
-				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed (second stasis cycle, no tests conducted)" << std::endl;
-			}
-#endif
-			
-			return;
-		}
-		
-		// Otherwise, get a result from a t-test and decide what to do
-		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
-		
-	early_ttest_passed:
-		
-#if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbosity_level >= 2)
-		{
-			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed:" << std::endl;
-			SLIM_OUTSTREAM << "//    mean == " << current_mean << " for " << x_current_mutcount_ << " mutruns (" << x_current_buflen_ << " data points)" << std::endl;
-			SLIM_OUTSTREAM << "//    mean == " << previous_mean << " for " << x_previous_mutcount_ << " mutruns (" << x_previous_buflen_ << " data points)" << std::endl;
-		}
-#endif
-		
-		if (x_current_mutcount_ == x_previous_mutcount_)	// are we in stasis?
-		{
-			//
-			// FINISHED A STASIS EXPERIMENT; unless we have changed at alpha = 0.01 we stay put
-			//
-			bool means_different_stasis = (p < x_stasis_alpha_);
-			
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "//    p == " << p << " : " << (means_different_stasis ? "SIGNIFICANT DIFFERENCE" : "no significant difference") << " at stasis alpha " << x_stasis_alpha_ << std::endl;
-#endif
-			
-			if (means_different_stasis)
-			{
-				// OK, it looks like something has changed about our scenario, so we should come out of stasis and re-test.
-				// We don't have any information about the new state of affairs, so we have no directional preference.
-				// Let's try a larger number of mutation runs first, since haplosomes tend to fill up, unless we're at the max.
-				if (x_current_mutcount_ * 2 > SLIM_MUTRUN_MAXIMUM_COUNT)
-					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ / 2);
-				else
-					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
-				
-#if MUTRUN_EXPERIMENT_OUTPUT
-				if (SLiM_verbosity_level >= 2)
-					SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis mean changed, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
-#endif
-			}
-			else
-			{
-				// We seem to be in a constant scenario.  Increment our stasis counter and see if we have reached our stasis limit
-				if (++x_stasis_counter_ >= x_stasis_limit_)
-				{
-					// We reached the stasis limit, so we will try an experiment even though we don't seem to have changed;
-					// as before, we try more mutation runs first, since increasing genetic complexity is typical
-					if (x_current_mutcount_ * 2 > SLIM_MUTRUN_MAXIMUM_COUNT)
-						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ / 2);
-					else
-						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
-					
-#if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbosity_level >= 2)
-						SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis limit reached, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
-#endif
-				}
-				else
-				{
-					// We have not yet reached the stasis limit, so run another stasis experiment.
-					// In this case we don't do a transition; we want to continue comparing against the original experiment
-					// data so that if stasis slowly drift away from us, we eventually detect that as a change in stasis.
-					x_current_buflen_ = 0;
-					
-#if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbosity_level >= 2)
-						SLIM_OUTSTREAM << "//    " << cycle_ << " : Stasis limit not reached (" << x_stasis_counter_ << " of " << x_stasis_limit_ << "), running another stasis experiment at " << x_current_mutcount_ << std::endl;
-#endif
-				}
-			}
-		}
-		else
-		{
-			//
-			// FINISHED A NON-STASIS EXPERIMENT; trying a move toward more/fewer mutruns
-			//
-			double alpha = 0.05;
-			bool means_different_05 = (p < alpha);
-			
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "//    p == " << p << " : " << (means_different_05 ? "SIGNIFICANT DIFFERENCE" : "no significant difference") << " at alpha " << alpha << std::endl;
-#endif
-			
-			int32_t trend_next = (x_current_mutcount_ < x_previous_mutcount_) ? (x_current_mutcount_ / 2) : (x_current_mutcount_ * 2);
-			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? chromosome.mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, chromosome_->mutrun_count_base_ == 1
-			
-			if ((current_mean < previous_mean) || (!means_different_05 && (x_current_mutcount_ < x_previous_mutcount_)))
-			{
-				// We enter this case under two different conditions.  The first is that the new mean is better
-				// than the old mean; whether that is significant or not, we want to continue in the same direction
-				// with a new experiment, which is what we do here.  The other case is if the new mean is worse
-				// than the old mean, but the difference is non-significant *and* we're trending toward fewer
-				// mutation runs.  We treat that the same way: continue with a new experiment in the same direction.
-				// But if the new mean is worse that the old mean and we're trending toward more mutation runs,
-				// we do NOT follow this case, because an inconclusive but negative increasing trend pushes up our
-				// peak memory usage and can be quite inefficient, and usually we just jump back down anyway.
-				// BCH 8/14/2023: The if() below is intended to diagnose if trend_next will go beyond trend_limit,
-				// and is thus not a legal move.  Just testing (x_current_mutcount_ == trend_limit) used to suffice,
-				// because the base count was always a power of 2.  Now that is no longer true, and so we can, e.g.,
-				// be at 768 and thinking about doubling to 1536.  We test for going beyond SLIM_MUTRUN_MAXIMUM_COUNT
-				// explicitly now, to address that case.  Going too low is still effectively prevented, since we
-				// will always reach the base count exactly before going below it.
-				if ((x_current_mutcount_ == trend_limit) || (trend_next > SLIM_MUTRUN_MAXIMUM_COUNT))
-				{
-					if (current_mean < previous_mean)
-					{
-						// Can't go beyond the trend limit (1 or SLIM_MUTRUN_MAXIMUM_COUNT), so we're done; ****** ENTER STASIS
-						// We keep the current experiment as the first stasis experiment.
-						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_);
-						
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
-#endif
-						
-						EnterStasisForMutationRunExperiments();
-					}
-					else
-					{
-						// The means are not significantly different, and the current experiment is worse than the
-						// previous one, and we can't go beyond the trend limit, so we're done; ****** ENTER STASIS
-						// We keep the previous experiment as the first stasis experiment.
-						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
-						
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "failed" : "inconclusive but negative") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
-#endif
-						
-						EnterStasisForMutationRunExperiments();
-					}
-				}
-				else
-				{
-					if (current_mean < previous_mean)
-					{
-						// Even if the difference is not significant, we appear to be moving in a beneficial direction,
-						// so we will run the next experiment against the current experiment's results
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), continuing trend with " << trend_next << " (against " << x_current_mutcount_ << ")" << std::endl;
-#endif
-						
-						TransitionToNewExperimentAgainstCurrentExperiment(trend_next);
-						x_continuing_trend_ = true;
-					}
-					else
-					{
-						// The difference is not significant, but we might be moving in a bad direction, and a series
-						// of such moves, each non-significant against the previous experiment, can lead us way down
-						// the garden path.  To make sure that doesn't happen, we run successive inconclusive experiments
-						// against whichever preceding experiment had the lowest mean.
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment inconclusive but negative at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), checking " << trend_next << " (against " << x_previous_mutcount_ << ")" << std::endl;
-#endif
-						
-						TransitionToNewExperimentAgainstPreviousExperiment(trend_next);
-					}
-				}
-			}
-			else
-			{
-				// The old mean was better, and either the difference is significant or the trend is toward more mutation
-				// runs, so we want to give up on this trend and go back
-				if (x_continuing_trend_)
-				{
-					// We already tried a step on the opposite side of the old position, so the old position appears ideal; ****** ENTER STASIS.
-					// We throw away the current, failed experiment and keep the last experiment at the previous position as the first stasis experiment.
-					TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
-					
-#if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbosity_level >= 2)
-						SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, already tried opposite side, so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
-#endif
-					
-					EnterStasisForMutationRunExperiments();
-				}
-				else
-				{
-					// We have not tried a step on the opposite side of the old position; let's return to our old position,
-					// which we know is better than the position we just ran an experiment at, and then advance onward to
-					// run an experiment at the next position in that reversed trend direction.
-					int32_t new_mutcount = ((x_current_mutcount_ > x_previous_mutcount_) ? (x_previous_mutcount_ / 2) : (x_previous_mutcount_ * 2));
-					
-					if ((x_previous_mutcount_ == chromosome.mutrun_count_base_) || (x_previous_mutcount_ == SLIM_MUTRUN_MAXIMUM_COUNT) ||
-						(new_mutcount < chromosome.mutrun_count_base_) || (new_mutcount > SLIM_MUTRUN_MAXIMUM_COUNT))
-					{
-						// can't jump over the previous mutcount, so we enter stasis at it
-						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
-						
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, opposite side blocked so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
-#endif
-						
-						EnterStasisForMutationRunExperiments();
-					}
-					else
-					{
-#if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbosity_level >= 2)
-							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment failed at " << x_current_mutcount_ << ", opposite side untried, reversing trend back to " << new_mutcount << " (against " << x_previous_mutcount_ << ")" << std::endl;
-#endif
-						
-						TransitionToNewExperimentAgainstPreviousExperiment(new_mutcount);
-						x_continuing_trend_ = true;
-					}
-				}
-			}
-		}
-	}
-	
-	// Promulgate the new mutation run count
-	if (x_current_mutcount_ != chromosome.mutrun_count_)
-	{
-		// Fix all haplosomes.  We could do this by brute force, by making completely new mutation runs for every
-		// existing haplosome and then calling Population::UniqueMutationRuns(), but that would be inefficient,
-		// and would also cause a huge memory usage spike.  Instead, we want to preserve existing redundancy.
-		
-		while (x_current_mutcount_ > chromosome.mutrun_count_)
-		{
-#if MUTRUN_EXPERIMENT_OUTPUT
-			std::clock_t start_clock = std::clock();
-#endif
-			
-			if (x_current_mutcount_ > SLIM_MUTRUN_MAXIMUM_COUNT)
-				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) splitting mutation runs to beyond SLIM_MUTRUN_MAXIMUM_COUNT (x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
-			
-			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
-			// mutrun indices; every time we encounter the same old index we will substitute the same pair.
-			population_.SplitMutationRuns(chromosome.mutrun_count_ * 2);
-			
-			// Fix the chromosome values
-			chromosome.mutrun_count_multiplier_ *= 2;
-			chromosome.mutrun_count_ *= 2;
-			chromosome.mutrun_length_ /= 2;
-			
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
-#endif
-		}
-		
-		while (x_current_mutcount_ < chromosome.mutrun_count_)
-		{
-#if MUTRUN_EXPERIMENT_OUTPUT
-			std::clock_t start_clock = std::clock();
-#endif
-			
-			if (chromosome.mutrun_count_multiplier_ % 2 != 0)
-				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << chromosome.mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
-			
-			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
-			// index; every time we encounter the same pair of indices we will substitute the same index.
-			population_.JoinMutationRuns(chromosome.mutrun_count_ / 2);
-			
-			// Fix the chromosome values
-			chromosome.mutrun_count_multiplier_ /= 2;
-			chromosome.mutrun_count_ /= 2;
-			chromosome.mutrun_length_ *= 2;
-			
-#if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
-#endif
-		}
-		
-		if (chromosome.mutrun_count_ != x_current_mutcount_)
-			EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
-	}
-}
-
-#if (SLIMPROFILING == 1)
-// PROFILING
-#if SLIM_USE_NONNEUTRAL_CACHES
-void Species::CollectMutationProfileInfo(void)
-{
-	Chromosome &chromosome = TheChromosome();
-	
-	// maintain our history of the number of mutruns per haplosome and the nonneutral regime
-	profile_mutcount_history_.emplace_back(chromosome.mutrun_count_);
-	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
-	
-	// track the maximum number of mutations in existence at one time
-	int registry_size;
-	
-	population_.MutationRegistry(&registry_size);
-	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
-	
-	// tally up the number of mutation runs, mutation usage metrics, etc.
-	int64_t operation_id = MutationRun::GetNextOperationID();
-	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
-		
-		for (Haplosome *haplosome : subpop_haplosome)
-		{
-			const MutationRun **mutruns = haplosome->mutruns_;
-			int32_t mutrun_count = haplosome->mutrun_count_;
-			
-			profile_mutrun_total_usage_ += mutrun_count;
-			
-			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
-			{
-				const MutationRun *mutrun = mutruns[mutrun_index];
-				
-				if (mutrun)
-				{
-					if (mutrun->operation_id_ != operation_id)
-					{
-						mutrun->operation_id_ = operation_id;
-						profile_unique_mutrun_total_++;
-					}
-					
-					// tally the total and nonneutral mutations
-					mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
-				}
-			}
-		}
-	}
-}
-#endif
-#endif
 
 
 //

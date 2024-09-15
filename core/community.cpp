@@ -2691,7 +2691,7 @@ bool Community::_RunOneTickWF(void)
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+				species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -3088,7 +3088,7 @@ bool Community::_RunOneTickNonWF(void)
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+				species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING

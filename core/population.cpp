@@ -5459,8 +5459,9 @@ void Population::UniqueMutationRuns(void)
 }
 
 #ifndef __clang_analyzer__
-void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
+void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
+#warning split only for p_chromosome
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
 	TallyMutationRunReferencesForPopulation();
 	
@@ -5624,7 +5625,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 }
 #else
 // the static analyzer has a lot of trouble understanding this method
-void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
+void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
 }
 #endif
@@ -5659,8 +5660,9 @@ struct slim_pair_hash {
 };
 
 #ifndef __clang_analyzer__
-void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
+void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
+#warning join only for p_chromosome
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
 	TallyMutationRunReferencesForPopulation();
 	
@@ -5821,7 +5823,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 }
 #else
 // the static analyzer has a lot of trouble understanding this method
-void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
+void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
 }
 #endif

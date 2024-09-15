@@ -926,20 +926,17 @@ If
 \f1\fs18 Subpopulation
 \f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 If 
-\f1\fs18 mutationRuns
-\f2\fs20  is not 
-\f1\fs18 0
-\f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
-\f1\fs18 Haplosome
-\f2\fs20  objects; if it is 
-\f1\fs18 0
-\f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
-\f1\fs18 mutationRuns=1
-\f4\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2 \cf0 If 
+\f0\b \cf2 \kerning1\expnd0\expndtw0 The 
+\f5\fs18 mutationRuns
+\f0\fs20  parameter has been deprecated.
+\f2\b0   In SLiM 5 and later, use the 
+\f1\fs18 mutationRuns
+\f2\fs20  parameter to 
+\f1\fs18 initializeChromosome()
+\f2\fs20  instead.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
 \f1\fs18 T

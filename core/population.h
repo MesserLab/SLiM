@@ -250,8 +250,8 @@ public:
 	void UniqueMutationRuns(void);
 	
 	// Scan through all haplosomes and either split or join their mutation runs, to double or halve the number of runs per haplosome
-	void SplitMutationRuns(int32_t p_new_mutrun_count);
-	void JoinMutationRuns(int32_t p_new_mutrun_count);
+	void SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome);
+	void JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome);
 	
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainMutationRegistry(void);

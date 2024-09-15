@@ -249,9 +249,6 @@ private:
 	bool periodic_y_ = false;
 	bool periodic_z_ = false;
 	
-	// preferred mutation run length
-	int preferred_mutrun_count_ = 0;												// 0 represents no preference
-	
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
@@ -264,36 +261,6 @@ private:
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;								// a user-defined tag value
-	
-	// Mutation run optimization.  The ivars here are used only internally by Species; the canonical reference regarding the
-	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Haplosome (for each haplosome object).
-	// If Species decides to change the number of mutation runs, it will update those canonical repositories accordingly.
-	// A prefix of x_ is used on all mutation run experiment ivars, to avoid confusion.
-#define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
-#define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
-	
-	bool x_experiments_enabled_;				// if false, no experiments are run and no cycle runtimes are recorded
-	
-	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
-	double *x_current_runtimes_;				// cycle runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_current_buflen_;						// the number of runtimes in the current_mutcount_runtimes_ buffer
-	
-	int32_t x_previous_mutcount_;				// the number of mutation runs we previously used
-	double *x_previous_runtimes_;				// cycle runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_previous_buflen_;						// the number of runtimes in the previous_mutcount_runtimes_ buffer
-	
-	bool x_continuing_trend_;					// if true, the current experiment continues a trend, such that the opposite trend can be excluded
-	
-	int64_t x_stasis_limit_;					// how many stasis experiments we're running between change experiments; gets longer over time
-	double x_stasis_alpha_;						// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
-	int64_t x_stasis_counter_;					// how many stasis experiments we have run so far
-	int32_t x_prev1_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis last time
-	int32_t x_prev2_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis the time before last
-	
-	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each cycle
-	
-	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
-												// look at MUTRUNEXP_START_TIMING() / MUTRUNEXP_END_TIMING() usage to see which blocks are measured
 	
 	// Shuffle buffer.  This is a shared buffer of sequential values that can be used by client code to shuffle the order in which
 	// operations are performed.  The buffer always contains [0, 1, ..., N-1] shuffled into a new random order with each request
@@ -424,7 +391,7 @@ public:
 	void RecalculateFitness(void);
 	void MaintainTreeSequence(void);
 	void EmptyGraveyard(void);
-	void FinishMutationRunExperimentTiming(void);
+	void FinishMutationRunExperimentTimings(void);
 	
 	void WF_GenerateOffspring(void);
 	void WF_SwitchToChildGeneration(void);
@@ -448,13 +415,6 @@ public:
 	void CollectMutationProfileInfo(void);
 #endif
 #endif
-	
-	// Mutation run experiments
-	void InitiateMutationRunExperiments(void);
-	void TransitionToNewExperimentAgainstCurrentExperiment(int32_t p_new_mutrun_count);
-	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
-	void EnterStasisForMutationRunExperiments(void);
-	void MaintainMutationRunExperiments(double p_last_gen_runtime);
 	
 	// Mutation stack policy checking
 	inline __attribute__((always_inline)) void MutationStackPolicyChanged(void)												{ mutation_stack_policy_changed_ = true; }

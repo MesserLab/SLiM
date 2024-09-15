@@ -1090,12 +1090,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
 		
 		if (mutrun_count != 0)
-		{
-			if ((mutrun_count < 1) || (mutrun_count > 10000))
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << EidosTerminate();
-			
-			preferred_mutrun_count_ = (int)mutrun_count;
-		}
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): the mutationRuns option to initializeSLiMOptions() has been deprecated and no longer functions.  Please pass 0 for this option, or simply leave it out; using named parameters to initializeSLiMOptions() is recommended so that you can skip over options you do not wish to specify.  The preferred mutation run count can now be specified on a per-chromosome basis in initializeChromosome()." << EidosTerminate();
 	}
 	
 	{
@@ -1154,13 +1149,6 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			if (periodic_z_) output_stream << "z";
 			output_stream << "'";
 			
-			previous_params = true;
-		}
-		
-		if (preferred_mutrun_count_)
-		{
-			if (previous_params) output_stream << ", ";
-			output_stream << "mutationRunCount = " << preferred_mutrun_count_;
 			previous_params = true;
 		}
 		
@@ -1822,6 +1810,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 //  *********************	– chromosomesWithIDs(integer ids)
 EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -1850,6 +1839,7 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_me
 //  *********************	– chromosomesWithSymbols(string symbols)
 EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *symbols_value = p_arguments[0].get();
 	int symbols_count = symbols_value->Count();
 	
