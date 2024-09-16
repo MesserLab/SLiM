@@ -1,4 +1,3 @@
-
 # Cross-distribution SLiM RPM spec.
 %if %{defined suse_version}
 %if 0%{?suse_version} < 1600
@@ -120,7 +119,11 @@ cmake --install %_vpath_builddir --prefix %{buildroot}/usr
 %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
-* Mon Sep 02 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3.-1
+* Sun Sep 15 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3-2
+- Significant work has been invested into debugging the build of RHEL 8 on COPR. For whatever reason, since 4.0.1-1, we were unable to build on RHEL 8 (or perhaps it was EPEL 8?). Regardless, the ability to build on RHEL 8 and EPEL 8 has been achieved or restored, using conditionals which check what distribution the build is occuring on. These conditionals check the distribution using the defined RPM macros, a reliable system that the operating systems try not to step on each others toes; it'd be nicer if CentOS didn't call itself RHEL, though, but CentOS purposefully tries to be "bug-compatible" (if I recall) with RHEL, yet be slightly upstream of it with RHEL. The buildroot (which is the installation prefix within the CHROOT) and the source and build directories must be manually specified when building on RHEL 8 or EPEL 8 systems (which is RHEL 8 + EPEL [the extra packages for enterprise linux repository] for RHEL 8). I don't know what changed amongst the macros, if anything ever did change, but with 4.0.1-1 we were able to build for EPEL 8 two years ago, and then we weren't when I tried however long ago that issue four-hundred and forty cropped up. This has been resolved with the use of conditionals in the RPM preprocessor (do recall that "if" is not actually a macro) and RPM macros.
+- Conditionals and macros are used to decide whether to use Qt 6 or Qt 5.
+
+* Mon Sep 02 2024 Bryce Carson <bryce.a.carson@gmail.com> - 4.3-1
 - Changes to the package have occurred. See the following points.
 - Further version checks for various distributions are introduced to allow cross-distribution packaging and building against Qt5 or Qt6, appropriate to the platform.
 - An attempt to fix issue 440 is made
