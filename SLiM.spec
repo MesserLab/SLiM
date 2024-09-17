@@ -31,7 +31,7 @@ Summary:        an evolutionary simulation framework
 
 License:        GPLv3+
 URL:            https://messerlab.org/slim/
-Source0:        https://github.com/bryce-carson/SLiM/archive/v%{version}.tar.gz
+Source0:        https://github.com/MesserLab/SLiM/archive/v%{version}.tar.gz
 
 # Prevent users of the Copr repository from using Simple Login Manager, due to binary file name conflict.
 Conflicts:      slim
