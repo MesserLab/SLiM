@@ -13,6 +13,7 @@ jobs:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@0.12.1
   tests-Unix-CLI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -93,6 +94,7 @@ jobs:
             cd treerec/tests && python -m pytest -xv
   
   tests-Windows-CLI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -175,6 +177,7 @@ jobs:
             cd treerec/tests && python -m pytest -xv
   
   tests-Unix-GUI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +230,7 @@ jobs:
           make -j 2 && make test
   
   tests-Windows-GUI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -264,6 +268,7 @@ jobs:
           make -j 2 && make test
 
   tests-windows-latest-pacman:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
     strategy:
       fail-fast: false
