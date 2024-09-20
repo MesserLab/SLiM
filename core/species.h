@@ -68,9 +68,8 @@ enum class SLiMFileFormat
 	kFormatUnrecognized = 0,
 	kFormatSLiMText,				// as saved by outputFull(filePath, binary=F)
 	kFormatSLiMBinary,				// as saved by outputFull(filePath, binary=T)
-	kFormatTskitText,				// as saved by treeSeqOutput(path, binary=F)
 	kFormatTskitBinary_HDF5,		// old file format, no longer supported
-	kFormatTskitBinary_kastore,	// as saved by treeSeqOutput(path, binary=T)
+	kFormatTskitBinary_kastore,		// as saved by treeSeqOutput(path)
 };
 
 
@@ -511,7 +510,6 @@ public:
 	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
 	static void MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec *p_metadata);
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
-	static void TreeSequenceDataToAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
@@ -529,14 +527,13 @@ public:
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
 	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
-	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
+	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
-    void TreeSequenceDataFromAscii(const std::string &NodeFileName, const std::string &EdgeFileName, const std::string &SiteFileName, const std::string &MutationFileName, const std::string &IndividualsFileName, const std::string &PopulationFileName, const std::string &ProvenanceFileName);
 	void FreeTreeSequence();
 	void RecordAllDerivedStatesFromSLiM(void);
 	void DumpMutationTable(void);
@@ -556,7 +553,6 @@ public:
 	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter);
 	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, haplosomes, and mutations
-	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map);	// initialize the population from an tskit text file
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
 	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);

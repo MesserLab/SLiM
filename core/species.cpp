@@ -214,40 +214,10 @@ SLiMFileFormat Species::FormatOfPopulationFile(const std::string &p_file_string)
 		
 		if (S_ISDIR(statbuf.st_mode))
 		{
-			// The path is for a whole directory.  The only file format we recognize that is directory-based is the
-			// tskit text (i.e. non-binary) format, which requires files with specific names inside; let's check.
-			// The files should be named EdgeTable.txt, NodeTable.txt, SiteTable.txt, etc.; we require all files to
-			// be present, for simplicity.
-			std::string NodeFileName = p_file_string + "/NodeTable.txt";
-			std::string EdgeFileName = p_file_string + "/EdgeTable.txt";
-			std::string SiteFileName = p_file_string + "/SiteTable.txt";
-			std::string MutationFileName = p_file_string + "/MutationTable.txt";
-			std::string IndividualFileName = p_file_string + "/IndividualTable.txt";
-			std::string PopulationFileName = p_file_string + "/PopulationTable.txt";
-			std::string ProvenanceFileName = p_file_string + "/ProvenanceTable.txt";
-			
-			if (stat(NodeFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(EdgeFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(SiteFileName.c_str(), &statbuf) != 0)			return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(MutationFileName.c_str(), &statbuf) != 0)		return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(IndividualFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(PopulationFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			if (stat(ProvenanceFileName.c_str(), &statbuf) != 0)	return SLiMFileFormat::kFormatUnrecognized;
-			if (!S_ISREG(statbuf.st_mode))							return SLiMFileFormat::kFormatUnrecognized;
-			
-			return SLiMFileFormat::kFormatTskitText;
+			// The path is for a whole directory.  This used to be the code path for a directory-based tskit text
+			// (i.e. non-binary) format, but we no longer support that.  In future, this code path will become
+			// FIXME MULTICHROM the code path for reading in a multi-chromosome archive of tree sequences.
+			return SLiMFileFormat::kFormatUnrecognized;
 		}
 		else if (S_ISREG(statbuf.st_mode))
 		{
@@ -472,10 +442,6 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 			// reset our last coalescence state; we don't know whether we're coalesced now or not
 			last_coalescence_state_ = false;
 		}
-	}
-	else if (file_format == SLiMFileFormat::kFormatTskitText)
-	{
-		new_tick = _InitializePopulationFromTskitTextFile(file_cstr, p_interpreter, p_subpop_remap);
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_kastore)
 	{
@@ -4085,436 +4051,6 @@ void Species::CheckAutoSimplification(void)
 	}
 }
 
-void Species::TreeSequenceDataFromAscii(const std::string &NodeFileName,
-										const std::string &EdgeFileName,
-										const std::string &SiteFileName,
-										const std::string &MutationFileName,
-										const std::string &IndividualsFileName,
-										const std::string &PopulationFileName,
-										const std::string &ProvenanceFileName)
-{
-	FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
-	FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
-	FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "r");
-	FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "r");
-	FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
-	FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "r");
-	FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
-	
-	if (tables_initialized_)
-		EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): (internal error) tree sequence tables already initialized." << EidosTerminate();
-	
-	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
-	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
-	
-	tables_initialized_ = true;
-	
-	ret = table_collection_load_text(&tables_,
-									 MspTxtNodeTable,
-									 MspTxtEdgeTable,
-									 MspTxtSiteTable,
-									 MspTxtMutationTable,
-									 NULL, // migrations
-									 MspTxtIndividualTable,
-									 MspTxtPopulationTable,
-									 MspTxtProvenanceTable);
-	if (ret < 0) handle_error("read_from_ascii :: table_collection_load_text", ret);
-	
-	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
-	slim_tick_t metadata_tick;
-	slim_tick_t metadata_cycle;
-	SLiMModelType file_model_type;
-	int file_version;
-	
-	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
-	
-	if (file_version != 8)
-		EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): reading text trees data from older file formats is not supported; this file cannot be read." << EidosTerminate();
-	
-	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
-	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
-	// back into tables.
-	tsk_table_collection_t tables_copy;
-	ret = tsk_table_collection_copy(&tables_, &tables_copy, 0);
-	if (ret < 0) handle_error("read_from_ascii :: tsk_table_collection_copy", ret);
-	
-	// de-ASCII-fy the metadata and derived state information; this is the inverse of the work done by TreeSequenceDataToAscii()
-	
-	/***  De-ascii-ify Mutation Table ***/
-	{
-		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-		
-		bool metadata_has_nucleotide = (file_version >= 3);		// at or after "0.3"
-		
-		// Mutation derived state
-		const char *derived_state = tables_.mutations.derived_state;
-		tsk_size_t *derived_state_offset = tables_.mutations.derived_state_offset;
-		std::vector<slim_mutationid_t> binary_derived_state;
-		std::vector<tsk_size_t> binary_derived_state_offset;
-		size_t derived_state_total_part_count = 0;
-		
-		// Mutation metadata
-		const char *mutation_metadata = tables_.mutations.metadata;
-		tsk_size_t *mutation_metadata_offset = tables_.mutations.metadata_offset;
-		std::vector<MutationMetadataRec> binary_mutation_metadata;
-		std::vector<tsk_size_t> binary_mutation_metadata_offset;
-		size_t mutation_metadata_total_part_count = 0;
-		
-		binary_derived_state_offset.emplace_back(0);
-		binary_mutation_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < tables_.mutations.num_rows; j++)
-		{
-			// Mutation derived state
-			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
-			std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
-			
-			for (std::string &derived_state_part : derived_state_parts)
-				binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
-			
-			derived_state_total_part_count += derived_state_parts.size();
-			binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
-			
-			// Mutation metadata
-			std::string string_mutation_metadata(mutation_metadata + mutation_metadata_offset[j], mutation_metadata_offset[j+1] - mutation_metadata_offset[j]);
-			std::vector<std::string> mutation_metadata_parts = Eidos_string_split(string_mutation_metadata, ";");
-			
-			if (derived_state_parts.size() != mutation_metadata_parts.size())
-				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): derived state length != mutation metadata length; this file cannot be read." << EidosTerminate();
-			
-			for (std::string &mutation_metadata_part : mutation_metadata_parts)
-			{
-				std::vector<std::string> mutation_metadata_subparts = Eidos_string_split(mutation_metadata_part, ",");
-				
-				if (mutation_metadata_subparts.size() != (metadata_has_nucleotide ? 5 : 4))
-					EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
-				
-				MutationMetadataRec metarec;
-				metarec.mutation_type_id_ = (slim_objectid_t)std::stoll(mutation_metadata_subparts[0]);
-				metarec.selection_coeff_ = (slim_selcoeff_t)std::stod(mutation_metadata_subparts[1]);
-				metarec.subpop_index_ = (slim_objectid_t)std::stoll(mutation_metadata_subparts[2]);
-				metarec.origin_tick_ = (slim_tick_t)std::stoll(mutation_metadata_subparts[3]);
-				metarec.nucleotide_ = metadata_has_nucleotide ? (int8_t)std::stod(mutation_metadata_subparts[4]) : (int8_t)-1;
-				binary_mutation_metadata.emplace_back(metarec);
-			}
-			
-			mutation_metadata_total_part_count += mutation_metadata_parts.size();
-			binary_mutation_metadata_offset.emplace_back((tsk_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
-		}
-		
-		// if we have no rows, these vectors will be empty, and .data() will return NULL, which tskit doesn't like;
-		// it wants to get a non-NULL pointer even when it knows that the pointer points to zero valid bytes.  So
-		// we poke the vectors so they're non-zero-length and thus have non-NULL pointers; a harmless workaround.
-		if (binary_derived_state.size() == 0)
-			binary_derived_state.resize(1);
-		if (binary_mutation_metadata.size() == 0)
-			binary_mutation_metadata.resize(1);
-		
-		ret = tsk_mutation_table_set_columns(&tables_.mutations,
-										 tables_copy.mutations.num_rows,
-										 tables_copy.mutations.site,
-										 tables_copy.mutations.node,
-										 tables_copy.mutations.parent,
-										 tables_copy.mutations.time,
-										 (char *)binary_derived_state.data(),
-										 binary_derived_state_offset.data(),
-										 (char *)binary_mutation_metadata.data(),
-										 binary_mutation_metadata_offset.data());
-		if (ret < 0) handle_error("convert_from_ascii", ret);
-	}
-	
-	/***** De-ascii-ify Node Table *****/
-	{
-		static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = tables_.nodes.metadata;
-		tsk_size_t *metadata_offset = tables_.nodes.metadata_offset;
-		std::vector<HaplosomeMetadataRec> binary_metadata;
-		std::vector<tsk_size_t> binary_metadata_offset;
-		size_t metadata_total_part_count = 0;
-		
-		binary_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < tables_.nodes.num_rows; j++)
-		{
-			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
-			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
-			
-			if (metadata_parts.size() != 3)
-				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node metadata length; this file cannot be read." << EidosTerminate();
-			
-			HaplosomeMetadataRec metarec;
-			metarec.haplosome_id_ = (slim_haplosomeid_t)std::stoll(metadata_parts[0]);
-			
-			if (metadata_parts[1] == "T")		metarec.is_null_ = true;
-			else if (metadata_parts[1] == "F")	metarec.is_null_ = false;
-			else
-				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node is_null value; this file cannot be read." << EidosTerminate();
-			
-			if (metadata_parts[2] == gStr_A)		metarec.type_ = ChromosomeType::kA_DiploidAutosome;
-			else if (metadata_parts[2] == gStr_X)	metarec.type_ = ChromosomeType::kX_XSexChromosome;
-			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = ChromosomeType::kNullY_YSexChromosomeWithNull;
-			else
-				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node type value; this file cannot be read." << EidosTerminate();
-			
-			binary_metadata.emplace_back(metarec);
-			
-			metadata_total_part_count++;
-			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(HaplosomeMetadataRec)));
-		}
-		
-		ret = tsk_node_table_set_columns(&tables_.nodes,
-									 tables_copy.nodes.num_rows,
-									 tables_copy.nodes.flags,
-									 tables_copy.nodes.time,
-									 tables_copy.nodes.population,
-									 tables_copy.nodes.individual,
-									 (char *)binary_metadata.data(),
-									 binary_metadata_offset.data());
-		if (ret < 0) handle_error("convert_from_ascii", ret);
-	}
-	
-	/***** De-ascii-ify Individuals Table *****/
-	{
-		static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = tables_.individuals.metadata;
-		tsk_size_t *metadata_offset = tables_.individuals.metadata_offset;
-		std::vector<IndividualMetadataRec> binary_metadata;
-		std::vector<tsk_size_t> binary_metadata_offset;
-		size_t metadata_total_part_count = 0;
-		
-		binary_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < tables_.individuals.num_rows; j++)
-		{
-			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
-			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
-			
-			if (metadata_parts.size() != 7)
-				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
-			
-			IndividualMetadataRec metarec;
-			metarec.pedigree_id_ = (slim_pedigreeid_t)std::stoll(metadata_parts[0]);
-			metarec.pedigree_p1_ = (slim_pedigreeid_t)std::stoll(metadata_parts[1]);
-			metarec.pedigree_p2_ = (slim_pedigreeid_t)std::stoll(metadata_parts[2]);
-			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[3]);
-			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[4]);
-			metarec.sex_ = (int32_t)std::stoll(metadata_parts[5]);		// IndividualSex, but int32_t in the record
-			metarec.flags_ = (uint32_t)std::stoull(metadata_parts[6]);
-			
-			binary_metadata.emplace_back(metarec);
-			
-			metadata_total_part_count++;
-			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
-		}
-		
-		ret = tsk_individual_table_set_columns(&tables_.individuals,
-										   tables_copy.individuals.num_rows,
-										   tables_copy.individuals.flags,
-										   tables_copy.individuals.location,
-										   tables_copy.individuals.location_offset,
-                                           NULL, 0, // individual parents
-										   (char *)binary_metadata.data(),
-										   binary_metadata_offset.data());
-		if (ret < 0) handle_error("convert_from_ascii", ret);
-	}
-	
-	/***** De-ascii-ify Population Table *****/
-	// This used to translate the population table's metadata from ASCII back into the binary format we used,
-	// but now the population table's metadata is in JSON and thus requires no translation.
-	
-	// not sure if we need to do this here, but it doesn't hurt
-	RecordTablePosition();
-	
-	// We are done with our private copy of the table collection
-	tsk_table_collection_free(&tables_copy);
-}
-
-void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
-{
-	// This modifies p_tables in place, replacing the metadata and derived_state columns of p_tables with ASCII versions.
-	// We make a copy of the table collection here, as a source for column data, because you can't pass existing
-	// columns in to tsk_mutation_table_set_columns() and tsk_node_table_set_columns(); there is no way to just patch up the
-	// columns in p_tables, we have to copy a new set of information into p_tables wholesale.
-	tsk_table_collection_t tables_copy;
-	int ret = tsk_table_collection_copy(p_tables, &tables_copy, 0);
-	if (ret < 0) handle_error("convert_to_ascii", ret);
-	
-	/********************************************************
-	 * Make the data stored in the tables readable as ASCII.
-	 ********************************************************/
-	
-	/***  Notes: ancestral states are always zero-length, so we don't need to Ascii-ify Site Table ***/
-	
-	// this buffer is used for converting double values to strings
-	static char *double_buf = NULL;
-	
-	if (!double_buf)
-	{
-		THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::TreeSequenceDataToAscii(): usage of statics");
-		
-		double_buf = (char *)malloc(40 * sizeof(char));
-		if (!double_buf)
-			EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataToAscii): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	}
-	
-	/***  Ascii-ify Mutation Table ***/
-	{
-		static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec has changed size; this code probably needs to be updated");
-		
-		// Mutation derived state
-		const char *derived_state = p_tables->mutations.derived_state;
-		tsk_size_t *derived_state_offset = p_tables->mutations.derived_state_offset;
-		std::string text_derived_state;
-		std::vector<tsk_size_t> text_derived_state_offset;
-		
-		// Mutation metadata
-		const char *mutation_metadata = p_tables->mutations.metadata;
-		tsk_size_t *mutation_metadata_offset = p_tables->mutations.metadata_offset;
-		std::string text_mutation_metadata;
-		std::vector<tsk_size_t> text_mutation_metadata_offset;
-		
-		text_derived_state_offset.emplace_back(0);
-		text_mutation_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
-		{
-			// Mutation derived state
-			slim_mutationid_t *int_derived_state = (slim_mutationid_t *)(derived_state + derived_state_offset[j]);
-			size_t cur_derived_state_length = (derived_state_offset[j+1] - derived_state_offset[j])/sizeof(slim_mutationid_t);
-			
-			for (size_t i = 0; i < cur_derived_state_length; i++)
-			{
-				if (i != 0) text_derived_state.append(",");
-				text_derived_state.append(std::to_string(int_derived_state[i]));
-			}
-			text_derived_state_offset.emplace_back((tsk_size_t)text_derived_state.size());
-			
-			// Mutation metadata
-			MutationMetadataRec *struct_mutation_metadata = (MutationMetadataRec *)(mutation_metadata + mutation_metadata_offset[j]);
-			size_t cur_mutation_metadata_length = (mutation_metadata_offset[j+1] - mutation_metadata_offset[j])/sizeof(MutationMetadataRec);
-			
-			assert(cur_mutation_metadata_length == cur_derived_state_length);
-			
-			for (size_t i = 0; i < cur_mutation_metadata_length; i++)
-			{
-				if (i > 0) text_mutation_metadata.append(";");
-				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->mutation_type_id_));
-				text_mutation_metadata.append(",");
-				
-				static_assert(sizeof(slim_selcoeff_t) == 4, "use EIDOS_DBL_DIGS if slim_selcoeff_t is double");
-				snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
-				text_mutation_metadata.append(double_buf);
-				text_mutation_metadata.append(",");
-				
-				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->subpop_index_));
-				text_mutation_metadata.append(",");
-				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->origin_tick_));
-				text_mutation_metadata.append(",");
-				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->nucleotide_));	// new in SLiM 3.3, file format 0.3 and later; -1 if no nucleotide
-				struct_mutation_metadata++;
-			}
-			text_mutation_metadata_offset.emplace_back((tsk_size_t)text_mutation_metadata.size());
-		}
-		
-		ret = tsk_mutation_table_set_columns(&p_tables->mutations,
-										tables_copy.mutations.num_rows,
-										tables_copy.mutations.site,
-										tables_copy.mutations.node,
-										tables_copy.mutations.parent,
-										tables_copy.mutations.time,
-										text_derived_state.c_str(),
-										text_derived_state_offset.data(),
-										text_mutation_metadata.c_str(),
-										text_mutation_metadata_offset.data());
-		if (ret < 0) handle_error("convert_to_ascii", ret);
-	}
-	
-	/***** Ascii-ify Node Table *****/
-	{
-		static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = p_tables->nodes.metadata;
-		tsk_size_t *metadata_offset = p_tables->nodes.metadata_offset;
-		std::string text_metadata;
-		std::vector<tsk_size_t> text_metadata_offset;
-		
-		text_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
-		{
-			HaplosomeMetadataRec *struct_haplosome_metadata = (HaplosomeMetadataRec *)(metadata + metadata_offset[j]);
-			
-			text_metadata.append(std::to_string(struct_haplosome_metadata->haplosome_id_));
-			text_metadata.append(",");
-			text_metadata.append(struct_haplosome_metadata->is_null_ ? "T" : "F");
-			text_metadata.append(",");
-			text_metadata.append(StringForChromosomeType(struct_haplosome_metadata->type_));
-			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
-		}
-		
-		ret = tsk_node_table_set_columns(&p_tables->nodes,
-									 tables_copy.nodes.num_rows,
-									 tables_copy.nodes.flags,
-									 tables_copy.nodes.time,
-									 tables_copy.nodes.population,
-									 tables_copy.nodes.individual,
-									 text_metadata.c_str(),
-									 text_metadata_offset.data());
-		if (ret < 0) handle_error("convert_to_ascii", ret);
-	}
-	
-	/***** Ascii-ify Individuals Table *****/
-	{
-		static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = p_tables->individuals.metadata;
-		tsk_size_t *metadata_offset = p_tables->individuals.metadata_offset;
-		std::string text_metadata;
-		std::vector<tsk_size_t> text_metadata_offset;
-		
-		text_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
-		{
-			IndividualMetadataRec *struct_individual_metadata = (IndividualMetadataRec *)(metadata + metadata_offset[j]);
-			
-			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_id_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_p1_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_p2_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_individual_metadata->age_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_individual_metadata->subpopulation_id_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string((int32_t)struct_individual_metadata->sex_));
-			text_metadata.append(",");
-			text_metadata.append(std::to_string(struct_individual_metadata->flags_));
-			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
-		}
-		
-		ret = tsk_individual_table_set_columns(&p_tables->individuals,
-										   tables_copy.individuals.num_rows,
-										   tables_copy.individuals.flags,
-										   tables_copy.individuals.location,
-										   tables_copy.individuals.location_offset,
-                                           NULL, 0, // individual parents
-										   text_metadata.c_str(),
-										   text_metadata_offset.data());
-		if (ret < 0) handle_error("convert_to_ascii", ret);
-	}
-	
-	/***** Ascii-ify Population Table *****/
-	// This used to translate the population table's metadata from the binary format we used into ASCII,
-	// but now the population table's metadata is in JSON and thus requires no translation.
-	
-	// We are done with our private copy of the table collection
-	tsk_table_collection_free(&tables_copy);
-}
-
 void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 {
 	// This modifies p_tables in place, replacing the derived_state column of p_tables with a binary version.
@@ -5641,7 +5177,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 #endif
 }
 
-void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
+void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
 {
 	Chromosome &chromosome = TheChromosome();
 	
@@ -5650,9 +5186,8 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-	// If p_binary, then write out to that path;
-	// otherwise, create p_recording_tree_path as a directory,
-	// and write out to text files in that directory
+	// If this is a single-chromosome species, then write out the single tree sequence to the path;
+	// otherwise, create p_recording_tree_path as a directory, and write out to that directory
 	int ret = 0;
 	
 	// Standardize the path, resolving a leading ~ and maybe other things
@@ -5758,7 +5293,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	
 	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
 	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
-	WriteProvenanceTable(&output_tables, /* p_use_newlines */ p_binary, p_include_model);
+	WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model);
 
 	// Add top-level metadata and metadata schema
 	WriteTreeSequenceMetadata(&output_tables, p_metadata_dict);
@@ -5768,7 +5303,6 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	if (ret < 0) handle_error("tsk_table_collection_set_time_units", ret);
 	
 	// Write out the copied tables
-	if (p_binary)
 	{
 		// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
 		DerivedStatesToAscii(&output_tables);
@@ -5790,67 +5324,6 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		
 		ret = tsk_table_collection_dump(&output_tables, path.c_str(), 0);
 		if (ret < 0) handle_error("tsk_table_collection_dump", ret);
-	}
-	else
-	{
-		std::string error_string;
-		bool success = Eidos_CreateDirectory(path, &error_string);
-		
-		if (success)
-		{
-			// first translate the bytes we've put into mutation derived state into printable ascii
-			TreeSequenceDataToAscii(&output_tables);
-			
-			std::string NodeFileName = path + "/NodeTable.txt";
-			std::string EdgeFileName = path + "/EdgeTable.txt";
-			std::string SiteFileName = path + "/SiteTable.txt";
-			std::string MutationFileName = path + "/MutationTable.txt";
-			std::string IndividualFileName = path + "/IndividualTable.txt";
-			std::string PopulationFileName = path + "/PopulationTable.txt";
-			std::string ProvenanceFileName = path + "/ProvenanceTable.txt";
-			
-			FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "w");
-			FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "w");
-			FILE *MspTxtSiteTable = fopen(SiteFileName.c_str(), "w");
-			FILE *MspTxtMutationTable = fopen(MutationFileName.c_str(), "w");
-			FILE *MspTxtIndividualTable = fopen(IndividualFileName.c_str(), "w");
-			FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "w");
-			FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "w");
-			
-			tsk_node_table_dump_text(&output_tables.nodes, MspTxtNodeTable);
-			tsk_edge_table_dump_text(&output_tables.edges, MspTxtEdgeTable);
-			tsk_site_table_dump_text(&output_tables.sites, MspTxtSiteTable);
-			tsk_mutation_table_dump_text(&output_tables.mutations, MspTxtMutationTable);
-			tsk_individual_table_dump_text(&output_tables.individuals, MspTxtIndividualTable);
-			tsk_population_table_dump_text(&output_tables.populations, MspTxtPopulationTable);
-			tsk_provenance_table_dump_text(&output_tables.provenances, MspTxtProvenanceTable);
-			
-			fclose(MspTxtNodeTable);
-			fclose(MspTxtEdgeTable);
-			fclose(MspTxtSiteTable);
-			fclose(MspTxtMutationTable);
-			fclose(MspTxtIndividualTable);
-			fclose(MspTxtPopulationTable);
-			fclose(MspTxtProvenanceTable);
-			
-			// In nucleotide-based models, write out the ancestral sequence as a separate text file
-			if (nucleotide_based_)
-			{
-				std::string RefSeqFileName = path + "/ReferenceSequence.txt";
-				std::ofstream outfile;
-				
-				outfile.open(RefSeqFileName, std::ofstream::out);
-				if (!outfile.is_open())
-					EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): treeSeqOutput() could not open "<< RefSeqFileName << "." << EidosTerminate();
-				
-				outfile << *(chromosome.AncestralSequence());
-				outfile.close();
-			}
-		}
-		else
-		{
-			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): unable to create output folder for treeSeqOutput() (" << error_string << ")" << EidosTerminate();
-		}
 	}
 	
 	// Done with our tables copy
@@ -8098,75 +7571,6 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	
 	// Reset our last coalescence state; we don't know whether we're coalesced now or not
 	last_coalescence_state_ = false;
-}
-
-slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
-{
-	Chromosome &chromosome = TheChromosome();
-	
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
-	
-	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
-	std::string directory_path(p_file);
-	
-	if (recording_tree_)
-		FreeTreeSequence();
-	
-	// if tree-seq is not enabled, we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
-	// we remember the state of recording_tree_, because it gets forced to true as a side effect of loading
-	bool was_recording_tree = recording_tree_;
-	
-	if (!was_recording_tree)
-	{
-		recording_tree_ = true;
-		recording_mutations_ = true;
-	}
-	
-	// in nucleotide-based models, read the ancestral sequence
-	if (nucleotide_based_)
-	{
-		std::string RefSeqFileName = directory_path + "/ReferenceSequence.txt";
-		std::ifstream infile;
-		
-		infile.open(RefSeqFileName, std::ifstream::in);
-		if (!infile.is_open())
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitTextFile): readFromPopulationFile() could not open "<< RefSeqFileName << "; this model is nucleotide-based, but the ancestral sequence is missing or unreadable." << EidosTerminate();
-		
-		infile >> *(chromosome.AncestralSequence());	// raises if the sequence is the wrong length
-		infile.close();
-	}
-	
-	// read the files from disk
-	std::string edge_path = directory_path + "/EdgeTable.txt";
-	std::string node_path = directory_path + "/NodeTable.txt";
-	std::string site_path = directory_path + "/SiteTable.txt";
-	std::string mutation_path = directory_path + "/MutationTable.txt";
-	std::string individual_path = directory_path + "/IndividualTable.txt";
-	std::string population_path = directory_path + "/PopulationTable.txt";
-	std::string provenance_path = directory_path + "/ProvenanceTable.txt";
-	
-	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, population_path, provenance_path);
-	
-	// read in the tree sequence metadata first
-	slim_tick_t metadata_tick;
-	slim_tick_t metadata_cycle;
-	SLiMModelType file_model_type;
-	int file_version;
-	
-	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
-	
-	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map);
-	
-	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
-	if (!was_recording_tree)
-	{
-		FreeTreeSequence();
-		recording_tree_ = false;
-		recording_mutations_ = false;
-	}
-	
-	return metadata_tick;
 }
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
