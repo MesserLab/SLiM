@@ -160,6 +160,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 		}
 	}
 	
+	if (chromosome->extent_immutable_)
+	{
+		if (chromosome->ancestral_seq_buffer_->size() != (std::size_t)(chromosome->last_position_ - chromosome->first_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): the length of the provided ancestral sequence does not match the length of the chromosome." << EidosTerminate();
+	}
+	
 	// debugging
 	//std::cout << "ancestral sequence set: " << *chromosome_->ancestral_seq_buffer_ << std::endl;
 	
@@ -242,6 +248,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	slim_position_t start = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr));
 	slim_position_t length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
 	
+	if (start != 0)		// FIXME MULTICHROM
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not yet support start != 0." << EidosTerminate();
 	if (start + length - 1 > SLIM_MAX_BASE_POSITION)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (start+length-1) to be <= 1e15." << EidosTerminate();
 	
@@ -297,7 +305,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	
 	// Set up the new chromosome object
 	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ 0, (int)mutrun_count);
+	
 	chromosome->SetName(name);
+	chromosome->first_position_ = start;
+	chromosome->last_position_ = start + length - 1;
+	chromosome->extent_immutable_ = true;
 	
 	chromosomes_.push_back(chromosome);
 	chromosome_from_id_.emplace(id, chromosome);
@@ -363,6 +375,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 		
 		if (end_position < start_position)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
+		
+		if (chromosome->extent_immutable_)
+		{
+			if ((start_position < chromosome->first_position_) || (end_position > chromosome->last_position_))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element extent lies outside of the extent of the chromosome." << EidosTerminate();
+		}
 		
 		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
 		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
@@ -679,6 +697,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((recombination_end_position <= chromosome->first_position_) || (recombination_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them
@@ -896,6 +920,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 			
 			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be >= 0 (" << EidosStringForFloat(multiplier) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((multiplier_end_position <= chromosome->first_position_) || (multiplier_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them
@@ -1053,6 +1083,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 			
 			if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0.0 and < 1.0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((mutation_end_position <= chromosome->first_position_) || (mutation_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them

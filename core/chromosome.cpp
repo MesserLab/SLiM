@@ -81,6 +81,7 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	species_(p_species),
 	first_position_(0),
 	last_position_(0),
+	extent_immutable_(false),
 	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
 	overall_mutation_rate_H_userlevel_(0.0), overall_mutation_rate_M_userlevel_(0.0), overall_mutation_rate_F_userlevel_(0.0),
 	overall_recombination_rate_H_(0.0), overall_recombination_rate_M_(0.0), overall_recombination_rate_F_(0.0),
@@ -256,8 +257,9 @@ void Chromosome::InitializeDraws(void)
 		single_recombination_map_ = true;
 		single_mutation_map_ = true;
 		
-		cached_value_lastpos_.reset();
+		first_position_ = 0;
 		last_position_ = -1;
+		extent_immutable_ = false;
 		
 		if (hotspot_multipliers_H_.size() == 0)
 			hotspot_multipliers_H_.emplace_back(1.0);
@@ -332,39 +334,44 @@ void Chromosome::InitializeDraws(void)
 	// the end of the last genomic element may be before the end of the chromosome; the end of mutation and
 	// recombination maps all need to agree, though, if they have been supplied.  Checks that the maps do
 	// not end before the end of the chromosome will be done in _InitializeOne...Map().
-	cached_value_lastpos_.reset();
-	last_position_ = 0;
-	
-	for (GenomicElement *genomic_element : genomic_elements_)
-	{ 
-		if (genomic_element->end_position_ > last_position_)
-			last_position_ = genomic_element->end_position_;
-	}
-	
-	if (single_mutation_map_)
+	// BCH 9/20/2024: A chromosome declared explicitly with initializeChromosome() has an immutable length
+	if (!extent_immutable_)
 	{
-		if (mutation_end_positions_H_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_H_.begin(), mutation_end_positions_H_.end())));
-	}
-	else
-	{
-		if (mutation_end_positions_M_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_M_.begin(), mutation_end_positions_M_.end())));
-		if (mutation_end_positions_F_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_F_.begin(), mutation_end_positions_F_.end())));
-	}
-	
-	if (single_recombination_map_)
-	{
-		if (recombination_end_positions_H_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_H_.begin(), recombination_end_positions_H_.end())));
-	}
-	else
-	{
-		if (recombination_end_positions_M_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_M_.begin(), recombination_end_positions_M_.end())));
-		if (recombination_end_positions_F_.size())
-			last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_F_.begin(), recombination_end_positions_F_.end())));
+		last_position_ = 0;
+		
+		for (GenomicElement *genomic_element : genomic_elements_)
+		{ 
+			if (genomic_element->end_position_ > last_position_)
+				last_position_ = genomic_element->end_position_;
+		}
+		
+		if (single_mutation_map_)
+		{
+			if (mutation_end_positions_H_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_H_.begin(), mutation_end_positions_H_.end())));
+		}
+		else
+		{
+			if (mutation_end_positions_M_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_M_.begin(), mutation_end_positions_M_.end())));
+			if (mutation_end_positions_F_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(mutation_end_positions_F_.begin(), mutation_end_positions_F_.end())));
+		}
+		
+		if (single_recombination_map_)
+		{
+			if (recombination_end_positions_H_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_H_.begin(), recombination_end_positions_H_.end())));
+		}
+		else
+		{
+			if (recombination_end_positions_M_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_M_.begin(), recombination_end_positions_M_.end())));
+			if (recombination_end_positions_F_.size())
+				last_position_ = std::max(last_position_, *(std::max_element(recombination_end_positions_F_.begin(), recombination_end_positions_F_.end())));
+		}
+		
+		extent_immutable_ = true;
 	}
 	
 	// Patch the hotspot end vector if it is empty; see setHotspotMap() and initializeHotspotMap().
@@ -2394,9 +2401,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lastPosition:
 		{
-			if (!cached_value_lastpos_)
-				cached_value_lastpos_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
-			return cached_value_lastpos_;
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
 		}
 		case gEidosID_length:
 		{
@@ -3377,7 +3382,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is
 		// constructed.  When we call InitializeDraws() below, we recalculate the last position – and we must come up
-		// with the same answer that we got before, otherwise our last_position_ cache is invalid.
+		// with the same answer that we got before.
 		int64_t new_last_position = ends_value->IntAtIndex_NOCAST(end_count - 1, nullptr);
 		
 		if (new_last_position != last_position_)
