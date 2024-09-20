@@ -130,7 +130,7 @@ static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_ped
 
 double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-								IndividualSex A_sex, IndividualSex B_sex, HaplosomeType modeledChromosomeType)
+								IndividualSex A_sex, IndividualSex B_sex, ChromosomeType modeledChromosomeType)
 {
 	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
 	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
@@ -143,8 +143,10 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
 	// seems appropriate still.
 	
+	// FIXME MULTICHROM needs to be extended to other chromosome types
+	
 #if DEBUG
-	if ((modeledChromosomeType != HaplosomeType::kAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
+	if ((modeledChromosomeType != ChromosomeType::kA_DiploidAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
 	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
@@ -155,7 +157,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
 #endif
 	
-	if (modeledChromosomeType == HaplosomeType::kXChromosome)
+	if (modeledChromosomeType == ChromosomeType::kX_XSexChromosome)
 	{
 		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
 		A_G4 = A_G3;
@@ -179,7 +181,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 			B_G4 = B_G2;
 		}
 	}
-	else if (modeledChromosomeType == HaplosomeType::kYChromosome)
+	else if (modeledChromosomeType == ChromosomeType::kNullY_YSexChromosomeWithNull)
 	{
 		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
 		if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
@@ -246,7 +248,10 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
 	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
 	
-	HaplosomeType chrtype = subpopulation_->species_.ModeledChromosomeType();
+	// FIXME MULTICHROM firstChromosomeType is a temporary hack
+	ChromosomeType firstChromosomeType = subpopulation_->species_.Chromosomes()[0]->Type();
+	
+	ChromosomeType chrtype = firstChromosomeType;
 	
 	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
 }

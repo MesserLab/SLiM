@@ -551,17 +551,26 @@ enum class SLiMCycleStage
 
 std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
 
-// This enumeration represents the type of chromosome represented by a haplosome: autosome, X, or Y.  Note that this is somewhat
-// separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
-// of the individual cannot be determined from its modeled haplosome.
-enum class HaplosomeType : uint8_t {
-	kAutosome = 0,
-	kXChromosome,
-	kYChromosome
+// This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
+// from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
+// of the individual, the sex of the individual does not follow the chromosomes.  See the initializeChromosome() doc.
+enum class ChromosomeType : uint8_t {
+	kA_DiploidAutosome = 0,
+	kH_HaploidAutosome,
+	kX_XSexChromosome,
+	kY_YSexChromosome,
+	kZ_ZSexChromosome,
+	kW_WSexChromosome,
+	kHF_HaploidFemaleInherited,
+	kFL_HaploidFemaleLine,
+	kHM_HaploidMaleInherited,
+	kML_HaploidMaleLine,
+	kHNull_HaploidAutosomeWithNull,
+	kNullY_YSexChromosomeWithNull
 };
 
-std::string StringForHaplosomeType(HaplosomeType p_haplosome_type);
-std::ostream& operator<<(std::ostream& p_out, HaplosomeType p_haplosome_type);
+std::string StringForChromosomeType(ChromosomeType p_chromosome_type);
+std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type);
 
 
 // This enumeration represents the sex of an individual: hermaphrodite, female, or male.  It also includes an "unspecified"
@@ -722,6 +731,7 @@ extern const std::string &gStr_initializeGenomicElement;
 extern const std::string &gStr_initializeGenomicElementType;
 extern const std::string &gStr_initializeMutationType;
 extern const std::string &gStr_initializeMutationTypeNuc;
+extern const std::string &gStr_initializeChromosome;
 extern const std::string &gStr_initializeGeneConversion;
 extern const std::string &gStr_initializeMutationRate;
 extern const std::string &gStr_initializeHotspotMap;
@@ -1108,12 +1118,21 @@ extern const std::string &gStr_setSuppliedValue;
 extern const std::string &gStr_willAutolog;
 extern const std::string &gStr_context;
 
-extern const std::string &gStr_A;
-extern const std::string gStr_C;	// these nucleotide strings are not registered, no need
+extern const std::string gStr_A;	// these nucleotide strings are not registered, no need
+extern const std::string gStr_C;
 extern const std::string gStr_G;
 extern const std::string gStr_T;
-extern const std::string &gStr_X;
-extern const std::string &gStr_Y;
+extern const std::string gStr_H;	// these chromosome type strings (and "A" above) are not registered, no need
+extern const std::string gStr_X;
+extern const std::string gStr_Y;
+extern const std::string gStr_Z;
+extern const std::string gStr_W;
+extern const std::string gStr_HF;
+extern const std::string gStr_FL;
+extern const std::string gStr_HM;
+extern const std::string gStr_ML;
+extern const std::string gStr_H_;
+extern const std::string gStr__Y;
 extern const std::string &gStr_f;
 extern const std::string &gStr_g;
 extern const std::string &gStr_e;
@@ -1147,6 +1166,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeMutationTypeNuc,
+	gID_initializeChromosome,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
 	gID_initializeHotspotMap,
@@ -1533,9 +1553,6 @@ enum _SLiMGlobalStringID : int {
 	gID_willAutolog,
 	gID_context,
 	
-	gID_A,
-	gID_X,
-	gID_Y,
 	gID_f,
 	gID_g,
 	gID_e,

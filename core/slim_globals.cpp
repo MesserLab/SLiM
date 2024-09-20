@@ -640,20 +640,29 @@ std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 }
 
 // stream output for enumerations
-std::string StringForHaplosomeType(HaplosomeType p_haplosome_type)
+std::string StringForChromosomeType(ChromosomeType p_chromosome_type)
 {
-	switch (p_haplosome_type)
+	switch (p_chromosome_type)
 	{
-		case HaplosomeType::kAutosome:		return gStr_A;
-		case HaplosomeType::kXChromosome:	return gStr_X;		// SEX ONLY
-		case HaplosomeType::kYChromosome:	return gStr_Y;		// SEX ONLY
+		case ChromosomeType::kA_DiploidAutosome:				return gStr_A;
+		case ChromosomeType::kH_HaploidAutosome:				return gStr_H;
+		case ChromosomeType::kX_XSexChromosome:					return gStr_X;
+		case ChromosomeType::kY_YSexChromosome:					return gStr_Y;
+		case ChromosomeType::kZ_ZSexChromosome:					return gStr_Z;
+		case ChromosomeType::kW_WSexChromosome:					return gStr_W;
+		case ChromosomeType::kHF_HaploidFemaleInherited:		return gStr_HF;
+		case ChromosomeType::kFL_HaploidFemaleLine:				return gStr_FL;
+		case ChromosomeType::kHM_HaploidMaleInherited:			return gStr_HM;
+		case ChromosomeType::kML_HaploidMaleLine:				return gStr_ML;
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:	return gStr_H_;		// "H-"
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:		return gStr__Y;		// "-Y"
 	}
-	EIDOS_TERMINATION << "ERROR (StringForHaplosomeType): (internal error) unexpected p_haplosome_type value." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (StringForChromosomeType): (internal error) unexpected p_chromosome_type value." << EidosTerminate();
 }
 
-std::ostream& operator<<(std::ostream& p_out, HaplosomeType p_haplosome_type)
+std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type)
 {
-	p_out << StringForHaplosomeType(p_haplosome_type);
+	p_out << StringForChromosomeType(p_chromosome_type);
 	return p_out;
 }
 
@@ -1125,6 +1134,7 @@ const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initia
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
 const std::string &gStr_initializeMutationType = EidosRegisteredString("initializeMutationType", gID_initializeMutationType);
 const std::string &gStr_initializeMutationTypeNuc = EidosRegisteredString("initializeMutationTypeNuc", gID_initializeMutationTypeNuc);
+const std::string &gStr_initializeChromosome = EidosRegisteredString("initializeChromosome", gID_initializeChromosome);
 const std::string &gStr_initializeGeneConversion = EidosRegisteredString("initializeGeneConversion", gID_initializeGeneConversion);
 const std::string &gStr_initializeMutationRate = EidosRegisteredString("initializeMutationRate", gID_initializeMutationRate);
 const std::string &gStr_initializeHotspotMap = EidosRegisteredString("initializeHotspotMap", gID_initializeHotspotMap);
@@ -1519,12 +1529,21 @@ const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_w
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings
-const std::string &gStr_A = EidosRegisteredString("A", gID_A);
-const std::string gStr_C = "C";	// these nucleotide strings are not registered, no need
+const std::string gStr_A = "A";	// these nucleotide strings are not registered, no need
+const std::string gStr_C = "C";
 const std::string gStr_G = "G";
 const std::string gStr_T = "T";
-const std::string &gStr_X = EidosRegisteredString("X", gID_X);
-const std::string &gStr_Y = EidosRegisteredString("Y", gID_Y);
+const std::string gStr_H = "H";	// these chromosome type strings (and "A" above) are not registered, no need
+const std::string gStr_X = "X";
+const std::string gStr_Y = "Y";
+const std::string gStr_Z = "Z";
+const std::string gStr_W = "W";
+const std::string gStr_HF = "HF";
+const std::string gStr_FL = "FL";
+const std::string gStr_HM = "HM";
+const std::string gStr_ML = "ML";
+const std::string gStr_H_ = "H-";
+const std::string gStr__Y = "-Y";
 const std::string &gStr_f = EidosRegisteredString("f", gID_f);
 const std::string &gStr_g = EidosRegisteredString("g", gID_g);
 const std::string &gStr_e = EidosRegisteredString("e", gID_e);

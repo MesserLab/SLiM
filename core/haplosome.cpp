@@ -56,7 +56,7 @@ Haplosome::~Haplosome(void)
 	mutrun_count_ = 0;
 }
 
-Chromosome *Haplosome::AssociatedChromosome(void)
+Chromosome *Haplosome::AssociatedChromosome(void) const
 {
 	return individual_->subpopulation_->species_.chromosomes_[chromosome_index_];
 }
@@ -243,10 +243,8 @@ void Haplosome::MakeNull(void)
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeToMutruns(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
+void Haplosome::ReinitializeHaplosomeToMutruns(int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
 {
-	haplosome_type_ = p_haplosome_type;
-	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
@@ -297,10 +295,8 @@ void Haplosome::ReinitializeHaplosomeToMutruns(HaplosomeType p_haplosome_type, i
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeNullptr(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
+void Haplosome::ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_position_t p_mutrun_length)
 {
-	haplosome_type_ = p_haplosome_type;
-	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
@@ -433,12 +429,7 @@ void Haplosome::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName() << "<";
 	
-	switch (haplosome_type_)
-	{
-		case HaplosomeType::kAutosome:		p_ostream << gStr_A; break;
-		case HaplosomeType::kXChromosome:	p_ostream << gStr_X; break;
-		case HaplosomeType::kYChromosome:	p_ostream << gStr_Y; break;
-	}
+	p_ostream << AssociatedChromosome()->Type();
 	
 	if (mutrun_count_ == 0)
 		p_ostream << ":null>";
@@ -1358,7 +1349,7 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 		else
 			p_out << "p" << p_source_subpop_id << ":" << j;
 		
-		p_out << " " << haplosome.Type();
+		p_out << " " << haplosome.AssociatedChromosome()->Type();
 		
 		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
@@ -2138,7 +2129,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	
 	Community &community = species->community_;
 	
-	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
 	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
 	// chromosome_index_ index directly, which would assume the same species...?
 	Chromosome *chromosome = &species->TheChromosome();
@@ -2433,7 +2424,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	Community &community = species->community_;
 	
-	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
 	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
 	// chromosome_index_ index directly, which would assume the same species...?
 	Chromosome *chromosome = &species->TheChromosome();
@@ -3052,7 +3043,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	
 	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromMS");
 	
-	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
 	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
 	// chromosome_index_ index directly, which would assume the same species...?
 	Chromosome *chromosome = &species.TheChromosome();
@@ -3290,7 +3281,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	// FIXME we will need to loop over the chromosomes now, since VCF is a multi-chromosme format...
+	// FIXME MULTICHROM we will need to loop over the chromosomes now, since VCF is a multi-chromosome format...
 	Chromosome *chromosome = &species->TheChromosome();
 	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
@@ -3877,7 +3868,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	// FIXME all haplosomes should be required to belong to the same chromosome, probably; so the species check
+	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
 	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
 	// chromosome_index_ index directly, which would assume the same species...?
 	Chromosome *chromosome = &species->TheChromosome();

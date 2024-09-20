@@ -64,6 +64,7 @@ private:
 	std::string symbol_;
 	std::string name_;
 	slim_chromosome_index_t index_;
+	ChromosomeType type_;
 	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
@@ -243,12 +244,13 @@ public:
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
 	
-	explicit Chromosome(Species &p_species, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index);
+	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index);
 	~Chromosome(void);
 	
 	inline __attribute__((always_inline)) int64_t ID(void)	{ return id_; }
 	inline __attribute__((always_inline)) const std::string &Symbol(void)	{ return symbol_; }
 	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) { return index_; }
+	inline __attribute__((always_inline)) ChromosomeType Type(void) { return type_; }
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
 	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }

@@ -192,7 +192,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	Subpopulation *new_subpop = nullptr;
 	
 	if (species_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, species_.ModeledChromosomeType(), p_haploid);	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, p_haploid);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_haploid);
 	
@@ -236,7 +236,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	Subpopulation *new_subpop = nullptr;
  
 	if (species_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, species_.ModeledChromosomeType(), false);	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, false);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, false);
 	
@@ -2574,18 +2574,43 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 	bool use_only_strand_1 = false;		// if true, we are in a case where crossover cannot occur, and we are to use only parent strand 1
 	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning, either 50% of the time (if use_only_strand_1 is false), or always (if use_only_strand_1 is true – in other words, we are directed to use only strand 2)
 	
-	HaplosomeType child_haplosome_type = p_child_haplosome.Type();
-	Haplosome *parent_haplosome_1 = p_source_subpop->parent_haplosomes_[parent_haplosome_1_index];
-	HaplosomeType parent1_haplosome_type = parent_haplosome_1->Type();
-	Haplosome *parent_haplosome_2 = p_source_subpop->parent_haplosomes_[parent_haplosome_2_index];
-	HaplosomeType parent2_haplosome_type = parent_haplosome_2->Type();
+	ChromosomeType chromosome_type = p_child_haplosome.AssociatedChromosome()->Type();	// FIXME MULTICHROM this should maybe get passed in?
+	bool child_haplosome_null = p_child_haplosome.IsNull();
 	
-	if (child_haplosome_type == HaplosomeType::kAutosome)
+	Haplosome *parent_haplosome_1 = p_source_subpop->parent_haplosomes_[parent_haplosome_1_index];
+	Haplosome *parent_haplosome_2 = p_source_subpop->parent_haplosomes_[parent_haplosome_2_index];
+	
+#if DEBUG
+	{
+		// BCH 9/20/2024: With the multichomosome redesign, the child and parent haplosome types must always match; we are generating a
+		// new offspring haplosome from parental haplosomes of the same type (but one or the other parental haplosome might be null).
+		// In the old paradigm, if modeling the X for example, a male with be XY with a null Y; now it is XX with the second X null.
+		ChromosomeType parent1_haplosome_type = parent_haplosome_1->AssociatedChromosome()->Type();
+		ChromosomeType parent2_haplosome_type = parent_haplosome_2->AssociatedChromosome()->Type();
+		
+		if ((parent1_haplosome_type != chromosome_type) || (parent2_haplosome_type != chromosome_type))
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child haplosome types (child type == '" << chromosome_type << "', parent 1 == '" << parent1_haplosome_type << "', parent 2 == '" << parent2_haplosome_type << "')." << EidosTerminate();
+	}
+#endif
+	
+	if (chromosome_type == ChromosomeType::kA_DiploidAutosome)
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 #if DEBUG
-		if (parent1_haplosome_type != HaplosomeType::kAutosome || parent2_haplosome_type != HaplosomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child haplosome types (case 1)." << EidosTerminate();
+		if (species_.has_genetics_)
+		{
+			if (child_haplosome_null)
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A null child haplosome was requested in the autosomal case." << EidosTerminate();
+			if (parent_haplosome_1->IsNull() || parent_haplosome_2->IsNull())
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A parental haplosome was null in the autosomal case." << EidosTerminate();
+		}
+		else
+		{
+			if (!child_haplosome_null)
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A non-null child haplosome was requested in the no-genetics case." << EidosTerminate();
+			if (!parent_haplosome_1->IsNull() || !parent_haplosome_2->IsNull())
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A parental haplosome was non-null in the no-genetics case." << EidosTerminate();
+		}
 #endif
 	}
 	else
@@ -2594,54 +2619,78 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 #if DEBUG
 		if (p_child_sex == IndividualSex::kHermaphrodite)
 			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A hermaphrodite child is requested but the child haplosome is not autosomal." << EidosTerminate();
-		if (parent1_haplosome_type == HaplosomeType::kAutosome || parent2_haplosome_type == HaplosomeType::kAutosome)
-			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child haplosome types (case 2)." << EidosTerminate();
+		if (p_parent_sex == IndividualSex::kHermaphrodite)
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): The parent is hermaphrodite but the child haplosome is a sex haplosome." << EidosTerminate();
 #endif
 		
-		if (child_haplosome_type == HaplosomeType::kXChromosome)
+		if (chromosome_type == ChromosomeType::kX_XSexChromosome)
 		{
-			if (p_child_sex == IndividualSex::kMale)
+#if DEBUG
+			if (parent_haplosome_1->IsNull())
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Parental haplosome 1 was null in the X chromosome case." << EidosTerminate();
+#endif
+			bool parent_haplosome_2_null = parent_haplosome_2->IsNull();
+			
+			if (parent_haplosome_2_null)
 			{
-				// If our parent is male (XY or YX), then we have a mismatch, because we're supposed to be male and we're supposed to be getting an X chromosome, but the X must come from the female
-				if (parent1_haplosome_type == HaplosomeType::kYChromosome || parent2_haplosome_type == HaplosomeType::kYChromosome)
-					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child haplosome types (case 3)." << EidosTerminate();
-				
-				// else: we're doing inheritance from the female (XX) to get our X chromosome; we treat this just like the autosomal case
-			}
-			else if (p_child_sex == IndividualSex::kFemale)
-			{
-				if (parent1_haplosome_type == HaplosomeType::kYChromosome && parent2_haplosome_type == HaplosomeType::kXChromosome)
+				if (p_child_sex == IndividualSex::kMale)
 				{
-					// we're doing inheritance from the male (YX) to get an X chromosome; we need to ensure that we take the X
+					// male child, male parent (X-)
+#if DEBUG
+					if (!child_haplosome_null)
+						EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): male child cannot get an X from the male parent." << EidosTerminate();
+#endif
+					// inherit strand 2, the null, from the male parent
 					use_only_strand_1 = true; do_swap = true;	// use strand 2
 				}
-				else if (parent1_haplosome_type == HaplosomeType::kXChromosome && parent2_haplosome_type == HaplosomeType::kYChromosome)
+				else // (p_child_sex == IndividualSex::kFemale)
 				{
-					// we're doing inheritance from the male (XY) to get an X chromosome; we need to ensure that we take the X
+					// female child, male parent (X-)
 					use_only_strand_1 = true; do_swap = false;	// use strand 1
 				}
-				// else: we're doing inheritance from the female (XX) to get an X chromosome; we treat this just like the autosomal case
-			}
-		}
-		else // (child_haplosome_type == HaplosomeType::kYChromosome), so p_child_sex == IndividualSex::kMale
-		{
-			if (p_child_sex == IndividualSex::kFemale)
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A female child is requested but the child haplosome is a Y chromosome." << EidosTerminate();
-			
-			if (parent1_haplosome_type == HaplosomeType::kYChromosome && parent2_haplosome_type == HaplosomeType::kXChromosome)
-			{
-				// we're doing inheritance from the male (YX) to get a Y chromosome; we need to ensure that we take the Y
-				use_only_strand_1 = true; do_swap = false;	// use strand 1
-			}
-			else if (parent1_haplosome_type == HaplosomeType::kXChromosome && parent2_haplosome_type == HaplosomeType::kYChromosome)
-			{
-				// we're doing inheritance from the male (XY) to get an X chromosome; we need to ensure that we take the Y
-				use_only_strand_1 = true; do_swap = true;	// use strand 2
 			}
 			else
 			{
-				// else: we're doing inheritance from the female (XX) to get a Y chromosome, so this is a mismatch
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Mismatch between parent and child haplosome types (case 4)." << EidosTerminate();
+				// female parent (XX) passing down an X with recombination; we treat this just like the autosomal case
+#if DEBUG
+				if (child_haplosome_null)
+					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): child cannot get a null X from the female parent." << EidosTerminate();
+#endif
+			}
+		}
+		else // (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)
+		{
+#if DEBUG
+			if (!parent_haplosome_1->IsNull())
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): Parental haplosome 1 was non-null in the Y chromosome case." << EidosTerminate();
+#endif
+			bool parent_haplosome_2_null = parent_haplosome_2->IsNull();
+			
+			if (parent_haplosome_2_null)
+			{
+				// female parent (--) passing down a null first haplosome
+				use_only_strand_1 = true; do_swap = false;	// use strand 1
+			}
+			else
+			{
+				if (p_child_sex == IndividualSex::kMale)
+				{
+					// male child, male parent (-Y)
+#if DEBUG
+					if (child_haplosome_null)
+						EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): male child cannot get a Y from the male parent." << EidosTerminate();
+#endif
+					use_only_strand_1 = true; do_swap = true;	// use strand 2
+				}
+				else // (p_child_sex == IndividualSex::kFemale)
+				{
+					// female child, male parent (-Y)
+#if DEBUG
+					if (!child_haplosome_null)
+						EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): female child cannot get an X from the male parent." << EidosTerminate();
+#endif
+					use_only_strand_1 = true; do_swap = false;	// use strand 1
+				}
 			}
 		}
 	}
@@ -2653,14 +2702,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 		{
 			std::swap(parent_haplosome_1_index, parent_haplosome_2_index);
 			std::swap(parent_haplosome_1, parent_haplosome_2);
-			//std::swap(parent1_haplosome_type, parent2_haplosome_type);		// Not used below this point...
 		}
 		//else
 		//	do_swap = false;		// Not used below this point...
 	}
 	
 	// check for null cases
-	bool child_haplosome_null = p_child_haplosome.IsNull();
 #if DEBUG
 	bool parent_haplosome_1_null = parent_haplosome_1->IsNull();
 	bool parent_haplosome_2_null = parent_haplosome_2->IsNull();
@@ -2711,7 +2758,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 	//
 	
 	// determine how many mutations and breakpoints we have
-	// FIXME: This will get called for each chromosome, I think?
+	// FIXME MULTICHROM This will get called for each chromosome, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	
@@ -3825,7 +3872,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// might have been newly added at a position, and then removed again by mismatch repair;
 	// we will need to make sure that the recorded state is correct when that occurs.
 	
-	// FIXME: This will get called for each chromosome, I think?
+	// FIXME MULTICHROM This will get called for each chromosome, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
@@ -3957,9 +4004,9 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Haplos
 	if (!p_parent_haplosome_1 || !p_parent_haplosome_2)
 		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Null haplosome pointer." << EidosTerminate();
 	
-	HaplosomeType child_haplosome_type = p_child_haplosome.Type();
-	HaplosomeType parent1_haplosome_type = p_parent_haplosome_1->Type();
-	HaplosomeType parent2_haplosome_type = p_parent_haplosome_2->Type();
+	ChromosomeType child_haplosome_type = p_child_haplosome.AssociatedChromosome()->Type();
+	ChromosomeType parent1_haplosome_type = p_parent_haplosome_1->AssociatedChromosome()->Type();
+	ChromosomeType parent2_haplosome_type = p_parent_haplosome_2->AssociatedChromosome()->Type();
 	
 	if (parent1_haplosome_type != parent2_haplosome_type)
 		EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) Parental haplosomes are of different types." << EidosTerminate();
@@ -4584,8 +4631,8 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Haplosome &
 	
 	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
-	HaplosomeType child_haplosome_type = p_child_haplosome.Type();
-	HaplosomeType parent_haplosome_type = p_parent_haplosome.Type();
+	ChromosomeType child_haplosome_type = p_child_haplosome.AssociatedChromosome()->Type();
+	ChromosomeType parent_haplosome_type = p_parent_haplosome.AssociatedChromosome()->Type();
 	
 	if (child_haplosome_type != parent_haplosome_type)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Mismatch between parent and child haplosome types (type != type)." << EidosTerminate();
@@ -5533,7 +5580,7 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 			slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 			
-			// FIXME: This will get called for each chromosome, I think?
+			// FIXME MULTICHROM This will get called for each chromosome, I think?
 			Chromosome &chromosome = species_.TheChromosome();
 			
 			// for every haplosome
@@ -5733,7 +5780,7 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 			slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 			
-			// FIXME: This will get called for each chromosome, I think?
+			// FIXME MULTICHROM This will get called for each chromosome, I think?
 			Chromosome &chromosome = species_.TheChromosome();
 			
 			// for every haplosome
@@ -5973,7 +6020,7 @@ void Population::SwapGenerations(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 {
-	// FIXME: This will probably loop over the chromosomes, I think?
+	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	slim_refcount_t total_haplosome_count = 0;
@@ -6118,7 +6165,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
 {
-	// FIXME: This will probably loop over the chromosomes, I think?
+	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	slim_refcount_t total_haplosome_count = 0;
@@ -6201,7 +6248,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 
 slim_refcount_t Population::TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count)
 {
-	// FIXME: This will probably loop over the chromosomes, I think?
+	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	slim_refcount_t total_haplosome_count = 0;
@@ -6261,7 +6308,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForHaplosomes(const Haplos
 
 void Population::FreeUnusedMutationRuns(void)
 {
-	// FIXME: This will probably loop over the chromosomes, I think?
+	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	// It is assumed by this method that mutation run tallies are up to date!
@@ -6753,7 +6800,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossHaplosomes(const Haplos
 // mutation tallies given that choice.
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 {
-	// FIXME: This will probably loop over the chromosomes, I think?
+	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
 	// first zero out the refcounts in all registered Mutation objects
@@ -7552,7 +7599,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		{
 			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
 			
-			p_out << "p" << subpop_id << ":" << i << " " << haplosome.Type();
+			p_out << "p" << subpop_id << ":" << i << " " << haplosome.AssociatedChromosome()->Type();
 			
 			if (haplosome.IsNull())
 			{
@@ -7833,9 +7880,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
 			
 			// Write out the haplosome header; start with the haplosome type to guarantee that the first 32 bits are != section_end_tag
-			int32_t haplosome_type = (int32_t)(haplosome.Type());
+			int32_t chromosome_type = (int32_t)(haplosome.AssociatedChromosome()->Type());
 			
-			p_out.write(reinterpret_cast<char *>(&haplosome_type), sizeof haplosome_type);
+			p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
 			p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
 			p_out.write(reinterpret_cast<char *>(&i), sizeof i);
 			
@@ -7968,9 +8015,6 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
 	
-	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == HaplosomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): called to output Y chromosomes from females." << EidosTerminate();
-	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;
 	
@@ -8017,9 +8061,6 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
 	
-	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == HaplosomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): called to output Y chromosomes from females." << EidosTerminate();
-	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;
 	
@@ -8065,11 +8106,6 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	
 	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
-	
-	if (p_requested_sex == IndividualSex::kFemale && p_subpop.modeled_chromosome_type_ == HaplosomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): called to output Y chromosomes from females." << EidosTerminate();
-	if (p_requested_sex == IndividualSex::kUnspecified && p_subpop.modeled_chromosome_type_ == HaplosomeType::kYChromosome)
-		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): called to output Y chromosomes from both sexes." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
 	std::vector<slim_popsize_t> candidates;

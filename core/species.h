@@ -105,9 +105,12 @@ typedef struct __attribute__((__packed__)) {
 } MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
-	slim_haplosomeid_t haplosome_id_;				// 8 bytes (int64_t): the SLiM haplosome ID for this haplosome, assigned by pedigree rec
+	slim_haplosomeid_t haplosome_id_;		// 8 bytes (int64_t): the SLiM haplosome ID for this haplosome, assigned by pedigree rec
 	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null haplosome (should never contain mutations)
-	HaplosomeType type_;						// 1 byte (uint8_t): the type of the haplosome (A, X, Y)
+	ChromosomeType type_;					// 1 byte (uint8_t): the type of the chromosome represented by the haplosome
+												// 9/19/2024: this changed from (A, X, Y) to all the new chromosome types
+												// FIXME MULTICHROM Peter observes that it should not be in this metadata at all any more; it will be
+												// identical for every haplosome in a given tree sequence (one tree sequence per chromosome)
 } HaplosomeMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
@@ -204,7 +207,6 @@ private:
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
-	HaplosomeType modeled_chromosome_type_ = HaplosomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	
 	// private initialization methods
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -218,22 +220,6 @@ private:
 	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from the file
 	slim_tick_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);				// initialize the population from a SLiM text file
 	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
-	
-	// initialization completeness check counts; used only when running initialize() callbacks
-	int num_mutation_types_;
-	int num_mutation_rates_;
-	int num_genomic_element_types_;
-	int num_genomic_elements_;
-	int num_recombination_rates_;
-	int num_gene_conversions_;
-	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
-	int num_options_declarations_;
-	int num_treeseq_declarations_;
-	int num_ancseq_declarations_;
-	int num_hotspot_maps_;
-	int num_species_declarations_;
-	
-	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
 	// a "temporary graveyard" for keeping individuals that have been killed by killIndividuals(), until they can be freed
 	std::vector<Individual *> graveyard_;
@@ -272,7 +258,34 @@ private:
 	bool shuffle_buf_borrowed_ = false;			// a safeguard against re-entrancy
 	bool shuffle_buf_is_enabled_ = true;		// if false, the buffer is "pass-through" - just sequential integers
 	
+	//
+	// Initialization completeness check counts; should be used only when running initialize() callbacks
+	//
+	
+	// per-species initialization; zeroed by Species::RunInitializeCallbacks()
+	int num_species_inits_;				// number of calls to initializeSpecies()
+	int num_slimoptions_inits_;			// number of calls to initializeSLiMOptions()
+	int num_mutation_type_inits_;		// number of calls to initializeMutationType() and initializeMutationTypeNuc()
+	int num_ge_type_inits_;				// number of calls to initializeGenomicElementType()
+	int num_sex_inits_;					// SEX ONLY: number of calls to initializeSex()
+	int num_treeseq_inits_;				// number of calls to initializeTreeSeq()
+	int num_chromosome_inits_;			// number of calls to initializeChromosome()
+	bool has_implicit_chromosome_;		// true if the model implicitly defines a chromosome, with no initializeChromosome() call
+	bool has_currently_initializing_chromosome_ = false;
+	
+	// per-chromosome initialization; zeroed by initializeChromosome()
+	int num_mutrate_inits_;				// number of calls to initializeMutationRate()
+	int num_recrate_inits_;				// number of calls to initializeRecombinationRate()
+	int num_genomic_element_inits_;		// number of calls to initializeGenomicElement()
+	int num_gene_conv_inits_;			// number of calls to initializeGeneConversion()
+	int num_ancseq_inits_;				// number of calls to initializeAncestralNucleotides()
+	int num_hotmap_inits_;				// number of calls to initializeHotspotMap()
+	
+	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
+	
+	//
 	// TREE SEQUENCE RECORDING
+	//
 #pragma mark -
 #pragma mark treeseq recording ivars
 #pragma mark -
@@ -385,6 +398,7 @@ public:
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
+	void EndCurrentChromosomeInitialization(void);
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
@@ -435,12 +449,12 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
 	// CurrentlyInitializingChromosome() is useful during initialization; methods that modify the chromosome configuration always operate on the
-	// last chromosome defined.  FIXME this should return nullptr after initialization is complete, or if there is no currently initializing
-	// chromosome (e.g., initializeSex(NULL) has been called but no initializeChromosome() call yet!), for bulletproofness
+	// last chromosome defined.
 #warning remove TheChromosome() step by step
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
-	inline __attribute__((always_inline)) Chromosome *CurrentlyInitializingChromosome(void)		{ return chromosomes_.back(); }
+	void MakeImplicitChromosome(ChromosomeType p_type);
+	Chromosome *CurrentlyInitializingChromosome(void);
 	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
@@ -473,7 +487,6 @@ public:
 	inline __attribute__((always_inline)) bool PedigreesEnabled(void) const													{ return pedigrees_enabled_; }
 	inline __attribute__((always_inline)) bool PedigreesEnabledByUser(void) const											{ return pedigrees_enabled_by_user_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
-	inline __attribute__((always_inline)) HaplosomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
 	inline __attribute__((always_inline)) int SpatialDimensionality(void) const												{ return spatial_dimensionality_; }
 	inline __attribute__((always_inline)) void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
 	{
@@ -563,6 +576,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

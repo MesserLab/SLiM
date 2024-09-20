@@ -234,7 +234,7 @@ public:
 	double RelatednessToIndividual(Individual &p_ind);
 	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-							   IndividualSex A_sex, IndividualSex B_sex, HaplosomeType modeledChromosomeType);
+							   IndividualSex A_sex, IndividualSex B_sex, ChromosomeType modeledChromosomeType);
 	
 	int SharedParentCountWithIndividual(Individual &p_ind);
 	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);

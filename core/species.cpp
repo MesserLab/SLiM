@@ -105,17 +105,8 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	pedigrees_enabled_by_SLiM_ = true;
 #endif
 	
-	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	// FIXME this should change to be deferred, created either when we know we have an implicit chromosome, or when initializeChromosome() is called
+	// Make space for up to SLIM_MAX_CHROMOSOMES Chromosome objects, but don't make any for now
 	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
-	
-	Chromosome *chromosome = new Chromosome(*this, 1, "1", 0);
-	int64_t id = chromosome->ID();
-	std::string symbol = chromosome->Symbol();
-	
-	chromosomes_.push_back(chromosome);
-	chromosome_from_id_.emplace(id, chromosome);
-	chromosome_from_symbol_.emplace(symbol, chromosome);
 }
 
 Species::~Species(void)
@@ -155,6 +146,36 @@ Species::~Species(void)
 	chromosomes_.clear();
 	chromosome_from_id_.clear();
 	chromosome_from_symbol_.clear();
+}
+
+void Species::MakeImplicitChromosome(ChromosomeType p_type)
+{
+	if (has_implicit_chromosome_)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) implicit chromosome already exists." << EidosTerminate();
+	if (num_chromosome_inits_ != 0)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) explicit chromosome already exists." << EidosTerminate();
+	
+	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", 0);
+	int64_t id = chromosome->ID();
+	std::string symbol = chromosome->Symbol();
+	
+	chromosomes_.push_back(chromosome);
+	chromosome_from_id_.emplace(id, chromosome);
+	chromosome_from_symbol_.emplace(symbol, chromosome);
+	
+	has_implicit_chromosome_ = true;
+	has_currently_initializing_chromosome_ = true;
+}
+
+Chromosome *Species::CurrentlyInitializingChromosome(void)
+{
+	if (!has_currently_initializing_chromosome_)
+		EIDOS_TERMINATION << "ERROR (Species::CurrentlyInitializingChromosome): (internal error) no currently initializing chromosome exists; MakeImplicitChromosome() should be called first." << EidosTerminate();
+	if (!has_implicit_chromosome_ && (num_chromosome_inits_ == 0))
+		EIDOS_TERMINATION << "ERROR (Species::CurrentlyInitializingChromosome): (internal error) no currently initializing chromosome exists even though has_currently_initializing_chromosome_ is true." << EidosTerminate();
+	
+	return chromosomes_.back();
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
@@ -818,7 +839,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		}
 	}
 	
-	// FIXME need to figure out the file format for multiple chromosomes
+	// FIXME MULTICHROM need to figure out the file format for multiple chromosomes
 	Chromosome &chromosome = TheChromosome();
 	
 	// Now we are in the Haplosomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
@@ -864,11 +885,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if ((sub.compare(gStr_A) == 0) || (sub.compare(gStr_X) == 0) || (sub.compare(gStr_Y) == 0))
 			{
 				// Let's do a little error-checking against what has already been instantiated for us...
-				if ((sub.compare(gStr_A) == 0) && haplosome.Type() != HaplosomeType::kAutosome)
+				if ((sub.compare(gStr_A) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kA_DiploidAutosome)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as A (autosome), but the instantiated haplosome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_X) == 0) && haplosome.Type() != HaplosomeType::kXChromosome)
+				if ((sub.compare(gStr_X) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kX_XSexChromosome)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as X (X-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_Y) == 0) && haplosome.Type() != HaplosomeType::kYChromosome)
+				if ((sub.compare(gStr_Y) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kNullY_YSexChromosomeWithNull)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as Y (Y-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
 				
 				if (iss >> sub)
@@ -881,7 +902,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 					{
 						if (!haplosome.IsNull())
 						{
-							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.Type() == HaplosomeType::kAutosome))
+							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.AssociatedChromosome()->Type() == ChromosomeType::kA_DiploidAutosome))
 							{
 								haplosome.MakeNull();
 								subpop->has_null_haplosomes_ = true;
@@ -1439,7 +1460,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 	}
 	
-	// FIXME need to figure out the file format for multiple chromosomes
+	// FIXME MULTICHROM need to figure out the file format for multiple chromosomes
 	Chromosome &chromosome = TheChromosome();
 	
 	// Haplosomes section
@@ -1561,7 +1582,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		Haplosome &haplosome = *subpop->parent_haplosomes_[haplosome_index];
 		
 		// Error-check the haplosome type
-		if (haplosome_type != (int32_t)haplosome.Type())
+		if (haplosome_type != (int32_t)haplosome.AssociatedChromosome()->Type())
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome type does not match the instantiated haplosome." << EidosTerminate();
 		
 		// Check the null haplosome state
@@ -1573,7 +1594,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		{
 			if (!haplosome.IsNull())
 			{
-				if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.Type() == HaplosomeType::kAutosome))
+				if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.AssociatedChromosome()->Type() == ChromosomeType::kA_DiploidAutosome))
 				{
 					haplosome.MakeNull();
 					subpop->has_null_haplosomes_ = true;
@@ -1805,18 +1826,22 @@ std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick,
 void Species::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
-	num_mutation_types_ = 0;
-	num_mutation_rates_ = 0;
-	num_genomic_element_types_ = 0;
-	num_genomic_elements_ = 0;
-	num_recombination_rates_ = 0;
-	num_gene_conversions_ = 0;
-	num_sex_declarations_ = 0;
-	num_options_declarations_ = 0;
-	num_treeseq_declarations_ = 0;
-	num_ancseq_declarations_ = 0;
-	num_hotspot_maps_ = 0;
-	num_species_declarations_ = 0;
+	num_species_inits_ = 0;
+	num_slimoptions_inits_ = 0;
+	num_mutation_type_inits_ = 0;
+	num_ge_type_inits_ = 0;
+	num_sex_inits_ = 0;
+	num_treeseq_inits_ = 0;
+	num_chromosome_inits_ = 0;
+	
+	num_mutrate_inits_ = 0;
+	num_recrate_inits_ = 0;
+	num_genomic_element_inits_ = 0;
+	num_gene_conv_inits_ = 0;
+	num_ancseq_inits_ = 0;
+	num_hotmap_inits_ = 0;
+	
+	has_implicit_chromosome_ = false;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1);
@@ -1824,22 +1849,24 @@ void Species::RunInitializeCallbacks(void)
 	for (auto script_block : init_blocks)
 		community_.ExecuteEidosEvent(script_block);
 	
+	//
 	// check for complete initialization
-	Chromosome *the_chromosome = CurrentlyInitializingChromosome();		// FIXME this code assumes only one chromosome was set up
+	//
 	
-	if ((num_mutation_rates_ == 0) && (num_mutation_types_ == 0) && (num_genomic_element_types_ == 0) &&
-		(num_genomic_elements_ == 0) && (num_recombination_rates_ == 0) && (num_hotspot_maps_ == 0) &&
-		(num_gene_conversions_ == 0))
+	if ((num_mutrate_inits_ == 0) && (num_mutation_type_inits_ == 0) && (num_ge_type_inits_ == 0) &&
+		(num_genomic_element_inits_ == 0) && (num_recrate_inits_ == 0) && (num_gene_conv_inits_ == 0) &&
+		(num_chromosome_inits_ == 0) && (!has_implicit_chromosome_))
 	{
 		// BCH 26 April 2022: In SLiM 4, as a special case, we allow *all* of the genetic structure boilerplate to be omitted.
-		// This gives a species with no genetics, no mutations, no recombination, etc.  It is still permissible for a call
-		// to initializeChromosome() to set the length of the chromosome, but that chromosome will have no structure.
-		// Either way, here we set up the default empty genetic structure and pretend to have been initialized, so we have
+		// This gives a species with no genetics, no mutations, no recombination, no declared chromosomes, and so forth.
+		// In that case, here we set up the default empty genetic structure and pretend to have been initialized, so we have
 		// little bits of several initialization functions excerpted here.  Note that the state achieved by this code path
 		// cannot be achieved any other way; in particular, we have no genomic element types, no mutation types, and no
 		// genomic elements; normally that is illegal, but we deliberately carve out this special case.
 		// BCH 22 May 2022: No-genetics species cannot use tree-sequence recording or be nucleotide-based, for simplicity.
 		// They always use null haplosomes, so any attempt to access their genetics is illegal.  They have no mutruns.
+		// BCH 18 September 2024: They also cannot have any declared chromosomes, or do anything that would cause an
+		// implicit chromosome to be defined.
 		if (recording_tree_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
@@ -1847,72 +1874,47 @@ void Species::RunInitializeCallbacks(void)
 		
 		has_genetics_ = false;
 		
-		for (Chromosome *chromosome : chromosomes_)
+		// Make a dummy chromosome of length zero, id 0, symbol "0"
+		Chromosome *dummy_chromosome = new Chromosome(*this, ChromosomeType::kA_DiploidAutosome, 0, "0", 0);
+		int64_t id = dummy_chromosome->ID();
+		std::string symbol = dummy_chromosome->Symbol();
+		
+		chromosomes_.push_back(dummy_chromosome);
+		chromosome_from_id_.emplace(id, dummy_chromosome);
+		chromosome_from_symbol_.emplace(symbol, dummy_chromosome);
+		has_implicit_chromosome_ = true;
+		has_currently_initializing_chromosome_ = true;
+		
+		// initializeMutationRate(): initialize to zero
 		{
-			{
-				// initializeMutationRate(): initialize to zero
-				std::vector<slim_position_t> &positions = chromosome->mutation_end_positions_H_;
-				std::vector<double> &rates = chromosome->mutation_rates_H_;
-				rates.clear();
-				positions.clear();
-				rates.emplace_back(0.0);
-				num_mutation_rates_++;
-			}
-			{
-				// initializeRecombinationRate(): initialize to zero
-				std::vector<slim_position_t> &positions = chromosome->recombination_end_positions_H_;
-				std::vector<double> &rates = chromosome->recombination_rates_H_;
-				rates.clear();
-				positions.clear();
-				rates.emplace_back(0.0);
-				num_recombination_rates_++;
-			}
+			std::vector<slim_position_t> &positions = dummy_chromosome->mutation_end_positions_H_;
+			std::vector<double> &rates = dummy_chromosome->mutation_rates_H_;
+			rates.clear();
+			positions.clear();
+			rates.emplace_back(0.0);
+			num_mutrate_inits_++;
+		}
+		
+		// initializeRecombinationRate(): initialize to zero
+		{
+			std::vector<slim_position_t> &positions = dummy_chromosome->recombination_end_positions_H_;
+			std::vector<double> &rates = dummy_chromosome->recombination_rates_H_;
+			rates.clear();
+			positions.clear();
+			rates.emplace_back(0.0);
+			num_recrate_inits_++;
 		}
 		
 		community_.chromosome_changed_ = true;
 	}
 	
-	if (!nucleotide_based_ && (num_mutation_rates_ == 0))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
-	if (nucleotide_based_ && (num_mutation_rates_ > 0))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	if (has_genetics_ && (!has_implicit_chromosome_) && (num_chromosome_inits_ == 0))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) a chromosome has not been set up properly." << EidosTerminate();
 	
-	if ((num_mutation_types_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
-	
-	if ((num_genomic_element_types_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
-	
-	if ((num_genomic_elements_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << EidosTerminate();
-	
-	if (num_recombination_rates_ == 0)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
-	
-	
-	if ((the_chromosome->recombination_rates_H_.size() != 0) && ((the_chromosome->recombination_rates_M_.size() != 0) || (the_chromosome->recombination_rates_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
-	
-	if (((the_chromosome->recombination_rates_M_.size() == 0) && (the_chromosome->recombination_rates_F_.size() != 0)) ||
-		((the_chromosome->recombination_rates_M_.size() != 0) && (the_chromosome->recombination_rates_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
-	
-	
-	if ((the_chromosome->mutation_rates_H_.size() != 0) && ((the_chromosome->mutation_rates_M_.size() != 0) || (the_chromosome->mutation_rates_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
-	
-	if (((the_chromosome->mutation_rates_M_.size() == 0) && (the_chromosome->mutation_rates_F_.size() != 0)) ||
-		((the_chromosome->mutation_rates_M_.size() != 0) && (the_chromosome->mutation_rates_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
-	
-	
-	if ((the_chromosome->hotspot_multipliers_H_.size() != 0) && ((the_chromosome->hotspot_multipliers_M_.size() != 0) || (the_chromosome->hotspot_multipliers_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
-	
-	if (((the_chromosome->hotspot_multipliers_M_.size() == 0) && (the_chromosome->hotspot_multipliers_F_.size() != 0)) ||
-		((the_chromosome->hotspot_multipliers_M_.size() != 0) && (the_chromosome->hotspot_multipliers_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
-	
+	// From the initialization that has occurred, there should now be a currently initializing chromosome,
+	// whether implicitly or explicitly defined.  We now close out its definition and check it for
+	// correctness.  If this is a multichromosome model, this has already been done for the previous ones.
+	EndCurrentChromosomeInitialization();
 	
 	// set a default avatar string if one was not provided; these will be A, B, etc.
 	if (avatar_.length() == 0)
@@ -1961,10 +1963,12 @@ void Species::RunInitializeCallbacks(void)
 	
 	if (nucleotide_based_)
 	{
-		if (num_ancseq_declarations_ == 0)
+		if (num_ancseq_inits_ == 0)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Nucleotide-based models must provide an ancestral nucleotide sequence with initializeAncestralNucleotides()." << EidosTerminate();
-		if (!the_chromosome->ancestral_seq_buffer_)
-			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
+		
+		for (Chromosome *chromosome : chromosomes_)
+			if (!chromosome->ancestral_seq_buffer_)
+				EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) No ancestral sequence!" << EidosTerminate();
 	}
 	
 	CheckMutationStackPolicy();
@@ -1997,14 +2001,17 @@ void Species::RunInitializeCallbacks(void)
 	{
 		bool mut_rate_zero = true;
 		
-		for (double rate : the_chromosome->mutation_rates_H_)
-			if (rate != 0.0) { mut_rate_zero = false; break; }
-		if (mut_rate_zero)
-			for (double rate : the_chromosome->mutation_rates_M_)
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			for (double rate : chromosome->mutation_rates_H_)
 				if (rate != 0.0) { mut_rate_zero = false; break; }
-		if (mut_rate_zero)
-			for (double rate : the_chromosome->mutation_rates_F_)
-				if (rate != 0.0) { mut_rate_zero = false; break; }
+			if (mut_rate_zero)
+				for (double rate : chromosome->mutation_rates_M_)
+					if (rate != 0.0) { mut_rate_zero = false; break; }
+			if (mut_rate_zero)
+				for (double rate : chromosome->mutation_rates_F_)
+					if (rate != 0.0) { mut_rate_zero = false; break; }
+		}
 		
 		if (!mut_rate_zero)
 		{
@@ -2029,8 +2036,9 @@ void Species::RunInitializeCallbacks(void)
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
-		if (the_chromosome->ancestral_seq_buffer_->size() != (std::size_t)(the_chromosome->last_position_ + 1))
-			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << the_chromosome->last_position_ + 1 << " base" << (the_chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << the_chromosome->ancestral_seq_buffer_->size() << " base" << (the_chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
+		for (Chromosome *chromosome : chromosomes_)
+			if (chromosome->ancestral_seq_buffer_->size() != (std::size_t)(chromosome->last_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): The chromosome length (" << chromosome->last_position_ + 1 << " base" << (chromosome->last_position_ + 1 != 1 ? "s" : "") << ") does not match the ancestral sequence length (" << chromosome->ancestral_seq_buffer_->size() << " base" << (chromosome->ancestral_seq_buffer_->size() != 1 ? "s" : "") << ")." << EidosTerminate();
 	}
 	
 	// always start at cycle 1, regardless of what the starting tick value might be
@@ -2045,10 +2053,57 @@ void Species::RunInitializeCallbacks(void)
 		AllocateTreeSequenceTables();
 }
 
+void Species::EndCurrentChromosomeInitialization(void)
+{
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
+	if (!nucleotide_based_ && (num_mutrate_inits_ == 0))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
+	if (nucleotide_based_ && (num_mutrate_inits_ > 0))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
+	
+	if ((num_mutation_type_inits_ == 0) && has_genetics_)
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
+	
+	if ((num_ge_type_inits_ == 0) && has_genetics_)
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
+	
+	if ((num_genomic_element_inits_ == 0) && has_genetics_)
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << EidosTerminate();
+	
+	if (num_recrate_inits_ == 0)
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
+	
+	if ((chromosome->recombination_rates_H_.size() != 0) && ((chromosome->recombination_rates_M_.size() != 0) || (chromosome->recombination_rates_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
+	
+	if (((chromosome->recombination_rates_M_.size() == 0) && (chromosome->recombination_rates_F_.size() != 0)) ||
+		((chromosome->recombination_rates_M_.size() != 0) && (chromosome->recombination_rates_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+	
+	
+	if ((chromosome->mutation_rates_H_.size() != 0) && ((chromosome->mutation_rates_M_.size() != 0) || (chromosome->mutation_rates_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
+	
+	if (((chromosome->mutation_rates_M_.size() == 0) && (chromosome->mutation_rates_F_.size() != 0)) ||
+		((chromosome->mutation_rates_M_.size() != 0) && (chromosome->mutation_rates_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+	
+	
+	if ((chromosome->hotspot_multipliers_H_.size() != 0) && ((chromosome->hotspot_multipliers_M_.size() != 0) || (chromosome->hotspot_multipliers_F_.size() != 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
+	
+	if (((chromosome->hotspot_multipliers_M_.size() == 0) && (chromosome->hotspot_multipliers_F_.size() != 0)) ||
+		((chromosome->hotspot_multipliers_M_.size() != 0) && (chromosome->hotspot_multipliers_F_.size() == 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
+	
+	has_currently_initializing_chromosome_ = false;
+}
+
 bool Species::HasDoneAnyInitialization(void)
 {
 	// This is used by Community to make sure that initializeModelType() executes before any other init
-	return ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0) || (num_species_declarations_ > 0));
+	return ((num_mutation_type_inits_ > 0) || (num_mutrate_inits_ > 0) || (num_ge_type_inits_ > 0) || (num_genomic_element_inits_ > 0) || (num_recrate_inits_ > 0) || (num_gene_conv_inits_ > 0) || (num_sex_inits_ > 0) || (num_slimoptions_inits_ > 0) || (num_treeseq_inits_ > 0) || (num_ancseq_inits_ > 0) || (num_hotmap_inits_ > 0) || (num_species_inits_ > 0) || (num_chromosome_inits_ > 0) || has_implicit_chromosome_);
 }
 
 void Species::PrepareForCycle(void)
@@ -3734,7 +3789,6 @@ void Species::RecordTablePosition(void)
 
 void Species::AllocateTreeSequenceTables(void)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 #if DEBUG
@@ -3795,7 +3849,6 @@ void Species::RetractNewIndividual()
 void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
 		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 #if DEBUG
@@ -4198,9 +4251,9 @@ void Species::TreeSequenceDataFromAscii(const std::string &NodeFileName,
 			else
 				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node is_null value; this file cannot be read." << EidosTerminate();
 			
-			if (metadata_parts[2] == gStr_A)		metarec.type_ = HaplosomeType::kAutosome;
-			else if (metadata_parts[2] == gStr_X)	metarec.type_ = HaplosomeType::kXChromosome;
-			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = HaplosomeType::kYChromosome;
+			if (metadata_parts[2] == gStr_A)		metarec.type_ = ChromosomeType::kA_DiploidAutosome;
+			else if (metadata_parts[2] == gStr_X)	metarec.type_ = ChromosomeType::kX_XSexChromosome;
+			else if (metadata_parts[2] == gStr_Y)	metarec.type_ = ChromosomeType::kNullY_YSexChromosomeWithNull;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): unexpected node type value; this file cannot be read." << EidosTerminate();
 			
@@ -4397,7 +4450,7 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			text_metadata.append(",");
 			text_metadata.append(struct_haplosome_metadata->is_null_ ? "T" : "F");
 			text_metadata.append(",");
-			text_metadata.append(StringForHaplosomeType(struct_haplosome_metadata->type_));
+			text_metadata.append(StringForChromosomeType(struct_haplosome_metadata->type_));
 			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 		}
 		
@@ -5590,7 +5643,6 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 
 void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 #if DEBUG
@@ -5902,7 +5954,7 @@ void Species::MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec 
 	
 	p_metadata->haplosome_id_ = p_haplosome->haplosome_id_;
 	p_metadata->is_null_ = p_haplosome->IsNull();
-	p_metadata->type_ = p_haplosome->haplosome_type_;
+	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();
 }
 
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
@@ -7076,24 +7128,29 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): haplosome id mismatch; this file cannot be read." << EidosTerminate();
 		
 		bool expected_is_null_0 = false, expected_is_null_1 = false;
-		HaplosomeType expected_haplosome_type_0 = HaplosomeType::kAutosome, expected_haplosome_type_1 = HaplosomeType::kAutosome;
+		ChromosomeType expected_chromosome_type_0 = ChromosomeType::kA_DiploidAutosome;
+		ChromosomeType expected_chromosome_type_1 = ChromosomeType::kA_DiploidAutosome;
 		
 		if (sex_enabled_)
 		{
 			// NOLINTBEGIN(*-branch-clone) : ok, this is a little weird, but it makes it explicit what happens for males versus females
-			if (modeled_chromosome_type_ == HaplosomeType::kXChromosome)
+			// FIXME MULTICHROM here we would be reading in a tree sequence for one chromosome in the model
+			// FIXME MULTICHROM firstChromosomeType is a temporary hack
+			ChromosomeType firstChromosomeType = Chromosomes()[0]->Type();
+			
+			if (firstChromosomeType == ChromosomeType::kX_XSexChromosome)
 			{
 				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : false;
 				expected_is_null_1 = (sex == IndividualSex::kMale) ? true : false;
-				expected_haplosome_type_0 = (sex == IndividualSex::kMale) ? HaplosomeType::kXChromosome : HaplosomeType::kXChromosome;
-				expected_haplosome_type_1 = (sex == IndividualSex::kMale) ? HaplosomeType::kYChromosome : HaplosomeType::kXChromosome;
+				expected_chromosome_type_0 = (sex == IndividualSex::kMale) ? ChromosomeType::kX_XSexChromosome : ChromosomeType::kX_XSexChromosome;
+				expected_chromosome_type_1 = (sex == IndividualSex::kMale) ? ChromosomeType::kNullY_YSexChromosomeWithNull : ChromosomeType::kX_XSexChromosome;
 			}
-			else if (modeled_chromosome_type_ == HaplosomeType::kYChromosome)
+			else if (firstChromosomeType == ChromosomeType::kNullY_YSexChromosomeWithNull)
 			{
 				expected_is_null_0 = (sex == IndividualSex::kMale) ? true : true;
 				expected_is_null_1 = (sex == IndividualSex::kMale) ? false : true;
-				expected_haplosome_type_0 = (sex == IndividualSex::kMale) ? HaplosomeType::kXChromosome : HaplosomeType::kXChromosome;
-				expected_haplosome_type_1 = (sex == IndividualSex::kMale) ? HaplosomeType::kYChromosome : HaplosomeType::kXChromosome;
+				expected_chromosome_type_0 = (sex == IndividualSex::kMale) ? ChromosomeType::kX_XSexChromosome : ChromosomeType::kX_XSexChromosome;
+				expected_chromosome_type_1 = (sex == IndividualSex::kMale) ? ChromosomeType::kNullY_YSexChromosomeWithNull : ChromosomeType::kX_XSexChromosome;
 			}
 			// NOLINTEND(*-branch-clone)
 		}
@@ -7101,19 +7158,19 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		// BCH 9/27/2021: Null haplosomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
 		if (node0_metadata->is_null_ != expected_is_null_0)
 		{
-			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_haplosome_type_0 == HaplosomeType::kAutosome))
+			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_chromosome_type_0 == ChromosomeType::kA_DiploidAutosome))
 				;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
 		}
 		if (node1_metadata->is_null_ != expected_is_null_1)
 		{
-			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_haplosome_type_1 == HaplosomeType::kAutosome))
+			if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (expected_chromosome_type_1 == ChromosomeType::kA_DiploidAutosome))
 				;
 			else
 				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
 		}
-		if ((node0_metadata->type_ != expected_haplosome_type_0) || (node1_metadata->type_ != expected_haplosome_type_1))
+		if ((node0_metadata->type_ != expected_chromosome_type_0) || (node1_metadata->type_ != expected_chromosome_type_1))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node type unexpected; this file cannot be read." << EidosTerminate();
 	}
 }
@@ -7224,7 +7281,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				// BCH 9/27/2021: Null haplosomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
 				if (node0_metadata->is_null_ != haplosome0->IsNull())
 				{
-					if (node0_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node0_metadata->type_ == HaplosomeType::kAutosome))
+					if (node0_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node0_metadata->type_ == ChromosomeType::kA_DiploidAutosome))
 					{
 						haplosome0->MakeNull();
 						new_subpop->has_null_haplosomes_ = true;
@@ -7234,7 +7291,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				}
 				if (node1_metadata->is_null_ != haplosome1->IsNull())
 				{
-					if (node1_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node1_metadata->type_ == HaplosomeType::kAutosome))
+					if (node1_metadata->is_null_ && (model_type_ == SLiMModelType::kModelTypeNonWF) && (node1_metadata->type_ == ChromosomeType::kA_DiploidAutosome))
 					{
 						haplosome1->MakeNull();
 						new_subpop->has_null_haplosomes_ = true;
@@ -7242,7 +7299,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					else
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
 				}
-				if ((node0_metadata->type_ != haplosome0->Type()) || (node1_metadata->type_ != haplosome1->Type()))
+				if ((node0_metadata->type_ != haplosome0->AssociatedChromosome()->Type()) ||
+					(node1_metadata->type_ != haplosome1->AssociatedChromosome()->Type()))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome type mismatch; this file cannot be read." << EidosTerminate();
 			}
 		}
@@ -7731,7 +7789,6 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 
 void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 	// This code is based on Species::CrosscheckTreeSeqIntegrity(), but it can be much simpler.
@@ -7900,7 +7957,6 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 	// set the tick and cycle from the provenance data
@@ -8046,7 +8102,6 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 
 slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
@@ -8116,7 +8171,6 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	// FIXME: All the tree sequence stuff will move to Chromosome, I think?
 	Chromosome &chromosome = TheChromosome();
 	
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");

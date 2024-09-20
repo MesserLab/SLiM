@@ -59,11 +59,12 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(Species &p_species, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index) :
+Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index) :
 	id_(p_id),
 	symbol_(p_symbol),
 	name_(),
 	index_(p_index),
+	type_(p_type),
 
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
@@ -2410,14 +2411,22 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gEidosID_type:
 		{
-			// FIXME needs to be updated to the new chromosome types
-			switch (species_.ModeledChromosomeType())
+			switch (type_)
 			{
-				case HaplosomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case HaplosomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case HaplosomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
+				case ChromosomeType::kA_DiploidAutosome:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
+				case ChromosomeType::kH_HaploidAutosome:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_H));
+				case ChromosomeType::kX_XSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
+				case ChromosomeType::kY_YSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
+				case ChromosomeType::kZ_ZSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Z));
+				case ChromosomeType::kW_WSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_W));
+				case ChromosomeType::kHF_HaploidFemaleInherited:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_HF));
+				case ChromosomeType::kFL_HaploidFemaleLine:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_FL));
+				case ChromosomeType::kHM_HaploidMaleInherited:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_HM));
+				case ChromosomeType::kML_HaploidMaleLine:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_ML));
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_H_));		// "H-"
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr__Y));		// "-Y"
 			}
-			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): (internal error) unrecognized value for type_." << EidosTerminate();
 		}
 			
 		case gID_hotspotEndPositions:

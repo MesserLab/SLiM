@@ -199,8 +199,7 @@ public:
 	double individual_cached_fitness_OVERRIDE_value_;
 	
 	// SEX ONLY; the default values here are for the non-sex case
-	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
-	HaplosomeType modeled_chromosome_type_ = HaplosomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match Species
+	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not
 	
 	// continuous-space info
 	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
@@ -246,15 +245,18 @@ public:
 	Subpopulation(void) = delete;																	// no null construction
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid);
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-				  double p_sex_ratio, HaplosomeType p_modeled_chromosome_type, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
+				  double p_sex_ratio, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
 	
 	slim_refcount_t NullHaplosomeCount(void);
 	inline bool CouldContainNullHaplosomes(void) {
+		// FIXME MULTICHROM firstChromosomeType is a temporary hack
+		ChromosomeType firstChromosomeType = species_.Chromosomes()[0]->Type();
+		
 		// sex-chromosome simulations can always contain null haplosomes
-		if (species_.ModeledChromosomeType() != HaplosomeType::kAutosome)
+		if (firstChromosomeType != ChromosomeType::kA_DiploidAutosome)
 			return true;
 #if DEBUG
 		// in DEBUG, check that has_null_haplosomes_ is not false when null haplosomes in fact exist (we allow the opposite case)
@@ -273,22 +275,21 @@ public:
 	slim_popsize_t DrawMaleParentEqualProbability(gsl_rng *rng) const;						// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	// Returns a new haplosome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	Haplosome *_NewSubpopHaplosome_NULL(HaplosomeType p_haplosome_type);	// internal use only
-	Haplosome *_NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, HaplosomeType p_haplosome_type);	// internal use only
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(HaplosomeType p_haplosome_type)
+	Haplosome *_NewSubpopHaplosome_NULL(void);	// internal use only
+	Haplosome *_NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length);	// internal use only
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(void)
 	{
 		if (haplosomes_junkyard_null.size())
 		{
 			Haplosome *back = haplosomes_junkyard_null.back();
 			haplosomes_junkyard_null.pop_back();
 			
-			back->haplosome_type_ = p_haplosome_type;
 			return back;
 		}
 		
-		return _NewSubpopHaplosome_NULL(p_haplosome_type);
+		return _NewSubpopHaplosome_NULL();
 	}
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, HaplosomeType p_haplosome_type)
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length)
 	{
 #if DEBUG
 		if (p_mutrun_count == 0)
@@ -303,8 +304,6 @@ public:
 			// Conceptually, we want to call ReinitializeHaplosomeNoClear() to set the haplosome up with the
 			// current type, mutrun setup, etc.  But we know that the haplosome is nonnull, and that we
 			// want it to be nonnull, so we can do less work than ReinitializeHaplosomeNoClear(), inline.
-			back->haplosome_type_ = p_haplosome_type;
-			
 			if (back->mutrun_count_ != p_mutrun_count)
 			{
 				// the number of mutruns has changed; need to reallocate
@@ -333,7 +332,7 @@ public:
 			return back;
 		}
 		
-		return _NewSubpopHaplosome_NONNULL(p_mutrun_count, p_mutrun_length, p_haplosome_type);
+		return _NewSubpopHaplosome_NONNULL(p_mutrun_count, p_mutrun_length);
 	}
 	
 	// Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
@@ -376,7 +375,7 @@ public:
 	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
-	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, HaplosomeType &p_haplosome1_type, HaplosomeType &p_haplosome2_type, bool &p_haplosome1_null, bool &p_haplosome2_null);
+	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null);
 	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Haplosome *p_haplosome1, Haplosome *p_haplosome2, EidosValue_Object *p_result)
 	{
 		if (p_proposed_child_accepted)

@@ -109,10 +109,7 @@ public:
 private:
 #endif
 	
-	// FIXME remove haplosome_type_ and get it from the chromosome object instead? hmm, our individual could be in the graveyard,
-	// can it still find its species and thus find the chromosomes?  might have an object graph problem with removing this...
-	HaplosomeType /* uint8_t */ haplosome_type_ = HaplosomeType::kAutosome;		// SEX ONLY: the type of chromosome represented by this haplosome
-	// FIXME chromosome_index_ needs to get set up properly
+	// FIXME MULTICHROM chromosome_index_ needs to get set up properly
 	slim_chromosome_index_t /* uint8_t */ chromosome_index_ = 0;	// the index of this haplosome's chromosome
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	
@@ -141,14 +138,14 @@ public:
 	Haplosome& operator= (const Haplosome &p_original) = delete;
 	
 	// make a null haplosome
-	explicit inline Haplosome(HaplosomeType p_haplosome_type_) :
-		haplosome_type_(p_haplosome_type_), mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(nullptr), haplosome_id_(-1)
+	explicit inline Haplosome(void) :
+		mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(nullptr), haplosome_id_(-1)
 	{
 	};
 	
 	// make a non-null haplosome
-	inline Haplosome(int p_mutrun_count, slim_position_t p_mutrun_length, HaplosomeType p_haplosome_type_) :
-		haplosome_type_(p_haplosome_type_), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(nullptr), haplosome_id_(-1)
+	inline Haplosome(int p_mutrun_count, slim_position_t p_mutrun_length) :
+		mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(nullptr), haplosome_id_(-1)
 	{
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
@@ -165,7 +162,7 @@ public:
 	inline __attribute__((always_inline)) void SetHaplosomeID(slim_haplosomeid_t p_new_id)	{ haplosome_id_ = p_new_id; }	// should basically never be called
 	inline __attribute__((always_inline)) Individual *OwningIndividual(void)				{ return individual_; }
 	inline __attribute__((always_inline)) const Individual *OwningIndividual(void) const 	{ return individual_; }
-	Chromosome *AssociatedChromosome(void);
+	Chromosome *AssociatedChromosome(void) const;
 	
 	void NullHaplosomeAccessError(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));		// prints an error message, a stacktrace, and exits; called only for DEBUG
 	
@@ -181,8 +178,8 @@ public:
 	void MakeNull(void) __attribute__((cold));	// transform into a null haplosome
 	
 	// used to re-initialize haplosomes to a new state, reusing them for efficiency
-	void ReinitializeHaplosomeToMutruns(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
-	void ReinitializeHaplosomeNullptr(HaplosomeType p_haplosome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length);
+	void ReinitializeHaplosomeToMutruns(int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
+	void ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_position_t p_mutrun_length);
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
@@ -238,11 +235,6 @@ public:
 	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
 	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
-	
-	inline __attribute__((always_inline)) HaplosomeType Type(void) const			// returns the type of the haplosome: automosomal, X chromosome, or Y chromosome
-	{
-		return haplosome_type_;
-	}
 	
 	// Remove all mutations in p_haplosome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
 	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
@@ -348,9 +340,6 @@ public:
 				memcpy(mutruns_, p_source_haplosome.mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 			}
 		}
-		
-		// and copy other state
-		haplosome_type_ = p_source_haplosome.haplosome_type_;
 		
 		// DO NOT copy the subpop pointer!  That is not part of the genetic state of the haplosome,
 		// it's a back-pointer to the Subpopulation that owns this haplosome, and never changes!

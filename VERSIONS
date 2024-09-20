@@ -34,8 +34,8 @@ development head (in the master branch):
 		x	parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
 		x	parameter name changes: addEmpty(), addRecombinant()
 		API additions:
-			(object<Chromosome>$)initializeChromosome(integer$ id, integer$ start, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
-			initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
+		x	(void)initializeChromosome(integer$ id, integer$ start, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+		x	initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
 		x	Haplosome class:
 		x		property: chromosome => (object<Chromosome>$)
 		x	Chromosome class:
@@ -60,6 +60,9 @@ development head (in the master branch):
 		revise recipes for new terminology (but they will require more revision downstream)
 		fix calc...() functions for new terminology (but they will require more revision downstream)
 		policy change: mutationRuns= for initializeSLiMOptions() has been deprecated and will error if used; pass that option to initializeChromosome() instead
+		policy change: the old "haplosome type" (A/X/Y) in the genome metadata is now a chromosome type (different) in the haplosome metadata
+		policy change: similarly, haplosome type A/X/Y in SLiM output (e.g., outputFull()) is now a chromosome type (different)
+		policy change: initialization order is a bit stricter; initializeSex() with "X" or "Y" must come earlier, before calls that would define an implicit "A" chromosome
 
 
 version 4.3 (Eidos version 3.3):
@@ -310,7 +313,7 @@ version 4.0 (Eidos version 3.0):
 			– (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1]) - parameters switched
 			– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change
 			– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - added exerterSubpop
-		change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> subpops) - `subpops` now required, remove `immediate`
+		change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> subpops) - `subpops` now required, remove `immediate`
 		remove the `subpop` pseudo-parameter from interaction() callbacks; receiver.subpop and exerter.subpop should now be used, and are not always the same
 		revised recipes for these changes (for evaluate() now requiring subpops, in all cases; no other changes needed): 15.2, 15.3 I/II/III/IV, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12, 16.10, 16.11, 16.18
 		note that these changes break backward compatibility for most models, and break backward reproducibility for many (due to distances not being rounded off from double to float in some code paths now)
