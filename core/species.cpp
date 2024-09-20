@@ -156,7 +156,7 @@ void Species::MakeImplicitChromosome(ChromosomeType p_type)
 		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) explicit chromosome already exists." << EidosTerminate();
 	
 	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", 0);
+	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", /* p_index */ 0, /* p_preferred_mutcount */ 0);
 	int64_t id = chromosome->ID();
 	std::string symbol = chromosome->Symbol();
 	
@@ -1875,7 +1875,7 @@ void Species::RunInitializeCallbacks(void)
 		has_genetics_ = false;
 		
 		// Make a dummy chromosome of length zero, id 0, symbol "0"
-		Chromosome *dummy_chromosome = new Chromosome(*this, ChromosomeType::kA_DiploidAutosome, 0, "0", 0);
+		Chromosome *dummy_chromosome = new Chromosome(*this, ChromosomeType::kA_DiploidAutosome, 0, "0", /* p_index */ 0, /* p_preferred_mutcount */ 0);
 		int64_t id = dummy_chromosome->ID();
 		std::string symbol = dummy_chromosome->Symbol();
 		

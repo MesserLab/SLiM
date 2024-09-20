@@ -2597,7 +2597,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 	{
 		// If we're modeling autosomes, we can disregard p_child_sex entirely; we don't care whether we're modeling sexual or hermaphrodite individuals
 #if DEBUG
-		if (species_.has_genetics_)
+		if (species_.HasGenetics())
 		{
 			if (child_haplosome_null)
 				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): A null child haplosome was requested in the autosomal case." << EidosTerminate();

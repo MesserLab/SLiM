@@ -59,13 +59,14 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 #pragma mark Chromosome
 #pragma mark -
 
-Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index) :
+Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount) :
 	id_(p_id),
 	symbol_(p_symbol),
 	name_(),
 	index_(p_index),
 	type_(p_type),
-
+	preferred_mutrun_count_(p_preferred_mutcount),
+	
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
 	

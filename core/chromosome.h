@@ -244,13 +244,15 @@ public:
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
 	
-	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index);
+	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount);
 	~Chromosome(void);
 	
 	inline __attribute__((always_inline)) int64_t ID(void)	{ return id_; }
 	inline __attribute__((always_inline)) const std::string &Symbol(void)	{ return symbol_; }
 	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) { return index_; }
 	inline __attribute__((always_inline)) ChromosomeType Type(void) { return type_; }
+	inline __attribute__((always_inline)) const std::string &Name(void) { return name_; }
+	inline __attribute__((always_inline)) void SetName(const std::string &p_name) { name_ = p_name; }
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
 	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }

@@ -296,14 +296,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	}
 	
 	// Set up the new chromosome object
-	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, 0);
+	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ 0, (int)mutrun_count);
+	chromosome->SetName(name);
 	
 	chromosomes_.push_back(chromosome);
 	chromosome_from_id_.emplace(id, chromosome);
 	chromosome_from_symbol_.emplace(symbol, chromosome);
-	
-	chromosome->name_ = name;
-	chromosome->preferred_mutrun_count_ = (int)mutrun_count;
 	
 	num_chromosome_inits_++;
 	has_currently_initializing_chromosome_ = true;
