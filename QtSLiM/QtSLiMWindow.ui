@@ -33,7 +33,7 @@
     <item>
      <layout class="QVBoxLayout" name="overallTopLayout" stretch="1,0">
       <property name="spacing">
-       <number>10</number>
+       <number>5</number>
       </property>
       <item>
        <layout class="QHBoxLayout" name="topLayout">
@@ -590,7 +590,7 @@ QSlider::handle:horizontal:disabled {
         <item>
          <layout class="QVBoxLayout" name="chromosomeWidgetLayout">
           <property name="spacing">
-           <number>15</number>
+           <number>4</number>
           </property>
           <item>
            <widget class="QtSLiMChromosomeWidget" name="chromosomeOverview">
@@ -603,7 +603,7 @@ QSlider::handle:horizontal:disabled {
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>30</height>
+              <height>20</height>
              </size>
             </property>
             <property name="maximumSize">
@@ -699,7 +699,7 @@ QSlider::handle:horizontal:disabled {
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
-              <height>15</height>
+              <height>0</height>
              </size>
             </property>
            </spacer>

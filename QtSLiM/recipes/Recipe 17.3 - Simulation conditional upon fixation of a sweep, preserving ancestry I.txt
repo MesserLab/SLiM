@@ -14,7 +14,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 1000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
 	defineConstant("PATH", tempdir() + "slim_" + simID + ".trees");
 	sim.outputFull(PATH);

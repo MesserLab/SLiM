@@ -28,7 +28,7 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 fitnessEffect() {
-	for (g in individual.genomes)
+	for (g in individual.haplosomes)
 	{
 		seq = g.nucleotides(253, 670) + g.nucleotides(871, 1034);
 		codons = nucleotidesToCodons(seq);
@@ -41,8 +41,8 @@ fitnessEffect() {
 100000 late() {
 	catn(sim.substitutions.size() + " fixed mutations.");
 	
-	as1 = sim.chromosome.ancestralNucleotides(253, 670, "integer");
-	as2 = sim.chromosome.ancestralNucleotides(871, 1034, "integer");
+	as1 = sim.chromosomes.ancestralNucleotides(253, 670, "integer");
+	as2 = sim.chromosomes.ancestralNucleotides(871, 1034, "integer");
 	as = c(as1, as2);
 	codons = nucleotidesToCodons(as);
 	catn("Final AA sequence: " + codonsToAminoAcids(codons));

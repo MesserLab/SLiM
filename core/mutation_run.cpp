@@ -169,7 +169,7 @@ Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type,
 	else if (p_position == p_last_position)
 	{
 		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
-		// so we special-case it by starting at the last mutation in the genome.
+		// so we special-case it by starting at the last mutation in the haplosome.
 		if (mut_count == 0)
 			return nullptr;
 		
@@ -290,54 +290,54 @@ void MutationRun::_RemoveFixedMutations(void)
 	// That is done only when convertToSubstitution == T, so we don't need to check that flag here.
 	
 	// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
-	// though it is shared by multiple Genomes; this is an exceptional case, so we go around our safeguards.
-	MutationIndex *genome_iter = mutations_;
-	MutationIndex *genome_backfill_iter = nullptr;
-	MutationIndex *genome_max = mutations_ + mutation_count_;
+	// though it is shared by multiple Haplosomes; this is an exceptional case, so we go around our safeguards.
+	MutationIndex *haplosome_iter = mutations_;
+	MutationIndex *haplosome_backfill_iter = nullptr;
+	MutationIndex *haplosome_max = mutations_ + mutation_count_;
 	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 	
-	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
+	// haplosome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
-	while (genome_iter != genome_max)
+	while (haplosome_iter != haplosome_max)
 	{
-		if ((mutation_block_ptr + (*genome_iter++))->state_ != MutationState::kFixedAndSubstituted)
+		if ((mutation_block_ptr + (*haplosome_iter++))->state_ != MutationState::kFixedAndSubstituted)
 			continue;
 		
-		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
-		genome_backfill_iter = genome_iter - 1;
+		// Fixed mutation; we want to omit it, so we skip it in haplosome_backfill_iter and transition to the second loop
+		haplosome_backfill_iter = haplosome_iter - 1;
 		break;
 	}
 	
 #ifdef __clang_analyzer__
 	// the static analyzer doesn't understand the way the loop above drops through to the loop below
-	// this assert is not always true, but it is true whenever (genome_iter != genome_max) at this point
-	assert(genome_backfill_iter);
+	// this assert is not always true, but it is true whenever (haplosome_iter != haplosome_max) at this point
+	assert(haplosome_backfill_iter);
 #endif
 	
-	while (genome_iter != genome_max)
+	while (haplosome_iter != haplosome_max)
 	{
-		MutationIndex mutation_index = *genome_iter;
+		MutationIndex mutation_index = *haplosome_iter;
 		
 		if ((mutation_block_ptr + mutation_index)->state_ != MutationState::kFixedAndSubstituted)
 		{
-			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-			*genome_backfill_iter = mutation_index;
+			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as haplosome_iter
+			*haplosome_backfill_iter = mutation_index;
 			
-			++genome_backfill_iter;
-			++genome_iter;
+			++haplosome_backfill_iter;
+			++haplosome_iter;
 		}
 		else
 		{
 			// Fixed mutation; we want to omit it, so we just advance our pointer
-			++genome_iter;
+			++haplosome_iter;
 		}
 	}
 	
 	// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-	if (genome_backfill_iter != nullptr)
+	if (haplosome_backfill_iter != nullptr)
 	{
-		mutation_count_ -= (genome_iter - genome_backfill_iter);
+		mutation_count_ -= (haplosome_iter - haplosome_backfill_iter);
 		
 #if SLIM_USE_NONNEUTRAL_CACHES
 		// invalidate the nonneutral mutation cache

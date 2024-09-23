@@ -12,14 +12,14 @@ initialize() {
 	p1.setCloningRate(1.0);
 }
 late() {
-	// remove any new mutations added to the disabled diploid genomes
-	sim.subpopulations.individuals.genome2.removeMutations();
+	// remove any new mutations added to the disabled diploid haplosomes
+	sim.subpopulations.individuals.haplosomesFromParent2.removeMutations();
 	
-	// remove mutations in the haploid genomes that have fixed
+	// remove mutations in the haploid haplosomes that have fixed
 	muts = sim.mutationsOfType(m1);
 	freqs = sim.mutationFrequencies(NULL, muts);
 	if (any(freqs == 0.5))
-		sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+		sim.subpopulations.haplosomes.removeMutations(muts[freqs == 0.5], T);
 }
 200000 late() {
 	sim.outputFixedMutations();

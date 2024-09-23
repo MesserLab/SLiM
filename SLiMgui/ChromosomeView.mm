@@ -1196,7 +1196,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
-	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
+	double totalHaplosomeCount = pop.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1226,7 +1226,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 				}
 				
-				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 				NSRectFill(mutationTickRect);
 			}
 		}
@@ -1277,7 +1277,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-							int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+							int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 							
 							if ((xPos >= 0) && (xPos < displayPixelWidth))
 								if (height > heightBuffer[xPos])
@@ -1348,7 +1348,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						
-						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
 						NSRectFill(mutationTickRect);
@@ -1375,7 +1375,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						
 						if ((xPos >= 0) && (xPos < displayPixelWidth))
 						{
@@ -1418,7 +1418,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
-	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
+	double totalHaplosomeCount = pop.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1453,7 +1453,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 				}
 				
-				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 				SLIM_GL_DEFCOORDS(mutationTickRect);
 				SLIM_GL_PUSHRECT();
 				SLIM_GL_PUSHRECT_COLORS();
@@ -1511,7 +1511,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-								int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+								int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 								
 								if ((xPos >= 0) && (xPos < displayPixelWidth))
 									if (height > heightBuffer[xPos])
@@ -1587,7 +1587,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						slim_position_t mutationPosition = mutation->position_;
 						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						
-						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 						
 						SLIM_GL_DEFCOORDS(mutationTickRect);
@@ -1617,7 +1617,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
 						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalGenomeCount) * interiorRect.size.height);
+						int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						
 						if ((xPos >= 0) && (xPos < displayPixelWidth))
 						{

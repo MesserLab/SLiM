@@ -96,7 +96,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	double totalGenomeCount = ((pop.total_genome_count_ == 0) ? 1 : pop.total_genome_count_);   // prevent a zero count from producing NAN frequencies below
+	double totalHaplosomeCount = ((pop.total_haplosome_count_ == 0) ? 1 : pop.total_haplosome_count_);   // prevent a zero count from producing NAN frequencies below
     int registry_size;
     const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	
@@ -114,7 +114,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 		}
 		
 		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
-		double mutationFrequency = mutationRefCount / totalGenomeCount;
+		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
 		int mutationBin = static_cast<int>(floor(mutationFrequency * binCount));
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
 		

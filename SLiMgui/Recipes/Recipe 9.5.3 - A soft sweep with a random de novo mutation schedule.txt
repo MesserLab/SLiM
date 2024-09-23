@@ -21,7 +21,7 @@ initialize() {
 	community.deregisterScriptBlock(s1);
 }
 s1 1000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	mut = sim.mutationsOfType(m2);
 	if (mut.size() > 0)
 		target.addMutations(mut);

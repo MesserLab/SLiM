@@ -17,6 +17,6 @@ mateChoice() {
 }
 1000 late() {
 	// Print mean heterozygosity across the population
-	heterozygosity = calcHeterozygosity(p1.genomes);
+	heterozygosity = calcHeterozygosity(p1.haplosomes);
 	cat("Mean heterozygosity = " + heterozygosity + "\n");
 }

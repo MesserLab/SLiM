@@ -21,8 +21,8 @@ initialize() {
 1 late() {
 	sim.addSubpop("p1", N);
 
-	// give some genomes an inversion
-	inverted = sample(p1.genomes, 100);
+	// give some haplosomes an inversion
+	inverted = sample(p1.haplosomes, 100);
 	inverted.addNewDrawnMutation(m2, INV_START);
 	inverted.addNewDrawnMutation(m3, INV_END);
 }
@@ -41,8 +41,8 @@ mutationEffect(m2) {
 }
 
 recombination() {
-	gm1 = genome1.containsMarkerMutation(m2, INV_START);
-	gm2 = genome2.containsMarkerMutation(m2, INV_START);
+	gm1 = haplosome1.containsMarkerMutation(m2, INV_START);
+	gm2 = haplosome2.containsMarkerMutation(m2, INV_START);
 	if (!(gm1 | gm2)) {
 		// homozygote non-inverted
 		return F;
@@ -61,7 +61,7 @@ recombination() {
 	} else {
 		// heterozygote inverted: resample to get an even number of breakpoints
 		// this is *recursive*: it calls this recombination callback again!
-		breakpoints = sim.chromosome.drawBreakpoints(individual);
+		breakpoints = sim.chromosomes.drawBreakpoints(individual);
 	}
 	return T;
 }

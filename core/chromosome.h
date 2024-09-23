@@ -40,7 +40,7 @@
 #include "eidos_value.h"
 
 struct GESubrange;
-class Genome;
+class Haplosome;
 class Species;
 
 
@@ -59,6 +59,12 @@ public:
 #else
 private:
 #endif
+	
+	int64_t id_;
+	std::string symbol_;
+	std::string name_;
+	slim_chromosome_index_t index_;
+	ChromosomeType type_;
 	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
@@ -111,6 +117,58 @@ private:
 	std::vector<GESubrange> mutation_subranges_M_;
 	std::vector<GESubrange> mutation_subranges_F_;
 	
+	// Chromosome now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
+	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
+	// When running multithreaded, each of these becomes a vector of per-thread objects, so we can alloc/free runs in parallel code.
+	// This stuff is not set up until after initialize() callbacks; nobody should be using MutationRuns before then.
+#ifndef _OPENMP
+	MutationRunContext mutation_run_context_SINGLE_;
+#else
+	int mutation_run_context_COUNT_ = 0;											// the number of PERTHREAD contexts
+	std::vector<MutationRunContext *> mutation_run_context_PERTHREAD;
+#endif
+	
+	// Mutation run optimization.  The ivars here are used only internally by Species; the canonical reference regarding the
+	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Haplosome (for each haplosome object).
+	// If Species decides to change the number of mutation runs, it will update those canonical repositories accordingly.
+	// A prefix of x_ is used on all mutation run experiment ivars, to avoid confusion.
+	int preferred_mutrun_count_ = 0;			// preferred mutation run length (from the user); 0 represents no preference
+	
+#define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
+#define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
+	
+	bool x_experiments_enabled_;				// if false, no experiments are run and no cycle runtimes are recorded
+	
+	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
+	double *x_current_runtimes_;				// cycle runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_current_buflen_;						// the number of runtimes in the current_mutcount_runtimes_ buffer
+	
+	int32_t x_previous_mutcount_;				// the number of mutation runs we previously used
+	double *x_previous_runtimes_;				// cycle runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_previous_buflen_;						// the number of runtimes in the previous_mutcount_runtimes_ buffer
+	
+	bool x_continuing_trend_;					// if true, the current experiment continues a trend, such that the opposite trend can be excluded
+	
+	int64_t x_stasis_limit_;					// how many stasis experiments we're running between change experiments; gets longer over time
+	double x_stasis_alpha_;						// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
+	int64_t x_stasis_counter_;					// how many stasis experiments we have run so far
+	int32_t x_prev1_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis last time
+	int32_t x_prev2_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis the time before last
+	
+	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each cycle
+	
+	std::clock_t x_current_clock_ = 0;			// the clock for timing current being done
+	bool x_clock_running_ = false;
+	
+	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
+												// look at StartMutationRunExperimentClock() usage to see which blocks are measured
+	
+	// Mutation run experiments
+	void TransitionToNewExperimentAgainstCurrentExperiment(int32_t p_new_mutrun_count);
+	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
+	void EnterStasisForMutationRunExperiments(void);
+	void MaintainMutationRunExperiments(double p_last_gen_runtime);
+	
 public:
 	
 	Community &community_;
@@ -134,8 +192,9 @@ public:
 	
 	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
 	
-	slim_position_t last_position_;							// last position; used to be called length_ but it is (length - 1) really
-	EidosValue_SP cached_value_lastpos_;					// a cached value for last_position_; reset() if that changes
+	slim_position_t first_position_;						// first valid position
+	slim_position_t last_position_;							// last valid position
+	bool extent_immutable_;									// can the start/end still be changed?
 	
 	double overall_mutation_rate_H_;						// overall mutation rate (AFTER intersection with GEs)
 	double overall_mutation_rate_M_;						// overall mutation rate
@@ -163,7 +222,7 @@ public:
 	
 	int32_t mutrun_count_base_;								// minimum number of mutruns used (number of threads, typically); can be multiplied by a factor
 	int32_t mutrun_count_multiplier_;						// the current factor by which mutrun_count_base_ is multiplied; a power of two in [1, 1024]
-	int32_t mutrun_count_;									// the number of mutation runs being used for all genomes: base x multiplier
+	int32_t mutrun_count_;									// the number of mutation runs being used for all haplosomes: base x multiplier
 	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run might not use its full length
 	slim_position_t last_position_mutrun_;					// (mutrun_count_ * mutrun_length_ - 1), for complete coverage in crossover-mutation
 	
@@ -184,17 +243,26 @@ public:
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
-	explicit Chromosome(Species &p_species);							// construct with a species
-	~Chromosome(void);														// destructor
+	
+	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount);
+	~Chromosome(void);
+	
+	inline __attribute__((always_inline)) int64_t ID(void)	{ return id_; }
+	inline __attribute__((always_inline)) const std::string &Symbol(void)	{ return symbol_; }
+	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) { return index_; }
+	inline __attribute__((always_inline)) ChromosomeType Type(void) { return type_; }
+	inline __attribute__((always_inline)) const std::string &Name(void) { return name_; }
+	inline __attribute__((always_inline)) void SetName(const std::string &p_name) { name_ = p_name; }
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
 	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
+	void CreateNucleotideMutationRateMap(void);
 	void InitializeDraws(void);
 	void _InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel);
 	void _InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_requested_overall_rate, double &p_overall_rate, double &p_exp_neg_overall_rate, std::vector<GESubrange> &p_subranges);
-	void ChooseMutationRunLayout(int p_preferred_count);
+	void ChooseMutationRunLayout(void);
 	
 	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
@@ -210,8 +278,8 @@ public:
 	MutationIndex DrawNewMutation(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick) const;
 	
 	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
-	Mutation *ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const;
-	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
+	Mutation *ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplosome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const;
+	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;
@@ -241,6 +309,59 @@ public:
 	size_t MemoryUsageForMutationMaps(void);
 	size_t MemoryUsageForRecombinationMaps(void);
 	size_t MemoryUsageForAncestralSequence(void);
+	
+	// Mutation run contexts: each chromosome keeps per-thread "contexts" out of which mutation runs get allocated, and
+	// into which they get freed.  This eliminates between-thread locking when working with mutation runs.
+	void SetUpMutationRunContexts(void);
+	
+#ifndef _OPENMP
+	inline int ChromosomeMutationRunContextCount(void) { return 1; }
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
+	{
+#if DEBUG
+		if (p_thread_num != 0)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+#else
+	inline int ChromosomeMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForThread(int p_thread_num)
+	{
+#if DEBUG
+		if ((p_thread_num < 0) || (p_thread_num >= mutation_run_context_COUNT_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return *(mutation_run_context_PERTHREAD[p_thread_num]);
+	}
+	inline __attribute__((always_inline)) MutationRunContext &ChromosomeMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::ChromosomeMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		// The range of the haplosome that each thread is responsible for does not change across
+		// splits/joins; one mutrun becomes two, or two become one, owned by the same thread
+		int thread_num = (int)(p_mutrun_index / mutrun_count_multiplier_);
+		return *(mutation_run_context_PERTHREAD[thread_num]);
+	}
+#endif
+	
+	// Mutation run experiments
+	void InitiateMutationRunExperiments(void);
+	void ZeroMutationRunExperimentClock(void);
+	void StartMutationRunExperimentClock(void);
+	void StopMutationRunExperimentClock(void);
+	void FinishMutationRunExperimentTiming(void);
+	void PrintMutationRunExperimentSummary(void);
 	
 	
 	//

@@ -13,7 +13,7 @@ initialize() {
 	sim.addSubpop("p1", 100000);
 }
 1:10000 early() {
-	counts = p1.genomes.countOfMutationsOfType(m1);
+	counts = p1.haplosomes.countOfMutationsOfType(m1);
 	freq = mean(counts > 0);
 	
 	if (freq == 1.0)
@@ -22,7 +22,7 @@ initialize() {
 		
 		for (mut in sortBy(sim.mutations, "originTick"))
 		{
-			mutFreq = mean(p1.genomes.containsMutations(mut));
+			mutFreq = mean(p1.haplosomes.containsMutations(mut));
 			cat("Origin " + mut.originTick + ": " + mutFreq + "\n");
 		}
 		
