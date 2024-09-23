@@ -248,7 +248,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	slim_position_t start = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr));
 	slim_position_t length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
 	
-	if (start != 0)		// FIXME MULTICHROM
+	if (start != 0)		// FIXME MULTICHROM support a first posititon != 0
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not yet support start != 0." << EidosTerminate();
 	if (start + length - 1 > SLIM_MAX_BASE_POSITION)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (start+length-1) to be <= 1e15." << EidosTerminate();
@@ -304,7 +304,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	}
 	
 	// Set up the new chromosome object
-	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ 0, (int)mutrun_count);
+	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ num_chromosome_inits_, (int)mutrun_count);
 	
 	chromosome->SetName(name);
 	chromosome->first_position_ = start;
@@ -2070,12 +2070,10 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_me
 	for (int ids_index = 0; ids_index < ids_count; ids_index++)
 	{
 		int64_t id = ids_data[ids_index];
-		auto iter = chromosome_from_id_.find(id);
+		Chromosome *chromosome = ChromosomeFromID(id);
 		
-		if (iter == chromosome_from_id_.end())
+		if (!chromosome)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithIDs): chromosomesWithIDs() could not find a chromosome with the given id (" << id << ")." << EidosTerminate();
-		
-		Chromosome *chromosome = (*iter).second;
 		
 		result->push_object_element_no_check_RR(chromosome);
 	}
@@ -2099,12 +2097,10 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID 
 	for (int symbols_index = 0; symbols_index < symbols_count; symbols_index++)
 	{
 		const std::string &symbol = symbols_data[symbols_index];
-		auto iter = chromosome_from_symbol_.find(symbol);
+		Chromosome *chromosome = ChromosomeFromSymbol(symbol);
 		
-		if (iter == chromosome_from_symbol_.end())
+		if (!chromosome)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithSymbols): chromosomesWithSymbols() could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
-		
-		Chromosome *chromosome = (*iter).second;
 		
 		result->push_object_element_no_check_RR(chromosome);
 	}

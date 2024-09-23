@@ -595,11 +595,9 @@ void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChr
 {
     overviewWidget->setController(this);
 	overviewWidget->setReferenceChromosomeView(nullptr);
-	overviewWidget->setSelectable(true);
 	
     zoomedWidget->setController(this);
 	zoomedWidget->setReferenceChromosomeView(overviewWidget);
-	zoomedWidget->setSelectable(false);
     
     // Forward notification of changes to the selection in the chromosome view
     connect(overviewWidget, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerChromosomeSelectionChanged(); });
@@ -1581,6 +1579,7 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 
 void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
 {
+    // FIXME MULTICHROM not clear what happens to this in the multichrom world...
     // First we need to look up the chromosome view for the requested species
     for (QtSLiMChromosomeWidget *chromosomeWidget : chromosomeOverviewWidgets)
     {
@@ -1591,7 +1590,7 @@ void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, s
             if (p_hasSelection)
                 *p_hasSelection = chromosomeWidget->hasSelection();
             
-            QtSLiMRange selRange = chromosomeWidget->getSelectedRange(species);
+            QtSLiMRange selRange = chromosomeWidget->getSelectedRange(&species->TheChromosome());
             
             if (p_selectionFirstBase)
                 *p_selectionFirstBase = selRange.location;

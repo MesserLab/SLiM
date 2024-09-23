@@ -148,6 +148,26 @@ Species::~Species(void)
 	chromosome_from_symbol_.clear();
 }
 
+Chromosome *Species::ChromosomeFromID(int64_t p_id)
+{
+	auto iter = chromosome_from_id_.find(p_id);
+	
+	if (iter == chromosome_from_id_.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+Chromosome *Species::ChromosomeFromSymbol(const std::string &p_symbol)
+{
+	auto iter = chromosome_from_symbol_.find(p_symbol);
+	
+	if (iter == chromosome_from_symbol_.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
 void Species::MakeImplicitChromosome(ChromosomeType p_type)
 {
 	if (has_implicit_chromosome_)

@@ -452,6 +452,8 @@ public:
 #warning remove TheChromosome() step by step
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	Chromosome *ChromosomeFromID(int64_t p_id);
+	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
 	void MakeImplicitChromosome(ChromosomeType p_type);
 	Chromosome *CurrentlyInitializingChromosome(void);
 	
