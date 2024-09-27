@@ -11,6 +11,8 @@
         <file>buttons/change_folder.png</file>
         <file>buttons/check_H.png</file>
         <file>buttons/check.png</file>
+        <file>buttons/chrom_display_H.png</file>
+        <file>buttons/chrom_display.png</file>
         <file>buttons/delete_H.png</file>
         <file>buttons/delete.png</file>
         <file>buttons/dump_output_H.png</file>
