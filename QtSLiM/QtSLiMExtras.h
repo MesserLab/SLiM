@@ -54,6 +54,8 @@ typedef enum {
     kBottomRight
 } QtSLiM_LegendPosition;
 
+void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets = true);
+
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
 void QtSLiMFrameRect(const QRectF &p_rect, const QColor &p_color, QPainter &p_painter, double p_lineWidth);
 
