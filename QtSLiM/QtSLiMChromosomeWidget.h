@@ -24,6 +24,7 @@
 #define GL_SILENCE_DEPRECATION
 
 #include <QWidget>
+#include <QPointer>
 
 #ifndef SLIM_NO_OPENGL
 #include <QOpenGLWidget>
@@ -39,13 +40,60 @@ class QtSLiMWindow;
 class QtSLiMHaplotypeManager;
 class QPainter;
 class QContextMenuEvent;
+class QButton;
 
 
 struct QtSLiMRange
 {
     int64_t location, length;
     
+    explicit QtSLiMRange() : location(0), length(0) {}
     explicit QtSLiMRange(int64_t p_location, int64_t p_length) : location(p_location), length(p_length) {}
+};
+
+
+// This is a little controller class that governs a chromosome view or views, and an associated action button
+// It is used by QtSLiMWindow for the main chromosome views (overview and zoomed), and by the chromosome display
+class QtSLiMChromosomeWidgetController : public QObject
+{
+    Q_OBJECT
+    
+    QtSLiMWindow *slimWindow_ = nullptr;
+    
+    // state used only in the chromosome display case
+    QPointer<QWidget> displayWindow_ = nullptr;
+    std::string focalSpeciesName_;                  // we keep the name of our focal species, since a pointer would be unsafe
+    std::string focalSpeciesAvatar_;                // cached so we can display it even when the simulation is invalid
+    bool needsRebuild_ = false;                     // true immediately after recycling
+    
+public:
+    bool useScaledWidths_ = true;                   // used only by the chromosome display
+    bool shouldDrawMutations_ = true;
+    bool shouldDrawFixedSubstitutions_ = false;
+    bool shouldDrawGenomicElements_ = false;
+    bool shouldDrawRateMaps_ = false;
+    
+    bool displayHaplotypes_ = false;                // if false, displaying frequencies; if true, displaying haplotypes
+    std::vector<slim_objectid_t> displayMuttypes_;  // if empty, display all mutation types; otherwise, display only the muttypes chosen
+    
+    QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies);
+    
+    void buildChromosomeDisplay(bool resetWindowSize);
+    void updateFromController(void);
+    
+    void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
+    void actionButtonRunMenu(QtSLiMPushButton *p_actionButton);
+    
+    // forwards from slimWindow_; this is everything QtSLiMChromosomeWidget needs from the outside world
+    bool invalidSimulation(void) { return slimWindow_->invalidSimulation(); }
+    Community *community(void) { return slimWindow_->community; }
+    Species *focalDisplaySpecies(void);
+    void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha)
+        { slimWindow_->colorForGenomicElementType(elementType, elementTypeID, p_red, p_green, p_blue, p_alpha); }
+    QtSLiMWindow *slimWindow(void) { return slimWindow_; }
+        
+signals:
+    void needsRedisplay(void);
 };
 
 
@@ -60,16 +108,21 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 class QtSLiMChromosomeWidget : public QWidget
 #endif
 {
-    Q_OBJECT    
+    Q_OBJECT
     
-    QtSLiMWindow *controller_ = nullptr;
+    QtSLiMChromosomeWidgetController *controller_ = nullptr;
     std::string focalSpeciesName_;                                  // we keep the name of our focal species, since a pointer would be unsafe
-    std::string focalChromosomeSymbol_;                             // we keep the name of our focal species, since a pointer would be unsafe
+    std::string focalChromosomeSymbol_;                             // we keep the symbol of our focal chromosome, since a pointer would be unsafe
     
-    bool isOverview_ = true;
-    QtSLiMChromosomeWidget *referenceChromosomeView_ = nullptr;
+    bool isOverview_ = false;
+    QtSLiMChromosomeWidget *dependentChromosomeView_ = nullptr;
     
-    // Selection
+    bool showsTicks_ = true;
+    
+    // Displayed range (only in a regular chromosome view)
+    QtSLiMRange displayedRange_;
+    
+    // Selection (only in the overview)
 	bool hasSelection_ = false;
 	slim_position_t selectionFirstBase_ = 0, selectionLastBase_ = 0;
 	
@@ -82,7 +135,7 @@ class QtSLiMChromosomeWidget : public QWidget
     int mouseInsideCounter_ = 0;
     bool showChromosomeNumbers_ = false;    // set true after a delay when the mouse is inside
     
-    // Tracking
+    // Tracking (only in the overview)
     bool isTracking_ = false;
     QRect contentRectForTrackedChromosome_;
     slim_position_t trackingStartBase_ = 0, trackingLastBase_ = 0;
@@ -94,28 +147,32 @@ class QtSLiMChromosomeWidget : public QWidget
     QtSLiMHaplotypeManager *haplotype_mgr_ = nullptr;   // the haplotype manager constructed for the current display; cached
     
 public:
-    explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, QtSLiMWindow *controller = nullptr, Species *displaySpecies = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, QtSLiMChromosomeWidgetController *controller = nullptr, Species *displaySpecies = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMChromosomeWidget() override;
     
-    void setController(QtSLiMWindow *controller);
+    void setController(QtSLiMChromosomeWidgetController *controller);
+    Chromosome *resetToDefaultChromosome(void);
     void setFocalDisplaySpecies(Species *displaySpecies);
     Species *focalDisplaySpecies(void);
     void setFocalChromosome(Chromosome *chromosome);
     Chromosome *focalChromosome(void);
     
-    void setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget);
+    void setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget);
     
     bool hasSelection(void) { return hasSelection_; }
     QtSLiMRange getSelectedRange(Chromosome *chromosome);
     void setSelectedRange(QtSLiMRange p_selectionRange);
     void restoreLastSelection(void);
+    void updateDependentView(void);
     
     QtSLiMRange getDisplayedRange(Chromosome *chromosome);
+    void setDisplayedRange(QtSLiMRange p_displayedRange);
+    
+    bool showsTicks(void) { return showsTicks_; }
+    void setShowsTicks(bool p_showTicks);
     
     void stateChanged(void);    // update when the SLiM model state changes; tosses any cached display info
-    
-signals:
-    void selectedRangeChanged(void);
+    void updateAfterTick(void);
     
 protected:
 #ifndef SLIM_NO_OPENGL
@@ -158,7 +215,7 @@ protected:
     void qtDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
     void qtDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
     
-    Chromosome *_setFocalChromosomeForTracking(QMouseEvent *p_event);
+    Chromosome *_findFocalChromosomeForTracking(QMouseEvent *p_event);
     virtual void mousePressEvent(QMouseEvent *p_event) override;
     void _mouseTrackEvent(QMouseEvent *p_event);
     virtual void mouseMoveEvent(QMouseEvent *p_event) override;
@@ -175,12 +232,12 @@ protected:
     
     // Our configuration is kept by the controller, since it is shared by all chromosome views for multispecies models
     // However, "overview" chromosome views are always configured the same, hard-coded here
-    inline bool shouldDrawMutations(void) const { return isOverview_ ? false : controller_->chromosome_shouldDrawMutations_; }
-    inline bool shouldDrawFixedSubstitutions(void) const { return isOverview_ ? false : controller_->chromosome_shouldDrawFixedSubstitutions_; }
-    inline bool shouldDrawGenomicElements(void) const { return isOverview_ ? true : controller_->chromosome_shouldDrawGenomicElements_; }
-    inline bool shouldDrawRateMaps(void) const { return isOverview_ ? false : controller_->chromosome_shouldDrawRateMaps_; }
-    inline bool displayHaplotypes(void) const { return isOverview_ ? false : controller_->chromosome_display_haplotypes_; }
-    inline std::vector<slim_objectid_t> &displayMuttypes(void) const { return controller_->chromosome_display_muttypes_; }
+    inline bool shouldDrawMutations(void) const { return isOverview_ ? false : controller_->shouldDrawMutations_; }
+    inline bool shouldDrawFixedSubstitutions(void) const { return isOverview_ ? false : controller_->shouldDrawFixedSubstitutions_; }
+    inline bool shouldDrawGenomicElements(void) const { return isOverview_ ? true : controller_->shouldDrawGenomicElements_; }
+    inline bool shouldDrawRateMaps(void) const { return isOverview_ ? false : controller_->shouldDrawRateMaps_; }
+    inline bool displayHaplotypes(void) const { return isOverview_ ? false : controller_->displayHaplotypes_; }
+    inline std::vector<slim_objectid_t> &displayMuttypes(void) const { return controller_->displayMuttypes_; }
 };
 
 #endif // QTSLIMCHROMOSOMEWIDGET_H

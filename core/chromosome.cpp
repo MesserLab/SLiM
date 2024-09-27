@@ -65,7 +65,6 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	name_(),
 	index_(p_index),
 	type_(p_type),
-	preferred_mutrun_count_(p_preferred_mutcount),
 	
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
@@ -76,6 +75,7 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), 
 #endif
 
+	preferred_mutrun_count_(p_preferred_mutcount),
 	x_experiments_enabled_(false),
 	community_(p_species.community_),
 	species_(p_species),

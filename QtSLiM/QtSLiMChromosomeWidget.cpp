@@ -27,6 +27,8 @@
 #include <QPainter>
 #include <QMenu>
 #include <QAction>
+#include <QActionGroup>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QtDebug>
 
@@ -43,7 +45,425 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 static const int spaceBetweenChromosomes = 5;
 
 
-QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, QtSLiMWindow *controller, Species *displaySpecies, Qt::WindowFlags f)
+QtSLiMChromosomeWidgetController::QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies) :
+    QObject(displayWindow ? displayWindow : slimWindow),
+    slimWindow_(slimWindow),
+    displayWindow_(displayWindow)
+{
+    connect(slimWindow_, &QtSLiMWindow::controllerPartialUpdateAfterTick, this, &QtSLiMChromosomeWidgetController::updateFromController);
+    
+    // focalSpecies is used only in the displayWindow case, for showing the species badge in multispecies models
+    // otherwise, slimWindow will control the focal display species for our chromosome view as it requires
+    if (displayWindow)
+    {
+        if (!focalSpecies)
+        {
+            qDebug() << "no focal species for creating a chromosome display!";
+            return;
+        }
+        
+        focalSpeciesName_ = focalSpecies->name_;
+        // focalSpeciesAvatar_ is set up in buildChromosomeDisplay();
+    }
+}
+
+void QtSLiMChromosomeWidgetController::updateFromController(void)
+{
+    if (displayWindow_)
+    {
+        Species *displaySpecies = focalDisplaySpecies();
+        
+        if (displaySpecies)
+        {
+            Community *community = slimWindow_->community;
+            
+            if (needsRebuild_ && !invalidSimulation() && community->simulation_valid_ && (community->tick_ >= 1))
+            {
+                // It's hard to tell, in general, whether we need a rebuild: if the number of
+                // chromosomes has changed, or the length of any chromosome, or the symbol of
+                // any chromosome, etc.  There's no harm, so we just always rebuild at the
+                // first valid moment after recycling.
+                buildChromosomeDisplay(false);
+                needsRebuild_ = false;
+            }
+        }
+        else
+        {
+            // we've just recycled or become invalid; our next update should rebuild the display
+            needsRebuild_ = true;
+        }
+    }
+    
+    emit needsRedisplay();
+}
+
+Species *QtSLiMChromosomeWidgetController::focalDisplaySpecies(void)
+{
+    if (displayWindow_)
+    {
+        // with a chromosome display, we are not based on the current focal species of slimWindow_, so we
+        // need to look up the focal display species dynamically based on its name (which could fail)
+        if (focalSpeciesName_.length() == 0)
+            return nullptr;
+        
+        if (slimWindow_ && slimWindow_->community && (slimWindow_->community->Tick() >= 1))
+            return slimWindow_->community->SpeciesWithName(focalSpeciesName_);
+        
+        return nullptr;
+    }
+    
+    // otherwise, our focal display species comes directly from slimWindow_
+    return slimWindow_->focalDisplaySpecies();
+}
+
+void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSize)
+{
+    // Remove any existing content from our display window and build new content
+    if (!displayWindow_)
+        return;
+    
+    // Assess the chromosomes to be displayed
+    Species *focalSpecies = focalDisplaySpecies();
+    const std::vector<Chromosome *> &chromosomes = focalSpecies->Chromosomes();
+    int chromosomeCount = (int)chromosomes.size();
+    slim_position_t chromosomeMaxLength = 0;
+    
+    for (Chromosome *chromosome : chromosomes)
+    {
+        slim_position_t length = chromosome->last_position_ - chromosome->first_position_ + 1;
+        
+        chromosomeMaxLength = std::max(chromosomeMaxLength, length);
+    }
+    
+    // Deal with window sizing
+    const int margin = 5;
+    const int spacing = 5;
+    const int buttonRowHeight = margin + margin + 20;
+    
+    displayWindow_->setMinimumSize(500, margin + 20 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
+    displayWindow_->setMaximumSize(4096, margin + 200 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
+    if (resetWindowSize)
+        displayWindow_->resize(800, margin + 30 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
+    
+    // Find the top-level layout and remove all of its current children
+    QVBoxLayout *topLayout = qobject_cast<QVBoxLayout *>(displayWindow_->layout());
+    
+    QtSLiMClearLayout(topLayout, /* deleteWidgets */ true);
+    
+    // Add a chromosome view for each chromosome in the model, with a spacer next to it to give it the right length
+    std::vector<QLabel *> labels;
+    bool firstRow = true;
+    
+    for (Chromosome *chromosome : chromosomes)
+    {
+        QHBoxLayout *rowLayout = new QHBoxLayout;
+        
+        rowLayout->setContentsMargins(margin, firstRow ? margin : spacing, margin, 0);
+        rowLayout->setSpacing(0);
+        topLayout->addLayout(rowLayout);
+        
+        QtSLiMChromosomeWidget *chromosomeWidget = new QtSLiMChromosomeWidget(nullptr);
+        
+        chromosomeWidget->setController(this);
+        chromosomeWidget->setFocalChromosome(chromosome);
+        chromosomeWidget->setDisplayedRange(QtSLiMRange(chromosome->first_position_, chromosome->last_position_ + 1));
+        chromosomeWidget->setShowsTicks(false);
+        
+        slim_position_t length = chromosome->last_position_ - chromosome->first_position_ + 1;
+        double fractionOfMax = length / (double)chromosomeMaxLength;
+        int chromosomeStretch = (int)(round(fractionOfMax * 255));  // Qt requires a max value of 255
+        
+        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(useScaledWidths_ ? chromosomeStretch : 0);
+        sizePolicy1.setVerticalStretch(0);
+        chromosomeWidget->setSizePolicy(sizePolicy1);
+        
+        QLabel *chromosomeLabel = new QLabel();
+        chromosomeLabel->setText(QString::fromStdString(chromosome->symbol_));
+        chromosomeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        
+        QSizePolicy sizePolicy2(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        chromosomeLabel->setSizePolicy(sizePolicy2);
+        
+        rowLayout->addWidget(chromosomeLabel);
+        rowLayout->addSpacing(margin);
+        rowLayout->addWidget(chromosomeWidget);
+        
+        if (useScaledWidths_)
+            rowLayout->addStretch(255 - chromosomeStretch);     // the remaining width after chromosomeStretch
+        
+        labels.push_back(chromosomeLabel);
+        
+        firstRow = false;
+    }
+    
+    // adjust all the labels to have the same width
+    int maxWidth = 0;
+    
+    for (QLabel *label : labels)
+        maxWidth = std::max(maxWidth, label->sizeHint().width());
+    
+    for (QLabel *label : labels)
+        label->setMinimumWidth(maxWidth);
+    
+    // Add a horizontal layout at the bottom, for the action button
+    QHBoxLayout *buttonLayout = nullptr;
+    
+    {
+        buttonLayout = new QHBoxLayout;
+        
+        buttonLayout->setContentsMargins(margin, margin, margin, margin);
+        buttonLayout->setSpacing(5);
+        topLayout->addLayout(buttonLayout);
+        
+        // set up the species badge; note that unlike QtSLiMGraphView, we set it up here immediately,
+        // since we are guaranteed to already have a valid species object, and then we don't update it
+        focalSpeciesAvatar_ = focalSpecies->avatar_;
+        
+        if (focalSpeciesAvatar_.length() && (focalSpecies->community_.all_species_.size() > 1))
+        {
+            QLabel *speciesLabel = new QLabel();
+            speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar_));
+            buttonLayout->addWidget(speciesLabel);
+        }
+        
+        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(rightSpacer);
+        
+        // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
+        QtSLiMPushButton *actionButton = new QtSLiMPushButton(displayWindow_);
+        actionButton->setObjectName(QString::fromUtf8("actionButton"));
+        actionButton->setMinimumSize(QSize(20, 20));
+        actionButton->setMaximumSize(QSize(20, 20));
+        actionButton->setFocusPolicy(Qt::NoFocus);
+        QIcon icon4;
+        icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
+        actionButton->setIcon(icon4);
+        actionButton->setIconSize(QSize(20, 20));
+        actionButton->qtslimSetBaseName("action");
+        actionButton->setCheckable(true);
+        actionButton->setFlat(true);
+#if QT_CONFIG(tooltip)
+        actionButton->setToolTip("<html><head/><body><p>configure chromosome display</p></body></html>");
+#endif // QT_CONFIG(tooltip)
+        buttonLayout->addWidget(actionButton);
+        
+        connect(actionButton, &QPushButton::pressed, this, [actionButton, this]() { actionButton->qtslimSetHighlight(true); actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, this, [actionButton]() { actionButton->qtslimSetHighlight(false); });
+        
+        // note that this action button has no enable/disable code anywhere, since it is happy to respond at all times
+    }
+}
+
+void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_globalPoint)
+{
+    if (!slimWindow_)
+        return;
+    
+    Community *community = slimWindow_->community;
+    
+    if (!invalidSimulation() && community && community->simulation_valid_)
+    {
+        QMenu contextMenu("chromosome_menu", slimWindow_);  // slimWindow_ is the parent in the sense that the menu is freed if slimWindow_ is freed
+        QAction *scaledWidths = nullptr;
+        QAction *unscaledWidths = nullptr;
+        Species *focalSpecies = focalDisplaySpecies();
+        
+        if (displayWindow_ && focalSpecies && (focalSpecies->Chromosomes().size() > 1))
+        {
+            // only in multichromosome models, offer to scale the widths of the displayed chromosomes
+            // according to their length or not, as the user prefers
+            scaledWidths = contextMenu.addAction("Use Scaled Widths");
+            scaledWidths->setCheckable(true);
+            scaledWidths->setChecked(useScaledWidths_);
+            
+            unscaledWidths = contextMenu.addAction("Use Full Widths");
+            unscaledWidths->setCheckable(true);
+            unscaledWidths->setChecked(!useScaledWidths_);
+            
+            contextMenu.addSeparator();
+        }
+        
+        QAction *displayMutations = contextMenu.addAction("Display Mutations");
+        displayMutations->setCheckable(true);
+        displayMutations->setChecked(shouldDrawMutations_);
+        
+        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
+        displaySubstitutions->setCheckable(true);
+        displaySubstitutions->setChecked(shouldDrawFixedSubstitutions_);
+        
+        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
+        displayGenomicElements->setCheckable(true);
+        displayGenomicElements->setChecked(shouldDrawGenomicElements_);
+        
+        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
+        displayRateMaps->setCheckable(true);
+        displayRateMaps->setChecked(shouldDrawRateMaps_);
+        
+        contextMenu.addSeparator();
+        
+        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
+        displayFrequencies->setCheckable(true);
+        displayFrequencies->setChecked(!displayHaplotypes_);
+        
+        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
+        displayHaplotypes->setCheckable(true);
+        displayHaplotypes->setChecked(displayHaplotypes_);
+        
+        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+        displayGroup->addAction(displayFrequencies);
+        displayGroup->addAction(displayHaplotypes);
+        
+        QAction *displayAllMutations = nullptr;
+        QAction *selectNonneutralMutations = nullptr;
+        
+        // mutation type checkmark items
+        {
+            const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
+            
+            if (muttypes.size() > 0)
+            {
+                contextMenu.addSeparator();
+                
+                displayAllMutations = contextMenu.addAction("Display All Mutations");
+                displayAllMutations->setCheckable(true);
+                displayAllMutations->setChecked(displayMuttypes_.size() == 0);
+                
+                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
+                std::vector<slim_objectid_t> all_muttypes;
+                
+                for (auto muttype_iter : muttypes)
+                {
+                    MutationType *muttype = muttype_iter.second;
+                    slim_objectid_t muttype_id = muttype->mutation_type_id_;
+                    
+                    all_muttypes.emplace_back(muttype_id);
+                }
+                
+                all_muttypes.insert(all_muttypes.end(), displayMuttypes_.begin(), displayMuttypes_.end());
+                
+                // Avoid building a huge menu, which will hang the app
+                if (all_muttypes.size() <= 500)
+                {
+                    std::sort(all_muttypes.begin(), all_muttypes.end());
+                    all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
+                    
+                    // Then add menu items for each of those muttypes
+                    for (slim_objectid_t muttype_id : all_muttypes)
+                    {
+                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
+                        MutationType *muttype = community->MutationTypeWithID(muttype_id);  // try to look up the mutation type; can fail if it doesn't exists now
+                        
+                        if (muttype && (community->all_species_.size() > 1))
+                            menuItemTitle.append(" ").append(QString::fromStdString(muttype->species_.avatar_));
+                        
+                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
+                        
+                        mutationAction->setData(muttype_id);
+                        mutationAction->setCheckable(true);
+                        
+                        if (std::find(displayMuttypes_.begin(), displayMuttypes_.end(), muttype_id) != displayMuttypes_.end())
+                            mutationAction->setChecked(true);
+                    }
+                }
+                
+                contextMenu.addSeparator();
+                
+                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
+            }
+        }
+        
+        // Run the context menu synchronously
+        QAction *action = contextMenu.exec(p_globalPoint);
+        
+        // Act upon the chosen action; we just do it right here instead of dealing with slots
+        if (action)
+        {
+            if (action == scaledWidths)
+            {
+                if (!useScaledWidths_)
+                {
+                    useScaledWidths_ = true;
+                    buildChromosomeDisplay(false);
+                }
+            }
+            else if (action == unscaledWidths)
+            {
+                if (useScaledWidths_)
+                {
+                    useScaledWidths_ = false;
+                    buildChromosomeDisplay(false);
+                }
+            }
+            else if (action == displayMutations)
+                shouldDrawMutations_ = !shouldDrawMutations_;
+            else if (action == displaySubstitutions)
+                shouldDrawFixedSubstitutions_ = !shouldDrawFixedSubstitutions_;
+            else if (action == displayGenomicElements)
+                shouldDrawGenomicElements_ = !shouldDrawGenomicElements_;
+            else if (action == displayRateMaps)
+                shouldDrawRateMaps_ = !shouldDrawRateMaps_;
+            else if (action == displayFrequencies)
+                displayHaplotypes_ = false;
+            else if (action == displayHaplotypes)
+                displayHaplotypes_ = true;
+            else
+            {
+                const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
+                
+                if (action == displayAllMutations)
+                    displayMuttypes_.clear();
+                else if (action == selectNonneutralMutations)
+                {
+                    // - (IBAction)filterNonNeutral:(id)sender
+                    displayMuttypes_.clear();
+                    
+                    for (auto muttype_iter : muttypes)
+                    {
+                        MutationType *muttype = muttype_iter.second;
+                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
+                        
+                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                            displayMuttypes_.emplace_back(muttype_id);
+                    }
+                }
+                else
+                {
+                    // - (IBAction)filterMutations:(id)sender
+                    slim_objectid_t muttype_id = action->data().toInt();
+                    auto present_iter = std::find(displayMuttypes_.begin(), displayMuttypes_.end(), muttype_id);
+                    
+                    if (present_iter == displayMuttypes_.end())
+                    {
+                        // this mut-type is not being displayed, so add it to our display list
+                        displayMuttypes_.emplace_back(muttype_id);
+                    }
+                    else
+                    {
+                        // this mut-type is being displayed, so remove it from our display list
+                        displayMuttypes_.erase(present_iter);
+                    }
+                }
+            }
+            
+            emit needsRedisplay();
+        }
+    }
+}
+
+void QtSLiMChromosomeWidgetController::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
+{
+    QPoint mousePos = QCursor::pos();
+    
+    runChromosomeContextMenuAtPoint(mousePos);
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    p_actionButton->qtslimSetHighlight(false);
+}
+
+
+QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Qt::WindowFlags f)
 #ifndef SLIM_NO_OPENGL
     : QOpenGLWidget(p_parent, f)
 #else
@@ -62,7 +482,7 @@ QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, QtSLiMWindow *
 
 QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 {
-    setReferenceChromosomeView(nullptr);
+    setDependentChromosomeView(nullptr);
 	
     if (haplotype_mgr_)
     {
@@ -79,29 +499,58 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
     controller_ = nullptr;
 }
 
-void QtSLiMChromosomeWidget::setController(QtSLiMWindow *controller)
+void QtSLiMChromosomeWidget::setController(QtSLiMChromosomeWidgetController *controller)
 {
-    controller_ = controller;
+    if (controller != controller_)
+    {
+        if (controller_)
+            disconnect(controller_, &QtSLiMChromosomeWidgetController::needsRedisplay, this, nullptr);
+        
+        controller_ = controller;
+        connect(controller, &QtSLiMChromosomeWidgetController::needsRedisplay, this, &QtSLiMChromosomeWidget::updateAfterTick);
+    }
+}
+
+Chromosome *QtSLiMChromosomeWidget::resetToDefaultChromosome(void)
+{
+    Species *focalSpecies = focalDisplaySpecies();
+    Chromosome *chromosome = nullptr;
+    
+    if (focalSpecies)
+    {
+        const std::vector<Chromosome *> &chromosomes = focalSpecies->Chromosomes();
+        
+        if (chromosomes.size() > 0)
+            chromosome = chromosomes[0];   // start on the first chromosome
+    }
+    
+    setFocalChromosome(chromosome);
+    
+    // ... and reset to the default selection
+    setSelectedRange(QtSLiMRange(0, 0));
+    
+    updateDependentView();
+    
+    return chromosome;
 }
 
 void QtSLiMChromosomeWidget::setFocalDisplaySpecies(Species *displaySpecies)
 {
     // We can have no focal species (when coming out of the nib, in particular); in that case we display empty state
-    if (displaySpecies)
+    if (displaySpecies && (displaySpecies->name_ != focalSpeciesName_))
     {
+        // we've switched species, so we should remember the new one
         focalSpeciesName_ = displaySpecies->name_;
         
-        const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
+        // ... and reset to the default chromosome
+        resetToDefaultChromosome();
         
-        if (chromosomes.size() > 0)
-            setFocalChromosome(chromosomes[0]);   // start on the first chromosome
-        else
-            setFocalChromosome(nullptr);
+        update();
+        updateDependentView();
     }
     else
     {
-        focalSpeciesName_ = "";
-        setFocalChromosome(nullptr);
+        // if displaySpecies is nullptr or unchanged, we just stick with our last remembered species
     }
 }
 
@@ -112,21 +561,30 @@ Species *QtSLiMChromosomeWidget::focalDisplaySpecies(void)
     if (focalSpeciesName_.length() == 0)
         return nullptr;
     
-    if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
-        return controller_->community->SpeciesWithName(focalSpeciesName_);
+    if (controller_ && controller_->community() && (controller_->community()->Tick() >= 1))
+        return controller_->community()->SpeciesWithName(focalSpeciesName_);
     
     return nullptr;
 }
 
 void QtSLiMChromosomeWidget::setFocalChromosome(Chromosome *chromosome)
 {
-    if (chromosome)
+    if (chromosome && (chromosome->Symbol() != focalChromosomeSymbol_))
+    {
+        // we've switched chromosomes, so remember the new one
         focalChromosomeSymbol_ = chromosome->Symbol();
-    else
-        focalChromosomeSymbol_ = "";
+        
+        // ... and reset to the default selection
+        setSelectedRange(QtSLiMRange(0, 0));
+        
+        // ... and if our new chromosome belongs to a different species, remember that
+        if (chromosome->species_.name_ != focalSpeciesName_)
+            focalSpeciesName_ = chromosome->species_.name_;
+        
+        update();
+        updateDependentView();
+    }
     
-    hasSelection_ = false;
-    emit selectedRangeChanged();
 }
 
 Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
@@ -137,10 +595,43 @@ Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
     {
         Chromosome *chromosome = focalSpecies->ChromosomeFromSymbol(focalChromosomeSymbol_);
         
+        if (isOverview_ && !chromosome)
+        {
+            // force a reset to the default chromosome for the focal species
+            chromosome = resetToDefaultChromosome();
+        }
+        
         return chromosome;
     }
     
     return nullptr;
+}
+
+void QtSLiMChromosomeWidget::setDependentChromosomeView(QtSLiMChromosomeWidget *p_dependent_widget)
+{
+    if (dependentChromosomeView_ != p_dependent_widget)
+    {
+        dependentChromosomeView_ = p_dependent_widget;
+        isOverview_ = (dependentChromosomeView_ ? true : false);
+        showsTicks_ = !isOverview_;
+        
+        updateDependentView();
+    }
+}
+
+void QtSLiMChromosomeWidget::updateDependentView(void)
+{
+    if (dependentChromosomeView_)
+    {
+        Chromosome *chromosome = focalChromosome();
+        
+        dependentChromosomeView_->setFocalChromosome(chromosome);
+        
+        if (chromosome)
+            dependentChromosomeView_->setDisplayedRange(getSelectedRange(chromosome));
+        
+        dependentChromosomeView_->stateChanged();
+    }
 }
 
 void QtSLiMChromosomeWidget::stateChanged(void)
@@ -152,15 +643,14 @@ void QtSLiMChromosomeWidget::stateChanged(void)
         haplotype_mgr_ = nullptr;
     }
     
-    if (referenceChromosomeView_)
-    {
-        Chromosome *newFocalChromosome = referenceChromosomeView_->focalChromosome();
-        
-        if (newFocalChromosome != focalChromosome())
-            setFocalChromosome(newFocalChromosome);
-    }
-    
     update();
+}
+
+void QtSLiMChromosomeWidget::updateAfterTick(void)
+{
+    // overview chromosomes don't need to update all the time, since their display doesn't change
+    if (!isOverview_)
+        stateChanged();
 }
 
 #ifndef SLIM_NO_OPENGL
@@ -217,9 +707,16 @@ QRect QtSLiMChromosomeWidget::getContentRect(void)
 {
     QRect bounds = rect();
 	
-	// Two things are going on here.  The width gets inset by two pixels on each side because our frame is outset that much from our apparent frame, to
-	// make room for the selection knobs to spill over a bit.  The height gets adjusted because our "content rect" does not include our ticks.
-    return QRect(bounds.left(), bounds.top(), bounds.width(), bounds.height() - (isOverview_ ? (selectionKnobSize+1) : heightForTicks));
+	// The height gets adjusted because our "content rect" does not include the space for selection knobs below
+    // (for the overview) or for tick marks and labels (for the zoomed view).  Note that SLiMguiLegacy has a two-
+    // pixel margin on the left and right of the chromosome view, to avoid clipping the selection knobs, but that
+    // is a bit harder to do in Qt since the UI layout is trickier, so we just let the knobs clip; it's fine.
+    int bottomMargin = (isOverview_ ? (selectionKnobSize+1) : heightForTicks);
+    
+    if (!isOverview_ && !showsTicks_)
+        bottomMargin = 0;
+    
+    return QRect(bounds.left(), bounds.top(), bounds.width(), bounds.height() - bottomMargin);
 }
 
 QRect QtSLiMChromosomeWidget::getInteriorRect(void)
@@ -227,36 +724,22 @@ QRect QtSLiMChromosomeWidget::getInteriorRect(void)
     return getContentRect().marginsRemoved(QMargins(1, 1, 1, 1));
 }
 
-void QtSLiMChromosomeWidget::setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget)
-{
-	if (referenceChromosomeView_ != p_ref_widget)
-	{
-        if (referenceChromosomeView_)
-            disconnect(referenceChromosomeView_);
-        
-        referenceChromosomeView_ = p_ref_widget;
-        isOverview_ = true;
-        
-        if (referenceChromosomeView_)
-        {
-            isOverview_ = false;
-            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { stateChanged(); });
-        }
-	}
-}
-
 QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(Chromosome *chromosome)
 {
-    if (hasSelection_)
+    if (hasSelection_ && chromosome && (chromosome == focalChromosome()))
 	{
 		return QtSLiMRange(selectionFirstBase_, selectionLastBase_ - selectionFirstBase_ + 1);	// number of bases encompassed; a selection from x to x encompasses 1 base
 	}
-	else
+    else if (chromosome)
 	{
 		slim_position_t chromosomeLastPosition = chromosome->last_position_;
 		
 		return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
 	}
+    else
+    {
+        return QtSLiMRange(0, 0);
+    }
 }
 
 void QtSLiMChromosomeWidget::setSelectedRange(QtSLiMRange p_selectionRange)
@@ -289,8 +772,9 @@ void QtSLiMChromosomeWidget::setSelectedRange(QtSLiMRange p_selectionRange)
 	
 	// Our selection changed, so update and post a change notification
     update();
-	
-    emit selectedRangeChanged();
+    
+    if (isOverview_ && dependentChromosomeView_)
+        updateDependentView();
 }
 
 void QtSLiMChromosomeWidget::restoreLastSelection(void)
@@ -305,17 +789,14 @@ void QtSLiMChromosomeWidget::restoreLastSelection(void)
 	{
 		hasSelection_ = false;
 	}
-	else
-	{
-		// We want to always post the notification, to make sure updating happens correctly;
-		// this ensures that correct ticks marks get drawn after a recycle, etc.
-		//return;
-	}
 	
 	// Our selection changed, so update and post a change notification
 	update();
-	
-    emit selectedRangeChanged();
+    
+    // We want to always post the notification, to make sure updating happens correctly;
+    // this ensures that correct ticks marks get drawn after a recycle, etc.
+    if (isOverview_ && dependentChromosomeView_)
+        updateDependentView();
 }
 
 QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(Chromosome *chromosome)
@@ -328,9 +809,22 @@ QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(Chromosome *chromosome)
     }
 	else
     {
-        QtSLiMChromosomeWidget *reference = referenceChromosomeView_;
-        
-		return reference->getSelectedRange(chromosome);
+		return displayedRange_;
+    }
+}
+
+void QtSLiMChromosomeWidget::setDisplayedRange(QtSLiMRange p_displayedRange)
+{
+    displayedRange_ = p_displayedRange;
+    update();
+}
+
+void QtSLiMChromosomeWidget::setShowsTicks(bool p_showTicks)
+{
+    if (p_showTicks != showsTicks_)
+    {
+        showsTicks_ = p_showTicks;
+        update();
     }
 }
 
@@ -355,7 +849,7 @@ void QtSLiMChromosomeWidget::paintEvent(QPaintEvent * /* p_paint_event */)
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller_->community->Tick() == 0)
+        if (controller_->community()->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -370,8 +864,9 @@ void QtSLiMChromosomeWidget::paintEvent(QPaintEvent * /* p_paint_event */)
             QtSLiMRange displayedRange = getDisplayedRange(chromosome);
             
             // draw ticks at bottom of content rect
-            drawTicksInContentRect(contentRect, displaySpecies, displayedRange, painter);
-                
+            if (showsTicks_)
+                drawTicksInContentRect(contentRect, displaySpecies, displayedRange, painter);
+            
             // do the core drawing, with or without OpenGL according to user preference
 #ifndef SLIM_NO_OPENGL
             if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
@@ -393,10 +888,10 @@ void QtSLiMChromosomeWidget::paintEvent(QPaintEvent * /* p_paint_event */)
     else
     {
         // erase the content area itself
-        painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.88, 1.0));
+        painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.9, 1.0));
         
         // frame
-        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
+        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.77, 1.0), painter);
     }
 }
 
@@ -490,16 +985,21 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
         
         if (chrom == focalChrom)
         {
-            // overlay the selection last, since it bridges over the frame
             if (hasSelection_)
             {
+                // overlay the selection last, since it bridges over the frame
                 QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
                 overlaySelection(chromInteriorRect, displayedRange, painter);
             }
             else if (chromosomes.size() > 1)
             {
+                // highlight the selected chromosome, if we have more than one chromosome
                 painter.fillRect(chromInteriorRect, QtSLiMColorWithWhite(0.0, 0.30));
                 QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 1.0 : 0.0, 1.0), painter);
+            }
+            else
+            {
+                QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
             }
         }
         else
@@ -690,10 +1190,11 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange di
     }
 }
 
-Chromosome *QtSLiMChromosomeWidget::_setFocalChromosomeForTracking(QMouseEvent *p_event)
+Chromosome *QtSLiMChromosomeWidget::_findFocalChromosomeForTracking(QMouseEvent *p_event)
 {
     // this hit-tracks the same layout that drawOverview() displays
     QPoint curPoint = p_event->pos();
+    QRect overallRect = rect();
     QRect contentRect = getContentRect();
     Species *displaySpecies = focalDisplaySpecies();
     const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
@@ -711,24 +1212,22 @@ Chromosome *QtSLiMChromosomeWidget::_setFocalChromosomeForTracking(QMouseEvent *
     int64_t remainingLength = totalLength;
     int leftPosition = contentRect.left();
     
+    // note that we hit-test against the overall frames of the chromosomes (including the margin
+    // at the bottom for selection knobs), but set contentRectForTrackedChromosome_ based on the
+    // content rect for the chromosome (excluding that margin); see mousePressEvent() for why.
     for (Chromosome *chrom : chromosomes)
     {
         double scale = (double)availableWidth / remainingLength;
         slim_position_t chromLength = (chrom->last_position_ - chrom->first_position_ + 1);
         int width = (int)round(chromLength * scale);
         int paddedWidth = 2 + width;
-        QRect chromContentRect(leftPosition, contentRect.top(), paddedWidth, contentRect.height());
+        QRect chromOverallFrame(leftPosition, overallRect.top(), paddedWidth, overallRect.height());
         
-        if (chromContentRect.contains(curPoint))
+        if (chromOverallFrame.contains(curPoint))
         {
-            if (chrom != focalChromosome())
-            {
-                setFocalChromosome(chrom);
-                update();
-            }
+            QRect chromContentRect(leftPosition, contentRect.top(), paddedWidth, contentRect.height());
             
             contentRectForTrackedChromosome_ = chromContentRect;
-            
             return chrom;
         }
         
@@ -747,46 +1246,26 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 	
 	// if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller_->community->Tick() == 0)
+        if (controller_->community()->Tick() == 0)
 			ready = false;
 	
 	if (ready)
 	{
-        // first, switch to the chromosome that was clicked in
-        Chromosome *focalChrom = _setFocalChromosomeForTracking(p_event);
+        // find which chromosome was clicked in; this sets contentRectForTrackedChromosome_ to the content rect of that chromosome
+        // note that it hit-tests aginst the overall chromosome view, including the selection knob margin, though
+        Chromosome *hitChromosome = _findFocalChromosomeForTracking(p_event);
         
-        if (!focalChrom)
+        // if the click was not in a chromosome (like in the gap between them), just return with no effect
+        if (!hitChromosome)
             return;
         
-		QRect contentRect = contentRectForTrackedChromosome_;
-		QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
-		QtSLiMRange displayedRange = getDisplayedRange(focalChrom);
+        QRect contentRect = contentRectForTrackedChromosome_;
+        QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
+        QtSLiMRange displayedRange = getDisplayedRange(hitChromosome);
         QPoint curPoint = p_event->pos();
-		
-		// Option-clicks just set the selection to the clicked genomic element, no questions asked
-        /*if (p_event->modifiers() & Qt::AltModifier)
-		{
-            if (contentRect.contains(curPoint))
-			{
-				slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
-				QtSLiMRange selectionRange = QtSLiMRange(0, 0);
-				
-				for (GenomicElement *genomicElement : chromosome.GenomicElements())
-				{
-					slim_position_t startPosition = genomicElement->start_position_;
-					slim_position_t endPosition = genomicElement->end_position_;
-					
-					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
-						selectionRange = QtSLiMRange(startPosition, endPosition - startPosition + 1);
-				}
-				
-				setSelectedRange(selectionRange);
-				return;
-			}
-		}*/
-		
-		// first check for a hit in one of our selection handles
-		/*if (hasSelection_)
+        
+        // check for a hit in one of our selection handles
+        if (hasSelection_ && (hitChromosome == focalChromosome()))
 		{
 			QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
 			int leftEdge = selectionRect.left();
@@ -816,9 +1295,43 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 				mouseMoveEvent(p_event);	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
 				return;
 			}
-		}*/
-		
-        if (contentRect.contains(curPoint))
+		}
+        
+        // _findFocalChromosomeForTracking() will return a hit anywhere in the overall chromosome view, so that we can test for hits
+        // in the selection knobs above; but from this point forward, we only want to handle hits that are actually in the content area
+        if (!contentRect.contains(curPoint))
+            return;
+        
+        // given that it wasn't a hit in a selection handle, we now switch to the chromosome that was clicked in;
+        // other kinds of clicks change the focal chromosome to the one hit by the click
+        if (hitChromosome != focalChromosome())
+        {
+            setFocalChromosome(hitChromosome);
+            update();
+        }
+        
+		// option-clicks just set the selection to the clicked genomic element, no questions asked
+        // tracking does not continue beyond this step, since we don't set isTracking_ = true
+        if (p_event->modifiers() & Qt::AltModifier)
+		{
+            slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
+            QtSLiMRange selectionRange = QtSLiMRange(0, 0);
+            GenomicElement *genomicElement = hitChromosome->ElementForPosition(clickedBase);
+            
+            if (genomicElement)
+            {
+                slim_position_t startPosition = genomicElement->start_position_;
+                slim_position_t endPosition = genomicElement->end_position_;
+                selectionRange = QtSLiMRange(startPosition, endPosition - startPosition + 1);
+            }
+            
+            mouseInsideCounter_++;  // prevent a flip to displaying chromosome numbers
+            
+            setSelectedRange(selectionRange);
+            return;
+        }
+        
+        // otherwise we have an ordinary click, selecting a chromosome and perhaps dragging out a selection
         {
             isTracking_ = true;
             trackingStartBase_ = baseForPosition(curPoint.x(), interiorRect, displayedRange);
@@ -834,14 +1347,11 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 				savedHasSelection_ = hasSelection_;
 				
 				update();
-                emit selectedRangeChanged();
+                updateDependentView();
 			}
         }
 	}
 }
-
-// - (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(slim_position_t)selectionBase isLeft:(BOOL)isLeftMarker
-// FIXME at present QtSLiM doesn't have the selection markers during tracking that SLiMgui has...
 
 void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 {
@@ -880,8 +1390,6 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 			
 			// Save the selection for restoring across recycles, etc.
 			savedHasSelection_ = hasSelection_;
-			
-			//[self removeSelectionMarkers];
 		}
 		else
 		{
@@ -894,15 +1402,12 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 			savedSelectionFirstBase_ = selectionFirstBase_;
 			savedSelectionLastBase_ = selectionLastBase_;
 			savedHasSelection_ = hasSelection_;
-			
-			//[self setUpMarker:&startMarker atBase:selectionFirstBase isLeft:YES];
-			//[self setUpMarker:&endMarker atBase:selectionLastBase isLeft:NO];
 		}
 		
 		if (selectionChanged)
 		{
 			update();
-            emit selectedRangeChanged();
+            updateDependentView();
 		}
 	}
 }

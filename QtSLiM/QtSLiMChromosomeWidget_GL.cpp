@@ -42,7 +42,7 @@ void QtSLiMChromosomeWidget::glDrawRect(Species *displaySpecies)
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller_->community->Tick() == 0)
+        if (controller_->community()->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -91,7 +91,7 @@ void QtSLiMChromosomeWidget::glDrawRect(Species *displaySpecies)
                 if (!haplotype_mgr_)
                 {
                     size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, interiorHeight, false);
+                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, displayedRange, interiorHeight, false);
                 }
                 
                 if (haplotype_mgr_)

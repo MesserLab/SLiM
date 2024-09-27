@@ -40,9 +40,6 @@ public:
     virtual bool providesStringForData(void) override;
     virtual void appendStringForData(QString &string) override;    
     
-public slots:
-    virtual void controllerChromosomeSelectionChanged(void) override;
-    
 private:
     double *populationSFS(int mutationTypeCount);    
 };

@@ -19,8 +19,6 @@
 
 #include "QtSLiMGraphView_1DPopulationSFS.h"
 
-#include <string>
-
 #include "QtSLiMWindow.h"
 
 
@@ -84,10 +82,6 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	
 	// get the selected chromosome range
     Species *graphSpecies = focalDisplaySpecies();
-	bool hasSelection;
-	slim_position_t selectionFirstBase;
-	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	// tally into our bins
 	Population &pop = graphSpecies->population_;
@@ -103,15 +97,6 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 	{
 		const Mutation *mutation = mut_block_ptr + registry[registry_index];
-		
-		// if the user has selected a subrange of the chromosome, we will work from that
-		if (hasSelection)
-		{
-			slim_position_t mutationPosition = mutation->position_;
-			
-			if ((mutationPosition < selectionFirstBase) || (mutationPosition > selectionLastBase))
-				continue;
-		}
 		
 		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
 		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
@@ -157,40 +142,11 @@ void QtSLiMGraphView_1DPopulationSFS::drawGraph(QPainter &painter, QRect interio
 	
 	// plot our histogram bars
 	drawGroupedBarplot(painter, interiorRect, spectrum, mutationTypeCount, binCount, 0.0, (1.0 / binCount));
-	
-	// if we have a limited selection range, overdraw a note about that
-    bool hasSelection;
-	slim_position_t selectionFirstBase;
-	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
-	
-	if (hasSelection)
-	{
-        painter.setFont(QtSLiMGraphView::fontForTickLabels());
-        painter.setBrush(Qt::darkGray);
-		
-        QString labelText = QString("%1 – %2").arg(selectionFirstBase).arg(selectionLastBase);
-        QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
-		double labelX = interiorRect.x() + (interiorRect.width() - labelBoundingRect.width()) / 2.0;
-		double labelY = interiorRect.y() + interiorRect.height() - (labelBoundingRect.height() + 4);
-		
-        labelY = painter.transform().map(QPointF(labelX, labelY)).y();
-        
-        painter.setWorldMatrixEnabled(false);
-        painter.drawText(QPointF(labelX, labelY), labelText);
-        painter.setWorldMatrixEnabled(true);
-	}
 }
 
 QtSLiMLegendSpec QtSLiMGraphView_1DPopulationSFS::legendKey(void)
 {
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
-}
-
-void QtSLiMGraphView_1DPopulationSFS::controllerChromosomeSelectionChanged(void)
-{
-    invalidateCachedData();
-    update();
 }
 
 bool QtSLiMGraphView_1DPopulationSFS::providesStringForData(void)
@@ -202,14 +158,6 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 {
     // get the selected chromosome range
     Species *graphSpecies = focalDisplaySpecies();
-	bool hasSelection;
-	slim_position_t selectionFirstBase;
-	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
-
-	if (hasSelection)
-        string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
-	
 	int binCount = histogramBinCount_;
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);

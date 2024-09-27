@@ -71,8 +71,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     controller_ = controller;
     setFocalDisplaySpecies(controller_->focalDisplaySpecies());
     
-    connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
-    connect(controller, &QtSLiMWindow::controllerChromosomeSelectionChanged, this, &QtSLiMGraphView::controllerChromosomeSelectionChanged);
+    connect(controller, &QtSLiMWindow::controllerFullUpdateAfterTick, this, &QtSLiMGraphView::updateAfterTick);
     connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMGraphView::controllerTickFinished);
     connect(controller, &QtSLiMWindow::controllerRecycled, this, &QtSLiMGraphView::controllerRecycled);
     
@@ -1277,10 +1276,6 @@ void QtSLiMGraphView::controllerRecycled(void)
     
     QPushButton *action = actionButton();
     if (action) action->setEnabled(!controller_->invalidSimulation() && !missingFocalDisplaySpecies());
-}
-
-void QtSLiMGraphView::controllerChromosomeSelectionChanged(void)
-{
 }
 
 void QtSLiMGraphView::controllerTickFinished(void)

@@ -63,6 +63,9 @@ development head (in the master branch):
 		policy change: the old "haplosome type" (A/X/Y) in the genome metadata is now a chromosome type (different) in the haplosome metadata
 		policy change: similarly, haplosome type A/X/Y in SLiM output (e.g., outputFull()) is now a chromosome type (different)
 		policy change: initialization order is a bit stricter; initializeSex() with "X" or "Y" must come earlier, before calls that would define an implicit "A" chromosome
+		add multichromosome display to SLiMgui
+		add a "chromosome display" window where you can view all the chromosomes simultaneously
+		policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
 
 
 version 4.3 (Eidos version 3.3):

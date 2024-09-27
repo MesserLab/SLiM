@@ -38,7 +38,10 @@
 #include "slim_globals.h"
 #include "mutation.h"
 
-class QtSLiMWindow;
+#include "QtSLiMChromosomeWidget.h"
+
+
+class QtSLiMChromosomeWidgetController;
 class Species;
 class Haplosome;
 class QtSLiMHaplotypeProgress;
@@ -60,11 +63,12 @@ public:
     };
     
     // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-    static void CreateHaplotypePlot(QtSLiMWindow *controller);
+    static void CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller);
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress);
+                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, QtSLiMRange displayedRange,
+                           size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     
 #ifndef SLIM_NO_OPENGL
@@ -78,7 +82,7 @@ public:
     bool valid_ = true;     // set to false if the user cancels the progress panel
 
 private:
-    QtSLiMWindow *controller_ = nullptr;
+    QtSLiMChromosomeWidgetController *controller_ = nullptr;
     std::string focalSpeciesName_;                          // we keep the name of our focal species, since a pointer would be unsafe
     
     Species *focalDisplaySpecies(void);

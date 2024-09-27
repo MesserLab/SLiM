@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "QtSLiMHaplotypeManager.h"
-#include "QtSLiMWindow.h"
+#include "QtSLiMChromosomeWidget.h"
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
 #include "QtSLiMPreferences.h"
@@ -49,10 +49,10 @@
 
 
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
+void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller)
 {
     Species *displaySpecies = controller->focalDisplaySpecies();
-    QtSLiMHaplotypeOptions optionsPanel(controller);
+    QtSLiMHaplotypeOptions optionsPanel(controller->slimWindow());
     
     int result = optionsPanel.exec();
     
@@ -63,13 +63,14 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
         QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
         
         // First generate the haplotype plot data, with a progress panel
+        // FIXME MULTICHROM this code path should work with all of the chromosomes, probably...
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, displaySpecies, haplosomeSampleSize, true);
+                                                                              controller, displaySpecies, QtSLiMRange(0,0), haplosomeSampleSize, true);
         
         if (haplotypeManager->valid_)
         {
             // Make a new window to show the graph
-            QWidget *window = new QWidget(controller, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
+            QWidget *window = new QWidget(controller->slimWindow(), Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
             
             window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleString));
             window->setMinimumSize(400, 200);
@@ -101,7 +102,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
                 buttonLayout->setSpacing(5);
                 topLayout->addLayout(buttonLayout);
                 
-                if (controller->community->all_species_.size() > 1)
+                if (controller->community()->all_species_.size() > 1)
                 {
                     // make our species avatar badge
                     QLabel *speciesLabel = new QLabel();
@@ -150,13 +151,14 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress) :
+                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, QtSLiMRange displayedRange,
+                                               size_t sampleSize, bool showProgress) :
     QObject(p_parent)
 {
     controller_ = controller;
     focalSpeciesName_ = displaySpecies->name_;
     
-    Community *community = controller_->community;
+    Community *community = controller_->community();
     Species *graphSpecies = focalDisplaySpecies();
     Population &population = graphSpecies->population_;
     
@@ -174,12 +176,13 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         for (auto subpop_pair : population.subpops_)
             selected_subpops.emplace_back(subpop_pair.second);
     
-    // Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...
-    
-    controller_->chromosomeSelection(graphSpecies, &usingSubrange, &subrangeFirstBase, &subrangeLastBase);
+    // Figure out whether we're analyzing / displaying a subrange
+    usingSubrange = (displayedRange.length == 0) ? false : true;
+    subrangeFirstBase = displayedRange.location;
+    subrangeLastBase = displayedRange.location + displayedRange.length - 1;
     
     // Also dig to find out whether we're displaying all mutation types or just a subset; if a subset, each MutationType has a display flag
-    displayingMuttypeSubset = (controller_->chromosomeDisplayMuttypes().size() != 0);
+    displayingMuttypeSubset = (controller_->displayMuttypes_.size() != 0);
     
     // Set our window title from the controller's state
     QString title;
@@ -245,7 +248,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     {
         int progressSteps = (clusterOptimization == QtSLiMHaplotypeManager::ClusterOptimizeWith2opt) ? 3 : 2;
         
-        progressPanel_ = new QtSLiMHaplotypeProgress(controller_);
+        progressPanel_ = new QtSLiMHaplotypeProgress(controller_->slimWindow());
         progressPanel_->runProgressWithHaplosomeCount(haplosomes.size(), progressSteps);
     }
     
@@ -286,8 +289,8 @@ Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
 {
     // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
     // Before initialize() is done species have not been created, so we return nullptr in that case
-	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
-		return controller_->community->SpeciesWithName(focalSpeciesName_);
+    if (controller_ && controller_->community() && (controller_->community()->Tick() >= 1))
+		return controller_->community()->SpeciesWithName(focalSpeciesName_);
 	
 	return nullptr;
 }

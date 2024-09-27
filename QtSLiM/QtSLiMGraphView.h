@@ -109,9 +109,9 @@ public slots:
     virtual void invalidateDrawingCache(void);      // subclasses must call this themselves in their destructor - super cannot do it!
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);          // subclasses must call super: QtSLiMGraphView::controllerRecycled()
-    virtual void controllerChromosomeSelectionChanged(void);
     virtual void controllerTickFinished(void);
     virtual void updateAfterTick(void);             // subclasses must call super: QtSLiMGraphView::updateAfterTick()
+    virtual void updateSpeciesBadge(void);
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
@@ -122,7 +122,6 @@ protected:
     void setFocalDisplaySpecies(Species *species);
     Species *focalDisplaySpecies(void);
     bool missingFocalDisplaySpecies(void);                          // true if the graph has a focal display species but can't find it
-    void updateSpeciesBadge(void);
     
     // Base graphing functionality
     QRect interiorRectForBounds(QRect bounds);

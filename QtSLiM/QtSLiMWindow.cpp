@@ -593,15 +593,15 @@ void QtSLiMWindow::interpolateSplitters(void)
 
 void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
 {
-    overviewWidget->setController(this);
-	overviewWidget->setReferenceChromosomeView(nullptr);
-	
-    zoomedWidget->setController(this);
-	zoomedWidget->setReferenceChromosomeView(overviewWidget);
+    if (!chromosomeConfig)
+        chromosomeConfig = new QtSLiMChromosomeWidgetController(this, nullptr, nullptr);
     
-    // Forward notification of changes to the selection in the chromosome view
-    connect(overviewWidget, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerChromosomeSelectionChanged(); });
-
+    overviewWidget->setController(chromosomeConfig);
+	overviewWidget->setDependentChromosomeView(zoomedWidget);
+	
+    zoomedWidget->setController(chromosomeConfig);
+	zoomedWidget->setDependentChromosomeView(nullptr);
+    
     // Add these widgets to our vectors of chromosome widgets
     chromosomeWidgetLayouts.push_back(chromosomeLayout);
     chromosomeOverviewWidgets.push_back(overviewWidget);
@@ -1577,44 +1577,6 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 	return selectedSubpops;     // note these are sorted by species, not by id, unlike listedSubpopulations()
 }
 
-void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
-{
-    // FIXME MULTICHROM not clear what happens to this in the multichrom world...
-    // First we need to look up the chromosome view for the requested species
-    for (QtSLiMChromosomeWidget *chromosomeWidget : chromosomeOverviewWidgets)
-    {
-        Species *widgetSpecies = chromosomeWidget->focalDisplaySpecies();
-        
-        if (widgetSpecies == species)
-        {
-            if (p_hasSelection)
-                *p_hasSelection = chromosomeWidget->hasSelection();
-            
-            QtSLiMRange selRange = chromosomeWidget->getSelectedRange(&species->TheChromosome());
-            
-            if (p_selectionFirstBase)
-                *p_selectionFirstBase = selRange.location;
-            if (p_selectionLastBase)
-                *p_selectionLastBase = selRange.location + selRange.length - 1;
-            
-            return;
-        }
-    }
-    
-    // We drop through to here if the species can't be found, which should not happen
-    if (p_hasSelection)
-        *p_hasSelection = false;
-    if (p_selectionFirstBase)
-        *p_selectionFirstBase = 0;
-    if (p_selectionLastBase)
-        *p_selectionLastBase = species->TheChromosome().last_position_;
-}
-
-const std::vector<slim_objectid_t> &QtSLiMWindow::chromosomeDisplayMuttypes(void)
-{
-    return chromosome_display_muttypes_;
-}
-
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
     if (invalidSimulation_ != p_invalid)
@@ -2305,6 +2267,7 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
     
     // do a full update to show the state for the new species
     updateAfterTickFull(true);
+    updateUIEnabling();
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -2616,15 +2579,7 @@ void QtSLiMWindow::removeExtraChromosomeViews(void)
         
         ui->chromosomeLayout->removeItem(widgetLayout);
         
-        // remove all items under widgetLayout
-        QLayoutItem *child;
-        
-        while ((child = widgetLayout->takeAt(0)) != nullptr)
-        {
-            delete child->widget(); // delete the widget
-            delete child;   // delete the layout item
-        }
-        
+        QtSLiMClearLayout(widgetLayout, /* deleteWidgets */ true);
         delete widgetLayout;
         
         ui->chromosomeLayout->update();
@@ -2634,7 +2589,7 @@ void QtSLiMWindow::removeExtraChromosomeViews(void)
         chromosomeZoomedWidgets.pop_back();
     }
     
-    // Sometimes the call above to "delete child->widget()" hangs for up to a second.  This appears to be due to
+    // Sometimes the call above to QtSLiMClearLayout hangs for up to a second.  This appears to be due to
     // disposing of the OpenGL context used for the widget, and might be an AMD Radeon issue.  Here's a backtrace
     // I managed to get from sample.  The only thing I can think of to do about this would be to keep the view
     // around and reuse it, to avoid having to dispose of its context.  But this may be specific to my hardware;
@@ -2700,13 +2655,13 @@ void QtSLiMWindow::updateChromosomeViewSetup(void)
                 sizePolicy1.setVerticalStretch(0);
                 
                 QVBoxLayout *chromosomeWidgetLayout = new QVBoxLayout();
-                chromosomeWidgetLayout->setSpacing(15);
+                chromosomeWidgetLayout->setSpacing(4);
                 
                 overviewWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
                 sizePolicy1.setHeightForWidth(overviewWidget->sizePolicy().hasHeightForWidth());
                 overviewWidget->setSizePolicy(sizePolicy1);
-                overviewWidget->setMinimumSize(QSize(0, 30));
-                overviewWidget->setMaximumSize(QSize(16777215, 30));
+                overviewWidget->setMinimumSize(QSize(0, 20));
+                overviewWidget->setMaximumSize(QSize(16777215, 20));
                 chromosomeWidgetLayout->addWidget(overviewWidget);
                 
                 zoomedWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
@@ -2827,9 +2782,6 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	// Now update our other UI, some of which depends upon the state of subpopTableView
     ui->individualsWidget->update();
     
-    for (QtSLiMChromosomeWidget *zoomedWidget : chromosomeZoomedWidgets)
-        zoomedWidget->stateChanged();
-    
     if (fullUpdate)
         updateTickCounter();
     
@@ -2941,8 +2893,14 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
 	
 	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
-	if (fullUpdate)
-        emit controllerUpdatedAfterTick();
+    // BCH 9/26/2024: This mechanism is now used to update chromosome views as well.  We now have two signals,
+    // one for partial updates and one for full updates; a given receiver should connect to just one of these signals.
+    // The partial update signal is always emitted; the full update signal is emitted only for full updates,
+    // which are less frequent.
+    if (fullUpdate)
+        emit controllerFullUpdateAfterTick();
+    
+    emit controllerPartialUpdateAfterTick();
 }
 
 void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
@@ -3008,7 +2966,11 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->browserButton->setEnabled(true);
     ui->jumpToPopupButton->setEnabled(true);
     
+    Species *species = focalDisplaySpecies();
+    bool canMakeChromosomeDisplay = !invalidSimulation_ && (species != nullptr) && species->HasGenetics() && (species->Chromosomes().size() > 0);
+    
     ui->chromosomeActionButton->setEnabled(!invalidSimulation_);
+    ui->chromosomeDisplayButton->setEnabled(canMakeChromosomeDisplay);
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->debugOutputButton->setEnabled(true);
@@ -5158,6 +5120,18 @@ void QtSLiMWindow::showDrawerClicked(void)
     tablesDrawerController->activateWindow();
 }
 
+void QtSLiMWindow::chromosomeDisplayClicked(void)
+{
+    QWidget *chromosomeDisplay = newChromosomeDisplay();
+    
+    if (chromosomeDisplay)
+    {
+        chromosomeDisplay->show();
+        chromosomeDisplay->raise();
+        chromosomeDisplay->activateWindow();
+    }
+}
+
 void QtSLiMWindow::showConsoleClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -5201,174 +5175,6 @@ void QtSLiMWindow::debugOutputClicked(void)
     debugOutputWindow_->show();
     debugOutputWindow_->raise();
     debugOutputWindow_->activateWindow();
-}
-
-void QtSLiMWindow::runChromosomeContextMenuAtPoint(QPoint p_globalPoint)
-{
-    if (!invalidSimulation() && community && community->simulation_valid_)
-	{
-        QMenu contextMenu("chromosome_menu", this);
-        
-        QAction *displayMutations = contextMenu.addAction("Display Mutations");
-        displayMutations->setCheckable(true);
-        displayMutations->setChecked(chromosome_shouldDrawMutations_);
-        
-        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
-        displaySubstitutions->setCheckable(true);
-        displaySubstitutions->setChecked(chromosome_shouldDrawFixedSubstitutions_);
-        
-        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
-        displayGenomicElements->setCheckable(true);
-        displayGenomicElements->setChecked(chromosome_shouldDrawGenomicElements_);
-        
-        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
-        displayRateMaps->setCheckable(true);
-        displayRateMaps->setChecked(chromosome_shouldDrawRateMaps_);
-        
-        contextMenu.addSeparator();
-        
-        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
-        displayFrequencies->setCheckable(true);
-        displayFrequencies->setChecked(!chromosome_display_haplotypes_);
-        
-        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
-        displayHaplotypes->setCheckable(true);
-        displayHaplotypes->setChecked(chromosome_display_haplotypes_);
-        
-        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
-        displayGroup->addAction(displayFrequencies);
-        displayGroup->addAction(displayHaplotypes);
-        
-        QAction *displayAllMutations = nullptr;
-        QAction *selectNonneutralMutations = nullptr;
-        
-		// mutation type checkmark items
-        {
-            const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
-			
-			if (muttypes.size() > 0)
-			{
-                contextMenu.addSeparator();
-                
-                displayAllMutations = contextMenu.addAction("Display All Mutations");
-                displayAllMutations->setCheckable(true);
-                displayAllMutations->setChecked(chromosome_display_muttypes_.size() == 0);
-                
-                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
-				std::vector<slim_objectid_t> all_muttypes;
-				
-				for (auto muttype_iter : muttypes)
-				{
-					MutationType *muttype = muttype_iter.second;
-					slim_objectid_t muttype_id = muttype->mutation_type_id_;
-					
-					all_muttypes.emplace_back(muttype_id);
-				}
-				
-				all_muttypes.insert(all_muttypes.end(), chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end());
-                
-                // Avoid building a huge menu, which will hang the app
-				if (all_muttypes.size() <= 500)
-				{
-					std::sort(all_muttypes.begin(), all_muttypes.end());
-					all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
-					
-					// Then add menu items for each of those muttypes
-					for (slim_objectid_t muttype_id : all_muttypes)
-					{
-                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
-                        MutationType *muttype = community->MutationTypeWithID(muttype_id);  // try to look up the mutation type; can fail if it doesn't exists now
-                        
-                        if (muttype && (community->all_species_.size() > 1))
-                            menuItemTitle.append(" ").append(QString::fromStdString(muttype->species_.avatar_));
-                        
-                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
-                        
-                        mutationAction->setData(muttype_id);
-                        mutationAction->setCheckable(true);
-                        
-						if (std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id) != chromosome_display_muttypes_.end())
-							mutationAction->setChecked(true);
-					}
-				}
-                
-                contextMenu.addSeparator();
-                
-                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
-            }
-        }
-        
-        // Run the context menu synchronously
-        QAction *action = contextMenu.exec(p_globalPoint);
-        
-        // Act upon the chosen action; we just do it right here instead of dealing with slots
-        if (action)
-        {
-            if (action == displayMutations)
-                chromosome_shouldDrawMutations_ = !chromosome_shouldDrawMutations_;
-            else if (action == displaySubstitutions)
-                chromosome_shouldDrawFixedSubstitutions_ = !chromosome_shouldDrawFixedSubstitutions_;
-            else if (action == displayGenomicElements)
-                chromosome_shouldDrawGenomicElements_ = !chromosome_shouldDrawGenomicElements_;
-            else if (action == displayRateMaps)
-                chromosome_shouldDrawRateMaps_ = !chromosome_shouldDrawRateMaps_;
-            else if (action == displayFrequencies)
-                chromosome_display_haplotypes_ = false;
-            else if (action == displayHaplotypes)
-                chromosome_display_haplotypes_ = true;
-            else
-            {
-                const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
-                
-                if (action == displayAllMutations)
-                    chromosome_display_muttypes_.clear();
-                else if (action == selectNonneutralMutations)
-                {
-                    // - (IBAction)filterNonNeutral:(id)sender
-                    chromosome_display_muttypes_.clear();
-                    
-                    for (auto muttype_iter : muttypes)
-                    {
-                        MutationType *muttype = muttype_iter.second;
-                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
-                        
-                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
-                            chromosome_display_muttypes_.emplace_back(muttype_id);
-                    }
-                }
-                else
-                {
-                    // - (IBAction)filterMutations:(id)sender
-                    slim_objectid_t muttype_id = action->data().toInt();
-                    auto present_iter = std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id);
-                    
-                    if (present_iter == chromosome_display_muttypes_.end())
-                    {
-                        // this mut-type is not being displayed, so add it to our display list
-                        chromosome_display_muttypes_.emplace_back(muttype_id);
-                    }
-                    else
-                    {
-                        // this mut-type is being displayed, so remove it from our display list
-                        chromosome_display_muttypes_.erase(present_iter);
-                    }
-                }
-            }
-            
-            for (auto *widget : chromosomeZoomedWidgets)
-                widget->update();
-        }
-    }
-}
-
-void QtSLiMWindow::chromosomeActionRunMenu(void)
-{
-    QPoint mousePos = QCursor::pos();
-    
-    runChromosomeContextMenuAtPoint(mousePos);
-    
-    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    chromosomeActionReleased();
 }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
@@ -5931,7 +5737,7 @@ void QtSLiMWindow::displayGraphClicked(void)
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
             }
             else
             {
@@ -6345,6 +6151,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     
     graph_window->setAttribute(Qt::WA_DeleteOnClose, true);
     
+    graphView->updateSpeciesBadge();
+    
     return graph_window;
 }
 
@@ -6433,7 +6241,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
             }
             else
             {
@@ -6499,6 +6307,60 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
     graphPopupButtonReleased();
+}
+
+QWidget *QtSLiMWindow::newChromosomeDisplay(void)
+{
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
+    // Create a chromosome display window for the focal species; if the window is on the "all" tab
+    // in a multispecies model, just return (we shouldn't be called in that case anyway).
+    // FIXME there is a flaw in the whole design here -- none of this updates dynamically if the
+    // user changes the number of chromosomes, the chromosome symbols, etc.  The user will need
+    // to close the display window and open a new one, if that happens; not the end of the world.
+    // Fixing this would require a smarter controller object that rebuilds the whole content of
+    // the display after a recycle-and-step to reflect whatever the initialize() process built.
+    Species *species = focalDisplaySpecies();
+    
+    if (!species)
+        return nullptr;
+    
+    // Make a new window to show the chromosome display
+    QWidget *display_window = new QWidget(this, Qt::Window | Qt::Tool);    // the display window has us as a parent, but is still a standalone window
+    
+    display_window->setWindowTitle("Chromosome Display");
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
+    display_window->setWindowIcon(QIcon());
+#endif
+    
+    // Make a new layout for chromosome views and build the display inside it
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    display_window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    
+    QtSLiMChromosomeWidgetController *displayController = new QtSLiMChromosomeWidgetController(this, display_window, species);
+    
+    displayController->buildChromosomeDisplay(/* resetWindowSize */ true);
+    
+    // force geometry calculation, which is lazy
+    display_window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    display_window->show();
+    display_window->hide();
+    display_window->setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // Position the window nicely
+    display_window->move(this->frameGeometry().topLeft() + QPoint(50, 50));
+    
+    // make window actions for all global menu items
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(display_window);
+    
+    display_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    return display_window;
 }
 
 void QtSLiMWindow::changeDirectoryClicked(void)
