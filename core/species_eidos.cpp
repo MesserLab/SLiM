@@ -221,7 +221,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	{
 		// A previous explicitly defined chromosome terminates its definition here,
 		// so we do some checking of that previous chromosome's integrity.
-		EndCurrentChromosomeInitialization();
+		EndCurrentChromosome(/* starting_new_chromosome */ true);
 	}
 	
 	num_mutrate_inits_ = 0;

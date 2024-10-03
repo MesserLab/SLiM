@@ -1900,7 +1900,7 @@ void Species::RunInitializeCallbacks(void)
 	// From the initialization that has occurred, there should now be a currently initializing chromosome,
 	// whether implicitly or explicitly defined.  We now close out its definition and check it for
 	// correctness.  If this is a multichromosome model, this has already been done for the previous ones.
-	EndCurrentChromosomeInitialization();
+	EndCurrentChromosome(/* starting_new_chromosome */ false);
 	
 	// set a default avatar string if one was not provided; these will be A, B, etc.
 	if (avatar_.length() == 0)
@@ -2039,49 +2039,56 @@ void Species::RunInitializeCallbacks(void)
 		AllocateTreeSequenceTables();
 }
 
-void Species::EndCurrentChromosomeInitialization(void)
+void Species::EndCurrentChromosome(bool starting_new_chromosome)
 {
+	// Check for complete/correct initialization of the currently initializing chromosome.  The error messages emitted are tailored
+	// to whether the user has an implicitly defined chromosome, or is explicitly defining chromosomes with initializeChromosome()
+	// calls; we want to avoid confusion over the new vs. old paradigm of defining the chromosome.
 	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	bool explicit_chromosome = (num_chromosome_inits_ > 0);
+	std::string chromosomeStr = (explicit_chromosome ? "current chromosome" : "chromosome");
+	std::string contextStr = (explicit_chromosome ? "for the current chromosome" : "in an initialize() callback");
+	std::string finalStr = ((explicit_chromosome && starting_new_chromosome) ? "  The current chromosome's initialization must be completed before initialization of the next chromosome, with a new call to initializeChromosome(), can begin." : "");
 	
 	if (!nucleotide_based_ && (num_mutrate_inits_ == 0))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one mutation rate interval must be defined " << contextStr << " with initializeMutationRate(), although the rate given can be zero." << finalStr << EidosTerminate();
 	if (nucleotide_based_ && (num_mutrate_inits_ > 0))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
 	if ((num_mutation_type_inits_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
 	
 	if ((num_ge_type_inits_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
 	
 	if ((num_genomic_element_inits_ == 0) && has_genetics_)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one genomic element must be defined " << contextStr << " with initializeGenomicElement()." << finalStr << EidosTerminate();
 	
 	if (num_recrate_inits_ == 0)
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one recombination rate interval must be defined in an initialize() callback with initializeRecombinationRate()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one recombination rate interval must be defined " << contextStr << " with initializeRecombinationRate(), although the rate given can be zero." << finalStr << EidosTerminate();
 	
 	if ((chromosome->recombination_rates_H_.size() != 0) && ((chromosome->recombination_rates_M_.size() != 0) || (chromosome->recombination_rates_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
 	
 	if (((chromosome->recombination_rates_M_.size() == 0) && (chromosome->recombination_rates_F_.size() != 0)) ||
 		((chromosome->recombination_rates_M_.size() != 0) && (chromosome->recombination_rates_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  Both sex-specific recombination rates must be defined, not just one (but one may be defined as zero)." << finalStr << EidosTerminate();
 	
 	
 	if ((chromosome->mutation_rates_H_.size() != 0) && ((chromosome->mutation_rates_M_.size() != 0) || (chromosome->mutation_rates_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): Cannot define both sex-specific and sex-nonspecific mutation rates." << EidosTerminate();
 	
 	if (((chromosome->mutation_rates_M_.size() == 0) && (chromosome->mutation_rates_F_.size() != 0)) ||
 		((chromosome->mutation_rates_M_.size() != 0) && (chromosome->mutation_rates_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  Both sex-specific mutation rates must be defined, not just one (but one may be defined as zero)." << finalStr << EidosTerminate();
 	
 	
 	if ((chromosome->hotspot_multipliers_H_.size() != 0) && ((chromosome->hotspot_multipliers_M_.size() != 0) || (chromosome->hotspot_multipliers_F_.size() != 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): Cannot define both sex-specific and sex-nonspecific hotspot maps." << EidosTerminate();
 	
 	if (((chromosome->hotspot_multipliers_M_.size() == 0) && (chromosome->hotspot_multipliers_F_.size() != 0)) ||
 		((chromosome->hotspot_multipliers_M_.size() != 0) && (chromosome->hotspot_multipliers_F_.size() == 0)))
-		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << finalStr << EidosTerminate();
 	
 	has_currently_initializing_chromosome_ = false;
 }

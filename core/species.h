@@ -397,7 +397,7 @@ public:
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
-	void EndCurrentChromosomeInitialization(void);
+	void EndCurrentChromosome(bool starting_new_chromosome);
 	bool HasDoneAnyInitialization(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
