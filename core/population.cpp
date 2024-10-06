@@ -187,6 +187,8 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " has been used already, and cannot be used again (to prevent conflicts)." << EidosTerminate();
 	if ((p_subpop_size < 1) && (model_type_ == SLiMModelType::kModelTypeWF))	// allowed in nonWF models
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): (internal error) called with child generation active!." << EidosTerminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
@@ -195,8 +197,6 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, p_haploid);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_haploid);
-	
-	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
@@ -231,6 +231,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " has been used already, and cannot be used again (to prevent conflicts)." << EidosTerminate();
 	if (p_subpop_size < 1)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): (internal error) called with child generation active!." << EidosTerminate();
 	
 	// make and add the new subpopulation; note that we tell Subpopulation::Subpopulation() not to record tree-seq information
 	Subpopulation *new_subpop = nullptr;
@@ -239,8 +241,6 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, false);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, false);
-	
-	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
@@ -5364,6 +5364,9 @@ void Population::ClearParentalHaplosomes(void)
 // Scan through all mutation runs in the simulation and unique them
 void Population::UniqueMutationRuns(void)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) called with child generation active!" << EidosTerminate();
+	
 #if SLIM_DEBUG_MUTATION_RUNS
 	std::clock_t begin = std::clock();
 #endif
@@ -5393,8 +5396,8 @@ void Population::UniqueMutationRuns(void)
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
 				Subpopulation *subpop = subpop_pair.second;
-				slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-				std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+				std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+				slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 				
 				for (slim_popsize_t haplosome_index = 0; haplosome_index < subpop_haplosome_count; haplosome_index++)
 				{
@@ -5878,8 +5881,8 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainMutationRegistry(void)
 {
-	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the parent generation in WF models." << EidosTerminate();
 	
 	// go through all haplosomes and increment mutation reference counts; this updates total_haplosome_count_
 	// this calls TallyMutationRunReferencesForPopulation() as a side effect, forced by the "true" argument
@@ -5927,8 +5930,8 @@ void Population::AssessMutationRuns(void)
 {
 	// Note this method assumes that mutation run use counts are correct; it should be called immediately after tallying
 	
-	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::AssessMutationRuns): (internal error) AssessMutationRuns() may only be called from the child generation in WF models." << EidosTerminate();
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::AssessMutationRuns): (internal error) AssessMutationRuns() may only be called from the parent generation in WF models." << EidosTerminate();
 	
 	slim_tick_t tick = community_.Tick();
 	
@@ -5945,8 +5948,8 @@ void Population::AssessMutationRuns(void)
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 			{
@@ -6020,6 +6023,9 @@ void Population::SwapGenerations(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) called with child generation active!" << EidosTerminate();
+	
 	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
@@ -6065,9 +6071,8 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			if (subpop->CouldContainNullHaplosomes())
 			{
@@ -6118,9 +6123,8 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 			{
@@ -6165,6 +6169,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 
 slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpops): (internal error) called with child generation active!" << EidosTerminate();
+	
 	// FIXME MULTICHROM This will probably loop over the chromosomes, I think?
 	Chromosome &chromosome = species_.TheChromosome();
 	
@@ -6209,8 +6216,8 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			if (subpop->CouldContainNullHaplosomes())
 			{
@@ -6354,17 +6361,19 @@ void Population::FreeUnusedMutationRuns(void)
 // count the number of non-null haplosomes in the population
 slim_refcount_t Population::_CountNonNullHaplosomes(void)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::_CountNonNullHaplosomes): (internal error) called with child generation active!" << EidosTerminate();
+	
 	slim_refcount_t total_haplosome_count = 0;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		
-		slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
+		slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop->parent_haplosomes_.size();
 		
 		if (subpop->CouldContainNullHaplosomes())
 		{
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 			{
@@ -6411,6 +6420,9 @@ void Population::_CopyRefcountsToSLiMgui(void)
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
 slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force_recache)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossPopulation): (internal error) called with child generation active!" << EidosTerminate();
+	
 	// Figure out whether the last tally was of the same thing, such that we can skip the work
 	if (!p_force_recache && (cached_tally_haplosome_count_ != 0) && (last_tallied_subpops_.size() == 0))
 	{
@@ -6471,8 +6483,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
 				Subpopulation *subpop = subpop_pair.second;
-				slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-				std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+				std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+				slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 				
 				for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 				{
@@ -6523,8 +6535,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 #ifdef SLIMGUI
 			// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too;
@@ -6611,6 +6623,9 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 
 slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache)
 {
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossSubpopulations): (internal error) called with child generation active!" << EidosTerminate();
+	
 	// Figure out whether the last tally was of the same thing, such that we can skip the work
 	if (!p_force_recache && (cached_tally_haplosome_count_ != 0) && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
 	{
@@ -6623,8 +6638,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 		// tallying across the specified set of subpops
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 			{
@@ -6655,7 +6670,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 
 	if (p_subpops_to_tally->size() == 0)			// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 		can_tally_using_mutruns = false;
-	else if ((p_subpops_to_tally->size() == 1) && ((*p_subpops_to_tally)[0]->CurrentHaplosomeCount() <= 10))
+	else if ((p_subpops_to_tally->size() == 1) && ((*p_subpops_to_tally)[0]->parent_haplosomes_.size() <= 10))
 		can_tally_using_mutruns = false;
 	
 	if (can_tally_using_mutruns)
@@ -6672,8 +6687,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 			
 			for (Subpopulation *subpop : *p_subpops_to_tally)
 			{
-				slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-				std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+				std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+				slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 				
 				for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 				{
@@ -6695,8 +6710,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 		
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)							// child haplosomes
 			{
@@ -7043,8 +7058,8 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 // TallyMutationReferencesAcrossPopulation() must have cached tallies across the whole population before this is called, or it will malfunction!
 void Population::RemoveAllFixedMutations(void)
 {
-	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::RemoveAllFixedMutations): (internal error) RemoveAllFixedMutations() may only be called from the child generation in WF models." << EidosTerminate();
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::RemoveAllFixedMutations): (internal error) called with child generation active!" << EidosTerminate();
 	
 	// We use stack-local MutationRun objects so they get disposed of properly via RAII; non-optimal
 	// from a performance perspective, since they will do reallocs to reach their needed size, but
@@ -7223,8 +7238,9 @@ void Population::RemoveAllFixedMutations(void)
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
-			std::vector<Haplosome *> &subpop_haplosome = subpop_pair.second->CurrentHaplosomes();
-			slim_popsize_t subpop_haplosome_count = subpop_pair.second->CurrentHaplosomeCount();
+			Subpopulation *subpop = subpop_pair.second;
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)	// child haplosomes
 			{
@@ -7312,8 +7328,8 @@ void Population::RemoveAllFixedMutations(void)
 
 void Population::CheckMutationRegistry(bool p_check_haplosomes)
 {
-	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the parent generation in WF models." << EidosTerminate();
 	
 	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 #if DEBUG_MUTATION_ZOMBIES
@@ -7347,8 +7363,8 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_haplosome_count = subpop->CurrentHaplosomeCount();
-			std::vector<Haplosome *> &subpop_haplosome = subpop->CurrentHaplosomes();
+			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
+			slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 			
 			for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)							// child haplosomes
 			{
@@ -7384,9 +7400,9 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 // print all mutations and all haplosomes to a stream
 void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This method is written to be able to print the population whether child_generation_valid_ is true or false.
-	// This is a little tricky, so be careful when modifying this code!
-	
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) called with child generation active!." << EidosTerminate();
+		
 #if DO_MEMORY_CHECKS
 	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
 	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
@@ -7423,12 +7439,12 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		double subpop_sex_ratio;
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
-			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
+			subpop_sex_ratio = subpop->parent_sex_ratio_;
 		}
 		else
 		{
@@ -7467,11 +7483,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
-			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
+			Haplosome &haplosome = *(subpop->parent_haplosomes_[i]);
 			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -7523,12 +7539,12 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
-		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+		slim_popsize_t first_male_index = subpop->parent_first_male_index_;
 		
 		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
-			Individual &individual = *(subpop->CurrentIndividuals()[i]);
+			Individual &individual = *(subpop->parent_individuals_[i]);
 			
 			p_out << "p" << subpop_id << ":i" << i;						// individual identifier
 			
@@ -7593,11 +7609,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
-			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
+			Haplosome &haplosome = *(subpop->parent_haplosomes_[i]);
 			
 			p_out << "p" << subpop_id << ":" << i << " " << haplosome.AssociatedChromosome()->Type();
 			
@@ -7652,8 +7668,8 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 // print all mutations and all haplosomes to a stream in binary, for maximum reading speed
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
-	// This is a little tricky, so be careful when modifying this code!
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) called with child generation active!." << EidosTerminate();
 	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
@@ -7751,12 +7767,12 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		double subpop_sex_ratio;
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
-			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
+			subpop_sex_ratio = subpop->parent_sex_ratio_;
 		}
 		else
 		{
@@ -7798,11 +7814,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)				// go through all children
 		{
-			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
+			Haplosome &haplosome = *(subpop->parent_haplosomes_[i]);
 			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -7873,11 +7889,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
 		for (slim_popsize_t i = 0; i < 2 * subpop_size; i++)							// go through all children
 		{
-			Haplosome &haplosome = *(subpop->CurrentHaplosomes()[i]);
+			Haplosome &haplosome = *(subpop->parent_haplosomes_[i]);
 			
 			// Write out the haplosome header; start with the haplosome type to guarantee that the first 32 bits are != section_end_tag
 			int32_t chromosome_type = (int32_t)(haplosome.AssociatedChromosome()->Type());
@@ -7890,7 +7906,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (spatial_output_count && ((i % 2) == 0))
 			{
 				int individual_index = i / 2;
-				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
+				Individual &individual = *(subpop->parent_individuals_[individual_index]);
 				
 				if (spatial_output_count >= 1)
 					p_out.write(reinterpret_cast<char *>(&individual.spatial_x_), sizeof individual.spatial_x_);
@@ -7904,7 +7920,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (pedigree_output_count && ((i % 2) == 0))
 			{
 				int individual_index = i / 2;
-				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
+				Individual &individual = *(subpop->parent_individuals_[individual_index]);
 				slim_pedigreeid_t pedigree_id = individual.PedigreeID();
 				
 				p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
@@ -7914,7 +7930,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (age_output_count && ((i % 2) == 0))
 			{
 				int individual_index = i / 2;
-				Individual &individual = *(subpop->CurrentIndividuals()[individual_index]);
+				Individual &individual = *(subpop->parent_individuals_[individual_index]);
 				
 				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
@@ -8010,43 +8026,48 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id
 void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
 {
-	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): (internal error) called with child generation active!" << EidosTerminate();
 	
-	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
-	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
+	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
+	std::vector<Haplosome *> candidates;
+	
+	for (Individual *ind : subpop_individuals)
+	{
+		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
+			continue;
+		
+		Haplosome *haplosome1 = ind->haplosome1_;
+		Haplosome *haplosome2 = ind->haplosome2_;
+		
+		if (!haplosome1->IsNull())
+			candidates.push_back(haplosome1);
+		if (!haplosome2->IsNull())
+			candidates.push_back(haplosome2);
+	}
+	
+	if (p_replace && (candidates.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): no eligible haplosomes for sampling with replacement." << EidosTerminate();
+	if (!p_replace && ((slim_popsize_t)candidates.size() < p_sample_size))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible haplosomes for sampling without replacement." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
-	std::vector<slim_popsize_t> candidates;
-	
-	for (slim_popsize_t s = subpop_size * 2 - 1; s >= 0; --s)
-		candidates.emplace_back(s);
-	
 	std::vector<Haplosome *> sample; 
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		int candidate_index;
-		slim_popsize_t haplosome_index;
+		// select a random haplosome (not a random individual) by selecting a random candidate entry
+		int candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 		
-		// Scan for a haplosome that is not null and that belongs to an individual of the requested sex
-		do {
-			// select a random haplosome (not a random individual) by selecting a random candidate entry
-			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible haplosomes for sampling without replacement." << EidosTerminate();
-			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
-			haplosome_index = candidates[candidate_index];
-			
-			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
-			if (!p_replace)
-			{
-				candidates[candidate_index] = candidates.back();
-				candidates.pop_back();
-			}
-		} while (subpop_haplosome[haplosome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(haplosome_index / 2) != p_requested_sex));
+		sample.emplace_back(candidates[candidate_index]);
 		
-		sample.emplace_back(subpop_haplosome[haplosome_index]);
+		// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+		if (!p_replace)
+		{
+			candidates[candidate_index] = candidates.back();
+			candidates.pop_back();
+		}
 	}
 	
 	// print the sample using Haplosome's static member function
@@ -8056,43 +8077,48 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format
 void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_filter_monomorphic) const
 {
-	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): (internal error) called with child generation active!." << EidosTerminate();
 	
-	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
-	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
+	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
+	std::vector<Haplosome *> candidates;
+	
+	for (Individual *ind : subpop_individuals)
+	{
+		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
+			continue;
+		
+		Haplosome *haplosome1 = ind->haplosome1_;
+		Haplosome *haplosome2 = ind->haplosome2_;
+		
+		if (!haplosome1->IsNull())
+			candidates.push_back(haplosome1);
+		if (!haplosome2->IsNull())
+			candidates.push_back(haplosome2);
+	}
+	
+	if (p_replace && (candidates.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): no eligible haplosomes for sampling with replacement." << EidosTerminate();
+	if (!p_replace && ((slim_popsize_t)candidates.size() < p_sample_size))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible haplosomes for sampling without replacement." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
-	std::vector<slim_popsize_t> candidates;
-	
-	for (slim_popsize_t s = subpop_size * 2 - 1; s >= 0; --s)
-		candidates.emplace_back(s);
-	
 	std::vector<Haplosome *> sample; 
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		int candidate_index;
-		slim_popsize_t haplosome_index;
+		// select a random haplosome (not a random individual) by selecting a random candidate entry
+		int candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 		
-		// Scan for a haplosome that is not null and that belongs to an individual of the requested sex
-		do {
-			// select a random haplosome (not a random individual) by selecting a random candidate entry
-			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible haplosomes for sampling without replacement." << EidosTerminate();
-			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
-			haplosome_index = candidates[candidate_index];
-			
-			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
-			if (!p_replace)
-			{
-				candidates[candidate_index] = candidates.back();
-				candidates.pop_back();
-			}
-		} while (subpop_haplosome[haplosome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(haplosome_index / 2) != p_requested_sex));
+		sample.emplace_back(candidates[candidate_index]);
 		
-		sample.emplace_back(subpop_haplosome[haplosome_index]);
+		// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+		if (!p_replace)
+		{
+			candidates[candidate_index] = candidates.back();
+			candidates.pop_back();
+		}
 	}
 	
 	// print the sample using Haplosome's static member function
@@ -8102,48 +8128,43 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 // print sample of p_sample_size *individuals* (NOT haplosomes or genomes) from subpopulation p_subpop_id
 void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const
 {
-	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
+	if (child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): (internal error) called with child generation active!." << EidosTerminate();
 	
-	std::vector<Haplosome *> &subpop_haplosome = p_subpop.CurrentHaplosomes();
-	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
+	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
+	std::vector<Individual *> candidates;
+	
+	for (Individual *ind : subpop_individuals)
+	{
+		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
+			continue;
+		
+		candidates.push_back(ind);
+	}
+	
+	if (p_replace && (candidates.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): no eligible individuals for sampling with replacement." << EidosTerminate();
+	if (!p_replace && ((slim_popsize_t)candidates.size() < p_sample_size))
+		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 	
 	// assemble a sample (with or without replacement)
-	std::vector<slim_popsize_t> candidates;
-	
-	for (slim_popsize_t s = subpop_size - 1; s >= 0; --s)
-		candidates.emplace_back(s);
-	
 	std::vector<Haplosome *> sample; 
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
-		int candidate_index;
-		slim_popsize_t individual_index;
-		slim_popsize_t haplosome1, haplosome2;
+		// select a random individual (not a random haplosome) by selecting a random candidate entry
+		int candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 		
-		// Scan for an individual of the requested sex
-		do {
-			// select a random individual by selecting a random candidate entry
-			if (candidates.size() == 0)
-				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
-			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
-			individual_index = candidates[candidate_index];
-			
-			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
-			if (!p_replace)
-			{
-				candidates[candidate_index] = candidates.back();
-				candidates.pop_back();
-			}
-		} while (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (p_subpop.SexOfIndividual(individual_index) != p_requested_sex));
+		sample.emplace_back(candidates[candidate_index]->haplosome1_);
+		sample.emplace_back(candidates[candidate_index]->haplosome2_);
 		
-		haplosome1 = individual_index * 2;
-		haplosome2 = haplosome1 + 1;
-		
-		sample.emplace_back(subpop_haplosome[haplosome1]);
-		sample.emplace_back(subpop_haplosome[haplosome2]);
+		// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
+		if (!p_replace)
+		{
+			candidates[candidate_index] = candidates.back();
+			candidates.pop_back();
+		}
 	}
 	
 	// print the sample using Haplosome's static member function

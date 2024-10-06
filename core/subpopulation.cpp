@@ -157,9 +157,6 @@ void Subpopulation::GenerateChildrenToFitWF()
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
-	cached_child_haplosomes_value_.reset();
-	cached_child_individuals_value_.reset();
-	
 	// First, make the number of Individual objects match, and make the corresponding Haplosome changes
 	int old_individual_count = (int)child_individuals_.size();
 	int new_individual_count = child_subpop_size_;
@@ -613,7 +610,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null haplosome in individual in non-sexual simulation." << EidosTerminate();
 		}
 		
-		if (child_generation_valid_)
+		if (population_.child_generation_valid_)
 		{
 			// When the child generation is valid, all parental haplosomes should have null mutrun pointers, so mutrun refcounts are correct
 			for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
@@ -722,7 +719,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				((haplosome2->mutrun_length_ == 0) && ((haplosome2->mutrun_count_ != 0) || (haplosome2->mutruns_ != nullptr))))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
 			
-			if (species_.PedigreesEnabled() && child_generation_valid_)
+			if (species_.PedigreesEnabled() && population_.child_generation_valid_)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
@@ -767,7 +764,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null haplosome in individual in non-sexual simulation." << EidosTerminate();
 			}
 			
-			if (child_generation_valid_)
+			if (population_.child_generation_valid_)
 			{
 				// When the child generation is active, child haplosomes should have non-null mutrun pointers
 				for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
@@ -1065,10 +1062,12 @@ void Subpopulation::SetName(const std::string &p_name)
 
 slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 {
-	slim_refcount_t null_haplosome_count = 0;
+	if (population_.child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::NullHaplosomeCount): (internal error) called with child generation active!" << EidosTerminate();
 	
-	slim_popsize_t subpop_haplosome_count = CurrentHaplosomeCount();
-	std::vector<Haplosome *> &subpop_haplosome = CurrentHaplosomes();
+	slim_refcount_t null_haplosome_count = 0;
+	std::vector<Haplosome *> &subpop_haplosome = parent_haplosomes_;
+	slim_popsize_t subpop_haplosome_count = (slim_popsize_t)subpop_haplosome.size();
 	
 	for (slim_popsize_t i = 0; i < subpop_haplosome_count; i++)
 	{
@@ -3289,11 +3288,11 @@ void Subpopulation::SwapChildAndParentHaplosomes(void)
 	
 	// Execute the haplosome swap
 	child_haplosomes_.swap(parent_haplosomes_);
-	cached_child_haplosomes_value_.swap(cached_parent_haplosomes_value_);
+	cached_parent_haplosomes_value_.reset();
 	
 	// Execute a swap of individuals as well; since individuals carry so little baggage, this is mostly important just for moving tag values
 	child_individuals_.swap(parent_individuals_);
-	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
+	cached_parent_individuals_value_.reset();
 	
 	// Clear out any dictionary values and color values stored in what are now the child individuals; since this is per-individual it
 	// takes a significant amount of time, so we try to minimize the overhead by doing it only when these facilities have been used
@@ -3350,9 +3349,6 @@ void Subpopulation::SwapChildAndParentHaplosomes(void)
 	parent_subpop_size_ = child_subpop_size_;
 	parent_sex_ratio_ = child_sex_ratio_;
 	parent_first_male_index_ = child_first_male_index_;
-	
-	// mark the child generation as invalid, until it is generated
-	child_generation_valid_ = false;
 	
 	// The parental haplosomes, which have now been swapped into the child haplosome vactor, no longer fit the bill.  We need to throw them out and generate new haplosome vectors.
 	if (will_need_new_children)
@@ -3966,135 +3962,68 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentFirstMaleIndex()));
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(parent_first_male_index_));
+		}
 		case gID_haplosomes:
 		{
-			if (child_generation_valid_)
+			if (!cached_parent_haplosomes_value_)
 			{
-				if (!cached_child_haplosomes_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(child_haplosomes_.size());
-					cached_child_haplosomes_value_ = EidosValue_SP(vec);
-					
-					for (auto haplosome_iter : child_haplosomes_)
-						vec->push_object_element_no_check_NORR(haplosome_iter);
-				}
-				/*
-				else
-				{
-					// check that the cache is correct
-					const EidosObject * const *vec_direct = cached_child_haplosomes_value_->ObjectData();
-					int vec_size = cached_child_haplosomes_value_->Count();
-					
-					if (vec_size == (int)child_haplosomes_.size())
-					{
-						for (int i = 0; i < vec_size; ++i)
-							if (vec_direct[i] != child_haplosomes_[i])
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_haplosomes_value_." << EidosTerminate();
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_child_haplosomes_value_." << EidosTerminate();
-				}
-				*/
+				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
+				cached_parent_haplosomes_value_ = EidosValue_SP(vec);
 				
-				return cached_child_haplosomes_value_;
+				for (auto haplosome_iter : parent_haplosomes_)
+					vec->push_object_element_no_check_NORR(haplosome_iter);
 			}
-			else
+
+#if DEBUG
 			{
-				if (!cached_parent_haplosomes_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
-					cached_parent_haplosomes_value_ = EidosValue_SP(vec);
-					
-					for (auto haplosome_iter : parent_haplosomes_)
-						vec->push_object_element_no_check_NORR(haplosome_iter);
-				}
-				/*
-				else
-				{
-					// check that the cache is correct
-					const EidosObject * const *vec_direct = cached_parent_haplosomes_value_->ObjectData();
-					int vec_size = cached_parent_haplosomes_value_->Count();
-					
-					if (vec_size == (int)parent_haplosomes_.size())
-					{
-						for (int i = 0; i < vec_size; ++i)
-							if (vec_direct[i] != parent_haplosomes_[i])
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
-				}
-				*/
+				// check that the cache is correct
+				const EidosObject * const *vec_direct = cached_parent_haplosomes_value_->ObjectData();
+				int vec_size = cached_parent_haplosomes_value_->Count();
 				
-				return cached_parent_haplosomes_value_;
+				if (vec_size == (int)parent_haplosomes_.size())
+				{
+					for (int i = 0; i < vec_size; ++i)
+						if (vec_direct[i] != parent_haplosomes_[i])
+							EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
+				}
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
 			}
+#endif
+			
+			return cached_parent_haplosomes_value_;
 		}
 		case gID_haplosomesNonNull:
 		{
-			if (child_generation_valid_)
-			{
-				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(child_haplosomes_.size());
-				
-				for (auto haplosome_iter : child_haplosomes_)
-					if (!haplosome_iter->IsNull())
-						vec->push_object_element_no_check_NORR(haplosome_iter);
-				
-				return EidosValue_SP(vec);
-			}
-			else
-			{
-				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
-				
-				for (auto haplosome_iter : parent_haplosomes_)
-					if (!haplosome_iter->IsNull())
-						vec->push_object_element_no_check_NORR(haplosome_iter);
-				
-				return EidosValue_SP(vec);
-			}
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
+			
+			for (auto haplosome_iter : parent_haplosomes_)
+				if (!haplosome_iter->IsNull())
+					vec->push_object_element_no_check_NORR(haplosome_iter);
+			
+			return EidosValue_SP(vec);
 		}
 		case gID_individuals:
 		{
-			if (child_generation_valid_)
+			slim_popsize_t subpop_size = parent_subpop_size_;
+			
+			// Check for an outdated cache; this should never happen, so we flag it as an error
+			if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
+			
+			// Build and return an EidosValue_Object with the current set of individuals in it
+			if (!cached_parent_individuals_value_)
 			{
-				slim_popsize_t subpop_size = child_subpop_size_;
+				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
+				cached_parent_individuals_value_ = EidosValue_SP(vec);
 				
-				// Check for an outdated cache; this should never happen, so we flag it as an error
-				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_child_individuals_value_ out of date." << EidosTerminate();
-				
-				// Build and return an EidosValue_Object with the current set of individuals in it
-				if (!cached_child_individuals_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
-					cached_child_individuals_value_ = EidosValue_SP(vec);
-					
-					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_no_check_NORR(child_individuals_[individual_index]);
-				}
-				
-				return cached_child_individuals_value_;
+				for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
+					vec->push_object_element_no_check_NORR(parent_individuals_[individual_index]);
 			}
-			else
-			{
-				slim_popsize_t subpop_size = parent_subpop_size_;
-				
-				// Check for an outdated cache; this should never happen, so we flag it as an error
-				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
-				
-				// Build and return an EidosValue_Object with the current set of individuals in it
-				if (!cached_parent_individuals_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
-					cached_parent_individuals_value_ = EidosValue_SP(vec);
-					
-					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_no_check_NORR(parent_individuals_[individual_index]);
-				}
-				
-				return cached_parent_individuals_value_;
-			}
+			
+			return cached_parent_individuals_value_;
 		}
 		case gID_immigrantSubpopIDs:
 		{
@@ -4202,7 +4131,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(parent_sex_ratio_));
 		}
 		case gID_spatialBounds:
 		{
@@ -4231,7 +4160,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 		case gID_individualCount:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentSubpopSize()));
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(parent_subpop_size_));
+		}
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -4274,7 +4205,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->CurrentFirstMaleIndex(), value_index);
+		int_result->set_int_no_check(value->parent_first_male_index_, value_index);
 	}
 	
 	return int_result;
@@ -4288,7 +4219,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->CurrentSubpopSize(), value_index);
+		int_result->set_int_no_check(value->parent_subpop_size_, value_index);
 	}
 	
 	return int_result;
@@ -5943,16 +5874,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	if (individuals_value->Type() == EidosValueType::kValueNULL)
 	{
 		// NULL requests that the positions of all individuals in the subpop should be deviated
-		if (child_generation_valid_)
-		{
-			individuals = child_individuals_.data();
-			individuals_count = child_subpop_size_;
-		}
-		else
-		{
-			individuals = parent_individuals_.data();
-			individuals_count = parent_subpop_size_;
-		}
+		individuals = parent_individuals_.data();
+		individuals_count = parent_subpop_size_;
 	}
 	else
 	{
@@ -7286,10 +7209,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	EidosValue *sexRatio_value = p_arguments[0].get();
 	
-	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
-	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
-	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() called when the child generation was valid." << EidosTerminate();
+	// SetSexRatio() sets the sex ratio on the child generation, and then that sex ratio takes effect
+	// when the children are generated from the parents in EvolveSubpopulation().
 	
 	// SEX ONLY
 	if (!sex_enabled_)
@@ -7427,10 +7348,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
-	
-	// This should never be hit, I think; there is no script execution opportunity while the child generation is active
-	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (model_type_ == SLiMModelType::kModelTypeWF)

@@ -2149,7 +2149,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	const int64_t *pedigree_id_data = pedigreeIDs_value->IntData();
 	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
 	
-	if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
+	if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across platforms etc.
 	{
 		// for smaller problem sizes, we do sequential search for each pedigree ID
 		for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
@@ -2158,7 +2158,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 			
 			for (Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 				{
@@ -2191,7 +2191,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		try {
 			for (Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 					fromIDToIndividual.emplace(ind->PedigreeID(), ind);

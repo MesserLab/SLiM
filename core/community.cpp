@@ -2557,8 +2557,18 @@ bool Community::_RunOneTickWF(void)
 			if (species->Active())
 				species->WF_SwitchToChildGeneration();
 		
+		// invalidate interactions, now that the generation they were valid for has disappeared
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		for (Species *species : all_species_)
+			if (species->Active())
+				InvalidateInteractionsForSpecies(species);
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
+		
+		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		DeregisterScheduledInteractionBlocks();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2572,27 +2582,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 3: Remove fixed mutations and associated tasks
+	// Stage 3: Swap generations
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "remove fixed mutations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage3RemoveFixedMutations;
+		cycle_stage_ = SLiMCycleStage::kWFStage3SwapGenerations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->MaintainMutationRegistry();
-		
-		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (Species *species : all_species_)
-			if (species->Active())
-				InvalidateInteractionsForSpecies(species);
-		
-		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
-		DeregisterScheduledInteractionBlocks();
+				species->WF_SwapGenerations();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2606,19 +2610,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 4: Swap generations
+	// Stage 4: Remove fixed mutations and associated tasks
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "swap generations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage4SwapGenerations;
+		cycle_stage_ = SLiMCycleStage::kWFStage4RemoveFixedMutations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->WF_SwapGenerations();
+				species->MaintainMutationRegistry();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING

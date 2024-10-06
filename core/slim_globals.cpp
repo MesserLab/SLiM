@@ -620,8 +620,8 @@ std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 		case SLiMCycleStage::kWFStage0ExecuteFirstScripts: return "first";
 		case SLiMCycleStage::kWFStage1ExecuteEarlyScripts: return "early";
 		case SLiMCycleStage::kWFStage2GenerateOffspring: return "reproduction";
-		case SLiMCycleStage::kWFStage3RemoveFixedMutations: return "tally";
-		case SLiMCycleStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage3SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage4RemoveFixedMutations: return "tally";
 		case SLiMCycleStage::kWFStage5ExecuteLateScripts: return "late";
 		case SLiMCycleStage::kWFStage6CalculateFitness: return "fitness";
 		case SLiMCycleStage::kWFStage7AdvanceTickCounter: return "end";
@@ -1984,10 +1984,10 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 2 - offspring generation" : " : stage 2 - early() event execution") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage4Time, percentStage4);
-		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 3 - bookkeeping (fixed mutation removal, etc.)" : " : stage 3 - fitness calculation") << "<BR>\n";
+		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 3 - generation swap" : " : stage 3 - fitness calculation") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage5Time, percentStage5);
-		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 4 - generation swap" : " : stage 4 - viability/survival selection") << "<BR>\n";
+		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 4 - bookkeeping (fixed mutation removal, etc.)" : " : stage 4 - viability/survival selection") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage6Time, percentStage6);
 		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 5 - late() event execution" : " : stage 5 - bookkeeping (fixed mutation removal, etc.)") << "<BR>\n";

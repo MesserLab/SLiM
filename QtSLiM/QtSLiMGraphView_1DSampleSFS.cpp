@@ -275,7 +275,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
         // Get frequencies for a sample taken (with replacement) from subpop1
         {
             std::vector<Haplosome *> sampleHaplosomes;
-            std::vector<Haplosome *> &subpopHaplosomes = subpop1->CurrentHaplosomes();
+            std::vector<Haplosome *> &subpopHaplosomes = subpop1->parent_haplosomes_;
             size_t subpopHaplosomeCount = subpopHaplosomes.size();
             
             if (subpopHaplosomeCount)

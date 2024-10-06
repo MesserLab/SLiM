@@ -2343,9 +2343,6 @@ void Species::WF_GenerateOffspring(void)
 void Species::WF_SwitchToChildGeneration(void)
 {
 	// switch to the child generation; we don't want to do this until all callbacks have executed for all subpops
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-		subpop_pair.second->child_generation_valid_ = true;
-	
 	population_.child_generation_valid_ = true;
 	
 	// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation

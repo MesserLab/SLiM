@@ -1159,8 +1159,8 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kWFStage4SwapGenerations; break;				// never hit
-			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
@@ -1177,12 +1177,12 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kNonWFStage7AdvanceTickCounter; break;
-			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;			// never hit
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kNonWFStage4SurvivalSelection; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();

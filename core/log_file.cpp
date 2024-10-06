@@ -118,8 +118,8 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGenerator
 		for (auto &subpop_iter : species->population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
-			slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
-			slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
+			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+			slim_popsize_t first_male_index = subpop->parent_first_male_index_;
 			
 			total_individuals += subpop_size;
 			total_males += (subpop_size - first_male_index);
@@ -143,7 +143,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 	slim_popsize_t total_individuals = 0;
 	
 	for (auto &subpop_iter : species->population_.subpops_)
-		total_individuals += (subpop_iter.second)->CurrentSubpopSize();
+		total_individuals += (subpop_iter.second)->parent_subpop_size_;
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(total_individuals));
 }
@@ -154,8 +154,8 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGenera
 	
 	if (subpop && subpop->species_.SexEnabled())
 	{
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
-		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+		slim_popsize_t first_male_index = subpop->parent_first_male_index_;
 		double sex_ratio = (subpop_size == 0) ? 0.0 : ((subpop_size - first_male_index) / (double)subpop_size);
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sex_ratio));
 	}
@@ -172,7 +172,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorI
 	
 	if (subpop)
 	{
-		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(subpop_size));
 	}
 	else
@@ -315,6 +315,13 @@ void LogFile::_OutputValue(std::ostringstream &p_out, EidosValue *p_value)
 void LogFile::AppendNewRow(void)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("LogFile::AppendNewRow(): filesystem write");
+	
+	// Guarantee that we are in the parent generation for all generators, so they don't need to worry
+	const std::vector<Species *> &all_species = community_.AllSpecies();
+	
+	for (Species *species : all_species)
+		if (species->population_.child_generation_valid_)
+			EIDOS_TERMINATION << "ERROR (LogFile::AppendNewRow): (internal error) generating logfile entry with child generation active!" << EidosTerminate();
 	
 	std::vector<const std::string *> line_vec;
 	std::string header_line;

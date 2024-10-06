@@ -1656,10 +1656,10 @@
 		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 3 – generation swap\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 4 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
 		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
