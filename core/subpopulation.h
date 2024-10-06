@@ -131,12 +131,11 @@ public:
 	bool has_null_haplosomes_ = false;					// false until a null haplosome is added; NOT set by null haplosomes for sex chromosome sims; use CouldContainNullHaplosomes() to check this flag
 	
 	std::vector<Haplosome *> parent_haplosomes_;			// OWNED: all haplosomes in the parental generation; each individual gets two haplosomes, males are XY (not YX)
-	EidosValue_SP cached_parent_haplosomes_value_;		// cached for the haplosomes property; reset() if changed
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
 	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Haplosome vector (NOT premultiplied by 2!); equal to the number of females
 	std::vector<Individual *> parent_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
 	EidosValue_SP cached_parent_individuals_value_;	// cached for the individuals property; self-maintains
-	double parent_sex_ratio_ = 0.0;					// WF only: what sex ratio the parental haplosomes approximate (M:M+F)
+	double parent_sex_ratio_ = 0.0;					// WF only: what sex ratio the parent individuals approximate (M:M+F)
 	
 	// WF only:
 	// In WF models, we actually switch to a "child" generation just after offspring generation; this is then the active generation.
@@ -146,7 +145,7 @@ public:
 	slim_popsize_t child_subpop_size_;				// child subpopulation size
 	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Haplosome vector (NOT premultiplied by 2!); equal to the number of females
 	std::vector<Individual *> child_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
-	double child_sex_ratio_ = 0.0;					// what sex ratio the child haplosomes approximate (M:M+F)
+	double child_sex_ratio_ = 0.0;					// what sex ratio the child individuals approximate (M:M+F)
 	
 	// nonWF only:
 	// In nonWF models, we place generated offspring into a temporary holding pen, but it is never made the "active generation"

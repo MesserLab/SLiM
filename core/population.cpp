@@ -477,7 +477,6 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			subpop->parent_haplosomes_.resize((size_t)subpop->parent_subpop_size_ * 2);
 			subpop->parent_individuals_.resize(subpop->parent_subpop_size_);
 			
-			subpop->cached_parent_haplosomes_value_.reset();
 			subpop->cached_parent_individuals_value_.reset();
 		}
 	}

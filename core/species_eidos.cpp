@@ -2374,17 +2374,12 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	
 	if (killed_count)
 	{
-		// First, clear our haplosome and individual caches in all subpopulations; any subpops involved in
+		// First, clear our individual caches in all subpopulations; any subpops involved in
 		// this method would be invalidated anyway so this probably isn't even that much overkill in
-		// most models.  Note that the child haplosomes/individuals caches don't need to be thrown away,
+		// most models.  Note that the child individuals caches don't need to be thrown away,
 		// because they aren't used in nonWF models and this is a nonWF-only method.
 		for (auto subpop_pair : population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->cached_parent_haplosomes_value_.reset();
-			subpop->cached_parent_individuals_value_.reset();
-		}
+			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the deaths that occurred

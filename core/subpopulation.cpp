@@ -262,7 +262,6 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
-	cached_parent_haplosomes_value_.reset();
 	cached_parent_individuals_value_.reset();
 	
 	if (parent_individuals_.size() || parent_haplosomes_.size())
@@ -3288,7 +3287,6 @@ void Subpopulation::SwapChildAndParentHaplosomes(void)
 	
 	// Execute the haplosome swap
 	child_haplosomes_.swap(parent_haplosomes_);
-	cached_parent_haplosomes_value_.reset();
 	
 	// Execute a swap of individuals as well; since individuals carry so little baggage, this is mostly important just for moving tag values
 	child_individuals_.swap(parent_individuals_);
@@ -3574,7 +3572,6 @@ void Subpopulation::MergeReproductionOffspring(void)
 	// final cleanup
 	parent_subpop_size_ += new_count;
 	
-	cached_parent_haplosomes_value_.reset();
 	cached_parent_individuals_value_.reset();
 	
 	nonWF_offspring_haplosomes_.clear();
@@ -3893,7 +3890,6 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 		parent_haplosomes_.resize((size_t)parent_subpop_size_ * 2);
 		parent_individuals_.resize(parent_subpop_size_);
 		
-		cached_parent_haplosomes_value_.reset();
 		cached_parent_individuals_value_.reset();
 	}
 }
@@ -3967,33 +3963,12 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_haplosomes:
 		{
-			if (!cached_parent_haplosomes_value_)
-			{
-				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
-				cached_parent_haplosomes_value_ = EidosValue_SP(vec);
-				
-				for (auto haplosome_iter : parent_haplosomes_)
-					vec->push_object_element_no_check_NORR(haplosome_iter);
-			}
-
-#if DEBUG
-			{
-				// check that the cache is correct
-				const EidosObject * const *vec_direct = cached_parent_haplosomes_value_->ObjectData();
-				int vec_size = cached_parent_haplosomes_value_->Count();
-				
-				if (vec_size == (int)parent_haplosomes_.size())
-				{
-					for (int i = 0; i < vec_size; ++i)
-						if (vec_direct[i] != parent_haplosomes_[i])
-							EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
-				}
-				else
-					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_haplosomes_value_." << EidosTerminate();
-			}
-#endif
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(parent_haplosomes_.size());
 			
-			return cached_parent_haplosomes_value_;
+			for (auto haplosome_iter : parent_haplosomes_)
+				vec->push_object_element_no_check_NORR(haplosome_iter);
+		
+			return EidosValue_SP(vec);
 		}
 		case gID_haplosomesNonNull:
 		{
@@ -5789,12 +5764,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		// most models.  Note that the child haplosomes/individuals caches don't need to be thrown away,
 		// because they aren't used in nonWF models and this is a nonWF-only method.
 		for (auto subpop_pair : population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->cached_parent_haplosomes_value_.reset();
-			subpop->cached_parent_individuals_value_.reset();
-		}
+			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
