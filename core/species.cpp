@@ -862,7 +862,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome index out of permitted range." << EidosTerminate();
 		slim_popsize_t haplosome_index = static_cast<slim_popsize_t>(haplosome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
 		
-		Haplosome &haplosome = *subpop->parent_haplosomes_[haplosome_index];
+		int64_t individual_index = haplosome_index >> 1;
+		Individual *ind = subpop->parent_individuals_[individual_index];
+		Haplosome &haplosome = *((haplosome_index & 0x01) ? ind->haplosome1_ : ind->haplosome2_);
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
@@ -1565,7 +1567,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if ((haplosome_index < 0) || (haplosome_index > SLIM_MAX_SUBPOP_SIZE * 2))
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome index out of permitted range." << EidosTerminate();
 		
-		Haplosome &haplosome = *subpop->parent_haplosomes_[haplosome_index];
+		int64_t individual_index = haplosome_index >> 1;
+		Individual *ind = subpop->parent_individuals_[individual_index];
+		Haplosome &haplosome = *((haplosome_index & 0x01) ? ind->haplosome1_ : ind->haplosome2_);
 		
 		// Error-check the haplosome type
 		if (haplosome_type != (int32_t)haplosome.AssociatedChromosome()->Type())
@@ -2180,32 +2184,8 @@ void Species::MaintainTreeSequence(void)
 void Species::EmptyGraveyard(void)
 {
 	// Individuals end up in graveyard_ due to killIndividuals(); they get disposed of here.
-	// Since graveyard individuals don't belong to any subpopulation, we use the population junkyards directly.
-	std::vector<Haplosome *> &haplosomes_junkyard_null = population_.species_haplosomes_junkyard_null;
-	std::vector<Haplosome *> &haplosomes_junkyard_nonnull = population_.species_haplosomes_junkyard_nonnull;
-	
 	for (Individual *individual : graveyard_)
 	{
-		// Free haplosome1; this is the same logic as Subpopulation::FreeSubpopHaplosome()
-		{
-			Haplosome *haplosome1 = individual->haplosome1_;
-			
-			if (haplosome1->IsNull())
-				haplosomes_junkyard_null.emplace_back(haplosome1);
-			else
-				haplosomes_junkyard_nonnull.emplace_back(haplosome1);
-		}
-		
-		// Free haplosome2; this is the same logic as Subpopulation::FreeSubpopHaplosome()
-		{
-			Haplosome *haplosome2 = individual->haplosome2_;
-			
-			if (haplosome2->IsNull())
-				haplosomes_junkyard_null.emplace_back(haplosome2);
-			else
-				haplosomes_junkyard_nonnull.emplace_back(haplosome2);
-		}
-		
 		individual->~Individual();
 		population_.species_individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 	}
@@ -2763,9 +2743,21 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	{
 		Subpopulation &subpop = *iter.second;
 		
-		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.parent_haplosomes_.begin(), subpop.parent_haplosomes_.end());
-		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.child_haplosomes_.begin(), subpop.child_haplosomes_.end());
-		all_haplosomes_in_use.insert(all_haplosomes_in_use.end(), subpop.nonWF_offspring_haplosomes_.begin(), subpop.nonWF_offspring_haplosomes_.end());
+		for (Individual *ind : subpop.parent_individuals_)
+		{
+			all_haplosomes_in_use.push_back(ind->haplosome1_);
+			all_haplosomes_in_use.push_back(ind->haplosome2_);
+		}
+		for (Individual *ind : subpop.child_individuals_)
+		{
+			all_haplosomes_in_use.push_back(ind->haplosome1_);
+			all_haplosomes_in_use.push_back(ind->haplosome2_);
+		}
+		for (Individual *ind : subpop.nonWF_offspring_individuals_)
+		{
+			all_haplosomes_in_use.push_back(ind->haplosome1_);
+			all_haplosomes_in_use.push_back(ind->haplosome2_);
+		}
 	}
 	
 	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_nonnull.begin(), population_.species_haplosomes_junkyard_nonnull.end());
@@ -3535,12 +3527,15 @@ void Species::SimplifyTreeSequence(void)
 		// and then come all the haplosomes of the extant individuals
 		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_haplosomes_.size();
 		
-		for (auto it : population_.subpops_)
+		for (auto subpop_iter : population_.subpops_)
 		{
-			std::vector<Haplosome *> &subpopulationHaplosomes = it.second->parent_haplosomes_;
+			Subpopulation *subpop = subpop_iter.second;
 			
-			for (Haplosome *haplosome : subpopulationHaplosomes)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
+			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			{
+				Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 				tsk_id_t M = haplosome->tsk_node_id_;
 				
 				// check if this sample is already being remembered, and assign the correct tsk_node_id_
@@ -3556,6 +3551,7 @@ void Species::SimplifyTreeSequence(void)
 				{
 					haplosome->tsk_node_id_ = (tsk_id_t)(iter->second);
 				}
+			}
 			}
 		}
 	}
@@ -3670,12 +3666,14 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	for (auto subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
-		std::vector<Haplosome *> &haplosomes = subpop->parent_haplosomes_;
-		slim_popsize_t haplosome_count = subpop->parent_subpop_size_ * 2;
-		Haplosome **haplosome_ptr = haplosomes.data();
-		
-		for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
-			all_extant_nodes.emplace_back(haplosome_ptr[haplosome_index]->tsk_node_id_);
+		for (Individual *ind : subpop->parent_individuals_)
+		{
+		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		{
+			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+			all_extant_nodes.emplace_back(haplosome->tsk_node_id_);
+		}
+		}
 	}
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
@@ -5556,8 +5554,14 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	{
 		Subpopulation *subpop = pop_iter.second;
 		
-		for (Haplosome *haplosome : subpop->parent_haplosomes_)
+		for (Individual *ind : subpop->parent_individuals_)
+		{
+		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		{
+			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 			haplosomes.emplace_back(haplosome);
+		}
+		}
 	}
 	
 	// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
@@ -5603,8 +5607,18 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			std::vector<tsk_id_t> samples;
 			
 			for (auto iter : population_.subpops_)
-				for (Haplosome *haplosome : iter.second->parent_haplosomes_)
+			{
+				Subpopulation *subpop = iter.second;
+				
+				for (Individual *ind : subpop->parent_individuals_)
+				{
+				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				{
+					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 					samples.emplace_back(haplosome->tsk_node_id_);
+				}
+				}
+			}
 			
 			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
@@ -7211,9 +7225,19 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	slim_refcount_t fixation_count = 0;
 	
 	for (auto pop_iter : population_.subpops_)
-		for (Haplosome *haplosome : pop_iter.second->parent_haplosomes_)
+	{
+		Subpopulation *subpop = pop_iter.second;
+		
+		for (Individual *ind : subpop->parent_individuals_)
+		{
+		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		{
+			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 			if (!haplosome->IsNull())
 				fixation_count++;
+		}
+		}
+	}
 	
 	// instantiate mutations
 	for (auto mut_info_iter : p_mutInfoMap)

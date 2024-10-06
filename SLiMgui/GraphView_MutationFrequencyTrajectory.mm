@@ -316,12 +316,11 @@
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
-			slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
-			
-			for (int i = 0; i < subpop_haplosome_count; i++)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome &haplosome = *subpop_haplosome[i];
+			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			{
+				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 				
 				if (!haplosome.IsNull())
 				{
@@ -344,6 +343,7 @@
 					
 					subpop_total_haplosome_count++;
 				}
+			}
 			}
 		}
 	}

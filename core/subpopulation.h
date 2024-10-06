@@ -130,7 +130,6 @@ public:
 	std::vector<Haplosome *> &haplosomes_junkyard_null;	// NOT OWNED: null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	bool has_null_haplosomes_ = false;					// false until a null haplosome is added; NOT set by null haplosomes for sex chromosome sims; use CouldContainNullHaplosomes() to check this flag
 	
-	std::vector<Haplosome *> parent_haplosomes_;			// OWNED: all haplosomes in the parental generation; each individual gets two haplosomes, males are XY (not YX)
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
 	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Haplosome vector (NOT premultiplied by 2!); equal to the number of females
 	std::vector<Individual *> parent_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
@@ -141,7 +140,6 @@ public:
 	// In WF models, we actually switch to a "child" generation just after offspring generation; this is then the active generation.
 	// Then, with SwapChildAndParentHaplosomes(), the child generation gets swapped into the parent generation, which becomes active.
 	// I'm not sure this is a great design really, but it's pretty entrenched at this point, and pretty harmless...
-	std::vector<Haplosome *> child_haplosomes_;			// OWNED: all haplosomes in the child generation; each individual gets two haplosomes, males are XY (not YX)
 	slim_popsize_t child_subpop_size_;				// child subpopulation size
 	slim_popsize_t child_first_male_index_ = INT_MAX;	// the index of the first male in the child Haplosome vector (NOT premultiplied by 2!); equal to the number of females
 	std::vector<Individual *> child_individuals_;	// OWNED: objects representing simulated individuals, each of which has two haplosomes
@@ -151,7 +149,6 @@ public:
 	// In nonWF models, we place generated offspring into a temporary holding pen, but it is never made the "active generation"
 	// the way it is in WF models.  At soon as offspring generation is finished, these individuals get merged back in.  The
 	// individuals here are kept in the order in which they were generated, not in order by sex or anything else.
-	std::vector<Haplosome *> nonWF_offspring_haplosomes_;
 	std::vector<Individual *> nonWF_offspring_individuals_;
 	
 	// nonWF only:
@@ -357,7 +354,7 @@ public:
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
 	// WF only:
-	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, std::vector<Haplosome *> &p_haplosomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
+	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
 	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation haplosomes and individuals to fit
 	void UpdateWFFitnessBuffers(bool p_pure_neutral);																					// update the WF model fitness buffers after UpdateFitness()
 	void TallyLifetimeReproductiveOutput(void);
@@ -371,23 +368,18 @@ public:
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null);
-	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Haplosome *p_haplosome1, Haplosome *p_haplosome2, EidosValue_Object *p_result)
+	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, EidosValue_Object *p_result)
 	{
 		if (p_proposed_child_accepted)
 		{
 			// The child was accepted, so add it to our staging area and to the caller's result vector
-			nonWF_offspring_haplosomes_.emplace_back(p_haplosome1);
-			nonWF_offspring_haplosomes_.emplace_back(p_haplosome2);
 			nonWF_offspring_individuals_.emplace_back(p_individual);
 			
 			p_result->push_object_element_NORR(p_individual);
 		}
 		else
 		{
-			// The child was rejected, so dispose of the haplosomes and individual
-			FreeSubpopHaplosome(p_haplosome1);
-			FreeSubpopHaplosome(p_haplosome2);
-			
+			// The child was rejected, so dispose of it
 			p_individual->~Individual();
 			individual_pool_.DisposeChunk(const_cast<Individual *>(p_individual));
 			

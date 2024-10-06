@@ -2317,9 +2317,6 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
-				
-				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2];
-				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2 + 1];
 			}
 			
 			if (source_first_male - 1 < source_subpop_size - 1)
@@ -2328,14 +2325,10 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 				backfill->index_ = source_first_male - 1;
-				
-				source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_haplosomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_haplosomes_.resize((size_t)source_subpop_size * 2);
 			
 			source_subpop->parent_first_male_index_ = --source_first_male;
 		}
@@ -2348,14 +2341,10 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
-				
-				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_haplosomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_haplosomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_haplosomes_.resize((size_t)source_subpop_size * 2);
 		}
 		
 		// add the doomed individual to our temporary graveyard
@@ -2376,8 +2365,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	{
 		// First, clear our individual caches in all subpopulations; any subpops involved in
 		// this method would be invalidated anyway so this probably isn't even that much overkill in
-		// most models.  Note that the child individuals caches don't need to be thrown away,
-		// because they aren't used in nonWF models and this is a nonWF-only method.
+		// most models.
 		for (auto subpop_pair : population_.subpops_)
 			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
@@ -2870,9 +2858,11 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			Subpopulation *subpop = subpop_pair.second;
 			PolymorphismMap polymorphisms;
 			
-			for (slim_popsize_t i = 0; i < 2 * subpop->parent_subpop_size_; i++)	// go through all parents
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome &haplosome = *subpop->parent_haplosomes_[i];
+			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			{
+				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 				int mutrun_count = haplosome.mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -2890,6 +2880,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 							AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
 					}
 				}
+			}
 			}
 			
 			// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code

@@ -108,10 +108,20 @@
 		[self setSubpopCount:(int)selected_subpops.size()];
 		
 		// Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
+#warning we need a focal chromosome here; we can't align non-homologous haplosomes
 		for (Subpopulation *subpop : selected_subpops)
-			for (Haplosome *haplosome : subpop->parent_haplosomes_)
+		{
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			{
+				Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+				
 				if (!haplosome->IsNull())
 					haplosomes.emplace_back(haplosome);
+			}
+			}
+		}
 		
 		// If a sample is requested, select that now; sampleSize <= 0 means no sampling
 		if ((sampleSize > 0) && ((int)haplosomes.size() > sampleSize))

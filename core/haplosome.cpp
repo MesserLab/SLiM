@@ -4138,8 +4138,19 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			{
 				// Mark all non-null haplosomes in the simulation that are not among the target haplosomes
 				for (auto subpop_pair : species->population_.subpops_)
-					for (Haplosome *haplosome : subpop_pair.second->parent_haplosomes_)
+				{
+					Subpopulation *subpop = subpop_pair.second;
+					
+					for (Individual *ind : subpop->parent_individuals_)
+					{
+					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+					{
+						Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+						
 						haplosome->scratch_ = (haplosome->IsNull() ? 0 : 1);
+					}
+					}
+				}
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 					targets_data[haplosome_index]->scratch_ = 0;
@@ -4161,13 +4172,24 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 				
 				// Loop through those haplosomes and log the new derived state at each (unique) position
 				for (auto subpop_pair : species->population_.subpops_)
-					for (Haplosome *haplosome : subpop_pair.second->parent_haplosomes_)
+				{
+					Subpopulation *subpop = subpop_pair.second;
+					
+					for (Individual *ind : subpop->parent_individuals_)
+					{
+					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+					{
+						Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+						
 						if (haplosome->scratch_ == 1)
 						{
 							for (slim_position_t position : unique_positions)
 								species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(position));
 							haplosome->scratch_ = 0;
 						}
+					}
+					}
+				}
 			}
 		}
 		

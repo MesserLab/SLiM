@@ -132,7 +132,7 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Haplosome *haplosome1_, *haplosome2_;	// NOT OWNED; must correspond to the entries in the Subpopulation we live in
+	Haplosome *haplosome1_, *haplosome2_;	// OWNED; must correspond to the entries in the Subpopulation we live in
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -150,7 +150,7 @@ public:
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
 	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
-	inline virtual ~Individual(void) override { }
+	virtual ~Individual(void) override;
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
 	

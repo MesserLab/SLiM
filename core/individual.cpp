@@ -86,6 +86,14 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #endif
 }
 
+Individual::~Individual(void)
+{
+	// BCH 10/6/2024: Individual now owns the haplosomes inside it (a policy change for multichrom)
+	// This means the subpopulation_ pointer must be valid at this point!
+	subpopulation_->FreeSubpopHaplosome(haplosome1_);
+	subpopulation_->FreeSubpopHaplosome(haplosome2_);
+}
+
 static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
 {
 	if (B == -1)
