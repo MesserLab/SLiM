@@ -2860,14 +2860,13 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				int mutrun_count = haplosome.mutrun_count_;
+				int mutrun_count = haplosome->mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = haplosome.mutruns_[run_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
 					int mut_count = mutrun->size();
 					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					

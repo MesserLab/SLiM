@@ -217,9 +217,10 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     
     // Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
     for (Subpopulation *subpop : selected_subpops)
-        for (Haplosome *haplosome : subpop->parent_haplosomes_)
-            if (!haplosome->IsNull())
-				haplosomes.emplace_back(haplosome);
+        for (Individual *ind : subpop->parent_individuals_)
+            for (Haplosome *haplosome : ind->haplosomes_)
+                if (!haplosome->IsNull())
+                    haplosomes.emplace_back(haplosome);
     
     // If a sample is requested, select that now; sampleSize <= 0 means no sampling
     if ((sampleSize > 0) && (haplosomes.size() > sampleSize))

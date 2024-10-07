@@ -2831,7 +2831,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		if (parent && recombination_callbacks.size())
 		{
 			// a non-zero number of breakpoints, with recombination callbacks
-			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosome1_, parent->haplosome2_, parent_subpop, all_breakpoints, recombination_callbacks);
+			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosomes_[0], parent->haplosomes_[1], parent_subpop, all_breakpoints, recombination_callbacks);
 			
 			if (all_breakpoints.size() > 1)
 			{
@@ -2843,7 +2843,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	else if (parent && recombination_callbacks.size())
 	{
 		// zero breakpoints from the SLiM core, but we have recombination() callbacks
-		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosome1_, parent->haplosome2_, parent_subpop, all_breakpoints, recombination_callbacks);
+		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosomes_[0], parent->haplosomes_[1], parent_subpop, all_breakpoints, recombination_callbacks);
 		
 		if (all_breakpoints.size() > 1)
 		{

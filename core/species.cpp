@@ -770,8 +770,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (PedigreesEnabled())
 				{
 					individual.SetPedigreeID(pedigree_id);
-					individual.haplosome1_->SetHaplosomeID(pedigree_id * 2);
-					individual.haplosome2_->SetHaplosomeID(pedigree_id * 2 + 1);
+					individual.haplosomes_[0]->SetHaplosomeID(pedigree_id * 2);
+					individual.haplosomes_[1]->SetHaplosomeID(pedigree_id * 2 + 1);
 					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				}
 			}
@@ -864,7 +864,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		
 		int64_t individual_index = haplosome_index >> 1;
 		Individual *ind = subpop->parent_individuals_[individual_index];
-		Haplosome &haplosome = *((haplosome_index & 0x01) ? ind->haplosome1_ : ind->haplosome2_);
+		Haplosome &haplosome = *(ind->haplosomes_[haplosome_index & 0x01]);
 		
 		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
 		if (iss >> sub)
@@ -1538,8 +1538,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				memcpy(&pedigree_id, p, sizeof(pedigree_id));
 				
 				individual.SetPedigreeID(pedigree_id);
-				individual.haplosome1_->SetHaplosomeID(pedigree_id * 2);
-				individual.haplosome2_->SetHaplosomeID(pedigree_id * 2 + 1);
+				individual.haplosomes_[0]->SetHaplosomeID(pedigree_id * 2);
+				individual.haplosomes_[1]->SetHaplosomeID(pedigree_id * 2 + 1);
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 			}
 			
@@ -1569,7 +1569,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		int64_t individual_index = haplosome_index >> 1;
 		Individual *ind = subpop->parent_individuals_[individual_index];
-		Haplosome &haplosome = *((haplosome_index & 0x01) ? ind->haplosome1_ : ind->haplosome2_);
+		Haplosome &haplosome = *(ind->haplosomes_[haplosome_index & 0x01]);
 		
 		// Error-check the haplosome type
 		if (haplosome_type != (int32_t)haplosome.AssociatedChromosome()->Type())
@@ -2744,20 +2744,17 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		Subpopulation &subpop = *iter.second;
 		
 		for (Individual *ind : subpop.parent_individuals_)
-		{
-			all_haplosomes_in_use.push_back(ind->haplosome1_);
-			all_haplosomes_in_use.push_back(ind->haplosome2_);
-		}
+			for (Haplosome *haplosome : ind->haplosomes_)
+				all_haplosomes_in_use.push_back(haplosome);
+		
 		for (Individual *ind : subpop.child_individuals_)
-		{
-			all_haplosomes_in_use.push_back(ind->haplosome1_);
-			all_haplosomes_in_use.push_back(ind->haplosome2_);
-		}
+			for (Haplosome *haplosome : ind->haplosomes_)
+				all_haplosomes_in_use.push_back(haplosome);
+		
 		for (Individual *ind : subpop.nonWF_offspring_individuals_)
-		{
-			all_haplosomes_in_use.push_back(ind->haplosome1_);
-			all_haplosomes_in_use.push_back(ind->haplosome2_);
-		}
+			for (Haplosome *haplosome : ind->haplosomes_)
+				all_haplosomes_in_use.push_back(haplosome);
+		
 	}
 	
 	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_nonnull.begin(), population_.species_haplosomes_junkyard_nonnull.end());
@@ -3091,9 +3088,10 @@ void Species::CollectMutationProfileInfo(void)
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
-		std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
 		
-		for (Haplosome *haplosome : subpop_haplosome)
+		for (Individual *ind : subpop->parent_individuals_)
+		{
+		for (Haplosome *haplosome : ind->haplosomes_)
 		{
 			const MutationRun **mutruns = haplosome->mutruns_;
 			int32_t mutrun_count = haplosome->mutrun_count_;
@@ -3116,6 +3114,7 @@ void Species::CollectMutationProfileInfo(void)
 					mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
 				}
 			}
+		}
 		}
 	}
 }
@@ -3533,9 +3532,8 @@ void Species::SimplifyTreeSequence(void)
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
 				tsk_id_t M = haplosome->tsk_node_id_;
 				
 				// check if this sample is already being remembered, and assign the correct tsk_node_id_
@@ -3666,14 +3664,10 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	for (auto subpop_iter : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_iter.second;
+		
 		for (Individual *ind : subpop->parent_individuals_)
-		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-		{
-			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+		for (Haplosome *haplosome : ind->haplosomes_)
 			all_extant_nodes.emplace_back(haplosome->tsk_node_id_);
-		}
-		}
 	}
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
@@ -4235,16 +4229,16 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			p_individuals_hash->emplace(ped_id, tsk_individual);
 
 			// Update node table
-			assert(ind->haplosome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->haplosome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
-			p_tables->nodes.individual[ind->haplosome1_->tsk_node_id_] = tsk_individual;
-			p_tables->nodes.individual[ind->haplosome2_->tsk_node_id_] = tsk_individual;
+			assert(ind->haplosomes_[0]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->haplosomes_[1]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			p_tables->nodes.individual[ind->haplosomes_[0]->tsk_node_id_] = tsk_individual;
+			p_tables->nodes.individual[ind->haplosomes_[1]->tsk_node_id_] = tsk_individual;
 
 			// update remembered haplosomes
 			if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 			{
-				remembered_haplosomes_.emplace_back(ind->haplosome1_->tsk_node_id_);
-				remembered_haplosomes_.emplace_back(ind->haplosome2_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosomes_[0]->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosomes_[1]->tsk_node_id_);
 			}
 		} else {
 			// This individual is already there; we need to update the information.
@@ -4264,8 +4258,8 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
 				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
 			{
-				remembered_haplosomes_.emplace_back(ind->haplosome1_->tsk_node_id_);
-				remembered_haplosomes_.emplace_back(ind->haplosome2_->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosomes_[0]->tsk_node_id_);
+				remembered_haplosomes_.emplace_back(ind->haplosomes_[1]->tsk_node_id_);
 			}
 
 			memcpy(p_tables->individuals.location
@@ -4277,14 +4271,14 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
 			// Check node table
-			assert(ind->haplosome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->haplosome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			assert(ind->haplosomes_[0]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
+				   && ind->haplosomes_[1]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
 			
 			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
 			// would work even if they were violated.  But they're a nice invariant to guarantee,
 			// and right now they are always true.
-			assert(p_tables->nodes.individual[ind->haplosome1_->tsk_node_id_] == (tsk_id_t)tsk_individual);
-			assert(p_tables->nodes.individual[ind->haplosome2_->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[ind->haplosomes_[0]->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[ind->haplosomes_[1]->tsk_node_id_] == (tsk_id_t)tsk_individual);
 		}
 	}
 }
@@ -5284,7 +5278,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			tsk_id_t node_id = individual->haplosome1_->tsk_node_id_;
+			tsk_id_t node_id = individual->haplosomes_[0]->tsk_node_id_;
 			tsk_id_t ind_id = output_tables.nodes.individual[node_id];
 			
 			individual_map.emplace_back(ind_id);
@@ -5393,8 +5387,8 @@ void Species::RecordAllDerivedStatesFromSLiM(void)
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			Haplosome *haplosome1 = individual->haplosome1_;
-			Haplosome *haplosome2 = individual->haplosome2_;
+			Haplosome *haplosome1 = individual->haplosomes_[0];
+			Haplosome *haplosome2 = individual->haplosomes_[1];
 			
 			// This is done for us, at present, as a side effect of the readPopulationFile() code...
 			//SetCurrentNewIndividual(individual);
@@ -5555,13 +5549,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		Subpopulation *subpop = pop_iter.second;
 		
 		for (Individual *ind : subpop->parent_individuals_)
-		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-		{
-			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+		for (Haplosome *haplosome : ind->haplosomes_)
 			haplosomes.emplace_back(haplosome);
-		}
-		}
 	}
 	
 	// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
@@ -5611,13 +5600,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				Subpopulation *subpop = iter.second;
 				
 				for (Individual *ind : subpop->parent_individuals_)
-				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-				{
-					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+				for (Haplosome *haplosome : ind->haplosomes_)
 					samples.emplace_back(haplosome->tsk_node_id_);
-				}
-				}
 			}
 			
 			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
@@ -6749,11 +6733,11 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				tsk_id_t node_id_0 = subpop_info.nodes_[(size_t)tabulation_index * 2];
 				tsk_id_t node_id_1 = subpop_info.nodes_[(size_t)tabulation_index * 2 + 1];
 				
-				individual->haplosome1_->tsk_node_id_ = node_id_0;
-				individual->haplosome2_->tsk_node_id_ = node_id_1;
+				individual->haplosomes_[0]->tsk_node_id_ = node_id_0;
+				individual->haplosomes_[1]->tsk_node_id_ = node_id_1;
 				
-				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosome1_);
-				p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosome2_);
+				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[0]);
+				p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosomes_[1]);
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
@@ -6766,8 +6750,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
-				individual->haplosome1_->haplosome_id_ = pedigree_id * 2;
-				individual->haplosome2_->haplosome_id_ = pedigree_id * 2 + 1;
+				individual->haplosomes_[0]->haplosome_id_ = pedigree_id * 2;
+				individual->haplosomes_[1]->haplosome_id_ = pedigree_id * 2 + 1;
 				
 				individual->age_ = subpop_info.age_[tabulation_index];
 				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
@@ -6785,7 +6769,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
 				HaplosomeMetadataRec *node1_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_1]);
-				Haplosome *haplosome0 = individual->haplosome1_, *haplosome1 = individual->haplosome2_;
+				Haplosome *haplosome0 = individual->haplosomes_[0], *haplosome1 = individual->haplosomes_[1];
 				
 				if ((node0_metadata->haplosome_id_ != haplosome0->haplosome_id_) || (node1_metadata->haplosome_id_ != haplosome1->haplosome_id_))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
@@ -7229,14 +7213,9 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		Subpopulation *subpop = pop_iter.second;
 		
 		for (Individual *ind : subpop->parent_individuals_)
-		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-		{
-			Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+		for (Haplosome *haplosome : ind->haplosomes_)
 			if (!haplosome->IsNull())
 				fixation_count++;
-		}
-		}
 	}
 	
 	// instantiate mutations

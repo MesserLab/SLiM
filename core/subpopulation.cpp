@@ -102,8 +102,8 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			{
 				Individual *individual = p_individuals[index];
 				
-				individual->haplosome1_->ReinitializeHaplosomeNullptr(mutrun_count, mutrun_length);
-				individual->haplosome2_->ReinitializeHaplosomeNullptr(mutrun_count, mutrun_length);
+				individual->haplosomes_[0]->ReinitializeHaplosomeNullptr(mutrun_count, mutrun_length);
+				individual->haplosomes_[1]->ReinitializeHaplosomeNullptr(mutrun_count, mutrun_length);
 			}
 		}
 	}
@@ -113,8 +113,8 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 		for (int index = 0; index < p_individual_count; ++index)
 		{
 			Individual *individual = p_individuals[index];
-			Haplosome *haplosome1 = individual->haplosome1_;
-			Haplosome *haplosome2 = individual->haplosome2_;
+			Haplosome *haplosome1 = individual->haplosomes_[0];
+			Haplosome *haplosome2 = individual->haplosomes_[1];
 			bool is_female = (index < p_first_male);
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
@@ -485,8 +485,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	for (int ind_index = 0; ind_index < parent_subpop_size_; ++ind_index)
 	{
 		Individual *individual = parent_individuals_[ind_index];
-		Haplosome *haplosome1 = individual->haplosome1_;
-		Haplosome *haplosome2 = individual->haplosome2_;
+		Haplosome *haplosome1 = individual->haplosomes_[0];
+		Haplosome *haplosome2 = individual->haplosomes_[1];
 		bool invalid_age = false;
 		
 		if (!individual)
@@ -649,8 +649,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		for (int ind_index = 0; ind_index < child_subpop_size_; ++ind_index)
 		{
 			Individual *individual = child_individuals_[ind_index];
-			Haplosome *haplosome1 = individual->haplosome1_;
-			Haplosome *haplosome2 = individual->haplosome2_;
+			Haplosome *haplosome1 = individual->haplosomes_[0];
+			Haplosome *haplosome2 = individual->haplosomes_[1];
 			
 			if (!individual)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for individual." << EidosTerminate();
@@ -1033,15 +1033,9 @@ slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 	slim_refcount_t null_haplosome_count = 0;
 	
 	for (Individual *ind : parent_individuals_)
-	{
-	for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-	{
-		Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-		
-		if (haplosome.IsNull())
+	for (Haplosome *haplosome : ind->haplosomes_)
+		if (haplosome->IsNull())
 			null_haplosome_count++;
-	}
-	}
 	
 	return null_haplosome_count;
 }
@@ -2456,8 +2450,8 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosome1_;
-	Haplosome *haplosome2 = individual->haplosome2_;
+	Haplosome *haplosome1 = individual->haplosomes_[0];
+	Haplosome *haplosome2 = individual->haplosomes_[1];
 	bool haplosome1_null = haplosome1->IsNull();
 	bool haplosome2_null = haplosome2->IsNull();
 	
@@ -2657,8 +2651,8 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosome1_;
-	Haplosome *haplosome2 = individual->haplosome2_;
+	Haplosome *haplosome1 = individual->haplosomes_[0];
+	Haplosome *haplosome2 = individual->haplosomes_[1];
 	bool haplosome1_null = haplosome1->IsNull();
 	bool haplosome2_null = haplosome2->IsNull();
 	
@@ -2896,8 +2890,8 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_SingleCallback(slim_po
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosome1_;
-	Haplosome *haplosome2 = individual->haplosome2_;
+	Haplosome *haplosome1 = individual->haplosomes_[0];
+	Haplosome *haplosome2 = individual->haplosomes_[1];
 	bool haplosome1_null = haplosome1->IsNull();
 	bool haplosome2_null = haplosome2->IsNull();
 	
@@ -3296,10 +3290,8 @@ void Subpopulation::SwapChildAndParentHaplosomes(void)
 	if (Individual::s_any_haplosome_tag_set_)
 	{
 		for (Individual *child : child_individuals_)
-		{
-			child->haplosome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
-			child->haplosome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
-		}
+			for (Haplosome *haplosome : child->haplosomes_)
+				haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	}
 	
 	if (species_.PedigreesEnabled())
@@ -3689,7 +3681,6 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Individual **individual_data = parent_individuals_.data();
-	int survived_haplosome_index = 0;
 	int survived_individual_index = 0;
 	int females_deceased = 0;
 	bool individuals_died = false;
@@ -3780,7 +3771,6 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 				individual_data[survived_individual_index]->index_ = survived_individual_index;
 			}
 			
-			survived_haplosome_index += 2;
 			survived_individual_index++;
 		}
 		else
@@ -3905,14 +3895,8 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
 			
 			for (Individual *ind : parent_individuals_)
-			{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-				{
-					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
+				for (Haplosome *haplosome : ind->haplosomes_)
 					vec->push_object_element_no_check_NORR(haplosome);
-				}
-			}
 			
 			return EidosValue_SP(vec);
 		}
@@ -3922,15 +3906,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
 			
 			for (Individual *ind : parent_individuals_)
-			{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-				{
-					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
+				for (Haplosome *haplosome : ind->haplosomes_)
 					if (!haplosome->IsNull())
 						vec->push_object_element_no_check_NORR(haplosome);
-				}
-			}
 			
 			return EidosValue_SP(vec);
 		}
@@ -4435,7 +4413,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		return EidosValue_SP(result);
 	
 	// Determine the sex of the offspring, and the consequent expected haplosome types
-	bool haplosome1_null = parent->haplosome1_->IsNull(), haplosome2_null = parent->haplosome2_->IsNull();
+	bool haplosome1_null = parent->haplosomes_[0]->IsNull(), haplosome2_null = parent->haplosomes_[1]->IsNull();
 	IndividualSex child_sex = parent_sex;
 	
 	if (haplosome1_null || haplosome2_null)
@@ -4445,8 +4423,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	Haplosome &parent_haplosome_1 = *parent->haplosome1_;
-	Haplosome &parent_haplosome_2 = *parent->haplosome2_;
+	Haplosome &parent_haplosome_1 = *parent->haplosomes_[0];
+	Haplosome &parent_haplosome_2 = *parent->haplosomes_[1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
 	
@@ -5661,7 +5639,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_individuals_[parent_first_male_index_] = migrant;
 				
 				// the has_null_haplosomes_ needs to reflect the presence of null haplosomes
-				if (migrant->haplosome1_->IsNull() || migrant->haplosome2_->IsNull())
+				if (migrant->haplosomes_[0]->IsNull() || migrant->haplosomes_[1]->IsNull())
 					has_null_haplosomes_ = true;
 				
 				migrant->subpopulation_ = this;
@@ -5676,7 +5654,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_individuals_.emplace_back(migrant);
 				
 				// the has_null_haplosomes_ needs to reflect the presence of null haplosomes
-				if (migrant->haplosome1_->IsNull() || migrant->haplosome2_->IsNull())
+				if (migrant->haplosomes_[0]->IsNull() || migrant->haplosomes_[1]->IsNull())
 					has_null_haplosomes_ = true;
 				
 				migrant->subpopulation_ = this;

@@ -352,12 +352,18 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         // Get frequencies for a sample taken from subpop1
         {
             std::vector<Haplosome *> sample1Haplosomes;
-            std::vector<Haplosome *> &subpopHaplosomes = subpop1->parent_haplosomes_;
-            size_t subpopHaplosomeCount = subpopHaplosomes.size();
+            std::vector<Individual *> &subpopIndividuals = subpop1->parent_individuals_;
+            size_t subpopHaplosomeCount = subpopIndividuals.size() * 2;
             
             if (subpopHaplosomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sample1Haplosomes.emplace_back(subpopHaplosomes[random() % subpopHaplosomeCount]);
+                {
+                    slim_popsize_t haplosome_index = random() % subpopHaplosomeCount;
+                    slim_popsize_t individual_index = haplosome_index >> 1;
+                    Haplosome *haplosome = subpopIndividuals[individual_index]->haplosomes_[haplosome_index & 0x01];
+                    
+                    sample1Haplosomes.emplace_back(haplosome);
+                }
             
             tallyGUIMutationReferences(sample1Haplosomes, selectedMutationTypeIndex_);
         }
@@ -374,12 +380,18 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         // Get frequencies for a sample taken from subpop2
         {
             std::vector<Haplosome *> sample2Haplosomes;
-            std::vector<Haplosome *> &subpopHaplosomes = subpop2->parent_haplosomes_;
-            size_t subpopHaplosomeCount = subpopHaplosomes.size();
+            std::vector<Individual *> &subpopIndividuals = subpop2->parent_individuals_;
+            size_t subpopHaplosomeCount = subpopIndividuals.size() * 2;
             
             if (subpopHaplosomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sample2Haplosomes.emplace_back(subpopHaplosomes[random() % subpopHaplosomeCount]);
+                {
+                    slim_popsize_t haplosome_index = random() % subpopHaplosomeCount;
+                    slim_popsize_t individual_index = haplosome_index >> 1;
+                    Haplosome *haplosome = subpopIndividuals[individual_index]->haplosomes_[haplosome_index & 0x01];
+                    
+                    sample2Haplosomes.emplace_back(haplosome);
+                }
             
             tallyGUIMutationReferences(sample2Haplosomes, selectedMutationTypeIndex_);
         }

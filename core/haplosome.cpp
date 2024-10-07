@@ -2186,7 +2186,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
+				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
@@ -2486,7 +2487,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
+				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
@@ -3900,7 +3902,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosome1_, *focal_haplosome_2 = focal_modification_child->haplosome2_;
+				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
+				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
@@ -4142,14 +4145,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					Subpopulation *subpop = subpop_pair.second;
 					
 					for (Individual *ind : subpop->parent_individuals_)
-					{
-					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-					{
-						Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-						
+					for (Haplosome *haplosome : ind->haplosomes_)
 						haplosome->scratch_ = (haplosome->IsNull() ? 0 : 1);
-					}
-					}
 				}
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
@@ -4177,10 +4174,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					
 					for (Individual *ind : subpop->parent_individuals_)
 					{
-					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+					for (Haplosome *haplosome : ind->haplosomes_)
 					{
-						Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-						
 						if (haplosome->scratch_ == 1)
 						{
 							for (slim_position_t position : unique_positions)

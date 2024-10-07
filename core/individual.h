@@ -132,7 +132,7 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Haplosome *haplosome1_, *haplosome2_;	// OWNED; must correspond to the entries in the Subpopulation we live in
+	std::vector<Haplosome *> haplosomes_;	// OWNED (this is a policy change made for multichrom)
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -160,8 +160,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
-		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
+		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
+		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;
@@ -190,8 +190,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
-		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
+		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
+		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent.pedigree_id_;
 		pedigree_p2_ = p_parent.pedigree_id_;
@@ -220,8 +220,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosome1_->haplosome_id_ = p_pedigree_id * 2;
-		haplosome2_->haplosome_id_ = p_pedigree_id * 2 + 1;
+		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
+		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Parentless()

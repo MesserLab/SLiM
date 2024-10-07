@@ -306,11 +306,11 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			migrant_index = p_source_subpop.DrawParentUsingFitness(rng);
 		}
 		
-		Haplosome *source_haplosome1 = p_source_subpop.parent_individuals_[migrant_index]->haplosome1_;
-		Haplosome *source_haplosome2 = p_source_subpop.parent_individuals_[migrant_index]->haplosome2_;
+		Haplosome *source_haplosome1 = p_source_subpop.parent_individuals_[migrant_index]->haplosomes_[0];
+		Haplosome *source_haplosome2 = p_source_subpop.parent_individuals_[migrant_index]->haplosomes_[1];
 		
-		Haplosome *dest_haplosome1 = subpop.parent_individuals_[parent_index]->haplosome1_;
-		Haplosome *dest_haplosome2 = subpop.parent_individuals_[parent_index]->haplosome2_;
+		Haplosome *dest_haplosome1 = subpop.parent_individuals_[parent_index]->haplosomes_[0];
+		Haplosome *dest_haplosome2 = subpop.parent_individuals_[parent_index]->haplosomes_[1];
 		
 		dest_haplosome1->copy_from_haplosome(*source_haplosome1);
 		dest_haplosome2->copy_from_haplosome(*source_haplosome2);
@@ -550,11 +550,10 @@ void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals,
 		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
 			Individual *element = p_individuals[element_index];
-			Haplosome *haplosome1 = element->haplosome1_;
-			Haplosome *haplosome2 = element->haplosome2_;
 			
-			if (haplosome1->IsDeferred() || haplosome2->IsDeferred())
-				EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
+			for (Haplosome *haplosome : element->haplosomes_)
+				if (haplosome->IsDeferred())
+					EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 		}
 	}
 }
@@ -611,9 +610,9 @@ void Population::DoDeferredReproduction(void)
 		}
 		else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kClonal)
 		{
-			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_1_, *deferred_rec.parent1_->haplosome1_, deferred_rec.child_sex_, nullptr);
+			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_1_, *deferred_rec.parent1_->haplosomes_[0], deferred_rec.child_sex_, nullptr);
 			
-			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_2_, *deferred_rec.parent1_->haplosome2_, deferred_rec.child_sex_, nullptr);
+			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_2_, *deferred_rec.parent1_->haplosomes_[1], deferred_rec.child_sex_, nullptr);
 		}
 	}
 	
@@ -1445,10 +1444,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						parent2 = parent1;
 						
-						Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[child_index]->haplosome1_;
-						Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[child_index]->haplosome2_;
-						Haplosome &parent_haplosome_1 = *source_subpop.parent_individuals_[parent1]->haplosome1_;
-						Haplosome &parent_haplosome_2 = *source_subpop.parent_individuals_[parent1]->haplosome2_;
+						Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[child_index]->haplosomes_[0];
+						Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[child_index]->haplosomes_[1];
+						Haplosome &parent_haplosome_1 = *source_subpop.parent_individuals_[parent1]->haplosomes_[0];
+						Haplosome &parent_haplosome_2 = *source_subpop.parent_individuals_[parent1]->haplosomes_[1];
 						
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
@@ -1541,15 +1540,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_index]->haplosome1_, parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_index]->haplosome2_, parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_index]->haplosomes_[0], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_index]->haplosomes_[1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 					}
 					
 					if (modify_child_callbacks)
 					{
 						Individual *child = p_subpop.child_individuals_[child_index];
-						Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_index]->haplosome1_;
-						Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_index]->haplosome2_;
+						Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_index]->haplosomes_[0];
+						Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_index]->haplosomes_[1];
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
@@ -1631,14 +1630,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_count]->haplosome1_, parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_count]->haplosome2_, parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_count]->haplosomes_[0], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[child_count]->haplosomes_[1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
 					
 					if (modify_child_callbacks)
 					{
 						Individual *child = p_subpop.child_individuals_[child_count];
-						Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_count]->haplosome1_;
-						Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_count]->haplosome2_;
+						Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_count]->haplosomes_[0];
+						Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_count]->haplosomes_[1];
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
@@ -1903,10 +1902,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					parent2 = parent1;
 					
-					Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[child_index]->haplosome1_;
-					Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[child_index]->haplosome2_;
-					Haplosome &parent_haplosome_1 = *source_subpop->parent_individuals_[parent1]->haplosome1_;
-					Haplosome &parent_haplosome_2 = *source_subpop->parent_individuals_[parent1]->haplosome2_;
+					Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[child_index]->haplosomes_[0];
+					Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[child_index]->haplosomes_[1];
+					Haplosome &parent_haplosome_1 = *source_subpop->parent_individuals_[parent1]->haplosomes_[0];
+					Haplosome &parent_haplosome_2 = *source_subpop->parent_individuals_[parent1]->haplosomes_[1];
 					
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
@@ -1999,15 +1998,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop->parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(source_subpop, *p_subpop.child_individuals_[child_index]->haplosome1_, parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
-					DoCrossoverMutation(source_subpop, *p_subpop.child_individuals_[child_index]->haplosome2_, parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_individuals_[child_index]->haplosomes_[0], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_individuals_[child_index]->haplosomes_[1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 				}
 				
 				if (modify_child_callbacks)
 				{
 					Individual *child = p_subpop.child_individuals_[child_index];
-					Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_index]->haplosome1_;
-					Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_index]->haplosome2_;
+					Haplosome *child_haplosome1 = p_subpop.child_individuals_[child_index]->haplosomes_[0];
+					Haplosome *child_haplosome2 = p_subpop.child_individuals_[child_index]->haplosomes_[1];
 					Individual *parent1_ind = source_subpop->parent_individuals_[parent1];
 					Individual *parent2_ind = source_subpop->parent_individuals_[parent2];
 					
@@ -2199,8 +2198,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome1_, parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome2_, parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[0], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2240,8 +2239,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome1_, parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome2_, parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[0], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2274,10 +2273,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									(void)parent2;		// tell the static analyzer that we know we just did a dead store
 									
 									slim_popsize_t this_child_index = base_child_count + migrant_count;
-									Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[this_child_index]->haplosome1_;
-									Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[this_child_index]->haplosome2_;
-									Haplosome &parent_haplosome_1 = *source_subpop.parent_individuals_[parent1]->haplosome1_;
-									Haplosome &parent_haplosome_2 = *source_subpop.parent_individuals_[parent1]->haplosome2_;
+									Haplosome &child_haplosome_1 = *p_subpop.child_individuals_[this_child_index]->haplosomes_[0];
+									Haplosome &child_haplosome_2 = *p_subpop.child_individuals_[this_child_index]->haplosomes_[1];
+									Haplosome &parent_haplosome_1 = *source_subpop.parent_individuals_[parent1]->haplosomes_[0];
+									Haplosome &parent_haplosome_2 = *source_subpop.parent_individuals_[parent1]->haplosomes_[1];
 									
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
@@ -2357,8 +2356,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome1_, parent1, child_sex, parent1_sex, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosome2_, parent2, child_sex, parent2_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[0], parent1, child_sex, parent1_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_individuals_[this_child_index]->haplosomes_[1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 								}
 							}
 						}
@@ -2564,8 +2563,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &
 	ChromosomeType chromosome_type = p_child_haplosome.AssociatedChromosome()->Type();	// FIXME MULTICHROM this should maybe get passed in?
 	bool child_haplosome_null = p_child_haplosome.IsNull();
 	
-	Haplosome *parent_haplosome_1 = p_source_subpop->parent_individuals_[p_parent_index]->haplosome1_;
-	Haplosome *parent_haplosome_2 = p_source_subpop->parent_individuals_[p_parent_index]->haplosome2_;
+	Haplosome *parent_haplosome_1 = p_source_subpop->parent_individuals_[p_parent_index]->haplosomes_[0];
+	Haplosome *parent_haplosome_2 = p_source_subpop->parent_individuals_[p_parent_index]->haplosomes_[1];
 	
 #if DEBUG
 	{
@@ -5314,10 +5313,8 @@ void Population::ClearParentalHaplosomes(void)
 				
 #pragma omp for schedule(static)
 				for (Individual *ind : subpop->parent_individuals_)
-				{
-					ind->haplosome1_->clear_to_nullptr();
-					ind->haplosome2_->clear_to_nullptr();
-				}
+					for (Haplosome *haplosome : ind->haplosomes_)
+						haplosome->clear_to_nullptr();
 			}
 			
 			// We have to clear out removed subpops, too, for as long as they stick around
@@ -5325,16 +5322,13 @@ void Population::ClearParentalHaplosomes(void)
 			{
 #pragma omp for schedule(static)
 				for (Individual *ind : subpop->parent_individuals_)
-				{
-					ind->haplosome1_->clear_to_nullptr();
-					ind->haplosome2_->clear_to_nullptr();
-				}
+					for (Haplosome *haplosome : ind->haplosomes_)
+						haplosome->clear_to_nullptr();
+				
 #pragma omp for schedule(static)
 				for (Individual *ind : subpop->child_individuals_)
-				{
-					ind->haplosome1_->clear_to_nullptr();
-					ind->haplosome2_->clear_to_nullptr();
-				}
+					for (Haplosome *haplosome : ind->haplosomes_)
+						haplosome->clear_to_nullptr();
 			}
 		}
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_PARENTS_CLEAR);
@@ -5379,14 +5373,12 @@ void Population::UniqueMutationRuns(void)
 				
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
-					if (haplosome.IsNull())
+					if (haplosome->IsNull())
 						continue;
 					
-					const MutationRun *mut_run = haplosome.mutruns_[mutrun_index];
+					const MutationRun *mut_run = haplosome->mutruns_[mutrun_index];
 					
 					if (mut_run)
 					{
@@ -5437,7 +5429,7 @@ void Population::UniqueMutationRuns(void)
 								
 								if (mut_run->Identical(*hash_run))
 								{
-									haplosome.mutruns_[mutrun_index] = hash_run;
+									haplosome->mutruns_[mutrun_index] = hash_run;
 									count_identical++;
 									
 									// We will unique away all references to this mutrun, but we only want to count it once
@@ -5505,36 +5497,34 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 			
 			for (Individual *ind : subpop->child_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int32_t old_mutrun_count = haplosome.mutrun_count_;
-					slim_position_t old_mutrun_length = haplosome.mutrun_length_;
+					int32_t old_mutrun_count = haplosome->mutrun_count_;
+					slim_position_t old_mutrun_length = haplosome->mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count << 1;
 					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
-					if (haplosome.mutruns_ != haplosome.run_buffer_)
-						free(haplosome.mutruns_);
-					haplosome.mutruns_ = nullptr;
+					if (haplosome->mutruns_ != haplosome->run_buffer_)
+						free(haplosome->mutruns_);
+					haplosome->mutruns_ = nullptr;
 					
-					haplosome.mutrun_count_ = new_mutrun_count;
-					haplosome.mutrun_length_ = new_mutrun_length;
+					haplosome->mutrun_count_ = new_mutrun_count;
+					haplosome->mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 					{
-						haplosome.mutruns_ = haplosome.run_buffer_;
-						EIDOS_BZERO(haplosome.run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+						haplosome->mutruns_ = haplosome->run_buffer_;
+						EIDOS_BZERO(haplosome->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 					}
 					else
-						haplosome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
+						haplosome->mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 					
 					// Install empty MutationRun objects; I think this is not necessary, since this is the
 					// child generation, which will not be accessed by anybody until crossover-mutation
 					//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					//	haplosome.mutruns_[run_index] = MutationRun::NewMutationRun();
+					//	haplosome->mutruns_[run_index] = MutationRun::NewMutationRun();
 				}
 			}
 			}
@@ -5567,14 +5557,12 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int32_t old_mutrun_count = haplosome.mutrun_count_;
-					slim_position_t old_mutrun_length = haplosome.mutrun_length_;
+					int32_t old_mutrun_count = haplosome->mutrun_count_;
+					slim_position_t old_mutrun_length = haplosome->mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count << 1;
 					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
@@ -5583,7 +5571,7 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 					
 					for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						
 						if (mutrun->use_count() == 1)
@@ -5628,20 +5616,20 @@ void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chro
 					}
 					
 					// now replace the runs in the haplosome with those in mutrun_buf
-					if (haplosome.mutruns_ != haplosome.run_buffer_)
-						free(haplosome.mutruns_);
-					haplosome.mutruns_ = nullptr;
+					if (haplosome->mutruns_ != haplosome->run_buffer_)
+						free(haplosome->mutruns_);
+					haplosome->mutruns_ = nullptr;
 					
-					haplosome.mutrun_count_ = new_mutrun_count;
-					haplosome.mutrun_length_ = new_mutrun_length;
+					haplosome->mutrun_count_ = new_mutrun_count;
+					haplosome->mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-						haplosome.mutruns_ = haplosome.run_buffer_;
+						haplosome->mutruns_ = haplosome->run_buffer_;
 					else
-						haplosome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
+						haplosome->mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					
 					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-						haplosome.mutruns_[run_index] = mutruns_buf[run_index];
+						haplosome->mutruns_[run_index] = mutruns_buf[run_index];
 				}
 			}
 			}
@@ -5706,36 +5694,34 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 			
 			for (Individual *ind : subpop->child_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int32_t old_mutrun_count = haplosome.mutrun_count_;
-					slim_position_t old_mutrun_length = haplosome.mutrun_length_;
+					int32_t old_mutrun_count = haplosome->mutrun_count_;
+					slim_position_t old_mutrun_length = haplosome->mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count >> 1;
 					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
-					if (haplosome.mutruns_ != haplosome.run_buffer_)
-						free(haplosome.mutruns_);
-					haplosome.mutruns_ = nullptr;
+					if (haplosome->mutruns_ != haplosome->run_buffer_)
+						free(haplosome->mutruns_);
+					haplosome->mutruns_ = nullptr;
 					
-					haplosome.mutrun_count_ = new_mutrun_count;
-					haplosome.mutrun_length_ = new_mutrun_length;
+					haplosome->mutrun_count_ = new_mutrun_count;
+					haplosome->mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 					{
-						haplosome.mutruns_ = haplosome.run_buffer_;
-						EIDOS_BZERO(haplosome.run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+						haplosome->mutruns_ = haplosome->run_buffer_;
+						EIDOS_BZERO(haplosome->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 					}
 					else
-						haplosome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
+						haplosome->mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 					
 					// Install empty MutationRun objects; I think this is not necessary, since this is the
 					// child generation, which will not be accessed by anybody until crossover-mutation
 					//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					//	haplosome.mutruns_[run_index] = MutationRun::NewMutationRun();
+					//	haplosome->mutruns_[run_index] = MutationRun::NewMutationRun();
 				}
 			}
 			}
@@ -5767,14 +5753,12 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int32_t old_mutrun_count = haplosome.mutrun_count_;
-					slim_position_t old_mutrun_length = haplosome.mutrun_length_;
+					int32_t old_mutrun_count = haplosome->mutrun_count_;
+					slim_position_t old_mutrun_length = haplosome->mutrun_length_;
 					int32_t new_mutrun_count = old_mutrun_count >> 1;
 					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
@@ -5783,8 +5767,8 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 					
 					for (int run_index = 0; run_index < old_mutrun_count; run_index += 2)
 					{
-						const MutationRun *mutrun1 = haplosome.mutruns_[run_index];
-						const MutationRun *mutrun2 = haplosome.mutruns_[run_index + 1];
+						const MutationRun *mutrun1 = haplosome->mutruns_[run_index];
+						const MutationRun *mutrun2 = haplosome->mutruns_[run_index + 1];
 						MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
 						
 						if ((mutrun1->use_count() == 1) || (mutrun2->use_count() == 1))
@@ -5826,20 +5810,20 @@ void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chrom
 					}
 					
 					// now replace the runs in the haplosome with those in mutrun_buf
-					if (haplosome.mutruns_ != haplosome.run_buffer_)
-						free(haplosome.mutruns_);
-					haplosome.mutruns_ = nullptr;
+					if (haplosome->mutruns_ != haplosome->run_buffer_)
+						free(haplosome->mutruns_);
+					haplosome->mutruns_ = nullptr;
 					
-					haplosome.mutrun_count_ = new_mutrun_count;
-					haplosome.mutrun_length_ = new_mutrun_length;
+					haplosome->mutrun_count_ = new_mutrun_count;
+					haplosome->mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-						haplosome.mutruns_ = haplosome.run_buffer_;
+						haplosome->mutruns_ = haplosome->run_buffer_;
 					else
-						haplosome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
+						haplosome->mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					
 					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-						haplosome.mutruns_[run_index] = mutruns_buf[run_index];
+						haplosome->mutruns_[run_index] = mutruns_buf[run_index];
 				}
 			}
 			}
@@ -5932,18 +5916,16 @@ void Population::AssessMutationRuns(void)
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					mutrun_count = haplosome.mutrun_count_;
-					mutrun_length = haplosome.mutrun_length_;
+					mutrun_count = haplosome->mutrun_count_;
+					mutrun_length = haplosome->mutrun_length_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						int mutrun_size = mutrun->size();
 						
 						total_mutrun_count++;
@@ -6058,14 +6040,12 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 			{
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
-					if (!haplosome.IsNull())
+					if (!haplosome->IsNull())
 					{
 						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-							haplosome.mutruns_[run_index]->increment_use_count();
+							haplosome->mutruns_[run_index]->increment_use_count();
 						
 						total_haplosome_count++;
 					}
@@ -6077,12 +6057,10 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 				// optimized case when null haplosomes do not exist in this subpop
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
 					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-						haplosome.mutruns_[run_index]->increment_use_count();
+						haplosome->mutruns_[run_index]->increment_use_count();
 				}
 				}
 				
@@ -6112,16 +6090,14 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int mutrun_count = haplosome.mutrun_count_;
+					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						haplosome.mutruns_[run_index]->use_count_CHECK_++;
+						haplosome->mutruns_[run_index]->use_count_CHECK_++;
 					
 					total_haplosome_count_CHECK++;
 				}
@@ -6207,14 +6183,12 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 			{
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
-					if (!haplosome.IsNull())
+					if (!haplosome->IsNull())
 					{
 						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-							haplosome.mutruns_[run_index]->increment_use_count();
+							haplosome->mutruns_[run_index]->increment_use_count();
 						
 						total_haplosome_count++;
 					}
@@ -6226,12 +6200,10 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 				// optimized case when null haplosomes do not exist in this subpop
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
 					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-						haplosome.mutruns_[run_index]->increment_use_count();
+						haplosome->mutruns_[run_index]->increment_use_count();
 				}
 				}
 				
@@ -6364,11 +6336,9 @@ slim_refcount_t Population::_CountNonNullHaplosomes(void)
 		{
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 					total_haplosome_count++;
 			}
 			}
@@ -6476,10 +6446,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 				
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
 					if (!haplosome->IsNull())
 						haplosomes.push_back(haplosome);
 				}
@@ -6535,17 +6503,15 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 			{
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
-					if (!haplosome.IsNull())
+					if (!haplosome->IsNull())
 					{
-						int mutrun_count = haplosome.mutrun_count_;
+						int mutrun_count = haplosome->mutrun_count_;
 						
 						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							const MutationRun *mutrun = haplosome.mutruns_[run_index];
+							const MutationRun *mutrun = haplosome->mutruns_[run_index];
 							const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 							const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 							
@@ -6572,17 +6538,15 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 			{
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
-					if (!haplosome.IsNull())
+					if (!haplosome->IsNull())
 					{
-						int mutrun_count = haplosome.mutrun_count_;
+						int mutrun_count = haplosome->mutrun_count_;
 						
 						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							const MutationRun *mutrun = haplosome.mutruns_[run_index];
+							const MutationRun *mutrun = haplosome->mutruns_[run_index];
 							const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 							const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 							
@@ -6635,11 +6599,9 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 		{
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 					total_haplosome_count++;
 			}
 			}
@@ -6684,10 +6646,8 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 			{
 				for (Individual *ind : subpop->parent_individuals_)
 				{
-				for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+				for (Haplosome *haplosome : ind->haplosomes_)
 				{
-					Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-					
 					if (!haplosome->IsNull())
 						haplosomes.push_back(haplosome);
 				}
@@ -6707,17 +6667,15 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 		{
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int mutrun_count = haplosome.mutrun_count_;
+					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 						const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 						
@@ -6776,15 +6734,15 @@ slim_refcount_t Population::TallyMutationReferencesAcrossHaplosomes(const Haplos
 		
 		for (slim_popsize_t i = 0; i < haplosomes_count; i++)
 		{
-			const Haplosome &haplosome = *haplosomes_ptr[i];
+			const Haplosome *haplosome = haplosomes_ptr[i];
 			
-			if (!haplosome.IsNull())
+			if (!haplosome->IsNull())
 			{
-				int mutrun_count = haplosome.mutrun_count_;
+				int mutrun_count = haplosome->mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = haplosome.mutruns_[run_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
 					const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 					const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 					
@@ -7236,10 +7194,8 @@ void Population::RemoveAllFixedMutations(void)
 			Subpopulation *subpop = subpop_pair.second;
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
 				if (!haplosome->IsNull())
 				{
 					// Loop over the mutations to remove, and take advantage of our mutation runs by scanning
@@ -7360,14 +7316,13 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 			Subpopulation *subpop = subpop_pair.second;
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				int mutrun_count = haplosome.mutrun_count_;
+				int mutrun_count = haplosome->mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = haplosome.mutruns_[run_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
 					const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 					const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 					
@@ -7481,14 +7436,13 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		
 		for (Individual *ind : subpop->parent_individuals_)
 		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		for (Haplosome *haplosome : ind->haplosomes_)
 		{
-			Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-			int mutrun_count = haplosome.mutrun_count_;
+			int mutrun_count = haplosome->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = haplosome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome->mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -7610,23 +7564,21 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		
 		for (Individual *ind : subpop->parent_individuals_)
 		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		for (Haplosome *haplosome : ind->haplosomes_)
 		{
-			Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
+			p_out << "p" << subpop_id << ":" << i << " " << haplosome->AssociatedChromosome()->Type();
 			
-			p_out << "p" << subpop_id << ":" << i << " " << haplosome.AssociatedChromosome()->Type();
-			
-			if (haplosome.IsNull())
+			if (haplosome->IsNull())
 			{
 				p_out << " <null>";
 			}
 			else
 			{
-				int mutrun_count = haplosome.mutrun_count_;
+				int mutrun_count = haplosome->mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = haplosome.mutruns_[run_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
 					int mut_count = mutrun->size();
 					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					
@@ -7818,14 +7770,13 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		for (Individual *ind : subpop->parent_individuals_)
 		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		for (Haplosome *haplosome : ind->haplosomes_)
 		{
-			Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-			int mutrun_count = haplosome.mutrun_count_;
+			int mutrun_count = haplosome->mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = haplosome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome->mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -7896,12 +7847,10 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		for (Individual *ind : subpop->parent_individuals_)
 		{
-		for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+		for (Haplosome *haplosome : ind->haplosomes_)
 		{
-			Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-			
 			// Write out the haplosome header; start with the haplosome type to guarantee that the first 32 bits are != section_end_tag
-			int32_t chromosome_type = (int32_t)(haplosome.AssociatedChromosome()->Type());
+			int32_t chromosome_type = (int32_t)(haplosome->AssociatedChromosome()->Type());
 			
 			p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
 			p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
@@ -7941,7 +7890,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			}
 			
 			// Write out the mutation list
-			if (haplosome.IsNull())
+			if (haplosome->IsNull())
 			{
 				// null haplosomes get a 32-bit flag value written instead of a mutation count
 				int32_t null_haplosome_tag = 0xFFFF1000;
@@ -7952,7 +7901,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			{
 				// write a 32-bit mutation count
 				{
-					int32_t total_mutations = haplosome.mutation_count();
+					int32_t total_mutations = haplosome->mutation_count();
 					
 					p_out.write(reinterpret_cast<char *>(&total_mutations), sizeof total_mutations);
 				}
@@ -7960,11 +7909,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				if (use_16_bit)
 				{
 					// Write out 16-bit mutation tags
-					int mutrun_count = haplosome.mutrun_count_;
+					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						int mut_count = mutrun->size();
 						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
@@ -7991,11 +7940,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				else
 				{
 					// Write out 32-bit mutation tags
-					int mutrun_count = haplosome.mutrun_count_;
+					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						int mut_count = mutrun->size();
 						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
@@ -8044,8 +7993,8 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;
 		
-		Haplosome *haplosome1 = ind->haplosome1_;
-		Haplosome *haplosome2 = ind->haplosome2_;
+		Haplosome *haplosome1 = ind->haplosomes_[0];
+		Haplosome *haplosome2 = ind->haplosomes_[1];
 		
 		if (!haplosome1->IsNull())
 			candidates.push_back(haplosome1);
@@ -8095,8 +8044,8 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;
 		
-		Haplosome *haplosome1 = ind->haplosome1_;
-		Haplosome *haplosome2 = ind->haplosome2_;
+		Haplosome *haplosome1 = ind->haplosomes_[0];
+		Haplosome *haplosome2 = ind->haplosomes_[1];
 		
 		if (!haplosome1->IsNull())
 			candidates.push_back(haplosome1);
@@ -8163,8 +8112,8 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 		// select a random individual (not a random haplosome) by selecting a random candidate entry
 		int candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 		
-		sample.emplace_back(candidates[candidate_index]->haplosome1_);
-		sample.emplace_back(candidates[candidate_index]->haplosome2_);
+		sample.emplace_back(candidates[candidate_index]->haplosomes_[0]);
+		sample.emplace_back(candidates[candidate_index]->haplosomes_[1]);
 		
 		// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
 		if (!p_replace)

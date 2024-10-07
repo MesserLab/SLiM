@@ -112,15 +112,9 @@
 		for (Subpopulation *subpop : selected_subpops)
 		{
 			for (Individual *ind : subpop->parent_individuals_)
-			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-			{
-				Haplosome *haplosome = ((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
+			for (Haplosome *haplosome : ind->haplosomes_)
 				if (!haplosome->IsNull())
 					haplosomes.emplace_back(haplosome);
-			}
-			}
 		}
 		
 		// If a sample is requested, select that now; sampleSize <= 0 means no sampling

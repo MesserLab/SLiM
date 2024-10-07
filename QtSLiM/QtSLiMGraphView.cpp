@@ -1693,15 +1693,15 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 
 void QtSLiMGraphView::setXAxisRangeFromTick(void)
 {
-	Community *community = controller_->community;
+    Community *community = controller_->community;
     
     // We can't get the estimated last tick until tick ranges are known
     if (!community || (community->Tick() < 1))
         return;
     
-	slim_tick_t lastTick = community->EstimatedLastTick();
-	
-	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+    slim_tick_t lastTick = community->EstimatedLastTick();
+    
+    // The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
 	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= lastTick, (2) have the axis
 	// max be == lastTick if lastTick is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
 	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
@@ -2434,20 +2434,17 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     
     if (subpop)	// tally only within our chosen subpop
     {
-        slim_popsize_t subpop_haplosome_count = 2 * subpop->parent_subpop_size_;
-        std::vector<Haplosome *> &subpop_haplosome = subpop->parent_haplosomes_;
-        
-        for (int i = 0; i < subpop_haplosome_count; i++)
+        for (Individual *ind : subpop->parent_individuals_)
         {
-            Haplosome &haplosome = *subpop_haplosome[static_cast<size_t>(i)];
-            
-            if (!haplosome.IsNull())
+        for (Haplosome *haplosome : ind->haplosomes_)
+        {
+            if (!haplosome->IsNull())
             {
-                int mutrun_count = haplosome.mutrun_count_;
+                int mutrun_count = haplosome->mutrun_count_;
                 
                 for (int run_index = 0; run_index < mutrun_count; ++run_index)
                 {
-                    const MutationRun *mutrun = haplosome.mutruns_[run_index];
+                    const MutationRun *mutrun = haplosome->mutruns_[run_index];
                     const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
                     const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                     
@@ -2462,6 +2459,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
                 
                 subpop_total_haplosome_count++;
             }
+        }
         }
     }
     

@@ -318,17 +318,15 @@
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
+			for (Haplosome *haplosome : ind->haplosomes_)
 			{
-				Haplosome &haplosome = *((haplosome_index == 0) ? ind->haplosome1_ : ind->haplosome2_);
-				
-				if (!haplosome.IsNull())
+				if (!haplosome->IsNull())
 				{
-					int mutrun_count = haplosome.mutrun_count_;
+					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						const MutationRun *mutrun = haplosome.mutruns_[run_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
 						const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
 						const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 						
