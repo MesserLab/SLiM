@@ -58,7 +58,7 @@ Haplosome::~Haplosome(void)
 
 Chromosome *Haplosome::AssociatedChromosome(void) const
 {
-	return individual_->subpopulation_->species_.chromosomes_[chromosome_index_];
+	return individual_->subpopulation_->species_.Chromosomes()[chromosome_index_];
 }
 
 // prints an error message, a stacktrace, and exits; called only for DEBUG
@@ -445,7 +445,7 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_chromosome:
 		{
-			Chromosome *chromosome = individual_->subpopulation_->species_.chromosomes_[chromosome_index_];
+			Chromosome *chromosome = individual_->subpopulation_->species_.Chromosomes()[chromosome_index_];
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 		}
@@ -1349,7 +1349,7 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 		else
 			p_out << "p" << p_source_subpop_id << ":" << j;
 		
-		p_out << " " << haplosome.AssociatedChromosome()->Type();
+		p_out << " " << haplosome.AssociatedChromosome()->Type();	// FIXME MULTICHROM maybe index not type?
 		
 		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{

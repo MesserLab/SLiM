@@ -150,6 +150,7 @@ public:
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
 	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
@@ -160,8 +161,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
-		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;
@@ -190,8 +191,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
-		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 		
 		pedigree_p1_ = p_parent.pedigree_id_;
 		pedigree_p2_ = p_parent.pedigree_id_;
@@ -220,13 +221,31 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		haplosomes_[0]->haplosome_id_ = p_pedigree_id * 2;
-		haplosomes_[1]->haplosome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Parentless()
 	{
 		// just for parallel design, no parentage to revoke
+	}
+	
+	// In the new multichromosome design, the individual is created with nullptr values for its haplosomes,
+	// and then this method is used to add each new haplosome object after it is generated
+	inline void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
+	{
+#if DEBUG
+		if ((p_index < 0) || (p_index >= (int)haplosomes_.size()))
+			EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " out of range." << EidosTerminate();
+		if (haplosomes_[p_index])
+			EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " already filled." << EidosTerminate();
+#endif
+		
+		haplosomes_[p_index] = p_haplosome;
+		p_haplosome->individual_ = this;
+		
+		// FIXME MULTICHROM this should move to where a new haplosome is created, has nothing to do with the individual
+		p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	}
 	
 	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and SharedParentCountWithIndividual;

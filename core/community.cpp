@@ -2348,8 +2348,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 #if DEBUG
 	// Check the integrity of all the information in the individuals and haplosomes of the parental population
 	for (Species *species : all_species_)
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
-			subpop_pair.second->CheckIndividualIntegrity();
+		species->Species_CheckIntegrity();
 #endif
 	
 #if DEBUG
@@ -2376,8 +2375,9 @@ void Community::AllSpecies_CheckIntegrity(void)
 			
 			if (&chromosome->species_ != species)
 				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
-			if (chromosome->Index() != chromosome_index)
-				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->ID() mismatch." << EidosTerminate();
+			
+			if (&chromosome->community_ != this)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->community_ mismatch." << EidosTerminate();
 		}
 		
 		Population &population = species->population_;

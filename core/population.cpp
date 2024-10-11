@@ -1453,7 +1453,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->migrant_ = false;
 						
 						if (pedigrees_enabled)
-							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
+						{
+							slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+							
+							new_child->TrackParentage_Uniparental(pid, *source_subpop.parent_individuals_[parent1]);
+							
+							new_child->haplosomes_[0]->haplosome_id_ = pid * 2;
+							new_child->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1526,10 +1533,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						if (pedigrees_enabled)
 						{
+							slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+							
 							if (selfed)
-								new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
+								new_child->TrackParentage_Uniparental(pid, *source_subpop.parent_individuals_[parent1]);
 							else
-								new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage_Biparental(pid, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+							
+							new_child->haplosomes_[0]->haplosome_id_ = pid * 2;
+							new_child->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
 						}
 						
 						// TREE SEQUENCE RECORDING
@@ -1620,7 +1632,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = false;
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+					{
+						slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+						
+						new_child->TrackParentage_Biparental(pid, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						
+						new_child->haplosomes_[0]->haplosome_id_ = pid * 2;
+						new_child->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
+					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1911,7 +1930,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
+					{
+						slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+						
+						new_child->TrackParentage_Uniparental(pid, *source_subpop->parent_individuals_[parent1]);
+						
+						new_child->haplosomes_[0]->haplosome_id_ = pid * 2;
+						new_child->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
+					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1984,10 +2010,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					if (pedigrees_enabled)
 					{
+						slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+						
 						if (selfed)
-							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(pid, *source_subpop->parent_individuals_[parent1]);
 						else
-							new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+							new_child->TrackParentage_Biparental(pid, *source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+						
+						new_child->haplosomes_[0]->haplosome_id_ = pid * 2;
+						new_child->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
 					}
 					
 					// TREE SEQUENCE RECORDING
@@ -2188,7 +2219,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
 									if (pedigrees_enabled)
+									{
 										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+										
+										new_child->haplosomes_[0]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2;
+										new_child->haplosomes_[1]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2 + 1;
+									}
 									
 									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
@@ -2229,7 +2265,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
 									if (pedigrees_enabled)
+									{
 										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+										
+										new_child->haplosomes_[0]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2;
+										new_child->haplosomes_[1]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2 + 1;
+									}
 									
 									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
@@ -2345,7 +2386,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 										}
 										
 										if (pedigrees_enabled)
+										{
 											new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+											
+											new_child->haplosomes_[0]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2;
+											new_child->haplosomes_[1]->haplosome_id_ = (base_pedigree_id + migrant_count) * 2 + 1;
+										}
 									}
 									
 									// TREE SEQUENCE RECORDING
@@ -2529,6 +2575,1136 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Hapl
 	
 	return breakpoints_changed;
 }
+
+// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
+void Population::HaplosomeCrossed(Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
+{
+#if DEBUG
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+	if (p_recombination_callbacks || p_mutation_callbacks)
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCrossed(): recombination and mutation callbacks are not allowed when executing in parallel");
+	
+	// BCH 9/20/2024: With the multichomosome redesign, the child and parent haplosome indices must always match; we are generating a
+	// new offspring haplosome from parental haplosomes of the exact same chromosome (not just the same chomosome type).
+	slim_chromosome_index_t chromosome_index = p_child_haplosome.chromosome_index_;
+	slim_chromosome_index_t parent1_chromosome_index = parent_haplosome_1->chromosome_index_;
+	slim_chromosome_index_t parent2_chromosome_index = parent_haplosome_2->chromosome_index_;
+	
+	if ((parent1_chromosome_index != chromosome_index) || (parent2_chromosome_index != chromosome_index))
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) mismatch between parent and child chromosomes (child chromosome index == " << chromosome_index << ", parent 1 == " << parent1_chromosome_index << ", parent 2 == " << parent2_chromosome_index << ")." << EidosTerminate();
+	
+	if (p_child_haplosome.IsNull() || parent_haplosome_1->IsNull() || parent_haplosome_2->IsNull())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) null haplosomes cannot be passed to HaplosomeCrossed()." << EidosTerminate();
+	
+	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
+	p_child_haplosome.check_cleared_to_nullptr();
+#endif
+	
+	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
+	bool do_swap = true;				// if true, we are to swap the parental strands at the beginning 50% of the time
+	
+	if (do_swap)
+	{
+		if (Eidos_RandomBool(EIDOS_STATE_RNG(omp_get_thread_num())))
+			std::swap(parent_haplosome_1, parent_haplosome_2);
+	}
+	
+	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
+	// depend upon characteristics of the first parent, so we fetch the necessary properties here
+	// FIXME MULTICHROM maybe these parameters to ApplyRecombinationCallbacks can be eliminated?
+	slim_popsize_t parent_index = parent_haplosome_1->individual_->index_;
+	Subpopulation *source_subpop = parent_haplosome_1->individual_->subpopulation_;
+	IndividualSex parent_sex = parent_haplosome_1->individual_->sex_;
+	
+	// determine how many mutations and breakpoints we have
+	Chromosome &chromosome = *parent_haplosome_1->AssociatedChromosome();	// use the parent; the child has no individual_ yet
+	int num_mutations, num_breakpoints;
+	
+#if defined(__GNUC__) && !defined(__clang__)
+	// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+	static thread_local std::vector<slim_position_t> all_breakpoints;
+#else
+	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
+#pragma omp threadprivate (all_breakpoints)
+#endif
+	
+	all_breakpoints.clear();
+	
+	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
+															// this is not static since we don't want to call clear() every time for a rare edge case
+	
+	{
+#ifdef USE_GSL_POISSON
+		// When using the GSL's poisson draw, we have to draw the mutation count and breakpoint count separately;
+		// the DrawMutationAndBreakpointCounts() method does not support USE_GSL_POISSON
+		num_mutations = chromosome.DrawMutationCount(p_parent_sex);
+		num_breakpoints = chromosome.DrawBreakpointCount(p_parent_sex);
+#else
+		// get both the number of mutations and the number of breakpoints here; this allows us to draw both jointly, super fast!
+		chromosome.DrawMutationAndBreakpointCounts(parent_sex, &num_mutations, &num_breakpoints);
+#endif
+		
+		//std::cout << num_mutations << " mutations, " << num_breakpoints << " breakpoints" << std::endl;
+		
+		// draw the breakpoints based on the recombination rate map, and sort and unique the result
+		if (num_breakpoints)
+		{
+			if (chromosome.using_DSB_model_)
+				chromosome.DrawDSBBreakpoints(parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
+			else
+				chromosome.DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+			
+			if (p_recombination_callbacks)
+			{
+				// a non-zero number of breakpoints, with recombination callbacks
+				if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
+					EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
+				
+				ApplyRecombinationCallbacks(parent_index, parent_haplosome_1, parent_haplosome_2, source_subpop, all_breakpoints, *p_recombination_callbacks);
+				num_breakpoints = (int)all_breakpoints.size();
+				
+				if (num_breakpoints)
+				{
+					if (all_breakpoints.size() > 1)
+					{
+						std::sort(all_breakpoints.begin(), all_breakpoints.end());
+						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+					}
+					
+					// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+					all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+				}
+				else
+				{
+					// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
+					// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+				}
+			}
+			else
+			{
+				// a non-zero number of breakpoints, without recombination callbacks
+				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+			}
+		}
+		else if (p_recombination_callbacks)
+		{
+			// zero breakpoints from the SLiM core, but we have recombination() callbacks
+			if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
+				EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
+			
+			ApplyRecombinationCallbacks(parent_index, parent_haplosome_1, parent_haplosome_2, source_subpop, all_breakpoints, *p_recombination_callbacks);
+			num_breakpoints = (int)all_breakpoints.size();
+			
+			if (num_breakpoints)
+			{
+				if (all_breakpoints.size() > 1)
+				{
+					std::sort(all_breakpoints.begin(), all_breakpoints.end());
+					all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
+				}
+				
+				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 10);
+			}
+			else
+			{
+				// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
+				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+			}
+		}
+		else
+		{
+			// no breakpoints or DSBs, no recombination() callbacks
+			
+			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
+			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+		}
+	}
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
+	
+	if (recording_tree_sequence)
+	{
+#pragma omp critical (TreeSeqNewHaplosome)
+		{
+			species_.RecordNewHaplosome(&all_breakpoints, &p_child_haplosome, parent_haplosome_1, parent_haplosome_2);
+		}
+	}
+	
+	// mutations are usually rare, so let's streamline the case where none occur
+	if (num_mutations == 0)
+	{
+		if (num_breakpoints == 0)
+		{
+			//
+			// no mutations and no crossovers, so the child haplosome is just a copy of the parental haplosome
+			//
+			
+			p_child_haplosome.copy_from_haplosome(*parent_haplosome_1);
+		}
+		else
+		{
+			//
+			// no mutations, but we do have crossovers, so we just need to interleave the two parental haplosomes
+			//
+			
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			Haplosome *parent_haplosome = parent_haplosome_1;
+			slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
+			int mutrun_count = p_child_haplosome.mutrun_count_;
+			int first_uncompleted_mutrun = 0;
+			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
+			
+			for (int break_index = 0; break_index < break_index_max; break_index++)
+			{
+				slim_position_t breakpoint = all_breakpoints[break_index];
+				slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+				
+				// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
+				while (break_mutrun_index > first_uncompleted_mutrun)
+				{
+					p_child_haplosome.mutruns_[first_uncompleted_mutrun] = parent_haplosome->mutruns_[first_uncompleted_mutrun];
+					++first_uncompleted_mutrun;
+					
+					if (first_uncompleted_mutrun >= mutrun_count)
+						break;
+				}
+				
+				// Now we are supposed to process a breakpoint in first_uncompleted_mutrun; check whether that means we're done
+				if (first_uncompleted_mutrun >= mutrun_count)
+					break;
+				
+				// The break occurs to the left of the base position of the breakpoint; check whether that is between runs
+				if (breakpoint > break_mutrun_index * mutrun_length)
+				{
+					// The breakpoint occurs *inside* the run, so process the run by copying mutations and switching strands
+					int this_mutrun_index = first_uncompleted_mutrun;
+					const MutationIndex *parent1_iter		= parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent2_iter		= parent_haplosome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent1_iter_max	= parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+					const MutationIndex *parent2_iter_max	= parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+					const MutationIndex *parent_iter		= parent1_iter;
+					const MutationIndex *parent_iter_max	= parent1_iter_max;
+					MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
+					MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
+					
+					while (true)
+					{
+						// while there are still old mutations in the parent before the current breakpoint...
+						while (parent_iter != parent_iter_max)
+						{
+							MutationIndex current_mutation = *parent_iter;
+							
+							if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
+								break;
+							
+							// add the old mutation; no need to check for a duplicate here since the parental haplosome is already duplicate-free
+							child_mutrun->emplace_back(current_mutation);
+							
+							parent_iter++;
+						}
+						
+						// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+						parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	parent_haplosome_1 = parent_haplosome_2;
+						parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		parent_haplosome_2 = parent_haplosome;
+						parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_haplosome = parent_haplosome_1;
+						
+						// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+						while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+							parent_iter++;
+						
+						// we have now handled the current breakpoint, so move on to the next breakpoint; advance the enclosing for loop here
+						break_index++;
+						
+						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+						if (break_index == break_index_max)
+							break;
+						
+						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+						breakpoint = all_breakpoints[break_index];
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+						
+						// if the next breakpoint is outside this mutation run, then finish the run and break out
+						if (break_mutrun_index > this_mutrun_index)
+						{
+							while (parent_iter != parent_iter_max)
+								child_mutrun->emplace_back(*(parent_iter++));
+							
+							break_index--;	// the outer loop will want to handle the current breakpoint again at the mutation-run level
+							break;
+						}
+					}
+					
+					// We have completed this run
+					++first_uncompleted_mutrun;
+				}
+				else
+				{
+					// The breakpoint occurs *between* runs, so just switch parent strands and the breakpoint is handled
+					parent_haplosome_1 = parent_haplosome_2;
+					parent_haplosome_2 = parent_haplosome;
+					parent_haplosome = parent_haplosome_1;
+				}
+			}
+		}
+	}
+	else
+	{
+		// we have at least one new mutation, so set up for that case (which splits into two cases below)
+		
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#pragma omp threadprivate (mut_positions)
+#endif
+		
+		mut_positions.clear();
+		
+		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
+		mutations_to_add.clear();
+		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
+		// BCH 7/29/2023: I tried making a simple code path here that generated the new MutationIndex values in a critical region and then
+		// did all the rest of the work outside the critical region.  It wasn't a noticeable win; mutation generation just isn't that
+		// central of a bottleneck.  If you're making so many mutations that contention for this critical region matters, you're probably
+		// completely bogged down in recombination and mutation registry maintenance.  Not worth the added code complexity.
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
+				{
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental haplosome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome_1, parent_haplosome_2, &all_breakpoints, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick());
+						
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
+				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
+				throw;
+#endif
+			}
+		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
+		
+		MutationIndex mutation_iter_mutation_index;
+		slim_position_t mutation_iter_pos;
+		
+		if (mutation_iter != mutation_iter_max) {
+			mutation_iter_mutation_index = *mutation_iter;
+			mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+		} else {
+			mutation_iter_mutation_index = -1;
+			mutation_iter_pos = SLIM_INF_BASE_POSITION;
+		}
+		
+		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
+		int mutrun_count = p_child_haplosome.mutrun_count_;
+		slim_mutrun_index_t mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+		
+		Haplosome *parent_haplosome = parent_haplosome_1;
+		int first_uncompleted_mutrun = 0;
+		
+		if (num_breakpoints == 0)
+		{
+			//
+			// mutations without breakpoints; we have to be careful here not to touch the second strand, because it could be null
+			//
+			
+			while (true)
+			{
+				// Copy over mutation runs until we arrive at the run in which the mutation occurs
+				while (mutation_mutrun_index > first_uncompleted_mutrun)
+				{
+					p_child_haplosome.mutruns_[first_uncompleted_mutrun] = parent_haplosome->mutruns_[first_uncompleted_mutrun];
+					++first_uncompleted_mutrun;
+					
+					if (first_uncompleted_mutrun >= mutrun_count)
+						break;
+				}
+				
+				if (first_uncompleted_mutrun >= mutrun_count)
+					break;
+				
+				// The mutation occurs *inside* the run, so process the run by copying mutations
+				int this_mutrun_index = first_uncompleted_mutrun;
+				const MutationIndex *parent_iter		= parent_haplosome->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent_iter_max	= parent_haplosome->mutruns_[this_mutrun_index]->end_pointer_const();
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
+				
+				// add any additional new mutations that occur before the end of the mutation run; there is at least one
+				do
+				{
+					// add any parental mutations that occur before or at the next new mutation's position
+					while (parent_iter != parent_iter_max)
+					{
+						MutationIndex current_mutation = *parent_iter;
+						slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
+						
+						if (current_mutation_pos > mutation_iter_pos)
+							break;
+						
+						child_mutrun->emplace_back(current_mutation);
+						parent_iter++;
+					}
+					
+					// add the new mutation, which might overlap with the last added old mutation
+					Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+					MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+					
+					if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+					{
+						// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+						child_mutrun->emplace_back(mutation_iter_mutation_index);
+						
+						if (new_mut->state_ != MutationState::kInRegistry)
+						{
+							#pragma omp critical (MutationRegistryAdd)
+							{
+								MutationRegistryAdd(new_mut);
+							}
+						}
+						
+						// TREE SEQUENCE RECORDING
+						if (recording_tree_sequence_mutations)
+						{
+#pragma omp critical (TreeSeqNewDerivedState)
+							{
+								species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+						}
+					}
+					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+					{
+						// The mutation was rejected by the stacking policy, so we have to release it
+#pragma omp critical (MutationAlloc)
+						{
+							new_mut->Release_PARALLEL();
+						}
+					}
+					
+					if (++mutation_iter != mutation_iter_max) {
+						mutation_iter_mutation_index = *mutation_iter;
+						mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+					} else {
+						mutation_iter_mutation_index = -1;
+						mutation_iter_pos = SLIM_INF_BASE_POSITION;
+					}
+					
+					mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+				}
+				while (mutation_mutrun_index == this_mutrun_index);
+				
+				// finish up any parental mutations that come after the last new mutation in the mutation run
+				while (parent_iter != parent_iter_max)
+					child_mutrun->emplace_back(*(parent_iter++));
+				
+				// We have completed this run
+				++first_uncompleted_mutrun;
+				
+				if (first_uncompleted_mutrun >= mutrun_count)
+					break;
+			}
+		}
+		else
+		{
+			//
+			// mutations and crossovers; this is the most complex case
+			//
+			
+			// fix up the breakpoints vector; above we allow it to be completely empty, for maximal speed in the
+			// 0-mutation/0-breakpoint case, but here we need a defined end breakpoint, so we add it now if necessary
+			if (all_breakpoints.size() == 0)
+				all_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
+			
+			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
+			int break_index = 0;
+			slim_position_t breakpoint = all_breakpoints[break_index];
+			slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+			
+			while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
+			{
+				if (mutation_mutrun_index < break_mutrun_index)
+				{
+					// Copy over mutation runs until we arrive at the run in which the mutation occurs
+					while (mutation_mutrun_index > first_uncompleted_mutrun)
+					{
+						p_child_haplosome.mutruns_[first_uncompleted_mutrun] = parent_haplosome->mutruns_[first_uncompleted_mutrun];
+						++first_uncompleted_mutrun;
+						
+						// We can't be done, since we have a mutation waiting to be placed, so we don't need to check
+					}
+					
+					// Mutations can't occur between mutation runs the way breakpoints can, so we don't need to check that either
+				}
+				else
+				{
+					// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
+					while (break_mutrun_index > first_uncompleted_mutrun)
+					{
+						p_child_haplosome.mutruns_[first_uncompleted_mutrun] = parent_haplosome->mutruns_[first_uncompleted_mutrun];
+						++first_uncompleted_mutrun;
+						
+						if (first_uncompleted_mutrun >= mutrun_count)
+							break;
+					}
+					
+					// Now we are supposed to process a breakpoint in first_uncompleted_mutrun; check whether that means we're done
+					if (first_uncompleted_mutrun >= mutrun_count)
+						break;
+					
+					// If the breakpoint occurs *between* runs, just switch parent strands and the breakpoint is handled
+					if (breakpoint == break_mutrun_index * mutrun_length)
+					{
+						parent_haplosome_1 = parent_haplosome_2;
+						parent_haplosome_2 = parent_haplosome;
+						parent_haplosome = parent_haplosome_1;
+						
+						// go to next breakpoint; this advances the for loop
+						if (++break_index == break_index_max)
+							break;
+						
+						breakpoint = all_breakpoints[break_index];
+						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+						
+						continue;
+					}
+				}
+				
+				// The event occurs *inside* the run, so process the run by copying mutations and switching strands
+				int this_mutrun_index = first_uncompleted_mutrun;
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRun *child_mutrun = p_child_haplosome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
+				const MutationIndex *parent1_iter		= parent_haplosome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
+				const MutationIndex *parent1_iter_max	= parent_haplosome_1->mutruns_[this_mutrun_index]->end_pointer_const();
+				const MutationIndex *parent_iter		= parent1_iter;
+				const MutationIndex *parent_iter_max	= parent1_iter_max;
+				
+				if (break_mutrun_index == this_mutrun_index)
+				{
+					const MutationIndex *parent2_iter		= parent_haplosome_2->mutruns_[this_mutrun_index]->begin_pointer_const();
+					const MutationIndex *parent2_iter_max	= parent_haplosome_2->mutruns_[this_mutrun_index]->end_pointer_const();
+					
+					if (mutation_mutrun_index == this_mutrun_index)
+					{
+						//
+						// =====  this_mutrun_index has both breakpoint(s) and new mutation(s); this is the really nasty case
+						//
+						
+						while (true)
+						{
+							// while there are still old mutations in the parent before the current breakpoint...
+							while (parent_iter != parent_iter_max)
+							{
+								MutationIndex current_mutation = *parent_iter;
+								slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
+								
+								if (current_mutation_pos >= breakpoint)
+									break;
+								
+								// add any new mutations that occur before the parental mutation; we know the parental mutation is in this run, so these are too
+								while (mutation_iter_pos < current_mutation_pos)
+								{
+									Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+									MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+									
+									if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+									{
+										// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+										child_mutrun->emplace_back(mutation_iter_mutation_index);
+										
+										if (new_mut->state_ != MutationState::kInRegistry)
+										{
+											#pragma omp critical (MutationRegistryAdd)
+											{
+												MutationRegistryAdd(new_mut);
+											}
+										}
+										
+										// TREE SEQUENCE RECORDING
+										if (recording_tree_sequence_mutations)
+										{
+#pragma omp critical (TreeSeqNewDerivedState)
+											{
+												species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											}
+										}
+									}
+									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+									{
+										// The mutation was rejected by the stacking policy, so we have to release it
+#pragma omp critical (MutationAlloc)
+										{
+											new_mut->Release_PARALLEL();
+										}
+									}
+									
+									if (++mutation_iter != mutation_iter_max) {
+										mutation_iter_mutation_index = *mutation_iter;
+										mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+									} else {
+										mutation_iter_mutation_index = -1;
+										mutation_iter_pos = SLIM_INF_BASE_POSITION;
+									}
+									
+									mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+								}
+								
+								// add the old mutation; no need to check for a duplicate here since the parental haplosome is already duplicate-free
+								child_mutrun->emplace_back(current_mutation);
+								
+								parent_iter++;
+							}
+							
+							// add any new mutations that occur before the breakpoint; for these we have to check that they fall within this mutation run
+							while ((mutation_iter_pos < breakpoint) && (mutation_mutrun_index == this_mutrun_index))
+							{
+								Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+								MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+								
+								if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+								{
+									// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+									child_mutrun->emplace_back(mutation_iter_mutation_index);
+									
+									if (new_mut->state_ != MutationState::kInRegistry)
+									{
+										#pragma omp critical (MutationRegistryAdd)
+										{
+											MutationRegistryAdd(new_mut);
+										}
+									}
+									
+									// TREE SEQUENCE RECORDING
+									if (recording_tree_sequence_mutations)
+									{
+#pragma omp critical (TreeSeqNewDerivedState)
+										{
+											species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										}
+									}
+								}
+								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+								{
+									// The mutation was rejected by the stacking policy, so we have to release it
+#pragma omp critical (MutationAlloc)
+									{
+										new_mut->Release_PARALLEL();
+									}
+								}
+								
+								if (++mutation_iter != mutation_iter_max) {
+									mutation_iter_mutation_index = *mutation_iter;
+									mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+								} else {
+									mutation_iter_mutation_index = -1;
+									mutation_iter_pos = SLIM_INF_BASE_POSITION;
+								}
+								
+								mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+							}
+							
+							// we have finished the parental mutation run; if the breakpoint we are now working toward lies beyond the end of the
+							// current mutation run, then we have completed this run and can exit to the outer loop which will handle the rest
+							if (break_mutrun_index > this_mutrun_index)
+								break;		// the outer loop will want to handle this breakpoint again at the mutation-run level
+							
+							// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+							parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	parent_haplosome_1 = parent_haplosome_2;
+							parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		parent_haplosome_2 = parent_haplosome;
+							parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_haplosome = parent_haplosome_1;
+							
+							// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+							while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+								parent_iter++;
+							
+							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
+							if (++break_index == break_index_max)
+								break;
+							
+							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+							breakpoint = all_breakpoints[break_index];
+							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+						}
+						
+						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+						if (break_index == break_index_max)
+							break;
+						
+						// We have completed this run
+						++first_uncompleted_mutrun;
+					}
+					else
+					{
+						//
+						// =====  this_mutrun_index has only breakpoint(s), no new mutations
+						//
+						
+						while (true)
+						{
+							// while there are still old mutations in the parent before the current breakpoint...
+							while (parent_iter != parent_iter_max)
+							{
+								MutationIndex current_mutation = *parent_iter;
+								
+								if ((mut_block_ptr + current_mutation)->position_ >= breakpoint)
+									break;
+								
+								// add the old mutation; no need to check for a duplicate here since the parental haplosome is already duplicate-free
+								child_mutrun->emplace_back(current_mutation);
+								
+								parent_iter++;
+							}
+							
+							// we have reached the breakpoint, so swap parents; we want the "current strand" variables to change, so no std::swap()
+							parent1_iter = parent2_iter;	parent1_iter_max = parent2_iter_max;	parent_haplosome_1 = parent_haplosome_2;
+							parent2_iter = parent_iter;		parent2_iter_max = parent_iter_max;		parent_haplosome_2 = parent_haplosome;
+							parent_iter = parent1_iter;		parent_iter_max = parent1_iter_max;		parent_haplosome = parent_haplosome_1;
+							
+							// skip over anything in the new parent that occurs prior to the breakpoint; it was not the active strand
+							while (parent_iter != parent_iter_max && (mut_block_ptr + *parent_iter)->position_ < breakpoint)
+								parent_iter++;
+							
+							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
+							if (++break_index == break_index_max)
+								break;
+							
+							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
+							breakpoint = all_breakpoints[break_index];
+							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
+							
+							// if the next breakpoint is outside this mutation run, then finish the run and break out
+							if (break_mutrun_index > this_mutrun_index)
+							{
+								while (parent_iter != parent_iter_max)
+									child_mutrun->emplace_back(*(parent_iter++));
+								
+								break;	// the outer loop will want to handle this breakpoint again at the mutation-run level
+							}
+						}
+						
+						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
+						if (break_index == break_index_max)
+							break;
+						
+						// We have completed this run
+						++first_uncompleted_mutrun;
+					}
+				}
+				else if (mutation_mutrun_index == this_mutrun_index)
+				{
+					//
+					// =====  this_mutrun_index has only new mutation(s), no breakpoints
+					//
+					
+					// add any additional new mutations that occur before the end of the mutation run; there is at least one
+					do
+					{
+						// add any parental mutations that occur before or at the next new mutation's position
+						while (parent_iter != parent_iter_max)
+						{
+							MutationIndex current_mutation = *parent_iter;
+							slim_position_t current_mutation_pos = (mut_block_ptr + current_mutation)->position_;
+							
+							if (current_mutation_pos > mutation_iter_pos)
+								break;
+							
+							child_mutrun->emplace_back(current_mutation);
+							parent_iter++;
+						}
+						
+						// add the new mutation, which might overlap with the last added old mutation
+						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+						
+						if (child_mutrun->enforce_stack_policy_for_addition(new_mut->position_, new_mut_type))
+						{
+							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+							child_mutrun->emplace_back(mutation_iter_mutation_index);
+							
+							if (new_mut->state_ != MutationState::kInRegistry)
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
+							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence_mutations)
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_haplosome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								}
+							}
+						}
+						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+						{
+							// The mutation was rejected by the stacking policy, so we have to release it
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
+						}
+						
+						if (++mutation_iter != mutation_iter_max) {
+							mutation_iter_mutation_index = *mutation_iter;
+							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+						} else {
+							mutation_iter_mutation_index = -1;
+							mutation_iter_pos = SLIM_INF_BASE_POSITION;
+						}
+						
+						mutation_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+					}
+					while (mutation_mutrun_index == this_mutrun_index);
+					
+					// finish up any parental mutations that come after the last new mutation in the mutation run
+					while (parent_iter != parent_iter_max)
+						child_mutrun->emplace_back(*(parent_iter++));
+					
+					// We have completed this run
+					++first_uncompleted_mutrun;
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) logic fail." << EidosTerminate();
+				}
+			}
+		}
+	}
+	
+	// debugging check
+#if 0
+	for (int i = 0; i < child_haplosome.mutrun_count_; ++i)
+		if (child_haplosome.mutruns_[i].get() == nullptr)
+			EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) null mutation run left at end of crossover-mutation." << EidosTerminate();
+#endif
+	
+	if (heteroduplex.size() > 0)
+		DoHeteroduplexRepair(heteroduplex, all_breakpoints, parent_haplosome_1, parent_haplosome_2, &p_child_haplosome);
+}
+
+// generate a child haplosome from parental haplosomes, clonally with mutation
+void Population::HaplosomeCloned(Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
+{
+#if DEBUG
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+	if (p_mutation_callbacks)
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::HaplosomeCloned(): mutation callbacks are not allowed when executing in parallel");
+	
+	// BCH 9/20/2024: With the multichomosome redesign, the child and parent haplosome types must always match; we are generating a
+	// new offspring haplosome clonally for a parental haplosome of the same type
+	slim_chromosome_index_t chromosome_index = p_child_haplosome.chromosome_index_;
+	slim_chromosome_index_t parent_chromosome_index = parent_haplosome->chromosome_index_;
+	
+	if (parent_chromosome_index != chromosome_index)
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCloned): (internal error) mismatch between parent and child chromosomes (child chromosome index == " << chromosome_index << ", parent == " << parent_chromosome_index << ")." << EidosTerminate();
+	
+	if (p_child_haplosome.IsNull() || parent_haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCloned): (internal error) null haplosomes cannot be passed to HaplosomeCloned()." << EidosTerminate();
+	
+	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
+	p_child_haplosome.check_cleared_to_nullptr();
+#endif
+	
+	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
+	// depend upon characteristics of the first parent, so we fetch the necessary properties here
+	// FIXME MULTICHROM maybe these parameters to ApplyRecombinationCallbacks can be eliminated?
+	//slim_popsize_t parent_index = parent_haplosome->individual_->index_;
+	Subpopulation *source_subpop = parent_haplosome->individual_->subpopulation_;
+	IndividualSex parent_sex = parent_haplosome->individual_->sex_;
+
+	// determine how many mutations and breakpoints we have
+	Chromosome &chromosome = species_.TheChromosome();
+	int num_mutations = chromosome.DrawMutationCount(parent_sex);	// the parent sex is the same as the child sex
+	
+	// TREE SEQUENCE RECORDING
+	// FIXME MULTICHROM separate critical region for each chromosome, too!
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
+	
+	if (recording_tree_sequence)
+	{
+#pragma omp critical (TreeSeqNewHaplosome)
+		{
+			species_.RecordNewHaplosome(nullptr, &p_child_haplosome, parent_haplosome, nullptr);
+		}
+	}
+	
+	// mutations are usually rare, so let's streamline the case where none occur
+	if (num_mutations == 0)
+	{
+		// no mutations, so the child haplosome is just a copy of the parental haplosome
+		p_child_haplosome.copy_from_haplosome(*parent_haplosome);
+	}
+	else
+	{
+		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
+		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#pragma omp threadprivate (mut_positions)
+#endif
+		
+		mut_positions.clear();
+		
+		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
+		
+		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
+		mutations_to_add.clear();
+		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
+				{
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental haplosome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome, nullptr, nullptr, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
+						
+						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
+				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
+				throw;
+#endif
+			}
+		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::HaplosomeCloned): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
+		
+		// if there are no mutations, the child haplosome is just a copy of the parental haplosome
+		// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
+		if (mutations_to_add.size() == 0)
+		{
+			p_child_haplosome.copy_from_haplosome(*parent_haplosome);
+			return;
+		}
+		
+		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		int mutrun_count = p_child_haplosome.mutrun_count_;
+		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
+		
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
+		MutationIndex mutation_iter_mutation_index = *mutation_iter;
+		slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+		slim_mutrun_index_t mutation_iter_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+		
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			if (mutation_iter_mutrun_index > run_index)
+			{
+				// no mutations in this run, so just copy the run pointer
+				p_child_haplosome.mutruns_[run_index] = parent_haplosome->mutruns_[run_index];
+			}
+			else
+			{
+				// interleave the parental haplosome with the new mutations
+				MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
+				MutationRun *child_run = p_child_haplosome.WillCreateRun_LOCKED(run_index, mutrun_context_LOCKED);
+				const MutationRun *parent_run = parent_haplosome->mutruns_[run_index];
+				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
+				const MutationIndex *parent_iter_max	= parent_run->end_pointer_const();
+				
+				// while there is at least one new mutation left to place in this run... (which we know is true when we first reach here)
+				do
+				{
+					// while an old mutation in the parent is before or at the next new mutation...
+					while ((parent_iter != parent_iter_max) && ((mut_block_ptr + *parent_iter)->position_ <= mutation_iter_pos))
+					{
+						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
+						// and new mutations are, by definition, new and thus cannot match the existing mutations
+						child_run->emplace_back(*parent_iter);
+						parent_iter++;
+					}
+					
+					// while a new mutation in this run is before the next old mutation in the parent... (which we know is true when we first reach here)
+					slim_position_t parent_iter_pos = (parent_iter == parent_iter_max) ? (SLIM_INF_BASE_POSITION) : (mut_block_ptr + *parent_iter)->position_;
+					
+					do
+					{
+						// we know the mutation is not already present, since mutations on the parent strand are already uniqued,
+						// and new mutations are, by definition, new and thus cannot match the existing mutations
+						Mutation *new_mut = mut_block_ptr + mutation_iter_mutation_index;
+						MutationType *new_mut_type = new_mut->mutation_type_ptr_;
+						
+						if (child_run->enforce_stack_policy_for_addition(mutation_iter_pos, new_mut_type))
+						{
+							// The mutation was passed by the stacking policy, so we can add it to the child haplosome and the registry
+							child_run->emplace_back(mutation_iter_mutation_index);
+							
+							if (new_mut->state_ != MutationState::kInRegistry)
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
+							
+							// TREE SEQUENCE RECORDING
+							if (recording_tree_sequence_mutations)
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_haplosome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+								}
+							}
+						}
+						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
+						{
+							// The mutation was rejected by the stacking policy, so we have to release it
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
+						}
+						
+						// move to the next mutation
+						mutation_iter++;
+						
+						if (mutation_iter == mutation_iter_max)
+						{
+							mutation_iter_mutation_index = -1;
+							mutation_iter_pos = SLIM_INF_BASE_POSITION;
+						}
+						else
+						{
+							mutation_iter_mutation_index = *mutation_iter;
+							mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
+						}
+						
+						mutation_iter_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
+						
+						// if we're out of new mutations for this run, transfer down to the simpler loop below
+						if (mutation_iter_mutrun_index != run_index)
+							goto noNewMutationsLeft;
+					}
+					while (mutation_iter_pos < parent_iter_pos);
+					
+					// at this point we know we have a new mutation to place in this run, but it falls after the next parental mutation, so we loop back
+				}
+				while (true);
+				
+				// complete the mutation run after all new mutations within this run have been placed
+			noNewMutationsLeft:
+				while (parent_iter != parent_iter_max)
+				{
+					child_run->emplace_back(*parent_iter);
+					parent_iter++;
+				}
+			}
+		}
+	}
+}
+
 
 // generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &p_child_haplosome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
@@ -7566,7 +8742,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		{
 		for (Haplosome *haplosome : ind->haplosomes_)
 		{
-			p_out << "p" << subpop_id << ":" << i << " " << haplosome->AssociatedChromosome()->Type();
+			p_out << "p" << subpop_id << ":" << i << " " << haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM maybe index not type?
 			
 			if (haplosome->IsNull())
 			{
@@ -7850,7 +9026,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		for (Haplosome *haplosome : ind->haplosomes_)
 		{
 			// Write out the haplosome header; start with the haplosome type to guarantee that the first 32 bits are != section_end_tag
-			int32_t chromosome_type = (int32_t)(haplosome->AssociatedChromosome()->Type());
+			int32_t chromosome_type = (int32_t)(haplosome->AssociatedChromosome()->Type());	// FIXME MULTICHROM maybe index not type?
 			
 			p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
 			p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);

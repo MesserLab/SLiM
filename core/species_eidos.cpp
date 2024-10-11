@@ -283,6 +283,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not recognize chromosome type '" << type << "'." << EidosTerminate();
 	
+	if (!sex_enabled_ &&
+		((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+		 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
+		 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+		 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+		 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): chromosome type '" << chromosome_type << "' is only allowed in sexual models; call initializeSex() to enable sex first." << EidosTerminate();
+	
 	std::string symbol;
 	
 	if (symbol_value->Type() == EidosValueType::kValueString)
@@ -311,10 +323,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	chromosome->last_position_ = start + length - 1;
 	chromosome->extent_immutable_ = true;
 	
-	chromosomes_.push_back(chromosome);
-	chromosome_from_id_.emplace(id, chromosome);
-	chromosome_from_symbol_.emplace(symbol, chromosome);
-	
+	AddChromosome(chromosome);
 	num_chromosome_inits_++;
 	has_currently_initializing_chromosome_ = true;
 	

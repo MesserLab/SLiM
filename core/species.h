@@ -198,6 +198,26 @@ private:
 	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
+	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
+	// as well as hash tables for quick lookup by id and symbol
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#endif
+	
+	// Chromosome state
+	std::vector<Chromosome *> chromosomes_;				// all the chromosomes for the species, in the order in which they were defined
+	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
+	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
+	
+	std::vector<int> first_haplosome_index_;			// the first index in haplosomes_ for a given chromosome (synced to chromosomes_)
+	std::vector<int> last_haplosome_index_;				// the last index in haplosomes_ for a given chromosome (synced to chromosomes_)
+	int total_haplosome_count_ = 0;						// the total number of haplosomes per individual, based on the chromosome types
+	bool chromosomes_use_null_haplosomes_ = false;		// set to true if our chromosome types use null haplosomes; check this with CouldContainNullHaplosomes()
+	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
@@ -323,19 +343,6 @@ public:
 	Community &community_;						// the community that this species belongs to
 	Population population_;						// the population, which contains sub-populations
 
-	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
-	// as well as hash tables for quick lookup by id and symbol
-#if EIDOS_ROBIN_HOOD_HASHING
-	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
-	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
-#elif STD_UNORDERED_MAP_HASHING
-	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
-	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
-#endif
-	std::vector<Chromosome *> chromosomes_;		// all the chromosomes for the species, in the order in which they were defined
-	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
-	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
-	
 	std::string avatar_;						// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
 	std::string name_;							// the `name` property; "sim" by default, configurable in script (not by setting the property)
 	std::string description_;					// the `description` property; the empty string by default
@@ -391,6 +398,19 @@ public:
 	Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name);			// construct a Species from a community / id / name
 	~Species(void);																						// destructor
 	
+	// Chromosome configuration and access
+#warning remove TheChromosome() step by step
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
+	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	Chromosome *ChromosomeFromID(int64_t p_id);
+	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
+	void MakeImplicitChromosome(ChromosomeType p_type);
+	Chromosome *CurrentlyInitializingChromosome(void);								// the last chromosome defined (currently initializing)
+	void AddChromosome(Chromosome *p_chromosome);
+	inline __attribute__((always_inline)) bool ChromosomesUseNullHaplosomes(void) { return chromosomes_use_null_haplosomes_; }
+	inline __attribute__((always_inline)) int TotalHaplosomeCount(void) { return total_haplosome_count_; }
+	
+	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	void DeleteAllMutationRuns(void);												// for cleanup
 	
@@ -416,6 +436,7 @@ public:
 	
 	void AdvanceCycleCounter(void);
 	void SimulationHasFinished(void);
+	void Species_CheckIntegrity(void);
 	
 	// Shared shuffle buffer to save
 	inline bool RandomizingCallbackOrder(void) { return shuffle_buf_is_enabled_; }
@@ -446,16 +467,6 @@ public:
 	inline __attribute__((always_inline)) void SetActive(bool p_active) { species_active_ = p_active; }
 	inline __attribute__((always_inline)) slim_tick_t TickModulo(void) { return tick_modulo_; }
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
-	
-	// CurrentlyInitializingChromosome() is useful during initialization; methods that modify the chromosome configuration always operate on the
-	// last chromosome defined.
-#warning remove TheChromosome() step by step
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
-	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
-	Chromosome *ChromosomeFromID(int64_t p_id);
-	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
-	void MakeImplicitChromosome(ChromosomeType p_type);
-	Chromosome *CurrentlyInitializingChromosome(void);
 	
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }

@@ -48,6 +48,7 @@ bool Individual::s_any_haplosome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
+// haplosomes first, individual later; this is the old paradigm; DELETE ME
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
 	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
@@ -88,6 +89,36 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
     spatial_x_ = 0.0;
     spatial_y_ = 0.0;
     spatial_z_ = 0.0;
+#endif
+}
+
+// individual first, haplosomes later; this is the new multichrom paradigm
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
+	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
+	sex_(p_sex), migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
+#ifdef SLIMGUI
+	cached_unscaled_fitness_(p_fitness),
+#endif
+	age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
+{
+	// Set up our haplosomes vector with nullptr values initially
+	haplosomes_.resize(subpopulation_->species_.TotalHaplosomeCount());
+	
+	// Initialize tag values to the "unset" value
+	tag_value_ = SLIM_TAG_UNSET_VALUE;
+	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+	tagL0_set_ = false;
+	tagL1_set_ = false;
+	tagL2_set_ = false;
+	tagL3_set_ = false;
+	tagL4_set_ = false;
+	
+	// Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
+#if SLIM_LEAK_CHECKING
+	spatial_x_ = 0.0;
+	spatial_y_ = 0.0;
+	spatial_z_ = 0.0;
 #endif
 }
 

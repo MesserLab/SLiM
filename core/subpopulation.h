@@ -128,7 +128,7 @@ public:
 	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Haplosome *> &haplosomes_junkyard_nonnull;	// NOT OWNED: non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	std::vector<Haplosome *> &haplosomes_junkyard_null;	// NOT OWNED: null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	bool has_null_haplosomes_ = false;					// false until a null haplosome is added; NOT set by null haplosomes for sex chromosome sims; use CouldContainNullHaplosomes() to check this flag
+	bool has_null_haplosomes_ = false;					// inherits its value from species_.chromosomes_use_null_haplosomes_ but can additionally be false; use CouldContainNullHaplosomes() to check this flag
 	
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
 	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Haplosome vector (NOT premultiplied by 2!); equal to the number of females
@@ -245,18 +245,12 @@ public:
 	
 	slim_refcount_t NullHaplosomeCount(void);
 	inline bool CouldContainNullHaplosomes(void) {
-		// FIXME MULTICHROM firstChromosomeType is a temporary hack
-		ChromosomeType firstChromosomeType = species_.Chromosomes()[0]->Type();
-		
-		// sex-chromosome simulations can always contain null haplosomes
-		if (firstChromosomeType != ChromosomeType::kA_DiploidAutosome)
-			return true;
 #if DEBUG
 		// in DEBUG, check that has_null_haplosomes_ is not false when null haplosomes in fact exist (we allow the opposite case)
 		if (!has_null_haplosomes_ && (NullHaplosomeCount() > 0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CouldContainNullHaplosomes): (internal error) has_null_haplosomes_ is not correct." << EidosTerminate();
 #endif
-		return (has_null_haplosomes_);
+		return has_null_haplosomes_;
 	}
 	
 	slim_popsize_t DrawParentUsingFitness(gsl_rng *rng) const;								// WF only: draw an individual from the subpopulation based upon fitness
@@ -338,6 +332,7 @@ public:
 	}
 	
 	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
+	void GenerateParentsToFit_NEW(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
 	void CheckIndividualIntegrity(void);
 	
 #if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
@@ -352,6 +347,12 @@ public:
 	
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
+	
+	// generate offspring individuals from parent individuals; these method loop over chromosomes/haplosomes
+	Individual *GenerateIndividualCrossed(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	Individual *GenerateIndividualSelfed(Individual *p_parent);
+	Individual *GenerateIndividualCloned(Individual *p_parent);
+	Individual *GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
 	
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
@@ -368,6 +369,7 @@ public:
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null);
+	IndividualSex _SexForSexValue(EidosValue *p_sex_value);
 	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, EidosValue_Object *p_result)
 	{
 		if (p_proposed_child_accepted)

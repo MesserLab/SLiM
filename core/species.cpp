@@ -177,13 +177,7 @@ void Species::MakeImplicitChromosome(ChromosomeType p_type)
 	
 	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", /* p_index */ 0, /* p_preferred_mutcount */ 0);
-	int64_t id = chromosome->ID();
-	std::string symbol = chromosome->Symbol();
-	
-	chromosomes_.push_back(chromosome);
-	chromosome_from_id_.emplace(id, chromosome);
-	chromosome_from_symbol_.emplace(symbol, chromosome);
-	
+	AddChromosome(chromosome);
 	has_implicit_chromosome_ = true;
 	has_currently_initializing_chromosome_ = true;
 }
@@ -196,6 +190,73 @@ Chromosome *Species::CurrentlyInitializingChromosome(void)
 		EIDOS_TERMINATION << "ERROR (Species::CurrentlyInitializingChromosome): (internal error) no currently initializing chromosome exists even though has_currently_initializing_chromosome_ is true." << EidosTerminate();
 	
 	return chromosomes_.back();
+}
+
+void Species::AddChromosome(Chromosome *p_chromosome)
+{
+	int64_t id = p_chromosome->ID();
+	std::string symbol = p_chromosome->Symbol();
+	ChromosomeType type = p_chromosome->Type();
+	
+	chromosomes_.push_back(p_chromosome);
+	chromosome_from_id_.emplace(id, p_chromosome);
+	chromosome_from_symbol_.emplace(symbol, p_chromosome);
+	
+	// keep track of our haplosome configuration
+	switch (type)
+	{
+			// these chromosome types keep two haplosomes per individual
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kX_XSexChromosome:
+		case ChromosomeType::kZ_ZSexChromosome:
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			first_haplosome_index_.push_back(total_haplosome_count_);
+			last_haplosome_index_.push_back(total_haplosome_count_ + 1);
+			total_haplosome_count_ += 2;
+			break;
+			
+			// these chromosome types keep one haplosome per individual
+		case ChromosomeType::kH_HaploidAutosome:
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		case ChromosomeType::kML_HaploidMaleLine:
+			first_haplosome_index_.push_back(total_haplosome_count_);
+			last_haplosome_index_.push_back(total_haplosome_count_);
+			total_haplosome_count_ += 1;
+			break;
+	}
+	
+	// keep track of whether we contain null haplosomes or not (for optimizations)
+	switch (type)
+	{
+			// these chromosome types do not (normally) employ null haplosomes
+			// if addRecombinant() etc. places a null haplosome, it will fix this flag
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kH_HaploidAutosome:
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		case ChromosomeType::kHM_HaploidMaleInherited:
+			break;
+			
+			// these chromosome types employ null haplosomes
+		case ChromosomeType::kX_XSexChromosome:
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kZ_ZSexChromosome:
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		case ChromosomeType::kML_HaploidMaleLine:
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			// FIXME MULTICHROM we need to keep an overall flag at the species level, based on
+			// the chromosome types in play, and then copy that (and modify it as needed) at
+			// the subpopulation level so each subpop can potentially differ; or maybe that is
+			// excessively complex and we should just keep a single species flag; yeah, probably
+			chromosomes_use_null_haplosomes_ = true;
+			break;
+	}
 }
 
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
@@ -1857,6 +1918,7 @@ void Species::RunInitializeCallbacks(void)
 		// They always use null haplosomes, so any attempt to access their genetics is illegal.  They have no mutruns.
 		// BCH 18 September 2024: They also cannot have any declared chromosomes, or do anything that would cause an
 		// implicit chromosome to be defined.
+		// FIXME MULTICHROM eventually no-genetics models should have no chromosome object at all
 		if (recording_tree_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
@@ -1866,12 +1928,7 @@ void Species::RunInitializeCallbacks(void)
 		
 		// Make a dummy chromosome of length zero, id 0, symbol "0"
 		Chromosome *dummy_chromosome = new Chromosome(*this, ChromosomeType::kA_DiploidAutosome, 0, "0", /* p_index */ 0, /* p_preferred_mutcount */ 0);
-		int64_t id = dummy_chromosome->ID();
-		std::string symbol = dummy_chromosome->Symbol();
-		
-		chromosomes_.push_back(dummy_chromosome);
-		chromosome_from_id_.emplace(id, dummy_chromosome);
-		chromosome_from_symbol_.emplace(symbol, dummy_chromosome);
+		AddChromosome(dummy_chromosome);
 		has_implicit_chromosome_ = true;
 		has_currently_initializing_chromosome_ = true;
 		
@@ -2549,6 +2606,109 @@ void Species::SimulationHasFinished(void)
 	// Print mutation run experiment results
 	for (Chromosome *chromosome : chromosomes_)
 		chromosome->PrintMutationRunExperimentSummary();
+}
+
+void Species::Species_CheckIntegrity(void)
+{
+#if DEBUG
+	// Check for consistency in the chromosome setup first
+	const std::vector<Chromosome *> &chromosomes = Chromosomes();
+	size_t chromosomes_count = chromosomes.size();
+	int haplosome_index = 0;
+	bool null_haplosomes_used = false;
+	
+	if (has_genetics_ && (chromosomes_count == 0))
+		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) no chromosome present in genetic species." << EidosTerminate();
+	
+	for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
+	{
+		Chromosome *chromosome = chromosomes[chromosome_index];
+		ChromosomeType chromosome_type = chromosome->Type();
+		
+		if (chromosome->Index() != chromosome_index)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome->Index() mismatch." << EidosTerminate();
+		
+		if (ChromosomeFromID(chromosome->ID()) != chromosome)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome->ID() lookup error." << EidosTerminate();
+		
+		if (ChromosomeFromSymbol(chromosome->Symbol()) != chromosome)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome->Symbol() lookup error." << EidosTerminate();
+		
+		if (!sex_enabled_ &&
+			((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+			 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+			 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+			 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+			 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+			 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
+			 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+			 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+			 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome type '" << chromosome_type << "' not allowed in non-sexual models." << EidosTerminate();
+		
+		// check haplosome indices
+		int haplosome_count = 0;
+		
+		switch (chromosome_type)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				haplosome_count = 2;
+				break;
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				haplosome_count = 1;
+				break;
+		}
+		
+		if (first_haplosome_index_[chromosome_index] != haplosome_index)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) first_haplosome_index_ mismatch." << EidosTerminate();
+		if (last_haplosome_index_[chromosome_index] != haplosome_index + haplosome_count - 1)
+			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) last_haplosome_index_ mismatch." << EidosTerminate();
+		
+		haplosome_index += haplosome_count;
+		
+		// check null haplosome optimization
+		switch (chromosome_type)
+		{
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kML_HaploidMaleLine:
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				null_haplosomes_used = true;
+				break;
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+				break;
+		}
+	}
+	
+	if (haplosome_index != total_haplosome_count_)
+		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) total_haplosome_count_ does not match chromosomes." << EidosTerminate();
+	
+	if (null_haplosomes_used != chromosomes_use_null_haplosomes_)
+		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosomes_use_null_haplosomes_ mismatch." << EidosTerminate();
+#endif
+	
+#if DEBUG
+	// Then check each individual and its haplosomes
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+		subpop_pair.second->CheckIndividualIntegrity();
+#endif
 }
 
 void Species::_CheckMutationStackPolicy(void)
@@ -5443,7 +5603,7 @@ void Species::MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec 
 	
 	p_metadata->haplosome_id_ = p_haplosome->haplosome_id_;
 	p_metadata->is_null_ = p_haplosome->IsNull();
-	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();
+	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM this should be index, not type; two "A" chromosomes are different and cannot mix
 }
 
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
@@ -6795,7 +6955,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
 				}
 				if ((node0_metadata->type_ != haplosome0->AssociatedChromosome()->Type()) ||
-					(node1_metadata->type_ != haplosome1->AssociatedChromosome()->Type()))
+					(node1_metadata->type_ != haplosome1->AssociatedChromosome()->Type()))	// FIXME MULTICHROM this should test index, not type
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome type mismatch; this file cannot be read." << EidosTerminate();
 			}
 		}
