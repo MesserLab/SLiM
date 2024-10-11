@@ -250,10 +250,6 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kML_HaploidMaleLine:
 		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			// FIXME MULTICHROM we need to keep an overall flag at the species level, based on
-			// the chromosome types in play, and then copy that (and modify it as needed) at
-			// the subpopulation level so each subpop can potentially differ; or maybe that is
-			// excessively complex and we should just keep a single species flag; yeah, probably
 			chromosomes_use_null_haplosomes_ = true;
 			break;
 	}
@@ -1918,50 +1914,25 @@ void Species::RunInitializeCallbacks(void)
 		// They always use null haplosomes, so any attempt to access their genetics is illegal.  They have no mutruns.
 		// BCH 18 September 2024: They also cannot have any declared chromosomes, or do anything that would cause an
 		// implicit chromosome to be defined.
-		// FIXME MULTICHROM eventually no-genetics models should have no chromosome object at all
+		// BCH 10 October 2024: No-genetics models now have no Chromosome object at all
 		if (recording_tree_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot be nucleotide-based; either add genetic initialization calls, or turn off nucleotides." << EidosTerminate();
 		
 		has_genetics_ = false;
-		
-		// Make a dummy chromosome of length zero, id 0, symbol "0"
-		Chromosome *dummy_chromosome = new Chromosome(*this, ChromosomeType::kA_DiploidAutosome, 0, "0", /* p_index */ 0, /* p_preferred_mutcount */ 0);
-		AddChromosome(dummy_chromosome);
-		has_implicit_chromosome_ = true;
-		has_currently_initializing_chromosome_ = true;
-		
-		// initializeMutationRate(): initialize to zero
-		{
-			std::vector<slim_position_t> &positions = dummy_chromosome->mutation_end_positions_H_;
-			std::vector<double> &rates = dummy_chromosome->mutation_rates_H_;
-			rates.clear();
-			positions.clear();
-			rates.emplace_back(0.0);
-			num_mutrate_inits_++;
-		}
-		
-		// initializeRecombinationRate(): initialize to zero
-		{
-			std::vector<slim_position_t> &positions = dummy_chromosome->recombination_end_positions_H_;
-			std::vector<double> &rates = dummy_chromosome->recombination_rates_H_;
-			rates.clear();
-			positions.clear();
-			rates.emplace_back(0.0);
-			num_recrate_inits_++;
-		}
-		
-		community_.chromosome_changed_ = true;
 	}
 	
 	if (has_genetics_ && (!has_implicit_chromosome_) && (num_chromosome_inits_ == 0))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) a chromosome has not been set up properly." << EidosTerminate();
+	if (!has_genetics_ && (has_implicit_chromosome_ || (num_chromosome_inits_ > 0)))
+		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) a chromosome was set up in a no-genetics model." << EidosTerminate();
 	
 	// From the initialization that has occurred, there should now be a currently initializing chromosome,
 	// whether implicitly or explicitly defined.  We now close out its definition and check it for
 	// correctness.  If this is a multichromosome model, this has already been done for the previous ones.
-	EndCurrentChromosome(/* starting_new_chromosome */ false);
+	if (has_genetics_)
+		EndCurrentChromosome(/* starting_new_chromosome */ false);
 	
 	// set a default avatar string if one was not provided; these will be A, B, etc.
 	if (avatar_.length() == 0)
@@ -2203,11 +2174,13 @@ void Species::MaintainMutationRegistry(void)
 
 void Species::RecalculateFitness(void)
 {
-	TheChromosome().StartMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StartMutationRunExperimentClock();
 	
 	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
 	
-	TheChromosome().StopMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::MaintainTreeSequence(void)
@@ -2307,12 +2280,14 @@ void Species::WF_GenerateOffspring(void)
 	
 	if (no_active_callbacks)
 	{
-		TheChromosome().StartMutationRunExperimentClock();
+		if (has_genetics_)
+			TheChromosome().StartMutationRunExperimentClock();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false, false);
 		
-		TheChromosome().StopMutationRunExperimentClock();
+		if (has_genetics_)
+			TheChromosome().StopMutationRunExperimentClock();
 	}
 	else
 	{
@@ -2368,12 +2343,14 @@ void Species::WF_GenerateOffspring(void)
 		}
 		
 		// then evolve each subpop
-		TheChromosome().StartMutationRunExperimentClock();
+		if (has_genetics_)
+			TheChromosome().StartMutationRunExperimentClock();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
 		
-		TheChromosome().StopMutationRunExperimentClock();
+		if (has_genetics_)
+			TheChromosome().StopMutationRunExperimentClock();
 	}
 }
 
@@ -2387,11 +2364,13 @@ void Species::WF_SwitchToChildGeneration(void)
 	// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
 	// BCH 4/22/2023: this is no longer relevant in terms of accurate MutationRun refcounts, since
 	// we no longer refcount those, but they still need to be zeroed out so they're ready for reuse
-	TheChromosome().StartMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StartMutationRunExperimentClock();
 	
 	population_.ClearParentalHaplosomes();
 	
-	TheChromosome().StopMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::WF_SwapGenerations(void)

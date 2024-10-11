@@ -109,7 +109,6 @@ public:
 private:
 #endif
 	
-	// FIXME MULTICHROM chromosome_index_ needs to get set up properly
 	slim_chromosome_index_t /* uint8_t */ chromosome_index_ = 0;	// the index of this haplosome's chromosome
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	

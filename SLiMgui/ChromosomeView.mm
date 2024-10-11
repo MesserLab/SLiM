@@ -222,10 +222,18 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 		Species *displaySpecies = [controller focalDisplaySpecies];
-		Chromosome &chromosome = displaySpecies->TheChromosome();
-		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
-		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
+		if (displaySpecies->chromosomes_.size())
+		{
+			Chromosome &chromosome = displaySpecies->TheChromosome();
+			slim_position_t chromosomeLastPosition = chromosome.last_position_;
+			
+			return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
+		}
+		else
+		{
+			return NSMakeRange(0, 0);
+		}
 	}
 }
 

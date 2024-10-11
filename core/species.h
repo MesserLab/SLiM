@@ -400,7 +400,12 @@ public:
 	
 	// Chromosome configuration and access
 #warning remove TheChromosome() step by step
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)						{ return *(chromosomes_[0]); }
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)
+	{
+		if (chromosomes_.size() == 0)
+			EIDOS_TERMINATION << "ERROR (Species::TheChromosome): (internal error) there is no chromosome; check for no genetics first." << EidosTerminate();
+		return *(chromosomes_[0]);
+	}
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
 	Chromosome *ChromosomeFromID(int64_t p_id);
 	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);

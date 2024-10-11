@@ -332,7 +332,6 @@ public:
 	}
 	
 	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
-	void GenerateParentsToFit_NEW(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
 	void CheckIndividualIntegrity(void);
 	
 #if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)

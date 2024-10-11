@@ -86,6 +86,9 @@ Haplosome *Subpopulation::_NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_p
 // WF only:
 void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male)
 {
+	if (!species_.HasGenetics())
+		return;
+	
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -155,10 +158,6 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 // haplosomes between a null and non-null state, as a side effect of changing sex.  So this code is really gross and invasive.
 void Subpopulation::GenerateChildrenToFitWF()
 {
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	
 	// First, make the number of Individual objects match, and make the corresponding Haplosome changes
 	int old_individual_count = (int)child_individuals_.size();
 	int new_individual_count = child_subpop_size_;
@@ -170,6 +169,10 @@ void Subpopulation::GenerateChildrenToFitWF()
 		
 		if (species_.HasGenetics())
 		{
+			Chromosome &chromosome = species_.TheChromosome();
+			int32_t mutrun_count = chromosome.mutrun_count_;
+			slim_position_t mutrun_length = chromosome.mutrun_length_;
+			
 			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 			{
 				// allocate out of our object pools
@@ -192,9 +195,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			// In the no-genetics case we know we need null haplosomes, and we have to create them up front to avoid errors
 			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 			{
-				Haplosome *haplosome1 = NewSubpopHaplosome_NULL();
-				Haplosome *haplosome2 = NewSubpopHaplosome_NULL();
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, haplosome1, haplosome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
 				child_individuals_.emplace_back(individual);
 			}
@@ -241,230 +242,6 @@ void Subpopulation::GenerateChildrenToFitWF()
 // sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
 // involved in that case).  This handles both the WF and nonWF cases, which are very similar.
 void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age)
-{
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
-	
-	// FIXME MULTICHROM we will need to loop over chromosomes and fill out their haplosomes one by one
-	// FIXME MULTICHROM firstChromosomeType is a temporary hack
-	ChromosomeType firstChromosomeType = species_.Chromosomes()[0]->Type();
-	
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	
-	cached_parent_individuals_value_.reset();
-	
-	if (parent_individuals_.size())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals already present in GenerateParentsToFit()." << EidosTerminate();
-	if ((parent_subpop_size_ == 0) && !p_allow_zero_size)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) subpop size of 0 requested." << EidosTerminate();
-	
-	if (p_haploid)
-	{
-		if (model_type_ == SLiMModelType::kModelTypeWF)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals in WF models." << EidosTerminate();
-		if (sex_enabled_ && (firstChromosomeType != ChromosomeType::kA_DiploidAutosome))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals when simulating sex chromosomes." << EidosTerminate();
-		
-		has_null_haplosomes_ = true;
-	}
-	
-	// We also have to make space for the pointers to the haplosomes and individuals
-	parent_individuals_.reserve(parent_subpop_size_);
-	
-	// Now create new individuals and haplosomes appropriate for the requested sex ratio and subpop size
-	bool has_genetics = species_.HasGenetics();
-	std::vector<MutationRun *> shared_empty_runs;
-	
-	if ((parent_subpop_size_ > 0) && has_genetics)
-	{
-		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
-		// the correct per-thread allocation pool.  See also ExecuteMethod_addEmpty(), which does the same.
-		shared_empty_runs.resize(mutrun_count);
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
-			
-			shared_empty_runs[run_index] = MutationRun::NewMutationRun(mutrun_context);
-		}
-	}
-	
-	if (sex_enabled_)
-	{
-		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(p_sex_ratio * parent_subpop_size_));	// round in favor of males, arbitrarily
-		slim_popsize_t first_male_index = parent_subpop_size_ - total_males;
-		
-		parent_first_male_index_ = first_male_index;
-		
-		if (p_require_both_sexes)
-		{
-			if (first_male_index <= 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): sex ratio of " << p_sex_ratio << " produced no females." << EidosTerminate();
-			else if (first_male_index >= parent_subpop_size_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): sex ratio of " << p_sex_ratio << " produced no males." << EidosTerminate();
-		}
-		
-		// Make females and then males
-		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
-		{
-			bool is_female = (new_index < first_male_index);
-			Haplosome *haplosome1, *haplosome2;
-			
-			if (has_genetics)
-			{
-				switch (firstChromosomeType)
-				{
-					case ChromosomeType::kA_DiploidAutosome:
-					{
-						haplosome1 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-						haplosome1->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-						
-						if (p_haploid)
-						{
-							haplosome2 = NewSubpopHaplosome_NULL();
-						}
-						else
-						{
-							haplosome2 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-							haplosome2->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						break;
-					}
-					case ChromosomeType::kX_XSexChromosome:
-					{
-						haplosome1 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-						haplosome1->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-						
-						if (is_female)
-						{
-							haplosome2 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-							haplosome2->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						else
-						{
-							haplosome2 = NewSubpopHaplosome_NULL();
-						}
-						break;
-					}
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					{
-						haplosome1 = NewSubpopHaplosome_NULL();
-						
-						if (is_female)
-						{
-							haplosome2 = NewSubpopHaplosome_NULL();
-						}
-						else
-						{
-							haplosome2 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-							haplosome2->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						break;
-					}
-				}
-			}
-			else
-			{
-				// no-genetics species have null haplosomes
-				switch (firstChromosomeType)
-				{
-					case ChromosomeType::kA_DiploidAutosome:
-					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					{
-						haplosome1 = NewSubpopHaplosome_NULL();
-						haplosome2 = NewSubpopHaplosome_NULL();
-						break;
-					}
-				}
-			}
-			
-			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, haplosome1, haplosome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
-			
-			if (pedigrees_enabled)
-			{
-				slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
-				
-				individual->TrackParentage_Parentless(pid);
-				
-				individual->haplosomes_[0]->haplosome_id_ = pid * 2;
-				individual->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
-			}
-			
-			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
-			{
-				species_.SetCurrentNewIndividual(individual);
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
-			}
-			
-			parent_individuals_.emplace_back(individual);
-		}
-	}
-	else
-	{
-		// Make hermaphrodites
-		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
-		{
-			// allocate out of our object pools
-			// start new parental haplosomes out with a shared empty mutrun; can't be nullptr like child haplosomes can
-			Haplosome *haplosome1, *haplosome2;
-			
-			if (has_genetics)
-			{
-				haplosome1 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-				haplosome1->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-				
-				if (p_haploid)
-				{
-					haplosome2 = NewSubpopHaplosome_NULL();
-				}
-				else
-				{
-					haplosome2 = NewSubpopHaplosome_NONNULL(mutrun_count, mutrun_length);
-					haplosome2->ReinitializeHaplosomeToMutruns(mutrun_count, mutrun_length, shared_empty_runs);
-				}
-			}
-			else
-			{
-				// no-genetics species have null haplosomes
-				haplosome1 = NewSubpopHaplosome_NULL();
-				haplosome2 = NewSubpopHaplosome_NULL();
-			}
-			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, haplosome1, haplosome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
-			
-			if (pedigrees_enabled)
-			{
-				slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
-				
-				individual->TrackParentage_Parentless(pid);
-				
-				individual->haplosomes_[0]->haplosome_id_ = pid * 2;
-				individual->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
-			}
-			
-			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
-			{
-				species_.SetCurrentNewIndividual(individual);
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
-			}
-			
-			parent_individuals_.emplace_back(individual);
-		}
-	}
-}
-
-// Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
-// sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
-// involved in that case).  This handles both the WF and nonWF cases, which are very similar.
-void Subpopulation::GenerateParentsToFit_NEW(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age)
 {
 	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
 	
@@ -549,9 +326,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	size_t chromosomes_count = chromosomes.size();
 	bool has_genetics = species_.HasGenetics();
 	
-	// FIXME MULTICHROM this is where we're heading
-	//if (!has_genetics_ && (chromosomes_count != 0))
-	//	EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
+	if (!has_genetics && (chromosomes_count != 0))
+		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
 	
 	for (Chromosome *chromosome : chromosomes)
 	{
@@ -911,9 +687,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//	Check the haplosome junkyards; all haplosomes should contain nullptr mutruns
 	//
 	
-	// FIXME MULTICHROM no chromosomes and no haplosomes for no-genetics species, coming up...
-	//if (!has_genetics && haplosomes_junkyard_null.size())
-	//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the null haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
+	if (!has_genetics && haplosomes_junkyard_null.size())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the null haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
 	if (!has_genetics && haplosomes_junkyard_nonnull.size())
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the nonnull haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
 	
@@ -951,7 +726,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	}
 	else
 	{
-		GenerateParentsToFit_NEW(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -997,7 +772,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	}
 	else
 	{
-		GenerateParentsToFit_NEW(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
