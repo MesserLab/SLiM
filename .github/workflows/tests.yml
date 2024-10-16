@@ -27,6 +27,10 @@ jobs:
           - {os: macos-12, python: 3.8}
           # macOS, newest supported version (haven't tried macos-14 yet)
           - {os: macos-13, python: 3.9}
+          # macOS, newest supported version (haven't tried macos-14 yet)
+          - {os: macos-14, python: 3.9}
+          # macOS, newest supported version (haven't tried macos-14 yet)
+          - {os: macos-15, python: 3.9}
       
     runs-on: ${{ matrix.os }}
     steps:
