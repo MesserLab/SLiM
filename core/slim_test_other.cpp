@@ -2023,6 +2023,8 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); } 2 early() { if (p1.individualCount == 0) stop(); }", "undefined identifier", __LINE__);
 	
 	// Test that deferred generation of offspring haplosomes does not cause vulnerabilities in properties/methods
+#if 0
+	// FIXME MULTICHROM deferred generation is disabled for now...
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutations; }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.containsMutations(sim.mutations); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.countOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
@@ -2048,6 +2050,7 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.readFromVCF('foo'); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.removeMutations(); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.sumOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
+#endif
 }
 
 #pragma mark treeseq tests

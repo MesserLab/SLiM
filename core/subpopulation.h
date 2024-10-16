@@ -125,9 +125,13 @@ public:
 	
 	// These object pools are owned by Population, and are used by all of its Subpopulations; we have references to them just for efficiency
 	EidosObjectPool &haplosome_pool_;				// NOT OWNED: a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
-	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Haplosome *> &haplosomes_junkyard_nonnull;	// NOT OWNED: non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	std::vector<Haplosome *> &haplosomes_junkyard_null;	// NOT OWNED: null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	
+	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
+	std::vector<Individual *> &individuals_junkyard_;	// NOT OWNED: individuals get put here when we're done with them, so we can reuse them quickly
+	
+	int haplosome_count_per_individual_;					// inherits its value from species_.haplosome_count_per_individual_
 	bool has_null_haplosomes_ = false;					// inherits its value from species_.chromosomes_use_null_haplosomes_ but can additionally be false; use CouldContainNullHaplosomes() to check this flag
 	
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
@@ -238,11 +242,12 @@ public:
 	Subpopulation(void) = delete;																	// no null construction
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid);
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-				  double p_sex_ratio, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
+				  double p_sex_ratio, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male)
 	~Subpopulation(void);																			// destructor
 	
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
 	
+	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
 	slim_refcount_t NullHaplosomeCount(void);
 	inline bool CouldContainNullHaplosomes(void) {
 #if DEBUG
@@ -262,21 +267,22 @@ public:
 	slim_popsize_t DrawMaleParentEqualProbability(gsl_rng *rng) const;						// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	// Returns a new haplosome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	Haplosome *_NewSubpopHaplosome_NULL(void);	// internal use only
-	Haplosome *_NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length);	// internal use only
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(void)
+	Haplosome *_NewSubpopHaplosome_NULL(Individual *p_individual);	// internal use only
+	Haplosome *_NewSubpopHaplosome_NONNULL(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length);	// internal use only
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(Individual *p_individual)
 	{
 		if (haplosomes_junkyard_null.size())
 		{
 			Haplosome *back = haplosomes_junkyard_null.back();
 			haplosomes_junkyard_null.pop_back();
 			
+			back->individual_ = p_individual;
 			return back;
 		}
 		
-		return _NewSubpopHaplosome_NULL();
+		return _NewSubpopHaplosome_NULL(p_individual);
 	}
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length)
+	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length)
 	{
 #if DEBUG
 		if (p_mutrun_count == 0)
@@ -303,32 +309,149 @@ public:
 				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 				{
 					back->mutruns_ = back->run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
 					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
 				}
 				else
+				{
+#if SLIM_CLEAR_HAPLOSOMES
 					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
+#else
+					back->mutruns_ = (const MutationRun **)malloc(p_mutrun_count * sizeof(const MutationRun *));
+#endif
+				}
 			}
 			else
 			{
+#if SLIM_CLEAR_HAPLOSOMES
 				// the number of mutruns is unchanged, but we need to zero out the reused buffer here
 				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 				else
 					EIDOS_BZERO(back->mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+#endif
 			}
+			
+			back->individual_ = p_individual;
 			return back;
 		}
 		
-		return _NewSubpopHaplosome_NONNULL(p_mutrun_count, p_mutrun_length);
+		return _NewSubpopHaplosome_NONNULL(p_individual, p_mutrun_count, p_mutrun_length);
 	}
 	
 	// Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
 	inline __attribute__((always_inline)) void FreeSubpopHaplosome(Haplosome *p_haplosome)
 	{
+#if DEBUG
+		p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
+#endif
+		
+		// somebody needs to reset the tag value of reused haplosomes; it might as well be us
+		// this used to be done by Individual::Individual(), which got passed the individual's haplosomes
+#warning this should only get cleared, in bulk, based on a flag, like individual tag values; big waste of time; see s_any_haplosome_tag_set_, we are already doing this in SwapChildAndParentHaplosomes() for WF
+		p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
+		
 		if (p_haplosome->IsNull())
 			haplosomes_junkyard_null.emplace_back(p_haplosome);
 		else
 			haplosomes_junkyard_nonnull.emplace_back(p_haplosome);
+	}
+	
+	inline __attribute__((always_inline)) Individual *NewSubpopIndividual(slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age)
+	{
+		if (individuals_junkyard_.size())
+		{
+			Individual *back = individuals_junkyard_.back();
+			individuals_junkyard_.pop_back();
+			
+#if DEBUG
+			// check all ivars that should be guaranteed by the junkyard
+			if ((back->KeyCount() != 0) || (back->color_set_ != false) || (back->tag_value_ != SLIM_TAG_UNSET_VALUE) || (back->tagF_value_ != SLIM_TAGF_UNSET_VALUE) || (back->tagL0_set_ != false) || (back->tagL1_set_ != false) || (back->tagL2_set_ != false) || (back->tagL3_set_ != false) || (back->tagL4_set_ != false) || (back->reproductive_output_ != 0))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopIndividual): (internal error) junkyard individual incorrectly configured." << EidosTerminate();
+#endif
+			
+#if DEBUG
+			// set up our haplosomes vector with nullptr values initially, when in DEBUG
+			EIDOS_BZERO(back->haplosomes_, haplosome_count_per_individual_ * sizeof(Haplosome *));
+#endif
+			
+			// set all ivars that are not guaranteed by the junkyard; see FreeSubpopIndividual()
+			// note that we do not reset the pedigree ivars anywhere; they should be overwritten if
+			// pedigree tracking is enabled, otherwise they will be left as -1 since they are unused
+			back->mean_parent_age_ = p_mean_parent_age;
+			back->sex_ = p_sex;
+			back->migrant_ = false;
+			back->killed_ = false;
+			back->fitness_scaling_ = 1.0;
+			back->cached_fitness_UNSAFE_ = p_fitness;
+#ifdef SLIMGUI
+			back->cached_unscaled_fitness_ = p_fitness;
+#endif
+			back->age_ = p_age;
+			back->index_ = p_individual_index;
+			back->subpopulation_ = this;
+			return back;
+		}
+		
+		return  new (individual_pool_.AllocateChunk()) Individual(this, p_individual_index, p_sex, p_age, p_fitness, p_mean_parent_age);
+	}
+	
+	inline __attribute__((always_inline)) void FreeSubpopIndividual(Individual *p_individual)
+	{
+		// The individuals junkyard guarantees certain things, since it can sometimes do so efficiently.
+		// This is based on what can be reset efficiently in WF models in Subpopulation::SwapChildAndParentHaplosomes(),
+		// which performs these resets itself as needed and returns individuals to the junkyard directly.
+		p_individual->RemoveAllKeys();	// no call to ContentsChanged() here, for speed; we know individual is a Dictionary not a DataFrame
+		p_individual->ClearColor();
+		p_individual->tag_value_ = SLIM_TAG_UNSET_VALUE;
+		p_individual->tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+		p_individual->tagL0_set_ = false;
+		p_individual->tagL1_set_ = false;
+		p_individual->tagL2_set_ = false;
+		p_individual->tagL3_set_ = false;
+		p_individual->tagL4_set_ = false;
+		p_individual->reproductive_output_ = 0;
+		
+		_FreeSubpopIndividual(p_individual);
+	}
+	inline __attribute__((always_inline)) void _FreeSubpopIndividual(Individual *p_individual)
+	{
+#if 0
+		// To avoid using the junkvard and debug problems with it, just enable this block.
+		individual->~Individual();
+		population_.species_individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
+		return;
+#endif
+		
+		// This returns an individual to the junkyard directly; the caller is responsible for
+		// resetting all of the state the junkyard guarantees; see FreeSubpopIndividual().
+		// The only thing we reset here is haplosomes_, since we want to free up those
+		// resources immediately in all code paths.
+		int haplosome_count = haplosome_count_per_individual_;
+		Haplosome **haplosomes = p_individual->haplosomes_;
+		
+		for (int haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
+		{
+			Haplosome *haplosome = haplosomes[haplosome_index];
+			
+			FreeSubpopHaplosome(haplosome);
+		}
+		
+		// Clear our haplosomes vector with nullptr values.  This is perhaps not strictly necessary,
+		// since the nullptr for subpopulation_ set below would already indicate that the individual
+		// is no longer valid and its haplosomes have been freed; but it seems wise to clean up
+		// here to prevent the possibility of access to stale haplosomes.  This is one cleanup that
+		// should not be done only in DEBUG, I think; the risk of logic errors with this is too high.
+		EIDOS_BZERO(p_individual->haplosomes_, haplosome_count_per_individual_ * sizeof(Haplosome *));
+		
+		// The individual needs to be detached from its subpopulation, since the subpopulation
+		// might get freed while the individual is still in the junkyard.  This means it
+		// will not be able to access things through the subpopulation any more; but since
+		// its haplosomes have already been freed, above, that ought to be OK.
+		p_individual->subpopulation_ = nullptr;
+		
+		individuals_junkyard_.emplace_back(p_individual);
 	}
 	
 	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new haplosomes and individuals to fit
@@ -347,11 +470,15 @@ public:
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
-	// generate offspring individuals from parent individuals; these method loop over chromosomes/haplosomes
-	Individual *GenerateIndividualCrossed(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-	Individual *GenerateIndividualSelfed(Individual *p_parent);
-	Individual *GenerateIndividualCloned(Individual *p_parent);
-	Individual *GenerateIndividualEmpty(slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
+	// generate/munge offspring individuals from parent individuals; these methods loop over chromosomes/haplosomes
+	// the WF-only "munge" variants munge an existing individual into the new child, reusing the individual and its haplosome objects
+	Individual *GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	Individual *GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	Individual *GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualCrossed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool MungeIndividualSelfed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool MungeIndividualCloned(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	Individual *GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
 	
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
@@ -381,8 +508,7 @@ public:
 		else
 		{
 			// The child was rejected, so dispose of it
-			p_individual->~Individual();
-			individual_pool_.DisposeChunk(const_cast<Individual *>(p_individual));
+			FreeSubpopIndividual(p_individual);
 			
 			// TREE SEQUENCE RECORDING
 			if (species_.RecordingTreeSequence())

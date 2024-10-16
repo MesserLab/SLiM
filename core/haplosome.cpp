@@ -243,8 +243,10 @@ void Haplosome::MakeNull(void)
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeToMutruns(int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
+void Haplosome::ReinitializeHaplosomeToMutruns(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
 {
+	individual_ = individual;
+	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
@@ -295,8 +297,13 @@ void Haplosome::ReinitializeHaplosomeToMutruns(int32_t p_mutrun_count, slim_posi
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_position_t p_mutrun_length)
+void Haplosome::ReinitializeHaplosomeNullptr(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
 {
+	// BCH 10/15/2024: The name of this method states that the reinitialized haplosome will be cleared to nullptr,
+	// but that is no longer the case since it is no longer necessary.  Instead, unless the debugging flag
+	// SLIM_CLEAR_HAPLOSOMES is set, we just clear to garbage; we provide the allocation structure only.
+	individual_ = individual;
+	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
@@ -308,10 +315,18 @@ void Haplosome::ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_positi
 			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
 				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
 			}
 			else
+			{
+#if SLIM_CLEAR_HAPLOSOMES
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
+#endif
+			}
 		}
 		else if (mutrun_count_ != p_mutrun_count)
 		{
@@ -325,18 +340,28 @@ void Haplosome::ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_positi
 			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
 				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
 			}
 			else
+			{
+#if SLIM_CLEAR_HAPLOSOMES
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
+#endif
+			}
 		}
 		else
 		{
+#if SLIM_CLEAR_HAPLOSOMES
 			// the number of mutruns has not changed; need to zero out
 			if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 			else
 				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+#endif
 		}
 		
 		// we leave the new mutruns_ buffer filled with nullptr
@@ -445,6 +470,7 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_chromosome:
 		{
+			// We reach our chromosome through our individual; note this prevents standalone haplosome objects
 			Chromosome *chromosome = individual_->subpopulation_->species_.Chromosomes()[chromosome_index_];
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
@@ -568,6 +594,9 @@ void Haplosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 	{
 		case gID_tag:				// ACCELERATED
 		{
+			// FIXME MULTICHROM if the empty haplosome is shared by multiple clients, its tag value will be shared also!
+			// need to split off a given haplosome from the shared haplosome object if its tag is set!
+			// This seems tricky, and is maybe a reason not to use a shared haplosome object in the first place!
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
@@ -4139,14 +4168,22 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			// just work automatically.
 			if (recording_tree_sequence_mutations)
 			{
+				int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
+				
 				// Mark all non-null haplosomes in the simulation that are not among the target haplosomes
 				for (auto subpop_pair : species->population_.subpops_)
 				{
 					Subpopulation *subpop = subpop_pair.second;
 					
 					for (Individual *ind : subpop->parent_individuals_)
-					for (Haplosome *haplosome : ind->haplosomes_)
-						haplosome->scratch_ = (haplosome->IsNull() ? 0 : 1);
+					{
+						for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+						{
+							Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+							
+							haplosome->scratch_ = (haplosome->IsNull() ? 0 : 1);
+						}
+					}
 				}
 				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
@@ -4174,15 +4211,17 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 					
 					for (Individual *ind : subpop->parent_individuals_)
 					{
-					for (Haplosome *haplosome : ind->haplosomes_)
-					{
-						if (haplosome->scratch_ == 1)
+						for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 						{
-							for (slim_position_t position : unique_positions)
-								species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(position));
-							haplosome->scratch_ = 0;
+							Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+							
+							if (haplosome->scratch_ == 1)
+							{
+								for (slim_position_t position : unique_positions)
+									species->RecordNewDerivedState(haplosome, position, *haplosome->derived_mutation_ids_at_position(position));
+								haplosome->scratch_ = 0;
+							}
 						}
-					}
 					}
 				}
 			}

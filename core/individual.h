@@ -132,7 +132,8 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	std::vector<Haplosome *> haplosomes_;	// OWNED (this is a policy change made for multichrom)
+	Haplosome *(hapbuffer_[2]);			// an internal buffer used to avoid allocation and memory nonlocality for simple models
+	Haplosome **haplosomes_;			// OWNED haplosomes; can point to hapbuffer_ or to an external malloced block
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -149,7 +150,6 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
 	
@@ -232,21 +232,14 @@ public:
 	
 	// In the new multichromosome design, the individual is created with nullptr values for its haplosomes,
 	// and then this method is used to add each new haplosome object after it is generated
-	inline void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
-	{
 #if DEBUG
-		if ((p_index < 0) || (p_index >= (int)haplosomes_.size()))
-			EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " out of range." << EidosTerminate();
-		if (haplosomes_[p_index])
-			EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " already filled." << EidosTerminate();
-#endif
-		
+	void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index);
+#else
+	inline __attribute__((always_inline)) void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
+	{
 		haplosomes_[p_index] = p_haplosome;
-		p_haplosome->individual_ = this;
-		
-		// FIXME MULTICHROM this should move to where a new haplosome is created, has nothing to do with the individual
-		p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	}
+#endif
 	
 	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and SharedParentCountWithIndividual;
 	// _Relatedness() and _SharedParentCount() are internal API made public for unit testing.

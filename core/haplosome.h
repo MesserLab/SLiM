@@ -109,6 +109,7 @@ public:
 private:
 #endif
 	
+	// FIXME MULTICHROM chromosome_index_ does not yet get set anywhere; the default value of 0 is simply used
 	slim_chromosome_index_t /* uint8_t */ chromosome_index_ = 0;	// the index of this haplosome's chromosome
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	
@@ -118,7 +119,7 @@ private:
 	const MutationRun **mutruns_;									// mutation runs; nullptr if a null haplosome OR an empty haplosome
 	
 	Individual *individual_;										// NOT OWNED: the Individual this haplosome belongs to
-	slim_usertag_t tag_value_;										// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;				// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
 	slim_haplosomeid_t haplosome_id_;	// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
@@ -137,22 +138,30 @@ public:
 	Haplosome& operator= (const Haplosome &p_original) = delete;
 	
 	// make a null haplosome
-	explicit inline Haplosome(void) :
-		mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(nullptr), haplosome_id_(-1)
+	explicit inline Haplosome(Individual *p_individual) :
+		mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(p_individual), haplosome_id_(-1)
 	{
 	};
 	
 	// make a non-null haplosome
-	inline Haplosome(int p_mutrun_count, slim_position_t p_mutrun_length) :
-		mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(nullptr), haplosome_id_(-1)
+	inline Haplosome(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length) :
+		mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(p_individual), haplosome_id_(-1)
 	{
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
 			mutruns_ = run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
 			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
 		}
 		else
+		{
+#if SLIM_CLEAR_HAPLOSOMES
 			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
+#endif
+		}
 	};
 	
 	~Haplosome(void);
@@ -177,8 +186,35 @@ public:
 	void MakeNull(void) __attribute__((cold));	// transform into a null haplosome
 	
 	// used to re-initialize haplosomes to a new state, reusing them for efficiency
-	void ReinitializeHaplosomeToMutruns(int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
-	void ReinitializeHaplosomeNullptr(int32_t p_mutrun_count, slim_position_t p_mutrun_length);
+	void ReinitializeHaplosomeToMutruns(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
+	void ReinitializeHaplosomeNullptr(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length);
+	
+#if DEBUG
+	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, int32_t mutrun_count, slim_position_t mutrun_length)
+	{
+		// This does a consistency check that two haplosomes (parent and child) match each other and,
+		// if they are non-null, the expectated mutrun count/length passed in (from a chromosome)
+		// It is used in the WF "munge" methods that munge an existing individual into a new child
+		if ((hapA->IsNull() != hapB->IsNull()) || (!hapA->IsNull() &&
+			((hapA->mutrun_count_ != mutrun_count) || (hapA->mutrun_length_ != mutrun_length) ||
+			(hapB->mutrun_count_ != mutrun_count) || (hapB->mutrun_length_ != mutrun_length))))
+			EIDOS_TERMINATION << "ERROR (Haplosome::CheckStructureMatch): (internal error) haplosome structure does not match!" << EidosTerminate();
+	}
+	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, Haplosome *hapC, int32_t mutrun_count, slim_position_t mutrun_length)
+	{
+		// This does a consistency check that two haplosomes (parent and child) match each other and,
+		// if they are non-null, the expectated mutrun count/length passed in (from a chromosome)
+		// It is used in the WF "munge" methods that munge an existing individual into a new child
+		if (((hapA->IsNull() != hapB->IsNull()) || (hapA->IsNull() != hapC->IsNull())) || (!hapA->IsNull() &&
+			((hapA->mutrun_count_ != mutrun_count) || (hapA->mutrun_length_ != mutrun_length) ||
+			 (hapB->mutrun_count_ != mutrun_count) || (hapB->mutrun_length_ != mutrun_length) ||
+			 (hapC->mutrun_count_ != mutrun_count) || (hapC->mutrun_length_ != mutrun_length))))
+			EIDOS_TERMINATION << "ERROR (Haplosome::CheckStructureMatch): (internal error) haplosome structure does not match!" << EidosTerminate();
+	}
+#else
+	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, int32_t, slim_position_t) {}
+	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, Haplosome *, int32_t, slim_position_t) {}
+#endif
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
@@ -275,6 +311,8 @@ public:
 		}
 	}
 	
+#if SLIM_CLEAR_HAPLOSOMES
+	// BCH 10/15/2024: clearing haplosomes to nullptr is no longer required; it just slows us down.
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
 		// It is legal to call this method on null haplosomes, for speed/simplicity; it does no harm
@@ -292,6 +330,7 @@ public:
 			if (mutruns_[run_index])
 				EIDOS_TERMINATION << "ERROR (Haplosome::check_cleared_to_nullptr): (internal error) haplosome should be cleared but is not." << EidosTerminate();
 	}
+#endif
 	
 	inline __attribute__((always_inline)) bool contains_mutation(MutationIndex p_mutation_index)
 	{

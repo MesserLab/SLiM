@@ -215,7 +215,7 @@ private:
 	
 	std::vector<int> first_haplosome_index_;			// the first index in haplosomes_ for a given chromosome (synced to chromosomes_)
 	std::vector<int> last_haplosome_index_;				// the last index in haplosomes_ for a given chromosome (synced to chromosomes_)
-	int total_haplosome_count_ = 0;						// the total number of haplosomes per individual, based on the chromosome types
+	int haplosome_count_per_individual_ = 0;			// the total number of haplosomes per individual, based on the chromosome types
 	bool chromosomes_use_null_haplosomes_ = false;		// set to true if our chromosome types use null haplosomes; check this with CouldContainNullHaplosomes()
 	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
@@ -407,13 +407,15 @@ public:
 		return *(chromosomes_[0]);
 	}
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	inline __attribute__((always_inline)) const std::vector<int> &FirstHaplosomeIndices(void) { return first_haplosome_index_; }
+	inline __attribute__((always_inline)) const std::vector<int> &LastHaplosomeIndices(void) { return last_haplosome_index_; }
 	Chromosome *ChromosomeFromID(int64_t p_id);
 	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
 	void MakeImplicitChromosome(ChromosomeType p_type);
 	Chromosome *CurrentlyInitializingChromosome(void);								// the last chromosome defined (currently initializing)
 	void AddChromosome(Chromosome *p_chromosome);
 	inline __attribute__((always_inline)) bool ChromosomesUseNullHaplosomes(void) { return chromosomes_use_null_haplosomes_; }
-	inline __attribute__((always_inline)) int TotalHaplosomeCount(void) { return total_haplosome_count_; }
+	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
 	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling

@@ -2869,26 +2869,30 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (Haplosome *haplosome : ind->haplosomes_)
-			{
-				int mutrun_count = haplosome->mutrun_count_;
+				int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					const MutationRun *mutrun = haplosome->mutruns_[run_index];
-					int mut_count = mutrun->size();
-					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+					Haplosome *haplosome = ind->haplosomes_[haplosome_index];
 					
-					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+					int mutrun_count = haplosome->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						int mut_count = mutrun->size();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
-						// use scratch_ to check whether the mutation is one we are outputting
-						if (scan_mutation->scratch_)
-							AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+						{
+							Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
+							
+							// use scratch_ to check whether the mutation is one we are outputting
+							if (scan_mutation->scratch_)
+								AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+						}
 					}
 				}
-			}
 			}
 			
 			// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code

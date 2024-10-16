@@ -48,51 +48,8 @@ bool Individual::s_any_haplosome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-// haplosomes first, individual later; this is the old paradigm; DELETE ME
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
-	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
-	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
-	sex_(p_sex), migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
-#ifdef SLIMGUI
-	cached_unscaled_fitness_(p_fitness),
-#endif
-	age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
-{
-#if DEBUG
-	if (!p_haplosome1 || !p_haplosome2)
-		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for haplosome." << EidosTerminate();
-#endif
-	
-	// Set up our haplosomes vector
-	haplosomes_.resize(2);
-	haplosomes_[0] = p_haplosome1;
-	haplosomes_[1] = p_haplosome2;
-	
-	// Set up the pointers from our haplosomes to us
-	p_haplosome1->individual_ = this;
-	p_haplosome2->individual_ = this;
-	
-	// Initialize tag values to the "unset" value
-	tag_value_ = SLIM_TAG_UNSET_VALUE;
-	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
-	tagL0_set_ = false;
-	tagL1_set_ = false;
-	tagL2_set_ = false;
-	tagL3_set_ = false;
-	tagL4_set_ = false;
-	
-	p_haplosome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
-	p_haplosome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
-    
-    // Initialize x/y/z to 0.0, only when leak-checking (they show up as used before initialized in Valgrind)
-#if SLIM_LEAK_CHECKING
-    spatial_x_ = 0.0;
-    spatial_y_ = 0.0;
-    spatial_z_ = 0.0;
-#endif
-}
-
 // individual first, haplosomes later; this is the new multichrom paradigm
+// BCH 10/12/2024: Note that this will rarely be called after simulation startup; see NewSubpopIndividual()
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
 	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
@@ -102,8 +59,22 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #endif
 	age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
 {
-	// Set up our haplosomes vector with nullptr values initially
-	haplosomes_.resize(subpopulation_->species_.TotalHaplosomeCount());
+	// Set up our haplosomes with nullptr values initially.  If we have 0/1/2 haplosomes total, we use our
+	// internal buffer for speed; avoid malloc/free entirely, and even more important, get the memory
+	// locality of having the haplosome pointers right inside the individual itself.  Otherwise, we alloc
+	// an external buffer, which entails fetching a new cache line to go through the indirection.
+	int haplosome_count_per_individual = subpopulation_->HaplosomeCountPerIndividual();
+	
+	if (haplosome_count_per_individual <= 2)
+	{
+		hapbuffer_[0] = nullptr;
+		hapbuffer_[1] = nullptr;
+		haplosomes_ = hapbuffer_;
+	}
+	else
+	{
+		haplosomes_ = (Haplosome **)calloc(haplosome_count_per_individual, sizeof(Haplosome *));
+	}
 	
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -125,9 +96,54 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 Individual::~Individual(void)
 {
 	// BCH 10/6/2024: Individual now owns the haplosomes inside it (a policy change for multichrom)
-	for (Haplosome *haplosome : haplosomes_)
-		subpopulation_->FreeSubpopHaplosome(haplosome);
+	// BCH 10/12/2024: Note that this might no longer be called except at simulation end; see FreeSubpopIndividual()
+	Subpopulation *subpop = subpopulation_;
+	
+	// The subpopulation_ pointer is set to nullptr when an individual is placed in individuals_junkyard_;
+	// in that case, its haplosomes have already been freed, so this loop does not need to run.
+	if (subpopulation_)
+	{
+		int haplosome_count_per_individual = subpop->HaplosomeCountPerIndividual();
+		Haplosome **haplosomes = haplosomes_;
+		
+		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; ++haplosome_index)
+		{
+			Haplosome *haplosome = haplosomes[haplosome_index];
+			
+			// haplosome points can be nullptr, if an individual has already freed its haplosome objects;
+			// this happens when an individual is placed in individuals_junkyard_, in particular
+			if (haplosome)
+				subpop->FreeSubpopHaplosome(haplosome);
+		}
+	}
+	
+	if (haplosomes_ != hapbuffer_)
+		free(haplosomes_);
+	
+#if DEBUG
+	haplosomes_ = nullptr;
+#endif
 }
+
+#if DEBUG
+void Individual::AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
+{
+	int haplosome_count_per_individual = subpopulation_->HaplosomeCountPerIndividual();
+	
+	if ((p_index < 0) || (p_index >= haplosome_count_per_individual))
+		EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " out of range." << EidosTerminate();
+	
+	// in DEBUG haplosomes_ should be zero-filled; when not in DEBUG, it may not be!
+	if (haplosomes_[p_index])
+		EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome index " << p_index << " already filled." << EidosTerminate();
+	
+	// the haplosome should already know that it belongs to the individual; this method just makes the individual aware of that
+	if (p_haplosome->individual_ != this)
+		EIDOS_TERMINATION << "ERROR (Individual::AddHaplosomeAtIndex): (internal error) haplosome individual_ pointer not set up." << EidosTerminate();
+	
+	haplosomes_[p_index] = p_haplosome;
+}
+#endif
 
 static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
 {
@@ -396,21 +412,32 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_haplosomes:
 		{
-			size_t haplosomes_count = haplosomes_.size();
-			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(haplosomes_count);
+			int haplosome_count_per_individual = subpopulation_->HaplosomeCountPerIndividual();
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->resize_no_initialize(haplosome_count_per_individual);
+			Haplosome **haplosomes = haplosomes_;
 			
-			for (size_t haplosome_index = 0; haplosome_index < haplosomes_count; haplosome_index++)
-				vec->set_object_element_no_check_NORR(haplosomes_[haplosome_index], haplosome_index);
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				vec->set_object_element_no_check_NORR(haplosome, haplosome_index);
+			}
 			
 			return EidosValue_SP(vec);
 		}
 		case gID_haplosomesNonNull:
 		{
-			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(haplosomes_.size());
+			int haplosome_count_per_individual = subpopulation_->HaplosomeCountPerIndividual();
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(haplosome_count_per_individual);
+			Haplosome **haplosomes = haplosomes_;
 			
-			for (Haplosome *haplosome : haplosomes_)
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
 				if (!haplosome->IsNull())
 					vec->push_object_element_no_check_NORR(haplosome);
+			}
 			
 			return EidosValue_SP(vec);
 		}

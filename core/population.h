@@ -139,9 +139,11 @@ public:
 	
 	// Object pools for individuals and haplosomes, kept population-wide
 	EidosObjectPool species_haplosome_pool_;					// a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
-	EidosObjectPool species_individual_pool_;				// a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Haplosome *> species_haplosomes_junkyard_nonnull;	// non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	std::vector<Haplosome *> species_haplosomes_junkyard_null;		// null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	
+	EidosObjectPool species_individual_pool_;				// a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
+	std::vector<Individual *> species_individuals_junkyard_;	// individuals get put here when we're done with them, so we can reuse them quickly
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
@@ -231,8 +233,8 @@ public:
 	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
 	
 	// generate a child haplosome from parental haplosome(s), very directly -- no null haplosomes etc., just cross/clone
-	void HaplosomeCrossed(Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	void HaplosomeCloned(Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
 	// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
 	void DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &p_child_haplosome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
@@ -331,8 +333,10 @@ public:
 	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
 	
+#if SLIM_CLEAR_HAPLOSOMES
 	// Clear all parental haplosomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 	void ClearParentalHaplosomes(void);
+#endif
 	
 	//********** nonWF methods
 

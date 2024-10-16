@@ -2440,8 +2440,8 @@ void Community::AllSpecies_PurgeRemovedObjects(void)
 	// with PurgeRemovedSubpopulations() only in Population::SwapGenerations().
 	for (Species *species : all_species_)
 	{
+		species->EmptyGraveyard();		// needs to be done first; uses subpopulation references
 		species->population_.PurgeRemovedSubpopulations();
-		species->EmptyGraveyard();
 	}
 }
 
@@ -2695,6 +2695,7 @@ bool Community::_RunOneTickWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in the fitness recalculation step??
 		for (Species *species : all_species_)
 			if (species->Active())
 				species->FinishMutationRunExperimentTimings();
@@ -3092,6 +3093,7 @@ bool Community::_RunOneTickNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in late() events??
 		for (Species *species : all_species_)
 			if (species->Active())
 				species->FinishMutationRunExperimentTimings();

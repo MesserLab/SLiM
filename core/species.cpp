@@ -114,7 +114,7 @@ Species::~Species(void)
 	//EIDOS_ERRSTREAM << "Species::~Species" << std::endl;
 	
 	// There shouldn't be any individuals in the graveyard here, but just in case
-	EmptyGraveyard();
+	EmptyGraveyard();		// needs to be done first; uses subpopulation references
 	
 	population_.RemoveAllSubpopulationInfo();
 	
@@ -211,9 +211,9 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kZ_ZSexChromosome:
 		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			first_haplosome_index_.push_back(total_haplosome_count_);
-			last_haplosome_index_.push_back(total_haplosome_count_ + 1);
-			total_haplosome_count_ += 2;
+			first_haplosome_index_.push_back(haplosome_count_per_individual_);
+			last_haplosome_index_.push_back(haplosome_count_per_individual_ + 1);
+			haplosome_count_per_individual_ += 2;
 			break;
 			
 			// these chromosome types keep one haplosome per individual
@@ -224,9 +224,9 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kFL_HaploidFemaleLine:
 		case ChromosomeType::kHM_HaploidMaleInherited:
 		case ChromosomeType::kML_HaploidMaleLine:
-			first_haplosome_index_.push_back(total_haplosome_count_);
-			last_haplosome_index_.push_back(total_haplosome_count_);
-			total_haplosome_count_ += 1;
+			first_haplosome_index_.push_back(haplosome_count_per_individual_);
+			last_haplosome_index_.push_back(haplosome_count_per_individual_);
+			haplosome_count_per_individual_ += 1;
 			break;
 	}
 	
@@ -1922,7 +1922,7 @@ void Species::RunInitializeCallbacks(void)
 		
 		has_genetics_ = false;
 	}
-	
+
 	if (has_genetics_ && (!has_implicit_chromosome_) && (num_chromosome_inits_ == 0))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): (internal error) a chromosome has not been set up properly." << EidosTerminate();
 	if (!has_genetics_ && (has_implicit_chromosome_ || (num_chromosome_inits_ > 0)))
@@ -2214,11 +2214,10 @@ void Species::MaintainTreeSequence(void)
 void Species::EmptyGraveyard(void)
 {
 	// Individuals end up in graveyard_ due to killIndividuals(); they get disposed of here.
+	// It's not necessary that FreeSubpopIndividual() be called on the correct subpopulation, really,
+	// but that API is at the Subpopulation level instead of in Species for efficiency, so...
 	for (Individual *individual : graveyard_)
-	{
-		individual->~Individual();
-		population_.species_individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
-	}
+		individual->subpopulation_->FreeSubpopIndividual(individual);
 	
 	graveyard_.clear();
 }
@@ -2364,13 +2363,12 @@ void Species::WF_SwitchToChildGeneration(void)
 	// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
 	// BCH 4/22/2023: this is no longer relevant in terms of accurate MutationRun refcounts, since
 	// we no longer refcount those, but they still need to be zeroed out so they're ready for reuse
-	if (has_genetics_)
-		TheChromosome().StartMutationRunExperimentClock();
-	
+	// BCH 10/15/2024: I realized that clearing the haplosomes is no longer needed at all; we can
+	// just remove our requirement that the haplosomes be cleared, and overwrite the stale pointers
+	// when we reuse a haplosome.  I am relegating haplosome clearing to a debugging flag.
+#if SLIM_CLEAR_HAPLOSOMES
 	population_.ClearParentalHaplosomes();
-	
-	if (has_genetics_)
-		TheChromosome().StopMutationRunExperimentClock();
+#endif
 }
 
 void Species::WF_SwapGenerations(void)
@@ -2441,12 +2439,14 @@ void Species::nonWF_GenerateOffspring(void)
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	
-	TheChromosome().StartMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StartMutationRunExperimentClock();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->ReproduceSubpopulation();
 	
-	TheChromosome().StopMutationRunExperimentClock();
+	if (has_genetics_)
+		TheChromosome().StopMutationRunExperimentClock();
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
@@ -2676,8 +2676,8 @@ void Species::Species_CheckIntegrity(void)
 		}
 	}
 	
-	if (haplosome_index != total_haplosome_count_)
-		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) total_haplosome_count_ does not match chromosomes." << EidosTerminate();
+	if (haplosome_index != haplosome_count_per_individual_)
+		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) haplosome_count_per_individual_ does not match chromosomes." << EidosTerminate();
 	
 	if (null_haplosomes_used != chromosomes_use_null_haplosomes_)
 		EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosomes_use_null_haplosomes_ mismatch." << EidosTerminate();
@@ -2877,22 +2877,35 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	// Gather haplosomes in preparation for the work below
 	std::vector<Haplosome *> all_haplosomes_in_use, all_haplosomes_not_in_use;
 	size_t haplosome_pool_usage = 0, individual_pool_usage = 0;
+	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	
 	for (auto iter : population_.subpops_)
 	{
 		Subpopulation &subpop = *iter.second;
 		
 		for (Individual *ind : subpop.parent_individuals_)
-			for (Haplosome *haplosome : ind->haplosomes_)
-				all_haplosomes_in_use.push_back(haplosome);
+		{
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				all_haplosomes_in_use.push_back(haplosomes[haplosome_index]);
+		}
 		
 		for (Individual *ind : subpop.child_individuals_)
-			for (Haplosome *haplosome : ind->haplosomes_)
-				all_haplosomes_in_use.push_back(haplosome);
+		{
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				all_haplosomes_in_use.push_back(haplosomes[haplosome_index]);
+		}
 		
 		for (Individual *ind : subpop.nonWF_offspring_individuals_)
-			for (Haplosome *haplosome : ind->haplosomes_)
-				all_haplosomes_in_use.push_back(haplosome);
+		{
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				all_haplosomes_in_use.push_back(haplosomes[haplosome_index]);
+		}
 		
 	}
 	
@@ -2956,11 +2969,15 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		{
 			Subpopulation &subpop = *iter.second;
 			
-			objectCount += subpop.parent_subpop_size_;
-			objectCount += subpop.child_subpop_size_;
+			objectCount += subpop.parent_individuals_.size();
+			objectCount += subpop.child_individuals_.size();
 			objectCount += subpop.nonWF_offspring_individuals_.size();
 		}
 		
+		// FIXME MULTICHROM the junkyard objects should be a separate tally category
+		objectCount += population_.species_individuals_junkyard_.size();
+		
+		// FIXME MULTICHROM p_usage->individualObjects should include the haplosomes buffer, too; a lot of memory now, potentially
 		p_usage->individualObjects_count = objectCount;
 		p_usage->individualObjects = sizeof(Individual) * p_usage->individualObjects_count;
 		p_usage->individualUnusedPoolSpace = individual_pool_usage - p_usage->individualObjects;
@@ -3222,40 +3239,45 @@ void Species::CollectMutationProfileInfo(void)
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally up the number of mutation runs, mutation usage metrics, etc.
+    int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	int64_t operation_id = MutationRun::GetNextOperationID();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
-		for (Individual *ind : subpop->parent_individuals_)
-		{
-		for (Haplosome *haplosome : ind->haplosomes_)
-		{
-			const MutationRun **mutruns = haplosome->mutruns_;
-			int32_t mutrun_count = haplosome->mutrun_count_;
-			
-			profile_mutrun_total_usage_ += mutrun_count;
-			
-			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
-			{
-				const MutationRun *mutrun = mutruns[mutrun_index];
-				
-				if (mutrun)
-				{
-					if (mutrun->operation_id_ != operation_id)
-					{
-						mutrun->operation_id_ = operation_id;
-						profile_unique_mutrun_total_++;
-					}
-					
-					// tally the total and nonneutral mutations
-					mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
-				}
-			}
-		}
-		}
-	}
+        for (Individual *ind : subpop->parent_individuals_)
+        {
+            Haplosome **haplosomes = ind->haplosomes_;
+            
+            for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+            {
+                Haplosome *haplosome = haplosomes[haplosome_index];
+                
+                const MutationRun **mutruns = haplosome->mutruns_;
+                int32_t mutrun_count = haplosome->mutrun_count_;
+                
+                profile_mutrun_total_usage_ += mutrun_count;
+                
+                for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+                {
+                    const MutationRun *mutrun = mutruns[mutrun_index];
+                    
+                    if (mutrun)
+                    {
+                        if (mutrun->operation_id_ != operation_id)
+                        {
+                            mutrun->operation_id_ = operation_id;
+                            profile_unique_mutrun_total_++;
+                        }
+                        
+                        // tally the total and nonneutral mutations
+                        mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
+                    }
+                }
+            }
+        }
+    }
 }
 #endif
 #endif
@@ -3664,6 +3686,7 @@ void Species::SimplifyTreeSequence(void)
 		
 		// and then come all the haplosomes of the extant individuals
 		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_haplosomes_.size();
+		int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 		
 		for (auto subpop_iter : population_.subpops_)
 		{
@@ -3671,24 +3694,28 @@ void Species::SimplifyTreeSequence(void)
 			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
-			for (Haplosome *haplosome : ind->haplosomes_)
-			{
-				tsk_id_t M = haplosome->tsk_node_id_;
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				// check if this sample is already being remembered, and assign the correct tsk_node_id_
-				// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
-				auto iter = remembered_haplosomes_lookup.find(M);
-				
-				if (iter == remembered_haplosomes_lookup.end())
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					samples.emplace_back(M);
-					haplosome->tsk_node_id_ = newValueInNodeTable++;
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					tsk_id_t M = haplosome->tsk_node_id_;
+					
+					// check if this sample is already being remembered, and assign the correct tsk_node_id_
+					// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
+					auto iter = remembered_haplosomes_lookup.find(M);
+					
+					if (iter == remembered_haplosomes_lookup.end())
+					{
+						samples.emplace_back(M);
+						haplosome->tsk_node_id_ = newValueInNodeTable++;
+					}
+					else
+					{
+						haplosome->tsk_node_id_ = (tsk_id_t)(iter->second);
+					}
 				}
-				else
-				{
-					haplosome->tsk_node_id_ = (tsk_id_t)(iter->second);
-				}
-			}
 			}
 		}
 	}
@@ -3798,6 +3825,7 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	if (ret < 0) handle_error("tsk_treeseq_init", ret);
 	
 	// Collect a vector of all extant haplosome node IDs
+	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	std::vector<tsk_id_t> all_extant_nodes;
 	
 	for (auto subpop_iter : population_.subpops_)
@@ -3805,8 +3833,16 @@ void Species::CheckCoalescenceAfterSimplification(void)
 		Subpopulation *subpop = subpop_iter.second;
 		
 		for (Individual *ind : subpop->parent_individuals_)
-		for (Haplosome *haplosome : ind->haplosomes_)
-			all_extant_nodes.emplace_back(haplosome->tsk_node_id_);
+		{
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				all_extant_nodes.emplace_back(haplosome->tsk_node_id_);
+			}
+		}
 	}
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
@@ -5582,7 +5618,7 @@ void Species::MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec 
 	
 	p_metadata->haplosome_id_ = p_haplosome->haplosome_id_;
 	p_metadata->is_null_ = p_haplosome->IsNull();
-	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM this should be index, not type; two "A" chromosomes are different and cannot mix
+	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM this should be index, not type; two "A" chromosomes are different and cannot mix; or really we can leave this out entirely, it is the same for every haplosome in a given tree sequence, and can be in the top-level metadata instead!
 }
 
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
@@ -5680,6 +5716,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	}
 	
 	// get all haplosomes from all subpopulations; we will cross-check them all simultaneously
+	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	static std::vector<Haplosome *> haplosomes;
 	haplosomes.clear();
 	
@@ -5688,8 +5725,12 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		Subpopulation *subpop = pop_iter.second;
 		
 		for (Individual *ind : subpop->parent_individuals_)
-		for (Haplosome *haplosome : ind->haplosomes_)
-			haplosomes.emplace_back(haplosome);
+		{
+			Haplosome **ind_haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				haplosomes.emplace_back(ind_haplosomes[haplosome_index]);
+		}
 	}
 	
 	// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
@@ -5739,8 +5780,12 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				Subpopulation *subpop = iter.second;
 				
 				for (Individual *ind : subpop->parent_individuals_)
-				for (Haplosome *haplosome : ind->haplosomes_)
-					samples.emplace_back(haplosome->tsk_node_id_);
+				{
+					Haplosome **ind_haplosomes = ind->haplosomes_;
+					
+					for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+						samples.emplace_back(ind_haplosomes[haplosome_index]->tsk_node_id_);
+				}
 			}
 			
 			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
@@ -7345,6 +7390,7 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap)
 {
 	// count the number of non-null haplosomes there are; this is the count that would represent fixation
+	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 	slim_refcount_t fixation_count = 0;
 	
 	for (auto pop_iter : population_.subpops_)
@@ -7352,9 +7398,17 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		Subpopulation *subpop = pop_iter.second;
 		
 		for (Individual *ind : subpop->parent_individuals_)
-		for (Haplosome *haplosome : ind->haplosomes_)
-			if (!haplosome->IsNull())
-				fixation_count++;
+		{
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				if (!haplosome->IsNull())
+					fixation_count++;
+			}
+		}
 	}
 	
 	// instantiate mutations

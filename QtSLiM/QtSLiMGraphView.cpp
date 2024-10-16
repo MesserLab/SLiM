@@ -2434,32 +2434,38 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     
     if (subpop)	// tally only within our chosen subpop
     {
+        int haplosome_count_per_individual = subpop->HaplosomeCountPerIndividual();
+        
         for (Individual *ind : subpop->parent_individuals_)
         {
-        for (Haplosome *haplosome : ind->haplosomes_)
-        {
-            if (!haplosome->IsNull())
+            Haplosome **haplosomes = ind->haplosomes_;
+            
+            for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
             {
-                int mutrun_count = haplosome->mutrun_count_;
+                Haplosome *haplosome = haplosomes[haplosome_index];
                 
-                for (int run_index = 0; run_index < mutrun_count; ++run_index)
+                if (!haplosome->IsNull())
                 {
-                    const MutationRun *mutrun = haplosome->mutruns_[run_index];
-                    const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
-                    const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
+                    int mutrun_count = haplosome->mutrun_count_;
                     
-                    for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
+                    for (int run_index = 0; run_index < mutrun_count; ++run_index)
                     {
-                        const Mutation *mutation = mut_block_ptr + *haplosome_iter;
+                        const MutationRun *mutrun = haplosome->mutruns_[run_index];
+                        const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+                        const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                         
-                        if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
-                            (mutation->gui_scratch_reference_count_)++;
+                        for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
+                        {
+                            const Mutation *mutation = mut_block_ptr + *haplosome_iter;
+                            
+                            if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
+                                (mutation->gui_scratch_reference_count_)++;
+                        }
                     }
+                    
+                    subpop_total_haplosome_count++;
                 }
-                
-                subpop_total_haplosome_count++;
             }
-        }
         }
     }
     

@@ -502,6 +502,12 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // experiments performed by Species.
 #define MUTRUN_EXPERIMENT_OUTPUT	0
 
+// If 1, the MutationRun pointers inside Haplosome objects will be cleared to nullptr when the haplosome is
+// freed, or disposed of into a junkyard, or anything like that -- whenever it is no longer in use.  This
+// could be useful for debugging problems with dereferencing stale MutationRun pointers.  Otherwise it is
+// not necessary, and just slows SLiM down.
+#define SLIM_CLEAR_HAPLOSOMES	0
+
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 extern int64_t SLiM_verbosity_level;
 
