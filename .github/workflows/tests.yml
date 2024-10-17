@@ -23,13 +23,9 @@ jobs:
           - {os: ubuntu-20.04, gcc: 7, python: 3.8}
           - {os: ubuntu-20.04, gcc: 11, python: 3.9}
           # macOS, oldest supported version
-          # (macos-10.15 and macos-11 were removed by GitHub)
-          - {os: macos-12, python: 3.8}
-          # macOS, newest supported version (haven't tried macos-14 yet)
+          # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
           - {os: macos-13, python: 3.9}
-          # macOS, newest supported version (haven't tried macos-14 yet)
-          - {os: macos-14, python: 3.9}
-          # macOS, newest supported version (haven't tried macos-14 yet)
+          # macOS, newest supported version
           - {os: macos-15, python: 3.9}
       
     runs-on: ${{ matrix.os }}
