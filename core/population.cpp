@@ -1171,7 +1171,161 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// for use outside of parallel blocks
 	
+	// determine the tamplated version of the Munge...() methods that we will call out to for reproduction
+	// this is an optimization technique that lets us optimize away unused cruft at compile time
+	// some relevant posts that were helpful in figuring out the correct syntax:
+	// 	http://goodliffe.blogspot.com/2011/07/c-declaring-pointer-to-template-method.html
+	// 	https://stackoverflow.com/questions/115703/storing-c-template-function-definitions-in-a-cpp-file
+	// 	https://stackoverflow.com/questions/22275786/change-boolean-flags-into-template-arguments
+	// and a Godbolt experiment I did to confirm that this really works: https://godbolt.org/z/Mva4Kbhrd
 	bool pedigrees_enabled = species_.PedigreesEnabled();
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	bool has_munge_callback = (p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present);
+	bool is_spatial = (species_.SpatialDimensionality() >= 1);
+	
+	bool (Subpopulation::*MungeIndividualCrossed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	
+	if (pedigrees_enabled)
+	{
+		if (recording_tree_sequence)
+		{
+			if (has_munge_callback)	// has any of the callbacks that the Munge...() methods care about; this can be refined later
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, false>;
+				}
+			}
+			else
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, false>;
+				}
+			}
+		}
+		else
+		{
+			if (has_munge_callback)
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, false>;
+				}
+			}
+			else
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, false>;
+				}
+			}
+		}
+	}
+	else
+	{
+		if (recording_tree_sequence)
+		{
+			if (has_munge_callback)
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, false>;
+				}
+			}
+			else
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, false>;
+				}
+			}
+		}
+		else
+		{
+			if (has_munge_callback)
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, false>;
+				}
+			}
+			else
+			{
+				if (is_spatial)
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, true>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, true>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, true>;
+				}
+				else
+				{
+					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, false>;
+					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, false>;
+					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, false>;
+				}
+			}
+		}
+	}
+	
 	bool prevent_incidental_selfing = species_.PreventIncidentalSelfing();
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
@@ -1457,7 +1611,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
 						
-						child_accepted = p_subpop.MungeIndividualCloned(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
+						child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -1475,7 +1629,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							new_child->migrant_ = false;
 							
-							child_accepted = p_subpop.MungeIndividualSelfed(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
+							child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1]);
 						}
 						else
 						{
@@ -1513,7 +1667,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							Individual *new_child = p_subpop.child_individuals_[child_index];
 							new_child->migrant_ = false;
 							
-							child_accepted = p_subpop.MungeIndividualCrossed(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+							child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 						}
 					}
 					
@@ -1568,7 +1722,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_count];
 					new_child->migrant_ = false;
 					
-					bool child_accepted = p_subpop.MungeIndividualCrossed(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], IndividualSex::kHermaphrodite);
+					bool child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], IndividualSex::kHermaphrodite);
 					
 					if (!child_accepted)
 					{
@@ -1819,7 +1973,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
-					child_accepted = p_subpop.MungeIndividualCloned(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
+					child_accepted = (p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
 				}
 				else
 				{
@@ -1837,7 +1991,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = (source_subpop != &p_subpop);
 						
-						child_accepted = p_subpop.MungeIndividualSelfed(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
+						child_accepted = (p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1]);
 					}
 					else
 					{
@@ -1875,7 +2029,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = (source_subpop != &p_subpop);
 						
-						child_accepted = p_subpop.MungeIndividualCrossed(new_child, individual_pid, source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2], child_sex);
+						child_accepted = (p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, individual_pid, source_subpop->parent_individuals_[parent1], source_subpop->parent_individuals_[parent2], child_sex);
 					}
 				}
 				
@@ -2039,7 +2193,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									p_subpop.MungeIndividualCrossed(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 								}
 							}
@@ -2069,7 +2223,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									p_subpop.MungeIndividualCrossed(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+									(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2102,7 +2256,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
-									p_subpop.MungeIndividualCloned(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
+									(p_subpop.*MungeIndividualCloned_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
 								}
 								else
 								{
@@ -2119,7 +2273,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									
 									if (migrant_count < number_to_clone + number_to_self)
 									{
-										p_subpop.MungeIndividualSelfed(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
+										(p_subpop.*MungeIndividualSelfed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1]);
 									}
 									else
 									{
@@ -2136,7 +2290,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 											while (prevent_incidental_selfing && (parent2 == parent1));
 										}
 										
-										p_subpop.MungeIndividualCrossed(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
+										(p_subpop.*MungeIndividualCrossed_TEMPLATED)(new_child, base_pedigree_id + migrant_count, source_subpop.parent_individuals_[parent1], source_subpop.parent_individuals_[parent2], child_sex);
 									}
 								}
 							}

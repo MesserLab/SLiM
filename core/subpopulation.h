@@ -470,15 +470,22 @@ public:
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
-	// generate/munge offspring individuals from parent individuals; these methods loop over chromosomes/haplosomes
-	// the WF-only "munge" variants munge an existing individual into the new child, reusing the individual and its haplosome objects
+	// generate offspring individuals from parent individuals; these methods loop over chromosomes/haplosomes
 	Individual *GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	Individual *GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	Individual *GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-	bool MungeIndividualCrossed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
-	bool MungeIndividualSelfed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-	bool MungeIndividualCloned(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	Individual *GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
+	
+	// these WF-only "munge" variants munge an existing individual into the new child, reusing the individual
+	// and its haplosome objects; they are all templated for speed, providing variants for different milieux
+	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	bool MungeIndividualCrossed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	
+	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	bool MungeIndividualSelfed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	
+	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	bool MungeIndividualCloned(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
 	// WF only:
 	void WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);

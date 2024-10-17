@@ -4297,6 +4297,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 	return individual;
 }
 
+template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex)
 {
 	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
@@ -4323,27 +4324,32 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
-	std::vector<SLiMEidosBlock*> *recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
-	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+		mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent1_subpop.registered_modify_child_callbacks_;
+		
+		if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Record the offspring
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Biparental(p_pedigree_id, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -4605,26 +4611,26 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -4642,11 +4648,11 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 #endif
 			
 			// revoke parentage
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
 		}
 	}
@@ -4654,6 +4660,24 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	return individual;
 }
 
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+
+template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
@@ -4672,27 +4696,32 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
-	std::vector<SLiMEidosBlock*> *recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
-	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Record the offspring
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -4761,26 +4790,26 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -4798,11 +4827,11 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 #endif
 			
 			// revoke parentage
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Uniparental(*p_parent);
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
 		}
 	}
@@ -4810,6 +4839,24 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	return individual;
 }
 
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+
+template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 	IndividualSex parent_sex = p_parent->sex_;
@@ -4826,26 +4873,31 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
-	// Figure out callbacks, which are based on the subpopulation of each parent
-	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		// Figure out callbacks, which are based on the subpopulation of each parent
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Record the offspring
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
@@ -5006,26 +5058,26 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -5043,11 +5095,11 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 #endif
 			
 			// revoke parentage
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Uniparental(*p_parent);
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
 			
 			return false;
@@ -5056,6 +5108,23 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	
 	return true;
 }
+
+template bool Subpopulation::MungeIndividualCloned<false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 
 Individual *Subpopulation::GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
 {
