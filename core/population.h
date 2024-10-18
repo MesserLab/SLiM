@@ -233,7 +233,11 @@ public:
 	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
 	
 	// generate a child haplosome from parental haplosome(s), very directly -- no null haplosomes etc., just cross/clone
+	// these methods are templated with variants for speed; see also MungeIndividualCrossed() etc.
+	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
+	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
 	// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation

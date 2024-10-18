@@ -2465,6 +2465,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Hapl
 }
 
 // generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
+template <const bool f_treeseq, const bool f_callbacks>
 void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #if DEBUG
@@ -2547,7 +2548,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			else
 				p_chromosome.DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
 			
-			if (p_recombination_callbacks)
+			if (f_callbacks && p_recombination_callbacks)
 			{
 				// a non-zero number of breakpoints, with recombination callbacks
 				if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
@@ -2580,7 +2581,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
 			}
 		}
-		else if (p_recombination_callbacks)
+		else if (f_callbacks && p_recombination_callbacks)
 		{
 			// zero breakpoints from the SLiM core, but we have recombination() callbacks
 			if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
@@ -2616,8 +2617,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	}
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
+	bool recording_tree_sequence = f_treeseq && species_.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = f_treeseq && species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
 	{
@@ -2783,7 +2784,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #pragma omp critical (MutationAlloc)
 		{
 			try {
-				if (species_.IsNucleotideBased() || p_mutation_callbacks)
+				if (species_.IsNucleotideBased() || (f_callbacks && p_mutation_callbacks))
 				{
 					// In nucleotide-based models, p_chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 					// To do that, and to adjust mutation rates correctly, it needs to know which parental haplosome the mutation occurred on the
@@ -3336,7 +3337,13 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 		DoHeteroduplexRepair(heteroduplex, all_breakpoints, parent_haplosome_1, parent_haplosome_2, &p_child_haplosome);
 }
 
+template void Population::HaplosomeCrossed<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCrossed<false, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCrossed<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCrossed<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+
 // generate a child haplosome from parental haplosomes, clonally with mutation
+template <const bool f_treeseq, const bool f_callbacks>
 void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #if DEBUG
@@ -3377,8 +3384,8 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	
 	// TREE SEQUENCE RECORDING
 	// FIXME MULTICHROM separate critical region for each chromosome, too!
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
+	bool recording_tree_sequence = f_treeseq && species_.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = f_treeseq && species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
 	{
@@ -3427,7 +3434,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 #pragma omp critical (MutationAlloc)
 		{
 			try {
-				if (species_.IsNucleotideBased() || p_mutation_callbacks)
+				if (species_.IsNucleotideBased() || (f_callbacks && p_mutation_callbacks))
 				{
 					// In nucleotide-based models, p_chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 					// To do that, and to adjust mutation rates correctly, it needs to know which parental haplosome the mutation occurred on the
@@ -3602,6 +3609,11 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 		}
 	}
 }
+
+template void Population::HaplosomeCloned<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCloned<false, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCloned<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+template void Population::HaplosomeCloned<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 
 
 // generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
@@ -7260,15 +7272,27 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 				if (haplosome_count_per_individual == 2)
 				{
 					// optimize the simple diploid single-chromosome case
-					for (Individual *ind : subpop->parent_individuals_)
+					if (first_mutrun_index == last_mutrun_index)
 					{
-						Haplosome *haplosome0 = ind->hapbuffer_[0];
-						Haplosome *haplosome1 = ind->hapbuffer_[1];
-						
-						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+						// optimize the one-mutrun case
+						for (Individual *ind : subpop->parent_individuals_)
 						{
-							haplosome0->mutruns_[run_index]->increment_use_count();
-							haplosome1->mutruns_[run_index]->increment_use_count();
+							ind->hapbuffer_[0]->mutruns_[first_mutrun_index]->increment_use_count();
+							ind->hapbuffer_[1]->mutruns_[first_mutrun_index]->increment_use_count();
+						}
+					}
+					else
+					{
+						for (Individual *ind : subpop->parent_individuals_)
+						{
+							Haplosome *haplosome0 = ind->hapbuffer_[0];
+							Haplosome *haplosome1 = ind->hapbuffer_[1];
+							
+							for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							{
+								haplosome0->mutruns_[run_index]->increment_use_count();
+								haplosome1->mutruns_[run_index]->increment_use_count();
+							}
 						}
 					}
 				}

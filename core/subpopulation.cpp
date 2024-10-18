@@ -3717,14 +3717,14 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
 					haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
 				}
 				break;
 			}
@@ -3735,7 +3735,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
 				haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 				
-				population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kX_XSexChromosome:
@@ -3747,7 +3747,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				}
 				{
 					if (p_child_sex == IndividualSex::kFemale)
@@ -3755,7 +3755,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
 						haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome1, parent2_mutation_callbacks);
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome1, parent2_mutation_callbacks);
 					}
 					else
 					{
@@ -3776,7 +3776,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				}
 				else
 				{
@@ -3797,7 +3797,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
 						haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome2, parent1_mutation_callbacks);
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome2, parent1_mutation_callbacks);
 					}
 					else
 					{
@@ -3812,7 +3812,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
 					haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
 				}
 				break;
 			}
@@ -3825,7 +3825,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				}
 				else
 				{
@@ -3842,7 +3842,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 				haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kFL_HaploidFemaleLine:
@@ -3853,7 +3853,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				}
 				else
 				{
@@ -3870,7 +3870,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 				haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kML_HaploidMaleLine:
@@ -3881,7 +3881,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				}
 				else
 				{
@@ -3912,7 +3912,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
 						haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, parent2_mutation_callbacks);
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, parent2_mutation_callbacks);
 					}
 					else
 					{
@@ -3928,7 +3928,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
@@ -4045,10 +4045,10 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
 				
 				haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
-				population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
-				population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kH_HaploidAutosome:
@@ -4058,7 +4058,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];				// parent copy
 				haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
@@ -4081,7 +4081,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
@@ -4203,7 +4203,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
@@ -4215,7 +4215,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome2 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
-					population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				}
 				break;
 			}
@@ -4238,7 +4238,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome1 = NewSubpopHaplosome_NONNULL(individual, mutrun_count, mutrun_length);
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
 				}
 				break;
 			}
@@ -4246,7 +4246,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
@@ -4351,6 +4351,37 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
+	// Select the templated functions we will call; this should all get optimized out
+	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
+	if (f_treeseq)
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
+		}
+	}
+	else
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
+		}
+	}
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4379,14 +4410,14 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4398,7 +4429,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4412,7 +4443,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				{
 					if (p_child_sex == IndividualSex::kFemale)
@@ -4420,7 +4451,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
 						haplosome2 = haplosomes[currentHaplosomeIndex+1];
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome1, mutation_callbacks);
+						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, mutation_callbacks);
 					}
 					else
 					{
@@ -4442,7 +4473,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4465,7 +4496,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
 						haplosome1 = haplosomes[currentHaplosomeIndex];
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome2, mutation_callbacks);
+						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome2, mutation_callbacks);
 					}
 					else
 					{
@@ -4480,7 +4511,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4494,7 +4525,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4513,7 +4544,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4526,7 +4557,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4545,7 +4576,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4558,7 +4589,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4591,7 +4622,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
 						haplosome2 = haplosomes[currentHaplosomeIndex+1];
 						
-						population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 					}
 					else
 					{
@@ -4723,6 +4754,37 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
+	// Select the templated functions we will call; this should all get optimized out
+	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
+	if (f_treeseq)
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
+		}
+	}
+	else
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
+		}
+	}
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4747,10 +4809,10 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
 				
 				haplosome1 = haplosomes[currentHaplosomeIndex];
-				population_.HaplosomeCrossed(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
-				population_.HaplosomeCrossed(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				currentHaplosomeIndex += 2;
 				break;
@@ -4762,7 +4824,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];			// parent copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4899,6 +4961,37 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
+	// Select the templated functions we will call; this should all get optimized out
+	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
+	if (f_treeseq)
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
+		}
+	}
+	else
+	{
+		if (f_callbacks)
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
+		}
+		else
+		{
+			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
+			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
+		}
+	}
+	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4927,13 +5020,13 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4944,14 +5037,14 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
 					if (parent_sex == IndividualSex::kFemale)
-						population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 					else
 						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, mutrun_count, mutrun_length);
 				}
@@ -4964,14 +5057,14 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kMale)
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, mutrun_count, mutrun_length);
 				
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				
 				currentHaplosomeIndex += 2;
 				break;
@@ -4981,7 +5074,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
@@ -5002,7 +5095,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
 				
 				if (parent_sex == IndividualSex::kMale)
-					population_.HaplosomeCloned(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, mutrun_count, mutrun_length);
 				
@@ -5018,7 +5111,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];	// parent 1 copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -5030,7 +5123,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kMale)
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, mutrun_count, mutrun_length);
 				
@@ -5044,7 +5137,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kFemale)
-					population_.HaplosomeCloned(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, mutrun_count, mutrun_length);
 				
