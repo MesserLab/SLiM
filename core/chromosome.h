@@ -42,6 +42,7 @@
 struct GESubrange;
 class Haplosome;
 class Species;
+class Individual;
 
 
 extern EidosClass *gSLiM_Chromosome_Class;
@@ -116,6 +117,17 @@ private:
 	std::vector<GESubrange> mutation_subranges_H_;
 	std::vector<GESubrange> mutation_subranges_M_;
 	std::vector<GESubrange> mutation_subranges_F_;
+	
+	// This object pool for haplosomes is owned by Species; we have a reference to it just for efficiency
+	EidosObjectPool &haplosome_pool_;				// NOT OWNED: a pool out of which haplosomes are allocated, for within-species locality
+	
+	// These haplosome junkyards, on the other hand, belong to us; each Chromosome keeps its own junkyards in which objects
+	// are guaranteed to have the correct chromosome index already set up, and the correct chromosome mutrun configuration
+	std::vector<Haplosome *> haplosomes_junkyard_nonnull;	// OWNED: non-null haplosomes go here when we're done with them, for reuse
+	std::vector<Haplosome *> haplosomes_junkyard_null;		// OWNED: null haplosomes go here when we're done with them, for reuse
+	
+	Haplosome *_NewHaplosome_NULL(Individual *p_individual);		// internal use only
+	Haplosome *_NewHaplosome_NONNULL(Individual *p_individual);		// internal use only
 	
 	// Chromosome now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
 	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
@@ -310,6 +322,15 @@ public:
 	size_t MemoryUsageForRecombinationMaps(void);
 	size_t MemoryUsageForAncestralSequence(void);
 	
+	// Make a null haplosome, which is associated with an individual, but has no associated chromosome, or
+	// make a non-null haplosome, which is associated with an individual and has an associated chromosome
+	Haplosome *NewHaplosome_NULL(Individual *p_individual);
+	Haplosome *NewHaplosome_NONNULL(Individual *p_individual);
+	void FreeHaplosome(Haplosome *p_haplosome);
+	
+	const std::vector<Haplosome *> &HaplosomesJunkyardNonnull(void) { return haplosomes_junkyard_nonnull; }
+	const std::vector<Haplosome *> &HaplosomesJunkyardNull(void) { return haplosomes_junkyard_null; }
+
 	// Mutation run contexts: each chromosome keeps per-thread "contexts" out of which mutation runs get allocated, and
 	// into which they get freed.  This eliminates between-thread locking when working with mutation runs.
 	void SetUpMutationRunContexts(void);
@@ -581,6 +602,96 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 	}
 }
 #endif
+
+// defer this include until now, to resolve mutual dependencies
+#include "haplosome.h"
+
+inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(Individual *p_individual)
+{
+	if (haplosomes_junkyard_null.size())
+	{
+		Haplosome *back = haplosomes_junkyard_null.back();
+		haplosomes_junkyard_null.pop_back();
+		
+		//back->chromosome_index_ = index_;		// guaranteed already set
+		back->individual_ = p_individual;
+		return back;
+	}
+	
+	return _NewHaplosome_NULL(p_individual);
+}
+
+inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNULL(Individual *p_individual)
+{
+	if (haplosomes_junkyard_nonnull.size())
+	{
+		Haplosome *back = haplosomes_junkyard_nonnull.back();
+		haplosomes_junkyard_nonnull.pop_back();
+		
+		// Conceptually, we want to call ReinitializeHaplosomeNoClear() to set the haplosome up with the
+		// current type, mutrun setup, etc.  But we know that the haplosome is nonnull, and that we
+		// want it to be nonnull, so we can do less work than ReinitializeHaplosomeNoClear(), inline.
+		if (back->mutrun_count_ != mutrun_count_)
+		{
+			// the number of mutruns has changed; need to reallocate
+			if (back->mutruns_ != back->run_buffer_)
+				free(back->mutruns_);
+			
+			back->mutrun_count_ = mutrun_count_;
+			back->mutrun_length_ = mutrun_length_;
+			
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
+			{
+				back->mutruns_ = back->run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
+				EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
+			}
+			else
+			{
+#if SLIM_CLEAR_HAPLOSOMES
+				back->mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+				back->mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
+#endif
+			}
+		}
+		else
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			// the number of mutruns is unchanged, but we need to zero out the reused buffer here
+			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
+				EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+			else
+				EIDOS_BZERO(back->mutruns_, mutrun_count_ * sizeof(const MutationRun *));
+#endif
+		}
+		
+		//back->chromosome_index_ = index_;		// guaranteed already set
+		back->individual_ = p_individual;
+		return back;
+	}
+	
+	return _NewHaplosome_NONNULL(p_individual);
+}
+
+// Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
+inline __attribute__((always_inline)) void Chromosome::FreeHaplosome(Haplosome *p_haplosome)
+{
+#if DEBUG
+	p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
+#endif
+	
+	// somebody needs to reset the tag value of reused haplosomes; it might as well be us
+	// this used to be done by Individual::Individual(), which got passed the individual's haplosomes
+#warning this should only get cleared, in bulk, based on a flag, like individual tag values; big waste of time; see s_any_haplosome_tag_set_, we are already doing this in SwapChildAndParentHaplosomes() for WF
+	p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
+	
+	if (p_haplosome->IsNull())
+		haplosomes_junkyard_null.emplace_back(p_haplosome);
+	else
+		haplosomes_junkyard_nonnull.emplace_back(p_haplosome);
+}
 
 
 class Chromosome_Class : public EidosDictionaryRetained_Class

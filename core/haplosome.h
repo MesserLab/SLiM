@@ -24,6 +24,10 @@
  
  */
 
+// This include is up here because I had to jump through some hoops to break a #include loop between this and chromosome.h;
+// forward declaration wasn't enough, because both classes have inline methods that need the other type's definition.
+#include "chromosome.h"
+
 #ifndef __SLiM__haplosome__
 #define __SLiM__haplosome__
 
@@ -31,7 +35,6 @@
 #include "mutation.h"
 #include "slim_globals.h"
 #include "eidos_value.h"
-#include "chromosome.h"
 #include "mutation_run.h"
 
 #include <vector>
@@ -109,8 +112,7 @@ public:
 private:
 #endif
 	
-	// FIXME MULTICHROM chromosome_index_ does not yet get set anywhere; the default value of 0 is simply used
-	slim_chromosome_index_t /* uint8_t */ chromosome_index_ = 0;	// the index of this haplosome's chromosome
+	slim_chromosome_index_t /* uint8_t */ chromosome_index_;		// the index of this haplosome's chromosome
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	
 	int32_t mutrun_count_;											// number of runs being used; 0 for a null haplosome, otherwise >= 1
@@ -137,15 +139,20 @@ public:
 	Haplosome(const Haplosome &p_original) = delete;
 	Haplosome& operator= (const Haplosome &p_original) = delete;
 	
-	// make a null haplosome
-	explicit inline Haplosome(Individual *p_individual) :
-		mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(p_individual), haplosome_id_(-1)
+	// tags to indicate construction of a null vs. non-null haplosome, since the constructors take the same arguments
+	// see https://stackoverflow.com/a/46775828/2752221 for this very nice solution with zero runtime overhead (no if)
+	struct NullHaplosome final {};
+	struct NonNullHaplosome final {};
+	
+	// make a null haplosome; the Haplosome::NullHaplosome{} parameter is just a tag to select this constructor
+	inline Haplosome(NullHaplosome, Individual *p_individual, Chromosome *p_chromosome) :
+		chromosome_index_(p_chromosome->Index()), mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(p_individual), haplosome_id_(-1)
 	{
 	};
 	
-	// make a non-null haplosome
-	inline Haplosome(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length) :
-		mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(p_individual), haplosome_id_(-1)
+	// make a non-null haplosome; the Haplosome::NonNullHaplosome{} parameter is just a tag to select this constructor
+	inline Haplosome(NonNullHaplosome, Individual *p_individual, Chromosome *p_chromosome) :
+		chromosome_index_(p_chromosome->Index()), mutrun_count_(p_chromosome->mutrun_count_), mutrun_length_(p_chromosome->mutrun_length_), individual_(p_individual), haplosome_id_(-1)
 	{
 		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
@@ -186,34 +193,34 @@ public:
 	void MakeNull(void) __attribute__((cold));	// transform into a null haplosome
 	
 	// used to re-initialize haplosomes to a new state, reusing them for efficiency
-	void ReinitializeHaplosomeToMutruns(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
-	void ReinitializeHaplosomeNullptr(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length);
+	void ReinitializeHaplosomeToNull(Individual *individual);
+	void ReinitializeHaplosomeToNonNull(Individual *individual, Chromosome *p_chromosome);
 	
 #if DEBUG
-	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, int32_t mutrun_count, slim_position_t mutrun_length)
+	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, Chromosome *p_chromosome)
 	{
 		// This does a consistency check that two haplosomes (parent and child) match each other and,
 		// if they are non-null, the expectated mutrun count/length passed in (from a chromosome)
 		// It is used in the WF "munge" methods that munge an existing individual into a new child
 		if ((hapA->IsNull() != hapB->IsNull()) || (!hapA->IsNull() &&
-			((hapA->mutrun_count_ != mutrun_count) || (hapA->mutrun_length_ != mutrun_length) ||
-			(hapB->mutrun_count_ != mutrun_count) || (hapB->mutrun_length_ != mutrun_length))))
+			((hapA->mutrun_count_ != p_chromosome->mutrun_count_) || (hapA->mutrun_length_ != p_chromosome->mutrun_length_) ||
+			(hapB->mutrun_count_ != p_chromosome->mutrun_count_) || (hapB->mutrun_length_ != p_chromosome->mutrun_length_))))
 			EIDOS_TERMINATION << "ERROR (Haplosome::CheckStructureMatch): (internal error) haplosome structure does not match!" << EidosTerminate();
 	}
-	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, Haplosome *hapC, int32_t mutrun_count, slim_position_t mutrun_length)
+	static void DebugCheckStructureMatch(Haplosome *hapA, Haplosome *hapB, Haplosome *hapC, Chromosome *p_chromosome)
 	{
 		// This does a consistency check that two haplosomes (parent and child) match each other and,
 		// if they are non-null, the expectated mutrun count/length passed in (from a chromosome)
 		// It is used in the WF "munge" methods that munge an existing individual into a new child
 		if (((hapA->IsNull() != hapB->IsNull()) || (hapA->IsNull() != hapC->IsNull())) || (!hapA->IsNull() &&
-			((hapA->mutrun_count_ != mutrun_count) || (hapA->mutrun_length_ != mutrun_length) ||
-			 (hapB->mutrun_count_ != mutrun_count) || (hapB->mutrun_length_ != mutrun_length) ||
-			 (hapC->mutrun_count_ != mutrun_count) || (hapC->mutrun_length_ != mutrun_length))))
+			((hapA->mutrun_count_ != p_chromosome->mutrun_count_) || (hapA->mutrun_length_ != p_chromosome->mutrun_length_) ||
+			 (hapB->mutrun_count_ != p_chromosome->mutrun_count_) || (hapB->mutrun_length_ != p_chromosome->mutrun_length_) ||
+			 (hapC->mutrun_count_ != p_chromosome->mutrun_count_) || (hapC->mutrun_length_ != p_chromosome->mutrun_length_))))
 			EIDOS_TERMINATION << "ERROR (Haplosome::CheckStructureMatch): (internal error) haplosome structure does not match!" << EidosTerminate();
 	}
 #else
-	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, int32_t, slim_position_t) {}
-	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, Haplosome *, int32_t, slim_position_t) {}
+	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, Chromosome *) {}
+	static inline void DebugCheckStructureMatch(Haplosome *, Haplosome *, Haplosome *, Chromosome *) {}
 #endif
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
@@ -446,6 +453,7 @@ public:
 	friend Species;
 	friend Population;
 	friend Subpopulation;
+	friend Chromosome;
 	friend Individual;
 	friend HaplosomeWalker;
 };

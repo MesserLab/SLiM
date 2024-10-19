@@ -75,6 +75,7 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), 
 #endif
 
+	haplosome_pool_(p_species.population_.species_haplosome_pool_),
 	preferred_mutrun_count_(p_preferred_mutcount),
 	x_experiments_enabled_(false),
 	community_(p_species.community_),
@@ -124,6 +125,21 @@ Chromosome::~Chromosome(void)
 	// Dispose of all genomic elements, which we own
 	for (GenomicElement *element : genomic_elements_)
 		delete element;
+	
+	// dispose of haplosomes within our junkyards
+	for (Haplosome *haplosome : haplosomes_junkyard_nonnull)
+	{
+		haplosome->~Haplosome();
+		haplosome_pool_.DisposeChunk(const_cast<Haplosome *>(haplosome));
+	}
+	haplosomes_junkyard_nonnull.clear();
+	
+	for (Haplosome *haplosome : haplosomes_junkyard_null)
+	{
+		haplosome->~Haplosome();
+		haplosome_pool_.DisposeChunk(const_cast<Haplosome *>(haplosome));
+	}
+	haplosomes_junkyard_null.clear();
 	
 	// Dispose of all mutation run contexts
 #ifndef _OPENMP
@@ -1728,6 +1744,46 @@ void Chromosome::SetUpMutationRunContexts(void)
 	}
 #endif	// end _OPENMP
 }
+
+// These get called if a null haplosome is requested but the null junkyard is empty, or if a non-null haplosome is requested
+// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
+// If the other junkyard has a haplosome, we want to repurpose it; this prevents one junkyard from filling up with an
+// ever-growing number of haplosomes while requests to the other junkyard create new haplosomes (which can happen because
+// haplosomes can be transmogrified between null and non-null after creation).  We create a new haplosome only if both
+// junkyards are empty.
+
+Haplosome *Chromosome::_NewHaplosome_NULL(Individual *p_individual)
+{
+	if (haplosomes_junkyard_nonnull.size())
+	{
+		Haplosome *back = haplosomes_junkyard_nonnull.back();
+		haplosomes_junkyard_nonnull.pop_back();
+		
+		// got a non-null haplosome, need to repurpose it to be a null haplosome
+		back->ReinitializeHaplosomeToNull(p_individual);
+		
+		return back;
+	}
+	
+	return new (haplosome_pool_.AllocateChunk()) Haplosome(Haplosome::NullHaplosome{}, p_individual, this);
+}
+
+Haplosome *Chromosome::_NewHaplosome_NONNULL(Individual *p_individual)
+{
+	if (haplosomes_junkyard_null.size())
+	{
+		Haplosome *back = haplosomes_junkyard_null.back();
+		haplosomes_junkyard_null.pop_back();
+		
+		// got a null haplosome, need to repurpose it to be a non-null haplosome cleared to nullptr
+		back->ReinitializeHaplosomeToNonNull(p_individual, this);
+		
+		return back;
+	}
+	
+	return new (haplosome_pool_.AllocateChunk()) Haplosome(Haplosome::NonNullHaplosome{}, p_individual, this);
+}
+
 
 
 //

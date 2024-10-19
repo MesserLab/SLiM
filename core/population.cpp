@@ -92,21 +92,6 @@ Population::~Population(void)
 		species_individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 	}
 	species_individuals_junkyard_.clear();
-	
-	// dispose of haplosomes within our junkyards
-	for (Haplosome *haplosome : species_haplosomes_junkyard_nonnull)
-	{
-		haplosome->~Haplosome();
-		species_haplosome_pool_.DisposeChunk(const_cast<Haplosome *>(haplosome));
-	}
-	species_haplosomes_junkyard_nonnull.clear();
-	
-	for (Haplosome *haplosome : species_haplosomes_junkyard_null)
-	{
-		haplosome->~Haplosome();
-		species_haplosome_pool_.DisposeChunk(const_cast<Haplosome *>(haplosome));
-	}
-	species_haplosomes_junkyard_null.clear();
 }
 
 void Population::RemoveAllSubpopulationInfo(void)
@@ -2488,7 +2473,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	if (p_child_haplosome.IsNull() || parent_haplosome_1->IsNull() || parent_haplosome_2->IsNull())
 		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): (internal error) null haplosomes cannot be passed to HaplosomeCrossed()." << EidosTerminate();
 	
-	Haplosome::DebugCheckStructureMatch(parent_haplosome_1, parent_haplosome_2, &p_child_haplosome, p_chromosome.mutrun_count_, p_chromosome.mutrun_length_);
+	Haplosome::DebugCheckStructureMatch(parent_haplosome_1, parent_haplosome_2, &p_child_haplosome, &p_chromosome);
 #endif
 #if SLIM_CLEAR_HAPLOSOMES
 	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us
@@ -3365,7 +3350,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	if (p_child_haplosome.IsNull() || parent_haplosome->IsNull())
 		EIDOS_TERMINATION << "ERROR (Population::HaplosomeCloned): (internal error) null haplosomes cannot be passed to HaplosomeCloned()." << EidosTerminate();
 	
-	Haplosome::DebugCheckStructureMatch(parent_haplosome, &p_child_haplosome, p_chromosome.mutrun_count_, p_chromosome.mutrun_length_);
+	Haplosome::DebugCheckStructureMatch(parent_haplosome, &p_child_haplosome, &p_chromosome);
 #endif
 #if SLIM_CLEAR_HAPLOSOMES
 	// start with a clean slate in the child haplosome; we now expect child haplosomes to be cleared for us

@@ -209,10 +209,11 @@ private:
 #endif
 	
 	// Chromosome state
-	std::vector<Chromosome *> chromosomes_;				// all the chromosomes for the species, in the order in which they were defined
+	std::vector<Chromosome *> chromosomes_;				// OWNED; all our chromosomes, in the order in which they were defined
 	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
 	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
 	
+	std::vector<Chromosome *> chromosome_for_haplosome_index_;	// NOT OWNED; of length haplosome_count_per_individual_
 	std::vector<int> first_haplosome_index_;			// the first index in haplosomes_ for a given chromosome (synced to chromosomes_)
 	std::vector<int> last_haplosome_index_;				// the last index in haplosomes_ for a given chromosome (synced to chromosomes_)
 	int haplosome_count_per_individual_ = 0;			// the total number of haplosomes per individual, based on the chromosome types
@@ -407,6 +408,7 @@ public:
 		return *(chromosomes_[0]);
 	}
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	inline __attribute__((always_inline)) const std::vector<Chromosome *> &ChromosomesForHaplosomeIndices(void) { return chromosome_for_haplosome_index_; }
 	inline __attribute__((always_inline)) const std::vector<int> &FirstHaplosomeIndices(void) { return first_haplosome_index_; }
 	inline __attribute__((always_inline)) const std::vector<int> &LastHaplosomeIndices(void) { return last_haplosome_index_; }
 	Chromosome *ChromosomeFromID(int64_t p_id);

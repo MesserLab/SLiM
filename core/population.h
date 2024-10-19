@@ -138,12 +138,9 @@ public:
 	Species &species_;
 	
 	// Object pools for individuals and haplosomes, kept population-wide
-	EidosObjectPool species_haplosome_pool_;					// a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
-	std::vector<Haplosome *> species_haplosomes_junkyard_nonnull;	// non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	std::vector<Haplosome *> species_haplosomes_junkyard_null;		// null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	
-	EidosObjectPool species_individual_pool_;				// a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
-	std::vector<Individual *> species_individuals_junkyard_;	// individuals get put here when we're done with them, so we can reuse them quickly
+	EidosObjectPool species_haplosome_pool_;					// a pool out of which haplosomes are allocated, for within-species locality
+	EidosObjectPool species_individual_pool_;					// a pool out of which individuals are allocated, for within-species locality
+	std::vector<Individual *> species_individuals_junkyard_;	// individuals get put here when we're done with them, for fast reuse
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry

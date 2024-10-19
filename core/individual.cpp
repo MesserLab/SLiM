@@ -103,6 +103,7 @@ Individual::~Individual(void)
 	// in that case, its haplosomes have already been freed, so this loop does not need to run.
 	if (subpopulation_)
 	{
+		const std::vector<Chromosome *> &chromosome_for_haplosome_index = subpopulation_->species_.ChromosomesForHaplosomeIndices();
 		int haplosome_count_per_individual = subpop->HaplosomeCountPerIndividual();
 		Haplosome **haplosomes = haplosomes_;
 		
@@ -110,10 +111,14 @@ Individual::~Individual(void)
 		{
 			Haplosome *haplosome = haplosomes[haplosome_index];
 			
-			// haplosome points can be nullptr, if an individual has already freed its haplosome objects;
+			// haplosome pointers can be nullptr, if an individual has already freed its haplosome objects;
 			// this happens when an individual is placed in individuals_junkyard_, in particular
 			if (haplosome)
-				subpop->FreeSubpopHaplosome(haplosome);
+			{
+				Chromosome *chromosome = chromosome_for_haplosome_index[haplosome_index];
+				
+				chromosome->FreeHaplosome(haplosome);
+			}
 		}
 	}
 	

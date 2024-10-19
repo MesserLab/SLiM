@@ -19,21 +19,19 @@
 
 /*
  
- The class Subpopulation represents one simulated subpopulation, defined primarily by the haplosomes of the individuals it contains.
- Since one Haplosome object represents the mutations along one chromosome, and since SLiM presently simulates diploid individuals,
- each individual is represented by two haplosomes in the haplosome vector: individual i is represented by haplosomes 2*i and 2*i+1.
+ The class Subpopulation represents one simulated subpopulation, defined primarily by the individuals it contains and their haplosomes.
  A subpopulation also knows its size, its selfing fraction, and what fraction it receives as migrants from other subpopulations.
  
  The way that Subpopulation handles its Haplosome objects is quite complex, and is at the heart of the operation of the SLiM core,
  so a lengthy comment on it is merited.  Haplosomes contain MutationRuns, and they can allocate a buffer in which they keep pointers
  to those runs.  Allocating and deallocating those buffers takes time, and so is to be avoided; for this reason, Subpopulation
  re-uses Haplosome objects.  When a Haplosome is done being used, it goes into a "junkyard" vector (which one depends on whether it is
- a null haplosome or not); FreeSubpopHaplosome() handles that.  When a new haplosome is needed, it is preferentially obtained from the
- appropriate junkyard, and is re-purposed to its new use; NewSubpopHaplosome() handles that.  Those methods should be called to
- handle most create/dispose requests for Haplosomes, so that those junkyard vectors get used.  When NewSubpopHaplosome() finds the
+ a null haplosome or not); FreeHaplosome() handles that.  When a new haplosome is needed, it is preferentially obtained from the
+ appropriate junkyard, and is re-purposed to its new use; NewHaplosome() handles that.  Those methods should be called to
+ handle most create/dispose requests for Haplosomes, so that those junkyard vectors get used.  When NewHaplosome() finds the
  junkyard to be empty, it needs to actually allocate a new Haplosome object.  This is also complicated.  Haplosomes are allocated out
- of a memory pool, haplosome_pool_, that is specific to the subpopulation.  This helps with memory locality; it keeps all of the
- Haplosome objects used by a given subpop grouped closely together in memory.  (We do the same with Individual objects, with another
+ of a memory pool, haplosome_pool_, that belongs to the species.  This helps with memory locality; it keeps all of the Haplosome
+ objects used by a given species grouped closely together in memory.  (We do the same with Individual objects, with another
  pool, for the same reason).  So allocations of Haplosomes come out of that pool, and deallocations go back into the pool.  Do not
  use new or delete with Haplosome objects.  There is one more complication.  In WF models, separate "parent" and "child" generations
  are kept by the subpop, and which one is active switches back and forth in each cycle, governed by child_generation_valid_.
@@ -42,15 +40,10 @@
  offspring generation.  So in some ways these schemes are similar, but they use a completely non-intersecting set of ivars.  The
  parental ivars are used by both WF and nonWF models, though.
  
- BCH 23 May 2021: The above description is now somewhat out of date; adding a new comment rather than just revising in order to
- keep a record of what has happened.  The separate haplosome/individual pools for each subpopulation proved to be a maintenance
- nightmare, because of migrants; a migrating individual and its haplosome could not simply be moved to the new subpop, because that
- subpop used different object pools, so the object states instead had to be re-created completely in new objects allocated out
- of the new subpop's object pools.  Since the pointer referring to those objects was then actually changing, all references to
- the objects needed to be patched with the new pointers, including inside Eidos objects.  This was slow, and very prone to
- difficult-to-find bugs.  On balance, it was a bad idea, and is being ripped out now.  Instead, Population will keep the object
- pools for the whole species.  For both efficiency and ease of implementation, Subpopulation will keep its own pointers to the
- object pools and junkyard vectors, but these really belong to Species and are shared now.
+ BCH 10/19/2024: Note that haplosomes are now associated with a particular Chromosome object; each chromosome might use a different
+ number of mutation runs, so for efficiency we want to keep the haplosome junkyards for different chromosomes separate.  Each
+ chromosome therefore now has its own haplosome junkyard, and NewHaplosome_NULL(), NewHaplosome_NONNULL(), and FreeHaplosome()
+ are now Chromosome methods that work with the target chromosome's junkyard.
  
  */
 
@@ -122,11 +115,6 @@ public:
 	double female_clone_fraction_ = 0.0;			// both asex and sex; in the asex case, male_clone_fraction_ == female_clone_fraction_ and is simply the clonal fraction
 	double male_clone_fraction_ = 0.0;				//		these represent the fraction of offspring generated by asexual clonal reproduction
 	std::map<slim_objectid_t,double> migrant_fractions_;		// m[i]: fraction made up of migrants from subpopulation i per cycle
-	
-	// These object pools are owned by Population, and are used by all of its Subpopulations; we have references to them just for efficiency
-	EidosObjectPool &haplosome_pool_;				// NOT OWNED: a pool out of which haplosomes are allocated, for within-species locality of memory usage across haplosomes
-	std::vector<Haplosome *> &haplosomes_junkyard_nonnull;	// NOT OWNED: non-null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	std::vector<Haplosome *> &haplosomes_junkyard_null;	// NOT OWNED: null haplosomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	
 	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Individual *> &individuals_junkyard_;	// NOT OWNED: individuals get put here when we're done with them, so we can reuse them quickly
@@ -266,98 +254,6 @@ public:
 	slim_popsize_t DrawFemaleParentEqualProbability(gsl_rng *rng) const;					// draw a female from the subpopulation  with equal probabilities; SEX ONLY
 	slim_popsize_t DrawMaleParentEqualProbability(gsl_rng *rng) const;						// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
-	// Returns a new haplosome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	Haplosome *_NewSubpopHaplosome_NULL(Individual *p_individual);	// internal use only
-	Haplosome *_NewSubpopHaplosome_NONNULL(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length);	// internal use only
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NULL(Individual *p_individual)
-	{
-		if (haplosomes_junkyard_null.size())
-		{
-			Haplosome *back = haplosomes_junkyard_null.back();
-			haplosomes_junkyard_null.pop_back();
-			
-			back->individual_ = p_individual;
-			return back;
-		}
-		
-		return _NewSubpopHaplosome_NULL(p_individual);
-	}
-	inline __attribute__((always_inline)) Haplosome *NewSubpopHaplosome_NONNULL(Individual *p_individual, int p_mutrun_count, slim_position_t p_mutrun_length)
-	{
-#if DEBUG
-		if (p_mutrun_count == 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopHaplosome_NONNULL): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
-#endif
-		
-		if (haplosomes_junkyard_nonnull.size())
-		{
-			Haplosome *back = haplosomes_junkyard_nonnull.back();
-			haplosomes_junkyard_nonnull.pop_back();
-			
-			// Conceptually, we want to call ReinitializeHaplosomeNoClear() to set the haplosome up with the
-			// current type, mutrun setup, etc.  But we know that the haplosome is nonnull, and that we
-			// want it to be nonnull, so we can do less work than ReinitializeHaplosomeNoClear(), inline.
-			if (back->mutrun_count_ != p_mutrun_count)
-			{
-				// the number of mutruns has changed; need to reallocate
-				if (back->mutruns_ != back->run_buffer_)
-					free(back->mutruns_);
-				
-				back->mutrun_count_ = p_mutrun_count;
-				back->mutrun_length_ = p_mutrun_length;
-				
-				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-				{
-					back->mutruns_ = back->run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
-					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
-#endif
-				}
-				else
-				{
-#if SLIM_CLEAR_HAPLOSOMES
-					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
-#else
-					back->mutruns_ = (const MutationRun **)malloc(p_mutrun_count * sizeof(const MutationRun *));
-#endif
-				}
-			}
-			else
-			{
-#if SLIM_CLEAR_HAPLOSOMES
-				// the number of mutruns is unchanged, but we need to zero out the reused buffer here
-				if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-					EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
-				else
-					EIDOS_BZERO(back->mutruns_, p_mutrun_count * sizeof(const MutationRun *));
-#endif
-			}
-			
-			back->individual_ = p_individual;
-			return back;
-		}
-		
-		return _NewSubpopHaplosome_NONNULL(p_individual, p_mutrun_count, p_mutrun_length);
-	}
-	
-	// Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
-	inline __attribute__((always_inline)) void FreeSubpopHaplosome(Haplosome *p_haplosome)
-	{
-#if DEBUG
-		p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
-#endif
-		
-		// somebody needs to reset the tag value of reused haplosomes; it might as well be us
-		// this used to be done by Individual::Individual(), which got passed the individual's haplosomes
-#warning this should only get cleared, in bulk, based on a flag, like individual tag values; big waste of time; see s_any_haplosome_tag_set_, we are already doing this in SwapChildAndParentHaplosomes() for WF
-		p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
-		
-		if (p_haplosome->IsNull())
-			haplosomes_junkyard_null.emplace_back(p_haplosome);
-		else
-			haplosomes_junkyard_nonnull.emplace_back(p_haplosome);
-	}
-	
 	inline __attribute__((always_inline)) Individual *NewSubpopIndividual(slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age)
 	{
 		if (individuals_junkyard_.size())
@@ -401,7 +297,8 @@ public:
 	{
 		// The individuals junkyard guarantees certain things, since it can sometimes do so efficiently.
 		// This is based on what can be reset efficiently in WF models in Subpopulation::SwapChildAndParentHaplosomes(),
-		// which performs these resets itself as needed and returns individuals to the junkyard directly.
+		// which performs these resets itself as needed (and GenerateChildrenToFitWF() then returns individuals to the
+		// junkyard directly with _FreeSubpopIndividual(), avoiding these state resets).
 		p_individual->RemoveAllKeys();	// no call to ContentsChanged() here, for speed; we know individual is a Dictionary not a DataFrame
 		p_individual->ClearColor();
 		p_individual->tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -428,14 +325,16 @@ public:
 		// resetting all of the state the junkyard guarantees; see FreeSubpopIndividual().
 		// The only thing we reset here is haplosomes_, since we want to free up those
 		// resources immediately in all code paths.
+		const std::vector<Chromosome *> &chromosome_for_haplosome_index = species_.ChromosomesForHaplosomeIndices();
 		int haplosome_count = haplosome_count_per_individual_;
 		Haplosome **haplosomes = p_individual->haplosomes_;
 		
 		for (int haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 		{
 			Haplosome *haplosome = haplosomes[haplosome_index];
+			Chromosome *chromosome = chromosome_for_haplosome_index[haplosome_index];
 			
-			FreeSubpopHaplosome(haplosome);
+			chromosome->FreeHaplosome(haplosome);
 		}
 		
 		// Clear our haplosomes vector with nullptr values.  This is perhaps not strictly necessary,

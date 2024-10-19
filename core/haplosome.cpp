@@ -243,141 +243,92 @@ void Haplosome::MakeNull(void)
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeToMutruns(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
+void Haplosome::ReinitializeHaplosomeToNull(Individual *individual)
 {
+	// Transmogrify a haplosome (which might be null or non-null) into a null haplosome
 	individual_ = individual;
 	
-	if (p_mutrun_count)
+	if (mutrun_count_)
 	{
-		if (mutrun_count_ == 0)
-		{
-			// was a null haplosome, needs to become not null
-			mutrun_count_ = p_mutrun_count;
-			mutrun_length_ = p_mutrun_length;
-			
-			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-				mutruns_ = run_buffer_;
-			else
-				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
-		}
-		else if (mutrun_count_ != p_mutrun_count)
-		{
-			// the number of mutruns has changed; need to reallocate
-			if (mutruns_ != run_buffer_)
-				free(mutruns_);
-			
-			mutrun_count_ = p_mutrun_count;
-			mutrun_length_ = p_mutrun_length;
-			
-			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-				mutruns_ = run_buffer_;
-			else
-				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
-		}
-		else
-		{
-			// the number of mutruns has not changed; no need to zero out, overwritten below
-		}
+		// was a non-null haplosome, needs to become null
+		if (mutruns_ != run_buffer_)
+			free(mutruns_);
+		mutruns_ = nullptr;
 		
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = p_runs[run_index];
-	}
-	else // if (!p_mutrun_count)
-	{
-		if (mutrun_count_)
-		{
-			// was a non-null haplosome, needs to become null
-			if (mutruns_ != run_buffer_)
-				free(mutruns_);
-			mutruns_ = nullptr;
-			
-			mutrun_count_ = 0;
-			mutrun_length_ = 0;
-		}
+		// chromosome_index_ remains untouched; we still belong to the same chromosome
+		mutrun_count_ = 0;
+		mutrun_length_ = 0;
 	}
 }
 
-void Haplosome::ReinitializeHaplosomeNullptr(Individual *individual, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
+void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosome *p_chromosome)
 {
-	// BCH 10/15/2024: The name of this method states that the reinitialized haplosome will be cleared to nullptr,
-	// but that is no longer the case since it is no longer necessary.  Instead, unless the debugging flag
-	// SLIM_CLEAR_HAPLOSOMES is set, we just clear to garbage; we provide the allocation structure only.
+	// Transmogrify a haplosome (which might be null or non-null) into a non-null haplosome with a specific configuration
 	individual_ = individual;
 	
-	if (p_mutrun_count)
+#if DEBUG
+	// We should always be reinitializing a haplosome that already belongs to the chromosome;
+	// the only reason the chromosome is passed in is that it knows the mutrun configuration.
+	if (chromosome_index_ != p_chromosome->Index())
+		EIDOS_TERMINATION << "ERROR (Haplosome::ReinitializeHaplosomeToNonNull): (internal error) incorrect chromosome index." << EidosTerminate();
+#endif
+	
+	if (mutrun_count_ == 0)
 	{
-		if (mutrun_count_ == 0)
+		// was a null haplosome, needs to become not null
+		mutrun_count_ = p_chromosome->mutrun_count_;
+		mutrun_length_ = p_chromosome->mutrun_length_;
+		
+		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
-			// was a null haplosome, needs to become not null
-			mutrun_count_ = p_mutrun_count;
-			mutrun_length_ = p_mutrun_length;
-			
-			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-			{
-				mutruns_ = run_buffer_;
+			mutruns_ = run_buffer_;
 #if SLIM_CLEAR_HAPLOSOMES
-				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 #endif
-			}
-			else
-			{
-#if SLIM_CLEAR_HAPLOSOMES
-				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
-#else
-				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
-#endif
-			}
-		}
-		else if (mutrun_count_ != p_mutrun_count)
-		{
-			// the number of mutruns has changed; need to reallocate
-			if (mutruns_ != run_buffer_)
-				free(mutruns_);
-			
-			mutrun_count_ = p_mutrun_count;
-			mutrun_length_ = p_mutrun_length;
-			
-			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-			{
-				mutruns_ = run_buffer_;
-#if SLIM_CLEAR_HAPLOSOMES
-				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
-#endif
-			}
-			else
-			{
-#if SLIM_CLEAR_HAPLOSOMES
-				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
-#else
-				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
-#endif
-			}
 		}
 		else
 		{
 #if SLIM_CLEAR_HAPLOSOMES
-			// the number of mutruns has not changed; need to zero out
-			if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-				EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
-			else
-				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
 #endif
 		}
-		
-		// we leave the new mutruns_ buffer filled with nullptr
 	}
-	else // if (!p_mutrun_count)
+	else if (mutrun_count_ != p_chromosome->mutrun_count_)
 	{
-		if (mutrun_count_)
+		// the number of mutruns has changed; need to reallocate
+		if (mutruns_ != run_buffer_)
+			free(mutruns_);
+		
+		mutrun_count_ = p_chromosome->mutrun_count_;
+		mutrun_length_ = p_chromosome->mutrun_length_;
+		
+		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
 		{
-			// was a non-null haplosome, needs to become null
-			if (mutruns_ != run_buffer_)
-				free(mutruns_);
-			mutruns_ = nullptr;
-			
-			mutrun_count_ = 0;
-			mutrun_length_ = 0;
+			mutruns_ = run_buffer_;
+#if SLIM_CLEAR_HAPLOSOMES
+			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+#endif
 		}
+		else
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+#else
+			mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));
+#endif
+		}
+	}
+	else
+	{
+#if SLIM_CLEAR_HAPLOSOMES
+		// the number of mutruns has not changed; need to zero out
+		if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
+			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+		else
+			EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+#endif
 	}
 }
 
@@ -471,7 +422,7 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_chromosome:
 		{
 			// We reach our chromosome through our individual; note this prevents standalone haplosome objects
-			Chromosome *chromosome = individual_->subpopulation_->species_.Chromosomes()[chromosome_index_];
+			Chromosome *chromosome = AssociatedChromosome();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 		}

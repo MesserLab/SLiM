@@ -211,6 +211,8 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kZ_ZSexChromosome:
 		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			chromosome_for_haplosome_index_.push_back(p_chromosome);
+			chromosome_for_haplosome_index_.push_back(p_chromosome);
 			first_haplosome_index_.push_back(haplosome_count_per_individual_);
 			last_haplosome_index_.push_back(haplosome_count_per_individual_ + 1);
 			haplosome_count_per_individual_ += 2;
@@ -224,6 +226,7 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kFL_HaploidFemaleLine:
 		case ChromosomeType::kHM_HaploidMaleInherited:
 		case ChromosomeType::kML_HaploidMaleLine:
+			chromosome_for_haplosome_index_.push_back(p_chromosome);
 			first_haplosome_index_.push_back(haplosome_count_per_individual_);
 			last_haplosome_index_.push_back(haplosome_count_per_individual_);
 			haplosome_count_per_individual_ += 1;
@@ -2909,8 +2912,11 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		
 	}
 	
-	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_nonnull.begin(), population_.species_haplosomes_junkyard_nonnull.end());
-	all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), population_.species_haplosomes_junkyard_null.begin(), population_.species_haplosomes_junkyard_null.end());
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), chromosome->HaplosomesJunkyardNonnull().begin(), chromosome->HaplosomesJunkyardNonnull().end());
+		all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), chromosome->HaplosomesJunkyardNull().begin(), chromosome->HaplosomesJunkyardNull().end());
+	}
 	
 	haplosome_pool_usage = population_.species_haplosome_pool_.MemoryUsageForAllNodes();
 	individual_pool_usage = population_.species_individual_pool_.MemoryUsageForAllNodes();
