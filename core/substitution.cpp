@@ -22,6 +22,7 @@
 #include "slim_globals.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "species.h"
 
 #include <iostream>
 #include <algorithm>
@@ -81,6 +82,14 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_chromosome:
+		{
+			Species &species = mutation_type_ptr_->species_;
+			const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+			Chromosome *chromosome = chromosomes[chromosome_index_];
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
+		}
 		case gID_id:					// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(mutation_id_));
 		case gID_mutationType:			// ACCELERATED
@@ -384,6 +393,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
