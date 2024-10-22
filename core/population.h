@@ -280,7 +280,7 @@ public:
 	// tallying across all subpopulations, total_haplosome_count_ for each chromosome is also set to this same
 	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
-	inline void void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tallies_valid_ = false; }
+	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tallies_valid_ = false; }
 
 	void TallyMutationReferencesAcrossPopulation(void);
 	void TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally);
