@@ -2731,7 +2731,7 @@ bool Community::_RunOneTickWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation();
 #endif
 		
 		for (Species *species : all_species_)
@@ -3131,7 +3131,7 @@ bool Community::_RunOneTickNonWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation();
 #endif
 		
 		for (Species *species : all_species_)

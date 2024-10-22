@@ -1038,7 +1038,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferencesAcrossPopulation(true);
+	population_.InvalidateMutationReferencesCache();	// force a retally
+	population_.TallyMutationReferencesAcrossPopulation();
 	
 	if (file_version <= 2)
 	{
@@ -1788,7 +1789,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferencesAcrossPopulation(true);
+	population_.InvalidateMutationReferencesCache();	// force a retally
+	population_.TallyMutationReferencesAcrossPopulation();
 	
 	if (file_version <= 2)
 	{
@@ -7452,7 +7454,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
+			// FIXME MULTICHROM need a chromosome index from somewhere
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, /* chromosome index */ 0, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
@@ -7768,7 +7771,8 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferencesAcrossPopulation(true);
+	population_.InvalidateMutationReferencesCache();	// force a retally
+	population_.TallyMutationReferencesAcrossPopulation();
 	
 	// Do a crosscheck to ensure data integrity
 	// BCH 10/16/2019: this crosscheck can take a significant amount of time; for a single load that is not a big deal,

@@ -191,7 +191,6 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('X'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSex('Y'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('Z'); stop(); }", "requires a chromosomeType of", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex(); stop(); }", "missing required argument", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", "may be called only once", __LINE__);
 	
 	// Test (void)initializeSLiMModelType(string$ modelType)

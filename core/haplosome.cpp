@@ -2812,7 +2812,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 	EidosValue *mutations_value = p_arguments[0].get();
 	
 	// get our target vector, handle the zero-length case, and do a pre-check for null haplosomes so we don't have to worry about it later on
-	int target_size = p_target->Count();
+	slim_refcount_t target_size = (slim_refcount_t)p_target->Count();
 	
 	if (target_size == 0)
 	{
@@ -2849,11 +2849,15 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 	// Have the Population tally for the target haplosomes
 	population.TallyMutationReferencesAcrossHaplosomes(target_data, target_size);
 	
-	// Use the back-end code in Population to do the counting
+	// Use the back-end code in Population to do the counting; TallyMutationReferencesAcrossHaplosomes()
+	// should have set the total haplosome count correctly for the given haplosome sample.  Note that a
+	// sample of mutations can be passed that belongs to a variety of different chrmosomes; in this case,
+	// each chromosome's total haplosome count should reflect the number of haplosomes in the sample
+	// that belong to that chromosome, so the frequencies should be correct in that sense.
 	if (p_method_id == gID_mutationFrequenciesInHaplosomes)
-		return population.Eidos_FrequenciesForTalliedMutations(mutations_value, target_size);
+		return population.Eidos_FrequenciesForTalliedMutations(mutations_value);
 	else
-		return population.Eidos_CountsForTalliedMutations(mutations_value, target_size);
+		return population.Eidos_CountsForTalliedMutations(mutations_value);
 }
 
 //	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])

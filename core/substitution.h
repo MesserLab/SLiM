@@ -53,6 +53,7 @@ public:
 	slim_objectid_t subpop_index_;				// subpopulation in which mutation arose
 	slim_tick_t origin_tick_;					// tick in which mutation arose
 	slim_tick_t fixation_tick_;					// tick in which mutation fixed
+	slim_chromosome_index_t chromosome_index_;	// the (uint8_t) index of this mutation's chromosome
 	int8_t nucleotide_;							// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	const slim_mutationid_t mutation_id_;		// a unique id for each mutation, used to track mutations
 	slim_usertag_t tag_value_;					// a user-defined tag value
@@ -61,7 +62,7 @@ public:
 	Substitution& operator=(const Substitution&) = delete;				// no copying
 	Substitution(void) = delete;										// no null construction
 	Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick);	// construct from the mutation that has fixed, and the tick in which it fixed
-	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
+	Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 	inline virtual ~Substitution(void) override { }

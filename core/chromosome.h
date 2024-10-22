@@ -186,6 +186,15 @@ public:
 	Community &community_;
 	Species &species_;
 	
+	// the total haplosome count depends on the chromosome; it will be different for an autosome versus a sex chromosome, for example
+	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count
+#ifdef SLIMGUI
+	slim_refcount_t gui_total_haplosome_count_ = 0;			// the number of non-null haplosomes in the selected subpopulations in SLiMgui
+#endif
+	
+	slim_refcount_t tallied_haplosome_count_ = 0;			// the total non-null haplosomes counted for this chromosome in the last tally
+	
+	// mutation and recombination machinery
 	std::vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
 	std::vector<slim_position_t> mutation_end_positions_M_;
 	std::vector<slim_position_t> mutation_end_positions_F_;

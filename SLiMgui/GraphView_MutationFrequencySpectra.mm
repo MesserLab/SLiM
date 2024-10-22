@@ -83,11 +83,10 @@
 	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	
-	pop.TallyMutationReferencesAcrossPopulation(false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
+	pop.TallyMutationReferencesAcrossPopulation();	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	double totalHaplosomeCount = pop.total_haplosome_count_;
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	
@@ -104,8 +103,9 @@
 				continue;
 		}
 		
+		Chromosome *mut_chromosome = displaySpecies->Chromosomes()[mutation->chromosome_index_];
 		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
-		double mutationFrequency = mutationRefCount / totalHaplosomeCount;
+		double mutationFrequency = mutationRefCount / mut_chromosome->total_haplosome_count_;
 		int mutationBin = (int)floor(mutationFrequency * binCount);
 		int mutationTypeIndex = mutation->mutation_type_ptr_->mutation_type_index_;
 		

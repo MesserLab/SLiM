@@ -125,9 +125,9 @@ class Population
 	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
 	bool registry_needs_consistency_check_ = false;			// set this to run CheckMutationRegistry() at the end of the cycle
 	
-	// Cache info for TallyMutationReferences...(); see those functions
+	// Cache info for TallyMutationReferences...(), along with Chromosome::cached_tally_haplosome_count_; see those functions
+	bool cached_tallies_valid_ = false;
 	std::vector<Subpopulation*> last_tallied_subpops_;		// NOT OWNED POINTERS
-	slim_refcount_t cached_tally_haplosome_count_ = 0;			// a value of 0 indicates that the cache is invalid
 	
 public:
 	
@@ -145,11 +145,6 @@ public:
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	bool keeping_muttype_registries_ = false;				// if true, at least one MutationType is also keeping its own registry
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
-#endif
-	
-	slim_refcount_t total_haplosome_count_ = 0;				// the number of non-null haplosomes in the population; a fixed mutation has this count
-#ifdef SLIMGUI
-	slim_refcount_t gui_total_haplosome_count_ = 0;			// the number of non-null haplosomes in the selected subpopulations in SLiMgui
 #endif
 	
 	std::vector<SLiM_DeferredReproduction_NonRecombinant> deferred_reproduction_nonrecombinant_;
@@ -266,11 +261,14 @@ public:
 	// Tally MutationRun usage and free unused MutationRuns.  Note that all of these tallying methods tally into
 	// the same use_count_ counter kept by MutationRun, so a new tally wipes the results of the previous tally.
 	// Also note that the mutation tallying methods below call these methods to tally mutation runs first, so
-	// the mutation run tallies will be altered as a side effect of doing a mutation tally.  The return value
-	// for all of these methods is the number of non-null haplosomes that were tallied across.
-	slim_refcount_t TallyMutationRunReferencesForPopulation(void);
-	slim_refcount_t TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
-	slim_refcount_t TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
+	// the mutation run tallies will be altered as a side effect of doing a mutation tally.  These methods all
+	// place the number of non-null haplosomes that were tallied across into the tallied_haplosome_count_ value
+	// of each chromosome involved in the tally.
+	void TallyMutationRunReferencesForPopulationForChromosome(Chromosome *p_chromosome);
+	void TallyMutationRunReferencesForPopulation(void);
+	void TallyMutationRunReferencesForSubpopsForChromosome(std::vector<Subpopulation*> *p_subpops_to_tally, Chromosome *p_chromosome);
+	void TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
+	void TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
 	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferencesForPopulation()!
 	
 	// Tally Mutation usage; these count the total number of times that each Mutation in the registry is referenced
@@ -278,19 +276,17 @@ public:
 	// block kept by Mutation.  For the whole population, and for a set of subpops, cache info is maintained so the
 	// tally can be reused when possible.  For a set of haplosomes, the result is not cached, and so the cache is
 	// always invalidated.  The maximum number of references (the total number of non-null haplosomes tallied) is
-	// always returned.  When tallying across all subpopulations, total_haplosome_count_ is also set to this same
+	// always placed into the tallied_haplosome_count_ value for each chromosome involved in the tally.  When
+	// tallying across all subpopulations, total_haplosome_count_ for each chromosome is also set to this same
 	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
-	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tally_haplosome_count_ = 0; }
+	inline void void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tallies_valid_ = false; }
+
+	void TallyMutationReferencesAcrossPopulation(void);
+	void TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally);
+	void TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	
-	slim_refcount_t TallyMutationReferencesAcrossPopulation(bool p_force_recache);
-	slim_refcount_t TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
-	slim_refcount_t TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
-	
-	slim_refcount_t _CountNonNullHaplosomes(void);
-#ifdef SLIMGUI
-	void _CopyRefcountsToSLiMgui(void);
-#endif
+	slim_refcount_t _CountNonNullHaplosomesForChromosome(Chromosome *p_chromosome);
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
 #if DEBUG
 	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
@@ -299,8 +295,8 @@ public:
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
 	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
 	// to return the correct frequency/count values to the user as an EidosValue_SP.
-	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_haplosome_count);
-	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_haplosome_count);
+	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value);
+	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value);
 	
 	// Handle negative fixation (remove from the registry) and positive fixation (convert to Substitution).
 	// This uses reference counts from TallyMutationReferencesAcrossPopulation(), which must be called before this method.

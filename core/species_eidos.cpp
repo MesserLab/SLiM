@@ -2398,13 +2398,11 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *mutations_value = p_arguments[1].get();
 	
-	slim_refcount_t total_haplosome_count = 0;
-	
-	// tally across the requested subpops
+	// tally across the requested subpops; total haplosome counts are put into the chromosomes
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
-		total_haplosome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+		population_.TallyMutationReferencesAcrossPopulation();
 	}
 	else
 	{
@@ -2431,9 +2429,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.
 		// Since we uniqued the subpops_to_tally vector above, we can check for equality by just comparing sizes.
 		if (subpops_to_tally.size() == population_.subpops_.size())
-			total_haplosome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+			population_.TallyMutationReferencesAcrossPopulation();
 		else
-			total_haplosome_count = population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally, false);
+			population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally);
 	}
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2446,11 +2444,12 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	}
 	
 	// OK, now construct our result vector from the tallies for just the requested mutations
-	// We now have utility methods on Population that do this for us
+	// We now have utility methods on Population that do this for us; we pass a denominator
+	// of nullptr, which says the denominator is the total haplosome count for each chromosome
 	if (p_method_id == gID_mutationFrequencies)
-		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value, total_haplosome_count);
+		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value);
 	else // p_method_id == gID_mutationCounts
-		return population_.Eidos_CountsForTalliedMutations(mutations_value, total_haplosome_count);
+		return population_.Eidos_CountsForTalliedMutations(mutations_value);
 }
 
 //	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)

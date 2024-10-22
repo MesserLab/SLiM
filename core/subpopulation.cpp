@@ -74,12 +74,12 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 		{
 			Individual *individual = p_individuals[index];
 			Haplosome **haplosomes = individual->haplosomes_;
+			int haplosome_index = 0;
 			
 			for (Chromosome *chromosome : chromosomes)
 			{
 				// Determine what kind of haplosomes to make for this chromosome
 				ChromosomeType chromosomeType = chromosome->Type();
-				int haplosome_index = 0;
 				
 				switch (chromosomeType)
 				{
@@ -127,6 +127,7 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 		{
 			Individual *individual = p_individuals[index];
 			Haplosome **haplosomes = individual->haplosomes_;
+			int haplosome_index = 0;
 			bool is_female = (index < p_first_male);
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
@@ -135,7 +136,6 @@ void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_in
 			{
 				// Determine what kind of haplosomes to make for this chromosome
 				ChromosomeType chromosomeType = chromosome->Type();
-				int haplosome_index = 0;
 				
 				switch (chromosomeType)
 				{
@@ -4910,19 +4910,16 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Select the templated functions we will call; this should all get optimized out
-	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
 	if (f_treeseq)
 	{
 		if (f_callbacks)
 		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
 			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
 		}
 		else
 		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
 			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
 		}
 	}
@@ -4930,12 +4927,10 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	{
 		if (f_callbacks)
 		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
 			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
 		}
 		else
 		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
 			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
 		}
 	}

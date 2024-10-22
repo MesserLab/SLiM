@@ -197,23 +197,23 @@ protected:
 #ifndef SLIM_NO_OPENGL
     void glDrawRect(Species *displaySpecies);
     void glDrawGenomicElements(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
-    void glDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
-    void glDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
-    void _glDrawRateMapIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue);
-    void glDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
-    void glDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
-    void glDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+    void glDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
+    void glDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
+    void _glDrawRateMapIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue);
+    void glDrawRecombinationIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
+    void glDrawMutationIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
+    void glDrawRateMaps(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
 #endif
     
     // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
     void qtDrawRect(Species *displaySpecies, QPainter &painter);
     void qtDrawGenomicElements(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
-    void qtDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
-    void qtDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
-    void _qtDrawRateMapIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue, QPainter &painter);
-    void qtDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
-    void qtDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
-    void qtDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
+    void _qtDrawRateMapIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue, QPainter &painter);
+    void qtDrawRecombinationIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawMutationIntervals(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
+    void qtDrawRateMaps(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
     
     Chromosome *_findFocalChromosomeForTracking(QMouseEvent *p_event);
     virtual void mousePressEvent(QMouseEvent *p_event) override;

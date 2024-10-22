@@ -79,7 +79,7 @@ public:
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_tick_t origin_tick_;						// tick in which the mutation arose
-	slim_chromosome_index_t /* uint8_t */ chromosome_index_;	// the index of this mutation's chromosome
+	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
 	int8_t state_;										// see MutationState above
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block

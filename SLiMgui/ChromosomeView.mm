@@ -1203,8 +1203,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
+	slim_chromosome_index_t chromosome_index = chromosome.Index();
 	Population &pop = displaySpecies->population_;
-	double totalHaplosomeCount = pop.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
+	double totalHaplosomeCount = chromosome.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1215,27 +1217,31 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 		{
 			const Mutation *mutation = mut_block_ptr + registry[registry_index];
-			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
-			if (mutType->mutation_type_displayed_)
+			if (mutation->chromosome_index_ == chromosome_index)	// display only mutations in the displayed chromosome
 			{
-				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-				slim_position_t mutationPosition = mutation->position_;
-				NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+				const MutationType *mutType = mutation->mutation_type_ptr_;
 				
-				if (!mutType->color_.empty())
+				if (mutType->mutation_type_displayed_)
 				{
-					[[NSColor colorWithCalibratedRed:mutType->color_red_ green:mutType->color_green_ blue:mutType->color_blue_ alpha:1.0] set];
+					slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+					slim_position_t mutationPosition = mutation->position_;
+					NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+					
+					if (!mutType->color_.empty())
+					{
+						[[NSColor colorWithCalibratedRed:mutType->color_red_ green:mutType->color_green_ blue:mutType->color_blue_ alpha:1.0] set];
+					}
+					else
+					{
+						float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
+						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+					}
+					
+					mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+					NSRectFill(mutationTickRect);
 				}
-				else
-				{
-					float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0;
-					RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-					[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-				}
-				
-				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-				NSRectFill(mutationTickRect);
 			}
 		}
 	}
@@ -1280,16 +1286,19 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 						
 						if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 						{
-							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
-							slim_position_t mutationPosition = mutation->position_;
-							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-							int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-							
-							if ((xPos >= 0) && (xPos < displayPixelWidth))
-								if (height > heightBuffer[xPos])
-									heightBuffer[xPos] = height;
+							if (mutation->chromosome_index_ == chromosome_index)
+							{
+								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+								slim_position_t mutationPosition = mutation->position_;
+								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+								int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+								
+								if ((xPos >= 0) && (xPos < displayPixelWidth))
+									if (height > heightBuffer[xPos])
+										heightBuffer[xPos] = height;
+							}
 							
 							// tally this mutation as handled
 							//mutation->gui_scratch_reference_count_ = 1;
@@ -1352,14 +1361,18 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					if (!mutationsPlotted[registry_index])
 					{
 						const Mutation *mutation = mut_block_ptr + registry[registry_index];
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						
-						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-						[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
-						NSRectFill(mutationTickRect);
+						if (mutation->chromosome_index_ == chromosome_index)
+						{
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							
+							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+							RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
+							NSRectFill(mutationTickRect);
+						}
 					}
 				}
 			}
@@ -1378,19 +1391,23 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					{
 						MutationIndex mutationBlockIndex = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						
-						if ((xPos >= 0) && (xPos < displayPixelWidth))
+						if (mutation->chromosome_index_ == chromosome_index)
 						{
-							if (height > heightBuffer[xPos])
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+							int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+							
+							if ((xPos >= 0) && (xPos < displayPixelWidth))
 							{
-								heightBuffer[xPos] = height;
-								mutationBuffer[xPos] = mutationBlockIndex;
+								if (height > heightBuffer[xPos])
+								{
+									heightBuffer[xPos] = height;
+									mutationBuffer[xPos] = mutationBlockIndex;
+								}
 							}
 						}
 					}
@@ -1425,8 +1442,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
+	slim_chromosome_index_t chromosome_index = chromosome.Index();
 	Population &pop = displaySpecies->population_;
-	double totalHaplosomeCount = pop.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
+	double totalHaplosomeCount = chromosome.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1444,28 +1463,31 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			const Mutation *mutation = mut_block_ptr + registry[registry_index];
 			const MutationType *mutType = mutation->mutation_type_ptr_;
 			
-			if (mutType->mutation_type_displayed_)
+			if (mutation->chromosome_index_ == chromosome_index)	// display only mutations in the displayed chromosome
 			{
-				slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-				slim_position_t mutationPosition = mutation->position_;
-				NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-				
-				if (!mutType->color_.empty())
+				if (mutType->mutation_type_displayed_)
 				{
-					colorRed = mutType->color_red_;
-					colorGreen = mutType->color_green_;
-					colorBlue = mutType->color_blue_;
+					slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+					slim_position_t mutationPosition = mutation->position_;
+					NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+					
+					if (!mutType->color_.empty())
+					{
+						colorRed = mutType->color_red_;
+						colorGreen = mutType->color_green_;
+						colorBlue = mutType->color_blue_;
+					}
+					else
+					{
+						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					}
+					
+					mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+					SLIM_GL_DEFCOORDS(mutationTickRect);
+					SLIM_GL_PUSHRECT();
+					SLIM_GL_PUSHRECT_COLORS();
+					SLIM_GL_CHECKBUFFERS();
 				}
-				else
-				{
-					RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-				}
-				
-				mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-				SLIM_GL_DEFCOORDS(mutationTickRect);
-				SLIM_GL_PUSHRECT();
-				SLIM_GL_PUSHRECT_COLORS();
-				SLIM_GL_CHECKBUFFERS();
 			}
 		}
 	}
@@ -1514,16 +1536,19 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 							
 							if ((mutation->mutation_type_ptr_ == mut_type) && (mut_type_fixed_color || (mutation->selection_coeff_ == mut_type_selcoeff)))
 							{
-								slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
-								slim_position_t mutationPosition = mutation->position_;
-								//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-								//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-								int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-								int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-								
-								if ((xPos >= 0) && (xPos < displayPixelWidth))
-									if (height > heightBuffer[xPos])
-										heightBuffer[xPos] = height;
+								if (mutation->chromosome_index_ == chromosome_index)
+								{
+									slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// includes only refs from the selected subpopulations
+									slim_position_t mutationPosition = mutation->position_;
+									//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+									//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+									int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+									int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+									
+									if ((xPos >= 0) && (xPos < displayPixelWidth))
+										if (height > heightBuffer[xPos])
+											heightBuffer[xPos] = height;
+								}
 								
 								// tally this mutation as handled
 								//mutation->gui_scratch_reference_count_ = 1;
@@ -1591,17 +1616,21 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					if (!mutationsPlotted[registry_index])
 					{
 						const Mutation *mutation = mut_block_ptr + registry[registry_index];
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
 						
-						mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
-						RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-						
-						SLIM_GL_DEFCOORDS(mutationTickRect);
-						SLIM_GL_PUSHRECT();
-						SLIM_GL_PUSHRECT_COLORS();
-						SLIM_GL_CHECKBUFFERS();
+						if (mutation->chromosome_index_ == chromosome_index)
+						{
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							
+							mutationTickRect.size.height = (int)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+							RGBForSelectionCoeff(mutation->selection_coeff_, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+							
+							SLIM_GL_DEFCOORDS(mutationTickRect);
+							SLIM_GL_PUSHRECT();
+							SLIM_GL_PUSHRECT_COLORS();
+							SLIM_GL_CHECKBUFFERS();
+						}
 					}
 				}
 			}
@@ -1620,19 +1649,23 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 					{
 						MutationIndex mutationBlockIndex = registry[registry_index];
 						const Mutation *mutation = mut_block_ptr + mutationBlockIndex;
-						slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
-						slim_position_t mutationPosition = mutation->position_;
-						//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
-						//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
-						int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
-						int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
 						
-						if ((xPos >= 0) && (xPos < displayPixelWidth))
+						if (mutation->chromosome_index_ == chromosome_index)
 						{
-							if (height > heightBuffer[xPos])
+							slim_refcount_t mutationRefCount = mutation->gui_reference_count_;		// this includes only references made from the selected subpopulations
+							slim_position_t mutationPosition = mutation->position_;
+							//NSRect mutationTickRect = [self rectEncompassingBase:mutationPosition toBase:mutationPosition interiorRect:interiorRect displayedRange:displayedRange];
+							//int xPos = (int)(mutationTickRect.origin.x - interiorRect.origin.x);
+							int xPos = LEFT_OFFSET_OF_BASE(mutationPosition, interiorRect, displayedRange);
+							int16_t height = (int16_t)ceil((mutationRefCount / totalHaplosomeCount) * interiorRect.size.height);
+							
+							if ((xPos >= 0) && (xPos < displayPixelWidth))
 							{
-								heightBuffer[xPos] = height;
-								mutationBuffer[xPos] = mutationBlockIndex;
+								if (height > heightBuffer[xPos])
+								{
+									heightBuffer[xPos] = height;
+									mutationBuffer[xPos] = mutationBlockIndex;
+								}
 							}
 						}
 					}

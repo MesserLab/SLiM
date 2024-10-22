@@ -957,10 +957,18 @@ If the optional
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeSex(string$\'a0chromosomeType)\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeSex([Ns$\'a0chromosomeType\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Enable and configure sex in the simulation.  The argument 
+\f2\fs20 \cf2 Enable sex in the simulation.  Beginning in SLiM 5, this method should generally be passed 
+\f1\fs18 NULL
+\f2\fs20 , simply indicating that sex should be enabled: individuals will be male and female (rather than hermaphroditic), biparental crosses will be required to be between a female first parent and a male second parent, and selfing will not be allowed.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+In this new configuration style, if a sexual simulation involving sex chromosomes is desired, the new 
+\f1\fs18 initializeChromosome()
+\f2\fs20  call should be used to configure the chromosome setup for the simulation (see the 
+\f1\fs18 initializeChromosome()
+\f2\fs20  documentation in section 25.1).\
+For backward compatibility, the old style of configuring a sexual simulation is still supported, however.  In this style, the argument 
 \f1\fs18 chromosomeType
 \f2\fs20  gives the type of chromosome to be simulated; this should be 
 \f1\fs18 "A"
@@ -968,9 +976,17 @@ If the optional
 \f1\fs18 "X"
 \f2\fs20 , or 
 \f1\fs18 "Y"
-\f2\fs20 .  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
-\f1\fs18 chromosomeType
-\f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\f2\fs20 .  These correspond to the new chromosome types 
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "X"
+\f2\fs20 , and 
+\f1\fs18 "-Y"
+\f2\fs20  (not 
+\f1\fs18 "Y"
+\f2\fs20 ), respectively, when using 
+\f1\fs18 initializeChromosome()
+\f2\fs20 .  This old style of chromosome configuration is much less flexible, however, allowing fewer chromosome types, and only allowing a single chromosome to be set up.  This backward compatibility mode may be removed for SLiM in the future, and should be considered deprecated.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b \cf2 The 
