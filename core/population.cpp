@@ -2049,7 +2049,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		// being in this code path, is that there are no callbacks enabled, of any type, that influence the process of reproduction.  This is because
 		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed; it hasn't been tested.
 #ifdef _OPENMP
-		bool can_parallelize = (!species_.TheChromosome().using_DSB_model_);
+		bool can_parallelize = true;
+		
+		for (Chromosome *chromosome : species_.Chrpmosomes())
+			if (chromosome.using_DSB_model_)
+			{
+				can_parallelize = false;
+				break;
+			}
 #endif
 		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
@@ -6493,13 +6500,12 @@ void Population::UniqueMutationRuns(void)
 	
 	EIDOS_BENCHMARK_START(EidosBenchmarkType::k_UNIQUE_MUTRUNS);
 	
-	// FIXME MULTICHROM we want the top-level loop to be over mutation runs; we want to do the uniquing work
+	// BCH 22 Oct. 2024: we want the top-level loop to be over mutation runs; we want to do the uniquing work
 	// on a per-mutation-run basis.  However, mutation runs live inside haplosomes, which correspond to
 	// chromosomes, and that correspondence is important; the mutation runs of two haplosomes that represent
-	// the same chromosome need to be uniqued against each other, not independently.  So it seems like the
-	// new top-level loop has to be over chromosomes; but it'd be nice to be able to parallelize at the top
-	// level, not run a separate parallel loop for each chromosome.  Not sure if there's a better way to
-	// organize this.
+	// the same chromosome need to be uniqued against each other, not independently.  So the new top-level
+	// loop is over chromosomes, and then over mutruns and haplosomes that correspond to each chromosome.
+	// FIXME: TO BE PARALLELIZED
 	for (size_t chromosome_index = 0; chromosome_index < chromosome_count; ++chromosome_index)
 	{
 		Chromosome *chromosome = chromosomes[chromosome_index];
@@ -8567,14 +8573,17 @@ void Population::RemoveAllFixedMutations(void)
 		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
 		if (species_.IsNucleotideBased())
 		{
-			NucleotideArray *ancestral_seq = species_.TheChromosome().ancestral_seq_buffer_;
-			
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				
 				if (mut_to_remove->mutation_type_ptr_->nucleotide_based_)
+				{
+					Chromosome *mut_chromosome = species_.Chromosomes()[mut_to_remove->chromosome_index_];
+					NucleotideArray *ancestral_seq = mut_chromosome->ancestral_seq_buffer_;
+					
 					ancestral_seq->SetNucleotideAtIndex(mut_to_remove->position_, mut_to_remove->nucleotide_);
+				}
 			}
 		}
 	}

@@ -545,9 +545,6 @@ void Haplosome::SetProperty(EidosGlobalStringID p_property_id, const EidosValue 
 	{
 		case gID_tag:				// ACCELERATED
 		{
-			// FIXME MULTICHROM if the empty haplosome is shared by multiple clients, its tag value will be shared also!
-			// need to split off a given haplosome from the shared haplosome object if its tag is set!
-			// This seems tricky, and is maybe a reason not to use a shared haplosome object in the first place!
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex_NOCAST(0, nullptr));
 			
 			tag_value_ = value;
