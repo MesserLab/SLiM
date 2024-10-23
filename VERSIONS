@@ -67,6 +67,7 @@ development head (in the master branch):
 		add a "chromosome display" window where you can view all the chromosomes simultaneously
 		policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
 		policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
+		policy change: haplosomesFromParent1/haplosomesFromParent2 (autofixed from genome1/genome2) do not include null haplosomes
 
 
 version 4.3 (Eidos version 3.3):
