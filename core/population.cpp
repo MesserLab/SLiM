@@ -299,21 +299,24 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			migrant_index = p_source_subpop.DrawParentUsingFitness(rng);
 		}
 		
-		Haplosome *source_haplosome1 = p_source_subpop.parent_individuals_[migrant_index]->haplosomes_[0];
-		Haplosome *source_haplosome2 = p_source_subpop.parent_individuals_[migrant_index]->haplosomes_[1];
-		
-		Haplosome *dest_haplosome1 = subpop.parent_individuals_[parent_index]->haplosomes_[0];
-		Haplosome *dest_haplosome2 = subpop.parent_individuals_[parent_index]->haplosomes_[1];
-		
-		dest_haplosome1->copy_from_haplosome(*source_haplosome1);
-		dest_haplosome2->copy_from_haplosome(*source_haplosome2);
-		
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_sequence)
-		{
 			species_.SetCurrentNewIndividual(subpop.parent_individuals_[parent_index]);
-			species_.RecordNewHaplosome(nullptr, dest_haplosome1, source_haplosome1, nullptr);
-			species_.RecordNewHaplosome(nullptr, dest_haplosome2, source_haplosome2, nullptr);
+		
+		Haplosome **source_individual_haplosomes = p_source_subpop.parent_individuals_[migrant_index]->haplosomes_;
+		Haplosome **dest_individual_haplosomes = subpop.parent_individuals_[parent_index]->haplosomes_;
+		int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+		
+		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+		{
+			Haplosome *source_haplosome = source_individual_haplosomes[haplosome_index];
+			Haplosome *dest_haplosome = dest_individual_haplosomes[haplosome_index];
+			
+			dest_haplosome->copy_from_haplosome(*source_haplosome);
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+				species_.RecordNewHaplosome(nullptr, dest_haplosome, source_haplosome, nullptr);
 		}
 	}
 	
