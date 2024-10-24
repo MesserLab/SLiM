@@ -2852,6 +2852,14 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires that parent, if non-NULL, belongs to the same species as the target chromosome." << EidosTerminate();
 	}
 	
+	// Get the indices of the haplosomes associated with this chromosome.  Note that the first/last indices might be the same,
+	// if this is a haploid chromosome.  That is OK here.  The user is allowed to set a recombination rate on a haploid
+	// chromosome and generate breakpoints for it; what they do with that information is up to them.  (They might use them
+	// in an addRecombinant() call, for example.)  In that case, of a haploid chromosome, the same single parent haplosome
+	// will be passed twice to recombination() callbacks; that seems better than not defining one of the pseudo-parameters.
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[index_];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[index_];
+	
 	// Much of the breakpoint-drawing code here is taken from Population::DoCrossoverMutation().
 	// We don't want to split it out into a separate function because (a) we don't want that
 	// overhead for DoCrossoverMutation(), which is a hotspot, and (b) we do things slightly
@@ -2873,8 +2881,8 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	std::vector<slim_position_t> all_breakpoints;
 	std::vector<slim_position_t> heteroduplex;				// never actually used since simple_conversion_fraction_ must be 1.0
 	
-	// Note that for calling recombination() callbacks below, we always treat the parent's first haplosome as the initial copy strand.
-	// This is documented; it is perhaps a weakness of the API here, but if randomly chose an initial copy strand it would not be used downstream, so.
+	// Note that for calling recombination() callbacks below, we always treat the parent's first haplosome as the initial copy strand.  This is
+	// documented; it is perhaps a weakness of the API here, but if we randomly chose an initial copy strand it would not be used downstream, so.
 	
 	// draw the breakpoints based on the recombination rate map, and sort and unique the result
 	if (num_breakpoints)
@@ -2887,7 +2895,10 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		if (parent && recombination_callbacks.size())
 		{
 			// a non-zero number of breakpoints, with recombination callbacks
-			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosomes_[0], parent->haplosomes_[1], parent_subpop, all_breakpoints, recombination_callbacks);
+			Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
+			Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
+			
+			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent_haplosome1, parent_haplosome2, parent_subpop, all_breakpoints, recombination_callbacks);
 			
 			if (all_breakpoints.size() > 1)
 			{
@@ -2899,7 +2910,10 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	else if (parent && recombination_callbacks.size())
 	{
 		// zero breakpoints from the SLiM core, but we have recombination() callbacks
-		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent->haplosomes_[0], parent->haplosomes_[1], parent_subpop, all_breakpoints, recombination_callbacks);
+		Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
+		Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
+		
+		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent_haplosome1, parent_haplosome2, parent_subpop, all_breakpoints, recombination_callbacks);
 		
 		if (all_breakpoints.size() > 1)
 		{
