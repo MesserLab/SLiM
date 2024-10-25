@@ -362,9 +362,12 @@ public:
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks);	// update fitness values based upon current mutations
 
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	double FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsize_t p_individual_index);
-	double FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
-	double FitnessOfParentWithHaplosomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type);
+	template <const bool f_callbacks, const bool f_singlecallback>
+	double FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	template <const bool f_callbacks, const bool f_singlecallback>
+	double _Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	template <const bool f_callbacks, const bool f_singlecallback>
+	double _Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);

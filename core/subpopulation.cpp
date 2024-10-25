@@ -1561,6 +1561,17 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 	}
 	
+	// determine the templated version of FitnessOfParent() that we will call out to for fitness evaluation
+	// see Population::EvolveSubpopulation() for further comments on this optimization technique
+	double (Subpopulation::*FitnessOfParent_TEMPLATED)(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
+	if (!mutationEffect_callbacks_exist)
+		FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, false>;
+	else if (single_mutationEffect_callback)
+		FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, true>;
+	else
+		FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, false>;
+	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
 	{
@@ -1691,7 +1702,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(female_index);
+							fitness *= FitnessOfParent<false, false>(female_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1719,12 +1730,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(female_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1760,12 +1766,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(female_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1914,7 +1915,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(male_index);
+							fitness *= FitnessOfParent<false, false>(male_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1942,12 +1943,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(male_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1984,12 +1980,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(male_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -2153,7 +2144,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(individual_index);
+							fitness *= FitnessOfParent<false, false>(individual_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -2181,12 +2172,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(individual_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -2222,12 +2208,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithHaplosomeIndices_NoCallbacks(individual_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithHaplosomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithHaplosomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -2705,45 +2686,135 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 	return computed_fitness;
 }
 
-// FitnessOfParentWithHaplosomeIndices has three versions, for no callbacks, a single callback, and multiple callbacks.  This is for two reasons.  First,
-// it allows the case without mutationEffect() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
-// is exactly 0.0f, as an optimization; but that optimization would be invalid in the callback case, since callbacks can change the relative fitness
-// of ostensibly neutral mutations.  For reasons of maintainability, the three versions should be kept in synch as closely as possible.
-//
-// When there is just a single callback, it usually refers to a mutation type that is relatively uncommon.  The model might have neutral mutations in most
-// cases, plus a rare (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common case substantially
-// by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
-// are many common mutations with no callback, plus one rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a
-// high mutation rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would hit this case hard and
-// see a speedup of as much as 25%, so the additional complexity seems worth it (since that's quite a realistic and common case).
-
-// This version of FitnessOfParentWithHaplosomeIndices assumes no callbacks exist.  It tests for neutral mutations and skips processing them.
-//
-double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsize_t p_individual_index)
+// FitnessOfParent() has three templated versions, for no callbacks, a single callback, and multiple callbacks.  That
+// pattern extends downward to _Fitness_DiploidChromosome() and _Fitness_HaploidChromosome(), which is the level where
+// it actually matters; in FitnessOfParent() the template flags just get passed through.  The goal of this design is
+// twofold.  First, it allows the case without mutationEffect() callbacks to run at full speed.  Second, it allows the
+// single-callback case to be optimized in a special way.  When there is just a single callback, it usually refers to
+// a mutation type that is relatively uncommon.  The model might have neutral mutations in most cases, plus a rare
+// (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common
+// case substantially by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type
+// that the callback modifies.  This pays off mostly when there are many common mutations with no callback, plus one
+// rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a high mutation
+// rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would
+// hit this case hard and see a speedup of as much as 25%, so the additional complexity seems worth it (since that's
+// quite a realistic and common case).  The only unfortunate thing about this design is that p_mutationEffect_callbacks
+// has to get passed all the way down, even when we know we won't use it.  LTO might optimize that away, with luck.
+template <const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
-	// calculate the fitness of the individual constituted by haplosome1 and haplosome2 in the parent population
+	// calculate the fitness of the individual at index p_individual_index in the parent population
+	// this loops through all chromosomes, handling ploidy and callbacks as needed
 	double w = 1.0;
+	Individual *individual = parent_individuals_[p_individual_index];
+	int haplosome_index = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
+				Haplosome *haplosome2 = individual->haplosomes_[haplosome_index+1];
+				
+				w *= _Fitness_DiploidChromosome<f_callbacks, f_singlecallback>(haplosome1, haplosome2, p_mutationEffect_callbacks);
+				if (w <= 0.0)
+					return 0.0;
+				
+				haplosome_index += 2;
+				break;
+			}
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0)
+					return 0.0;
+				
+				haplosome_index += 1;
+				break;
+			}
+				
+				// special cases: haploid but with an accompanying null
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0)
+					return 0.0;
+				
+				haplosome_index += 2;
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index+1];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0)
+					return 0.0;
+				
+				haplosome_index += 2;
+				break;
+			}
+		}
+	}
+	
+	return w;
+}
+
+template double Subpopulation::FitnessOfParent<false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+
+template <const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+	double w = 1.0;
+	bool haplosome1_null = haplosome1->IsNull();
+	bool haplosome2_null = haplosome2->IsNull();
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
 	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
 #endif
 	
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
+	
+	if (f_singlecallback)
+	{
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
+	}
+	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosomes_[0];
-	Haplosome *haplosome2 = individual->haplosomes_[1];
-	bool haplosome1_null = haplosome1->IsNull();
-	bool haplosome2_null = haplosome2->IsNull();
 	
 	if (haplosome1_null && haplosome2_null)
 	{
-		// both haplosomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
+		// both haplosomes are null placeholders; no mutations, no fitness effects
 		return w;
 	}
 	else if (haplosome1_null || haplosome2_null)
 	{
-		// one haplosome is null, so we just need to scan through the modeled haplosome and account for its mutations, including the haploid dominance coefficient
+		// one haplosome is null, so we just need to scan through the non-null haplosome and account
+		// for its mutations, including the haploid dominance coefficient
 		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
 		
@@ -2762,9 +2833,25 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
 #endif
 			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
+			// with an unpaired chromosome, we multiply each selection coefficient by the haploid dominance coefficient
+			// this is for a single X chromosome in a male, for example; dosage compensation, as opposed to heterozygosity
 			while (haplosome_iter != haplosome_max)
-				w *= (mut_block_ptr + *haplosome_iter++)->cached_one_plus_haploiddom_sel_;
+			{
+				MutationIndex haplosome_mutindex = *haplosome_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome_mutindex;
+				
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_haploiddom_sel_;
+				}
+			}
 		}
 		
 		return w;
@@ -2797,33 +2884,57 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 			// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
 			if (haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max)
 			{
-				MutationIndex haplosome1_mutation = *haplosome1_iter, haplosome2_mutation = *haplosome2_iter;
-				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
+				MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 				
 				do
 				{
 					if (haplosome1_iter_position < haplosome2_iter_position)
 					{
 						// Process a mutation in haplosome1 since it is leading
-						w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_;
+						Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+						
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+						else
+						{
+							w *= mutation->cached_one_plus_dom_sel_;
+						}
 						
 						if (++haplosome1_iter == haplosome1_max)
 							break;
 						else {
-							haplosome1_mutation = *haplosome1_iter;
-							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
+							haplosome1_mutindex = *haplosome1_iter;
+							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
 						}
 					}
 					else if (haplosome1_iter_position > haplosome2_iter_position)
 					{
 						// Process a mutation in haplosome2 since it is leading
-						w *= (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_;
+						Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+						
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+						else
+						{
+							w *= mutation->cached_one_plus_dom_sel_;
+						}
 						
 						if (++haplosome2_iter == haplosome2_max)
 							break;
 						else {
-							haplosome2_mutation = *haplosome2_iter;
-							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
+							haplosome2_mutindex = *haplosome2_iter;
+							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 						}
 					}
 					else
@@ -2840,10 +2951,22 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 							// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
 							while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
 							{
-								if (haplosome1_mutation == *haplosome2_matchscan) 		// note pointer equality test
+								if (haplosome1_mutindex == *haplosome2_matchscan)
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_sel_;
+									Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+									
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									{
+										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+										
+										if (w <= 0.0)
+											return 0.0;
+									}
+									else
+									{
+										w *= mutation->cached_one_plus_sel_;
+									}
 									goto homozygousExit1;
 								}
 								
@@ -2851,15 +2974,29 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_;
+							{
+								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (w <= 0.0)
+										return 0.0;
+								}
+								else
+								{
+									w *= mutation->cached_one_plus_dom_sel_;
+								}
+							}
 							
 						homozygousExit1:
 							
 							if (++haplosome1_iter == haplosome1_max)
 								break;
 							else {
-								haplosome1_mutation = *haplosome1_iter;
-								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
+								haplosome1_mutindex = *haplosome1_iter;
+								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
 							}
 						} while (haplosome1_iter_position == position);
 						
@@ -2871,7 +3008,7 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 							// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
 							while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
 							{
-								if (haplosome2_mutation == *haplosome1_matchscan)		// note pointer equality test
+								if (haplosome2_mutindex == *haplosome1_matchscan)
 								{
 									// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
 									goto homozygousExit2;
@@ -2881,15 +3018,29 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_;
+							{
+								Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+								
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (w <= 0.0)
+										return 0.0;
+								}
+								else
+								{
+									w *= mutation->cached_one_plus_dom_sel_;
+								}
+							}
 							
 						homozygousExit2:
 							
 							if (++haplosome2_iter == haplosome2_max)
 								break;
 							else {
-								haplosome2_mutation = *haplosome2_iter;
-								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
+								haplosome2_mutindex = *haplosome2_iter;
+								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 							}
 						} while (haplosome2_iter_position == position);
 						
@@ -2907,46 +3058,82 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_NoCallbacks(slim_popsi
 			
 			// if haplosome1 is unfinished, finish it
 			while (haplosome1_iter != haplosome1_max)
-				w *= (mut_block_ptr + *haplosome1_iter++)->cached_one_plus_dom_sel_;
+			{
+				MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+				
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_dom_sel_;
+				}
+			}
 			
 			// if haplosome2 is unfinished, finish it
 			while (haplosome2_iter != haplosome2_max)
-				w *= (mut_block_ptr + *haplosome2_iter++)->cached_one_plus_dom_sel_;
+			{
+				MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+				
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_dom_sel_;
+				}
+			}
 		}
 		
 		return w;
 	}
 }
 
-// This version of FitnessOfParentWithHaplosomeIndices assumes multiple callbacks exist.  It doesn't optimize neutral mutations since they might be modified by callbacks.
-//
-double Subpopulation::FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+template double Subpopulation::_Fitness_DiploidChromosome<false, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_DiploidChromosome<true, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_DiploidChromosome<true, true>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+
+template <const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
-	// calculate the fitness of the individual constituted by haplosome1 and haplosome2 in the parent population
-	double w = 1.0;
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosomes_[0];
-	Haplosome *haplosome2 = individual->haplosomes_[1];
-	bool haplosome1_null = haplosome1->IsNull();
-	bool haplosome2_null = haplosome2->IsNull();
-	
-	if (haplosome1_null && haplosome2_null)
+	if (haplosome->IsNull())
 	{
-		// both haplosomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
-		return w;
+		// the haplosome is a null placeholder; no mutations, no fitness effects
+		return 1.0;
 	}
-	else if (haplosome1_null || haplosome2_null)
+	else
 	{
-		// one haplosome is null, so we just need to scan through the modeled haplosome and account for its mutations, including the haploid dominance coefficient
-		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
+		// we just need to scan through the haplosome and account for its mutations,
+		// using the homozygous fitness effect (no dominance effects with haploidy)
+#if SLIM_USE_NONNEUTRAL_CACHES
+		int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+		int32_t nonneutral_regime = species_.last_nonneutral_regime_;
+#endif
+		
+		// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+		MutationType *single_callback_mut_type;
+		
+		if (f_singlecallback)
+		{
+			// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+			slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+			
+			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
+		}
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
+		double w = 1.0;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
@@ -2963,193 +3150,23 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize
 			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
 #endif
 			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
+			// with a haploid chromosome, we use the homozygous fitness effect
 			while (haplosome_iter != haplosome_max)
 			{
-				MutationIndex haplosome_mutation = *haplosome_iter;
+				MutationIndex haplosome_mutation = *haplosome_iter++;
+				Mutation *mutation = (mut_block_ptr + haplosome_mutation);
 				
-				w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, (mut_block_ptr + haplosome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				haplosome_iter++;
-			}
-		}
-		
-		return w;
-	}
-	else
-	{
-		// both haplosomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = haplosome1->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
-			
-			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
-			
-			const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
-#endif
-			
-			// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
-			if (haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome1_mutation = *haplosome1_iter, haplosome2_mutation = *haplosome2_iter;
-				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-				
-				do
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					if (haplosome1_iter_position < haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome1 since it is leading
-						w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-						
-						if (w <= 0.0)
-							return 0.0;
-						
-						if (++haplosome1_iter == haplosome1_max)
-							break;
-						else {
-							haplosome1_mutation = *haplosome1_iter;
-							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
-						}
-					}
-					else if (haplosome1_iter_position > haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome2 since it is leading
-						w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-						
-						if (w <= 0.0)
-							return 0.0;
-						
-						if (++haplosome2_iter == haplosome2_max)
-							break;
-						else {
-							haplosome2_mutation = *haplosome2_iter;
-							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-						}
-					}
-					else
-					{
-						// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
-						slim_position_t position = haplosome1_iter_position;
-						const MutationIndex *haplosome1_start = haplosome1_iter;
-						
-						// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
-							
-							// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
-							while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
-							{
-								if (haplosome1_mutation == *haplosome2_matchscan)		// note pointer equality test
-								{
-									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyMutationEffectCallbacks(haplosome1_mutation, true, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
-									
-									goto homozygousExit3;
-								}
-								
-								haplosome2_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-						homozygousExit3:
-							
-							if (w <= 0.0)
-								return 0.0;
-							
-							if (++haplosome1_iter == haplosome1_max)
-								break;
-							else {
-								haplosome1_mutation = *haplosome1_iter;
-								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
-							}
-						} while (haplosome1_iter_position == position);
-						
-						// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *haplosome1_matchscan = haplosome1_start; 
-							
-							// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
-							while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
-							{
-								if (haplosome2_mutation == *haplosome1_matchscan)		// note pointer equality test
-								{
-									// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
-									goto homozygousExit4;
-								}
-								
-								haplosome1_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-							
-						homozygousExit4:
-							
-							if (++haplosome2_iter == haplosome2_max)
-								break;
-							else {
-								haplosome2_mutation = *haplosome2_iter;
-								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-							}
-						} while (haplosome2_iter_position == position);
-						
-						// break out if either haplosome has reached its end
-						if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
-							break;
-					}
-				} while (true);
-			}
-			
-			// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
-			assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
-			
-			// if haplosome1 is unfinished, finish it
-			while (haplosome1_iter != haplosome1_max)
-			{
-				MutationIndex haplosome1_mutation = *haplosome1_iter;
-				
-				w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				haplosome1_iter++;
-			}
-			
-			// if haplosome2 is unfinished, finish it
-			while (haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome2_mutation = *haplosome2_iter;
-				
-				w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				haplosome2_iter++;
+					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_sel_;
+				}
 			}
 		}
 		
@@ -3157,341 +3174,9 @@ double Subpopulation::FitnessOfParentWithHaplosomeIndices_Callbacks(slim_popsize
 	}
 }
 
-// This version of FitnessOfParentWithHaplosomeIndices assumes a single callback exists, modifying the given mutation type.  It is a hybrid of the previous two versions.
-//
-double Subpopulation::FitnessOfParentWithHaplosomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type)
-{
-	// calculate the fitness of the individual constituted by haplosome1 and haplosome2 in the parent population
-	double w = 1.0;
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = parent_individuals_[p_individual_index];
-	Haplosome *haplosome1 = individual->haplosomes_[0];
-	Haplosome *haplosome2 = individual->haplosomes_[1];
-	bool haplosome1_null = haplosome1->IsNull();
-	bool haplosome2_null = haplosome2->IsNull();
-	
-	if (haplosome1_null && haplosome2_null)
-	{
-		// both haplosomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
-		return w;
-	}
-	else if (haplosome1_null || haplosome2_null)
-	{
-		// one haplosome is null, so we just need to scan through the modeled haplosome and account for its mutations, including the haploid dominance coefficient
-		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
-		const int32_t mutrun_count = haplosome->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun = haplosome->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome_iter, *haplosome_max;
-			
-			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
-#endif
-			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
-			while (haplosome_iter != haplosome_max)
-			{
-				MutationIndex haplosome_mutation = *haplosome_iter;
-				
-				if ((mut_block_ptr + haplosome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, (mut_block_ptr + haplosome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= (mut_block_ptr + haplosome_mutation)->cached_one_plus_haploiddom_sel_;
-				}
-				
-				haplosome_iter++;
-			}
-		}
-		
-		return w;
-	}
-	else
-	{
-		// both haplosomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = haplosome1->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
-			
-			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
-			
-			const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
-#endif
-			
-			// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
-			if (haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome1_mutation = *haplosome1_iter, haplosome2_mutation = *haplosome2_iter;
-				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-				
-				do
-				{
-					if (haplosome1_iter_position < haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome1 since it is leading
-						MutationType *haplosome1_muttype = (mut_block_ptr + haplosome1_mutation)->mutation_type_ptr_;
-						
-						if (haplosome1_muttype == p_single_callback_mut_type)
-						{
-							w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_;
-						}
-						
-						if (++haplosome1_iter == haplosome1_max)
-							break;
-						else {
-							haplosome1_mutation = *haplosome1_iter;
-							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
-						}
-					}
-					else if (haplosome1_iter_position > haplosome2_iter_position)
-					{
-						// Process a mutation in haplosome2 since it is leading
-						MutationType *haplosome2_muttype = (mut_block_ptr + haplosome2_mutation)->mutation_type_ptr_;
-						
-						if (haplosome2_muttype == p_single_callback_mut_type)
-						{
-							w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_;
-						}
-						
-						if (++haplosome2_iter == haplosome2_max)
-							break;
-						else {
-							haplosome2_mutation = *haplosome2_iter;
-							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-						}
-					}
-					else
-					{
-						// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
-						slim_position_t position = haplosome1_iter_position;
-						const MutationIndex *haplosome1_start = haplosome1_iter;
-						
-						// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							MutationType *haplosome1_muttype = (mut_block_ptr + haplosome1_mutation)->mutation_type_ptr_;
-							
-							if (haplosome1_muttype == p_single_callback_mut_type)
-							{
-								const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
-								
-								// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
-								while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
-								{
-									if (haplosome1_mutation == *haplosome2_matchscan)		// note pointer equality test
-									{
-										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyMutationEffectCallbacks(haplosome1_mutation, true, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
-										
-										goto homozygousExit5;
-									}
-									
-									haplosome2_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-								
-							homozygousExit5:
-								
-								if (w <= 0.0)
-									return 0.0;
-							}
-							else
-							{
-								const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
-								
-								// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
-								while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
-								{
-									if (haplosome1_mutation == *haplosome2_matchscan) 		// note pointer equality test
-									{
-										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_sel_;
-										goto homozygousExit6;
-									}
-									
-									haplosome2_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_;
-								
-							homozygousExit6:
-								;
-							}
-							
-							if (++haplosome1_iter == haplosome1_max)
-								break;
-							else {
-								haplosome1_mutation = *haplosome1_iter;
-								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutation)->position_;
-							}
-						} while (haplosome1_iter_position == position);
-						
-						// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							MutationType *haplosome2_muttype = (mut_block_ptr + haplosome2_mutation)->mutation_type_ptr_;
-							
-							if (haplosome2_muttype == p_single_callback_mut_type)
-							{
-								const MutationIndex *haplosome1_matchscan = haplosome1_start; 
-								
-								// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
-								while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
-								{
-									if (haplosome2_mutation == *haplosome1_matchscan)		// note pointer equality test
-									{
-										// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
-										goto homozygousExit7;
-									}
-									
-									haplosome1_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-								
-								if (w <= 0.0)
-									return 0.0;
-								
-							homozygousExit7:
-								;
-							}
-							else
-							{
-								const MutationIndex *haplosome1_matchscan = haplosome1_start; 
-								
-								// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
-								while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
-								{
-									if (haplosome2_mutation == *haplosome1_matchscan)		// note pointer equality test
-									{
-										// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
-										goto homozygousExit8;
-									}
-									
-									haplosome1_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_;
-								
-							homozygousExit8:
-								;
-							}
-							
-							if (++haplosome2_iter == haplosome2_max)
-								break;
-							else {
-								haplosome2_mutation = *haplosome2_iter;
-								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutation)->position_;
-							}
-						} while (haplosome2_iter_position == position);
-						
-						// break out if either haplosome has reached its end
-						if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
-							break;
-					}
-				} while (true);
-			}
-			
-			// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
-			assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
-			
-			// if haplosome1 is unfinished, finish it
-			while (haplosome1_iter != haplosome1_max)
-			{
-				MutationIndex haplosome1_mutation = *haplosome1_iter;
-				MutationType *haplosome1_muttype = (mut_block_ptr + haplosome1_mutation)->mutation_type_ptr_;
-				
-				if (haplosome1_muttype == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome1_mutation, false, (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= (mut_block_ptr + haplosome1_mutation)->cached_one_plus_dom_sel_;
-				}
-				
-				haplosome1_iter++;
-			}
-			
-			// if haplosome2 is unfinished, finish it
-			while (haplosome2_iter != haplosome2_max)
-			{
-				MutationIndex haplosome2_mutation = *haplosome2_iter;
-				MutationType *haplosome2_muttype = (mut_block_ptr + haplosome2_mutation)->mutation_type_ptr_;
-				
-				if (haplosome2_muttype == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(haplosome2_mutation, false, (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= (mut_block_ptr + haplosome2_mutation)->cached_one_plus_dom_sel_;
-				}
-				
-				haplosome2_iter++;
-			}
-		}
-		
-		return w;
-	}
-}
+template double Subpopulation::_Fitness_HaploidChromosome<false, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_HaploidChromosome<true, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_HaploidChromosome<true, true>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 // WF only:
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
@@ -4302,37 +3987,6 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
-	// Select the templated functions we will call; this should all get optimized out
-	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	
-	if (f_treeseq)
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
-		}
-		else
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
-		}
-	}
-	else
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
-		}
-		else
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
-		}
-	}
-	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4358,14 +4012,14 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4377,7 +4031,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4391,7 +4045,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				{
 					if (p_child_sex == IndividualSex::kFemale)
@@ -4399,7 +4053,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
 						haplosome2 = haplosomes[currentHaplosomeIndex+1];
 						
-						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, mutation_callbacks);
 					}
 					else
 					{
@@ -4421,7 +4075,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4444,7 +4098,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
 						haplosome1 = haplosomes[currentHaplosomeIndex];
 						
-						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome2, mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome2, mutation_callbacks);
 					}
 					else
 					{
@@ -4459,7 +4113,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4473,7 +4127,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4492,7 +4146,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4505,7 +4159,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4524,7 +4178,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4537,7 +4191,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				else
 				{
@@ -4570,7 +4224,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
 						haplosome2 = haplosomes[currentHaplosomeIndex+1];
 						
-						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 					}
 					else
 					{
@@ -4702,37 +4356,6 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
-	// Select the templated functions we will call; this should all get optimized out
-	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	
-	if (f_treeseq)
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
-		}
-		else
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
-		}
-	}
-	else
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
-		}
-		else
-		{
-			HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
-		}
-	}
-	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4757,10 +4380,10 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
 				
 				haplosome1 = haplosomes[currentHaplosomeIndex];
-				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
-				(population_.*HaplosomeCrossed_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				currentHaplosomeIndex += 2;
 				break;
@@ -4772,7 +4395,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];			// parent copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -4909,32 +4532,6 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	if (f_spatial)
 		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
-	// Select the templated functions we will call; this should all get optimized out
-	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	
-	if (f_treeseq)
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
-		}
-		else
-		{
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
-		}
-	}
-	else
-	{
-		if (f_callbacks)
-		{
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
-		}
-		else
-		{
-			HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
-		}
-	}
-	
 	// Configure the offspring's haplosomes one by one
 	Haplosome **haplosomes = individual->haplosomes_;
 	int currentHaplosomeIndex = 0;
@@ -4960,13 +4557,13 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				}
 				currentHaplosomeIndex += 2;
 				break;
@@ -4977,14 +4574,14 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 					haplosome1 = haplosomes[currentHaplosomeIndex];
 					
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 					haplosome2 = haplosomes[currentHaplosomeIndex+1];
 					
 					if (parent_sex == IndividualSex::kFemale)
-						(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 					else
 						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
 				}
@@ -4997,14 +4594,14 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kMale)
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
 				
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				
 				currentHaplosomeIndex += 2;
 				break;
@@ -5014,7 +4611,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
@@ -5035,7 +4632,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome2 = haplosomes[currentHaplosomeIndex+1];
 				
 				if (parent_sex == IndividualSex::kMale)
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
 				
@@ -5051,7 +4648,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];	// parent 1 copy
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
-				(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				
 				currentHaplosomeIndex += 1;
 				break;
@@ -5063,7 +4660,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kMale)
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
 				
@@ -5077,7 +4674,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1 = haplosomes[currentHaplosomeIndex];
 				
 				if (parent_sex == IndividualSex::kFemale)
-					(population_.*HaplosomeCloned_TEMPLATED)(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				else
 					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
 				

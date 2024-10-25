@@ -1159,7 +1159,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// for use outside of parallel blocks
 	
-	// determine the tamplated version of the Munge...() methods that we will call out to for reproduction
+	// determine the templated version of the Munge...() methods that we will call out to for reproduction
 	// this is an optimization technique that lets us optimize away unused cruft at compile time
 	// some relevant posts that were helpful in figuring out the correct syntax:
 	// 	http://goodliffe.blogspot.com/2011/07/c-declaring-pointer-to-template-method.html
