@@ -150,6 +150,69 @@ void Individual::AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
 }
 #endif
 
+void Individual::AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls)
+{
+	Species &species = subpopulation_->species_;
+	
+	for (slim_chromosome_index_t chromosome_index : chromosome_indices)
+	{
+		Chromosome *chromosome = species.Chromosomes()[chromosome_index];
+		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
+		
+		switch (chromosome->Type())
+		{
+				// diploid chromosome types, where we will use index if supplied
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				if ((index == -1) || (index == 0))
+				{
+					Haplosome *haplosome = haplosomes_[first_haplosome_index];
+					
+					if (includeNulls || !haplosome->IsNull())
+						vec->push_object_element_NORR(haplosome);
+				}
+				if ((index == -1) || (index == 1))
+				{
+					Haplosome *haplosome = haplosomes_[first_haplosome_index+1];
+					
+					if (includeNulls || !haplosome->IsNull())
+						vec->push_object_element_NORR(haplosome);
+				}
+				break;
+			}
+				
+				// haploid chromosome types, where index is ignored
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:	// the null is just ignored by this code
+			{
+				Haplosome *haplosome = haplosomes_[first_haplosome_index];
+				
+				if (includeNulls || !haplosome->IsNull())
+					vec->push_object_element_NORR(haplosome);
+				break;
+			}
+				
+				// haploid chromosome types with a null haplosome first; index is ignored
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *haplosome = haplosomes_[first_haplosome_index+1];	// the (possibly) non-null haplosome
+				
+				if (includeNulls || !haplosome->IsNull())
+					vec->push_object_element_NORR(haplosome);
+				break;
+			}
+		}
+	}
+}
+
 static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
 {
 	if (B == -1)
@@ -1825,6 +1888,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	{
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_interpreter);
 		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
+		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
 		case gID_sharedParentCount:			return ExecuteMethod_sharedParentCount(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -1960,6 +2024,42 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	return EidosValue_SP(integer_result);
 }
 
+//	*********************	- (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni$ index = NULL], [logical$ includeNulls = T])
+//
+EidosValue_SP Individual::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosomes_value = p_arguments[0].get();
+	EidosValue *index_value = p_arguments[1].get();
+	EidosValue *includeNulls_value = p_arguments[2].get();
+	
+	// assemble a vector of chromosome indices we're fetching
+	Species &species = subpopulation_->species_;
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	species.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosomes_value);
+	
+	// get index and includeNulls
+	int64_t index = -1;	// for NULL
+	
+	if (index_value->Type() == EidosValueType::kValueInt)
+	{
+		index = index_value->IntAtIndex_NOCAST(0, nullptr);
+		
+		if ((index != 0) && (index != 1))
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_haplosomesForChromosomes): haplosomesForChromosomes() requires that index is 0, 1, or NULL." << EidosTerminate();
+	}
+	
+	bool includeNulls = includeNulls_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// fetch the requested haplosomes
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class));
+	
+	AppendHaplosomesForChromosomes(vec, chromosome_indices, index, includeNulls);
+	
+	return EidosValue_SP(vec);
+}
+	
 //	*********************	- (float)relatedness(o<Individual> individuals)
 //
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -2419,6 +2519,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));

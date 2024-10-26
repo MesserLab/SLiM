@@ -5957,6 +5957,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
 
+		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
 		case gID_deviatePositions:		return ExecuteMethod_deviatePositions(p_method_id, p_arguments, p_interpreter);
 		case gID_pointDeviated:			return ExecuteMethod_pointDeviated(p_method_id, p_arguments, p_interpreter);
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
@@ -7265,6 +7266,42 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	}
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni$ index = NULL], [logical$ includeNulls = T])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosomes_value = p_arguments[0].get();
+	EidosValue *index_value = p_arguments[1].get();
+	EidosValue *includeNulls_value = p_arguments[2].get();
+	
+	// assemble a vector of chromosome indices we're fetching
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	species_.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosomes_value);
+	
+	// get index and includeNulls
+	int64_t index = -1;	// for NULL
+	
+	if (index_value->Type() == EidosValueType::kValueInt)
+	{
+		index = index_value->IntAtIndex_NOCAST(0, nullptr);
+		
+		if ((index != 0) && (index != 1))
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_haplosomesForChromosomes): haplosomesForChromosomes() requires that index is 0, 1, or NULL." << EidosTerminate();
+	}
+	
+	bool includeNulls = includeNulls_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// fetch the requested haplosomes for all individuals
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class));
+	
+	for (Individual *individual : parent_individuals_)
+		individual->AppendHaplosomesForChromosomes(vec, chromosome_indices, index, includeNulls);
+	
+	return EidosValue_SP(vec);
 }
 
 //	*********************	– (void)deviatePositions(No<Individual> individuals, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
@@ -10014,6 +10051,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskVOID))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));

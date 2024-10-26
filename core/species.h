@@ -418,6 +418,7 @@ public:
 	void AddChromosome(Chromosome *p_chromosome);
 	inline __attribute__((always_inline)) bool ChromosomesUseNullHaplosomes(void) { return chromosomes_use_null_haplosomes_; }
 	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
+	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);
 	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling

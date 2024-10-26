@@ -258,6 +258,67 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	}
 }
 
+void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value)
+{
+	EidosValueType chromosomes_value_type = chromosomes_value->Type();
+	int chromosomes_value_count = chromosomes_value->Count();
+	
+	switch (chromosomes_value_type)
+	{
+		case EidosValueType::kValueNULL:
+		{
+			for (Chromosome *chromosome : Chromosomes())
+				chromosome_indices.push_back(chromosome->index_);
+			break;
+		}
+		case EidosValueType::kValueInt:
+		{
+			const int64_t *ids_data = chromosomes_value->IntData();
+			
+			for (int ids_index = 0; ids_index < chromosomes_value_count; ids_index++)
+			{
+				int64_t id = ids_data[ids_index];
+				Chromosome *chromosome = ChromosomeFromID(id);
+				
+				if (!chromosome)
+					EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): could not find a chromosome with the given id (" << id << ")." << EidosTerminate();
+				
+				chromosome_indices.push_back(chromosome->index_);
+			}
+			break;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string *symbols_data = chromosomes_value->StringData();
+			
+			for (int symbols_index = 0; symbols_index < chromosomes_value_count; symbols_index++)
+			{
+				const std::string &symbol = symbols_data[symbols_index];
+				Chromosome *chromosome = ChromosomeFromSymbol(symbol);
+				
+				if (!chromosome)
+					EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
+				
+				chromosome_indices.push_back(chromosome->index_);
+			}
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			Chromosome * const *chromosomes_data = (Chromosome * const *)chromosomes_value->ObjectData();
+			
+			for (int chromosome_index = 0; chromosome_index < chromosomes_value_count; ++chromosome_index)
+			{
+				Chromosome *chromosome = chromosomes_data[chromosome_index];
+				
+				chromosome_indices.push_back(chromosome->index_);
+			}
+			break;
+		}
+		default: break;
+	}
+}
+
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
 void GetInputLine(std::istream &p_input_file, std::string &p_line)

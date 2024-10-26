@@ -1319,6 +1319,7 @@ const std::string &gStr_containsMutations = EidosRegisteredString("containsMutat
 const std::string &gStr_countOfMutationsOfType = EidosRegisteredString("countOfMutationsOfType", gID_countOfMutationsOfType);
 const std::string &gStr_positionsOfMutationsOfType = EidosRegisteredString("positionsOfMutationsOfType", gID_positionsOfMutationsOfType);
 const std::string &gStr_containsMarkerMutation = EidosRegisteredString("containsMarkerMutation", gID_containsMarkerMutation);
+const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplosomesForChromosomes", gID_haplosomesForChromosomes);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);
 const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentCount", gID_sharedParentCount);
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);

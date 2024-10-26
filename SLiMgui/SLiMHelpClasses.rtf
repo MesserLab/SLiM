@@ -3409,6 +3409,57 @@ See the description of the
 \f5\fs20 .
 \f4   This method is provided for speed; it is much faster than the corresponding Eidos code.
 \f5 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing the haplosomes of the target individual that correspond to the chromosomes passed in 
+\f3\fs18 chromosomes
+\f4\fs20  (following the order of 
+\f3\fs18 chromosomes
+\f4\fs20 ).  Chromosomes can be specified by id (
+\f3\fs18 integer
+\f4\fs20 ), by symbol (
+\f3\fs18 string
+\f4\fs20 ) or by the 
+\f3\fs18 Chromosome
+\f4\fs20  objects themselves; if 
+\f3\fs18 NULL
+\f4\fs20  is passed (the default), all chromosomes defined for the species are used, in the order in which they were defined.\
+For chromosomes that can be diploid (types 
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "X"
+\f4\fs20 , and 
+\f3\fs18 "Z"
+\f4\fs20 ), 
+\f3\fs18 index
+\f4\fs20  can be 
+\f3\fs18 0
+\f4\fs20  or 
+\f3\fs18 1
+\f4\fs20 , requesting only the first or second haplosome, respectively, for that chromosome; for other chromosome types, 
+\f3\fs18 index
+\f4\fs20  is ignored.  If 
+\f3\fs18 includeNulls
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), any null haplosomes corresponding to the specified chromosomes are included in the result; if it is 
+\f3\fs18 F
+\f4\fs20 , null haplosomes are excluded.  See also the properties 
+\f3\fs18 haplosomes
+\f4\fs20 , 
+\f3\fs18 haplosomesNonNull
+\f4\fs20 , 
+\f3\fs18 haplosomesFromParent1
+\f4\fs20 , 
+\f3\fs18 haplosomesFromParent1NonNull
+\f4\fs20 , 
+\f3\fs18 haplosomesFromParent2
+\f4\fs20 , and 
+\f3\fs18 haplosomesFromParent2NonNull
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -10103,6 +10154,39 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20 , and 
 \f3\fs18 functionType
 \f4\fs20  must be the same for all of the points, in the present design.)\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing the subpopulation\'92s haplosomes that correspond to the chromosomes passed in 
+\f3\fs18 chromosomes
+\f4\fs20  (following the order of 
+\f3\fs18 chromosomes
+\f4\fs20 ).  Chromosomes can be specified by id (
+\f3\fs18 integer
+\f4\fs20 ), by symbol (
+\f3\fs18 string
+\f4\fs20 ) or by the 
+\f3\fs18 Chromosome
+\f4\fs20  objects themselves; if 
+\f3\fs18 NULL
+\f4\fs20  is passed (the default), all chromosomes defined for the species are used, in the order in which they were defined.\
+This method is equivalent to calling 
+\f3\fs18 haplosomesForChromosomes(chromosomes, index, includeNulls)
+\f4\fs20  on 
+\f3\fs18 subpop.individuals
+\f4\fs20 , where 
+\f3\fs18 subpop
+\f4\fs20  is the target subpopulation.  It therefore appends together the specified haplosomes from each individual in the subpopulation to form a single vector.  See the documentation for the 
+\f3\fs18 Individual
+\f4\fs20  method 
+\f3\fs18 haplosomesForChromosomes()
+\f4\fs20  for further details, such as on the meaning of the 
+\f3\fs18 index
+\f4\fs20  and 
+\f3\fs18 includeNulls
+\f4\fs20  parameters.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
