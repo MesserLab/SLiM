@@ -49,6 +49,8 @@ development head (in the master branch):
 		x		method: (object<Chromosome>)chromosomesWithIDs(integer ids)
 		x		method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
 			Individual class:
+		x		property haplosomesFromParent1 => object<Haplosome>
+		x		property haplosomesFromParent2 => object<Haplosome>
 				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
 		x	Mutation class:
 		x		property: chromosome => (object<Chromosome>$)

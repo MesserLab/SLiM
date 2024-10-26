@@ -850,6 +850,8 @@ extern const std::string &gStr_haplosomes;
 extern const std::string &gStr_haplosomesNonNull;
 extern const std::string &gStr_haplosomesFromParent1;
 extern const std::string &gStr_haplosomesFromParent2;
+extern const std::string &gStr_haplosomesFromParent1NonNull;
+extern const std::string &gStr_haplosomesFromParent2NonNull;
 extern const std::string &gStr_sex;
 extern const std::string &gStr_individuals;
 extern const std::string &gStr_subpopulation;
@@ -1285,6 +1287,8 @@ enum _SLiMGlobalStringID : int {
 	gID_haplosomesNonNull,
 	gID_haplosomesFromParent1,
 	gID_haplosomesFromParent2,
+	gID_haplosomesFromParent1NonNull,
+	gID_haplosomesFromParent2NonNull,
 	gID_sex,
 	gID_individuals,
 	gID_subpopulation,
