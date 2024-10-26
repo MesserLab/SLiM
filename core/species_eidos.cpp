@@ -253,35 +253,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	if (start + length - 1 > SLIM_MAX_BASE_POSITION)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (start+length-1) to be <= 1e15." << EidosTerminate();
 	
-	std::string type = type_value->StringAtIndex_NOCAST(0, nullptr);
-	ChromosomeType chromosome_type;
-	
-	if (type == gStr_A)
-		chromosome_type = ChromosomeType::kA_DiploidAutosome;
-	else if (type == gStr_H)
-		chromosome_type = ChromosomeType::kH_HaploidAutosome;
-	else if (type == gStr_X)
-		chromosome_type = ChromosomeType::kX_XSexChromosome;
-	else if (type == gStr_Y)
-		chromosome_type = ChromosomeType::kY_YSexChromosome;
-	else if (type == gStr_Z)
-		chromosome_type = ChromosomeType::kZ_ZSexChromosome;
-	else if (type == gStr_W)
-		chromosome_type = ChromosomeType::kW_WSexChromosome;
-	else if (type == gStr_HF)
-		chromosome_type = ChromosomeType::kHF_HaploidFemaleInherited;
-	else if (type == gStr_FL)
-		chromosome_type = ChromosomeType::kFL_HaploidFemaleLine;
-	else if (type == gStr_HM)
-		chromosome_type = ChromosomeType::kHM_HaploidMaleInherited;
-	else if (type == gStr_ML)
-		chromosome_type = ChromosomeType::kML_HaploidMaleLine;
-	else if (type == gStr_H_)	// "H-"
-		chromosome_type = ChromosomeType::kHNull_HaploidAutosomeWithNull;
-	else if (type == gStr__Y)	// "-Y"
-		chromosome_type = ChromosomeType::kNullY_YSexChromosomeWithNull;
-	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not recognize chromosome type '" << type << "'." << EidosTerminate();
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	ChromosomeType chromosome_type = ChromosomeTypeForString(type_string);
 	
 	if (!sex_enabled_ &&
 		((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
@@ -331,7 +304,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	{
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		output_stream << "initializeChromosome(" << id << ", " << start << ", " << length << ", " << type;
+		output_stream << "initializeChromosome(" << id << ", " << start << ", " << length << ", " << type_string;
 		if (symbol_value->Type() == EidosValueType::kValueString)
 			output_stream << ", symbol='" << symbol << "'";
 		if (name.length())
@@ -1933,6 +1906,7 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_addSubpopSplit:					return ExecuteMethod_addSubpopSplit(p_method_id, p_arguments, p_interpreter);
 			
 		case gID_addSubpop:							return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
+		case gID_chromosomesOfType:					return ExecuteMethod_chromosomesOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithIDs:				return ExecuteMethod_chromosomesWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithSymbols:			return ExecuteMethod_chromosomesWithSymbols(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:		return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
@@ -2061,6 +2035,31 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	community_.SymbolTable().InitializeConstantSymbolEntry(symbol_entry);
 	
 	return symbol_entry.second;
+}
+
+//  *********************	– chromosomesOfType(string$ type)
+EidosValue_SP Species::ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *type_value = p_arguments[0].get();
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	ChromosomeType chromosome_type = ChromosomeTypeForString(type_string);
+	
+	// count the number of chromosomes of the requested type
+	int chromosome_count = 0;
+	
+	for (Chromosome *chromosome : Chromosomes())
+		if (chromosome->Type() == chromosome_type)
+			chromosome_count++;
+	
+	// gather and return the matches
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class))->reserve(chromosome_count);	// reserve enough space for all results
+	
+	for (Chromosome *chromosome : Chromosomes())
+		if (chromosome->Type() == chromosome_type)
+			result->push_object_element_no_check_RR(chromosome);
+	
+	return EidosValue_SP(result);
 }
 
 //  *********************	– chromosomesWithIDs(integer ids)
@@ -3683,6 +3682,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesOfType, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString_S("type"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithIDs, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithSymbols, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString("symbols"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

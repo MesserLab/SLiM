@@ -576,6 +576,7 @@ enum class ChromosomeType : uint8_t {
 };
 
 std::string StringForChromosomeType(ChromosomeType p_chromosome_type);
+ChromosomeType ChromosomeTypeForString(std::string type);				// raises if no match
 std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type);
 
 
@@ -920,6 +921,7 @@ extern const std::string &gStr_drawSelectionCoefficient;
 extern const std::string &gStr_setDistribution;
 extern const std::string &gStr_addSubpop;
 extern const std::string &gStr_addSubpopSplit;
+extern const std::string &gStr_chromosomesOfType;
 extern const std::string &gStr_chromosomesWithIDs;
 extern const std::string &gStr_chromosomesWithSymbols;
 extern const std::string &gStr_estimatedLastTick;
@@ -1356,6 +1358,7 @@ enum _SLiMGlobalStringID : int {
 	gID_drawSelectionCoefficient,
 	gID_setDistribution,
 	gID_addSubpop,
+	gID_chromosomesOfType,
 	gID_chromosomesWithIDs,
 	gID_chromosomesWithSymbols,
 	gID_addSubpopSplit,

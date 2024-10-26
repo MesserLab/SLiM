@@ -46,6 +46,7 @@ development head (in the master branch):
 		x		property symbol => (string$)
 		x		property name <-> (string$)
 		x	Species class:
+		x		method: (object<Chromosome>)chromosomesOfType(string$ type)
 		x		method: (object<Chromosome>)chromosomesWithIDs(integer ids)
 		x		method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
 			Individual class:

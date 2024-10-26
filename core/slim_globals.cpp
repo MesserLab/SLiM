@@ -660,6 +660,24 @@ std::string StringForChromosomeType(ChromosomeType p_chromosome_type)
 	EIDOS_TERMINATION << "ERROR (StringForChromosomeType): (internal error) unexpected p_chromosome_type value." << EidosTerminate();
 }
 
+ChromosomeType ChromosomeTypeForString(std::string type)
+{
+	if (type == gStr_A)			return ChromosomeType::kA_DiploidAutosome;
+	else if (type == gStr_H)	return ChromosomeType::kH_HaploidAutosome;
+	else if (type == gStr_X)	return ChromosomeType::kX_XSexChromosome;
+	else if (type == gStr_Y)	return ChromosomeType::kY_YSexChromosome;
+	else if (type == gStr_Z)	return ChromosomeType::kZ_ZSexChromosome;
+	else if (type == gStr_W)	return ChromosomeType::kW_WSexChromosome;
+	else if (type == gStr_HF)	return ChromosomeType::kHF_HaploidFemaleInherited;
+	else if (type == gStr_FL)	return ChromosomeType::kFL_HaploidFemaleLine;
+	else if (type == gStr_HM)	return ChromosomeType::kHM_HaploidMaleInherited;
+	else if (type == gStr_ML)	return ChromosomeType::kML_HaploidMaleLine;
+	else if (type == gStr_H_)	return ChromosomeType::kHNull_HaploidAutosomeWithNull;
+	else if (type == gStr__Y)	return ChromosomeType::kNullY_YSexChromosomeWithNull;
+	else
+		EIDOS_TERMINATION << "ERROR (ChromosomeTypeForString): unrecognized chromosome type '" << type << "'." << EidosTerminate();
+}
+
 std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type)
 {
 	p_out << StringForChromosomeType(p_chromosome_type);
@@ -1319,6 +1337,7 @@ const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSe
 const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);
 const std::string &gStr_addSubpop = EidosRegisteredString("addSubpop", gID_addSubpop);
 const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit", gID_addSubpopSplit);
+const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);
 const std::string &gStr_chromosomesWithIDs = EidosRegisteredString("chromosomesWithIDs", gID_chromosomesWithIDs);
 const std::string &gStr_chromosomesWithSymbols = EidosRegisteredString("chromosomesWithSymbols", gID_chromosomesWithSymbols);
 const std::string &gStr_estimatedLastTick = EidosRegisteredString("estimatedLastTick", gID_estimatedLastTick);
