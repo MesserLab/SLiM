@@ -744,15 +744,15 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMutations(EidosObject
 		{
 			// We want to be smart enough to return gStaticEidosValue_LogicalT or gStaticEidosValue_LogicalF in the singleton/singleton case
 			Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-			MutationIndex mut_block_index = mut->BlockIndex();
-			slim_position_t mutrun_length = ((Haplosome *)(p_elements[0]))->mutrun_length_;		// assume all Haplosome objects have the same mutrun_length_; better be true...
-			slim_position_t mutrun_index = mut->position_ / mutrun_length;
 			Haplosome *element = (Haplosome *)(p_elements[0]);
 			
 			if (element->IsNull())
 				EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null haplosome." << EidosTerminate();
 			
-			bool contained = element->mutruns_[mutrun_index]->contains_mutation(mut_block_index);
+			if (mut->chromosome_index_ != element->chromosome_index_)
+				return gStaticEidosValue_LogicalF;
+			
+			bool contained = element->contains_mutation(mut);	// FIXME MULTICHROM switch this call to take a Mutation*?
 			
 			return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
@@ -774,8 +774,14 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMutations(EidosObject
 				for (int value_index = 0; value_index < mutations_count; ++value_index)
 				{
 					Mutation *mut = (Mutation *)mutations_data[value_index];
-					MutationIndex mut_block_index = mut->BlockIndex();
-					bool contained = element->contains_mutation(mut_block_index);
+					
+					if (mut->chromosome_index_ != element->chromosome_index_)
+					{
+						logical_result->set_logical_no_check(false, result_index++);
+						continue;
+					}
+					
+					bool contained = element->contains_mutation(mut);
 					
 					logical_result->set_logical_no_check(contained, result_index++);
 				}
@@ -1737,7 +1743,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 								{
 									const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
 									
-									if (haplosome.contains_mutation(mutation->BlockIndex()))
+									if (haplosome.contains_mutation(mutation))
 									{
 										if (contained_mut_index == -1)
 											contained_mut_index = muts_index;
@@ -1879,7 +1885,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 							{
 								const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
 								
-								if (haplosome.contains_mutation(mutation->BlockIndex()))
+								if (haplosome.contains_mutation(mutation))
 								{
 									if (contained_mut_index == -1)
 										contained_mut_index = muts_index;
@@ -1956,18 +1962,18 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 						else if (g1_null)
 						{
 							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-							p_out << (g2.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
+							p_out << (g2.contains_mutation(mutation) ? "\t1" : "\t0");
 						}
 						else if (g2_null)
 						{
 							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-							p_out << (g1.contains_mutation(mutation->BlockIndex()) ? "\t1" : "\t0");
+							p_out << (g1.contains_mutation(mutation) ? "\t1" : "\t0");
 						}
 						else
 						{
 							// Both haplosomes are non-null; emit an x|y pair that indicates the data is phased
-							bool g1_has_mut = g1.contains_mutation(mutation->BlockIndex());
-							bool g2_has_mut = g2.contains_mutation(mutation->BlockIndex());
+							bool g1_has_mut = g1.contains_mutation(mutation);
+							bool g2_has_mut = g2.contains_mutation(mutation);
 							
 							if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
 							else if (g1_has_mut)			p_out << "\t1|0";

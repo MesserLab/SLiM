@@ -51,26 +51,27 @@ MutationRun::~MutationRun(void)
 
 #if 0
 // linear search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
+bool MutationRun::contains_mutation(const Mutation *p_mut) const
 {
+	MutationIndex mutation_index = p_mut->BlockIndex();
 	const MutationIndex *position = begin_pointer_const();
 	const MutationIndex *end_position = end_pointer_const();
 	
 	for (; position != end_position; ++position)
-		if (*position == p_mutation_index)
+		if (*position == mutation_index)
 			return true;
 	
 	return false;
 }
 #else
 // binary search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
+bool MutationRun::contains_mutation(const Mutation *p_mut) const
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Mutation *mutation = gSLiM_Mutation_Block + p_mutation_index;
-	slim_position_t position = mutation->position_;
+	MutationIndex mutation_index = p_mut->BlockIndex();
+	slim_position_t position = p_mut->position_;
 	int mut_count = size();
 	const MutationIndex *mut_ptr = begin_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mut_index;
 	
 	{
@@ -107,7 +108,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 		
 		// The mutation at mut_index is at p_position, but it may not be the only such
 		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
-		if (mut_ptr[mut_index] == p_mutation_index)
+		if (mut_ptr[mut_index] == mutation_index)
 			return true;
 	}
 	
@@ -121,7 +122,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 			
 			if ((mut_block_ptr + scan_mut_index)->position_ != position)
 				break;
-			if (scan_mut_index == p_mutation_index)
+			if (scan_mut_index == mutation_index)
 				return true;
 		}
 	}
@@ -135,7 +136,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 			
 			if ((mut_block_ptr + scan_mut_index)->position_ != position)
 				break;
-			if (scan_mut_index == p_mutation_index)
+			if (scan_mut_index == mutation_index)
 				return true;
 		}
 	}

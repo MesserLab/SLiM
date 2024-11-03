@@ -1135,7 +1135,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 	// If a replacement mutation has been accepted at this point, we now check that it is not already present in the background haplosome; if it is present, the mutation is a no-op (implemented as a rejection)
 	if (mutation_replaced && mutation_accepted)
 	{
-		if (p_haplosome->contains_mutation(p_mut->BlockIndex()))
+		if (p_haplosome->contains_mutation(p_mut))
 			mutation_accepted = false;
 	}
 	

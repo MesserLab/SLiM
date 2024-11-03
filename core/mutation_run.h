@@ -403,7 +403,7 @@ public:
 		mutation_count_ = 0;
 	}
 	
-	bool contains_mutation(MutationIndex p_mutation_index) const;
+	bool contains_mutation(const Mutation *p_mut) const;
 	
 	Mutation *mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position) const;
 	

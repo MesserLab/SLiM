@@ -1917,24 +1917,32 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	EidosValue *mutations_value = p_arguments[0].get();
 	int mutations_count = mutations_value->Count();
 	
+	if (mutations_count == 0)
+		return gStaticEidosValue_Logical_ZeroVec;
+	
 	// SPECIES CONSISTENCY CHECK
-	if (mutations_count > 0)
-	{
-		Species *species = Community::SpeciesForMutations(mutations_value);
-		
-		if (species != &subpopulation_->species_)
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): containsMutations() requires that all mutations belong to the same species as the target individual." << EidosTerminate();
-	}
+	Species *species = Community::SpeciesForMutations(mutations_value);
+	
+	if (species != &subpopulation_->species_)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): containsMutations() requires that all mutations belong to the same species as the target individual." << EidosTerminate();
 	
 	if (mutations_count == 1)
 	{
 		// treat the singleton case separately to return gStaticEidosValue_LogicalT / gStaticEidosValue_LogicalF
-		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr)))->BlockIndex();
+		Mutation *mut = (Mutation *)(mutations_value->ObjectElementAtIndex_NOCAST(0, nullptr));
+		slim_chromosome_index_t mut_chrom_index = mut->chromosome_index_;
+		int first_haplosome_index = species->FirstHaplosomeIndices()[mut_chrom_index];
+		int last_haplosome_index = species->LastHaplosomeIndices()[mut_chrom_index];
 		
-		if ((!haplosomes_[0]->IsNull() && haplosomes_[0]->contains_mutation(mut)) || (!haplosomes_[1]->IsNull() && haplosomes_[1]->contains_mutation(mut)))
-			return gStaticEidosValue_LogicalT;
-		else
-			return gStaticEidosValue_LogicalF;
+		for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; ++haplosome_index)
+		{
+			Haplosome *haplosome = haplosomes_[haplosome_index];
+			
+			if (!haplosome->IsNull() && haplosome->contains_mutation(mut))
+				return gStaticEidosValue_LogicalT;
+		}
+		
+		return gStaticEidosValue_LogicalF;
 	}
 	else
 	{
@@ -1943,16 +1951,27 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 		
 		for (int value_index = 0; value_index < mutations_count; ++value_index)
 		{
-			MutationIndex mut = mutations[value_index]->BlockIndex();
-			bool contains_mut = ((!haplosomes_[0]->IsNull() && haplosomes_[0]->contains_mutation(mut)) || (!haplosomes_[1]->IsNull() && haplosomes_[1]->contains_mutation(mut)));
+			Mutation *mut = mutations[value_index];
+			slim_chromosome_index_t mut_chrom_index = mut->chromosome_index_;
+			int first_haplosome_index = species->FirstHaplosomeIndices()[mut_chrom_index];
+			int last_haplosome_index = species->LastHaplosomeIndices()[mut_chrom_index];
 			
-			logical_result->set_logical_no_check(contains_mut, value_index);
+			for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; ++haplosome_index)
+			{
+				Haplosome *haplosome = haplosomes_[haplosome_index];
+				
+				if (!haplosome->IsNull() && haplosome->contains_mutation(mut))
+				{
+					logical_result->set_logical_no_check(true, value_index);
+					continue;
+				}
+				
+				logical_result->set_logical_no_check(false, value_index);
+			}
 		}
 		
 		return EidosValue_SP(logical_result);
 	}
-	
-	return gStaticEidosValueNULL;
 }
 
 //	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)

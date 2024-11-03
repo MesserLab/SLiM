@@ -339,13 +339,13 @@ public:
 	}
 #endif
 	
-	inline __attribute__((always_inline)) bool contains_mutation(MutationIndex p_mutation_index)
+	inline __attribute__((always_inline)) bool contains_mutation(const Mutation *p_mut)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
 			NullHaplosomeAccessError();
 #endif
-		return mutruns_[(gSLiM_Mutation_Block + p_mutation_index)->position_ / mutrun_length_]->contains_mutation(p_mutation_index);
+		return mutruns_[p_mut->position_ / mutrun_length_]->contains_mutation(p_mut);
 	}
 	
 	inline __attribute__((always_inline)) Mutation *mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
