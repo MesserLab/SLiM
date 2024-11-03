@@ -758,147 +758,147 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			vec->reserve(total_mutation_count);
 			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			int haplosome_index = 0;
 			
 			for (Chromosome *chromosome : species.Chromosomes())
 			{
-				Haplosome *haplosome1 = nullptr;
-				Haplosome *haplosome2 = nullptr;
+				int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
+				int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
 				
-				switch (chromosome->Type())
+				if (first_haplosome_index == last_haplosome_index)
 				{
-						// chromosome types involving two haplosomes
-					case ChromosomeType::kA_DiploidAutosome:
-					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kZ_ZSexChromosome:
-					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					// haploid chromosomes contain unique mutations by definition; add them all
+					Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
+					
+					if (!haplosome1->IsNull())
 					{
-						haplosome1 = haplosomes_[haplosome_index];
-						haplosome2 = haplosomes_[haplosome_index+1];
-						haplosome_index += 2;
-						break;
-					}
-						// chromosome types involving one haplosome
-					case ChromosomeType::kH_HaploidAutosome:
-					case ChromosomeType::kY_YSexChromosome:
-					case ChromosomeType::kW_WSexChromosome:
-					case ChromosomeType::kHF_HaploidFemaleInherited:
-					case ChromosomeType::kFL_HaploidFemaleLine:
-					case ChromosomeType::kHM_HaploidMaleInherited:
-					case ChromosomeType::kML_HaploidMaleLine:
-					{
-						haplosome1 = haplosomes_[haplosome_index];
-						haplosome_index += 1;
-						break;
+						int mutrun_count = haplosome1->mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						{
+							const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+							int g1_size = mutrun1->size();
+							int g1_index = 0;
+							
+							while (g1_index < g1_size)
+							{
+								MutationIndex mut = (*mutrun1)[g1_index++];
+								
+								vec->push_object_element_no_check_RR(mut_block_ptr + mut);
+							}
+						}
 					}
 				}
-				
-				int haplosome1_size = (haplosome1->IsNull() ? 0 : haplosome1->mutation_count());
-				int haplosome2_size = (haplosome2->IsNull() ? 0 : haplosome2->mutation_count());
-				
-				if (haplosome1_size + haplosome2_size > 0)
+				else
 				{
-					int mutrun_count = (haplosome1_size ? haplosome1->mutrun_count_ : haplosome2->mutrun_count_);
+					// diploid chromosomes require uniquing logic
+					Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
+					Haplosome *haplosome2 = haplosomes_[last_haplosome_index];
+					int haplosome1_size = (haplosome1->IsNull() ? 0 : haplosome1->mutation_count());
+					int haplosome2_size = (haplosome2->IsNull() ? 0 : haplosome2->mutation_count());
 					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					if (haplosome1_size + haplosome2_size > 0)
 					{
-						// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
-						// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-						const MutationRun *mutrun1 = (haplosome1_size ? haplosome1->mutruns_[run_index] : nullptr);
-						const MutationRun *mutrun2 = (haplosome2_size ? haplosome2->mutruns_[run_index] : nullptr);
-						int g1_size = (mutrun1 ? mutrun1->size() : 0);
-						int g2_size = (mutrun2 ? mutrun2->size() : 0);
-						int g1_index = 0, g2_index = 0;
+						int mutrun_count = (haplosome1_size ? haplosome1->mutrun_count_ : haplosome2->mutrun_count_);
 						
-						if (g1_size && g2_size)
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							// Get the position of the mutations at g1_index and g2_index
-							MutationIndex g1_mut = (*mutrun1)[g1_index], g2_mut = (*mutrun2)[g2_index];
-							slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_, pos2 = (mut_block_ptr + g2_mut)->position_;
+							// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
+							// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+							const MutationRun *mutrun1 = (haplosome1_size ? haplosome1->mutruns_[run_index] : nullptr);
+							const MutationRun *mutrun2 = (haplosome2_size ? haplosome2->mutruns_[run_index] : nullptr);
+							int g1_size = (mutrun1 ? mutrun1->size() : 0);
+							int g2_size = (mutrun2 ? mutrun2->size() : 0);
+							int g1_index = 0, g2_index = 0;
 							
-							// Process mutations as long as both haplosomes still have mutations left in them
-							do
+							if (g1_size && g2_size)
 							{
-								if (pos1 < pos2)
+								// Get the position of the mutations at g1_index and g2_index
+								MutationIndex g1_mut = (*mutrun1)[g1_index], g2_mut = (*mutrun2)[g2_index];
+								slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_, pos2 = (mut_block_ptr + g2_mut)->position_;
+								
+								// Process mutations as long as both haplosomes still have mutations left in them
+								do
 								{
-									vec->push_object_element_no_check_RR(mut_block_ptr + g1_mut);
-									
-									// Move to the next mutation in g1
-									if (++g1_index >= g1_size)
-										break;
-									g1_mut = (*mutrun1)[g1_index];
-									pos1 = (mut_block_ptr + g1_mut)->position_;
-								}
-								else if (pos1 > pos2)
-								{
-									vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
-									
-									// Move to the next mutation in g2
-									if (++g2_index >= g2_size)
-										break;
-									g2_mut = (*mutrun2)[g2_index];
-									pos2 = (mut_block_ptr + g2_mut)->position_;
-								}
-								else
-								{
-									// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
-									slim_position_t focal_pos = pos1;
-									int first_index = g1_index;
-									bool done = false;
-									
-									while (pos1 == focal_pos)
+									if (pos1 < pos2)
 									{
 										vec->push_object_element_no_check_RR(mut_block_ptr + g1_mut);
 										
 										// Move to the next mutation in g1
 										if (++g1_index >= g1_size)
-										{
-											done = true;
 											break;
-										}
 										g1_mut = (*mutrun1)[g1_index];
 										pos1 = (mut_block_ptr + g1_mut)->position_;
 									}
-									
-									// Note that we may be done with g1 here, so be careful
-									int last_index_plus_one = g1_index;
-									
-									while (pos2 == focal_pos)
+									else if (pos1 > pos2)
 									{
-										int check_index;
-										
-										for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
-											if ((*mutrun1)[check_index] == g2_mut)
-												break;
-										
-										// If the check indicates that g2_mut is not in g1, we copy it over
-										if (check_index == last_index_plus_one)
-											vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
+										vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
 										
 										// Move to the next mutation in g2
 										if (++g2_index >= g2_size)
-										{
-											done = true;
 											break;
-										}
 										g2_mut = (*mutrun2)[g2_index];
 										pos2 = (mut_block_ptr + g2_mut)->position_;
 									}
-									
-									// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
-									if (done)
-										break;
+									else
+									{
+										// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+										slim_position_t focal_pos = pos1;
+										int first_index = g1_index;
+										bool done = false;
+										
+										while (pos1 == focal_pos)
+										{
+											vec->push_object_element_no_check_RR(mut_block_ptr + g1_mut);
+											
+											// Move to the next mutation in g1
+											if (++g1_index >= g1_size)
+											{
+												done = true;
+												break;
+											}
+											g1_mut = (*mutrun1)[g1_index];
+											pos1 = (mut_block_ptr + g1_mut)->position_;
+										}
+										
+										// Note that we may be done with g1 here, so be careful
+										int last_index_plus_one = g1_index;
+										
+										while (pos2 == focal_pos)
+										{
+											int check_index;
+											
+											for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+												if ((*mutrun1)[check_index] == g2_mut)
+													break;
+											
+											// If the check indicates that g2_mut is not in g1, we copy it over
+											if (check_index == last_index_plus_one)
+												vec->push_object_element_no_check_RR(mut_block_ptr + g2_mut);
+											
+											// Move to the next mutation in g2
+											if (++g2_index >= g2_size)
+											{
+												done = true;
+												break;
+											}
+											g2_mut = (*mutrun2)[g2_index];
+											pos2 = (mut_block_ptr + g2_mut)->position_;
+										}
+										
+										// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+										if (done)
+											break;
+									}
 								}
+								while (true);
 							}
-							while (true);
+							
+							// Finish off any tail ends, which must be unique and sorted already
+							while (g1_index < g1_size)
+								vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun1)[g1_index++]);
+							while (g2_index < g2_size)
+								vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun2)[g2_index++]);
 						}
-						
-						// Finish off any tail ends, which must be unique and sorted already
-						while (g1_index < g1_size)
-							vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun1)[g1_index++]);
-						while (g2_index < g2_size)
-							vec->push_object_element_no_check_RR(mut_block_ptr + (*mutrun2)[g2_index++]);
 					}
 				}
 			}
@@ -2241,165 +2241,209 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	// This code is adapted from uniqueMutations and follows its logic closely
 	
 	// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
-	int haplosome1_size = (haplosomes_[0]->IsNull() ? 0 : haplosomes_[0]->mutation_count());
-	int haplosome2_size = (haplosomes_[1]->IsNull() ? 0 : haplosomes_[1]->mutation_count());
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
-	
-	if ((haplosome1_size == 0) && (haplosome2_size == 0))
-		return result_SP;
-	
-	if (haplosome1_size + haplosome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-		vec->reserve(haplosome1_size + haplosome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
-	
+	int haplosome_count_per_individual = species.HaplosomeCountPerIndividual();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int mutrun_count = (haplosome1_size ? haplosomes_[0]->mutrun_count_ : haplosomes_[1]->mutrun_count_);
 	
-	for (int run_index = 0; run_index < mutrun_count; ++run_index)
+	if (haplosome_count_per_individual == 2)
 	{
-		// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
-		// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-		const MutationRun *mutrun1 = (haplosome1_size ? haplosomes_[0]->mutruns_[run_index] : nullptr);
-		const MutationRun *mutrun2 = (haplosome2_size ? haplosomes_[1]->mutruns_[run_index] : nullptr);
-		int g1_size = (mutrun1 ? mutrun1->size() : 0);
-		int g2_size = (mutrun2 ? mutrun2->size() : 0);
-		int g1_index = 0, g2_index = 0;
+		int haplosome1_size = (haplosomes_[0]->IsNull() ? 0 : haplosomes_[0]->mutation_count());
+		int haplosome2_size = (haplosomes_[1]->IsNull() ? 0 : haplosomes_[1]->mutation_count());
 		
-		if (g1_size && g2_size)
+		if ((haplosome1_size == 0) && (haplosome2_size == 0))
+			return result_SP;
+		
+		if (haplosome1_size + haplosome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+			vec->reserve(haplosome1_size + haplosome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
+	}
+	
+	for (Chromosome *chromosome : species.Chromosomes())
+	{
+		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
+		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
+		
+		if (first_haplosome_index == last_haplosome_index)
 		{
-			MutationIndex g1_mut = (*mutrun1)[g1_index], g2_mut = (*mutrun2)[g2_index];
+			// haploid chromosomes contain unique mutations by definition; add them all
+			Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
 			
-			// At this point, we need to loop forward in g1 and g2 until we have found mutations of the right type in both
-			while ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
+			if (!haplosome1->IsNull())
 			{
-				if (++g1_index >= g1_size)
-					break;
-				g1_mut = (*mutrun1)[g1_index];
-			}
-			
-			while ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
-			{
-				if (++g2_index >= g2_size)
-					break;
-				g2_mut = (*mutrun2)[g2_index];
-			}
-			
-			if ((g1_index < g1_size) && (g2_index < g2_size))
-			{
-				slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_;
-				slim_position_t pos2 = (mut_block_ptr + g2_mut)->position_;
+				int mutrun_count = haplosome1->mutrun_count_;
 				
-				// Process mutations as long as both haplosomes still have mutations left in them
-				do
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					// Now we have mutations of the right type, so we can start working with them by position
-					if (pos1 < pos2)
+					const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+					int g1_size = mutrun1->size();
+					int g1_index = 0;
+					
+					while (g1_index < g1_size)
 					{
-						vec->push_object_element_RR(mut_block_ptr + g1_mut);
+						MutationIndex mut = (*mutrun1)[g1_index++];
 						
-						// Move to the next mutation in g1
-					loopback1:
-						if (++g1_index >= g1_size)
-							break;
-						
-						g1_mut = (*mutrun1)[g1_index];
-						if ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
-							goto loopback1;
-						
-						pos1 = (mut_block_ptr + g1_mut)->position_;
-					}
-					else if (pos1 > pos2)
-					{
-						vec->push_object_element_RR(mut_block_ptr + g2_mut);
-						
-						// Move to the next mutation in g2
-					loopback2:
-						if (++g2_index >= g2_size)
-							break;
-						
-						g2_mut = (*mutrun2)[g2_index];
-						if ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
-							goto loopback2;
-						
-						pos2 = (mut_block_ptr + g2_mut)->position_;
-					}
-					else
-					{
-						// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
-						slim_position_t focal_pos = pos1;
-						int first_index = g1_index;
-						bool done = false;
-						
-						while (pos1 == focal_pos)
-						{
-							vec->push_object_element_RR(mut_block_ptr + g1_mut);
-							
-							// Move to the next mutation in g1
-						loopback3:
-							if (++g1_index >= g1_size)
-							{
-								done = true;
-								break;
-							}
-							g1_mut = (*mutrun1)[g1_index];
-							if ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
-								goto loopback3;
-							
-							pos1 = (mut_block_ptr + g1_mut)->position_;
-						}
-						
-						// Note that we may be done with g1 here, so be careful
-						int last_index_plus_one = g1_index;
-						
-						while (pos2 == focal_pos)
-						{
-							int check_index;
-							
-							for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
-								if ((*mutrun1)[check_index] == g2_mut)
-									break;
-							
-							// If the check indicates that g2_mut is not in g1, we copy it over
-							if (check_index == last_index_plus_one)
-								vec->push_object_element_RR(mut_block_ptr + g2_mut);
-							
-							// Move to the next mutation in g2
-						loopback4:
-							if (++g2_index >= g2_size)
-							{
-								done = true;
-								break;
-							}
-							g2_mut = (*mutrun2)[g2_index];
-							if ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
-								goto loopback4;
-							
-							pos2 = (mut_block_ptr + g2_mut)->position_;
-						}
-						
-						// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
-						if (done)
-							break;
+						if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+							vec->push_object_element_RR(mut_block_ptr + mut);
 					}
 				}
-				while (true);
 			}
 		}
-		
-		// Finish off any tail ends, which must be unique and sorted already
-		while (g1_index < g1_size)
+		else
 		{
-			MutationIndex mut = (*mutrun1)[g1_index++];
+			// diploid chromosomes require uniquing logic
+			Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
+			Haplosome *haplosome2 = haplosomes_[last_haplosome_index];
+			int haplosome1_size = (haplosome1->IsNull() ? 0 : haplosome1->mutation_count());
+			int haplosome2_size = (haplosome2->IsNull() ? 0 : haplosome2->mutation_count());
+			int mutrun_count = (haplosome1_size ? haplosome1->mutrun_count_ : haplosome2->mutrun_count_);
 			
-			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element_RR(mut_block_ptr + mut);
-		}
-		while (g2_index < g2_size)
-		{
-			MutationIndex mut = (*mutrun2)[g2_index++];
-			
-			if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
-				vec->push_object_element_RR(mut_block_ptr + mut);
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				// We want to interleave mutations from the two haplosomes, keeping only the uniqued mutations.  For a given position, we take mutations
+				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
+				const MutationRun *mutrun1 = (haplosome1_size ? haplosome1->mutruns_[run_index] : nullptr);
+				const MutationRun *mutrun2 = (haplosome2_size ? haplosome2->mutruns_[run_index] : nullptr);
+				int g1_size = (mutrun1 ? mutrun1->size() : 0);
+				int g2_size = (mutrun2 ? mutrun2->size() : 0);
+				int g1_index = 0, g2_index = 0;
+				
+				if (g1_size && g2_size)
+				{
+					MutationIndex g1_mut = (*mutrun1)[g1_index], g2_mut = (*mutrun2)[g2_index];
+					
+					// At this point, we need to loop forward in g1 and g2 until we have found mutations of the right type in both
+					while ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
+					{
+						if (++g1_index >= g1_size)
+							break;
+						g1_mut = (*mutrun1)[g1_index];
+					}
+					
+					while ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
+					{
+						if (++g2_index >= g2_size)
+							break;
+						g2_mut = (*mutrun2)[g2_index];
+					}
+					
+					if ((g1_index < g1_size) && (g2_index < g2_size))
+					{
+						slim_position_t pos1 = (mut_block_ptr + g1_mut)->position_;
+						slim_position_t pos2 = (mut_block_ptr + g2_mut)->position_;
+						
+						// Process mutations as long as both haplosomes still have mutations left in them
+						do
+						{
+							// Now we have mutations of the right type, so we can start working with them by position
+							if (pos1 < pos2)
+							{
+								vec->push_object_element_RR(mut_block_ptr + g1_mut);
+								
+								// Move to the next mutation in g1
+							loopback1:
+								if (++g1_index >= g1_size)
+									break;
+								
+								g1_mut = (*mutrun1)[g1_index];
+								if ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
+									goto loopback1;
+								
+								pos1 = (mut_block_ptr + g1_mut)->position_;
+							}
+							else if (pos1 > pos2)
+							{
+								vec->push_object_element_RR(mut_block_ptr + g2_mut);
+								
+								// Move to the next mutation in g2
+							loopback2:
+								if (++g2_index >= g2_size)
+									break;
+								
+								g2_mut = (*mutrun2)[g2_index];
+								if ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
+									goto loopback2;
+								
+								pos2 = (mut_block_ptr + g2_mut)->position_;
+							}
+							else
+							{
+								// pos1 == pos2; copy mutations from g1 until we are done with this position, then handle g2
+								slim_position_t focal_pos = pos1;
+								int first_index = g1_index;
+								bool done = false;
+								
+								while (pos1 == focal_pos)
+								{
+									vec->push_object_element_RR(mut_block_ptr + g1_mut);
+									
+									// Move to the next mutation in g1
+								loopback3:
+									if (++g1_index >= g1_size)
+									{
+										done = true;
+										break;
+									}
+									g1_mut = (*mutrun1)[g1_index];
+									if ((mut_block_ptr + g1_mut)->mutation_type_ptr_ != mutation_type_ptr)
+										goto loopback3;
+									
+									pos1 = (mut_block_ptr + g1_mut)->position_;
+								}
+								
+								// Note that we may be done with g1 here, so be careful
+								int last_index_plus_one = g1_index;
+								
+								while (pos2 == focal_pos)
+								{
+									int check_index;
+									
+									for (check_index = first_index; check_index < last_index_plus_one; ++check_index)
+										if ((*mutrun1)[check_index] == g2_mut)
+											break;
+									
+									// If the check indicates that g2_mut is not in g1, we copy it over
+									if (check_index == last_index_plus_one)
+										vec->push_object_element_RR(mut_block_ptr + g2_mut);
+									
+									// Move to the next mutation in g2
+								loopback4:
+									if (++g2_index >= g2_size)
+									{
+										done = true;
+										break;
+									}
+									g2_mut = (*mutrun2)[g2_index];
+									if ((mut_block_ptr + g2_mut)->mutation_type_ptr_ != mutation_type_ptr)
+										goto loopback4;
+									
+									pos2 = (mut_block_ptr + g2_mut)->position_;
+								}
+								
+								// Note that we may be done with both g1 and/or g2 here; if so, done will be set and we will break out
+								if (done)
+									break;
+							}
+						}
+						while (true);
+					}
+				}
+				
+				// Finish off any tail ends, which must be unique and sorted already
+				while (g1_index < g1_size)
+				{
+					MutationIndex mut = (*mutrun1)[g1_index++];
+					
+					if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+						vec->push_object_element_RR(mut_block_ptr + mut);
+				}
+				while (g2_index < g2_size)
+				{
+					MutationIndex mut = (*mutrun2)[g2_index++];
+					
+					if ((mut_block_ptr + mut)->mutation_type_ptr_ == mutation_type_ptr)
+						vec->push_object_element_RR(mut_block_ptr + mut);
+				}
+			}
 		}
 	}
 	
