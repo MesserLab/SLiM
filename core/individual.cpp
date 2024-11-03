@@ -2182,54 +2182,39 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	EidosValue *mutType_value = p_arguments[0].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
-	// Count the number of mutations of the given type
+	// Sum the selection coefficients of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_elements_size);
+	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE);
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, float_result) if(p_elements_size >= EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE) num_threads(thread_count)
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
-		Haplosome *haplosome1 = element->haplosomes_[0];
-		Haplosome *haplosome2 = element->haplosomes_[1];
 		double selcoeff_sum = 0.0;
 		
-		if (!haplosome1->IsNull())
+		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 		{
-			int mutrun_count = haplosome1->mutrun_count_;
+			Haplosome *haplosome = element->haplosomes_[haplosome_index];
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			if (!haplosome->IsNull())
 			{
-				const MutationRun *mutrun = haplosome1->mutruns_[run_index];
-				int haplosome1_count = mutrun->size();
-				const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
+				int mutrun_count = haplosome->mutrun_count_;
 				
-				for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					Mutation *mut_ptr = mut_block_ptr + haplosome1_ptr[mut_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
+					int haplosome1_count = mutrun->size();
+					const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
 					
-					if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-						selcoeff_sum += mut_ptr->selection_coeff_;
-				}
-			}
-		}
-		if (!haplosome2->IsNull())
-		{
-			int mutrun_count = haplosome2->mutrun_count_;
-			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
-			{
-				const MutationRun *mutrun = haplosome2->mutruns_[run_index];
-				int haplosome2_count = mutrun->size();
-				const MutationIndex *haplosome2_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < haplosome2_count; ++mut_index)
-				{
-					Mutation *mut_ptr = mut_block_ptr + haplosome2_ptr[mut_index];
-					
-					if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
-						selcoeff_sum += mut_ptr->selection_coeff_;
+					for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+					{
+						Mutation *mut_ptr = mut_block_ptr + haplosome1_ptr[mut_index];
+						
+						if (mut_ptr->mutation_type_ptr_ == mutation_type_ptr)
+							selcoeff_sum += mut_ptr->selection_coeff_;
+					}
 				}
 			}
 		}

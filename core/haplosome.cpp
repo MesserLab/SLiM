@@ -1263,7 +1263,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 	Species &species = individual_->subpopulation_->species_;
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
-	// Count the number of mutations of the given type
+	// Sum the selection coefficients of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	double selcoeff_sum = 0.0;
 	int mutrun_count = mutrun_count_;
