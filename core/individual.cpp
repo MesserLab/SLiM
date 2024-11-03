@@ -1996,44 +1996,33 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	EidosValue_Int *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_elements_size);
+	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE);
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, integer_result) if(p_elements_size >= EIDOS_OMPMIN_I_COUNT_OF_MUTS_OF_TYPE) num_threads(thread_count)
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
-		Haplosome *haplosome1 = element->haplosomes_[0];
-		Haplosome *haplosome2 = element->haplosomes_[1];
 		int match_count = 0;
-	
-		if (!haplosome1->IsNull())
+		
+		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 		{
-			int mutrun_count = haplosome1->mutrun_count_;
+			Haplosome *haplosome = element->haplosomes_[haplosome_index];
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			if (!haplosome->IsNull())
 			{
-				const MutationRun *mutrun = haplosome1->mutruns_[run_index];
-				int haplosome1_count = mutrun->size();
-				const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
+				int mutrun_count = haplosome->mutrun_count_;
 				
-				for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
-					if ((mut_block_ptr + haplosome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-						++match_count;
-			}
-		}
-		if (!haplosome2->IsNull())
-		{
-			int mutrun_count = haplosome2->mutrun_count_;
-			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
-			{
-				const MutationRun *mutrun = haplosome2->mutruns_[run_index];
-				int haplosome2_count = mutrun->size();
-				const MutationIndex *haplosome2_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < haplosome2_count; ++mut_index)
-					if ((mut_block_ptr + haplosome2_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-						++match_count;
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
+					int haplosome1_count = mutrun->size();
+					const MutationIndex *haplosome1_ptr = mutrun->begin_pointer_const();
+					
+					for (int mut_index = 0; mut_index < haplosome1_count; ++mut_index)
+						if ((mut_block_ptr + haplosome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+							++match_count;
+				}
 			}
 		}
 		
