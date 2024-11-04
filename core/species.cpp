@@ -268,7 +268,7 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 		case EidosValueType::kValueNULL:
 		{
 			for (Chromosome *chromosome : Chromosomes())
-				chromosome_indices.push_back(chromosome->index_);
+				chromosome_indices.push_back(chromosome->Index());
 			break;
 		}
 		case EidosValueType::kValueInt:
@@ -283,7 +283,7 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 				if (!chromosome)
 					EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): could not find a chromosome with the given id (" << id << ")." << EidosTerminate();
 				
-				chromosome_indices.push_back(chromosome->index_);
+				chromosome_indices.push_back(chromosome->Index());
 			}
 			break;
 		}
@@ -299,7 +299,7 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 				if (!chromosome)
 					EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
 				
-				chromosome_indices.push_back(chromosome->index_);
+				chromosome_indices.push_back(chromosome->Index());
 			}
 			break;
 		}
@@ -311,7 +311,7 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 			{
 				Chromosome *chromosome = chromosomes_data[chromosome_index];
 				
-				chromosome_indices.push_back(chromosome->index_);
+				chromosome_indices.push_back(chromosome->Index());
 			}
 			break;
 		}
