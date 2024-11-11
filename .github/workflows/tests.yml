@@ -32,13 +32,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - name: Setup Mambaforge
+      - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
           activate-environment: anaconda-client-env
-          use-mamba: true
           python-version: ${{ matrix.python }}
       - name: Get Date
         id: get-date
@@ -59,7 +57,7 @@ jobs:
         id: cache
       - name: Update environment
         run:
-          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
+          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
@@ -119,12 +117,11 @@ jobs:
             msys2-devel
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
-      - name: Setup Miniforge3
+      - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
           activate-environment: anaconda-client-env
-          use-mamba: true
           auto-update-conda: true
           python-version: ${{ matrix.python }}
       - name: Get Date
