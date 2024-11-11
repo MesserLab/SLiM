@@ -119,10 +119,9 @@ jobs:
             msys2-devel
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
-      - name: Setup Mambaforge
+      - name: Setup Miniforge3
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
           activate-environment: anaconda-client-env
           use-mamba: true
@@ -134,21 +133,27 @@ jobs:
         shell: bash
       - name: Cache Conda env
         uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache if treerec/tests/environment.yml has not changed
+          CACHE_NUMBER: 0
         with:
-          path: ${{ env.CONDA }}/envs
+          # Use faster GNU tar
+          enableCrossOsArchive: true
+          path: D:\conda_pkgs_dir
           key:
             conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
             steps.get-date.outputs.today }}-${{
             hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
-        env:
-          # Increase this value to reset cache if
-          # treerec/tests/environment.yml has not changed
-          CACHE_NUMBER: 0
         id: cache
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: anaconda-client-env
+          environment-file: treerec/tests/environment.yml
+          pkgs-dirs: D:\conda_pkgs_dir
       - name: Update environment
         shell: bash -el {0}
         run:
-          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
+          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Build and test (Debug)
         run: |
