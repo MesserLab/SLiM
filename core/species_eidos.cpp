@@ -1805,6 +1805,35 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_sexChromosomes:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (Chromosome *chromosome : chromosomes_)
+			{
+				switch (chromosome->Type())
+				{
+					case ChromosomeType::kX_XSexChromosome:
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						vec->push_object_element_RR(chromosome);
+						break;
+					case ChromosomeType::kA_DiploidAutosome:
+					case ChromosomeType::kH_HaploidAutosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kML_HaploidMaleLine:
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+						break;
+				}
+			}
+			
+			return result_SP;
+		}
 		case gID_sexEnabled:
 			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_subpopulations:
@@ -3658,6 +3687,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexChromosomes,			true,	kEidosValueMaskObject, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));

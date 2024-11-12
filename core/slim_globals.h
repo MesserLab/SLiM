@@ -829,6 +829,7 @@ extern const std::string &gStr_lifetimeReproductiveOutputF;
 extern const std::string &gStr_modelType;
 extern const std::string &gStr_nucleotideBased;
 extern const std::string &gStr_scriptBlocks;
+extern const std::string &gStr_sexChromosomes;
 extern const std::string &gStr_sexEnabled;
 extern const std::string &gStr_subpopulations;
 extern const std::string &gStr_substitutions;
@@ -1268,6 +1269,7 @@ enum _SLiMGlobalStringID : int {
 	gID_modelType,
 	gID_nucleotideBased,
 	gID_scriptBlocks,
+	gID_sexChromosomes,
 	gID_sexEnabled,
 	gID_subpopulations,
 	gID_substitutions,

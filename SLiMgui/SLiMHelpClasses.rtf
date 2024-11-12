@@ -7440,7 +7440,9 @@ The density scale of the kernel has no effect and will be normalized; this is th
 
 \f4\fs20 \cf2 The 
 \f3\fs18 Chromosome
-\f4\fs20  objects used by the species, in the order in which they were defined.\
+\f4\fs20  objects used by the species, in the order in which they were defined.  See also the 
+\f3\fs18 sexChromosomes
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 color => (string$)\
@@ -7582,6 +7584,26 @@ The spatial periodicity of the simulation for this species, as specified in
 \f4\i0  
 \f3\fs18 ticks
 \f4\fs20  specifier).  These will always be callback blocks; callbacks are species-specific, while other types of blocks are not.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 sexChromosomes => (object<Chromosome>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Chromosome
+\f4\fs20  objects used by the species that represent sex chromosomes, in the order in which they were defined.  Sex chromosomes are specifically those of type 
+\f3\fs18 "X"
+\f4\fs20 , 
+\f3\fs18 "Y"
+\f4\fs20 , 
+\f3\fs18 "W"
+\f4\fs20 , 
+\f3\fs18 "Z"
+\f4\fs20 , and 
+\f3\fs18 "-Y"
+\f4\fs20 .  See also the 
+\f3\fs18 chromosomes
+\f4\fs20  property.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 sexEnabled => (logical$)\

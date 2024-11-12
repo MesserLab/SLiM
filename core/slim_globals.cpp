@@ -1244,6 +1244,7 @@ const std::string &gStr_lifetimeReproductiveOutputF = EidosRegisteredString("lif
 const std::string &gStr_modelType = EidosRegisteredString("modelType", gID_modelType);
 const std::string &gStr_nucleotideBased = EidosRegisteredString("nucleotideBased", gID_nucleotideBased);
 const std::string &gStr_scriptBlocks = EidosRegisteredString("scriptBlocks", gID_scriptBlocks);
+const std::string &gStr_sexChromosomes = EidosRegisteredString("sexChromosomes", gID_sexChromosomes);
 const std::string &gStr_sexEnabled = EidosRegisteredString("sexEnabled", gID_sexEnabled);
 const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations", gID_subpopulations);
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
