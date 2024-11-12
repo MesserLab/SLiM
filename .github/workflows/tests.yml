@@ -13,6 +13,7 @@ jobs:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@0.12.1
   tests-Unix-CLI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -22,22 +23,20 @@ jobs:
           - {os: ubuntu-20.04, gcc: 7, python: 3.8}
           - {os: ubuntu-20.04, gcc: 11, python: 3.9}
           # macOS, oldest supported version
-          # (macos-10.15 and macos-11 were removed by GitHub)
-          - {os: macos-12, python: 3.8}
-          # macOS, newest supported version (haven't tried macos-14 yet)
+          # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
           - {os: macos-13, python: 3.9}
+          # macOS, newest supported version
+          - {os: macos-15, python: 3.9}
       
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - name: Setup Mambaforge
+      - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
           activate-environment: anaconda-client-env
-          use-mamba: true
           python-version: ${{ matrix.python }}
       - name: Get Date
         id: get-date
@@ -58,7 +57,7 @@ jobs:
         id: cache
       - name: Update environment
         run:
-          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
+          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
@@ -93,6 +92,7 @@ jobs:
             cd treerec/tests && python -m pytest -xv
   
   tests-Windows-CLI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -117,13 +117,11 @@ jobs:
             msys2-devel
             mingw-w64-${{matrix.env}}-toolchain
             mingw-w64-${{matrix.env}}-cmake
-      - name: Setup Mambaforge
+      - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@v3
         with:
-          miniforge-variant: Mambaforge
           miniforge-version: latest
           activate-environment: anaconda-client-env
-          use-mamba: true
           auto-update-conda: true
           python-version: ${{ matrix.python }}
       - name: Get Date
@@ -132,21 +130,27 @@ jobs:
         shell: bash
       - name: Cache Conda env
         uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache if treerec/tests/environment.yml has not changed
+          CACHE_NUMBER: 0
         with:
-          path: ${{ env.CONDA }}/envs
+          # Use faster GNU tar
+          enableCrossOsArchive: true
+          path: D:\conda_pkgs_dir
           key:
             conda-${{ runner.os }}--python-${{ matrix.python }}--${{ runner.arch }}--${{
             steps.get-date.outputs.today }}-${{
             hashFiles('treerec/tests/environment.yml') }}-${{ env.CACHE_NUMBER}}
-        env:
-          # Increase this value to reset cache if
-          # treerec/tests/environment.yml has not changed
-          CACHE_NUMBER: 0
         id: cache
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: anaconda-client-env
+          environment-file: treerec/tests/environment.yml
+          pkgs-dirs: D:\conda_pkgs_dir
       - name: Update environment
         shell: bash -el {0}
         run:
-          mamba env update -n anaconda-client-env -f treerec/tests/environment.yml
+          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Build and test (Debug)
         run: |
@@ -175,6 +179,7 @@ jobs:
             cd treerec/tests && python -m pytest -xv
   
   tests-Unix-GUI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +232,7 @@ jobs:
           make -j 2 && make test
   
   tests-Windows-GUI:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
@@ -264,6 +270,7 @@ jobs:
           make -j 2 && make test
 
   tests-windows-latest-pacman:
+    if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
     strategy:
       fail-fast: false

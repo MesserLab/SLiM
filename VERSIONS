@@ -6,6 +6,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+	fix the wiring for calcPi() and calcTajimasD() to call the correct code; they were broken in SLiM 4.3
 	multi-chromosome transition:
 		API changes:
 		x	class Genome -> class Haplosome

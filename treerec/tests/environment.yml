@@ -1,6 +1,6 @@
 channels:
   - conda-forge
-  - defaults
+  - nodefaults
 dependencies:
   - tskit >= 0.4.1
   - msprime >= 1.2.0
