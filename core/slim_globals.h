@@ -502,6 +502,9 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // experiments performed by Species.
 #define MUTRUN_EXPERIMENT_OUTPUT	0
 
+// If 1, debug output will be generated for mutation run count experiment timing information
+#define MUTRUN_EXPERIMENT_TIMING_OUTPUT		0
+
 // If 1, the MutationRun pointers inside Haplosome objects will be cleared to nullptr when the haplosome is
 // freed, or disposed of into a junkyard, or anything like that -- whenever it is no longer in use.  This
 // could be useful for debugging problems with dereferencing stale MutationRun pointers.  Otherwise it is

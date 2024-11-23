@@ -2220,11 +2220,7 @@ void Species::MaintainMutationRegistry(void)
 {
 	if (has_genetics_)
 	{
-		TheChromosome().StartMutationRunExperimentClock();
-		
 		population_.MaintainMutationRegistry();
-		
-		TheChromosome().StopMutationRunExperimentClock();
 		
 		// Every hundredth cycle we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
 		// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
@@ -2240,13 +2236,7 @@ void Species::MaintainMutationRegistry(void)
 
 void Species::RecalculateFitness(void)
 {
-	if (has_genetics_)
-		TheChromosome().StartMutationRunExperimentClock();
-	
 	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
-	
-	if (has_genetics_)
-		TheChromosome().StopMutationRunExperimentClock();
 }
 
 void Species::MaintainTreeSequence(void)
@@ -2345,14 +2335,8 @@ void Species::WF_GenerateOffspring(void)
 	
 	if (no_active_callbacks)
 	{
-		if (has_genetics_)
-			TheChromosome().StartMutationRunExperimentClock();
-		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false, false);
-		
-		if (has_genetics_)
-			TheChromosome().StopMutationRunExperimentClock();
 	}
 	else
 	{
@@ -2408,14 +2392,8 @@ void Species::WF_GenerateOffspring(void)
 		}
 		
 		// then evolve each subpop
-		if (has_genetics_)
-			TheChromosome().StartMutationRunExperimentClock();
-		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
-		
-		if (has_genetics_)
-			TheChromosome().StopMutationRunExperimentClock();
 	}
 }
 
@@ -2505,14 +2483,8 @@ void Species::nonWF_GenerateOffspring(void)
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	
-	if (has_genetics_)
-		TheChromosome().StartMutationRunExperimentClock();
-	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->ReproduceSubpopulation();
-	
-	if (has_genetics_)
-		TheChromosome().StopMutationRunExperimentClock();
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
@@ -2649,8 +2621,48 @@ void Species::SimulationHasFinished(void)
 	// This is called by Community::SimulationHasFinished() for each species
 	
 	// Print mutation run experiment results
-	for (Chromosome *chromosome : chromosomes_)
-		chromosome->PrintMutationRunExperimentSummary();
+	if (SLiM_verbosity_level >= 2)
+	{
+		int summary_count = 0;
+		
+		for (Chromosome *chromosome : chromosomes_)
+			summary_count += chromosome->MutationRunExperimentsEnabled();
+		
+		if (summary_count > 0)
+		{
+			SLIM_OUTSTREAM << std::endl;
+			
+			SLIM_OUTSTREAM << "// Mutation run experiment data:" << std::endl;
+			SLIM_OUTSTREAM << "//" << std::endl;
+			SLIM_OUTSTREAM << "// For each chromosome that conducted experiments, the optimal" << std::endl;
+			SLIM_OUTSTREAM << "// mutation run count is given, with the percentage of cycles" << std::endl;
+			SLIM_OUTSTREAM << "// in which that number was used.  The number of mutation run" << std::endl;
+			SLIM_OUTSTREAM << "// experiments conducted is also given; if that is small (less" << std::endl;
+			SLIM_OUTSTREAM << "// than 200 or so), or if the percentage of cycles is close to" << std::endl;
+			SLIM_OUTSTREAM << "// or below 50%, the optimal count may not be accurate, since" << std::endl;
+			SLIM_OUTSTREAM << "// insufficient data was gathered.  In that case, you might" << std::endl;
+			SLIM_OUTSTREAM << "// wish to conduct your own timing experiments using different" << std::endl;
+			SLIM_OUTSTREAM << "// counts.  Profile output also has more detail on this data." << std::endl;
+			SLIM_OUTSTREAM << "//" << std::endl;
+			
+			for (Chromosome *chromosome : chromosomes_)
+				chromosome->PrintMutationRunExperimentSummary();
+			
+			SLIM_OUTSTREAM << "//" << std::endl;
+			SLIM_OUTSTREAM << "// It might (or might not) speed up your model to add:" << std::endl;
+			SLIM_OUTSTREAM << "//" << std::endl;
+			SLIM_OUTSTREAM << "//    mutationRuns=X" << std::endl;
+			SLIM_OUTSTREAM << "//" << std::endl;
+			SLIM_OUTSTREAM << "// to the initializeChromosome() call" << (summary_count > 1 ? "s" : "") << " in your initialize()" << std::endl;
+			SLIM_OUTSTREAM << "// callback, where X is the optimal count for the chromosome." << std::endl;
+			SLIM_OUTSTREAM << "// (If your model does not call initializeChromosome(), you" << std::endl;
+			SLIM_OUTSTREAM << "// would need to add " << (summary_count > 1 ? "those calls" : "that call") <<
+				".)  Optimal " << (summary_count > 1 ? "counts" : "count") << " may change" << std::endl;
+			SLIM_OUTSTREAM << "// if your model changes, or even if the model is just run on" << std::endl;
+			SLIM_OUTSTREAM << "// different hardware.  See the SLiM manual for more details." << std::endl;
+			SLIM_OUTSTREAM << std::endl;
+		}
+	}
 }
 
 void Species::Species_CheckIntegrity(void)
@@ -3295,6 +3307,10 @@ void Species::ReturnShuffleBuffer(void)
 #if SLIM_USE_NONNEUTRAL_CACHES
 void Species::CollectMutationProfileInfo(void)
 {
+	// FIXME MULTICHROM this profile info should be moved to be per-chromosome; for now, we protect against not having a chromosome
+	if (chromosomes_.size() == 0)
+		return;
+	
 	Chromosome &chromosome = TheChromosome();	// only keeping the history for the first chromosome right now, should keep it for all
 	
 	// maintain our history of the number of mutruns per haplosome and the nonneutral regime

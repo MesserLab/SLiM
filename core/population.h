@@ -265,7 +265,7 @@ public:
 	// place the number of non-null haplosomes that were tallied across into the tallied_haplosome_count_ value
 	// of each chromosome involved in the tally.
 	void TallyMutationRunReferencesForPopulationForChromosome(Chromosome *p_chromosome);
-	void TallyMutationRunReferencesForPopulation(void);
+	void TallyMutationRunReferencesForPopulation(bool p_clock_for_mutrun_experiments);
 	void TallyMutationRunReferencesForSubpopsForChromosome(std::vector<Subpopulation*> *p_subpops_to_tally, Chromosome *p_chromosome);
 	void TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
 	void TallyMutationRunReferencesForHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
@@ -287,7 +287,7 @@ public:
 	void TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	
 	slim_refcount_t _CountNonNullHaplosomesForChromosome(Chromosome *p_chromosome);
-	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
+	void _TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments);
 #if DEBUG
 	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
 #endif

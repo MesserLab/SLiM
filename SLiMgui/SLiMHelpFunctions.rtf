@@ -216,17 +216,31 @@ The
 \f1\fs18 "Y"
 \f2\fs20  except that it keeps a null haplosome in the first slot for all individuals.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Finally, the 
+\cf2 The 
 \f1\fs18 mutationRuns
-\f2\fs20  parameter specifies how many mutation runs the chromosome should use.  If 
+\f2\fs20  parameter specifies how many mutation runs the chromosome should use.  Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally optimal.  The optimal number of mutation runs will depend on the model\'92s details, and may also depend upon the machine and even the compiler used to build SLiM.  If the 
 \f1\fs18 mutationRuns
-\f2\fs20  is not 
+\f2\fs20  parameter is not 
 \f1\fs18 0
 \f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
 \f1\fs18 Haplosome
-\f2\fs20  objects for the chromosome; if it is 
+\f2\fs20  objects for the chromosome.  If 
+\f1\fs18 mutationRuns
+\f2\fs20  is 
 \f1\fs18 0
-\f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well. Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations. The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable. The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation \'96 a process which SLiM can assist with (see section 21.4). Specifying the number of mutation runs is an advanced technique, but in some cases it can improve performance significantly.\
+\f2\fs20  (the default), then the behavior depends upon a parameter to the 
+\f1\fs18 initializeSLiMOptions()
+\f2\fs20  function, 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20 .  If that flag is 
+\f1\fs18 F
+\f2\fs20 , the behavior here is as if 
+\f1\fs18 mutationRuns=1
+\f2\fs20  had been passed: one mutation run will be used, and mutation run experiments will not be conducted.  If that flag is 
+\f1\fs18 T
+\f2\fs20  (the default), then for 
+\f1\fs18 mutationRuns=0
+\f2\fs20  SLiM will conduct experiments at runtime, using different mutation run counts, to try to determine the number of mutation runs that produces the best performance.  The value that SLiM\'92s experiments determine may not be optimal, however, and in any case there is some overhead associated with conducting these experiments; for maximal performance it can thus be beneficial to determine the true optimal value for the simulation yourself, and set it explicitly using this parameter. Specifying the number of mutation runs is an advanced technique, but in some cases it can improve performance significantly.\
 The order in which 
 \f1\fs18 initializeChromosome()
 \f2\fs20  calls are made is generally unimportant, since the chromosomes assort independently of each other anyway, but SLiM will preserve the order in which they were defined for you (for the 
@@ -1026,7 +1040,7 @@ If
 \f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [logical$\'a0doMutationRunExperiments\'a0=\'a0T], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -1140,18 +1154,27 @@ If
 \f2\fs20  method of 
 \f1\fs18 Subpopulation
 \f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f0\b \cf2 \kerning1\expnd0\expndtw0 The 
-\f5\fs18 mutationRuns
-\f0\fs20  parameter has been deprecated.
-\f2\b0   In SLiM 5 and later, use the 
-\f1\fs18 mutationRuns
-\f2\fs20  parameter to 
-\f1\fs18 initializeChromosome()
-\f2\fs20  instead.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 If 
+\cf2 \kerning1\expnd0\expndtw0 The 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  parameter specifies whether SLiM should attempt to conduct experiments at runtime to determine the optimal number of mutation runs used in the model.  This is a performance optimization.  If 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), this optimization is enabled for all chromosomes that do not have an explicitly specified mutation run count; this is generally desirable and may significantly improve performance.  If 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , this optimization is disabled and chromosomes that do not have an explicitly specified mutation run count will simply use a single mutation run.  See the documentation for 
+\f1\fs18 initializeChromosome()
+\f2\fs20  for further discussion.  Note that this parameter used to be 
+\f1\fs18 [integer$\'a0mutationRuns\'a0=\'a00]
+\f2\fs20 , specifying the mutation run count directly.  That parameter has been moved to 
+\f1\fs18 initializeChromosome()
+\f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
 \f1\fs18 T

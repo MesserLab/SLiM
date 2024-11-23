@@ -351,6 +351,10 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 				 ((p_signature_index == 4) && (arg_type == EidosValueType::kValueLogical))))
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 			
+			// Special error-handling for initializeSLiMOptions() because its mutationRuns parameter changed to doMutationRunExperiments, and changed from integer to logical
+			if ((call_name_ == "initializeSLiMOptions") && (p_signature_index == 3) && (arg_type == EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+			
 			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 		}
 		

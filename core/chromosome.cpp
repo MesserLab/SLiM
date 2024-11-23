@@ -90,6 +90,11 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	using_DSB_model_(false), non_crossover_fraction_(0.0), gene_conversion_avg_length_(0.0), gene_conversion_inv_half_length_(0.0), simple_conversion_fraction_(0.0), mismatch_repair_bias_(0.0),
 	last_position_mutrun_(0)
 {
+	// If the user has said "no mutation run experiments" in initializeSLiMOptions(), then a count of zero
+	// supplied here is interpreted as a count of 1, and experiments will thus not be conducted.
+	if (!species_.UserWantsMutrunExperiments() && (preferred_mutrun_count_ == 0))
+		preferred_mutrun_count_ = 1;
+	
 	// Set up the default color for fixed mutations in SLiMgui
 	color_sub_ = "#3333FF";
 	if (!color_sub_.empty())
@@ -217,7 +222,7 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 			double rate = max_nucleotide_mut_rate * multiplier_M;
 			
 			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
 			
 			mut_rates_M.emplace_back(rate);
 		}
@@ -226,7 +231,7 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 			double rate = max_nucleotide_mut_rate * multiplier_F;
 			
 			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
 			
 			mut_rates_F.emplace_back(rate);
 		}
@@ -242,7 +247,7 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 			double rate = max_nucleotide_mut_rate * multiplier_H;
 			
 			if (rate > 1.0)
-				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
 			
 			mut_rates_H.emplace_back(rate);
 		}
@@ -253,7 +258,7 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 	{
 		// No hotspot map specified at all; use a rate of 1.0 across the chromosome with an inferred length
 		if (max_nucleotide_mut_rate > 1.0)
-			EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
 		
 		mut_rates_H.emplace_back(max_nucleotide_mut_rate);
 		//mut_positions_H.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
@@ -1718,7 +1723,7 @@ void Chromosome::SetUpMutationRunContexts(void)
 	// Make per-thread MutationRunContexts; the number of threads that we set up for here is NOT gEidosMaxThreads,
 	// but rather, the "base" number of mutation runs per haplosome chosen by Chromosome.  The chromosome is divided
 	// into that many chunks along its length (or a multiple thereof), and there is one thread per "base" chunk.
-	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
+	mutation_run_context_COUNT_ = mutrun_count_base_;
 	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
 	
 	if (mutation_run_context_COUNT_ > 0)
@@ -1825,6 +1830,9 @@ void Chromosome::InitiateMutationRunExperiments(void)
 	}
 	
 	x_experiments_enabled_ = true;
+	species_.DoingMutrunExperimentsForChromosome();
+	
+	x_experiment_count_ = 0;
 	
 	x_current_mutcount_ = mutrun_count_;
 	x_current_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
@@ -1835,7 +1843,7 @@ void Chromosome::InitiateMutationRunExperiments(void)
 	x_previous_buflen_ = 0;
 	
 	if (!x_current_runtimes_ || !x_previous_runtimes_)
-		EIDOS_TERMINATION << "ERROR (Species::InitiateMutationRunExperiments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Chromosome::InitiateMutationRunExperiments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	x_continuing_trend_ = false;
 	
@@ -1872,37 +1880,10 @@ void Chromosome::ZeroMutationRunExperimentClock(void)
 			
 			x_total_gen_clocks_ = 0;
 		}
-	}
-}
-
-void Chromosome::StartMutationRunExperimentClock(void)
-{
-	// Mutation run experiment timing macros.  We use these to accumulate clocks taken in critical sections of the code.
-	// Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very
-	// different work from one cycle to the next, this seems best, although it does mean that the impact of the number
-	// of mutation runs on the execution time of Eidos events is not measured.
-	if (x_experiments_enabled_)
-	{
-		if (x_clock_running_)
-			std::cerr << "WARNING: mutation run experiment clock was started when already running!";
 		
-		x_clock_running_ = true;
-		x_current_clock_ = std::clock();
-	}
-}
-
-void Chromosome::StopMutationRunExperimentClock(void)
-{
-	if (x_experiments_enabled_)
-	{
-		std::clock_t end_clock = std::clock();
-		
-		if (!x_clock_running_)
-			std::cerr << "WARNING: mutation run experiment clock was stopped when not running!";
-		
-		x_clock_running_ = false;
-		x_total_gen_clocks_ += (end_clock - x_current_clock_);
-		x_current_clock_ = 0;
+#if MUTRUN_EXPERIMENT_TIMING_OUTPUT
+		std::cout << "tick " << community_.Tick() << ", chromosome " << id_ << ": starting timing" << std::endl;
+#endif
 	}
 }
 
@@ -1910,7 +1891,11 @@ void Chromosome::FinishMutationRunExperimentTiming(void)
 {
 	if (x_experiments_enabled_)
 	{
-		MaintainMutationRunExperiments(x_total_gen_clocks_ / (double)CLOCKS_PER_SEC);
+#if MUTRUN_EXPERIMENT_TIMING_OUTPUT
+		std::cout << "tick " << community_.Tick() << ", chromosome " << id_ << ": ending timing with total count == " << x_total_gen_clocks_ << " (" << Eidos_ElapsedProfileTime(x_total_gen_clocks_) << " seconds)" << std::endl;
+#endif
+		
+		MaintainMutationRunExperiments(Eidos_ElapsedProfileTime(x_total_gen_clocks_));
 		x_total_gen_clocks_ = 0;
 	}
 }
@@ -1981,7 +1966,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 {
 	// Log the last cycle time into our buffer
 	if (x_current_buflen_ >= SLIM_MUTRUN_EXPERIMENT_LENGTH)
-		EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
 	
 	x_current_runtimes_[x_current_buflen_] = p_last_gen_runtime;
 	
@@ -2000,6 +1985,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		// and the experiment mean is worse than the baseline mean (if it is better, we want to continue collecting),
 		// let's short-circuit the rest of the experiment and bail – like early termination of a medical trial.
 		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
+		x_experiment_count_++;
 		
 		if ((p < 0.01) && (current_mean > previous_mean))
 		{
@@ -2070,6 +2056,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		
 		// Otherwise, get a result from a t-test and decide what to do
 		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
+		x_experiment_count_++;
 		
 	early_ttest_passed:
 		
@@ -2155,7 +2142,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 			
 			int32_t trend_next = (x_current_mutcount_ < x_previous_mutcount_) ? (x_current_mutcount_ / 2) : (x_current_mutcount_ * 2);
-			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, chromosome_->mutrun_count_base_ == 1
+			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, mutrun_count_base_ == 1
 			
 			if ((current_mean < previous_mean) || (!means_different_05 && (x_current_mutcount_ < x_previous_mutcount_)))
 			{
@@ -2298,7 +2285,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 			
 			if (x_current_mutcount_ > SLIM_MUTRUN_MAXIMUM_COUNT)
-				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) splitting mutation runs to beyond SLIM_MUTRUN_MAXIMUM_COUNT (x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::MaintainMutationRunExperiments): (internal error) splitting mutation runs to beyond SLIM_MUTRUN_MAXIMUM_COUNT (x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
 			
 			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
 			// mutrun indices; every time we encounter the same old index we will substitute the same pair.
@@ -2311,7 +2298,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
@@ -2322,7 +2309,7 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 			
 			if (mutrun_count_multiplier_ % 2 != 0)
-				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Chromosome::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
 			
 			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
 			// index; every time we encounter the same pair of indices we will substitute the same index.
@@ -2335,12 +2322,12 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
 			if (SLiM_verbosity_level >= 2)
-				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
+				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
 		
 		if (mutrun_count_ != x_current_mutcount_)
-			EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Chromosome::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
 	}
 }
 
@@ -2348,10 +2335,10 @@ void Chromosome::PrintMutationRunExperimentSummary(void)
 {
 #if MUTRUN_EXPERIMENT_OUTPUT
 	// Print a full mutation run count history if MUTRUN_EXPERIMENT_OUTPUT is enabled
-	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
+	if (x_experiments_enabled_)
 	{
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutrun count history:" << std::endl;
+		SLIM_OUTSTREAM << "// Chromosome " << id_ << " mutrun count history:" << std::endl;
 		SLIM_OUTSTREAM << "// mutrun_history <- c(";
 		
 		bool first_count = true;
@@ -2372,7 +2359,7 @@ void Chromosome::PrintMutationRunExperimentSummary(void)
 	
 	// If verbose output is enabled and we've been running mutation run experiments,
 	// figure out the modal mutation run count and print that, for the user's benefit.
-	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
+	if (x_experiments_enabled_)
 	{
 		int modal_index, modal_tally;
 		int power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
@@ -2400,16 +2387,7 @@ void Chromosome::PrintMutationRunExperimentSummary(void)
 		int modal_count = (int)round(pow(2.0, modal_index));
 		double modal_fraction = power_tallies[modal_index] / (double)(x_mutcount_history_.size());
 		
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutation run modal count: " << modal_count << " (" << (modal_fraction * 100) << "% of cycles)" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "// It might (or might not) speed up your model to add a call to:" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "//    initializeSLiMOptions(mutationRuns=" << modal_count << ");" << std::endl;
-		SLIM_OUTSTREAM << "//" << std::endl;
-		SLIM_OUTSTREAM << "// to your initialize() callback.  The optimal value will change" << std::endl;
-		SLIM_OUTSTREAM << "// if your model changes.  See the SLiM manual for more details." << std::endl;
-		SLIM_OUTSTREAM << std::endl;
+		SLIM_OUTSTREAM << "// Chromosome " << id_ << ": " << modal_count << " (" << (modal_fraction * 100) << "% of cycles, " << x_experiment_count_ << " experiments)" << std::endl;
 	}
 }
 

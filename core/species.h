@@ -258,6 +258,10 @@ private:
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
+	// mutation run timing experiment configuration
+	bool do_mutrun_experiments_ = true;				// user-level flag in initializeSLiMOptions(); if false, experiments are never run
+	bool doing_any_mutrun_experiments_ = false;		// is any chromosome actually running mutation run timing experiments?
+	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
 	
@@ -516,6 +520,10 @@ public:
 		if (p_y) *p_y = periodic_y_;
 		if (p_z) *p_z = periodic_z_;
 	}
+	
+	inline __attribute__((always_inline)) bool UserWantsMutrunExperiments(void) const										{ return do_mutrun_experiments_; }
+	inline __attribute__((always_inline)) void DoingMutrunExperimentsForChromosome(void)									{ doing_any_mutrun_experiments_ = true; }
+	inline __attribute__((always_inline)) bool DoingAnyMutationRunExperiments(void) const									{ return doing_any_mutrun_experiments_; }
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
 	

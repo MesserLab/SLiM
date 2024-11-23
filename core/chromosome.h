@@ -150,6 +150,7 @@ private:
 #define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
 	
 	bool x_experiments_enabled_;				// if false, no experiments are run and no cycle runtimes are recorded
+	int32_t x_experiment_count_;				// a counter of the number of experiments we've run (the number of t-tests we've conducted)
 	
 	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
 	double *x_current_runtimes_;				// cycle runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
@@ -169,10 +170,10 @@ private:
 	
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each cycle
 	
-	std::clock_t x_current_clock_ = 0;			// the clock for timing current being done
+	eidos_profile_t x_current_clock_ = 0;		// the clock for timing current being done
 	bool x_clock_running_ = false;
 	
-	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
+	eidos_profile_t x_total_gen_clocks_ = 0;	// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
 												// look at StartMutationRunExperimentClock() usage to see which blocks are measured
 	
 	// Mutation run experiments
@@ -388,10 +389,48 @@ public:
 	// Mutation run experiments
 	void InitiateMutationRunExperiments(void);
 	void ZeroMutationRunExperimentClock(void);
-	void StartMutationRunExperimentClock(void);
-	void StopMutationRunExperimentClock(void);
 	void FinishMutationRunExperimentTiming(void);
 	void PrintMutationRunExperimentSummary(void);
+	inline __attribute__((always_inline)) bool MutationRunExperimentsEnabled(void) { return x_experiments_enabled_; }
+	
+	// Mutation run experiment timing.  We use these methods to accumulate clocks taken in critical sections of the code.
+	// Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very
+	// different work from one cycle to the next, this seems best, although it does mean that the impact of the number
+	// of mutation runs on the execution time of Eidos events is not measured.
+	inline __attribute__((always_inline)) void StartMutationRunExperimentClock(void)
+	{
+		if (x_experiments_enabled_)
+		{
+#if DEBUG
+				if (x_clock_running_)
+					std::cerr << "WARNING: mutation run experiment clock was started when already running!";
+#endif
+				x_clock_running_ = true;
+				x_current_clock_ = Eidos_BenchmarkTime();
+		}
+	}
+	
+	inline __attribute__((always_inline)) void StopMutationRunExperimentClock(__attribute__((unused)) const char *p_caller_name)
+	{
+		if (x_experiments_enabled_)
+		{
+			eidos_profile_t end_clock = Eidos_BenchmarkTime();
+			
+#if DEBUG
+			if (!x_clock_running_)
+				std::cerr << "WARNING: mutation run experiment clock was stopped when not running!";
+#endif
+			
+#if MUTRUN_EXPERIMENT_TIMING_OUTPUT
+			// this log generates an unreasonable amount of output and is not usually desirable
+			//std::cout << "   tick " << community_.Tick() << ", chromosome " << id_ << ": mutrun experiment clock for " << p_caller_name << " count == " << (end_clock - x_current_clock_) << std::endl;
+#endif
+			
+			x_clock_running_ = false;
+			x_total_gen_clocks_ += (end_clock - x_current_clock_);
+			x_current_clock_ = 0;
+		}
+	}
 	
 	
 	//

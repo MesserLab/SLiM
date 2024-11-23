@@ -245,6 +245,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	if (id < 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires id to be non-negative." << EidosTerminate();
 	
+	if (ChromosomeFromID(id))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires id to be unique within the species; two chromosomes in the same species may not have the same id." << EidosTerminate();
+	
 	slim_position_t start = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr));
 	slim_position_t length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
 	
@@ -274,6 +277,17 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 		symbol = symbol_value->StringAtIndex_NOCAST(0, nullptr);
 	else
 		symbol = std::to_string(id);
+	
+	if ((symbol.length() == 0) || (symbol.length() > 3))
+	{
+		if (symbol_value->Type() == EidosValueType::kValueString)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters." << EidosTerminate();
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters; since the id given to the chromosome (" << id << ") is more than three digits, a symbol must be supplied explicitly to satisfy this requirement." << EidosTerminate();
+	}
+	
+	if (ChromosomeFromSymbol(symbol))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be unique within the species; two chromosomes in the same species may not have the same symbol." << EidosTerminate();
 	
 	std::string name;
 	
@@ -1209,7 +1223,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1217,7 +1231,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
 	EidosValue *arg_dimensionality_value = p_arguments[1].get();
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
-	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
+	EidosValue *arg_doMutationRunExperiments_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
 	EidosValue *arg_randomizeCallbacks_value = p_arguments[6].get();
@@ -1309,11 +1323,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	}
 	
 	{
-		// [integer$ mutationRuns = 0]
-		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
+		// [logical$ doMutationRunExperiments = T]
+		// note this parameter position used to be [integer$ mutationRuns = 0] instead!
+		bool do_mutrun_experiments = arg_doMutationRunExperiments_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
-		if (mutrun_count != 0)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): the mutationRuns option to initializeSLiMOptions() has been deprecated and no longer functions.  Please pass 0 for this option, or simply leave it out; using named parameters to initializeSLiMOptions() is recommended so that you can skip over options you do not wish to specify.  The preferred mutation run count is now specified on a per-chromosome basis in initializeChromosome()." << EidosTerminate();
+		do_mutrun_experiments_ = do_mutrun_experiments;
 	}
 	
 	{

@@ -1175,140 +1175,284 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
-	if (pedigrees_enabled)
+	if (species_.DoingAnyMutationRunExperiments())
 	{
-		if (recording_tree_sequence)
+		if (pedigrees_enabled)
 		{
-			if (has_munge_callback)	// has any of the callbacks that the Munge...() methods care about; this can be refined later
+			if (recording_tree_sequence)
 			{
-				if (is_spatial)
+				if (has_munge_callback)	// has any of the callbacks that the Munge...() methods care about; this can be refined later
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, true, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, true, false, false>;
+					}
 				}
 			}
 			else
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, true, false, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, true, false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, true, false, false, false>;
+					}
 				}
 			}
 		}
 		else
 		{
-			if (has_munge_callback)
+			if (recording_tree_sequence)
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, true, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, true, false, false>;
+					}
 				}
 			}
 			else
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<true, false, false, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<true, false, false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<true, false, false, false, false>;
+					}
 				}
 			}
 		}
 	}
 	else
 	{
-		if (recording_tree_sequence)
+		if (pedigrees_enabled)
 		{
-			if (has_munge_callback)
+			if (recording_tree_sequence)
 			{
-				if (is_spatial)
+				if (has_munge_callback)	// has any of the callbacks that the Munge...() methods care about; this can be refined later
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, true, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, true, false, false>;
+					}
 				}
 			}
 			else
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, true, false, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, true, false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, true, false, false, false>;
+					}
 				}
 			}
 		}
 		else
 		{
-			if (has_munge_callback)
+			if (recording_tree_sequence)
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, true, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, true, false, false>;
+					}
 				}
 			}
 			else
 			{
-				if (is_spatial)
+				if (has_munge_callback)
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, true>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, true>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, true>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, true, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, true, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, true, false>;
+					}
 				}
 				else
 				{
-					MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, false>;
-					MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, false>;
-					MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, false>;
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, false, true>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed<false, false, false, false, false>;
+						MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed<false, false, false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned<false, false, false, false, false>;
+					}
 				}
 			}
 		}
@@ -2054,7 +2198,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 #ifdef _OPENMP
 		bool can_parallelize = true;
 		
-		for (Chromosome *chromosome : species_.Chrpmosomes())
+		for (Chromosome *chromosome : species_.Chromosomes())
 			if (chromosome.using_DSB_model_)
 			{
 				can_parallelize = false;
@@ -6653,7 +6797,7 @@ void Population::UniqueMutationRuns(void)
 void Population::SplitMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
-	TallyMutationRunReferencesForPopulation();
+	TallyMutationRunReferencesForPopulationForChromosome(p_chromosome);
 	
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome->Index()];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome->Index()];
@@ -6862,7 +7006,7 @@ struct slim_pair_hash {
 void Population::JoinMutationRunsForChromosome(int32_t p_new_mutrun_count, Chromosome *p_chromosome)
 {
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
-	TallyMutationRunReferencesForPopulation();
+	TallyMutationRunReferencesForPopulationForChromosome(p_chromosome);
 	
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome->Index()];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome->Index()];
@@ -7191,7 +7335,7 @@ void Population::SwapGenerations(void)
 void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome *p_chromosome)
 {
 	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) called with child generation active!" << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulationForChromosome): (internal error) called with child generation active!" << EidosTerminate();
 	
 	slim_refcount_t tallied_haplosome_count = 0;
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome->Index()];
@@ -7200,7 +7344,7 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 	int mutrun_context_count = p_chromosome->ChromosomeMutationRunContextCount();
 	
 	if (mutrun_count_multiplier * mutrun_context_count != p_chromosome->mutrun_count_)
-		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulationForChromosome): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
 	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
 	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
@@ -7215,7 +7359,7 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 		if (omp_get_num_threads() != mutrun_context_count)
 		{
 			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
-			THREAD_SAFETY_IN_ANY_PARALLEL("Population::TallyMutationRunReferencesForPopulation(): incorrect thread count!");
+			THREAD_SAFETY_IN_ANY_PARALLEL("Population::TallyMutationRunReferencesForPopulationForChromosome(): incorrect thread count!");
 		}
 #endif
 		
@@ -7351,7 +7495,7 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 		}
 		
 		if (tallied_haplosome_count_CHECK != tallied_haplosome_count)
-			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) tallied_haplosome_count_CHECK != tallied_haplosome_count (" << tallied_haplosome_count_CHECK << " != " << tallied_haplosome_count << ")." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulationForChromosome): (internal error) tallied_haplosome_count_CHECK != tallied_haplosome_count (" << tallied_haplosome_count_CHECK << " != " << tallied_haplosome_count << ")." << EidosTerminate();
 		
 		for (int threadnum = 0; threadnum < p_chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
 		{
@@ -7364,7 +7508,7 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 				const MutationRun *mutrun = inuse_pool[pool_index];
 				
 				if (mutrun->use_count_CHECK_ != mutrun->use_count())
-					EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) use_count_CHECK_ " << mutrun->use_count_CHECK_ << " != mutrun->use_count() " << mutrun->use_count() << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulationForChromosome): (internal error) use_count_CHECK_ " << mutrun->use_count_CHECK_ << " != mutrun->use_count() " << mutrun->use_count() << "." << EidosTerminate();
 			}
 		}
 	}
@@ -7375,11 +7519,25 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 	p_chromosome->tallied_haplosome_count_ = tallied_haplosome_count;
 }
 
-void Population::TallyMutationRunReferencesForPopulation(void)
+void Population::TallyMutationRunReferencesForPopulation(bool p_clock_for_mutrun_experiments)
 {
 	// Each chromosome is tallied separately, in the present design; this allows parallelization to work differently for each
-	for (Chromosome *chromosome : species_.Chromosomes())
-		TallyMutationRunReferencesForPopulationForChromosome(chromosome);
+	if (p_clock_for_mutrun_experiments)
+	{
+		for (Chromosome *chromosome : species_.Chromosomes())
+		{
+			chromosome->StartMutationRunExperimentClock();
+			
+			TallyMutationRunReferencesForPopulationForChromosome(chromosome);
+			
+			chromosome->StopMutationRunExperimentClock("TallyMutationRunReferencesForPopulation()");
+		}
+	}
+	else
+	{
+		for (Chromosome *chromosome : species_.Chromosomes())
+			TallyMutationRunReferencesForPopulationForChromosome(chromosome);
+	}
 }
 
 void Population::TallyMutationRunReferencesForSubpopsForChromosome(std::vector<Subpopulation*> *p_subpops_to_tally, Chromosome *p_chromosome)
@@ -7521,10 +7679,11 @@ void Population::TallyMutationRunReferencesForHaplosomes(const Haplosome * const
 
 void Population::FreeUnusedMutationRuns(void)
 {
+	// It is assumed by this method that mutation run tallies are up to date!
+	// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
-		// It is assumed by this method that mutation run tallies are up to date!
-		// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
+		chromosome->StartMutationRunExperimentClock();
 		
 		// free all in-use MutationRun objects that are not actually in use (use count == 0)
 		// each thread does its own checking and freeing, for its own MutationRunContext
@@ -7561,6 +7720,8 @@ void Population::FreeUnusedMutationRuns(void)
 				}
 			}
 		}
+		
+		chromosome->StopMutationRunExperimentClock("FreeUnusedMutationRuns()");
 	}
 }
 
@@ -7662,10 +7823,10 @@ void Population::TallyMutationReferencesAcrossPopulation()
 	if (can_tally_using_mutruns)
 	{
 		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
-		TallyMutationRunReferencesForPopulation();
+		TallyMutationRunReferencesForPopulation(/* p_clock_for_mutrun_experiments */ true);
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
-		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ true);
 		
 #if DEBUG
 		{
@@ -7909,7 +8070,7 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 		TallyMutationRunReferencesForSubpops(p_subpops_to_tally);
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
-		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ false);
 		
 #if DEBUG
 		{
@@ -8002,7 +8163,7 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 		TallyMutationRunReferencesForHaplosomes(haplosomes_ptr, haplosomes_count);
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
-		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ false);
 		
 #if DEBUG
 		_CheckMutationTallyAcrossHaplosomes(haplosomes_ptr, haplosomes_count);
@@ -8048,13 +8209,16 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 // the mutation run tallying itself, however; instead, the caller can tally mutation runs
 // across whatever set of subpops/haplosomes they wish, and then this method will provide
 // mutation tallies given that choice.
-void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
+void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments)
 {
 	// first zero out the refcounts in all registered Mutation objects
 	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 	
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
+		if (p_clock_for_mutrun_experiments)
+			chromosome->StartMutationRunExperimentClock();
+		
 		// each thread does its own tallying, for its own MutationRunContext
 #ifdef _OPENMP
 		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
@@ -8089,6 +8253,9 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 				}
 			}
 		}
+		
+		if (p_clock_for_mutrun_experiments)
+			chromosome->StopMutationRunExperimentClock("_TallyMutationReferences_FAST_FromMutationRunUsage()");
 	}
 }
 

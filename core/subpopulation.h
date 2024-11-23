@@ -362,7 +362,7 @@ public:
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks);	// update fitness values based upon current mutations
 
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
-	template <const bool f_callbacks, const bool f_singlecallback>
+	template <const bool f_mutrunexps, const bool f_callbacks, const bool f_singlecallback>
 	double FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	template <const bool f_callbacks, const bool f_singlecallback>
 	double _Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
@@ -373,6 +373,9 @@ public:
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
 	// generate offspring individuals from parent individuals; these methods loop over chromosomes/haplosomes
+	// FIXME MULTICHROM these should be templated like the MungeIndividualX() methods are!
+	//					could choose the template variant ONCE after initialize() and cache it across all nonWF calls!
+	//					the registered callbacks won't change within the reproduction tick cycle stage, right?  so that can also be figured out ONCE!
 	Individual *GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	Individual *GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	Individual *GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
@@ -380,13 +383,13 @@ public:
 	
 	// these WF-only "munge" variants munge an existing individual into the new child, reusing the individual
 	// and its haplosome objects; they are all templated for speed, providing variants for different milieux
-	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	bool MungeIndividualCrossed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	
-	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	bool MungeIndividualSelfed(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
-	template <const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	bool MungeIndividualCloned(Individual *p_child, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
 	// WF only:
