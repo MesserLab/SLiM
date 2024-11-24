@@ -6422,7 +6422,7 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
         for (Species *species : community->AllSpecies())
 		{
 			species->population_.InvalidateMutationReferencesCache();	// force a retally
-			species->population_.TallyMutationReferencesAcrossPopulation();
+			species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 		}
 		
         // It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
