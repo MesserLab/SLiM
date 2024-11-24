@@ -749,10 +749,18 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMutations(EidosObject
 			if (element->IsNull())
 				EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() cannot be called on a null haplosome." << EidosTerminate();
 			
+			// BCH 11/24/2024: I've gone back and forth on whether it should be an error to ask whether a mutation
+			// associated with chromosome A is in a haplosome associated with chromosome B.  For now I'm going to
+			// say it is an error, and that can be relaxed later if it becomes clear that it is too strict.  It
+			// does seem like it is a question that indicates a fundamental logic flaw, like asking whether a
+			// mutation that belongs to species A is in a haplosome that belongs to species B.
 			if (mut->chromosome_index_ != element->chromosome_index_)
-				return gStaticEidosValue_LogicalF;
+			{
+				//return gStaticEidosValue_LogicalF;
+				EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all mutations are associated with the same chromosome as the target haplosomes.  (If this requirement makes life difficult, it could be relaxed if necessary; but it seems useful for catching logic errors.  Note that the containsMutations() method of Individual does not have this restriction.)" << EidosTerminate();
+			}
 			
-			bool contained = element->contains_mutation(mut);	// FIXME MULTICHROM switch this call to take a Mutation*?
+			bool contained = element->contains_mutation(mut);
 			
 			return (contained ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		}
@@ -775,10 +783,16 @@ EidosValue_SP Haplosome::ExecuteMethod_Accelerated_containsMutations(EidosObject
 				{
 					Mutation *mut = (Mutation *)mutations_data[value_index];
 					
+					// BCH 11/24/2024: I've gone back and forth on whether it should be an error to ask whether a mutation
+					// associated with chromosome A is in a haplosome associated with chromosome B.  For now I'm going to
+					// say it is an error, and that can be relaxed later if it becomes clear that it is too strict.  It
+					// does seem like it is a question that indicates a fundamental logic flaw, like asking whether a
+					// mutation that belongs to species A is in a haplosome that belongs to species B.
 					if (mut->chromosome_index_ != element->chromosome_index_)
 					{
-						logical_result->set_logical_no_check(false, result_index++);
-						continue;
+						//logical_result->set_logical_no_check(false, result_index++);
+						//continue;
+						EIDOS_TERMINATION << "ERROR (Haplosome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all mutations are associated with the same chromosome as the target haplosomes.  (If this requirement makes life difficult, it could be relaxed if necessary; but it seems useful for catching logic errors.  Note that the containsMutations() method of Individual does not have this restriction.)" << EidosTerminate();
 					}
 					
 					bool contained = element->contains_mutation(mut);

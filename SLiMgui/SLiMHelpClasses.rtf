@@ -1909,17 +1909,22 @@ If
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(logical)containsMutations(object<Mutation>\'a0mutations)
 \f5 \
-\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns a 
+\f4\fs20 \cf2 Returns a 
 \f3\fs18 logical
 \f4\fs20  vector indicating whether each of the mutations in 
 \f3\fs18 mutations
-\f4\fs20  is present in the haplosome; each element in the returned vector indicates whether the corresponding mutation is present (
+\f4\fs20  is present in the target haplosome; each element in the returned vector indicates whether the corresponding mutation is present (
 \f3\fs18 T
 \f4\fs20 ) or absent (
 \f3\fs18 F
 \f4\fs20 ).  This method is provided for speed; it is much faster than the corresponding Eidos code.\
+Note that the mutations must be associated with the same chromosome as the target haplosome, otherwise an error is raised.  The 
+\f3\fs18 containsMutations()
+\f4\fs20  method of 
+\f3\fs18 Individual
+\f4\fs20  does not have this restriction, since it checks for mutations across all of the haplosomes of the target individual.  This restriction is intended to find logic errors, since it seems to make little sense to check for a mutation in a haplosome for the wrong chromosome; but if this restriction proves inconvenient in common situations, it could be relaxed.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -3402,11 +3407,11 @@ See the description of the
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns a 
+\f4\fs20 \cf2 Returns a 
 \f3\fs18 logical
 \f4\fs20  vector indicating whether each of the mutations in 
 \f3\fs18 mutations
-\f4\fs20  is present in the individual (in either of its haplosomes); each element in the returned vector indicates whether the corresponding mutation is present (
+\f4\fs20  is present in the individual (in any of its haplosomes); each element in the returned vector indicates whether the corresponding mutation is present (
 \f3\fs18 T
 \f4\fs20 ) or absent (
 \f3\fs18 F

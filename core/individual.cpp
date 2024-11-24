@@ -737,12 +737,11 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			int haplosome_count_per_individual = species.HaplosomeCountPerIndividual();
 			int total_mutation_count = 0;
 			
+			subpopulation_->population_.CheckForDeferralInHaplosomesVector(haplosomes_, haplosome_count_per_individual, "Individual::GetProperty");
+			
 			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 			{
 				Haplosome *haplosome = haplosomes_[haplosome_index];
-				
-				if (haplosome->IsDeferred())
-					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
 				
 				if (!haplosome->IsNull())
 					total_mutation_count += haplosome->mutation_count();
@@ -1911,8 +1910,9 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (haplosomes_[0]->IsDeferred() || haplosomes_[1]->IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
+	int haplosome_count_per_individual = subpopulation_->species_.HaplosomeCountPerIndividual();
+
+	subpopulation_->population_.CheckForDeferralInHaplosomesVector(haplosomes_, haplosome_count_per_individual, "Individual::ExecuteMethod_containsMutations");
 	
 	EidosValue *mutations_value = p_arguments[0].get();
 	int mutations_count = mutations_value->Count();
@@ -2230,8 +2230,9 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (haplosomes_[0]->IsDeferred() || haplosomes_[1]->IsDeferred())
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): the mutations of deferred haplosomes cannot be accessed." << EidosTerminate();
+	int haplosome_count_per_individual = subpopulation_->species_.HaplosomeCountPerIndividual();
+
+	subpopulation_->population_.CheckForDeferralInHaplosomesVector(haplosomes_, haplosome_count_per_individual, "Individual::ExecuteMethod_uniqueMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
 	
@@ -2243,7 +2244,6 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
-	int haplosome_count_per_individual = species.HaplosomeCountPerIndividual();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if (haplosome_count_per_individual == 2)
