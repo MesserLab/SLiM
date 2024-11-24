@@ -2112,14 +2112,29 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	
 	Community &community = species->community_;
 	
-	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
-	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
-	// chromosome_index_ index directly, which would assume the same species...?
-	Chromosome *chromosome = &species->TheChromosome();
-	
-	// use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
+	// All haplosomes must belong to the same chromosome, and all mutations being added must belong to that chromosome too.
+	// It's important that a mismatch result in an error; attempts to add mutations to chromosomes inconsistently should be flagged.
+	int mutations_count = mutations_value->Count();
+	Mutation * const *mutations = (Mutation * const *)mutations_value->ObjectData();
 	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
 	Haplosome *haplosome_0 = targets[0];
+	slim_chromosome_index_t chromosome_index = haplosome_0->chromosome_index_;
+	
+	if (species->Chromosomes().size() > 1)
+	{
+		// We have to check for consistency if there's more than one chromosome
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			if (targets[haplosome_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): " << "addMutations() requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
+		
+		for (int value_index = 0; value_index < mutations_count; ++value_index)
+			if (mutations[value_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): " << "addMutations() requires that all mutations to be added are associated with the same chromosome as the target haplosomes." << EidosTerminate();
+	}
+	
+	Chromosome *chromosome = species->Chromosomes()[chromosome_index];
+	
+	// use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
 	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
 	// check that the individuals that mutations are being added to have age == 0, in nonWF models, to prevent tree sequence inconsistencies (see issue #102)
@@ -2169,14 +2184,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
-				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
-				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
 					Haplosome *target_haplosome = targets[haplosome_index];
 					
-					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+					if (target_haplosome->individual_ != focal_modification_child)
 						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
@@ -2208,9 +2220,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_
 	}
 	
 	// Construct a vector of mutations to add that is sorted by position
-	int mutations_count = mutations_value->Count();
 	std::vector<Mutation *> mutations_to_add;
-	Mutation * const *mutations = (Mutation * const *)mutations_value->ObjectData();
 	
 	for (int value_index = 0; value_index < mutations_count; ++value_index)
 	{
@@ -2408,14 +2418,23 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	Community &community = species->community_;
 	
-	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
-	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
-	// chromosome_index_ index directly, which would assume the same species...?
-	Chromosome *chromosome = &species->TheChromosome();
-	
-	// get the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
+	// All haplosomes must belong to the same chromosome.  It's important that a mismatch result in an error;
+	// attempts to add mutations to chromosomes inconsistently should be flagged.
 	Haplosome * const *targets = (Haplosome * const *)p_target->ObjectData();
 	Haplosome *haplosome_0 = targets[0];
+	slim_chromosome_index_t chromosome_index = haplosome_0->chromosome_index_;
+	
+	if (species->Chromosomes().size() > 1)
+	{
+		// We have to check for consistency if there's more than one chromosome
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			if (targets[haplosome_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
+	}
+	
+	Chromosome *chromosome = species->Chromosomes()[chromosome_index];
+	
+	// get the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
 	int mutrun_count = haplosome_0->mutrun_count_;
 	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
@@ -2470,14 +2489,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
-				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
-				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
 					Haplosome *target_haplosome = targets[haplosome_index];
 					
-					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+					if (target_haplosome->individual_ != focal_modification_child)
 						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
@@ -2515,7 +2531,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 	
 	// before proceeding, let's check that all positions supplied are valid, so we don't need to worry about it below
 	// would be better not to call IntAtIndex_NOCAST() multiple times for the same position, but that will not be the majority of our time anyway...
-	slim_position_t last_position = species->TheChromosome().last_position_;
+	slim_position_t last_position = chromosome->last_position_;
 	
 	for (int position_index = 0; position_index < position_count; ++position_index)
 	{
@@ -3857,10 +3873,31 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
-	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
-	// chromosome_index_ index directly, which would assume the same species...?
-	Chromosome *chromosome = &species->TheChromosome();
+	// All haplosomes must belong to the same chromosome, and all mutations being added must belong to that chromosome too.
+	// It's important that a mismatch result in an error; attempts to add mutations to chromosomes inconsistently should be flagged.
+	int mutations_count = mutations_value->Count();
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
+	Haplosome *haplosome_0 = targets_data[0];
+	slim_chromosome_index_t chromosome_index = haplosome_0->chromosome_index_;
+	
+	if (species->Chromosomes().size() > 1)
+	{
+		// We have to check for consistency if there's more than one chromosome
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
+		
+		if (mutations_value->Type() != EidosValueType::kValueNULL)
+		{
+			Mutation * const *mutations = (Mutation * const *)mutations_value->ObjectData();
+			
+			for (int value_index = 0; value_index < mutations_count; ++value_index)
+				if (mutations[value_index]->chromosome_index_ != chromosome_index)
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all mutations to be removed are associated with the same chromosome as the target haplosomes." << EidosTerminate();
+		}
+	}
+	
+	Chromosome *chromosome = species->Chromosomes()[chromosome_index];
 	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
 	
@@ -3872,8 +3909,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	bool any_nonneutral_removed = false;
 	
 	// Use the 0th haplosome in the target to find out what the mutation run length is, so we can calculate run indices
-	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
-	Haplosome *haplosome_0 = targets_data[0];
 	slim_position_t mutrun_length = haplosome_0->mutrun_length_;
 	
 	// TIMING RESTRICTION
@@ -3889,14 +3924,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 			
 			if (focal_modification_child)
 			{
-				Haplosome *focal_haplosome_1 = focal_modification_child->haplosomes_[0];
-				Haplosome *focal_haplosome_2 = focal_modification_child->haplosomes_[1];
-				
 				for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 				{
 					Haplosome *target_haplosome = targets_data[haplosome_index];
 					
-					if ((target_haplosome != focal_haplosome_1) && (target_haplosome != focal_haplosome_2))
+					if (target_haplosome->individual_ != focal_modification_child)
 						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any haplosomes except those of the focal child being generated." << EidosTerminate();
 				}
 			}
@@ -4002,8 +4034,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 		// the recording of new derived states can probably be removed here, since no genetic state will have changed.
 		if (create_substitutions)
 			pop.SetMutationRegistryNeedsCheck();
-		
-		int mutations_count = mutations_value->Count();
 		
 		// SPECIES CONSISTENCY CHECK
 		if (mutations_count)

@@ -1602,22 +1602,25 @@ haplosomePedigreeID => (integer$)\
 
 \f3\i0\fs18 \cf0 +\'a0(void)addMutations(object<Mutation>\'a0mutations)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add the existing mutations in 
+\f4\fs20 \cf2 Add the existing mutations in 
 \f3\fs18 mutations
-\f4\fs20  to the haplosome, if they are not already present (if they are already present, they will be ignored), and if the addition is not prevented by the mutation stacking policy (see the 
+\f4\fs20  to the target haplosomes, if they are not already present (if they are already present, they will be ignored), and if the addition is not prevented by the mutation stacking policy (see the 
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
 \f3\fs18 MutationType
-\f4\fs20 ).\
+\f4\fs20 , section 25.11.1).  All target haplosomes and all mutations in 
+\f3\fs18 mutations
+\f4\fs20  must be associated with the same 
+\f3\fs18 Chromosome
+\f4\fs20  object; attempting to add a mutation to a haplosome associated with a different chromosome will raise an error.\
 Calling this will normally affect the fitness values calculated toward the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
+Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
 \f3\fs18 0
@@ -1629,7 +1632,7 @@ Calling this will normally affect the fitness values calculated toward the end o
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add new mutations to the target haplosome(s) with the specified 
+\f4\fs20 \cf2 Add new mutations to the target haplosomes with the specified 
 \f3\fs18 mutationType
 \f4\fs20  (specified by the 
 \f3\fs18 MutationType
@@ -1637,7 +1640,11 @@ Calling this will normally affect the fitness values calculated toward the end o
 \f3\fs18 integer
 \f4\fs20  identifier), 
 \f3\fs18 position
-\f4\fs20 , and 
+\f4\fs20 , 
+\f3\fs18 originTick
+\f4\fs20  (which may be 
+\f3\fs18 NULL
+\f4\fs20 , the default, to specify the current tick; otherwise, beginning in SLiM 3.5, it must be equal to the current tick anyway, as other uses of this property have been deprecated), and 
 \f3\fs18 originSubpop
 \f4\fs20  (specified by the 
 \f3\fs18 Subpopulation
@@ -1645,15 +1652,17 @@ Calling this will normally affect the fitness values calculated toward the end o
 \f3\fs18 integer
 \f4\fs20  identifier, or by 
 \f3\fs18 NULL
-\f4\fs20 , the default, to specify the subpopulation to which the first target haplosome belongs).  If 
+\f4\fs20 , the default, to specify the subpopulation to which the first target genome belongs).  If 
 \f3\fs18 originSubpop
 \f4\fs20  is supplied as an 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
+\f4\fs20  to \'93tag\'94 the mutations that you create (see section 25.10.1).  The selection coefficients of the mutations are drawn from their mutation types; 
 \f3\fs18 addNewMutation()
-\f4\fs20  may be used instead if you wish to specify selection coefficients.\
+\f4\fs20  may be used instead if you wish to specify selection coefficients.  All of the target haplosomes must be associated with the same 
+\f3\fs18 Chromosome
+\f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
@@ -1732,7 +1741,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add new mutations to the target haplosome(s) with the specified 
+\f4\fs20 \cf2 Add new mutations to the target haplosomes with the specified 
 \f3\fs18 mutationType
 \f4\fs20  (specified by the 
 \f3\fs18 MutationType
@@ -1742,7 +1751,11 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 selectionCoeff
 \f4\fs20 , 
 \f3\fs18 position
-\f4\fs20 , and 
+\f4\fs20 , 
+\f3\fs18 originTick
+\f4\fs20  (which may be 
+\f3\fs18 NULL
+\f4\fs20 , the default, to specify the current tick; otherwise, beginning in SLiM 3.5, it must be equal to the current tick anyway, as other uses of this property have been deprecated), and 
 \f3\fs18 originSubpop
 \f4\fs20  (specified by the 
 \f3\fs18 Subpopulation
@@ -1750,15 +1763,17 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 integer
 \f4\fs20  identifier, or by 
 \f3\fs18 NULL
-\f4\fs20 , the default, to specify the subpopulation to which the first target haplosome belongs).  If 
+\f4\fs20 , the default, to specify the subpopulation to which the first target genome belongs).  If 
 \f3\fs18 originSubpop
 \f4\fs20  is supplied as an 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create.  The 
+\f4\fs20  to \'93tag\'94 the mutations that you create (see section 25.10.1).  The 
 \f3\fs18 addNewDrawnMutation()
-\f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.\
+\f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
+\f3\fs18 Chromosome
+\f4\fs20  object, since each new mutation is added to all of the target haplosomes.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In non-nucleotide-based models, 
@@ -2424,9 +2439,9 @@ The target haplosomes correspond, in order, to the haploid or diploid calls prov
 \f3\fs18 \cf2 +\'a0(void)removeMutations([No<Mutation>\'a0mutations\'a0=\'a0NULL], [logical$\'a0substitute\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Remove the mutations in 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Remove the mutations in 
 \f3\fs18 mutations
-\f4\fs20  from the target haplosome(s), if they are present (if they are not present, they will be ignored).  If 
+\f4\fs20  from the target haplosomes, if they are present (if they are not present, they will be ignored).  If 
 \f3\fs18 NULL
 \f4\fs20  is passed for 
 \f3\fs18 mutations
@@ -2440,7 +2455,13 @@ The target haplosomes correspond, in order, to the haploid or diploid calls prov
 \f3\fs18 Species
 \f4\fs20  property 
 \f3\fs18 mutations
-\f4\fs20 ), until the next tick.\
+\f4\fs20 ), until the next tick.  All target haplosomes and all mutations in 
+\f3\fs18 mutations
+\f4\fs20  must be associated with the same 
+\f3\fs18 Chromosome
+\f4\fs20  object; attempting to remove a mutation from a haplosome associated with a different chromosome will raise an error.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Removing mutations will normally affect the fitness values calculated at the end of the current tick; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
