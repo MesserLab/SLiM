@@ -2242,21 +2242,56 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	// This code is adapted from uniqueMutations and follows its logic closely
 	
 	// We try to reserve a vector large enough to hold all the mutations; probably usually overkill, but it does little harm
+	// Note that since we do not *always* reserve, we have to use push_object_element() below to check for space
 	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
 	EidosValue_SP result_SP = EidosValue_SP(vec);
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	bool only_haploid_haplosomes = true;
+	size_t vec_reserve_size = 0;
 	
-	if (haplosome_count_per_individual == 2)
+	for (Chromosome *chromosome : species.Chromosomes())
 	{
-		int haplosome1_size = (haplosomes_[0]->IsNull() ? 0 : haplosomes_[0]->mutation_count());
-		int haplosome2_size = (haplosomes_[1]->IsNull() ? 0 : haplosomes_[1]->mutation_count());
+		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome->Index()];
+		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome->Index()];
 		
-		if ((haplosome1_size == 0) && (haplosome2_size == 0))
-			return result_SP;
-		
-		if (haplosome1_size + haplosome2_size < 100)			// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
-			vec->reserve(haplosome1_size + haplosome2_size);	// since we do not always reserve, we have to use push_object_element() below to check
+		if (first_haplosome_index == last_haplosome_index)
+		{
+			// haploid chromosomes contain unique mutations by definition; add them all
+			Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
+			
+			if (!haplosome1->IsNull())
+				vec_reserve_size += haplosome1->mutation_count();
+		}
+		else
+		{
+			// diploid chromsomes where one is empty/null also contain unique mutations by definition
+			Haplosome *haplosome1 = haplosomes_[first_haplosome_index];
+			Haplosome *haplosome2 = haplosomes_[last_haplosome_index];
+			int haplosome1_size = (haplosome1->IsNull() ? 0 : haplosome1->mutation_count());
+			int haplosome2_size = (haplosome2->IsNull() ? 0 : haplosome2->mutation_count());
+			
+			if (haplosome1_size == 0)
+			{
+				vec_reserve_size += haplosome2_size;
+			}
+			else if (haplosome2_size == 0)
+			{
+				vec_reserve_size += haplosome1_size;
+			}
+			else
+			{
+				vec_reserve_size += (haplosome1_size + haplosome2_size);
+				only_haploid_haplosomes = false;
+			}
+		}
 	}
+	
+	if (vec_reserve_size == 0)
+		return result_SP;
+	
+	if (only_haploid_haplosomes || (vec_reserve_size < 100))	// an arbitrary limit, but we don't want to make something *too* unnecessarily big...
+		vec->reserve(vec_reserve_size);	
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	for (Chromosome *chromosome : species.Chromosomes())
 	{
