@@ -8490,11 +8490,10 @@ void Population::RemoveAllFixedMutations(void)
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::RemoveAllFixedMutations): (internal error) called with child generation active!" << EidosTerminate();
 	
-	// We use stack-local MutationRun objects so they get disposed of properly via RAII; non-optimal
-	// from a performance perspective, since they will do reallocs to reach their needed size, but
+	// We use a stack-local MutationRun object so it gets disposed of properly via RAII; non-optimal
+	// from a performance perspective, since it will do reallocs to reach its needed size, but
 	// since this method is only called once per cycle it shouldn't matter.
 	MutationRun removed_mutation_accumulator;
-	MutationRun fixed_mutation_accumulator;
 	
 #ifdef SLIMGUI
 	int mutation_type_count = static_cast<int>(species_.mutation_types_.size());
@@ -8587,8 +8586,8 @@ void Population::RemoveAllFixedMutations(void)
 					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_tick_slots_);
 #endif
 					
-					// add the fixed mutation to a vector, to be converted to a Substitution object below
-					fixed_mutation_accumulator.insert_sorted_mutation(mutation_index);
+					// add the fixed mutation to a per-chromosome vector, to be converted to a Substitution object below
+					chromosomes[mutation->chromosome_index_]->fixed_mutation_accumulator_.push_back(mutation_index);
 					
 					mutation->state_ = MutationState::kFixedAndSubstituted;			// marked in anticipation of removal below
 					remove_mutation = true;
@@ -8664,23 +8663,33 @@ void Population::RemoveAllFixedMutations(void)
 	}
 #endif
 	
-	// replace fixed mutations with Substitution objects
-	if (fixed_mutation_accumulator.size() > 0)
+	// replace fixed mutations with Substitution objects, one chromosome at a time
+	for (Chromosome *chromosome : chromosomes)
 	{
-		//std::cout << "Removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
+		std::vector<MutationIndex> &fixed_mutation_accumulator = chromosome->fixed_mutation_accumulator_;
+		int fixed_mutation_accumulator_size = (int)fixed_mutation_accumulator.size();
+		
+		if (fixed_mutation_accumulator_size == 0)
+			continue;
+		
+		slim_chromosome_index_t chromosome_index = chromosome->Index();
+		
+		//std::cout << "Chromosome " << chromosome_index << ": removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
 		
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
-		int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
 		int64_t operation_id = MutationRun::GetNextOperationID();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
 			Subpopulation *subpop = subpop_pair.second;
+			
 			for (Individual *ind : subpop->parent_individuals_)
 			{
 				Haplosome **haplosomes = ind->haplosomes_;
 				
-				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
 					Haplosome *haplosome = haplosomes[haplosome_index];
 					
@@ -8690,27 +8699,16 @@ void Population::RemoveAllFixedMutations(void)
 						// for removal only within the runs that contain a mutation to be removed.  If there is
 						// more than one mutation to be removed within the same run, the second time around the
 						// runs will no-op the scan using operation_id.  The whole rest of the haplosomes can be skipped.
-						slim_chromosome_index_t haplosome_chr_index = haplosome->chromosome_index_;
 						slim_position_t mutrun_length = haplosome->mutrun_length_;
 						
-						for (int mut_index = 0; mut_index < fixed_mutation_accumulator.size(); mut_index++)
+						for (int mut_index = 0; mut_index < fixed_mutation_accumulator_size; mut_index++)
 						{
 							MutationIndex mut_to_remove = fixed_mutation_accumulator[mut_index];
 							Mutation *mutation = (mut_block_ptr + mut_to_remove);
-							
-							// We only try to remove a fixed mutation if it belongs to the haplosome's chromosome.
-							// Otherwise, it certainly isn't present, and the calculated mutrun_index might be out of range.
-							// FIXME MULTICHROM note that if there are many fixed mutations belonging to other chromosomes, we will
-							// waste a lot of time spinning here; would be better to organize the fixed mutations by chromosome,
-							// with a separate vector for each chromosome, and then handle each chromosome separately here...
-							if (mutation->chromosome_index_ == haplosome_chr_index)
-							{
-								slim_position_t mut_position = mutation->position_;
-								slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
+							slim_position_t mut_position = mutation->position_;
+							slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 								
-								// Note that total_haplosome_count_ is not needed by RemoveAllFixedMutations(); refcounts were set to -1 above.
-								haplosome->RemoveFixedMutations(operation_id, mutrun_index);
-							}
+							haplosome->RemoveFixedMutations(operation_id, mutrun_index);
 						}
 					}
 				}
@@ -8724,7 +8722,7 @@ void Population::RemoveAllFixedMutations(void)
 		{
 			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
-			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick);
@@ -8736,26 +8734,26 @@ void Population::RemoveAllFixedMutations(void)
 		else
 		{
 			// When not doing tree recording, we just create substitutions and keep them in a vector
-			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
 				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick));
 		}
 		
 		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
 		if (species_.IsNucleotideBased())
 		{
-			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
+			NucleotideArray *ancestral_seq = chromosome->ancestral_seq_buffer_;
+			
+			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				
 				if (mut_to_remove->mutation_type_ptr_->nucleotide_based_)
-				{
-					Chromosome *mut_chromosome = species_.Chromosomes()[mut_to_remove->chromosome_index_];
-					NucleotideArray *ancestral_seq = mut_chromosome->ancestral_seq_buffer_;
-					
 					ancestral_seq->SetNucleotideAtIndex(mut_to_remove->position_, mut_to_remove->nucleotide_);
-				}
 			}
 		}
+		
+		// Clear the accumulator for reuse next tick
+		fixed_mutation_accumulator.clear();
 	}
 	
 	// now we can delete (or zombify) removed mutation objects

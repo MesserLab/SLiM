@@ -261,7 +261,11 @@ public:
 	std::vector<double> hotspot_multipliers_M_;
 	std::vector<double> hotspot_multipliers_F_;
 	
-	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
+	// private scratch space for the use of Population::RemoveAllFixedMutations()
+	std::vector<MutationIndex> fixed_mutation_accumulator_;
+	
+	// a user-defined tag value
+	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
