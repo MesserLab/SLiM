@@ -172,6 +172,7 @@ private:
 	
 	eidos_profile_t x_current_clock_ = 0;		// the clock for timing current being done
 	bool x_clock_running_ = false;
+	bool x_within_measurement_period_ = false;
 	
 	eidos_profile_t x_total_gen_clocks_ = 0;	// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
 												// look at StartMutationRunExperimentClock() usage to see which blocks are measured
@@ -402,11 +403,13 @@ public:
 		if (x_experiments_enabled_)
 		{
 #if DEBUG
-				if (x_clock_running_)
-					std::cerr << "WARNING: mutation run experiment clock was started when already running!";
+			if (x_clock_running_)
+				std::cerr << "WARNING: mutation run experiment clock was started when already running!";
+			if (!x_within_measurement_period_)
+				std::cerr << "WARNING: mutation run experiment clock started outside the measurement period!";
 #endif
-				x_clock_running_ = true;
-				x_current_clock_ = Eidos_BenchmarkTime();
+			x_clock_running_ = true;
+			x_current_clock_ = Eidos_BenchmarkTime();
 		}
 	}
 	
@@ -419,6 +422,8 @@ public:
 #if DEBUG
 			if (!x_clock_running_)
 				std::cerr << "WARNING: mutation run experiment clock was stopped when not running!";
+			if (!x_within_measurement_period_)
+				std::cerr << "WARNING: mutation run experiment clock stopped outside the measurement period!";
 #endif
 			
 #if MUTRUN_EXPERIMENT_TIMING_OUTPUT

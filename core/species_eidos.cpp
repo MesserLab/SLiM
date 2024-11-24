@@ -2444,7 +2444,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
-		population_.TallyMutationReferencesAcrossPopulation();
+		population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 	}
 	else
 	{
@@ -2471,7 +2471,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.
 		// Since we uniqued the subpops_to_tally vector above, we can check for equality by just comparing sizes.
 		if (subpops_to_tally.size() == population_.subpops_.size())
-			population_.TallyMutationReferencesAcrossPopulation();
+			population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 		else
 			population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally);
 	}

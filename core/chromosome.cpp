@@ -1864,6 +1864,9 @@ void Chromosome::ZeroMutationRunExperimentClock(void)
 {
 	if (x_experiments_enabled_)
 	{
+		if (x_within_measurement_period_)
+			std::cerr << "WARNING: ZeroMutationRunExperimentClock() called when the measurement period is already begun!" << std::endl;
+		
 		if (x_total_gen_clocks_ != 0)
 		{
 			// Clocks should only get logged in the interval within which they are used; if there are leftover counts
@@ -1874,12 +1877,14 @@ void Chromosome::ZeroMutationRunExperimentClock(void)
 			{
 				THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome::PrepareForCycle(): usage of statics");
 				
-				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!";
+				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!" << std::endl;
 				beenHere = true;
 			}
 			
 			x_total_gen_clocks_ = 0;
 		}
+		
+		x_within_measurement_period_ = true;
 		
 #if MUTRUN_EXPERIMENT_TIMING_OUTPUT
 		std::cout << "tick " << community_.Tick() << ", chromosome " << id_ << ": starting timing" << std::endl;
@@ -1891,12 +1896,20 @@ void Chromosome::FinishMutationRunExperimentTiming(void)
 {
 	if (x_experiments_enabled_)
 	{
+		if (!x_within_measurement_period_)
+			std::cerr << "WARNING: FinishMutationRunExperimentTiming() called when the measurement period has not begun!" << std::endl;
+		
 #if MUTRUN_EXPERIMENT_TIMING_OUTPUT
 		std::cout << "tick " << community_.Tick() << ", chromosome " << id_ << ": ending timing with total count == " << x_total_gen_clocks_ << " (" << Eidos_ElapsedProfileTime(x_total_gen_clocks_) << " seconds)" << std::endl;
 #endif
 		
-		MaintainMutationRunExperiments(Eidos_ElapsedProfileTime(x_total_gen_clocks_));
+		// We only run mutrun experiments in ticks when our species in active; when inactive, any
+		// clocks accumulated will simply be discarded unused, since they are not representative
+		if (species_.Active())
+			MaintainMutationRunExperiments(Eidos_ElapsedProfileTime(x_total_gen_clocks_));
+		
 		x_total_gen_clocks_ = 0;
+		x_within_measurement_period_ = false;
 	}
 }
 

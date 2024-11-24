@@ -2697,8 +2697,7 @@ bool Community::_RunOneTickWF(void)
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		// FIXME wait, why should this overhead appear in the fitness recalculation step??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTimings();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2731,7 +2730,7 @@ bool Community::_RunOneTickWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation();
+				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 #endif
 		
 		for (Species *species : all_species_)
@@ -3095,8 +3094,7 @@ bool Community::_RunOneTickNonWF(void)
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		// FIXME wait, why should this overhead appear in late() events??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTimings();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -3131,7 +3129,7 @@ bool Community::_RunOneTickNonWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation();
+				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 #endif
 		
 		for (Species *species : all_species_)

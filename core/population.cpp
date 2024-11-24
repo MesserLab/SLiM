@@ -7191,7 +7191,7 @@ void Population::MaintainMutationRegistry(void)
 		InvalidateMutationReferencesCache();	// force a retally
 		
 		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_MUT_TALLY);
-		TallyMutationReferencesAcrossPopulation();
+		TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ true);
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_MUT_TALLY);
 	}
 	
@@ -7767,7 +7767,7 @@ slim_refcount_t Population::_CountNonNullHaplosomesForChromosome(Chromosome *p_c
 
 // count the total number of times that each Mutation in the registry is referenced by the whole population
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
-void Population::TallyMutationReferencesAcrossPopulation()
+void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun_experiments)
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossPopulation): (internal error) called with child generation active!" << EidosTerminate();
@@ -7823,10 +7823,10 @@ void Population::TallyMutationReferencesAcrossPopulation()
 	if (can_tally_using_mutruns)
 	{
 		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
-		TallyMutationRunReferencesForPopulation(/* p_clock_for_mutrun_experiments */ true);
+		TallyMutationRunReferencesForPopulation(p_clock_for_mutrun_experiments);
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
-		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ true);
+		_TallyMutationReferences_FAST_FromMutationRunUsage(p_clock_for_mutrun_experiments);
 		
 #if DEBUG
 		{

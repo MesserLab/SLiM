@@ -4656,7 +4656,7 @@
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
 			population.InvalidateMutationReferencesCache();	// force a retally
-			population.TallyMutationReferencesAcrossPopulation();
+			population.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 			
 			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
 			// selection changes should not happen often, so we can just always update, I think.

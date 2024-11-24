@@ -282,7 +282,7 @@ public:
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
 	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tallies_valid_ = false; }
 
-	void TallyMutationReferencesAcrossPopulation(void);
+	void TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun_experiments);
 	void TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally);
 	void TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	
