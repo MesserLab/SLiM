@@ -513,8 +513,6 @@ void _RunBasicTests(void)
 	// BCH 9/20/2024: removing some tests here because it is no longer legal to declare a no-genetics model to be a model of the X or Y chromosome; that makes no sense
 	SLiMAssertScriptRaise("initialize() {initializeTreeSeq();} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot use tree-sequence recording", __LINE__, false);
 	SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(nucleotideBased=T);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot be nucleotide-based", __LINE__, false);
-	// FIXME MULTICHROM this test should be revived
-	//SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(mutationRuns=5);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot have a specified mutation run count", __LINE__, false);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setSelfingRate(0.5);} 5 late() {stop();}", __LINE__);
