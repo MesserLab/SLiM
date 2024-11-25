@@ -8758,7 +8758,7 @@ Register a block of Eidos source code, represented as the
 \f4\fs20  events, to ensure that species are either active or inactive throughout a given tick.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Mutation>)subsetMutations([No<Mutation>$\'a0exclude\'a0=\'a0NULL], [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Ni$\'a0position\'a0=\'a0NULL], [Nis$\'a0nucleotide\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0id\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(object<Mutation>)subsetMutations([No<Mutation>$\'a0exclude\'a0=\'a0NULL], [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Ni$\'a0position\'a0=\'a0NULL], [Nis$\'a0nucleotide\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0id\'a0=\'a0NULL], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector of mutations subset from the list of all active mutations in the species (as would be provided by the 
@@ -8809,7 +8809,15 @@ Register a block of Eidos source code, represented as the
 \f3\fs18 NULL
 \f4\fs20 , may specify a required value for the 
 \f3\fs18 id
-\f4\fs20  property of the mutations to be returned.\
+\f4\fs20  property of the mutations to be returned.  Parameter chromosome, if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a chromosome with which the mutations returned must be associated (as either an 
+\f3\fs18 integer
+\f4\fs20  id, a 
+\f3\fs18 string
+\f4\fs20  symbol, or a 
+\f3\fs18 Chromosome
+\f4\fs20  object).\
 This method is shorthand for getting the 
 \f3\fs18 mutations
 \f4\fs20  property of the subpopulation, and then using operator 

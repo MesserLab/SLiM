@@ -3363,7 +3363,7 @@ EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, c
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
+//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL], [Niso<Chromosome>$ chromosome])
 //
 EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3374,6 +3374,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	EidosValue *nucleotide_value = p_arguments[3].get();
 	EidosValue *tag_value = p_arguments[4].get();
 	EidosValue *id_value = p_arguments[5].get();
+	EidosValue *chromosome_value = p_arguments[6].get();
 	
 	// parse our arguments
 	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex_NOCAST(0, nullptr);
@@ -3384,10 +3385,28 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
 	slim_mutationid_t id = (has_id ? id_value->IntAtIndex_NOCAST(0, nullptr) : 0);
+	bool has_chromosome = !(chromosome_value->Type() == EidosValueType::kValueNULL);
+	Chromosome *chromosome = nullptr;
+	slim_chromosome_index_t chromosome_index = 0;
+	
+	if (has_chromosome)
+	{
+		std::vector<slim_chromosome_index_t> chromosome_indices;
+		
+		GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+		
+		if (chromosome_indices.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): (internal error) chromosome lookup failed." << EidosTerminate();
+		
+		chromosome = chromosomes_[chromosome_indices[0]];
+		chromosome_index = chromosome->index_;
+	}
 	
 	// SPECIES CONSISTENCY CHECK
 	if (exclude && (&exclude->mutation_type_ptr_->species_ != this))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that exclude belong to the target species." << EidosTerminate();
+	if (chromosome && (&chromosome->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that chromosome belong to the target species." << EidosTerminate();
 	
 	if (nucleotide_value->Type() == EidosValueType::kValueInt)
 	{
@@ -3418,7 +3437,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	Mutation *first_match = nullptr;
 	EidosValue_Object *vec = nullptr;
 	
-	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag)
+	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_chromosome)
 	{
 		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
 		for (registry_index = 0; registry_index < registry_size; ++registry_index)
@@ -3426,6 +3445,34 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
 			if (mut->mutation_id_ != id)
+				continue;
+			
+			match_count++;
+			
+			if (match_count == 1)
+			{
+				first_match = mut;
+			}
+			else if (match_count == 2)
+			{
+				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+				vec->push_object_element_RR(first_match);
+				vec->push_object_element_RR(mut);
+			}
+			else
+			{
+				vec->push_object_element_RR(mut);
+			}
+		}
+	}
+	else if (has_chromosome && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_id)
+	{
+		// chromosome-only search; nice for this to be fast since people will use it to look up all the mutations for a chromosome
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + registry[registry_index];
+			
+			if (mut->chromosome_index_ != chromosome_index)
 				continue;
 			
 			match_count++;
@@ -3456,6 +3503,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
 			if ((position != -1) && (mut->position_ != position))						continue;
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
 			
 			match_count++;
 			
@@ -3488,6 +3536,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
 			if (has_tag && (mut->tag_value_ != tag))									continue;
 			if (has_id && (mut->mutation_id_ != id))									continue;
+			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
 			
 			match_count++;
 			
@@ -3750,7 +3799,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
