@@ -267,6 +267,18 @@ public:
 	// a user-defined tag value
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
+	// PROFILING : Chromosome keeps track of some additional profile information that is per-chromosome
+#if (SLIMPROFILING == 1)
+#if SLIM_USE_NONNEUTRAL_CACHES
+	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
+	int64_t profile_mutation_total_usage_ = 0;										// how many (non-unique) mutations were used by mutation runs, summed across cycles
+	int64_t profile_nonneutral_mutation_total_ = 0;									// of profile_mutation_total_usage_, how many were deemed to be nonneutral
+	int64_t profile_mutrun_total_usage_ = 0;										// how many (non-unique) mutruns were used by haplosomes, summed across cycles
+	int64_t profile_unique_mutrun_total_ = 0;										// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
+	int64_t profile_mutrun_nonneutral_recache_total_ = 0;							// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
+#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// (SLIMPROFILING == 1)
+	
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor

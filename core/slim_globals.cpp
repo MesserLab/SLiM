@@ -2340,38 +2340,6 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		}
 		
 		{
-			int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-			int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
-			
-			for (int power = 0; power < 20; ++power)
-				power_tallies[power] = 0;
-			
-			for (int32_t count : focal_species->profile_mutcount_history_)
-			{
-				int power = (int)round(log2(count));
-				
-				power_tallies[power]++;
-			}
-			
-			fout << "<p>";
-			bool first_line = true;
-			
-			for (int power = 0; power < 20; ++power)
-			{
-				if (power_tallies[power] > 0)
-				{
-					if (!first_line)
-						fout << "<BR>\n";
-					snprintf(buf, 256, "%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0);
-					fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : " << ((int)(round(pow(2.0, power)))) << " mutation runs per haplosome";
-					first_line = false;
-				}
-			}
-			
-			fout << "</p>\n";
-		}
-		
-		{
 			int64_t regime_tallies[3];
 			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 			
@@ -2399,18 +2367,58 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 			fout << "</p>\n";
 		}
 		
-		fout << "<p><tt>" << focal_species->profile_mutation_total_usage_ << "</tt> mutations referenced, summed across all ticks<BR>\n";
-		fout << "<tt>" << focal_species->profile_nonneutral_mutation_total_ << "</tt> mutations considered potentially nonneutral<BR>\n";
-		snprintf(buf, 256, "%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0);
-		fout << "<tt>" << buf << "</tt> of mutations excluded from fitness calculations<BR>\n";
-		fout << "<tt>" << focal_species->profile_max_mutation_index_ << "</tt> maximum simultaneous mutations</p>\n";
+		fout << "<p><tt>" << focal_species->profile_max_mutation_index_ << "</tt> maximum simultaneous mutations</p>\n";
 		
-		fout << "<p><tt>" << focal_species->profile_mutrun_total_usage_ << "</tt> mutation runs referenced, summed across all ticks<BR>\n";
-		fout << "<tt>" << focal_species->profile_unique_mutrun_total_ << "</tt> unique mutation runs maintained among those<BR>\n";
-		snprintf(buf, 256, "%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0);
-		fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation run nonneutral caches rebuilt per tick<BR>\n";
-		snprintf(buf, 256, "%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0);
-		fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation runs shared among haplosomes</p>\n\n";
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
+		
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+			fout << "<p><i>Chromosome " << focal_chromosome->Symbol() << ":</i></p>\n";
+			
+			{
+				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+				int64_t power_tallies_total = (int)focal_chromosome->profile_mutcount_history_.size();
+				
+				for (int power = 0; power < 20; ++power)
+					power_tallies[power] = 0;
+				
+				for (int32_t count : focal_chromosome->profile_mutcount_history_)
+				{
+					int power = (int)round(log2(count));
+					
+					power_tallies[power]++;
+				}
+				
+				fout << "<p>";
+				bool first_line = true;
+				
+				for (int power = 0; power < 20; ++power)
+				{
+					if (power_tallies[power] > 0)
+					{
+						if (!first_line)
+							fout << "<BR>\n";
+						snprintf(buf, 256, "%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0);
+						fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : " << ((int)(round(pow(2.0, power)))) << " mutation runs per haplosome";
+						first_line = false;
+					}
+				}
+				
+				fout << "</p>\n";
+			}
+			
+			fout << "<p><tt>" << focal_chromosome->profile_mutation_total_usage_ << "</tt> mutations referenced, summed across all ticks<BR>\n";
+			fout << "<tt>" << focal_chromosome->profile_nonneutral_mutation_total_ << "</tt> mutations considered potentially nonneutral<BR>\n";
+			snprintf(buf, 256, "%0.2f%%", ((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / (double)focal_chromosome->profile_mutation_total_usage_) * 100.0);
+			fout << "<tt>" << buf << "</tt> of mutations excluded from fitness calculations</p>\n";
+			
+			fout << "<p><tt>" << focal_chromosome->profile_mutrun_total_usage_ << "</tt> mutation runs referenced, summed across all ticks<BR>\n";
+			fout << "<tt>" << focal_chromosome->profile_unique_mutrun_total_ << "</tt> unique mutation runs maintained among those<BR>\n";
+			snprintf(buf, 256, "%6.2f%%", (focal_chromosome->profile_mutrun_nonneutral_recache_total_ / (double)focal_chromosome->profile_unique_mutrun_total_) * 100.0);
+			fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation run nonneutral caches rebuilt per tick<BR>\n";
+			snprintf(buf, 256, "%6.2f%%", ((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / (double)focal_chromosome->profile_mutrun_total_usage_) * 100.0);
+			fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation runs shared among haplosomes</p>\n\n";
+		}
 	}
 #endif
 	

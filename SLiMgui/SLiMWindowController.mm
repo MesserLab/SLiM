@@ -2059,78 +2059,92 @@
 			continue;
 		}
 		
-		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
-		
-		for (int power = 0; power < 20; ++power)
-			power_tallies[power] = 0;
-		
-		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
-			int power = (int)round(log2(count));
+			int64_t regime_tallies[3];
+			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 			
-			power_tallies[power]++;
-		}
-		
-		for (int power = 0; power < 20; ++power)
-		{
-			if (power_tallies[power] > 0)
+			for (int regime = 0; regime < 3; ++regime)
+				regime_tallies[regime] = 0;
+			
+			for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
+				if ((regime >= 1) && (regime <= 3))
+					regime_tallies[regime - 1]++;
+				else
+					regime_tallies_total--;
+			
+			for (int regime = 0; regime < 3; ++regime)
 			{
-				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per haplosome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
 			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
 		}
-		
-		
-		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
-		
-		for (int regime = 0; regime < 3; ++regime)
-			regime_tallies[regime] = 0;
-		
-		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-			if ((regime >= 1) && (regime <= 3))
-				regime_tallies[regime - 1]++;
-			else
-				regime_tallies_total--;
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		for (int regime = 0; regime < 3; ++regime)
-		{
-			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
-		}
-		
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
 		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation runs shared among haplosomes" attributes:optima13_d];
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"Chromosome " attributes:optima13i_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_chromosome->Symbol().c_str()] attributes:optima13i_d];
+			[content eidosAppendString:@":\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			{
+				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+				int64_t power_tallies_total = (int)focal_chromosome->profile_mutcount_history_.size();
+				
+				for (int power = 0; power < 20; ++power)
+					power_tallies[power] = 0;
+				
+				for (int32_t count : focal_chromosome->profile_mutcount_history_)
+				{
+					int power = (int)round(log2(count));
+					
+					power_tallies[power]++;
+				}
+				
+				for (int power = 0; power < 20; ++power)
+				{
+					if (power_tallies[power] > 0)
+					{
+						[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
+						[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per haplosome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+					}
+				}
+			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutation_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / (double)focal_chromosome->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
+			
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutrun_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_unique_mutrun_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_chromosome->profile_mutrun_nonneutral_recache_total_ / (double)focal_chromosome->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / (double)focal_chromosome->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation runs shared among haplosomes\n" attributes:optima13_d];
+		}
 	}
 #endif
 	
@@ -2147,7 +2161,6 @@
 		double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
 		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
-		[content eidosAppendString:@"\n" attributes:menlo11_d];
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"SLiM memory usage (average / final tick)\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];

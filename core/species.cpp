@@ -3307,14 +3307,7 @@ void Species::ReturnShuffleBuffer(void)
 #if SLIM_USE_NONNEUTRAL_CACHES
 void Species::CollectMutationProfileInfo(void)
 {
-	// FIXME MULTICHROM this profile info should be moved to be per-chromosome; for now, we protect against not having a chromosome
-	if (chromosomes_.size() == 0)
-		return;
-	
-	Chromosome &chromosome = TheChromosome();	// only keeping the history for the first chromosome right now, should keep it for all
-	
-	// maintain our history of the number of mutruns per haplosome and the nonneutral regime
-	profile_mutcount_history_.emplace_back(chromosome.mutrun_count_);
+	// maintain our history of the nonneutral regime
 	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
 	
 	// track the maximum number of mutations in existence at one time
@@ -3323,46 +3316,56 @@ void Species::CollectMutationProfileInfo(void)
 	population_.MutationRegistry(&registry_size);
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
-	// tally up the number of mutation runs, mutation usage metrics, etc.
-    int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+	// tally per-chromosome information
 	int64_t operation_id = MutationRun::GetNextOperationID();
 	
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+	for (Chromosome *chromosome : Chromosomes())
 	{
-		Subpopulation *subpop = subpop_pair.second;
+		int first_haplosome_index = FirstHaplosomeIndices()[chromosome->Index()];
+		int last_haplosome_index = LastHaplosomeIndices()[chromosome->Index()];
 		
-        for (Individual *ind : subpop->parent_individuals_)
-        {
-            Haplosome **haplosomes = ind->haplosomes_;
-            
-            for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-            {
-                Haplosome *haplosome = haplosomes[haplosome_index];
-                
-                const MutationRun **mutruns = haplosome->mutruns_;
-                int32_t mutrun_count = haplosome->mutrun_count_;
-                
-                profile_mutrun_total_usage_ += mutrun_count;
-                
-                for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
-                {
-                    const MutationRun *mutrun = mutruns[mutrun_index];
-                    
-                    if (mutrun)
-                    {
-                        if (mutrun->operation_id_ != operation_id)
-                        {
-                            mutrun->operation_id_ = operation_id;
-                            profile_unique_mutrun_total_++;
-                        }
-                        
-                        // tally the total and nonneutral mutations
-                        mutrun->tally_nonneutral_mutations(&profile_mutation_total_usage_, &profile_nonneutral_mutation_total_, &profile_mutrun_nonneutral_recache_total_);
-                    }
-                }
-            }
-        }
-    }
+		// maintain our history of the number of mutruns per haplosome
+		chromosome->profile_mutcount_history_.emplace_back(chromosome->mutrun_count_);
+		
+		// tally up the number of mutation runs, mutation usage metrics, etc.
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				Haplosome **haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					const MutationRun **mutruns = haplosome->mutruns_;
+					int32_t mutrun_count = haplosome->mutrun_count_;
+					
+					chromosome->profile_mutrun_total_usage_ += mutrun_count;
+					
+					for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+					{
+						const MutationRun *mutrun = mutruns[mutrun_index];
+						
+						if (mutrun)
+						{
+							if (mutrun->operation_id_ != operation_id)
+							{
+								mutrun->operation_id_ = operation_id;
+								chromosome->profile_unique_mutrun_total_++;
+							}
+							
+							// tally the total and nonneutral mutations
+							mutrun->tally_nonneutral_mutations(&chromosome->profile_mutation_total_usage_,
+															   &chromosome->profile_nonneutral_mutation_total_,
+															   &chromosome->profile_mutrun_nonneutral_recache_total_);
+						}
+					}
+				}
+			}
+		}
+	}
 }
 #endif
 #endif

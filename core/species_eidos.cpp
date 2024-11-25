@@ -3399,7 +3399,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): (internal error) chromosome lookup failed." << EidosTerminate();
 		
 		chromosome = chromosomes_[chromosome_indices[0]];
-		chromosome_index = chromosome->index_;
+		chromosome_index = chromosome->Index();
 	}
 	
 	// SPECIES CONSISTENCY CHECK

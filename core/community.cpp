@@ -3299,14 +3299,18 @@ void Community::StartProfiling(void)
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{
-		focal_species->profile_mutcount_history_.clear();
 		focal_species->profile_nonneutral_regime_history_.clear();
-		focal_species->profile_mutation_total_usage_ = 0;
-		focal_species->profile_nonneutral_mutation_total_ = 0;
-		focal_species->profile_mutrun_total_usage_ = 0;
-		focal_species->profile_unique_mutrun_total_ = 0;
-		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
 		focal_species->profile_max_mutation_index_ = 0;
+		
+		for (Chromosome *focal_chromosome : focal_species->Chromosomes())
+		{
+			focal_chromosome->profile_mutcount_history_.clear();
+			focal_chromosome->profile_mutation_total_usage_ = 0;
+			focal_chromosome->profile_nonneutral_mutation_total_ = 0;
+			focal_chromosome->profile_mutrun_total_usage_ = 0;
+			focal_chromosome->profile_unique_mutrun_total_ = 0;
+			focal_chromosome->profile_mutrun_nonneutral_recache_total_ = 0;
+		}
 	}
 #endif
 	

@@ -383,17 +383,12 @@ public:
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
+	// BCH 11/24/2024: Note that Chromosome now keeps additional profile information that is per-chromosome
 	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
-	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across cycles
-	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
-	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by haplosomes, summed across cycles
-	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
-	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 #endif	// (SLIMPROFILING == 1)

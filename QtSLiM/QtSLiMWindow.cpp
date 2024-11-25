@@ -3974,78 +3974,92 @@ void QtSLiMWindow::displayProfileResults(void)
             continue;
         }
         
-		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
+        {
+            int64_t regime_tallies[3];
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
+            
+            for (int regime = 0; regime < 3; ++regime)
+                regime_tallies[regime] = 0;
+            
+            for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
+                if ((regime >= 1) && (regime <= 3))
+                    regime_tallies[regime - 1]++;
+                else
+                    regime_tallies_total--;
+            
+            for (int regime = 0; regime < 3; ++regime)
+            {
+                tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
+            }
+            
+            tc.insertText(" \n", optima8_d);
+        }
 		
-		for (int power = 0; power < 20; ++power)
-			power_tallies[power] = 0;
-		
-		for (int32_t count : focal_species->profile_mutcount_history_)
-		{
-			int power = static_cast<int>(round(log2(count)));
-			
-			power_tallies[power]++;
-		}
-		
-		for (int power = 0; power < 20; ++power)
-		{
-			if (power_tallies[power] > 0)
-			{
-				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-				tc.insertText(QString(" of ticks : %1 mutation runs per haplosome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
-			}
-		}
-		
-		
-		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
-		
-		for (int regime = 0; regime < 3; ++regime)
-			regime_tallies[regime] = 0;
-		
-		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-			if ((regime >= 1) && (regime <= 3))
-				regime_tallies[regime - 1]++;
-			else
-				regime_tallies_total--;
-		
-		tc.insertText(" \n", optima13_d);
-		
-		for (int regime = 0; regime < 3; ++regime)
-		{
-			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
-		}
-		
-		
-		tc.insertText(" \n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_mutation_total_usage_), menlo11_d);
-		tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_nonneutral_mutation_total_), menlo11_d);
-		tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg(((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / static_cast<double>(focal_species->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
-		tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
+        tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
+        
+        
+        const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
-		
-		tc.insertText(" \n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_mutrun_total_usage_), menlo11_d);
-		tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_unique_mutrun_total_), menlo11_d);
-		tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg((focal_species->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_species->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg(((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / static_cast<double>(focal_species->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation runs shared among haplosomes", optima13_d);
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+            tc.insertText(" \n", optima13_d);
+            tc.insertText("Chromosome ", optima13i_d);
+            tc.insertText(QString::fromStdString(focal_chromosome->Symbol()), optima13i_d);
+            tc.insertText(":\n", optima13i_d);
+            tc.insertText(" \n", optima3_d);
+            
+            {
+                int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+                int64_t power_tallies_total = static_cast<int>(focal_chromosome->profile_mutcount_history_.size());
+                
+                for (int power = 0; power < 20; ++power)
+                    power_tallies[power] = 0;
+                
+                for (int32_t count : focal_chromosome->profile_mutcount_history_)
+                {
+                    int power = static_cast<int>(round(log2(count)));
+                    
+                    power_tallies[power]++;
+                }
+                
+                for (int power = 0; power < 20; ++power)
+                {
+                    if (power_tallies[power] > 0)
+                    {
+                        tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+                        tc.insertText(QString(" of ticks : %1 mutation runs per haplosome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+                    }
+                }
+            }
+            
+            tc.insertText(" \n", optima8_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_mutation_total_usage_), menlo11_d);
+            tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_nonneutral_mutation_total_), menlo11_d);
+            tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg(((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / static_cast<double>(focal_chromosome->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
+            tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
+            
+            
+            tc.insertText(" \n", optima8_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_mutrun_total_usage_), menlo11_d);
+            tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_unique_mutrun_total_), menlo11_d);
+            tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg((focal_chromosome->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_chromosome->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
+            tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg(((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / static_cast<double>(focal_chromosome->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
+            tc.insertText(" of mutation runs shared among haplosomes\n", optima13_d);
+        }
 	}
 #endif
 	
@@ -4062,7 +4076,6 @@ void QtSLiMWindow::displayProfileResults(void)
         double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
 		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
-		tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("SLiM memory usage (average / final tick)\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
