@@ -229,10 +229,6 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='yz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); stop(); }", __LINE__);
-	// FIXME MULTICHROM these tests should be revived
-	//SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=0); stop(); }", __LINE__);
-	//SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=1); stop(); }", __LINE__);
-	//SLiMAssertScriptStop("initialize() { initializeSLiMOptions(mutationRuns=100); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(preventIncidentalSelfing=F); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(preventIncidentalSelfing=T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(keepPedigrees=NULL); stop(); }", "cannot be type NULL", __LINE__);
