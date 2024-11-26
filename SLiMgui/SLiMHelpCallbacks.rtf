@@ -791,7 +791,7 @@ A
 \f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 modifyChild()
-\f2\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The parent or parents are provided to the callback, as is the generated child.  The callback may accept the generated child, modify it, substitute completely different genomic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
+\f2\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The parent or parents are provided to the callback, as is the generated child.  The callback may accept the generated child, modify it, substitute completely different genetic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
 In addition to the standard SLiM globals, a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
@@ -799,11 +799,6 @@ In addition to the standard SLiM globals, a
 
 \f3\fs18 \cf2 child
 \f2\fs22 	The generated child (an object of class 
-\f3\fs18 Individual
-\f2\fs22 )\
-
-\f3\fs18 parent1
-\f2\fs22 	The first parent (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
 
@@ -816,6 +811,11 @@ In addition to the standard SLiM globals, a
 \f2\fs22 	
 \f3\fs18 T
 \f2\fs22  if the child is the result of selfing (but see note below)\
+
+\f3\fs18 parent1
+\f2\fs22 	The first parent (an object of class 
+\f3\fs18 Individual
+\f2\fs22 )\
 
 \f3\fs18 parent2
 \f2\fs22 	The second parent (an object of class 
@@ -985,8 +985,8 @@ The positions specified in
 \f3\fs18 breakpoints
 \f2\fs22  mean that a crossover will occur immediately 
 \f0\i before
-\f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The genome specified by 
-\f3\fs18 genome1
+\f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The haplosome specified by 
+\f3\fs18 haplosome1
 \f2\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.  (Note that 
 \f3\fs18 haplosome1
 \f2\fs22  and 

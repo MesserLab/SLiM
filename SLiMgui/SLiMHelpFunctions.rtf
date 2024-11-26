@@ -668,10 +668,11 @@ The global symbol for the new interaction type is immediately available; the ret
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
+\f2\fs20 \cf2 Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
 \f1\fs18 initializeRecombinationRate()
-\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring haplosome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
+\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring haplosome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy (see section 1.5.3) will be followed.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 There are two ways to call this function.  If the optional 
 \f1\fs18 ends
 \f2\fs20  parameter is 
@@ -1173,7 +1174,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1240,7 +1240,6 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1392,10 +1391,12 @@ The
 \f2\fs20  is preferable otherwise.  See the documentation for 
 \f1\fs18 treeSeqCoalesced()
 \f2\fs20  for further discussion.\
-The 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 runCrosschecks
 \f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in haplosomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
-The 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 retainCoalescentOnly
 \f2\fs20  parameter controls how, exactly, simplification of the tree-sequence data is performed in SLiM (both for auto-simplification and for calls to 
 \f1\fs18 treeSeqSimplify()
@@ -1978,8 +1979,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1991,7 +1993,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
@@ -2140,11 +2143,7 @@ This function was contributed by Chris Kyriazis; thanks, Chris!\
 \f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Haplosome>$\'a0haplosome1, object<Haplosome>$\'a0haplosome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the heterozygosity for a pair of haplosomes; these will typically be the two haplosomes of a diploid individual (
-\f1\fs18 individual.haplosome1
-\f2\fs20  and 
-\f1\fs18 individual.haplosome2
-\f2\fs20 ), but any two haplosomes may be supplied.\
+\f2\fs20 \cf2 Calculates the heterozygosity for a pair of haplosomes; these will typically be two homologous haplosomes of the same diploid individual, but any two haplosomes associated with the same chromosome may be supplied.\
 The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 
@@ -2156,7 +2155,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f2\fs20  of 
 \f1\fs18 NULL
 \f2\fs20 , provides the haplosome-wide heterozygosity.\
-The implementation of 
+The implementation 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
