@@ -27,7 +27,7 @@ species parasite initialize() {
 }
 
 function (float$)nucleotideFreq(o<Species>$ species, s$ nuc) {
-	nucs = species.subpopulations.individuals.genomes.nucleotides();
+	nucs = species.subpopulations.individuals.haplosomes.nucleotides();
 	return mean(nucs == nuc);
 }
 
@@ -55,7 +55,7 @@ ticks all late() {
 	for (p in parasites, h in chosen_hosts)
 	{
 		// infection depends upon a match (diploid matching-allele model)
-		all_nucleotides = c(p.genomes.nucleotides(), h.genomes.nucleotides());
+		all_nucleotides = c(p.haplosomes.nucleotides(), h.haplosomes.nucleotides());
 		
 		if (size(unique(all_nucleotides, preserveOrder=F)) == 1)
 		{

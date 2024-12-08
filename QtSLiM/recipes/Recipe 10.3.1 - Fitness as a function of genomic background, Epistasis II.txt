@@ -20,9 +20,9 @@ initialize() {
 1 early() { sim.addSubpop("p1", 500); }
 10000 early() { sim.simulationFinished(); }
 mutationEffect(m3) {
-	if (individual.genome1.countOfMutationsOfType(m2))
+	if (individual.haplosomesFromParent1.countOfMutationsOfType(m2))
 		return 0.5;
-	else if (individual.genome2.countOfMutationsOfType(m2))
+	else if (individual.haplosomesFromParent2.countOfMutationsOfType(m2))
 		return 0.5;
 	else
 		return effect;

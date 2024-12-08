@@ -15,12 +15,12 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 1 late() {
-	sample(p1.genomes, 20).addNewDrawnMutation(m2, 10000);  // add A
-	sample(p1.genomes, 20).addNewDrawnMutation(m3, 20000);  // add B
+	sample(p1.haplosomes, 20).addNewDrawnMutation(m2, 10000);  // add A
+	sample(p1.haplosomes, 20).addNewDrawnMutation(m3, 20000);  // add B
 }
 modifyChild() {
-	mutACount = sum(child.genomes.countOfMutationsOfType(m2));
-	mutBCount = sum(child.genomes.countOfMutationsOfType(m3));
+	mutACount = sum(child.haplosomes.countOfMutationsOfType(m2));
+	mutBCount = sum(child.haplosomes.countOfMutationsOfType(m3));
 	if ((mutACount == 2) & (mutBCount == 2))
 		return F;
 	return T;

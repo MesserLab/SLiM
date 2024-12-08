@@ -44,61 +44,79 @@
 #pragma mark Subpopulation
 #pragma mark -
 
-// These get called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
-// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
-// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
-// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
-// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
-// junkyards are empty.
-
-Genome *Subpopulation::_NewSubpopGenome_NULL(GenomeType p_genome_type)
-{
-	if (genome_junkyard_nonnull.size())
-	{
-		Genome *back = genome_junkyard_nonnull.back();
-		genome_junkyard_nonnull.pop_back();
-		
-		// got a non-null genome, need to repurpose it to be a null genome
-		back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
-		
-		return back;
-	}
-	
-	return new (genome_pool_.AllocateChunk()) Genome(p_genome_type);
-}
-
-Genome *Subpopulation::_NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type)
-{
-	if (genome_junkyard_null.size())
-	{
-		Genome *back = genome_junkyard_null.back();
-		genome_junkyard_null.pop_back();
-		
-		// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
-		back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
-		
-		return back;
-	}
-	
-	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type);
-}
-
 // WF only:
-void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male)
+void Subpopulation::WipeIndividualsAndHaplosomes(std::vector<Individual *> &p_individuals, slim_popsize_t p_individual_count, slim_popsize_t p_first_male)
 {
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	if (!species_.HasGenetics())
+	{
+		// With no genetics, most of the work here is unnecessary, but we do need to fix the sex of the individuals
+		if (p_first_male >= 0)
+		{
+			for (int index = 0; index < p_individual_count; ++index)
+			{
+				Individual *individual = p_individuals[index];
+				bool is_female = (index < p_first_male);
+				
+				individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
+			}
+		}
+		return;
+	}
+	
+	// The logic here is similar to GenerateIndividualEmpty(), but instead of making a new individual,
+	// we are recycling an existing individual.
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	
 	if (p_first_male == -1)
 	{
 		// make hermaphrodites
-		if (p_individual_count > 0)
+		for (int index = 0; index < p_individual_count; ++index)
 		{
-			for (int index = 0; index < p_individual_count; ++index)
+			Individual *individual = p_individuals[index];
+			Haplosome **haplosomes = individual->haplosomes_;
+			int haplosome_index = 0;
+			
+			for (Chromosome *chromosome : chromosomes)
 			{
-				p_genomes[(size_t)index * 2]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-				p_genomes[(size_t)index * 2 + 1]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+				// Determine what kind of haplosomes to make for this chromosome
+				ChromosomeType chromosomeType = chromosome->Type();
+				
+				switch (chromosomeType)
+				{
+					case ChromosomeType::kA_DiploidAutosome:
+					{
+						// non-null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kH_HaploidAutosome:
+					{
+						// non-null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 1;
+						break;
+					}
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					{
+						// non-null + null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNull(individual);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kX_XSexChromosome:
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kML_HaploidMaleLine:
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						EIDOS_TERMINATION << "ERROR (Subpopulation::WipeIndividualsAndHaplosomes): (internal error) chromosome type is illegal in non-sexual simulations." << EidosTerminate();
+				}
 			}
 		}
 	}
@@ -107,38 +125,104 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 		// make females and males
 		for (int index = 0; index < p_individual_count; ++index)
 		{
-			Genome *genome1 = p_genomes[(size_t)index * 2];
-			Genome *genome2 = p_genomes[(size_t)index * 2 + 1];
 			Individual *individual = p_individuals[index];
+			Haplosome **haplosomes = individual->haplosomes_;
+			int haplosome_index = 0;
 			bool is_female = (index < p_first_male);
 			
 			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
 		
-			switch (modeled_chromosome_type_)
+			for (Chromosome *chromosome : chromosomes)
 			{
-				case GenomeType::kAutosome:
+				// Determine what kind of haplosomes to make for this chromosome
+				ChromosomeType chromosomeType = chromosome->Type();
+				
+				switch (chromosomeType)
 				{
-					genome1->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-					genome2->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-					break;
-				}
-				case GenomeType::kXChromosome:
-				{
-					genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
-					
-					if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
-					else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, 0, 0);									// leave as a null genome
-					
-					break;
-				}
-				case GenomeType::kYChromosome:
-				{
-					genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);													// leave as a null genome
-					
-					if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);									// leave as a null genome
-					else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, mutrun_count, mutrun_length);
-					
-					break;
+					case ChromosomeType::kA_DiploidAutosome:
+					{
+						// non-null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kH_HaploidAutosome:
+					{
+						// non-null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 1;
+						break;
+					}
+					case ChromosomeType::kX_XSexChromosome:
+					{
+						// XX for females, X- for males
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						
+						if (is_female)
+							haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						else
+							haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNull(individual);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kML_HaploidMaleLine:
+					{
+						// - for females, Y for males
+						if (is_female)
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNull(individual);
+						else
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 1;
+						break;
+					}
+					case ChromosomeType::kZ_ZSexChromosome:
+					{
+						// ZZ for males, -Z for females
+						if (is_female)
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNull(individual);
+						else
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						
+						haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					{
+						// - for males, W for females
+						if (is_female)
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						else
+							haplosomes[haplosome_index]->ReinitializeHaplosomeToNull(individual);
+						haplosome_index += 1;
+						break;
+					}
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					{
+						// non-null + null for all
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNull(individual);
+						haplosome_index += 2;
+						break;
+					}
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					{
+						// -- for females, -Y for males
+						haplosomes[haplosome_index]->ReinitializeHaplosomeToNull(individual);
+						
+						if (is_female)
+							haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNull(individual);
+						else
+							haplosomes[haplosome_index+1]->ReinitializeHaplosomeToNonNull(individual, chromosome);
+						
+						haplosome_index += 2;
+						break;
+					}
 				}
 			}
 		}
@@ -147,58 +231,71 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 
 // Reconfigure the child generation to match the set size, sex ratio, etc.  This may involve removing existing individuals,
 // or adding new ones.  It may also involve transmogrifying existing individuals to a new sex, etc.  It can also transmogrify
-// genomes between a null and non-null state, as a side effect of changing sex.  So this code is really gross and invasive.
+// haplosomes between a null and non-null state, as a side effect of changing sex.  So this code is really gross and invasive.
 void Subpopulation::GenerateChildrenToFitWF()
 {
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	
-	cached_child_genomes_value_.reset();
-	cached_child_individuals_value_.reset();
-	
-	// First, make the number of Individual objects match, and make the corresponding Genome changes
+	// First, make the number of Individual objects match, and make the corresponding Haplosome changes
 	int old_individual_count = (int)child_individuals_.size();
 	int new_individual_count = child_subpop_size_;
 	
 	if (new_individual_count > old_individual_count)
 	{
-		// We also have to make space for the pointers to the genomes and individuals
-		child_genomes_.reserve((size_t)new_individual_count * 2);
+		// We also have to make space for the pointers to the haplosomes and individuals
 		child_individuals_.reserve(new_individual_count);
 		
 		if (species_.HasGenetics())
 		{
-			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+			const std::vector<Chromosome *> &chromosome_for_haplosome_index = species_.ChromosomesForHaplosomeIndices();
+			const std::vector<uint8_t> &chromosome_subindices = species_.ChromosomeSubindicesForHaplosomeIndices();
+			int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+			
+			// We just allocate null haplosomes here for all chromosomes; there is no mutrun buffer allocation
+			// overhead for that.  WipeIndividualsAndHaplosomes(), called below, will fix them to be the correct
+			// type as needed.  There is a little extra overhead for that, presumably, but it only matters when
+			// the population size (or perhaps sex ratio, etc.) changes.
+			if ((haplosome_count_per_individual == 2) && (species_.Chromosomes().size() == 1))
 			{
-				// allocate out of our object pools
-				// BCH 23 August 2018: passing false to NewSubpopGenome() for p_is_null is sometimes inaccurate, but should
-				// be harmless.  If the genomes are ultimately destined to be null genomes, their mutruns buffer will get
-				// freed again below.  Now that the disposed genome junkyards can supply each other when empty, there should
-				// be no bigger consequence than that performance hit.  It might be nice to figure out, here, what type of
-				// genome we will eventually want at this position, and make the right kind up front; but that is a
-				// substantial hassle, and this should only matter in unusual models (very large-magnitude population size
-				// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
-				Genome *genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				Genome *genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+				Chromosome *chromosome = chromosome_for_haplosome_index[0];
 				
-				child_genomes_.emplace_back(genome1);
-				child_genomes_.emplace_back(genome2);
-				child_individuals_.emplace_back(individual);
+				// special-case the simple diploid case to avoid the loop
+				for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+				{
+					// allocate out of our junkyard and object pool
+					Individual *individual = NewSubpopIndividual(new_index, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+					
+					individual->AddHaplosomeAtIndex(chromosome->NewHaplosome_NULL(individual, 0), 0);
+					individual->AddHaplosomeAtIndex(chromosome->NewHaplosome_NULL(individual, 1), 1);
+					
+					child_individuals_.emplace_back(individual);
+				}
+			}
+			else
+			{
+				for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+				{
+					// allocate out of our junkyard and object pool
+					Individual *individual = NewSubpopIndividual(new_index, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+					
+					for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+					{
+						Chromosome *chromosome = chromosome_for_haplosome_index[haplosome_index];
+						uint8_t chromosome_subindex = chromosome_subindices[haplosome_index];
+						Haplosome *haplosome = chromosome->NewHaplosome_NULL(individual, chromosome_subindex);
+						
+						individual->AddHaplosomeAtIndex(haplosome, haplosome_index);
+					}
+					
+					child_individuals_.emplace_back(individual);
+				}
 			}
 		}
 		else
 		{
-			// In the no-genetics case we know we need null genomes, and we have to create them up front to avoid errors
+			// In the no-genetics case no haplosomes are needed, so it is very simple
 			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 			{
-				Genome *genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				Genome *genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+				Individual *individual = NewSubpopIndividual(new_index, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
-				child_genomes_.emplace_back(genome1);
-				child_genomes_.emplace_back(genome2);
 				child_individuals_.emplace_back(individual);
 			}
 		}
@@ -207,26 +304,19 @@ void Subpopulation::GenerateChildrenToFitWF()
 	{
 		for (int old_index = new_individual_count; old_index < old_individual_count; ++old_index)
 		{
-			Genome *genome1 = child_genomes_[(size_t)old_index * 2];
-			Genome *genome2 = child_genomes_[(size_t)old_index * 2 + 1];
 			Individual *individual = child_individuals_[old_index];
 			
-			// dispose of the genomes and individual
-			FreeSubpopGenome(genome1);
-			FreeSubpopGenome(genome2);
-			
-			individual->~Individual();
-			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
+			// dispose of the individual
+			_FreeSubpopIndividual(individual);
 		}
 		
-		child_genomes_.resize((size_t)new_individual_count * 2);
 		child_individuals_.resize(new_individual_count);
 	}
 	
-	// Next, fix the type of each genome, and clear them all, and fix individual sex if necessary
+	// Next, fix the type of each haplosome, and clear them all, and fix individual sex if necessary
 	if (sex_enabled_)
 	{
-		double &sex_ratio = child_sex_ratio_;
+		double sex_ratio = child_sex_ratio_;
 		slim_popsize_t &first_male_index = child_first_male_index_;
 		
 		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(sex_ratio * new_individual_count));	// round in favor of males, arbitrarily
@@ -238,11 +328,11 @@ void Subpopulation::GenerateChildrenToFitWF()
 		else if (first_male_index >= child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFitWF): sex ratio of " << sex_ratio << " produced no males." << EidosTerminate();
 		
-		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, first_male_index);
+		WipeIndividualsAndHaplosomes(child_individuals_, new_individual_count, first_male_index);
 	}
 	else
 	{
-		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, -1);	// make hermaphrodites
+		WipeIndividualsAndHaplosomes(child_individuals_, new_individual_count, -1);	// make hermaphrodites
 	}
 }
 
@@ -251,52 +341,25 @@ void Subpopulation::GenerateChildrenToFitWF()
 // involved in that case).  This handles both the WF and nonWF cases, which are very similar.
 void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age)
 {
-	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
-	cached_parent_genomes_value_.reset();
 	cached_parent_individuals_value_.reset();
 	
-	if (parent_individuals_.size() || parent_genomes_.size())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals or genomes already present in GenerateParentsToFit()." << EidosTerminate();
+	if (parent_individuals_.size())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals already present in GenerateParentsToFit()." << EidosTerminate();
 	if ((parent_subpop_size_ == 0) && !p_allow_zero_size)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) subpop size of 0 requested." << EidosTerminate();
 	
-	if (p_haploid)
-	{
-		if (model_type_ == SLiMModelType::kModelTypeWF)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals in WF models." << EidosTerminate();
-		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals when simulating sex chromosomes." << EidosTerminate();
-		
-		has_null_genomes_ = true;
-	}
-	
-	// We also have to make space for the pointers to the genomes and individuals
-	parent_genomes_.reserve((size_t)parent_subpop_size_ * 2);
+	// Make space for the pointers to the haplosomes and individuals
 	parent_individuals_.reserve(parent_subpop_size_);
 	
-	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
-	bool has_genetics = species_.HasGenetics();
-	std::vector<MutationRun *> shared_empty_runs;
-	
-	if ((parent_subpop_size_ > 0) && has_genetics)
-	{
-		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
-		// the correct per-thread allocation pool.  See also ExecuteMethod_addEmpty(), which does the same.
-		shared_empty_runs.resize(mutrun_count);
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
-			
-			shared_empty_runs[run_index] = MutationRun::NewMutationRun(mutrun_context);
-		}
-	}
-	
+	// Now create new individuals and haplosomes appropriate for the requested sex ratio and subpop size
+	// MULTICHROM FIXME there was code here to make shared empty mutation runs, reused across all of the new individuals.  I'm not sure
+	// how big a deal this is.  It will probably only affect the time to generate the first generation; I think it wouldn't matter after
+	// that at all.  Anyhow, it doesn't presently fit into the new scheme, so I'm removing it for now.  Perhaps GenerateIndividualEmpty()
+	// could do something smart here in future?  How about: the Chromosome keeps a single empty mutrun object that is shared across all
+	// uses, and users of it are never allowed to modify it, but must instead make a new mutrun if they need to modify it?
 	if (sex_enabled_)
 	{
 		slim_popsize_t total_males = static_cast<slim_popsize_t>(lround(p_sex_ratio * parent_subpop_size_));	// round in favor of males, arbitrarily
@@ -315,100 +378,20 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		// Make females and then males
 		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
 		{
-			bool is_female = (new_index < first_male_index);
-			Genome *genome1, *genome2;
+			IndividualSex child_sex = (new_index < first_male_index) ? IndividualSex::kFemale : IndividualSex::kMale;
+			slim_pedigreeid_t pedigree_id = (pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0);
+			Individual *ind = GenerateIndividualEmpty(pedigree_id,
+													  /* index */ new_index,
+													  /* sex */ child_sex,
+													  /* age */ p_initial_age,
+													  /* fitness */ 1.0,
+													  p_mean_parent_age,
+													  /* haplosome1_null */ false,
+													  /* haplosome2_null */ p_haploid,
+													  /* run_modify_child */ false,
+													  recording_tree_sequence);
 			
-			if (has_genetics)
-			{
-				switch (modeled_chromosome_type_)
-				{
-					case GenomeType::kAutosome:
-					{
-						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-						genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
-						
-						if (p_haploid)
-						{
-							genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-						}
-						else
-						{
-							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-							genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						break;
-					}
-					case GenomeType::kXChromosome:
-					{
-						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-						genome1->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
-						
-						if (is_female)
-						{
-							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-							genome2->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						else
-						{
-							genome2 = NewSubpopGenome_NULL(GenomeType::kYChromosome);
-						}
-						break;
-					}
-					case GenomeType::kYChromosome:
-					{
-						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
-						
-						if (is_female)
-						{
-							genome2 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
-						}
-						else
-						{
-							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kYChromosome);
-							genome2->ReinitializeGenomeToMutruns(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_runs);
-						}
-						break;
-					}
-				}
-			}
-			else
-			{
-				// no-genetics species have null genomes
-				switch (modeled_chromosome_type_)
-				{
-					case GenomeType::kAutosome:
-					{
-						genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-						genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-						break;
-					}
-					case GenomeType::kXChromosome:
-					case GenomeType::kYChromosome:
-					{
-						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
-						genome2 = NewSubpopGenome_NULL(is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome);
-						break;
-					}
-				}
-			}
-			
-			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
-			
-			if (pedigrees_enabled)
-				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
-			
-			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
-			{
-				species_.SetCurrentNewIndividual(individual);
-				species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-				species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
-			}
-			
-			parent_genomes_.emplace_back(genome1);
-			parent_genomes_.emplace_back(genome2);
-			parent_individuals_.emplace_back(individual);
+			parent_individuals_.emplace_back(ind);
 		}
 	}
 	else
@@ -416,48 +399,20 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		// Make hermaphrodites
 		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
 		{
-			// allocate out of our object pools
-			// start new parental genomes out with a shared empty mutrun; can't be nullptr like child genomes can
-			Genome *genome1, *genome2;
+			IndividualSex child_sex = IndividualSex::kHermaphrodite;
+			slim_pedigreeid_t pedigree_id = (pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0);
+			Individual *ind = GenerateIndividualEmpty(pedigree_id,
+													  /* index */ new_index,
+													  /* sex */ child_sex,
+													  /* age */ p_initial_age,
+													  /* fitness */ 1.0,
+													  p_mean_parent_age,
+													  /* haplosome1_null */ false,
+													  /* haplosome2_null */ p_haploid,
+													  /* run_modify_child */ false,
+													  recording_tree_sequence);
 			
-			if (has_genetics)
-			{
-				genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
-				
-				if (p_haploid)
-				{
-					genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				}
-				else
-				{
-					genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-					genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
-				}
-			}
-			else
-			{
-				// no-genetics species have null genomes
-				genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-			}
-			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
-			
-			if (pedigrees_enabled)
-				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
-			
-			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
-			{
-				species_.SetCurrentNewIndividual(individual);
-				species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-				species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
-			}
-			
-			parent_genomes_.emplace_back(genome1);
-			parent_genomes_.emplace_back(genome2);
-			parent_individuals_.emplace_back(individual);
+			parent_individuals_.emplace_back(ind);
 		}
 	}
 }
@@ -470,15 +425,23 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
 	SLiMModelType model_type = model_type_;
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
+	size_t chromosomes_count = chromosomes.size();
 	bool has_genetics = species_.HasGenetics();
 	
-	if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
-	else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	if (!has_genetics && (chromosomes_count != 0))
+		EIDOS_TERMINATION << "ERROR (Community::Species_CheckIntegrity): (internal error) chromosome present in no-genetics species." << EidosTerminate();
+	
+	for (Chromosome *chromosome : chromosomes)
+	{
+		int32_t mutrun_count = chromosome->mutrun_count_;
+		slim_position_t mutrun_length = chromosome->mutrun_length_;
+		
+		if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
+		else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	}
 	
 	// below we will use this map to check that every mutation run in use is used at only one mutrun index
 	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
@@ -489,23 +452,14 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	
 	if ((int)parent_individuals_.size() != parent_subpop_size_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_subpop_size_ and parent_individuals_.size()." << EidosTerminate();
-	if ((int)parent_genomes_.size() != parent_subpop_size_ * 2)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_subpop_size_ and parent_genomes_.size()." << EidosTerminate();
 	
 	for (int ind_index = 0; ind_index < parent_subpop_size_; ++ind_index)
 	{
 		Individual *individual = parent_individuals_[ind_index];
-		Genome *genome1 = parent_genomes_[(size_t)ind_index * 2];
-		Genome *genome2 = parent_genomes_[(size_t)ind_index * 2 + 1];
 		bool invalid_age = false;
 		
 		if (!individual)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for individual." << EidosTerminate();
-		if (!genome1 || !genome2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for genome." << EidosTerminate();
-		
-		if ((individual->genome1_ != genome1) || (individual->genome2_ != genome2))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between parent_genomes_ and individual->genomeX_." << EidosTerminate();
 		
 		if (individual->index_ != ind_index)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->index_ and ind_index." << EidosTerminate();
@@ -513,29 +467,10 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if (individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->subpopulation_ and subpopulation." << EidosTerminate();
 		
-		if ((genome1->individual_ != individual) || (genome2->individual_ != individual))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->individual_ and individual." << EidosTerminate();
-		
-		if (!genome1->IsNull() && ((genome1->mutrun_count_ != mutrun_count) || (genome1->mutrun_length_ != mutrun_length)))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
-		if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
-		if (!has_genetics && (!genome1->IsNull() || !genome2->IsNull()))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null genomes." << EidosTerminate();
-		
-		if (((genome1->mutrun_count_ == 0) && ((genome1->mutrun_length_ != 0) || (genome1->mutruns_ != nullptr))) ||
-			((genome1->mutrun_length_ == 0) && ((genome1->mutrun_count_ != 0) || (genome1->mutruns_ != nullptr))))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
-		if (((genome2->mutrun_count_ == 0) && ((genome2->mutrun_length_ != 0) || (genome2->mutruns_ != nullptr))) ||
-			((genome2->mutrun_length_ == 0) && ((genome2->mutrun_count_ != 0) || (genome2->mutruns_ != nullptr))))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
-		
 		if (species_.PedigreesEnabled())
 		{
 			if (individual->pedigree_id_ == -1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
-			if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 		}
 		
 		if (model_type == SLiMModelType::kModelTypeWF)
@@ -552,95 +487,271 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		if (invalid_age)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) invalid value for individual->age_." << EidosTerminate();
 		
+		bool is_female = (ind_index < parent_first_male_index_);	// only used below in sexual simulations
+		
 		if (sex_enabled_)
 		{
-			bool is_female = (ind_index < parent_first_male_index_);
-			GenomeType genome1_type, genome2_type;
-			bool genome1_null = false, genome2_null = false;
-			
 			if ((is_female && (individual->sex_ != IndividualSex::kFemale)) ||
 				(!is_female && (individual->sex_ != IndividualSex::kMale)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->sex_ and parent_first_male_index_." << EidosTerminate();
-			
-			switch (modeled_chromosome_type_)
-			{
-				case GenomeType::kAutosome:		genome1_type = GenomeType::kAutosome; genome2_type = GenomeType::kAutosome; break;
-				case GenomeType::kXChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome2_null = !is_female; break;
-				case GenomeType::kYChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome1_null = true; genome2_null = is_female; break;
-				default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
-			}
-			
-			if (!has_genetics)
-			{
-				genome1_null = true;
-				genome2_null = true;
-			}
-			
-			// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
-			if ((modeled_chromosome_type_ != GenomeType::kAutosome) && ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sex chromosome simulation." << EidosTerminate();
-			if ((genome1->Type() != genome1_type) || (genome2->Type() != genome2_type))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual genome type in sexual simulation." << EidosTerminate();
 		}
 		else
 		{
 			if (individual->sex_ != IndividualSex::kHermaphrodite)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-hermaphrodite individual in non-sexual simulation." << EidosTerminate();
-			
-			// BCH 9/21/2021: In SLiM 3.7 this is no longer an error, since we can get null genomes from addRecombinant() representing haploids etc.
-			//if (genome1->IsNull() || genome2->IsNull())
-			//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
-			
-			if ((genome1->Type() != GenomeType::kAutosome) || (genome2->Type() != GenomeType::kAutosome))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
 		}
 		
-		if (child_generation_valid_)
+		// check that we agree with the species on the haplosome count per individual
+		// (we can't check the individual's haplosome count because it simply uses haplosome_count_per_individual_; it has no count of its own!)
+		if (haplosome_count_per_individual_ != species_.HaplosomeCountPerIndividual())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome count is incorrect." << EidosTerminate();
+		
+		// loop over chromosomes one by one and check the haplosomes of each chromosome
+		int haplosome_index = 0;
+		
+		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
 		{
-			// When the child generation is valid, all parental genomes should have null mutrun pointers, so mutrun refcounts are correct
-			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-				if (genome1->mutruns_[mutrun_index] != nullptr)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
+			Chromosome *chromosome = chromosomes[chromosome_index];
+			ChromosomeType chromosome_type = chromosome->Type();
 			
-			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-				if (genome2->mutruns_[mutrun_index] != nullptr)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
-		}
-		else
-		{
-			// When the parental generation is valid, all parental genomes should have non-null mutrun pointers
-			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-				if (genome1->mutruns_[mutrun_index] == nullptr)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a null mutrun pointer." << EidosTerminate();
+			// check haplosome indices
+			int haplosome_count = 0;
 			
-			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-				if (genome2->mutruns_[mutrun_index] == nullptr)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a null mutrun pointer." << EidosTerminate();
-			
-			// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
-			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+			switch (chromosome_type)
 			{
-				const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
-				auto found_iter = mutrun_position_map.find(mutrun);
-				
-				if (found_iter == mutrun_position_map.end())
-					mutrun_position_map[mutrun] = mutrun_index;
-				else if (found_iter->second != mutrun_index)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				case ChromosomeType::kA_DiploidAutosome:
+				case ChromosomeType::kX_XSexChromosome:
+				case ChromosomeType::kZ_ZSexChromosome:
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					haplosome_count = 2;
+					break;
+				case ChromosomeType::kH_HaploidAutosome:
+				case ChromosomeType::kY_YSexChromosome:
+				case ChromosomeType::kW_WSexChromosome:
+				case ChromosomeType::kHF_HaploidFemaleInherited:
+				case ChromosomeType::kFL_HaploidFemaleLine:
+				case ChromosomeType::kHM_HaploidMaleInherited:
+				case ChromosomeType::kML_HaploidMaleLine:
+					haplosome_count = 1;
+					break;
 			}
-			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
+			
+			// check haplosome 1 for this chromosome
 			{
-				const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
-				auto found_iter = mutrun_position_map.find(mutrun);
+				Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
 				
-				if (found_iter == mutrun_position_map.end())
-					mutrun_position_map[mutrun] = mutrun_index;
-				else if (found_iter->second != mutrun_index)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				if (!haplosome1)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome1." << EidosTerminate();
+				if (haplosome1->individual_ != individual)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome1->individual_ and individual." << EidosTerminate();
+				if (haplosome1->AssociatedChromosome() != chromosome)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1->AssociatedChromosome() mismatch." << EidosTerminate();
+				
+				if (!haplosome1->IsNull())
+				{
+					slim_position_t mutrun_count = chromosome->mutrun_count_;
+					slim_position_t mutrun_length = chromosome->mutrun_length_;
+					
+					if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
+				}
+				
+				if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
+					((haplosome1->mutrun_length_ == 0) && ((haplosome1->mutrun_count_ != 0) || (haplosome1->mutruns_ != nullptr))))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mutrun count/length/pointer inconsistency." << EidosTerminate();
+				
+				if (species_.PedigreesEnabled())
+				{
+					if (haplosome1->haplosome_id_ != individual->pedigree_id_ * 2)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 has an invalid haplosome pedigree ID." << EidosTerminate();
+				}
+				
+				bool null_problem = false;
+				
+				switch (chromosome_type)
+				{
+						// haplosome1 should be null for these types
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						if (!haplosome1->IsNull())
+							null_problem = true;
+						break;
+						
+						// haplosome1 should be non-null for these types
+					case ChromosomeType::kX_XSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+						if (haplosome1->IsNull())
+							null_problem = true;
+						break;
+						
+						// haplosome1 should be null in females, non-null in males
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kML_HaploidMaleLine:
+						if (is_female != haplosome1->IsNull())
+							null_problem = true;
+						break;
+						
+						// haplosome1 should be null in males, non-null in females
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+						if (is_female == haplosome1->IsNull())
+							null_problem = true;
+						break;
+						
+						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+					case ChromosomeType::kA_DiploidAutosome:
+					case ChromosomeType::kH_HaploidAutosome:
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+						break;
+				}
+				
+				if (null_problem)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mismatch between expected and actual null haplosome status." << EidosTerminate();
+				
+				if (population_.child_generation_valid_)
+				{
+#if SLIM_CLEAR_HAPLOSOMES
+					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+						if (haplosome1->mutruns_[mutrun_index] != nullptr)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
+#endif
+				}
+				else
+				{
+#if SLIM_CLEAR_HAPLOSOMES
+					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
+					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+						if (haplosome1->mutruns_[mutrun_index] == nullptr)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
+#endif
+					
+					// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+					for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+					{
+						const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
+						auto found_iter = mutrun_position_map.find(mutrun);
+						
+						if (found_iter == mutrun_position_map.end())
+							mutrun_position_map[mutrun] = mutrun_index;
+						else if (found_iter->second != mutrun_index)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+					}
+				}
 			}
+			
+			// check haplosome 2 for this chromosome
+			if (haplosome_count == 2)
+			{
+				Haplosome *haplosome2 = individual->haplosomes_[haplosome_index + 1];
+				
+				if (!haplosome2)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome2." << EidosTerminate();
+				if (haplosome2->individual_ != individual)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome2->individual_ and individual." << EidosTerminate();
+				if (haplosome2->AssociatedChromosome() != chromosome)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2->AssociatedChromosome() mismatch." << EidosTerminate();
+				
+				if (!haplosome2->IsNull())
+				{
+					slim_position_t mutrun_count = chromosome->mutrun_count_;
+					slim_position_t mutrun_length = chromosome->mutrun_length_;
+					
+					if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
+				}
+				
+				if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
+					((haplosome2->mutrun_length_ == 0) && ((haplosome2->mutrun_count_ != 0) || (haplosome2->mutruns_ != nullptr))))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mutrun count/length/pointer inconsistency." << EidosTerminate();
+				
+				if (species_.PedigreesEnabled())
+				{
+					if (haplosome2->haplosome_id_ != individual->pedigree_id_ * 2 + 1)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 has an invalid haplosome pedigree ID." << EidosTerminate();
+				}
+				
+				bool null_problem = false;
+				
+				switch (chromosome_type)
+				{
+						// haplosome2 should be null for these types
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+						if (!haplosome2->IsNull())
+							null_problem = true;
+						break;
+						
+						// haplosome2 should be non-null for these types
+						
+						// haplosome2 should be null in females, non-null in males
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						if (is_female != haplosome2->IsNull())
+							null_problem = true;
+						break;
+						
+						// haplosome2 should be null in males, non-null in females
+					case ChromosomeType::kX_XSexChromosome:
+						if (is_female == haplosome2->IsNull())
+							null_problem = true;
+						break;
+						
+						// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+					case ChromosomeType::kA_DiploidAutosome:
+						break;
+						
+						// haplosome2 should not exist at all for these types
+					case ChromosomeType::kH_HaploidAutosome:
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kML_HaploidMaleLine:
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) chromosome type should never be used for haplosome2." << EidosTerminate();
+						break;
+				}
+				
+				if (null_problem)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mismatch between expected and actual null haplosome status." << EidosTerminate();
+				
+				if (population_.child_generation_valid_)
+				{
+#if SLIM_CLEAR_HAPLOSOMES
+					// When the child generation is valid, all parental haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+						if (haplosome2->mutruns_[mutrun_index] != nullptr)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
+#endif
+				}
+				else
+				{
+#if SLIM_CLEAR_HAPLOSOMES
+					// When the parental generation is valid, all parental haplosomes should have non-null mutrun pointers
+					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+						if (haplosome2->mutruns_[mutrun_index] == nullptr)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
+#endif
+					
+					// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+					for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+					{
+						const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
+						auto found_iter = mutrun_position_map.find(mutrun);
+						
+						if (found_iter == mutrun_position_map.end())
+							mutrun_position_map[mutrun] = mutrun_index;
+						else if (found_iter->second != mutrun_index)
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+					}
+				}
+			}
+			
+			haplosome_index += haplosome_count;
 		}
 	}
-	
 	
 	//
 	//	Check the child generation; this is only in WF models
@@ -650,22 +761,13 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	{
 		if ((int)child_individuals_.size() != child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between child_subpop_size_ and child_individuals_.size()." << EidosTerminate();
-		if ((int)child_genomes_.size() != child_subpop_size_ * 2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between child_subpop_size_ and child_genomes_.size()." << EidosTerminate();
 		
 		for (int ind_index = 0; ind_index < child_subpop_size_; ++ind_index)
 		{
 			Individual *individual = child_individuals_[ind_index];
-			Genome *genome1 = child_genomes_[(size_t)ind_index * 2];
-			Genome *genome2 = child_genomes_[(size_t)ind_index * 2 + 1];
 			
 			if (!individual)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for individual." << EidosTerminate();
-			if (!genome1 || !genome2)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for genome." << EidosTerminate();
-			
-			if ((individual->genome1_ != genome1) || (individual->genome2_ != genome2))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between child_genomes_ and individual->genomeX_." << EidosTerminate();
 			
 			if (individual->index_ != ind_index)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->index_ and ind_index." << EidosTerminate();
@@ -673,117 +775,265 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (individual->subpopulation_ != this)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->subpopulation_ and subpopulation." << EidosTerminate();
 			
-			if ((genome1->individual_ != individual) || (genome2->individual_ != individual))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between genome->individual_ and individual." << EidosTerminate();
-			
-			if (!genome1->IsNull() && ((genome1->mutrun_count_ != mutrun_count) || (genome1->mutrun_length_ != mutrun_length)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
-			if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
-			if (!has_genetics && (!genome1->IsNull() || !genome2->IsNull()))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null genomes." << EidosTerminate();
-			
-			if (((genome1->mutrun_count_ == 0) && ((genome1->mutrun_length_ != 0) || (genome1->mutruns_ != nullptr))) ||
-				((genome1->mutrun_length_ == 0) && ((genome1->mutrun_count_ != 0) || (genome1->mutruns_ != nullptr))))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
-			if (((genome2->mutrun_count_ == 0) && ((genome2->mutrun_length_ != 0) || (genome2->mutruns_ != nullptr))) ||
-				((genome2->mutrun_length_ == 0) && ((genome2->mutrun_count_ != 0) || (genome2->mutruns_ != nullptr))))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
-			
-			if (species_.PedigreesEnabled() && child_generation_valid_)
+			if (species_.PedigreesEnabled() && population_.child_generation_valid_)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
-				if ((genome1->genome_id_ != individual->pedigree_id_ * 2) || (genome2->genome_id_ != individual->pedigree_id_ * 2 + 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 			}
+			
+			if (individual->age_ != -1)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) invalid value for individual->age_." << EidosTerminate();
+			
+			bool is_female = (ind_index < child_first_male_index_);		// only used below in sexual simulations
 			
 			if (sex_enabled_)
 			{
-				bool is_female = (ind_index < child_first_male_index_);
-				GenomeType genome1_type, genome2_type;
-				bool genome1_null = false, genome2_null = false;
-				
 				if ((is_female && (individual->sex_ != IndividualSex::kFemale)) ||
 					(!is_female && (individual->sex_ != IndividualSex::kMale)))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between individual->sex_ and child_first_male_index_." << EidosTerminate();
-				
-				switch (modeled_chromosome_type_)
-				{
-					case GenomeType::kAutosome:		genome1_type = GenomeType::kAutosome; genome2_type = GenomeType::kAutosome; break;
-					case GenomeType::kXChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome2_null = !is_female; break;
-					case GenomeType::kYChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome1_null = true; genome2_null = is_female; break;
-					default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
-				}
-				
-				if (!has_genetics)
-				{
-					genome1_null = true;
-					genome2_null = true;
-				}
-				
-				// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
-				if ((modeled_chromosome_type_ != GenomeType::kAutosome) && ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null)))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sex chromosome simulation." << EidosTerminate();
-				if ((genome1->Type() != genome1_type) || (genome2->Type() != genome2_type))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual genome type in sexual simulation." << EidosTerminate();
 			}
 			else
 			{
 				if (individual->sex_ != IndividualSex::kHermaphrodite)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-hermaphrodite individual in non-sexual simulation." << EidosTerminate();
-				
-				// BCH 9/21/2021: In SLiM 3.7 this is no longer an error, since we can get null genomes from addRecombinant() representing haploids etc.
-				//if (genome1->IsNull() || genome2->IsNull())
-				//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
-				
-				if ((genome1->Type() != GenomeType::kAutosome) || (genome2->Type() != GenomeType::kAutosome))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
 			}
 			
-			if (child_generation_valid_)
+			// loop over chromosomes one by one and check the haplosomes of each chromosome
+			int haplosome_index = 0;
+			
+			for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
 			{
-				// When the child generation is active, child genomes should have non-null mutrun pointers
-				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-					if (genome1->mutruns_[mutrun_index] == nullptr)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a null mutrun pointer." << EidosTerminate();
+				Chromosome *chromosome = chromosomes[chromosome_index];
+				ChromosomeType chromosome_type = chromosome->Type();
 				
-				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-					if (genome2->mutruns_[mutrun_index] == nullptr)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a null mutrun pointer." << EidosTerminate();
+				// check haplosome indices
+				int haplosome_count = 0;
 				
-				// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
-				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+				switch (chromosome_type)
 				{
-					const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
-					auto found_iter = mutrun_position_map.find(mutrun);
-					
-					if (found_iter == mutrun_position_map.end())
-						mutrun_position_map[mutrun] = mutrun_index;
-					else if (found_iter->second != mutrun_index)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+					case ChromosomeType::kA_DiploidAutosome:
+					case ChromosomeType::kX_XSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						haplosome_count = 2;
+						break;
+					case ChromosomeType::kH_HaploidAutosome:
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kML_HaploidMaleLine:
+						haplosome_count = 1;
+						break;
 				}
-				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-				{
-					const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
-					auto found_iter = mutrun_position_map.find(mutrun);
-					
-					if (found_iter == mutrun_position_map.end())
-						mutrun_position_map[mutrun] = mutrun_index;
-					else if (found_iter->second != mutrun_index)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
-				}
-			}
-			else
-			{
-				// When the parental generation is active, child genomes should have null mutrun pointers, so mutrun refcounts are correct
-				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-					if (genome1->mutruns_[mutrun_index] != nullptr)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a nonnull mutrun pointer." << EidosTerminate();
 				
-				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-					if (genome2->mutruns_[mutrun_index] != nullptr)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a nonnull mutrun pointer." << EidosTerminate();
+				// check haplosome 1 for this chromosome
+				{
+					Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
+					
+					if (!haplosome1)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome1." << EidosTerminate();
+					if (haplosome1->individual_ != individual)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome1->individual_ and individual." << EidosTerminate();
+					if (haplosome1->AssociatedChromosome() != chromosome)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1->AssociatedChromosome() mismatch." << EidosTerminate();
+					
+					if (!haplosome1->IsNull())
+					{
+						slim_position_t mutrun_count = chromosome->mutrun_count_;
+						slim_position_t mutrun_length = chromosome->mutrun_length_;
+						
+						if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
+					}
+					
+					if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
+						((haplosome1->mutrun_length_ == 0) && ((haplosome1->mutrun_count_ != 0) || (haplosome1->mutruns_ != nullptr))))
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mutrun count/length/pointer inconsistency." << EidosTerminate();
+					
+					// we don't check pedigree IDs for the child generation; they are not expected to be set up
+					
+					bool null_problem = false;
+					
+					switch (chromosome_type)
+					{
+							// haplosome1 should be null for these types
+						case ChromosomeType::kNullY_YSexChromosomeWithNull:
+							if (!haplosome1->IsNull())
+								null_problem = true;
+							break;
+							
+							// haplosome1 should be non-null for these types
+						case ChromosomeType::kX_XSexChromosome:
+						case ChromosomeType::kZ_ZSexChromosome:
+						case ChromosomeType::kHF_HaploidFemaleInherited:
+						case ChromosomeType::kHM_HaploidMaleInherited:
+							if (haplosome1->IsNull())
+								null_problem = true;
+							break;
+							
+							// haplosome1 should be null in females, non-null in males
+						case ChromosomeType::kY_YSexChromosome:
+						case ChromosomeType::kML_HaploidMaleLine:
+							if (is_female != haplosome1->IsNull())
+								null_problem = true;
+							break;
+							
+							// haplosome1 should be null in males, non-null in females
+						case ChromosomeType::kW_WSexChromosome:
+						case ChromosomeType::kFL_HaploidFemaleLine:
+							if (is_female == haplosome1->IsNull())
+								null_problem = true;
+							break;
+							
+							// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+						case ChromosomeType::kA_DiploidAutosome:
+						case ChromosomeType::kH_HaploidAutosome:
+						case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+							break;
+					}
+					
+					if (null_problem)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 mismatch between expected and actual null haplosome status." << EidosTerminate();
+					
+					if (!population_.child_generation_valid_)
+					{
+#if SLIM_CLEAR_HAPLOSOMES
+						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+							if (haplosome1->mutruns_[mutrun_index] != nullptr)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child haplosome has a nonnull mutrun pointer." << EidosTerminate();
+#endif
+					}
+					else
+					{
+#if SLIM_CLEAR_HAPLOSOMES
+						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
+						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+							if (haplosome1->mutruns_[mutrun_index] == nullptr)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child haplosome has a null mutrun pointer." << EidosTerminate();
+#endif
+						
+						// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+						for (int mutrun_index = 0; mutrun_index < haplosome1->mutrun_count_; ++mutrun_index)
+						{
+							const MutationRun *mutrun = haplosome1->mutruns_[mutrun_index];
+							auto found_iter = mutrun_position_map.find(mutrun);
+							
+							if (found_iter == mutrun_position_map.end())
+								mutrun_position_map[mutrun] = mutrun_index;
+							else if (found_iter->second != mutrun_index)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+						}
+					}
+				}
+				
+				// check haplosome 2 for this chromosome
+				if (haplosome_count == 2)
+				{
+					Haplosome *haplosome2 = individual->haplosomes_[haplosome_index + 1];
+					
+					if (!haplosome2)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for haplosome2." << EidosTerminate();
+					if (haplosome2->individual_ != individual)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between haplosome2->individual_ and individual." << EidosTerminate();
+					if (haplosome2->AssociatedChromosome() != chromosome)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2->AssociatedChromosome() mismatch." << EidosTerminate();
+					
+					if (!haplosome2->IsNull())
+					{
+						slim_position_t mutrun_count = chromosome->mutrun_count_;
+						slim_position_t mutrun_length = chromosome->mutrun_length_;
+						
+						if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
+					}
+					
+					if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
+						((haplosome2->mutrun_length_ == 0) && ((haplosome2->mutrun_count_ != 0) || (haplosome2->mutruns_ != nullptr))))
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mutrun count/length/pointer inconsistency." << EidosTerminate();
+					
+					// we don't check pedigree IDs for the child generation; they are not expected to be set up
+					
+					bool null_problem = false;
+					
+					switch (chromosome_type)
+					{
+							// haplosome2 should be null for these types
+						case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+							if (!haplosome2->IsNull())
+								null_problem = true;
+							break;
+							
+							// haplosome2 should be non-null for these types
+							
+							// haplosome2 should be null in females, non-null in males
+						case ChromosomeType::kZ_ZSexChromosome:
+						case ChromosomeType::kNullY_YSexChromosomeWithNull:
+							if (is_female != haplosome2->IsNull())
+								null_problem = true;
+							break;
+							
+							// haplosome2 should be null in males, non-null in females
+						case ChromosomeType::kX_XSexChromosome:
+							if (is_female == haplosome2->IsNull())
+								null_problem = true;
+							break;
+							
+							// we allow either for these types (to allow haplodiploidy, alternation of generations, etc.)
+						case ChromosomeType::kA_DiploidAutosome:
+							break;
+							
+							// haplosome2 should not exist at all for these types
+						case ChromosomeType::kH_HaploidAutosome:
+						case ChromosomeType::kY_YSexChromosome:
+						case ChromosomeType::kW_WSexChromosome:
+						case ChromosomeType::kHF_HaploidFemaleInherited:
+						case ChromosomeType::kFL_HaploidFemaleLine:
+						case ChromosomeType::kHM_HaploidMaleInherited:
+						case ChromosomeType::kML_HaploidMaleLine:
+							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) chromosome type should never be used for haplosome2." << EidosTerminate();
+							break;
+					}
+					
+					if (null_problem)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 mismatch between expected and actual null haplosome status." << EidosTerminate();
+					
+					if (!population_.child_generation_valid_)
+					{
+#if SLIM_CLEAR_HAPLOSOMES
+						// When the parental generation is valid, all child haplosomes should have null mutrun pointers [OBSOLETE: so mutrun refcounts are correct]
+						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+							if (haplosome2->mutruns_[mutrun_index] != nullptr)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a nonnull mutrun pointer." << EidosTerminate();
+#endif
+					}
+					else
+					{
+#if SLIM_CLEAR_HAPLOSOMES
+						// When the child generation is valid, all child haplosomes should have non-null mutrun pointers
+						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+							if (haplosome2->mutruns_[mutrun_index] == nullptr)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental haplosome has a null mutrun pointer." << EidosTerminate();
+#endif
+						
+						// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+						for (int mutrun_index = 0; mutrun_index < haplosome2->mutrun_count_; ++mutrun_index)
+						{
+							const MutationRun *mutrun = haplosome2->mutruns_[mutrun_index];
+							auto found_iter = mutrun_position_map.find(mutrun);
+							
+							if (found_iter == mutrun_position_map.end())
+								mutrun_position_map[mutrun] = mutrun_index;
+							else if (found_iter->second != mutrun_index)
+								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+						}
+					}
+				}
+				
+				haplosome_index += haplosome_count;
 			}
 		}
 	}
@@ -791,56 +1041,80 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//
 	// Check that every mutation run is being used at a position corresponding to the pool it was allocated from
 	//
-	slim_mutrun_index_t mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
-	
-	for (int thread_num = 0; thread_num < species_.SpeciesMutationRunContextCount(); ++thread_num)
+	for (Chromosome *chromosome : chromosomes)
 	{
-		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(thread_num);
-		MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
+		slim_mutrun_index_t mutrun_count_multiplier = chromosome->mutrun_count_multiplier_;
 		
-		for (const MutationRun *mutrun : in_use_pool)
+		for (int thread_num = 0; thread_num < chromosome->ChromosomeMutationRunContextCount(); ++thread_num)
 		{
-			auto found_iter = mutrun_position_map.find(mutrun);
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(thread_num);
+			MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
 			
-			if (found_iter != mutrun_position_map.end())
+			for (const MutationRun *mutrun : in_use_pool)
 			{
-				slim_mutrun_index_t used_at_index = found_iter->second;
-				int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+				auto found_iter = mutrun_position_map.find(mutrun);
 				
-				if (correct_thread_num != thread_num)
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
+				if (found_iter != mutrun_position_map.end())
+				{
+					slim_mutrun_index_t used_at_index = found_iter->second;
+					int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+					
+					if (correct_thread_num != thread_num)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
+				}
 			}
 		}
 	}
 	
 	//
-	//	Check the genome junkyards; all genomes should contain nullptr mutruns
+	//	Check the haplosome junkyards for correct state; BCH 10/15/2024 note that clearing to nullptr is no longer required
 	//
-	
-	if (!has_genetics && genome_junkyard_nonnull.size())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the nonnull genome junkyard should be empty in no-genetics species." << EidosTerminate();
-	
-	for (Genome *genome : genome_junkyard_nonnull)
+	for (Chromosome *chromosome : chromosomes)
 	{
-		if (genome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in the nonnull genome junkyard." << EidosTerminate();
-	}
-	
-	for (Genome *genome : genome_junkyard_null)
-	{
-		if (!genome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull genome in the null genome junkyard." << EidosTerminate();
+		const std::vector<Haplosome *> &haplosomes_junkyard_nonnull = chromosome->HaplosomesJunkyardNonnull();
+		const std::vector<Haplosome *> &haplosomes_junkyard_null = chromosome->HaplosomesJunkyardNull();
+		
+		if (!has_genetics && haplosomes_junkyard_null.size())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the null haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
+		if (!has_genetics && haplosomes_junkyard_nonnull.size())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the nonnull haplosome junkyard should be empty in no-genetics species." << EidosTerminate();
+		
+		for (Haplosome *haplosome : haplosomes_junkyard_nonnull)
+		{
+			if (haplosome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null haplosome in the nonnull haplosome junkyard." << EidosTerminate();
+			
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome->check_cleared_to_nullptr();
+#endif
+		}
+		
+		for (Haplosome *haplosome : haplosomes_junkyard_null)
+		{
+			if (!haplosome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull haplosome in the null haplosome junkyard." << EidosTerminate();
+			
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome->check_cleared_to_nullptr();
+#endif
+		}
 	}
 }
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Subpopulation_Class))), 
-	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
-	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population),
+	model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)),
+	individual_pool_(p_population.species_individual_pool_), individuals_junkyard_(p_population.species_individuals_junkyard_),
+	haplosome_count_per_individual_(p_population.species_.HaplosomeCountPerIndividual()),
+	parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
 #if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// if the species knows that its chromosomes involve null haplosomes, then we inherit that knowledge
+	has_null_haplosomes_ = species_.ChromosomesUseNullHaplosomes();
+	
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
 	
@@ -875,15 +1149,20 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid) :
+							 double p_sex_ratio, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Subpopulation_Class))),
-	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
-	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
-	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio), sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
+	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population),
+	model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)),
+	individual_pool_(p_population.species_individual_pool_), individuals_junkyard_(p_population.species_individuals_junkyard_),
+	haplosome_count_per_individual_(p_population.species_.HaplosomeCountPerIndividual()),
+	parent_subpop_size_(p_subpop_size), parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio), sex_enabled_(true)
 #if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
+	// if the species knows that its chromosomes involve null haplosomes, then we inherit that knowledge
+	has_null_haplosomes_ = species_.ChromosomesUseNullHaplosomes();
+	
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
 	
@@ -965,30 +1244,16 @@ Subpopulation::~Subpopulation(void)
 		free(cached_male_fitness_);
 	
 	{
-		// dispose of genomes and individuals with our object pools
-		for (Genome *genome : parent_genomes_)
-		{
-			genome->~Genome();
-			genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
-		}
-		
+		// dispose of haplosomes and individuals with our object pools
+		// note that these might get reused; this is not necessarily the simulation end
 		for (Individual *individual : parent_individuals_)
-		{
-			individual->~Individual();
-			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
-		}
-		
-		for (Genome *genome : child_genomes_)
-		{
-			genome->~Genome();
-			genome_pool_.DisposeChunk(const_cast<Genome *>(genome));
-		}
+			FreeSubpopIndividual(individual);
 		
 		for (Individual *individual : child_individuals_)
-		{
-			individual->~Individual();
-			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
-		}
+			FreeSubpopIndividual(individual);
+		
+		for (Individual *individual : nonWF_offspring_individuals_)
+			FreeSubpopIndividual(individual);
 	}
 	
 	for (const auto &map_pair : spatial_maps_)
@@ -1034,22 +1299,28 @@ void Subpopulation::SetName(const std::string &p_name)
 	name_ = p_name;
 }
 
-slim_refcount_t Subpopulation::NullGenomeCount(void)
+slim_refcount_t Subpopulation::NullHaplosomeCount(void)
 {
-	slim_refcount_t null_genome_count = 0;
+	if (population_.child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::NullHaplosomeCount): (internal error) called with child generation active!" << EidosTerminate();
 	
-	slim_popsize_t subpop_genome_count = CurrentGenomeCount();
-	std::vector<Genome *> &subpop_genomes = CurrentGenomes();
+	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+	slim_refcount_t null_haplosome_count = 0;
 	
-	for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+	for (Individual *ind : parent_individuals_)
 	{
-		Genome &genome = *subpop_genomes[i];
+		Haplosome **haplosomes = ind->haplosomes_;
 		
-		if (genome.IsNull())
-			null_genome_count++;
+		for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+		{
+			Haplosome *haplosome = haplosomes[haplosome_index];
+			
+			if (haplosome->IsNull())
+				null_haplosome_count++;
+		}
 	}
 	
-	return null_genome_count;
+	return null_haplosome_count;
 }
 
 #if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
@@ -1063,16 +1334,16 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 		{
 			int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
 			int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-			slim_popsize_t genomeCount = parent_subpop_size_ * 2;
+			slim_popsize_t haplosomeCount = parent_subpop_size_ * 2;
 			
-			for (slim_popsize_t genome_index = 0; genome_index < genomeCount; genome_index++)
+			for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosomeCount; haplosome_index++)
 			{
-				Genome *genome = parent_genomes_[genome_index];
-				const int32_t mutrun_count = genome->mutrun_count_;
+				Haplosome *haplosome = parent_haplosomes_[haplosome_index];
+				const int32_t mutrun_count = haplosome->mutrun_count_;
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					const MutationRun *mutrun = genome->mutruns_[run_index];
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
 					
 					// This will start a new task if the mutrun needs to validate
 					// its nonneutral cache.  It avoids doing so more than once.
@@ -1100,7 +1371,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	// This function calculates the population mean fitness as a side effect
 	double totalFitness = 0.0;
 	
-	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithGenomeIndices_NoCallbacks(),
+	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithHaplosomeIndices_NoCallbacks(),
 	// for more info on this complication.  Here we just figure out which version to call and set up for it.
 	int mutationEffect_callback_count = (int)p_mutationEffect_callbacks.size();
 	bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
@@ -1292,6 +1563,30 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 	}
 	
+	// determine the templated version of FitnessOfParent() that we will call out to for fitness evaluation
+	// see Population::EvolveSubpopulation() for further comments on this optimization technique
+	double (Subpopulation::*FitnessOfParent_TEMPLATED)(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
+	if (species_.DoingAnyMutationRunExperiments())
+	{
+		// If *any* chromosome is doing mutrun experiments, we can't template them out
+		if (!mutationEffect_callbacks_exist)
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, false, false>;
+		else if (single_mutationEffect_callback)
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, true, true>;
+		else
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<true, true, false>;
+	}
+	else
+	{
+		if (!mutationEffect_callbacks_exist)
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, false, false>;
+		else if (single_mutationEffect_callback)
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, true, true>;
+		else
+			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, true, false>;
+	}
+	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
 	{
@@ -1422,7 +1717,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1450,12 +1745,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1491,12 +1781,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(female_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1645,7 +1930,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1673,12 +1958,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1715,12 +1995,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(male_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1884,7 +2159,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
 							
 #ifdef SLIMGUI
 							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -1912,12 +2187,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						
 						if (fitness > 0.0)
 						{
-							if (!mutationEffect_callbacks_exist)
-								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-							else if (single_mutationEffect_callback)
-								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
-							else
-								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+							fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
 							
 							// multiply in the effects of any fitnessEffect() callbacks
 							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -1953,12 +2223,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					
 					if (fitness > 0.0)
 					{
-						if (!mutationEffect_callbacks_exist)
-							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
-						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+						fitness *= (this->*FitnessOfParent_TEMPLATED)(individual_index, p_mutationEffect_callbacks);
 						
 						// multiply in the effects of any fitnessEffect() callbacks
 						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
@@ -2436,450 +2701,427 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 	return computed_fitness;
 }
 
-// FitnessOfParentWithGenomeIndices has three versions, for no callbacks, a single callback, and multiple callbacks.  This is for two reasons.  First,
-// it allows the case without mutationEffect() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
-// is exactly 0.0f, as an optimization; but that optimization would be invalid in the callback case, since callbacks can change the relative fitness
-// of ostensibly neutral mutations.  For reasons of maintainability, the three versions should be kept in synch as closely as possible.
-//
-// When there is just a single callback, it usually refers to a mutation type that is relatively uncommon.  The model might have neutral mutations in most
-// cases, plus a rare (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common case substantially
-// by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
-// are many common mutations with no callback, plus one rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a
-// high mutation rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would hit this case hard and
-// see a speedup of as much as 25%, so the additional complexity seems worth it (since that's quite a realistic and common case).
-
-// This version of FitnessOfParentWithGenomeIndices assumes no callbacks exist.  It tests for neutral mutations and skips processing them.
-//
-double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_t p_individual_index)
+// FitnessOfParent() has three templated versions, for no callbacks, a single callback, and multiple callbacks.  That
+// pattern extends downward to _Fitness_DiploidChromosome() and _Fitness_HaploidChromosome(), which is the level where
+// it actually matters; in FitnessOfParent() the template flags just get passed through.  The goal of this design is
+// twofold.  First, it allows the case without mutationEffect() callbacks to run at full speed.  Second, it allows the
+// single-callback case to be optimized in a special way.  When there is just a single callback, it usually refers to
+// a mutation type that is relatively uncommon.  The model might have neutral mutations in most cases, plus a rare
+// (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common
+// case substantially by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type
+// that the callback modifies.  This pays off mostly when there are many common mutations with no callback, plus one
+// rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a high mutation
+// rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would
+// hit this case hard and see a speedup of as much as 25%, so the additional complexity seems worth it (since that's
+// quite a realistic and common case).  The only unfortunate thing about this design is that p_mutationEffect_callbacks
+// has to get passed all the way down, even when we know we won't use it.  LTO might optimize that away, with luck.
+template <const bool f_mutrunexps, const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
-	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
+	// calculate the fitness of the individual at index p_individual_index in the parent population
+	// this loops through all chromosomes, handling ploidy and callbacks as needed
 	double w = 1.0;
+	Individual *individual = parent_individuals_[p_individual_index];
+	int haplosome_index = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
+		
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
+				Haplosome *haplosome2 = individual->haplosomes_[haplosome_index+1];
+				
+				w *= _Fitness_DiploidChromosome<f_callbacks, f_singlecallback>(haplosome1, haplosome2, p_mutationEffect_callbacks);
+				if (w <= 0.0) {
+					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
+					return 0.0;
+				}
+				
+				haplosome_index += 2;
+				break;
+			}
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0) {
+					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
+					return 0.0;
+				}
+				
+				haplosome_index += 1;
+				break;
+			}
+				
+				// special cases: haploid but with an accompanying null
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0) {
+					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
+					return 0.0;
+				}
+				
+				haplosome_index += 2;
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index+1];
+				
+				w *= _Fitness_HaploidChromosome<f_callbacks, f_singlecallback>(haplosome, p_mutationEffect_callbacks);
+				if (w <= 0.0) {
+					if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
+					return 0.0;
+				}
+				
+				haplosome_index += 2;
+				break;
+			}
+		}
+		
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("FitnessOfParent()");
+	}
+	
+	return w;
+}
+
+template double Subpopulation::FitnessOfParent<false, false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<false, true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<false, true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<true, false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<true, true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::FitnessOfParent<true, true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+
+template <const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+	double w = 1.0;
+	bool haplosome1_null = haplosome1->IsNull();
+	bool haplosome2_null = haplosome2->IsNull();
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
 	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
 #endif
 	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
-	bool genome1_null = genome1->IsNull();
-	bool genome2_null = genome2->IsNull();
+	// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+	MutationType *single_callback_mut_type;
 	
-	if (genome1_null && genome2_null)
+	if (f_singlecallback)
 	{
-		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
+		// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+		
+		single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
+	}
+	
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	if (haplosome1_null && haplosome2_null)
+	{
+		// both haplosomes are null placeholders; no mutations, no fitness effects
 		return w;
 	}
-	else if (genome1_null || genome2_null)
+	else if (haplosome1_null || haplosome2_null)
 	{
-		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
-		const Genome *genome = genome1_null ? genome2 : genome1;
-		const int32_t mutrun_count = genome->mutrun_count_;
+		// one haplosome is null, so we just need to scan through the non-null haplosome and account
+		// for its mutations, including the haploid dominance coefficient
+		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
+		const int32_t mutrun_count = haplosome->mutrun_count_;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			const MutationRun *mutrun = genome->mutruns_[run_index];
+			const MutationRun *mutrun = haplosome->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome_iter, *genome_max;
+			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
-			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *genome_max = mutrun->end_pointer_const();
+			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
 #endif
 			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
-			while (genome_iter != genome_max)
-				w *= (mut_block_ptr + *genome_iter++)->cached_one_plus_haploiddom_sel_;
+			// with an unpaired chromosome, we multiply each selection coefficient by the haploid dominance coefficient
+			// this is for a single X chromosome in a male, for example; dosage compensation, as opposed to heterozygosity
+			while (haplosome_iter != haplosome_max)
+			{
+				MutationIndex haplosome_mutindex = *haplosome_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome_mutindex;
+				
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_haploiddom_sel_;
+				}
+			}
 		}
 		
 		return w;
 	}
 	else
 	{
-		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = genome1->mutrun_count_;
+		// both haplosomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
+		const int32_t mutrun_count = haplosome1->mutrun_count_;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
+			const MutationRun *mutrun1 = haplosome1->mutruns_[run_index];
+			const MutationRun *mutrun2 = haplosome2->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
+			const MutationIndex *haplosome1_iter, *haplosome2_iter, *haplosome1_max, *haplosome2_max;
 			
-			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun1->beginend_nonneutral_pointers(&haplosome1_iter, &haplosome1_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun2->beginend_nonneutral_pointers(&haplosome2_iter, &haplosome2_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
-			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
+			const MutationIndex *haplosome1_iter = mutrun1->begin_pointer_const();
+			const MutationIndex *haplosome2_iter = mutrun2->begin_pointer_const();
 			
-			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
+			const MutationIndex *haplosome1_max = mutrun1->end_pointer_const();
+			const MutationIndex *haplosome2_max = mutrun2->end_pointer_const();
 #endif
 			
-			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
-			if (genome1_iter != genome1_max && genome2_iter != genome2_max)
+			// first, handle the situation before either haplosome iterator has reached the end of its haplosome, for simplicity/speed
+			if (haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max)
 			{
-				MutationIndex genome1_mutation = *genome1_iter, genome2_mutation = *genome2_iter;
-				slim_position_t genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_, genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
+				MutationIndex haplosome1_mutindex = *haplosome1_iter, haplosome2_mutindex = *haplosome2_iter;
+				slim_position_t haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_, haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 				
 				do
 				{
-					if (genome1_iter_position < genome2_iter_position)
+					if (haplosome1_iter_position < haplosome2_iter_position)
 					{
-						// Process a mutation in genome1 since it is leading
-						w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
+						// Process a mutation in haplosome1 since it is leading
+						Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 						
-						if (++genome1_iter == genome1_max)
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+						else
+						{
+							w *= mutation->cached_one_plus_dom_sel_;
+						}
+						
+						if (++haplosome1_iter == haplosome1_max)
 							break;
 						else {
-							genome1_mutation = *genome1_iter;
-							genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
+							haplosome1_mutindex = *haplosome1_iter;
+							haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
 						}
 					}
-					else if (genome1_iter_position > genome2_iter_position)
+					else if (haplosome1_iter_position > haplosome2_iter_position)
 					{
-						// Process a mutation in genome2 since it is leading
-						w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
+						// Process a mutation in haplosome2 since it is leading
+						Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
 						
-						if (++genome2_iter == genome2_max)
+						if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+						{
+							w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+							
+							if (w <= 0.0)
+								return 0.0;
+						}
+						else
+						{
+							w *= mutation->cached_one_plus_dom_sel_;
+						}
+						
+						if (++haplosome2_iter == haplosome2_max)
 							break;
 						else {
-							genome2_mutation = *genome2_iter;
-							genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
+							haplosome2_mutindex = *haplosome2_iter;
+							haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 						}
 					}
 					else
 					{
-						// Look for homozygosity: genome1_iter_position == genome2_iter_position
-						slim_position_t position = genome1_iter_position;
-						const MutationIndex *genome1_start = genome1_iter;
+						// Look for homozygosity: haplosome1_iter_position == haplosome2_iter_position
+						slim_position_t position = haplosome1_iter_position;
+						const MutationIndex *haplosome1_start = haplosome1_iter;
 						
-						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
+						// advance through haplosome1 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							const MutationIndex *genome2_matchscan = genome2_iter; 
+							const MutationIndex *haplosome2_matchscan = haplosome2_iter; 
 							
-							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-							while (genome2_matchscan != genome2_max && (mut_block_ptr + *genome2_matchscan)->position_ == position)
+							// advance through haplosome2 with haplosome2_matchscan, looking for a match for the current mutation in haplosome1, to determine whether we are homozygous or not
+							while (haplosome2_matchscan != haplosome2_max && (mut_block_ptr + *haplosome2_matchscan)->position_ == position)
 							{
-								if (genome1_mutation == *genome2_matchscan) 		// note pointer equality test
+								if (haplosome1_mutindex == *haplosome2_matchscan)
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_;
+									Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+									
+									if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+									{
+										w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, true, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+										
+										if (w <= 0.0)
+											return 0.0;
+									}
+									else
+									{
+										w *= mutation->cached_one_plus_sel_;
+									}
 									goto homozygousExit1;
 								}
 								
-								genome2_matchscan++;
+								haplosome2_matchscan++;
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
+							{
+								Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
+								
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (w <= 0.0)
+										return 0.0;
+								}
+								else
+								{
+									w *= mutation->cached_one_plus_dom_sel_;
+								}
+							}
 							
 						homozygousExit1:
 							
-							if (++genome1_iter == genome1_max)
+							if (++haplosome1_iter == haplosome1_max)
 								break;
 							else {
-								genome1_mutation = *genome1_iter;
-								genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
+								haplosome1_mutindex = *haplosome1_iter;
+								haplosome1_iter_position = (mut_block_ptr + haplosome1_mutindex)->position_;
 							}
-						} while (genome1_iter_position == position);
+						} while (haplosome1_iter_position == position);
 						
-						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
+						// advance through haplosome2 as long as we remain at the same position, handling one mutation at a time
 						do
 						{
-							const MutationIndex *genome1_matchscan = genome1_start; 
+							const MutationIndex *haplosome1_matchscan = haplosome1_start; 
 							
-							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-							while (genome1_matchscan != genome1_max && (mut_block_ptr + *genome1_matchscan)->position_ == position)
+							// advance through haplosome1 with haplosome1_matchscan, looking for a match for the current mutation in haplosome2, to determine whether we are homozygous or not
+							while (haplosome1_matchscan != haplosome1_max && (mut_block_ptr + *haplosome1_matchscan)->position_ == position)
 							{
-								if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
+								if (haplosome2_mutindex == *haplosome1_matchscan)
 								{
-									// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
+									// a match was found; we know this match was already found by the haplosome1 loop above, so our fitness has already been multiplied appropriately
 									goto homozygousExit2;
 								}
 								
-								genome1_matchscan++;
+								haplosome1_matchscan++;
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
+							{
+								Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
+								
+								if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+								{
+									w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+									
+									if (w <= 0.0)
+										return 0.0;
+								}
+								else
+								{
+									w *= mutation->cached_one_plus_dom_sel_;
+								}
+							}
 							
 						homozygousExit2:
 							
-							if (++genome2_iter == genome2_max)
+							if (++haplosome2_iter == haplosome2_max)
 								break;
 							else {
-								genome2_mutation = *genome2_iter;
-								genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
+								haplosome2_mutindex = *haplosome2_iter;
+								haplosome2_iter_position = (mut_block_ptr + haplosome2_mutindex)->position_;
 							}
-						} while (genome2_iter_position == position);
+						} while (haplosome2_iter_position == position);
 						
-						// break out if either genome has reached its end
-						if (genome1_iter == genome1_max || genome2_iter == genome2_max)
+						// break out if either haplosome has reached its end
+						if (haplosome1_iter == haplosome1_max || haplosome2_iter == haplosome2_max)
 							break;
 					}
 				} while (true);
 			}
 			
-			// one or the other genome has now reached its end, so now we just need to handle the remaining mutations in the unfinished genome
+			// one or the other haplosome has now reached its end, so now we just need to handle the remaining mutations in the unfinished haplosome
 #if DEBUG
-			assert(!(genome1_iter != genome1_max && genome2_iter != genome2_max));
+			assert(!(haplosome1_iter != haplosome1_max && haplosome2_iter != haplosome2_max));
 #endif
 			
-			// if genome1 is unfinished, finish it
-			while (genome1_iter != genome1_max)
-				w *= (mut_block_ptr + *genome1_iter++)->cached_one_plus_dom_sel_;
-			
-			// if genome2 is unfinished, finish it
-			while (genome2_iter != genome2_max)
-				w *= (mut_block_ptr + *genome2_iter++)->cached_one_plus_dom_sel_;
-		}
-		
-		return w;
-	}
-}
-
-// This version of FitnessOfParentWithGenomeIndices assumes multiple callbacks exist.  It doesn't optimize neutral mutations since they might be modified by callbacks.
-//
-double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
-{
-	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
-	double w = 1.0;
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
-	bool genome1_null = genome1->IsNull();
-	bool genome2_null = genome2->IsNull();
-	
-	if (genome1_null && genome2_null)
-	{
-		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
-		return w;
-	}
-	else if (genome1_null || genome2_null)
-	{
-		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
-		const Genome *genome = genome1_null ? genome2 : genome1;
-		const int32_t mutrun_count = genome->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun = genome->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome_iter, *genome_max;
-			
-			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *genome_max = mutrun->end_pointer_const();
-#endif
-			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
-			while (genome_iter != genome_max)
+			// if haplosome1 is unfinished, finish it
+			while (haplosome1_iter != haplosome1_max)
 			{
-				MutationIndex genome_mutation = *genome_iter;
+				MutationIndex haplosome1_mutindex = *haplosome1_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome1_mutindex;
 				
-				w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				genome_iter++;
-			}
-		}
-		
-		return w;
-	}
-	else
-	{
-		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = genome1->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
-			
-			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
-			
-			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
-#endif
-			
-			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
-			if (genome1_iter != genome1_max && genome2_iter != genome2_max)
-			{
-				MutationIndex genome1_mutation = *genome1_iter, genome2_mutation = *genome2_iter;
-				slim_position_t genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_, genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
-				
-				do
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					if (genome1_iter_position < genome2_iter_position)
-					{
-						// Process a mutation in genome1 since it is leading
-						w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-						
-						if (w <= 0.0)
-							return 0.0;
-						
-						if (++genome1_iter == genome1_max)
-							break;
-						else {
-							genome1_mutation = *genome1_iter;
-							genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
-						}
-					}
-					else if (genome1_iter_position > genome2_iter_position)
-					{
-						// Process a mutation in genome2 since it is leading
-						w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-						
-						if (w <= 0.0)
-							return 0.0;
-						
-						if (++genome2_iter == genome2_max)
-							break;
-						else {
-							genome2_mutation = *genome2_iter;
-							genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
-						}
-					}
-					else
-					{
-						// Look for homozygosity: genome1_iter_position == genome2_iter_position
-						slim_position_t position = genome1_iter_position;
-						const MutationIndex *genome1_start = genome1_iter;
-						
-						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *genome2_matchscan = genome2_iter; 
-							
-							// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-							while (genome2_matchscan != genome2_max && (mut_block_ptr + *genome2_matchscan)->position_ == position)
-							{
-								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
-								{
-									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
-									
-									goto homozygousExit3;
-								}
-								
-								genome2_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-						homozygousExit3:
-							
-							if (w <= 0.0)
-								return 0.0;
-							
-							if (++genome1_iter == genome1_max)
-								break;
-							else {
-								genome1_mutation = *genome1_iter;
-								genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
-							}
-						} while (genome1_iter_position == position);
-						
-						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							const MutationIndex *genome1_matchscan = genome1_start; 
-							
-							// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-							while (genome1_matchscan != genome1_max && (mut_block_ptr + *genome1_matchscan)->position_ == position)
-							{
-								if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
-								{
-									// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
-									goto homozygousExit4;
-								}
-								
-								genome1_matchscan++;
-							}
-							
-							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-							
-						homozygousExit4:
-							
-							if (++genome2_iter == genome2_max)
-								break;
-							else {
-								genome2_mutation = *genome2_iter;
-								genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
-							}
-						} while (genome2_iter_position == position);
-						
-						// break out if either genome has reached its end
-						if (genome1_iter == genome1_max || genome2_iter == genome2_max)
-							break;
-					}
-				} while (true);
+					w *= ApplyMutationEffectCallbacks(haplosome1_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_dom_sel_;
+				}
 			}
 			
-			// one or the other genome has now reached its end, so now we just need to handle the remaining mutations in the unfinished genome
-			assert(!(genome1_iter != genome1_max && genome2_iter != genome2_max));
-			
-			// if genome1 is unfinished, finish it
-			while (genome1_iter != genome1_max)
+			// if haplosome2 is unfinished, finish it
+			while (haplosome2_iter != haplosome2_max)
 			{
-				MutationIndex genome1_mutation = *genome1_iter;
+				MutationIndex haplosome2_mutindex = *haplosome2_iter++;
+				Mutation *mutation = mut_block_ptr + haplosome2_mutindex;
 				
-				w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				genome1_iter++;
-			}
-			
-			// if genome2 is unfinished, finish it
-			while (genome2_iter != genome2_max)
-			{
-				MutationIndex genome2_mutation = *genome2_iter;
-				
-				w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-				
-				if (w <= 0.0)
-					return 0.0;
-				
-				genome2_iter++;
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
+				{
+					w *= ApplyMutationEffectCallbacks(haplosome2_mutindex, false, mutation->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, haplosome1->individual_);
+					
+					if (w <= 0.0)
+						return 0.0;
+				}
+				else
+				{
+					w *= mutation->cached_one_plus_dom_sel_;
+				}
 			}
 		}
 		
@@ -2887,341 +3129,84 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	}
 }
 
-// This version of FitnessOfParentWithGenomeIndices assumes a single callback exists, modifying the given mutation type.  It is a hybrid of the previous two versions.
-//
-double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type)
+template double Subpopulation::_Fitness_DiploidChromosome<false, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_DiploidChromosome<true, false>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_DiploidChromosome<true, true>(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+
+template <const bool f_callbacks, const bool f_singlecallback>
+double Subpopulation::_Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
-	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
-	double w = 1.0;
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
-	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
-#endif
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
-	bool genome1_null = genome1->IsNull();
-	bool genome2_null = genome2->IsNull();
-	
-	if (genome1_null && genome2_null)
+	if (haplosome->IsNull())
 	{
-		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
-		return w;
-	}
-	else if (genome1_null || genome2_null)
-	{
-		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
-		const Genome *genome = genome1_null ? genome2 : genome1;
-		const int32_t mutrun_count = genome->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
-		{
-			const MutationRun *mutrun = genome->mutruns_[run_index];
-			
-#if SLIM_USE_NONNEUTRAL_CACHES
-			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome_iter, *genome_max;
-			
-			mutrun->beginend_nonneutral_pointers(&genome_iter, &genome_max, nonneutral_change_counter, nonneutral_regime);
-#else
-			// Read directly from the MutationRun buffers
-			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *genome_max = mutrun->end_pointer_const();
-#endif
-			
-			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
-			while (genome_iter != genome_max)
-			{
-				MutationIndex genome_mutation = *genome_iter;
-				
-				if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_;
-				}
-				
-				genome_iter++;
-			}
-		}
-		
-		return w;
+		// the haplosome is a null placeholder; no mutations, no fitness effects
+		return 1.0;
 	}
 	else
 	{
-		// both genomes are being modeled, so we need to scan through and figure out which mutations are heterozygous and which are homozygous
-		const int32_t mutrun_count = genome1->mutrun_count_;
+		// we just need to scan through the haplosome and account for its mutations,
+		// using the homozygous fitness effect (no dominance effects with haploidy)
+#if SLIM_USE_NONNEUTRAL_CACHES
+		int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+		int32_t nonneutral_regime = species_.last_nonneutral_regime_;
+#endif
+		
+		// resolve the mutation type for the single callback case; we don't pass this in to keep the non-callback case simple and fast
+		MutationType *single_callback_mut_type;
+		
+		if (f_singlecallback)
+		{
+			// our caller already did this lookup, to select this case, so this lookup is guaranteed to succeed
+			slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+			
+			single_callback_mut_type = species_.MutationTypeWithID(mutation_type_id);
+		}
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const int32_t mutrun_count = haplosome->mutrun_count_;
+		double w = 1.0;
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
-			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
+			const MutationRun *mutrun = haplosome->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
-			const MutationIndex *genome1_iter, *genome2_iter, *genome1_max, *genome2_max;
+			const MutationIndex *haplosome_iter, *haplosome_max;
 			
-			mutrun1->beginend_nonneutral_pointers(&genome1_iter, &genome1_max, nonneutral_change_counter, nonneutral_regime);
-			mutrun2->beginend_nonneutral_pointers(&genome2_iter, &genome2_max, nonneutral_change_counter, nonneutral_regime);
+			mutrun->beginend_nonneutral_pointers(&haplosome_iter, &haplosome_max, nonneutral_change_counter, nonneutral_regime);
 #else
 			// Read directly from the MutationRun buffers
-			const MutationIndex *genome1_iter = mutrun1->begin_pointer_const();
-			const MutationIndex *genome2_iter = mutrun2->begin_pointer_const();
-			
-			const MutationIndex *genome1_max = mutrun1->end_pointer_const();
-			const MutationIndex *genome2_max = mutrun2->end_pointer_const();
+			const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
 #endif
 			
-			// first, handle the situation before either genome iterator has reached the end of its genome, for simplicity/speed
-			if (genome1_iter != genome1_max && genome2_iter != genome2_max)
+			// with a haploid chromosome, we use the homozygous fitness effect
+			while (haplosome_iter != haplosome_max)
 			{
-				MutationIndex genome1_mutation = *genome1_iter, genome2_mutation = *genome2_iter;
-				slim_position_t genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_, genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
+				MutationIndex haplosome_mutation = *haplosome_iter++;
+				Mutation *mutation = (mut_block_ptr + haplosome_mutation);
 				
-				do
+				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					if (genome1_iter_position < genome2_iter_position)
-					{
-						// Process a mutation in genome1 since it is leading
-						MutationType *genome1_muttype = (mut_block_ptr + genome1_mutation)->mutation_type_ptr_;
-						
-						if (genome1_muttype == p_single_callback_mut_type)
-						{
-							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
-						}
-						
-						if (++genome1_iter == genome1_max)
-							break;
-						else {
-							genome1_mutation = *genome1_iter;
-							genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
-						}
-					}
-					else if (genome1_iter_position > genome2_iter_position)
-					{
-						// Process a mutation in genome2 since it is leading
-						MutationType *genome2_muttype = (mut_block_ptr + genome2_mutation)->mutation_type_ptr_;
-						
-						if (genome2_muttype == p_single_callback_mut_type)
-						{
-							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-						else
-						{
-							w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
-						}
-						
-						if (++genome2_iter == genome2_max)
-							break;
-						else {
-							genome2_mutation = *genome2_iter;
-							genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
-						}
-					}
-					else
-					{
-						// Look for homozygosity: genome1_iter_position == genome2_iter_position
-						slim_position_t position = genome1_iter_position;
-						const MutationIndex *genome1_start = genome1_iter;
-						
-						// advance through genome1 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							MutationType *genome1_muttype = (mut_block_ptr + genome1_mutation)->mutation_type_ptr_;
-							
-							if (genome1_muttype == p_single_callback_mut_type)
-							{
-								const MutationIndex *genome2_matchscan = genome2_iter; 
-								
-								// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-								while (genome2_matchscan != genome2_max && (mut_block_ptr + *genome2_matchscan)->position_ == position)
-								{
-									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
-									{
-										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
-										
-										goto homozygousExit5;
-									}
-									
-									genome2_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-								
-							homozygousExit5:
-								
-								if (w <= 0.0)
-									return 0.0;
-							}
-							else
-							{
-								const MutationIndex *genome2_matchscan = genome2_iter; 
-								
-								// advance through genome2 with genome2_matchscan, looking for a match for the current mutation in genome1, to determine whether we are homozygous or not
-								while (genome2_matchscan != genome2_max && (mut_block_ptr + *genome2_matchscan)->position_ == position)
-								{
-									if (genome1_mutation == *genome2_matchscan) 		// note pointer equality test
-									{
-										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_;
-										goto homozygousExit6;
-									}
-									
-									genome2_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
-								
-							homozygousExit6:
-								;
-							}
-							
-							if (++genome1_iter == genome1_max)
-								break;
-							else {
-								genome1_mutation = *genome1_iter;
-								genome1_iter_position = (mut_block_ptr + genome1_mutation)->position_;
-							}
-						} while (genome1_iter_position == position);
-						
-						// advance through genome2 as long as we remain at the same position, handling one mutation at a time
-						do
-						{
-							MutationType *genome2_muttype = (mut_block_ptr + genome2_mutation)->mutation_type_ptr_;
-							
-							if (genome2_muttype == p_single_callback_mut_type)
-							{
-								const MutationIndex *genome1_matchscan = genome1_start; 
-								
-								// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-								while (genome1_matchscan != genome1_max && (mut_block_ptr + *genome1_matchscan)->position_ == position)
-								{
-									if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
-									{
-										// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
-										goto homozygousExit7;
-									}
-									
-									genome1_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-								
-								if (w <= 0.0)
-									return 0.0;
-								
-							homozygousExit7:
-								;
-							}
-							else
-							{
-								const MutationIndex *genome1_matchscan = genome1_start; 
-								
-								// advance through genome1 with genome1_matchscan, looking for a match for the current mutation in genome2, to determine whether we are homozygous or not
-								while (genome1_matchscan != genome1_max && (mut_block_ptr + *genome1_matchscan)->position_ == position)
-								{
-									if (genome2_mutation == *genome1_matchscan)		// note pointer equality test
-									{
-										// a match was found; we know this match was already found by the genome1 loop above, so our fitness has already been multiplied appropriately
-										goto homozygousExit8;
-									}
-									
-									genome1_matchscan++;
-								}
-								
-								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
-								
-							homozygousExit8:
-								;
-							}
-							
-							if (++genome2_iter == genome2_max)
-								break;
-							else {
-								genome2_mutation = *genome2_iter;
-								genome2_iter_position = (mut_block_ptr + genome2_mutation)->position_;
-							}
-						} while (genome2_iter_position == position);
-						
-						// break out if either genome has reached its end
-						if (genome1_iter == genome1_max || genome2_iter == genome2_max)
-							break;
-					}
-				} while (true);
-			}
-			
-			// one or the other genome has now reached its end, so now we just need to handle the remaining mutations in the unfinished genome
-			assert(!(genome1_iter != genome1_max && genome2_iter != genome2_max));
-			
-			// if genome1 is unfinished, finish it
-			while (genome1_iter != genome1_max)
-			{
-				MutationIndex genome1_mutation = *genome1_iter;
-				MutationType *genome1_muttype = (mut_block_ptr + genome1_mutation)->mutation_type_ptr_;
-				
-				if (genome1_muttype == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutation, -1, mutation->cached_one_plus_sel_, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_;
+					w *= mutation->cached_one_plus_sel_;
 				}
-				
-				genome1_iter++;
-			}
-			
-			// if genome2 is unfinished, finish it
-			while (genome2_iter != genome2_max)
-			{
-				MutationIndex genome2_mutation = *genome2_iter;
-				MutationType *genome2_muttype = (mut_block_ptr + genome2_mutation)->mutation_type_ptr_;
-				
-				if (genome2_muttype == p_single_callback_mut_type)
-				{
-					w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
-					
-					if (w <= 0.0)
-						return 0.0;
-				}
-				else
-				{
-					w *= (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_;
-				}
-				
-				genome2_iter++;
 			}
 		}
 		
 		return w;
 	}
 }
+
+template double Subpopulation::_Fitness_HaploidChromosome<false, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_HaploidChromosome<true, false>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+template double Subpopulation::_Fitness_HaploidChromosome<true, true>(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 
 // WF only:
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
@@ -3249,26 +3234,22 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 	}
 }
 
-void Subpopulation::SwapChildAndParentGenomes(void)
+void Subpopulation::SwapChildAndParentHaplosomes(void)
 {
 	bool will_need_new_children = false;
 	
-	// If there are any differences between the parent and child genome setups (due to change in subpop size, sex ratio, etc.), we will need to create new child genomes after swapping
-	// This is because the parental genomes, which are based on the old parental values, will get swapped in to the children, but they will be out of date.
-	if (parent_subpop_size_ != child_subpop_size_ || parent_sex_ratio_ != child_sex_ratio_ || parent_first_male_index_ != child_first_male_index_)
+	// If there are any differences between the parent and child haplosome setups (due to change in subpop size, sex ratio, etc.), we will need to create new child haplosomes after swapping
+	// This is because the parental haplosomes, which are based on the old parental values, will get swapped in to the children, but they will be out of date.
+	if ((parent_subpop_size_ != child_subpop_size_) || (parent_sex_ratio_ != child_sex_ratio_) || (parent_first_male_index_ != child_first_male_index_))
 		will_need_new_children = true;
 	
-	// Execute the genome swap
-	child_genomes_.swap(parent_genomes_);
-	cached_child_genomes_value_.swap(cached_parent_genomes_value_);
-	
-	// Execute a swap of individuals as well; since individuals carry so little baggage, this is mostly important just for moving tag values
+	// Execute the swap of the individuals
 	child_individuals_.swap(parent_individuals_);
-	cached_child_individuals_value_.swap(cached_parent_individuals_value_);
+	cached_parent_individuals_value_.reset();
 	
 	// Clear out any dictionary values and color values stored in what are now the child individuals; since this is per-individual it
 	// takes a significant amount of time, so we try to minimize the overhead by doing it only when these facilities have been used
-	// BCH 6 April 2019: likewise, now, with resetting tags in individuals and genomes to the "unset" value
+	// BCH 6 April 2019: likewise, now, with resetting tags in individuals and haplosomes to the "unset" value
 	// BCH 21 November 2020: likewise, now, for resetting reproductive output
 	if (Individual::s_any_individual_dictionary_set_)
 	{
@@ -3302,12 +3283,20 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 			child->tagL4_set_ = false;
 		}
 	}
-	if (Individual::s_any_genome_tag_set_)
+	if (Individual::s_any_haplosome_tag_set_)
 	{
+		int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+		
 		for (Individual *child : child_individuals_)
 		{
-			child->genome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
-			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			Haplosome **haplosomes = child->haplosomes_;
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
+			}
 		}
 	}
 	
@@ -3322,12 +3311,1776 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	parent_sex_ratio_ = child_sex_ratio_;
 	parent_first_male_index_ = child_first_male_index_;
 	
-	// mark the child generation as invalid, until it is generated
-	child_generation_valid_ = false;
-	
-	// The parental genomes, which have now been swapped into the child genome vactor, no longer fit the bill.  We need to throw them out and generate new genome vectors.
+	// The parental haplosomes, which have now been swapped into the child haplosome vactor, no longer fit the bill.  We need to throw them out and generate new haplosome vectors.
 	if (will_need_new_children)
 		GenerateChildrenToFitWF();
+}
+
+Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex)
+{
+	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
+	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
+	
+#if DEBUG
+	IndividualSex parent1_sex = p_parent1->sex_;
+	IndividualSex parent2_sex = p_parent2->sex_;
+	
+	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of each parent
+	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
+	
+	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
+	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+	if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
+	if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+	
+	// Create the offspring and record it
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
+	
+	if (pedigrees_enabled)
+		individual->TrackParentage_Biparental(p_pedigree_id, *p_parent1, *p_parent2);
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	
+	if (recording_tree_sequence)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
+	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
+	
+	// Configure the offspring's haplosomes one by one
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// each haplosome is generated by recombination between a pair of parental haplosomes
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// parent 1 copy 1
+					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+				}
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+					
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+				}
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			{
+				// the haplosome is generated by recombination between the haplosomes of the two parents
+				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];				// parent 1 copy
+				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			{
+				// one X comes from recombination from the female parent, the other (to females only) clonally from the male parent
+				// so females are XX, males are X-
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's X 1
+					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+				}
+				{
+					if (p_child_sex == IndividualSex::kFemale)
+					{
+						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
+						haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+						
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome1, parent2_mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];	// male's - (from male)
+						haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+					}
+				}
+				break;
+			}
+			case ChromosomeType::kY_YSexChromosome:
+			{
+				// the Y comes (to males only) clonally from the male parent
+				// so females are -, males are Y
+				if (p_child_sex == IndividualSex::kMale)
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's -
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				break;
+			}
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				// one Z comes (to males only) clonally from the female parent, the other from recombination from the male parent
+				// so females are -Z, males are ZZ (note we think of it as WZ, not ZW, since the female parent is always the first parent)
+				{
+					if (p_child_sex == IndividualSex::kMale)
+					{
+						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
+						haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+						
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome2, parent1_mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];		// female's -
+						haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+					}
+				}
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Z
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+					
+					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+				}
+				break;
+			}
+			case ChromosomeType::kW_WSexChromosome:
+			{
+				// the W comes (to females only) clonally from the female parent
+				// so females are W, males are -
+				if (p_child_sex == IndividualSex::kFemale)
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's -
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				break;
+			}
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			{
+				// haploid, inherited clonally from the female for both sexes, like the W for females
+				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+				break;
+			}
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			{
+				// this comes (to females only) clonally from the female parent, just like a W
+				if (p_child_sex == IndividualSex::kFemale)
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's -
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				break;
+			}
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			{
+				// haploid, inherited clonally from the male for both sexes, like the Y for males
+				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+				break;
+			}
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				// this comes (to males only) clonally from the male parent, just like a Y
+				if (p_child_sex == IndividualSex::kMale)
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's -
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// parent 1 copy 1
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, parental_haplosome2, haplosome1, chromosome);
+				}
+				{
+					if (p_child_sex == IndividualSex::kMale)
+					{
+						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
+						haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+						
+						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, parent2_mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's -
+						haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+					}
+				}
+				break;
+			}
+		}
+		
+		chromosome->StopMutationRunExperimentClock("GenerateIndividualCrossed()");
+		
+		// For each haplosome generated, we need to add them to the individual.  We also need
+		// to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
+			
+			if (pedigrees_enabled)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (haplosome1->IsNull() && recording_tree_sequence)
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
+			
+			if (pedigrees_enabled)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (haplosome2->IsNull() && recording_tree_sequence)
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+		
+		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
+		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			if (pedigrees_enabled)
+				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
+			
+			FreeSubpopIndividual(individual);
+			individual = nullptr;
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
+{
+	Subpopulation &parent_subpop = *p_parent->subpopulation_;
+	
+#if DEBUG
+	IndividualSex parent_sex = p_parent->sex_;
+	
+	if (parent_sex != IndividualSex::kHermaphrodite)
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be hermaphroditic." << EidosTerminate();
+	if (p_parent->index_ == -1)
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of each parent
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	
+	if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	
+	// Create the offspring and record it
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
+	
+	if (pedigrees_enabled)
+		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	
+	if (recording_tree_sequence)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
+	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Configure the offspring's haplosomes one by one
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// each haplosome is generated by recombination between the pair of parental haplosomes
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];			// parent copy 1
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
+				
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				
+				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			{
+				// the haplosome is generated by recombination between the haplosome of the parent and itself
+				// but since the one haplosome is identical to itself, that is the same thing as cloning
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];				// parent copy
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
+				break;
+		}
+		
+		chromosome->StopMutationRunExperimentClock("GenerateIndividualSelfed()");
+		
+		// For each haplosome generated, we need to add them to the individual.  We also need
+		// to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
+			
+			if (pedigrees_enabled)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (haplosome1->IsNull() && recording_tree_sequence)
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
+			
+			if (pedigrees_enabled)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (haplosome2->IsNull() && recording_tree_sequence)
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+		
+		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
+		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			if (pedigrees_enabled)
+				individual->RevokeParentage_Uniparental(*p_parent);
+			
+			FreeSubpopIndividual(individual);
+			individual = nullptr;
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
+{
+	IndividualSex parent_sex = p_parent->sex_;
+	Subpopulation &parent_subpop = *p_parent->subpopulation_;
+	
+#if DEBUG
+	if (p_parent->index_ == -1)
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of each parent
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	
+	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	
+	// Create the offspring and record it
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
+	
+	if (pedigrees_enabled)
+		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
+	
+	// TREE SEQUENCE RECORDING
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	
+	if (recording_tree_sequence)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
+	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Configure the offspring's haplosomes one by one
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		// We just faithfully clone the existing haplosomes of the parent, regardless of type
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+				// these chromosome types keep two haplosomes per individual
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				
+				if (parental_haplosome1->IsNull())
+				{
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				}
+				else
+				{
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+				
+				if (parental_haplosome2->IsNull())
+				{
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				}
+				else
+				{
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				}
+				break;
+			}
+				
+				// these chromosome types keep one haplosome per individual
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				Haplosome *parental_haplosome = p_parent->haplosomes_[currentHaplosomeIndex];
+				
+				if (parental_haplosome->IsNull())
+				{
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				}
+				else
+				{
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
+				}
+				break;
+			}
+		}
+		
+		chromosome->StopMutationRunExperimentClock("GenerateIndividualCloned()");
+		
+		// For each haplosome generated, we need to add them to the individual.  We also need
+		// to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
+			
+			if (pedigrees_enabled)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (haplosome1->IsNull() && recording_tree_sequence)
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
+			
+			if (pedigrees_enabled)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (haplosome2->IsNull() && recording_tree_sequence)
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+		
+		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
+		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_.size())
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			// revoke parentage
+			if (pedigrees_enabled)
+				individual->RevokeParentage_Uniparental(*p_parent);
+			
+			FreeSubpopIndividual(individual);
+			individual = nullptr;
+			
+			// TREE SEQUENCE RECORDING
+			if (recording_tree_sequence)
+				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex)
+{
+	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
+	
+#if DEBUG
+	Subpopulation &parent2_subpop = *p_parent2->subpopulation_;
+	
+	if (&parent1_subpop != &parent2_subpop)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 and parent2 must belong to the same subpopulation; that is assumed, since this method is called only for WF reproduction." << EidosTerminate();
+	
+	IndividualSex parent1_sex = p_parent1->sex_;
+	IndividualSex parent2_sex = p_parent2->sex_;
+	
+	if ((sex_enabled_ && (parent1_sex != IndividualSex::kFemale)) || (!sex_enabled_ && (parent1_sex != IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 must be female in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+	if ((sex_enabled_ && (parent2_sex != IndividualSex::kMale)) || (!sex_enabled_ && (parent2_sex != IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent2 must be male in sexual models, or hermaphroditic in non-sexual models." << EidosTerminate();
+	if ((p_parent1->index_ == -1) || (p_parent2->index_ == -1))
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
+	
+	if (f_callbacks)
+	{
+		recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+		mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent1_subpop.registered_modify_child_callbacks_;
+		
+		if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
+	
+	// Record the offspring
+	if (f_pedigree_rec)
+		individual->TrackParentage_Biparental(p_pedigree_id, *p_parent1, *p_parent2);
+	
+	// TREE SEQUENCE RECORDING
+	if (f_treeseq)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
+	
+	// Configure the offspring's haplosomes one by one
+	Haplosome **haplosomes = individual->haplosomes_;
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// each haplosome is generated by recombination between a pair of parental haplosomes
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// parent 1 copy 1
+					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				}
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
+					haplosome2 = haplosomes[currentHaplosomeIndex+1];
+					
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			{
+				// the haplosome is generated by recombination between the haplosomes of the two parents
+				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];				// parent 1 copy
+				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			{
+				// one X comes from recombination from the female parent, the other (to females only) clonally from the male parent
+				// so females are XX, males are X-
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's X 1
+					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				}
+				{
+					if (p_child_sex == IndividualSex::kFemale)
+					{
+						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
+						haplosome2 = haplosomes[currentHaplosomeIndex+1];
+						
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];	// male's - (from male)
+						haplosome2 = haplosomes[currentHaplosomeIndex+1];
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+					}
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kY_YSexChromosome:
+			{
+				// the Y comes (to males only) clonally from the male parent
+				// so females are -, males are Y
+				if (p_child_sex == IndividualSex::kMale)
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's -
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				// one Z comes (to males only) clonally from the female parent, the other from recombination from the male parent
+				// so females are -Z, males are ZZ (note we think of it as WZ, not ZW, since the female parent is always the first parent)
+				{
+					if (p_child_sex == IndividualSex::kMale)
+					{
+						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
+						haplosome1 = haplosomes[currentHaplosomeIndex];
+						
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome2, mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];		// female's -
+						haplosome1 = haplosomes[currentHaplosomeIndex];
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+					}
+				}
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Z
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
+					haplosome2 = haplosomes[currentHaplosomeIndex+1];
+					
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kW_WSexChromosome:
+			{
+				// the W comes (to females only) clonally from the female parent
+				// so females are W, males are -
+				if (p_child_sex == IndividualSex::kFemale)
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's -
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			{
+				// haploid, inherited clonally from the female for both sexes, like the W for females
+				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			{
+				// this comes (to females only) clonally from the female parent, just like a W
+				if (p_child_sex == IndividualSex::kFemale)
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's -
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			{
+				// haploid, inherited clonally from the male for both sexes, like the Y for males
+				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				// this comes (to males only) clonally from the male parent, just like a Y
+				if (p_child_sex == IndividualSex::kMale)
+				{
+					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				else
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's -
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				}
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				{
+					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// parent 1 copy 1
+					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, parental_haplosome2, haplosome1, chromosome);
+				}
+				{
+					if (p_child_sex == IndividualSex::kMale)
+					{
+						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
+						haplosome2 = haplosomes[currentHaplosomeIndex+1];
+						
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					}
+					else
+					{
+						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's -
+						haplosome2 = haplosomes[currentHaplosomeIndex+1];
+						
+						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+					}
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+		}
+		
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("MungeIndividualCrossed()");
+		
+		// We need to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			if (f_pedigree_rec)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (f_treeseq && haplosome1->IsNull())
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			if (f_pedigree_rec)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (f_treeseq && haplosome2->IsNull())
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_)
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			// back out child state we created; this restores it to a reuseable state
+			// FIXME we could back out the assigned pedigree ID too
+			
+#if SLIM_CLEAR_HAPLOSOMES
+			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
+			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				haplosomes[haplosome_index]->clear_to_nullptr();
+#endif
+			
+			// revoke parentage
+			if (f_pedigree_rec)
+				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
+			
+			// TREE SEQUENCE RECORDING
+			if (f_treeseq)
+				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template bool Subpopulation::MungeIndividualCrossed<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
+{
+	Subpopulation &parent_subpop = *p_parent->subpopulation_;
+	
+#if DEBUG
+	IndividualSex parent_sex = p_parent->sex_;
+	
+	if (parent_sex != IndividualSex::kHermaphrodite)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
+	if (p_parent->index_ == -1)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of each parent
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
+	
+	if (f_callbacks)
+	{
+		recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
+	
+	// Record the offspring
+	if (f_pedigree_rec)
+		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
+	
+	// TREE SEQUENCE RECORDING
+	if (f_treeseq)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Configure the offspring's haplosomes one by one
+	Haplosome **haplosomes = individual->haplosomes_;
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// each haplosome is generated by recombination between the pair of parental haplosomes
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];			// parent copy 1
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
+				
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				
+				haplosome2 = haplosomes[currentHaplosomeIndex+1];
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			{
+				// the haplosome is generated by recombination between the haplosome of the parent and itself
+				// but since the one haplosome is identical to itself, that is the same thing as cloning
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];			// parent copy
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): (internal error) sex-specific chromosome type not supported for selfing." << EidosTerminate();
+				break;
+		}
+		
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("MungeIndividualSelfed()");
+		
+		// We need to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			if (f_pedigree_rec)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (f_treeseq && haplosome1->IsNull())
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			if (f_pedigree_rec)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (f_treeseq && haplosome2->IsNull())
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_)
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			// back out child state we created; this restores it to a reuseable state
+			// FIXME we could back out the assigned pedigree ID too
+			
+#if SLIM_CLEAR_HAPLOSOMES
+			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
+			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				haplosomes[haplosome_index]->clear_to_nullptr();
+#endif
+			
+			// revoke parentage
+			if (f_pedigree_rec)
+				individual->RevokeParentage_Uniparental(*p_parent);
+			
+			// TREE SEQUENCE RECORDING
+			if (f_treeseq)
+				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualSelfed<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
+bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
+{
+	IndividualSex parent_sex = p_parent->sex_;
+	Subpopulation &parent_subpop = *p_parent->subpopulation_;
+	
+#if DEBUG
+	if (p_parent->index_ == -1)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+	if (individual->sex_ != parent_sex)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): child sex does not match parent sex (which, for cloning, it should)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+#endif
+	
+	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
+	
+	if (f_callbacks)
+	{
+		// Figure out callbacks, which are based on the subpopulation of each parent
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
+	
+	// Record the offspring
+	if (f_pedigree_rec)
+		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
+	
+	// TREE SEQUENCE RECORDING
+	if (f_treeseq)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	
+	// Configure the offspring's haplosomes one by one
+	Haplosome **haplosomes = individual->haplosomes_;
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		// We just faithfully clone the existing haplosomes of the parent, regardless of type
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+				// these chromosome types keep two haplosomes per individual
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				{
+					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				{
+					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+					haplosome2 = haplosomes[currentHaplosomeIndex+1];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			{
+				{
+					Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+					haplosome1 = haplosomes[currentHaplosomeIndex];
+					
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				}
+				{
+					Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+					haplosome2 = haplosomes[currentHaplosomeIndex+1];
+					
+					if (parent_sex == IndividualSex::kFemale)
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					else
+						Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+				}
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				if (parent_sex == IndividualSex::kMale)
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				else
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+				haplosome2 = haplosomes[currentHaplosomeIndex+1];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+				haplosome2 = haplosomes[currentHaplosomeIndex+1];
+				
+				Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+				
+				currentHaplosomeIndex += 2;
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+			
+				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+				haplosome2 = haplosomes[currentHaplosomeIndex+1];
+				
+				if (parent_sex == IndividualSex::kMale)
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+				else
+					Haplosome::DebugCheckStructureMatch(parental_haplosome2, haplosome2, chromosome);
+				
+				currentHaplosomeIndex += 2;
+				break;
+			}
+				
+				// these chromosome types keep one haplosome per individual
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kHM_HaploidMaleInherited:		// note male inheritance is not honored by cloning
+			case ChromosomeType::kHF_HaploidFemaleInherited:	// note female inheritance is not honored by cloning
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];	// parent 1 copy
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				if (parent_sex == IndividualSex::kMale)
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				else
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			{
+				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+				haplosome1 = haplosomes[currentHaplosomeIndex];
+				
+				if (parent_sex == IndividualSex::kFemale)
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				else
+					Haplosome::DebugCheckStructureMatch(parental_haplosome1, haplosome1, chromosome);
+				
+				currentHaplosomeIndex += 1;
+				break;
+			}
+		}
+		
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("MungeIndividualCloned()");
+		
+		// We need to record the null haplosomes for tree-seq; non-null haplosomes were already
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
+		// have to set their haplosome_id_ as appropriate.
+		if (haplosome1)
+		{
+			if (f_pedigree_rec)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (f_treeseq && haplosome1->IsNull())
+				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+			if (f_pedigree_rec)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (f_treeseq && haplosome2->IsNull())
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+	}
+	
+	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
+	if (modify_child_callbacks_)
+	{
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		
+		// If the child was rejected, un-record it and dispose of it
+		if (!proposed_child_accepted)
+		{
+			// back out child state we created; this restores it to a reuseable state
+			// FIXME we could back out the assigned pedigree ID too
+			
+#if SLIM_CLEAR_HAPLOSOMES
+			// BCH 10/15/2024: We used to need to clear here, but we no longer do.  We don't even need to free
+			// the haplosomes we made above; they will be garbage collected by FreeUnusedMutationRuns().
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				haplosomes[haplosome_index]->clear_to_nullptr();
+#endif
+			
+			// revoke parentage
+			if (f_pedigree_rec)
+				individual->RevokeParentage_Uniparental(*p_parent);
+			
+			// TREE SEQUENCE RECORDING
+			if (f_treeseq)
+				species_.RetractNewIndividual();
+			
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+template bool Subpopulation::MungeIndividualCloned<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<false, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, false, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, false, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template bool Subpopulation::MungeIndividualCloned<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+
+Individual *Subpopulation::GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
+{
+	// Create the offspring and record it
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *individual = NewSubpopIndividual(p_individual_index, p_child_sex, p_age, p_fitness, p_mean_parent_age);
+	
+	if (pedigrees_enabled)
+		individual->TrackParentage_Parentless(p_pedigree_id);
+	
+	// TREE SEQUENCE RECORDING
+	if (p_record_in_treeseq)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: note that there is no parent, so the spatial position of the offspring is left uninitialized.
+	// individual->InheritSpatialPosition(species_.spatial_dimensionality_, ???)
+	
+	// Configure the offspring's haplosomes one by one
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// the flags p_haplosome1_null / p_haplosome2_null apply only here!
+				// need to set has_null_haplosomes_ here because these haplosomes
+				// are not normally null, according to the chromosome type
+				if (p_haplosome1_null)
+				{
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					has_null_haplosomes_ = true;
+				}
+				else
+				{
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				}
+				
+				if (p_haplosome2_null)
+				{
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+					has_null_haplosomes_ = true;
+				}
+				else
+				{
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				}
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			{
+				// non-null for all
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			{
+				// XX for females, X- for males
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				else
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				// - for females, Y for males
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				// ZZ for males, -Z for females
+				if (p_child_sex == IndividualSex::kFemale)
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			{
+				// - for males, W for females
+				if (p_child_sex == IndividualSex::kFemale)
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				// non-null + null for all
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				// -- for females, -Y for males
+				haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				else
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				break;
+			}
+		}
+		
+		// For each haplosome generated, we need to add them to the individual.  We also need
+		// to record all haplosomes for tree-seq; since even the non-null haplosomes are empty,
+		// not filled by HaplosomeCrossed() and HaplosomeCloned() which record them, they need
+		// to be recorded here also.
+		
+		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+		// the correct per-thread allocation pool.  Would be nice to share these empty runs across
+		// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
+		// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
+		// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
+		if (haplosome1)
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome1->check_cleared_to_nullptr();
+#endif
+			if (!haplosome1->IsNull())
+			{
+				int32_t mutrun_count = chromosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
+					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+					
+					haplosome1->mutruns_[run_index] = mutrun;
+				}
+			}
+			
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
+			
+			if (pedigrees_enabled)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (p_record_in_treeseq)
+				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome2->check_cleared_to_nullptr();
+#endif
+			if (!haplosome2->IsNull())
+			{
+				int32_t mutrun_count = chromosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
+					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+					
+					haplosome2->mutruns_[run_index] = mutrun;
+				}
+			}
+			
+			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
+			
+			if (pedigrees_enabled)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (p_record_in_treeseq)
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+		
+		chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
+		
+		// move forward 1 or 2, depending on whether a haplosome2 was created
+		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
+	}
+	
+	if (p_run_modify_child)
+	{
+		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
+		if (registered_modify_child_callbacks_.size())
+		{
+			bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+			
+			// If the child was rejected, un-record it and dispose of it
+			if (!proposed_child_accepted)
+			{
+				if (pedigrees_enabled)
+					individual->RevokeParentage_Parentless();
+				
+				FreeSubpopIndividual(individual);
+				individual = nullptr;
+				
+				// TREE SEQUENCE RECORDING
+				if (p_record_in_treeseq)
+					species_.RetractNewIndividual();
+			}
+		}
+	}
+	
+	return individual;
 }
 
 // nonWF only:
@@ -3466,15 +5219,13 @@ void Subpopulation::MergeReproductionOffspring(void)
 	{
 		// resize to create new slots for the new individuals
 		try {
-			parent_genomes_.resize(parent_genomes_.size() + (size_t)new_count * 2);
 			parent_individuals_.resize(parent_individuals_.size() + new_count);
 		}
 		catch (...) {
-			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) resize() exception with parent_genomes_.size() == " << parent_genomes_.size() << ", parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) resize() exception with parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
 		}
 		
 		// in sexual models, females must be put before males and parent_first_male_index_ must be adjusted
-		Genome **parent_genome_ptrs = parent_genomes_.data();
 		Individual **parent_individual_ptrs = parent_individuals_.data();
 		int old_male_count = parent_subpop_size_ - parent_first_male_index_;
 		int new_female_count = 0;
@@ -3486,7 +5237,6 @@ void Subpopulation::MergeReproductionOffspring(void)
 		
 		// move old males up that many slots to make room; need to fix the index_ ivars of the moved males
 		memmove(parent_individual_ptrs + parent_first_male_index_ + new_female_count, parent_individual_ptrs + parent_first_male_index_, old_male_count * sizeof(Individual *));
-		memmove(parent_genome_ptrs + (size_t)(parent_first_male_index_ + new_female_count) * 2, parent_genome_ptrs + (size_t)parent_first_male_index_ * 2, (size_t)old_male_count * 2 * sizeof(Genome *));
 		
 		for (int moved_index = 0; moved_index < old_male_count; moved_index++)
 		{
@@ -3501,8 +5251,6 @@ void Subpopulation::MergeReproductionOffspring(void)
 		
 		for (int new_index = 0; new_index < new_count; ++new_index)
 		{
-			Genome *genome1 = nonWF_offspring_genomes_[(size_t)new_index * 2];
-			Genome *genome2 = nonWF_offspring_genomes_[(size_t)new_index * 2 + 1];
 			Individual *individual = nonWF_offspring_individuals_[new_index];
 			slim_popsize_t insert_index;
 			
@@ -3512,9 +5260,6 @@ void Subpopulation::MergeReproductionOffspring(void)
 				insert_index = new_male_position++;
 			
 			individual->index_ = insert_index;
-			
-			parent_genome_ptrs[(size_t)insert_index * 2] = genome1;
-			parent_genome_ptrs[(size_t)insert_index * 2 + 1] = genome2;
 			parent_individual_ptrs[insert_index] = individual;
 		}
 		
@@ -3524,24 +5269,18 @@ void Subpopulation::MergeReproductionOffspring(void)
 	{
 		// reserve space for the new offspring to be merged in
 		try {
-			parent_genomes_.reserve(parent_genomes_.size() + (size_t)new_count * 2);
 			parent_individuals_.reserve(parent_individuals_.size() + new_count);
 		}
 		catch (...) {
-			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) reserve() exception with parent_genomes_.size() == " << parent_genomes_.size() << ", parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::MergeReproductionOffspring): (internal error) reserve() exception with parent_individuals_.size() == " << parent_individuals_.size() << ", new_count == " << new_count << "." << EidosTerminate();
 		}
 		
 		// in hermaphroditic models there is no ordering, so just add new stuff at the end
 		for (int new_index = 0; new_index < new_count; ++new_index)
 		{
-			Genome *genome1 = nonWF_offspring_genomes_[(size_t)new_index * 2];
-			Genome *genome2 = nonWF_offspring_genomes_[(size_t)new_index * 2 + 1];
 			Individual *individual = nonWF_offspring_individuals_[new_index];
 			
 			individual->index_ = parent_subpop_size_ + new_index;
-			
-			parent_genomes_.emplace_back(genome1);
-			parent_genomes_.emplace_back(genome2);
 			parent_individuals_.emplace_back(individual);
 		}
 	}
@@ -3549,10 +5288,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 	// final cleanup
 	parent_subpop_size_ += new_count;
 	
-	cached_parent_genomes_value_.reset();
 	cached_parent_individuals_value_.reset();
 	
-	nonWF_offspring_genomes_.clear();
 	nonWF_offspring_individuals_.clear();
 }
 
@@ -3716,9 +5453,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
 	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
-	Genome **genome_data = parent_genomes_.data();
 	Individual **individual_data = parent_individuals_.data();
-	int survived_genome_index = 0;
 	int survived_individual_index = 0;
 	int females_deceased = 0;
 	bool individuals_died = false;
@@ -3805,23 +5540,15 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 			// individuals that survive get copied down to the next available slot
 			if (survived_individual_index != individual_index)
 			{
-				genome_data[survived_genome_index] = genome_data[(size_t)individual_index * 2];
-				genome_data[survived_genome_index + 1] = genome_data[(size_t)individual_index * 2 + 1];
 				individual_data[survived_individual_index] = individual;
-				
-				// fix the individual's index_
 				individual_data[survived_individual_index]->index_ = survived_individual_index;
 			}
 			
-			survived_genome_index += 2;
 			survived_individual_index++;
 		}
 		else
 		{
 			// individuals that do not survive get deallocated, and will be overwritten
-			Genome *genome1 = genome_data[(size_t)individual_index * 2];
-			Genome *genome2 = genome_data[(size_t)individual_index * 2 + 1];
-			
 			if (pedigrees_enabled)
 			{
 				if (sex_enabled_)
@@ -3847,11 +5574,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 					females_deceased++;
 			}
 			
-			FreeSubpopGenome(genome1);
-			FreeSubpopGenome(genome2);
-			
-			individual->~Individual();
-			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
+			FreeSubpopIndividual(individual);
 			
 			individuals_died = true;
 		}
@@ -3865,10 +5588,8 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 		if (sex_enabled_)
 			parent_first_male_index_ -= females_deceased;
 		
-		parent_genomes_.resize((size_t)parent_subpop_size_ * 2);
 		parent_individuals_.resize(parent_subpop_size_);
 		
-		cached_parent_genomes_value_.reset();
 		cached_parent_individuals_value_.reset();
 	}
 }
@@ -3937,135 +5658,69 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_subpop_id_;
 		}
 		case gID_firstMaleIndex:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentFirstMaleIndex()));
-		case gID_genomes:
 		{
-			if (child_generation_valid_)
-			{
-				if (!cached_child_genomes_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(child_genomes_.size());
-					cached_child_genomes_value_ = EidosValue_SP(vec);
-					
-					for (auto genome_iter : child_genomes_)
-						vec->push_object_element_no_check_NORR(genome_iter);
-				}
-				/*
-				else
-				{
-					// check that the cache is correct
-					const EidosObject * const *vec_direct = cached_child_genomes_value_->ObjectData();
-					int vec_size = cached_child_genomes_value_->Count();
-					
-					if (vec_size == (int)child_genomes_.size())
-					{
-						for (int i = 0; i < vec_size; ++i)
-							if (vec_direct[i] != child_genomes_[i])
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_child_genomes_value_." << EidosTerminate();
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_child_genomes_value_." << EidosTerminate();
-				}
-				*/
-				
-				return cached_child_genomes_value_;
-			}
-			else
-			{
-				if (!cached_parent_genomes_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
-					cached_parent_genomes_value_ = EidosValue_SP(vec);
-					
-					for (auto genome_iter : parent_genomes_)
-						vec->push_object_element_no_check_NORR(genome_iter);
-				}
-				/*
-				else
-				{
-					// check that the cache is correct
-					const EidosObject * const *vec_direct = cached_parent_genomes_value_->ObjectData();
-					int vec_size = cached_parent_genomes_value_->Count();
-					
-					if (vec_size == (int)parent_genomes_.size())
-					{
-						for (int i = 0; i < vec_size; ++i)
-							if (vec_direct[i] != parent_genomes_[i])
-								EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): value mismatch in cached_parent_genomes_value_." << EidosTerminate();
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): size mismatch in cached_parent_genomes_value_." << EidosTerminate();
-				}
-				*/
-				
-				return cached_parent_genomes_value_;
-			}
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(parent_first_male_index_));
 		}
-		case gID_genomesNonNull:
+		case gID_haplosomes:
 		{
-			if (child_generation_valid_)
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			size_t expected_haplosome_count = parent_individuals_.size() * haplosome_count_per_individual;
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
+			
+			for (Individual *ind : parent_individuals_)
 			{
-				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(child_genomes_.size());
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				for (auto genome_iter : child_genomes_)
-					if (!genome_iter->IsNull())
-						vec->push_object_element_no_check_NORR(genome_iter);
-				
-				return EidosValue_SP(vec);
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					vec->push_object_element_no_check_NORR(haplosome);
+				}
 			}
-			else
+			
+			return EidosValue_SP(vec);
+		}
+		case gID_haplosomesNonNull:
+		{
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			size_t expected_haplosome_count = parent_individuals_.size() * haplosome_count_per_individual;
+			EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class))->reserve(expected_haplosome_count);
+			
+			for (Individual *ind : parent_individuals_)
 			{
-				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				for (auto genome_iter : parent_genomes_)
-					if (!genome_iter->IsNull())
-						vec->push_object_element_no_check_NORR(genome_iter);
-				
-				return EidosValue_SP(vec);
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					if (!haplosome->IsNull())
+						vec->push_object_element_no_check_NORR(haplosome);
+				}
 			}
+			
+			return EidosValue_SP(vec);
 		}
 		case gID_individuals:
 		{
-			if (child_generation_valid_)
+			slim_popsize_t subpop_size = parent_subpop_size_;
+			
+			// Check for an outdated cache; this should never happen, so we flag it as an error
+			if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
+			
+			// Build and return an EidosValue_Object with the current set of individuals in it
+			if (!cached_parent_individuals_value_)
 			{
-				slim_popsize_t subpop_size = child_subpop_size_;
+				EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
+				cached_parent_individuals_value_ = EidosValue_SP(vec);
 				
-				// Check for an outdated cache; this should never happen, so we flag it as an error
-				if (cached_child_individuals_value_ && (cached_child_individuals_value_->Count() != subpop_size))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_child_individuals_value_ out of date." << EidosTerminate();
-				
-				// Build and return an EidosValue_Object with the current set of individuals in it
-				if (!cached_child_individuals_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
-					cached_child_individuals_value_ = EidosValue_SP(vec);
-					
-					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_no_check_NORR(child_individuals_[individual_index]);
-				}
-				
-				return cached_child_individuals_value_;
+				for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
+					vec->push_object_element_no_check_NORR(parent_individuals_[individual_index]);
 			}
-			else
-			{
-				slim_popsize_t subpop_size = parent_subpop_size_;
-				
-				// Check for an outdated cache; this should never happen, so we flag it as an error
-				if (cached_parent_individuals_value_ && (cached_parent_individuals_value_->Count() != subpop_size))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): (internal error) cached_parent_individuals_value_ out of date." << EidosTerminate();
-				
-				// Build and return an EidosValue_Object with the current set of individuals in it
-				if (!cached_parent_individuals_value_)
-				{
-					EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(subpop_size);
-					cached_parent_individuals_value_ = EidosValue_SP(vec);
-					
-					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_no_check_NORR(parent_individuals_[individual_index]);
-				}
-				
-				return cached_parent_individuals_value_;
-			}
+			
+			return cached_parent_individuals_value_;
 		}
 		case gID_immigrantSubpopIDs:
 		{
@@ -4173,7 +5828,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
 			
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(parent_sex_ratio_));
 		}
 		case gID_spatialBounds:
 		{
@@ -4202,7 +5857,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 		case gID_individualCount:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(CurrentSubpopSize()));
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(parent_subpop_size_));
+		}
 			
 			// variables
 		case gID_tag:					// ACCELERATED
@@ -4245,7 +5902,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_firstMaleIndex(EidosObject **
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->CurrentFirstMaleIndex(), value_index);
+		int_result->set_int_no_check(value->parent_first_male_index_, value_index);
 	}
 	
 	return int_result;
@@ -4259,7 +5916,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_individualCount(EidosObject *
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->CurrentSubpopSize(), value_index);
+		int_result->set_int_no_check(value->parent_subpop_size_, value_index);
 	}
 	
 	return int_result;
@@ -4406,6 +6063,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
 
+		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
 		case gID_deviatePositions:		return ExecuteMethod_deviatePositions(p_method_id, p_arguments, p_interpreter);
 		case gID_pointDeviated:			return ExecuteMethod_pointDeviated(p_method_id, p_arguments, p_interpreter);
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
@@ -4433,7 +6091,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 }
 
 // nonWF only:
-IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null)
+IndividualSex Subpopulation::_HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null)
 {
 	EidosValueType sex_value_type = p_sex_value->Type();
 	IndividualSex sex;
@@ -4457,7 +6115,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 			else if (sex_string == "F")
 				sex = IndividualSex::kFemale;
 			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenomeConfigurationForSex): unrecognized value '" << sex_string << "' for parameter sex." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): unrecognized value '" << sex_string << "' for parameter sex." << EidosTerminate();
 		}
 		else // if (sex_value_type == EidosValueType::kValueFloat)
 		{
@@ -4470,41 +6128,87 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 				sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
 			}
 			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::GenomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
 		}
 		
-		switch (modeled_chromosome_type_)
+		// FIXME MULTICHROM firstChromosomeType is a temporary hack
+		ChromosomeType firstChromosomeType = species_.Chromosomes()[0]->Type();
+		
+		switch (firstChromosomeType)
 		{
-			case GenomeType::kAutosome:
-				p_genome1_type = GenomeType::kAutosome;
-				p_genome2_type = GenomeType::kAutosome;
-				p_genome1_null = false;
-				p_genome2_null = false;
+			case ChromosomeType::kA_DiploidAutosome:
+				p_haplosome1_null = false;
+				p_haplosome2_null = false;
 				break;
-			case GenomeType::kXChromosome:
-				p_genome1_type = GenomeType::kXChromosome;
-				p_genome2_type = ((sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome);
-				p_genome1_null = false;
-				p_genome2_null = (sex == IndividualSex::kMale);
+			case ChromosomeType::kX_XSexChromosome:
+				p_haplosome1_null = false;
+				p_haplosome2_null = (sex == IndividualSex::kMale);
 				break;
-			case GenomeType::kYChromosome:
-				p_genome1_type = GenomeType::kXChromosome;
-				p_genome2_type = ((sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome);
-				p_genome1_null = true;
-				p_genome2_null = (sex == IndividualSex::kFemale);
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+				p_haplosome1_null = true;
+				p_haplosome2_null = (sex == IndividualSex::kFemale);
 				break;
 		}
 	}
 	else
 	{
 		if (sex_value_type != EidosValueType::kValueNULL)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GenomeConfigurationForSex): sex must be NULL in non-sexual models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): sex must be NULL in non-sexual models." << EidosTerminate();
 		
 		sex = IndividualSex::kHermaphrodite;
-		p_genome1_type = GenomeType::kAutosome;
-		p_genome2_type = GenomeType::kAutosome;
-		p_genome1_null = false;
-		p_genome2_null = false;
+		p_haplosome1_null = false;
+		p_haplosome2_null = false;
+	}
+	
+	return sex;
+}
+
+IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value)
+{
+	EidosValueType sex_value_type = p_sex_value->Type();
+	IndividualSex sex;
+	
+	if (sex_enabled_)
+	{
+		if (sex_value_type == EidosValueType::kValueNULL)
+		{
+			// in sexual simulations, NULL (the default) means pick a sex with equal probability
+			Eidos_RNG_State *rng = EIDOS_STATE_RNG(omp_get_thread_num());
+			
+			sex = (Eidos_RandomBool(rng) ? IndividualSex::kMale : IndividualSex::kFemale);
+		}
+		else if (sex_value_type == EidosValueType::kValueString)
+		{
+			// if a string is provided, it must be either "M" or "F"
+			const std::string &sex_string = p_sex_value->StringData()[0];
+			
+			if (sex_string == "M")
+				sex = IndividualSex::kMale;
+			else if (sex_string == "F")
+				sex = IndividualSex::kFemale;
+			else
+				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): unrecognized value '" << sex_string << "' for parameter sex." << EidosTerminate();
+		}
+		else // if (sex_value_type == EidosValueType::kValueFloat)
+		{
+			double sex_prob = p_sex_value->FloatData()[0];
+			
+			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+				sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
+		}
+	}
+	else
+	{
+		if (sex_value_type != EidosValueType::kValueNULL)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): sex must be NULL in non-sexual models." << EidosTerminate();
+		
+		sex = IndividualSex::kHermaphrodite;
 	}
 	
 	return sex;
@@ -4524,10 +6228,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	
-	// Get and check the first parent (the mother)
+	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
 	Individual *parent = (Individual *)parent_value->ObjectData()[0];
-	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
 	// SPECIES CONSISTENCY CHECK
@@ -4550,96 +6253,52 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	if (child_count == 0)
 		return EidosValue_SP(result);
 	
-	// Determine the sex of the offspring, and the consequent expected genome types
-	GenomeType genome1_type = parent->genome1_->Type(), genome2_type = parent->genome2_->Type();
-	bool genome1_null = parent->genome1_->IsNull(), genome2_null = parent->genome2_->IsNull();
-	IndividualSex child_sex = parent_sex;
-	
-	if (genome1_null || genome2_null)
-		has_null_genomes_ = true;
-	
 	// Generate the number of children requested
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * (size_t)parent->index_];
-	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * (size_t)parent->index_ + 1];
-	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
-	
-	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
-	
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
 	EidosValue *defer_value = p_arguments[2].get();
 	bool defer = defer_value->LogicalData()[0];
+	// FIXME MULTICHROM defer is no longer enabled
 	
-	if (defer && parent_mutation_callbacks)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+	if (defer)
+	{
+		std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		
+		if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+		
+		if (parent_mutation_callbacks)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+	}
+	
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
 		// Make the new individual as a candidate
-		Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
-		Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
+		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
+		Individual *individual = GenerateIndividualCloned(individual_pid, parent);
 		
-		if (pedigrees_enabled)
-			individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *parent);
-		
-		// TREE SEQUENCE RECORDING
-		if (species_.RecordingTreeSequence())
+		if (individual)
 		{
-			species_.SetCurrentNewIndividual(individual);
-			species_.RecordNewGenome(nullptr, genome1, &parent_genome_1, nullptr);
-			species_.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
-		}
-		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
-		
-		if (defer)
-		{
-			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kClonal, parent, parent, genome1, genome2, child_sex);
-		}
-		else
-		{
-			population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex, parent_mutation_callbacks);
-			population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex, parent_mutation_callbacks);
-		}
-		
-		// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
-		if (modify_child_callbacks_.size())
-		{
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+			nonWF_offspring_individuals_.emplace_back(individual);
+			result->push_object_element_NORR(individual);
 			
-			if (pedigrees_enabled && !proposed_child_accepted)
-				individual->RevokeParentage_Uniparental(*parent);
-			
-			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
-		}
-		else
-		{
-			_ProcessNewOffspring(true, individual, genome1, genome2, result);
-		}
-		
 #if defined(SLIMGUI)
-		if (proposed_child_accepted)
-		{
-			if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kMale))
-				gui_offspring_cloned_M_++;
-			if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kFemale))
-				gui_offspring_cloned_F_++;
-			
-			// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
-			// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
-			parent_subpop.gui_premigration_size_++;
-			if (&parent_subpop != this)
-				gui_migrants_[parent_subpop.subpopulation_id_]++;
-		}
+			{
+				IndividualSex parent_sex = parent->sex_;
+				
+				// note that parent_sex is also the child sex, since this is cloning
+				if ((parent_sex == IndividualSex::kHermaphrodite) || (parent_sex == IndividualSex::kMale))
+					gui_offspring_cloned_M_++;
+				if ((parent_sex == IndividualSex::kHermaphrodite) || (parent_sex == IndividualSex::kFemale))
+					gui_offspring_cloned_F_++;
+				
+				// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
+				// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
+				parent_subpop.gui_premigration_size_++;
+				if (&parent_subpop != this)
+					gui_migrants_[parent_subpop.subpopulation_id_]++;
+			}
 #endif
+		}
 	}
 	
 	return EidosValue_SP(result);
@@ -4701,113 +6360,65 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		return EidosValue_SP(result);
 	
 	// Generate the number of children requested
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	
-	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
-	
-	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
-	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
-	if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
-	if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
-	
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
 	EidosValue *defer_value = p_arguments[4].get();
 	bool defer = defer_value->LogicalData()[0];
+	// FIXME MULTICHROM defer is no longer enabled
 	
-	if (defer && (parent1_recombination_callbacks || parent2_recombination_callbacks || parent1_mutation_callbacks || parent2_mutation_callbacks))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
+	if (defer)
+	{
+		std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+		std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
+		std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+		std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
+		
+		if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
+		if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+		if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
+		if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+		
+		if (parent1_recombination_callbacks || parent2_recombination_callbacks || parent1_mutation_callbacks || parent2_mutation_callbacks)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
+	}
 	
 	EidosValue *sex_value = p_arguments[2].get();
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		// Determine the sex of the offspring based on the sex parameter, and the consequent expected genome types
-		GenomeType genome1_type, genome2_type;
-		bool genome1_null, genome2_null;
-		IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+		// Determine the sex of the offspring based on the sex parameter
+		IndividualSex child_sex = _SexForSexValue(sex_value);
 		
-		if (!species_.HasGenetics())
+		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
+		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
+		Individual *individual = GenerateIndividualCrossed(individual_pid, parent1, parent2, child_sex);
+		
+		// If the child was accepted, add it to our staging area and to our result vector
+		if (individual)
 		{
-			genome1_null = true;
-			genome2_null = true;
-			has_null_genomes_ = true;
-		}
-		else
-		{
-			if (genome1_null || genome2_null)
-				has_null_genomes_ = true;
-		}
-		
-		// Make the new individual as a candidate
-		Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
-		Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (parent1->age_ + (float)parent2->age_) / 2.0F);
-		
-		if (pedigrees_enabled)
-			individual->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *parent1, *parent2);
-		
-		// TREE SEQUENCE RECORDING
-		if (species_.RecordingTreeSequence())
-			species_.SetCurrentNewIndividual(individual);
-		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent1);
-		
-		if (defer)
-		{
-			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kCrossoverMutation, parent1, parent2, genome1, genome2, child_sex);
-		}
-		else
-		{
-			population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks, parent1_mutation_callbacks);
-			population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks, parent2_mutation_callbacks);
-		}
-		
-		// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
-		if (modify_child_callbacks_.size())
-		{
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent1, parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+			nonWF_offspring_individuals_.emplace_back(individual);
+			result->push_object_element_NORR(individual);
 			
-			if (pedigrees_enabled && !proposed_child_accepted)
-				individual->RevokeParentage_Biparental(*parent1, *parent2);
-			
-			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
-		}
-		else
-		{
-			_ProcessNewOffspring(true, individual, genome1, genome2, result);
-		}
-		
 #if defined(SLIMGUI)
-		if (proposed_child_accepted)
-		{
-			gui_offspring_crossed_++;
-			
-			// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
-			// we tally things, SLiMgui display purposes, as if it were generated in those other subpops and then moved
-			parent1_subpop.gui_premigration_size_ += 0.5;
-			parent2_subpop.gui_premigration_size_ += 0.5;
-			if (&parent1_subpop != this)
-				gui_migrants_[parent1_subpop.subpopulation_id_] += 0.5;
-			if (&parent2_subpop != this)
-				gui_migrants_[parent2_subpop.subpopulation_id_] += 0.5;
-		}
+			{
+				gui_offspring_crossed_++;
+				
+				// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
+				// we tally things, SLiMgui display purposes, as if it were generated in those other subpops and then moved
+				parent1_subpop.gui_premigration_size_ += 0.5;
+				parent2_subpop.gui_premigration_size_ += 0.5;
+				if (&parent1_subpop != this)
+					gui_migrants_[parent1_subpop.subpopulation_id_] += 0.5;
+				if (&parent2_subpop != this)
+					gui_migrants_[parent2_subpop.subpopulation_id_] += 0.5;
+			}
 #endif
+		}
 	}
 	
 	return EidosValue_SP(result);
 }
 
-//	*********************	– (o<Individual>)addEmpty([Nfs$ sex = NULL], [Nl$ genome1Null = NULL], [Nl$ genome2Null = NULL], [integer$ count = 1])
+//	*********************	– (o<Individual>)addEmpty([Nfs$ sex = NULL], [Nl$ haplosome1Null = NULL], [Nl$ haplosome2Null = NULL], [integer$ count = 1])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4833,130 +6444,62 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	if (child_count == 0)
 		return EidosValue_SP(result);
 	
-	// Generate the number of children requested
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	// Process other parameters; haplosome1Null and haplosome2Null are now interpreted specifically for chromosome type "A" only,
+	// saying whether the corresponding haplosome for a type "A" chromosome should be null (true) or non-null (false /NULL).
+	// This might need to change, it's a temporary decision to fill the gap.  FIXME MULTICHROM
 	EidosValue *sex_value = p_arguments[0].get();
-	EidosValue *genome1Null_value = p_arguments[1].get();
-	EidosValue *genome2Null_value = p_arguments[2].get();
+	EidosValue *haplosome1Null_value = p_arguments[1].get();
+	EidosValue *haplosome2Null_value = p_arguments[2].get();
+	
+	bool haplosome1_null = false, haplosome2_null = false;
+	
+	if (haplosome1Null_value->Type() != EidosValueType::kValueNULL)
+		haplosome1_null = haplosome1Null_value->LogicalAtIndex_NOCAST(0, nullptr);
+	if (haplosome2Null_value->Type() != EidosValueType::kValueNULL)
+		haplosome2_null = haplosome2Null_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// Generate the number of children requested
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	bool record_in_treeseq = species_.RecordingTreeSequence();
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		GenomeType genome1_type, genome2_type;
-		bool genome1_null, genome2_null;
-		IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+		// Determine the sex of the offspring based on the sex parameter
+		IndividualSex child_sex = _SexForSexValue(sex_value);
 		
-		if (!species_.HasGenetics())
+		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
+		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
+		Individual *individual = GenerateIndividualEmpty(individual_pid,
+														 /* index */ -1,
+														 /* sex */ child_sex,
+														 /* age */ 0,
+														 /* fitness */ NAN,
+														 /* mean_parent_age */ 0.0F,
+														 /* haplosome1_null */ haplosome1_null,
+														 /* haplosome2_null */ haplosome2_null,
+														 /* run_modify_child */ true,
+														 record_in_treeseq);
+		
+		// If the child was accepted, add it to our staging area and to our result vector
+		if (individual)
 		{
-			genome1_null = true;
-			genome2_null = true;
-			has_null_genomes_ = true;
+			nonWF_offspring_individuals_.emplace_back(individual);
+			result->push_object_element_NORR(individual);
 			
-			if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalData()[0]) ||
-				((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalData()[0]))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): in a no-genetics species, null genomes are required." << EidosTerminate();
-		}
-		else
-		{
-			if (genome1Null_value->Type() != EidosValueType::kValueNULL)
-			{
-				bool requestedNull = genome1Null_value->LogicalData()[0];
-				
-				if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
-				
-				genome1_null = requestedNull;
-			}
-			
-			if (genome2Null_value->Type() != EidosValueType::kValueNULL)
-			{
-				bool requestedNull = genome2Null_value->LogicalData()[0];
-				
-				if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
-				
-				genome2_null = requestedNull;
-			}
-			
-			if (genome1_null || genome2_null)
-				has_null_genomes_ = true;
-		}
-		
-		// Make the new individual as a candidate
-		Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
-		Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ 0.0F);
-		bool pedigrees_enabled = species_.PedigreesEnabled();
-		
-		if (pedigrees_enabled)
-			individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
-		
-		// TREE SEQUENCE RECORDING
-		if (species_.RecordingTreeSequence())
-		{
-			species_.SetCurrentNewIndividual(individual);
-			species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-			species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
-		}
-		
-		// BCH 9/26/2023:  note that there is no parent, so the spatial position of the offspring is left uninitialized.
-		// individual->InheritSpatialPosition(species_.spatial_dimensionality_, ???)
-		
-		// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
-#if DEBUG
-		genome1->check_cleared_to_nullptr();
-		genome2->check_cleared_to_nullptr();
-#endif
-		
-		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
-		// the correct per-thread allocation pool.  Would be nice to share these empty runs across
-		// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
-		// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
-		// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
-		if (!genome1_null || !genome2_null)
-		{
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
-			{
-				MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
-				const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
-				
-				if (!genome1_null)
-					genome1->mutruns_[run_index] = mutrun;
-				if (!genome2_null)
-					genome2->mutruns_[run_index] = mutrun;
-			}
-		}
-		
-		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
-		if (registered_modify_child_callbacks_.size())
-		{
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
-			
-			if (pedigrees_enabled && !proposed_child_accepted)
-				individual->RevokeParentage_Parentless();
-			
-			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
-		}
-		else
-		{
-			_ProcessNewOffspring(true, individual, genome1, genome2, result);
-		}
-		
 #if defined(SLIMGUI)
-		if (proposed_child_accepted) gui_offspring_empty_++;
-		
-		gui_premigration_size_++;
+			{
+				gui_offspring_empty_++;
+				gui_premigration_size_++;
+			}
 #endif
+		}
 	}
 	
 	return EidosValue_SP(result);
 }
 
-//	*********************	– (o<Individual>)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
-//															No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2,
+//	*********************	– (o<Individual>)addRecombinant(No<Haplosome>$ strand1, No<Haplosome>$ strand2, Ni breaks1,
+//															No<Haplosome>$ strand3, No<Haplosome>$ strand4, Ni breaks2,
 //															[Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL], [No<Individual>$ parent2 = NULL],
 //															[l$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
 //
@@ -4972,7 +6515,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
 	
-	// We could technically make this work in the no-genetics case, if the parameters specify that both child genomes are null, but there's
+	// We could technically make this work in the no-genetics case, if the parameters specify that both child haplosomes are null, but there's
 	// really no reason for anybody to use addRecombinant() in that case, and getting all the logic correct below would be error-prone.
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species; recombination requires genetics." << EidosTerminate();
@@ -4989,14 +6532,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (child_count == 0)
 		return EidosValue_SP(result);
 	
-	// Note that empty Genome vectors are not legal values for the strandX parameters; the strands must either be NULL or singleton.
-	// If strand1 and strand2 are both NULL, breaks1 must be NULL/empty, and the offspring genome will be empty and will not receive mutations.
-	// If strand1 is non-NULL and strand2 is NULL, breaks1 must be NULL/empty, and the offspring genome will be cloned with mutations.
+	// Note that empty Haplosome vectors are not legal values for the strandX parameters; the strands must either be NULL or singleton.
+	// If strand1 and strand2 are both NULL, breaks1 must be NULL/empty, and the offspring haplosome will be empty and will not receive mutations.
+	// If strand1 is non-NULL and strand2 is NULL, breaks1 must be NULL/empty, and the offspring haplosome will be cloned with mutations.
 	// If strand1 and strand2 are both non-NULL, breaks1 must be non-NULL but need not be sorted, and recombination with mutations will occur.
 	// If strand1 is NULL and strand2 is non-NULL, that is presently an error, but may be given a meaning later.
 	// The same is true, mutatis mutandis, for strand3, strand4, and breaks2.  The sex parameter is interpreted as in addCrossed().
 	// BCH 9/20/2021: For SLiM 3.7, these semantics are changing a little.  Now, when strand1 and strand2 are both NULL and breaks1 is NULL/empty,
-	// the offspring genome will be a *null* genome (not just empty), and as before will not receive mutations.  That is the way it always should
+	// the offspring haplosome will be a *null* haplosome (not just empty), and as before will not receive mutations.  That is the way it always should
 	// have worked.  Again, mutatis mutandis, for strand3, strand4, and breaks2.  See https://github.com/MesserLab/SLiM/issues/205.
 	EidosValue *strand1_value = p_arguments[0].get();
 	EidosValue *strand2_value = p_arguments[1].get();
@@ -5006,11 +6549,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *breaks2_value = p_arguments[5].get();
 	EidosValue *sex_value = p_arguments[6].get();
 	
-	// Get the genomes for the supplied strands, or nullptr for NULL
-	Genome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand1_value->ObjectData()[0]);
-	Genome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand2_value->ObjectData()[0]);
-	Genome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand3_value->ObjectData()[0]);
-	Genome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Genome *)strand4_value->ObjectData()[0]);
+	// Get the haplosomes for the supplied strands, or nullptr for NULL
+	Haplosome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand1_value->ObjectData()[0]);
+	Haplosome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand2_value->ObjectData()[0]);
+	Haplosome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand3_value->ObjectData()[0]);
+	Haplosome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand4_value->ObjectData()[0]);
 	
 	// The parental strands must be visible in the subpopulation, and we need to be able to find them to check their sex
 	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
@@ -5027,13 +6570,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		(strand2_parent && (&strand2_parent->subpopulation_->species_ != &this->species_)) ||
 		(strand3_parent && (&strand3_parent->subpopulation_->species_ != &this->species_)) ||
 		(strand4_parent && (&strand4_parent->subpopulation_->species_ != &this->species_)))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that all source genomes belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that all source haplosomes belong to the same species as the target subpopulation." << EidosTerminate();
 	
-	// If both strands are non-NULL for a pair, they must be the same type of genome
-	if (strand1 && strand2 && (strand1->Type() != strand2->Type()))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are not the same type of genome, and thus cannot recombine." << EidosTerminate();
-	if (strand3 && strand4 && (strand3->Type() != strand4->Type()))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are not the same type of genome, and thus cannot recombine." << EidosTerminate();
+	// If both strands are non-NULL for a pair, they must be the same type of haplosome
+	if (strand1 && strand2 && (strand1->AssociatedChromosome() != strand2->AssociatedChromosome()))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are not associated with the same chromosome, and thus cannot recombine." << EidosTerminate();
+	if (strand3 && strand4 && (strand3->AssociatedChromosome() != strand4->AssociatedChromosome()))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are not associated with the same chromosome, and thus cannot recombine." << EidosTerminate();
 	
 	// If the first strand of a pair is NULL, the second must also be NULL
 	if (!strand1 && strand2)
@@ -5041,17 +6584,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!strand3 && strand4)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand3 is NULL, strand4 must also be NULL." << EidosTerminate();
 	
-	// If both pairs have a non-NULL genome, they must both be autosomal or both be non-autosomal (this should never be hit)
-	if (strand1 && strand3 &&
-		(((strand1->Type() == GenomeType::kAutosome) && (strand3->Type() != GenomeType::kAutosome)) || 
-		 ((strand3->Type() == GenomeType::kAutosome) && (strand1->Type() != GenomeType::kAutosome))))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): autosomal genomes cannot be mixed with non-autosomal genomes." << EidosTerminate();
-	
 	// The first pair cannot be Y chromosomes; those must be supplied in the second pair (if at all)
-	if (strand1 && (strand1->Type() == GenomeType::kYChromosome))
+	if (strand1 && (strand1->AssociatedChromosome()->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the Y chromosome must be supplied as the second pair of strands in sexual models." << EidosTerminate();
 	
-	// Figure out what sex we're generating, and what that implies about the offspring genomes
+	// Figure out what sex we're generating, and what that implies about the offspring haplosomes
 	if ((sex_value->Type() == EidosValueType::kValueNULL) && strand3)
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
@@ -5064,9 +6601,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (!static_sex_string_F) static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("F"));
 		if (!static_sex_string_M) static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("M"));
 		
-		if (strand3->Type() == GenomeType::kXChromosome)
+		if (strand3->AssociatedChromosome()->Type() == ChromosomeType::kX_XSexChromosome)
 			sex_value = static_sex_string_F.get();
-		else if (strand3->Type() == GenomeType::kYChromosome)
+		else if (strand3->AssociatedChromosome()->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull)
 			sex_value = static_sex_string_M.get();
 	}
 	
@@ -5090,9 +6627,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		pedigree_parent1 = pedigree_parent2;
 	
 	// Generate the number of children requested
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	Chromosome *chromosome = &species_.TheChromosome();
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
 	if (!mutation_callbacks->size())
@@ -5109,9 +6644,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		GenomeType genome1_type, genome2_type;
-		bool genome1_null, genome2_null;
-		IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+		bool haplosome1_null, haplosome2_null;
+		IndividualSex child_sex = _HaplosomeConfigurationForSex(sex_value, haplosome1_null, haplosome2_null);
 		
 		// Randomly swap initial copy strands, if requested and applicable
 		if (randomizeStrands)
@@ -5132,36 +6666,39 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 		}
 		
+		/*
+		 // FIXME MULTICHROM I think none of this checking makes sense any more?  Maybe?
 		// Check that the chosen sex makes sense with respect to the strands given
-		// BCH 9/20/2021: Improved the logic here because in sexual sex-chromosome models the null/nonnull state of the offspring genomes is dictated by the sex.
-		if (strand1 && genome1_type != strand1->Type())
+		// BCH 9/20/2021: Improved the logic here because in sexual sex-chromosome models the null/nonnull state of the offspring haplosomes is dictated by the sex.
+		if (strand1 && haplosome1_type != strand1->Type())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand1 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
-		if (strand3 && genome2_type != strand3->Type())
+		if (strand3 && haplosome2_type != strand3->Type())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand3 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
 		
-		if (genome1_type != GenomeType::kAutosome)
+		if (haplosome1_type != HaplosomeType::kAutosome)
 		{
-			if ((genome1_null == true) && strand1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring genome must be a null genome, according to its sex, but a parental genome was supplied for it." << EidosTerminate();
-			if ((genome1_null == false) && !strand1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring genome must not be a null genome, according to its sex, but no parental genome was supplied for it." << EidosTerminate();
+			if ((haplosome1_null == true) && strand1)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring haplosome must be a null haplosome, according to its sex, but a parental haplosome was supplied for it." << EidosTerminate();
+			if ((haplosome1_null == false) && !strand1)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring haplosome must not be a null haplosome, according to its sex, but no parental haplosome was supplied for it." << EidosTerminate();
 		}
-		if (genome2_type != GenomeType::kAutosome)
+		if (haplosome2_type != HaplosomeType::kAutosome)
 		{
-			if ((genome2_null == true) && strand3)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring genome must be a null genome, according to its sex, but a parental genome was supplied for it." << EidosTerminate();
-			if ((genome2_null == false) && !strand3)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring genome must not be a null genome, according to its sex, but no parental genome was supplied for it." << EidosTerminate();
+			if ((haplosome2_null == true) && strand3)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring haplosome must be a null haplosome, according to its sex, but a parental haplosome was supplied for it." << EidosTerminate();
+			if ((haplosome2_null == false) && !strand3)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring haplosome must not be a null haplosome, according to its sex, but no parental haplosome was supplied for it." << EidosTerminate();
 		}
+		*/
 		
 		// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or a half-NULL pair, but must be supplied for a non-NULL pair
-		// BCH 9/20/2021: Added logic here in support of the new semantics that (NULL, NULL, NULL) makes a null genome, not an empty genome
+		// BCH 9/20/2021: Added logic here in support of the new semantics that (NULL, NULL, NULL) makes a null haplosome, not an empty haplosome
 		int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
 		
 		if (!strand1 && !strand2)
 		{
 			if (breaks1count == 0)
-				genome1_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
+				haplosome1_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
 		}
@@ -5171,7 +6708,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (!strand3 && !strand4)
 		{
 			if (breaks2count == 0)
-				genome2_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
+				haplosome2_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
 		}
@@ -5183,8 +6720,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
 		
-		if (genome1_null || genome2_null)
-			has_null_genomes_ = true;
+		if (haplosome1_null || haplosome2_null)
+			has_null_haplosomes_ = true;
 		
 		// Sort and unique and bounds-check the breakpoints
 		std::vector<slim_position_t> breakvec1, breakvec2;
@@ -5199,7 +6736,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			std::sort(breakvec1.begin(), breakvec1.end());
 			breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
 			
-			if (breakvec1.back() > chromosome.last_position_)
+			if (breakvec1.back() > chromosome->last_position_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
 			
 			// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
@@ -5222,7 +6759,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			std::sort(breakvec2.begin(), breakvec2.end());
 			breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
 			
-			if (breakvec2.back() > chromosome.last_position_)
+			if (breakvec2.back() > chromosome->last_position_)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
 			
 			// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
@@ -5235,7 +6772,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 		}
 		
-		// Figure out the mean parent age; it is averaged across the mean parent age for each non-null child genome
+		// Figure out the mean parent age; it is averaged across the mean parent age for each non-null child haplosome
 		float mean_parent_age = 0.0;
 		int non_null_count = 0;
 		
@@ -5256,7 +6793,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		}
 		else
 		{
-			// this child genome is generated from NULL, nULL for parents, so there is no parent to average the age of
+			// this child haplosome is generated from NULL, nULL for parents, so there is no parent to average the age of
 		}
 		
 		if (strand3_parent && strand4_parent)
@@ -5276,25 +6813,33 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		}
 		else
 		{
-			// this child genome is generated from NULL, nULL for parents, so there is no parent to average the age of
+			// this child haplosome is generated from NULL, nULL for parents, so there is no parent to average the age of
 		}
 		
 		if (non_null_count > 0)
 			mean_parent_age = mean_parent_age / non_null_count;
 		
 		// Make the new individual as a candidate
-		Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
-		Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
+		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
+		Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
+		Haplosome *haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
+		
+		individual->AddHaplosomeAtIndex(haplosome1, 0);
+		individual->AddHaplosomeAtIndex(haplosome2, 1);
 		
 		if (pedigrees_enabled)
 		{
+			slim_pedigreeid_t pid = SLiM_GetNextPedigreeID();
+			
 			if (pedigree_parent1 == nullptr)
-				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
+				individual->TrackParentage_Parentless(pid);
 			else if (pedigree_parent1 == pedigree_parent2)
-				individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *pedigree_parent1);
+				individual->TrackParentage_Uniparental(pid, *pedigree_parent1);
 			else
-				individual->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *pedigree_parent1, *pedigree_parent2);
+				individual->TrackParentage_Biparental(pid, *pedigree_parent1, *pedigree_parent2);
+			
+			individual->haplosomes_[0]->haplosome_id_ = pid * 2;
+			individual->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
 		}
 		
 		// TREE SEQUENCE RECORDING
@@ -5307,7 +6852,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (pedigree_parent1)
 			individual->InheritSpatialPosition(species_.SpatialDimensionality(), pedigree_parent1);
 		
-		// Construct the first child genome, depending upon whether recombination is requested, etc.
+		// Construct the first child haplosome, depending upon whether recombination is requested, etc.
 		if (strand1)
 		{
 			if (strand2 && breakvec1.size())
@@ -5317,7 +6862,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
 				IndividualSex parent_sex = IndividualSex::kHermaphrodite;
 				
-				if (sex_enabled_ && !chromosome.UsingSingleMutationMap())
+				if (sex_enabled_ && !chromosome->UsingSingleMutationMap())
 				{
 					if (strand1_parent && strand2_parent)
 					{
@@ -5335,47 +6880,47 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				
 				// both strands are non-NULL and we have a breakpoint, so we do recombination between them
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
+					species_.RecordNewHaplosome(&breakvec1, haplosome1, strand1, strand2);
 				
 				if (defer)
 				{
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, genome1, parent_sex);
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, haplosome1, parent_sex);
 				}
 				else
 				{
-					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
+					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *haplosome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
 				}
 			}
 			else
 			{
 				// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewGenome(nullptr, genome1, strand1, nullptr);
+					species_.RecordNewHaplosome(nullptr, haplosome1, strand1, nullptr);
 				
 				if (defer)
 				{
-					// clone one genome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, genome1, child_sex);
+					// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, haplosome1, child_sex);
 				}
 				else
 				{
-					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex, mutation_callbacks);
+					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *haplosome1, *strand1, child_sex, mutation_callbacks);
 				}
 			}
 		}
 		else
 		{
-			// both strands are NULL, so we make a null genome; we do nothing but record it
+			// both strands are NULL, so we make a null haplosome; we do nothing but record it
 			if (species_.RecordingTreeSequence())
-				species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 			
 #if DEBUG
-			if (!genome1_null)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) genome1_null is false with NULL parental strands!" << EidosTerminate();
+			if (!haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) haplosome1_null is false with NULL parental strands!" << EidosTerminate();
 #endif
 		}
 		
-		// Construct the second child genome, depending upon whether recombination is requested, etc.
+		// Construct the second child haplosome, depending upon whether recombination is requested, etc.
 		if (strand3)
 		{
 			if (strand4 && breakvec2.size())
@@ -5385,7 +6930,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
 				IndividualSex parent_sex = IndividualSex::kHermaphrodite;
 				
-				if (sex_enabled_ && !chromosome.UsingSingleMutationMap())
+				if (sex_enabled_ && !chromosome->UsingSingleMutationMap())
 				{
 					if (strand3_parent && strand4_parent)
 					{
@@ -5403,43 +6948,43 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				
 				// both strands are non-NULL and we have a breakpoint, so we do recombination between them
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
+					species_.RecordNewHaplosome(&breakvec2, haplosome2, strand3, strand4);
 				
 				if (defer)
 				{
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, genome2, parent_sex);
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, haplosome2, parent_sex);
 				}
 				else
 				{
-					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
+					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *haplosome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
 				}
 			}
 			else
 			{
 				// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewGenome(nullptr, genome2, strand3, nullptr);
+					species_.RecordNewHaplosome(nullptr, haplosome2, strand3, nullptr);
 				
 				if (defer)
 				{
-					// clone one genome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, genome2, child_sex);
+					// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, haplosome2, child_sex);
 				}
 				else
 				{
-					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex, mutation_callbacks);
+					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *haplosome2, *strand3, child_sex, mutation_callbacks);
 				}
 			}
 		}
 		else
 		{
-			// both strands are NULL, so we make a null genome; we do nothing but record it
+			// both strands are NULL, so we make a null haplosome; we do nothing but record it
 			if (species_.RecordingTreeSequence())
-				species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 			
 #if DEBUG
-			if (!genome2_null)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) genome2_null is false with NULL parental strands!" << EidosTerminate();
+			if (!haplosome2_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) haplosome2_null is false with NULL parental strands!" << EidosTerminate();
 #endif
 		}
 		
@@ -5449,7 +6994,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (registered_modify_child_callbacks_.size())
 		{
 			// BCH 4/5/2022: When removing excess pseudo-parameters from callbacks, we lost a bit of functionality here: we used to pass
-			// the four recombinant strands to the callback as the four "parental genomes".  But that was always kind of fictional, and
+			// the four recombinant strands to the callback as the four "parental haplosomes".  But that was always kind of fictional, and
 			// it was never documented, and I doubt anybody was using it, and they can do the same without the modifyChild() callback,
 			// so I'm not viewing this loss of functionality as an obstacle to making this change.
 			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
@@ -5464,11 +7009,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 					individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
 			}
 			
-			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
+			_ProcessNewOffspring(proposed_child_accepted, individual, result);
 		}
 		else
 		{
-			_ProcessNewOffspring(true, individual, genome1, genome2, result);
+			_ProcessNewOffspring(true, individual, result);
 		}
 		
 #if defined(SLIMGUI)
@@ -5551,7 +7096,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
 	
-	// Get and check the first parent (the mother)
+	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
 	Individual *parent = (Individual *)parent_value->ObjectData()[0];
 	IndividualSex parent_sex = parent->sex_;
@@ -5580,98 +7125,48 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (child_count == 0)
 		return EidosValue_SP(result);
 	
-	// Determine the sex of the offspring, and the consequent expected genome types; for selfing this is predetermined
-	GenomeType genome1_type = GenomeType::kAutosome, genome2_type = GenomeType::kAutosome;
-	bool genome1_null, genome2_null;
-	IndividualSex child_sex = IndividualSex::kHermaphrodite;
-	
-	if (!species_.HasGenetics())
-	{
-		genome1_null = true;
-		genome2_null = true;
-		has_null_genomes_ = true;
-	}
-	else
-	{
-		genome1_null = false;
-		genome2_null = false;
-	}
-	
 	// Generate the number of children requested
-	Chromosome &chromosome = species_.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+	EidosValue *defer_value = p_arguments[2].get();
+	bool defer = defer_value->LogicalData()[0];
+	// FIXME MULTICHROM defer is no longer enabled
 	
-	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
-	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+	if (defer)
+	{
+		std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+		std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		
+		if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
+		if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+		
+		if (parent_recombination_callbacks || parent_mutation_callbacks)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
+	}
 	
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
-	EidosValue *defer_value = p_arguments[2].get();
-	bool defer = defer_value->LogicalData()[0];
-	
-	if (defer && (parent_recombination_callbacks || parent_mutation_callbacks))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
-	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		// Make the new individual as a candidate
-		Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
-		Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
+		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
+		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
+		Individual *individual = GenerateIndividualSelfed(individual_pid, parent);
 		
-		if (pedigrees_enabled)
-			individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *parent);
-		
-		// TREE SEQUENCE RECORDING
-		if (species_.RecordingTreeSequence())
-			species_.SetCurrentNewIndividual(individual);
-		
-		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
-		
-		if (defer)
+		if (individual)
 		{
-			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kSelfed, parent, parent, genome1, genome2, child_sex);
-		}
-		else
-		{
-			population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
-			population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
-		}
-		
-		// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
-		if (modify_child_callbacks_.size())
-		{
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+			nonWF_offspring_individuals_.emplace_back(individual);
+			result->push_object_element_NORR(individual);
 			
-			if (pedigrees_enabled && !proposed_child_accepted)
-				individual->RevokeParentage_Uniparental(*parent);
-			
-			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
-		}
-		else
-		{
-			_ProcessNewOffspring(true, individual, genome1, genome2, result);
-		}
-		
 #if defined(SLIMGUI)
-		if (proposed_child_accepted)
-		{
-			gui_offspring_selfed_++;
-			
-			// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
-			// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
-			parent_subpop.gui_premigration_size_++;
-			if (&parent_subpop != this)
-				gui_migrants_[parent_subpop.subpopulation_id_]++;
-		}
+			{
+				gui_offspring_selfed_++;
+				
+				// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
+				// we tally things, SLiMgui display purposes, as if it were generated in parent_subpop and then moved
+				parent_subpop.gui_premigration_size_++;
+				if (&parent_subpop != this)
+					gui_migrants_[parent_subpop.subpopulation_id_]++;
+			}
 #endif
+		}
 	}
 	
 	return EidosValue_SP(result);
@@ -5707,6 +7202,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() should not be called to add individuals to a subpopulation that has been removed." << EidosTerminate();
 
 	// Loop over the migrants and move them one by one
+	int haplosome_count_per_individual = species->HaplosomeCountPerIndividual();
 	Individual * const *migrants = (Individual * const *)migrants_value->ObjectData();
 	
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
@@ -5739,9 +7235,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					
 					source_subpop->parent_individuals_[source_subpop_index] = backfill;
 					backfill->index_ = source_subpop_index;
-					
-					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2];
-					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1];
 				}
 				
 				if (source_first_male - 1 < source_subpop_size - 1)
@@ -5750,14 +7243,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					
 					source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 					backfill->index_ = source_first_male - 1;
-					
-					source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-					source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 				}
 				
 				source_subpop->parent_subpop_size_ = --source_subpop_size;
 				source_subpop->parent_individuals_.resize(source_subpop_size);
-				source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 				
 				source_subpop->parent_first_male_index_ = --source_first_male;
 			}
@@ -5770,14 +7259,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					
 					source_subpop->parent_individuals_[source_subpop_index] = backfill;
 					backfill->index_ = source_subpop_index;
-					
-					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 				}
 				
 				source_subpop->parent_subpop_size_ = --source_subpop_size;
 				source_subpop->parent_individuals_.resize(source_subpop_size);
-				source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 			}
 			
 			// insert the migrant into ourselves
@@ -5787,17 +7272,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				Individual *backfill = parent_individuals_[parent_first_male_index_];
 				
 				parent_individuals_.emplace_back(backfill);
-				parent_genomes_.emplace_back(parent_genomes_[(size_t)parent_first_male_index_ * 2]);
-				parent_genomes_.emplace_back(parent_genomes_[(size_t)parent_first_male_index_ * 2 + 1]);
 				backfill->index_ = parent_subpop_size_;
 				
 				parent_individuals_[parent_first_male_index_] = migrant;
-				parent_genomes_[(size_t)parent_first_male_index_ * 2] = migrant->genome1_;
-				parent_genomes_[(size_t)parent_first_male_index_ * 2 + 1] = migrant->genome2_;
-				
-				// the has_null_genomes_ needs to reflect the presence of null genomes
-				if (migrant->genome1_->IsNull() || migrant->genome2_->IsNull())
-					has_null_genomes_ = true;
 				
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_first_male_index_;
@@ -5809,12 +7286,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			{
 				// males and hermaphrodites can just be added to the end; so can females, if no males are present
 				parent_individuals_.emplace_back(migrant);
-				parent_genomes_.emplace_back(migrant->genome1_);
-				parent_genomes_.emplace_back(migrant->genome2_);
-				
-				// the has_null_genomes_ needs to reflect the presence of null genomes
-				if (migrant->genome1_->IsNull() || migrant->genome2_->IsNull())
-					has_null_genomes_ = true;
 				
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_subpop_size_;
@@ -5822,6 +7293,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_subpop_size_++;
 				if (migrant->sex_ == IndividualSex::kFemale)
 					parent_first_male_index_++;
+			}
+			
+			// has_null_haplosomes_ needs to reflect the presence of null haplosomes
+			if (!has_null_haplosomes_ && source_subpop->has_null_haplosomes_)
+			{
+				Haplosome **haplosomes = migrant->haplosomes_;
+				
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					if (haplosome->IsNull())
+						has_null_haplosomes_ = true;
+				}
 			}
 			
 			// set the migrant flag of the migrated individual; note this is not set if the individual was already in the destination subpop
@@ -5833,17 +7318,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	if (moved_count)
 	{
-		// First, clear our genome and individual caches in all subpopulations; any subpops involved in
+		// First, clear our haplosome and individual caches in all subpopulations; any subpops involved in
 		// the migration would be invalidated anyway so this probably isn't even that much overkill in
-		// most models.  Note that the child genomes/individuals caches don't need to be thrown away,
+		// most models.  Note that the child haplosomes/individuals caches don't need to be thrown away,
 		// because they aren't used in nonWF models and this is a nonWF-only method.
 		for (auto subpop_pair : population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->cached_parent_genomes_value_.reset();
-			subpop->cached_parent_individuals_value_.reset();
-		}
+			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
@@ -5894,6 +7374,42 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni$ index = NULL], [logical$ includeNulls = T])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosomes_value = p_arguments[0].get();
+	EidosValue *index_value = p_arguments[1].get();
+	EidosValue *includeNulls_value = p_arguments[2].get();
+	
+	// assemble a vector of chromosome indices we're fetching
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	species_.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosomes_value);
+	
+	// get index and includeNulls
+	int64_t index = -1;	// for NULL
+	
+	if (index_value->Type() == EidosValueType::kValueInt)
+	{
+		index = index_value->IntAtIndex_NOCAST(0, nullptr);
+		
+		if ((index != 0) && (index != 1))
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_haplosomesForChromosomes): haplosomesForChromosomes() requires that index is 0, 1, or NULL." << EidosTerminate();
+	}
+	
+	bool includeNulls = includeNulls_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// fetch the requested haplosomes for all individuals
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Haplosome_Class));
+	
+	for (Individual *individual : parent_individuals_)
+		individual->AppendHaplosomesForChromosomes(vec, chromosome_indices, index, includeNulls);
+	
+	return EidosValue_SP(vec);
+}
+
 //	*********************	– (void)deviatePositions(No<Individual> individuals, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5923,16 +7439,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	if (individuals_value->Type() == EidosValueType::kValueNULL)
 	{
 		// NULL requests that the positions of all individuals in the subpop should be deviated
-		if (child_generation_valid_)
-		{
-			individuals = child_individuals_.data();
-			individuals_count = child_subpop_size_;
-		}
-		else
-		{
-			individuals = parent_individuals_.data();
-			individuals_count = parent_subpop_size_;
-		}
+		individuals = parent_individuals_.data();
+		individuals_count = parent_subpop_size_;
 	}
 	else
 	{
@@ -7266,10 +8774,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	EidosValue *sexRatio_value = p_arguments[0].get();
 	
-	// SetSexRatio() can only be called when the child generation has not yet been generated.  It sets the sex ratio on the child generation,
-	// and then that sex ratio takes effect when the children are generated from the parents in EvolveSubpopulation().
-	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() called when the child generation was valid." << EidosTerminate();
+	// SetSexRatio() sets the sex ratio on the child generation, and then that sex ratio takes effect
+	// when the children are generated from the parents in EvolveSubpopulation().
 	
 	// SEX ONLY
 	if (!sex_enabled_)
@@ -7280,7 +8786,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	if ((sex_ratio < 0.0) || (sex_ratio > 1.0) || std::isnan(sex_ratio))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() requires a sex ratio within [0,1] (" << EidosStringForFloat(sex_ratio) << " supplied)." << EidosTerminate();
 	
-	// After we change the subpop sex ratio, we need to generate new children genomes to fit the new requirements
+	// After we change the subpop sex ratio, we need to generate new children haplosomes to fit the new requirements
 	child_sex_ratio_ = sex_ratio;
 	GenerateChildrenToFitWF();
 	
@@ -7407,10 +8913,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
-	
-	// This should never be hit, I think; there is no script execution opportunity while the child generation is active
-	if (child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -8618,8 +10120,8 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomesNonNull,					true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomes,						true,	kEidosValueMaskObject, gSLiM_Haplosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomesNonNull,					true,	kEidosValueMaskObject, gSLiM_Haplosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,				true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,		true,	kEidosValueMaskFloat)));
@@ -8655,6 +10157,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskVOID))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
@@ -8669,8 +10172,8 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskVOID))->AddInt_S("size"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskObject, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("genome1Null", gStaticEidosValueNULL)->AddLogical_OSN("genome2Null", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalF)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskObject, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("haplosome1Null", gStaticEidosValueNULL)->AddLogical_OSN("haplosome2Null", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Haplosome_Class)->AddObject_SN("strand2", gSLiM_Haplosome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Haplosome_Class)->AddObject_SN("strand4", gSLiM_Haplosome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalF)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));

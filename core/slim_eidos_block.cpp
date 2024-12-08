@@ -1309,9 +1309,9 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_effect) == 0)				contains_effect_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
-		if (token_string.compare(gStr_genome) == 0)				contains_genome_ = true;
-		if (token_string.compare(gStr_genome1) == 0)			contains_genome1_ = true;
-		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
+		if (token_string.compare(gStr_haplosome) == 0)			contains_haplosome_ = true;
+		if (token_string.compare(gStr_haplosome1) == 0)			contains_haplosome1_ = true;
+		if (token_string.compare(gStr_haplosome2) == 0)			contains_haplosome2_ = true;
 		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
 		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
 		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = true;
@@ -1347,9 +1347,9 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_effect_ = true;
 		contains_individual_ = true;
 		contains_element_ = true;
-		contains_genome_ = true;
-		contains_genome1_ = true;
-		contains_genome2_ = true;
+		contains_haplosome_ = true;
+		contains_haplosome1_ = true;
+		contains_haplosome2_ = true;
 		contains_subpop_ = true;
 		contains_homozygous_ = true;
 		contains_sourceSubpop_ = true;
@@ -1827,7 +1827,7 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 				switch(first_ch)
 				{
 					case 'p': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class};
-					case 'g': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class};
+					case 'g': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class};
 					case 'm': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
 					case 's': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
 					case 'i': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_InteractionType_Class};

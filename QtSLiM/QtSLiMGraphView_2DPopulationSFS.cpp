@@ -234,10 +234,10 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
     // Get frequencies in subpop1 and subpop2
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     std::vector<slim_refcount_t> refcounts1, refcounts2;
-    size_t subpop1_total_genome_count, subpop2_total_genome_count;
+    size_t subpop1_total_haplosome_count, subpop2_total_haplosome_count;
     
     {
-        subpop1_total_genome_count = tallyGUIMutationReferences(selectedSubpopulation1ID_, selectedMutationTypeIndex_);
+        subpop1_total_haplosome_count = tallyGUIMutationReferences(selectedSubpopulation1ID_, selectedMutationTypeIndex_);
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
@@ -246,11 +246,11 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
                 refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
-        if (subpop1_total_genome_count == 0)
-            subpop1_total_genome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
+        if (subpop1_total_haplosome_count == 0)
+            subpop1_total_haplosome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
     }
     {
-        subpop2_total_genome_count = tallyGUIMutationReferences(selectedSubpopulation2ID_, selectedMutationTypeIndex_);
+        subpop2_total_haplosome_count = tallyGUIMutationReferences(selectedSubpopulation2ID_, selectedMutationTypeIndex_);
         
         for (const MutationIndex *registry_iter = registry; registry_iter != registry_iter_end; ++registry_iter)
         {
@@ -259,8 +259,8 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
                 refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
-        if (subpop2_total_genome_count == 0)
-            subpop2_total_genome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
+        if (subpop2_total_haplosome_count == 0)
+            subpop2_total_haplosome_count = 1;     // counts will all be zero; prevent NAN frequency, make it zero instead
     }
     
     // Tally up the binned 2D SFS from the 1D data
@@ -275,8 +275,8 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
         // exclude mutations that are not present in either subpopulation
         if ((count1 > 0) || (count2 > 0))
         {
-            double freq1 = count1 / (double)subpop1_total_genome_count;
-            double freq2 = count2 / (double)subpop2_total_genome_count;
+            double freq1 = count1 / (double)subpop1_total_haplosome_count;
+            double freq2 = count2 / (double)subpop2_total_haplosome_count;
             int bin1 = static_cast<int>(round(freq1 * (histogramBinCount_ - 1)));
             int bin2 = static_cast<int>(round(freq2 * (histogramBinCount_ - 1)));
             sfs2dbuf[bin1 + bin2 * histogramBinCount_]++;

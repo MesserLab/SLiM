@@ -245,8 +245,8 @@ public:
 	static Species *SpeciesForIndividualsVector(const Individual * const *individuals, int value_count);
 	static Species *SpeciesForIndividuals(EidosValue *value);
 	
-	static Species *SpeciesForGenomesVector(const Genome * const *genomes, int value_count);
-	static Species *SpeciesForGenomes(EidosValue *value);
+	static Species *SpeciesForHaplosomesVector(const Haplosome * const *haplosomes, int value_count);
+	static Species *SpeciesForHaplosomes(EidosValue *value);
 	
 	static Species *SpeciesForMutationsVector(const Mutation * const *mutations, int value_count);
 	static Species *SpeciesForMutations(EidosValue *value);

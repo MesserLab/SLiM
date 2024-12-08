@@ -38,15 +38,15 @@ initialize() {
 	if (parts[0] != "positions:") stop("Missing positions.");
 	positions = asFloat(parts[1:(size(parts)-1)]);
 	
-	// create all mutations in a genome in a dummy subpopulation
+	// create all mutations in a haplosome in a dummy subpopulation
 	sim.addSubpop("p2", 1);
-	g = p2.genomes[0];
-	L = sim.chromosome.lastPosition;
+	g = p2.haplosomes[0];
+	L = sim.chromosomes.lastPosition;
 	intPositions = asInteger(round(positions * L));
 	muts = g.addNewMutation(m1, 0.0, intPositions);
 	
-	// add the appropriate mutations to each genome
-	for (g in p1.genomes)
+	// add the appropriate mutations to each haplosome
+	for (g in p1.haplosomes)
 	{
 		f = asLogical(asInteger(strsplit(lines[index], "")));
 		index = index + 1;

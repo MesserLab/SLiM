@@ -126,7 +126,7 @@ static std::string defaultWFScriptString(void)
                 "	sim.addSubpop(\"p1\", 500);\n"
                 "}\n"
                 "\n"
-                "// output samples of 10 genomes periodically, all fixed mutations at end\n"
+                "// output samples of 10 haplosomes periodically, all fixed mutations at end\n"
                 "1000 late() { p1.outputSample(10); }\n"
                 "2000 late() { p1.outputSample(10); }\n"
                 "2000 late() { sim.outputFixedMutations(); }\n");
@@ -593,17 +593,15 @@ void QtSLiMWindow::interpolateSplitters(void)
 
 void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
 {
-    overviewWidget->setController(this);
-	overviewWidget->setReferenceChromosomeView(nullptr);
-	overviewWidget->setSelectable(true);
-	
-    zoomedWidget->setController(this);
-	zoomedWidget->setReferenceChromosomeView(overviewWidget);
-	zoomedWidget->setSelectable(false);
+    if (!chromosomeConfig)
+        chromosomeConfig = new QtSLiMChromosomeWidgetController(this, nullptr, nullptr);
     
-    // Forward notification of changes to the selection in the chromosome view
-    connect(overviewWidget, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerChromosomeSelectionChanged(); });
-
+    overviewWidget->setController(chromosomeConfig);
+	overviewWidget->setDependentChromosomeView(zoomedWidget);
+	
+    zoomedWidget->setController(chromosomeConfig);
+	zoomedWidget->setDependentChromosomeView(nullptr);
+    
     // Add these widgets to our vectors of chromosome widgets
     chromosomeWidgetLayouts.push_back(chromosomeLayout);
     chromosomeOverviewWidgets.push_back(overviewWidget);
@@ -1579,43 +1577,6 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 	return selectedSubpops;     // note these are sorted by species, not by id, unlike listedSubpopulations()
 }
 
-void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
-{
-    // First we need to look up the chromosome view for the requested species
-    for (QtSLiMChromosomeWidget *chromosomeWidget : chromosomeOverviewWidgets)
-    {
-        Species *widgetSpecies = chromosomeWidget->focalDisplaySpecies();
-        
-        if (widgetSpecies == species)
-        {
-            if (p_hasSelection)
-                *p_hasSelection = chromosomeWidget->hasSelection();
-            
-            QtSLiMRange selRange = chromosomeWidget->getSelectedRange(species);
-            
-            if (p_selectionFirstBase)
-                *p_selectionFirstBase = selRange.location;
-            if (p_selectionLastBase)
-                *p_selectionLastBase = selRange.location + selRange.length - 1;
-            
-            return;
-        }
-    }
-    
-    // We drop through to here if the species can't be found, which should not happen
-    if (p_hasSelection)
-        *p_hasSelection = false;
-    if (p_selectionFirstBase)
-        *p_selectionFirstBase = 0;
-    if (p_selectionLastBase)
-        *p_selectionLastBase = species->TheChromosome().last_position_;
-}
-
-const std::vector<slim_objectid_t> &QtSLiMWindow::chromosomeDisplayMuttypes(void)
-{
-    return chromosome_display_muttypes_;
-}
-
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
 {
     if (invalidSimulation_ != p_invalid)
@@ -1703,12 +1664,18 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     QTextCursor selection = ui->scriptTextEdit->textCursor();
     QString selectionString = selection.selectedText();
     
+    // Note that is important to test the selection string to make sure it makes sense, because the error position might not be correct!
+    
     // get the four characters prior to the selected error range, to recognize if the error is preceded by "sim."; note this is a heuristic, not precise
     QTextCursor beforeSelection4 = selection;
     beforeSelection4.setPosition(beforeSelection4.selectionStart(), QTextCursor::MoveAnchor);
     beforeSelection4.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 4);
     beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
     QString beforeSelection4String = beforeSelection4.selectedText();
+    
+    //
+    //  Changes for SLiM 4.0: multispecies SLiM, mostly, plus fitness() -> mutationEffect() and fitness(NULL) -> fitnessEffect()
+    //
     
     // early() events are no longer default
     if (terminationMessage.contains("unexpected token {") &&
@@ -1718,91 +1685,124 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         return offerAndExecuteAutofix(selection, "early() {", "Script blocks no longer default to `early()`; `early()` must be explicitly specified.", terminationMessage);
     
     // sim to community changes
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "createLogFile") &&
+            terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `createLogFile()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "deregisterScriptBlock") &&
+            terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `deregisterScriptBlock()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerFirstEvent") &&
+            terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerFirstEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerEarlyEvent") &&
+            terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerEarlyEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "registerLateEvent") &&
+            terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerLateEvent()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "rescheduleScriptBlock") &&
+            terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `rescheduleScriptBlock()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "simulationFinished") &&
+            terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `simulationFinished()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "outputUsage") &&
+            terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `outputUsage()` method has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property logFiles is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "logFiles") &&
+            terminationMessage.contains("property logFiles is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `logFiles` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property generationStage is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "generationStage") &&
+            terminationMessage.contains("property generationStage is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `generationStage` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property modelType is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "modelType") &&
+            terminationMessage.contains("property modelType is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `modelType` property has been moved to the Community class.", terminationMessage);
     
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property verbosity is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "verbosity") &&
+            terminationMessage.contains("property verbosity is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `verbosity` property has been moved to the Community class.", terminationMessage);
     
     // generation to tick changes
-    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation"))
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation") &&
+            (selectionString == "originGeneration"))
         return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Mutation; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
 
-    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution"))
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution") &&
+            (selectionString == "originGeneration"))
         return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Substitution; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
 
-    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution"))
+    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution") &&
+            (selectionString == "fixationGeneration"))
         return offerAndExecuteAutofix(selection, "fixationTick", "The `fixationGeneration` property has been removed from Substitution; in its place is `fixationTick` (which measures in ticks, not generations).", terminationMessage);
     
     // generation to cycle changes
-    if (terminationMessage.contains("property generation is not defined for object element type Species"))
+    if (terminationMessage.contains("property generation is not defined for object element type Species") &&
+            (selectionString == "generation"))
         return offerAndExecuteAutofix(selection, "cycle", "The `generation` property of Species has been renamed to `cycle`.", terminationMessage);
     
-    if (terminationMessage.contains("property generationStage is not defined for object element type Community"))
+    if (terminationMessage.contains("property generationStage is not defined for object element type Community") &&
+            (selectionString == "generationStage"))
         return offerAndExecuteAutofix(selection, "cycleStage", "The `generationStage` property of Community has been renamed to `cycleStage`.", terminationMessage);
     
-    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile"))
+    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile") &&
+            (selectionString == "addGeneration"))
         return offerAndExecuteAutofix(selection, "addCycle", "The `addGeneration()` method of Community has been renamed to `addCycle()`.", terminationMessage);
     
-    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile"))
+    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile") &&
+            (selectionString == "addGenerationStage"))
         return offerAndExecuteAutofix(selection, "addCycleStage", "The `addGenerationStage()` method of Community has been renamed to `addCycleStage()`.", terminationMessage);
     
     // removal of various callback pseudo-parameters
-    if (terminationMessage.contains("undefined identifier genome1"))
-        return offerAndExecuteAutofix(selection, "individual.genome1", "The `genome1` pseudo-parameter has been removed; it is now accessed as `individual.genome1`.", terminationMessage);
-
-    if (terminationMessage.contains("undefined identifier genome2"))
-        return offerAndExecuteAutofix(selection, "individual.genome2", "The `genome2` pseudo-parameter has been removed; it is now accessed as `individual.genome2`.", terminationMessage);
-
-    if (terminationMessage.contains("undefined identifier childGenome1"))
+    // genome1 and genome2 are now handled below, since there are two possible fixes now
+    if (terminationMessage.contains("undefined identifier childGenome1") &&
+            (selectionString == "childGenome1"))
         return offerAndExecuteAutofix(selection, "child.genome1", "The `childGenome1` pseudo-parameter has been removed; it is now accessed as `child.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier childGenome2"))
+    if (terminationMessage.contains("undefined identifier childGenome2") &&
+            (selectionString == "childGenome2"))
         return offerAndExecuteAutofix(selection, "child.genome2", "The `childGenome2` pseudo-parameter has been removed; it is now accessed as `child.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent1Genome1"))
+    if (terminationMessage.contains("undefined identifier parent1Genome1") &&
+            (selectionString == "parent1Genome1"))
         return offerAndExecuteAutofix(selection, "parent1.genome1", "The `parent1Genome1` pseudo-parameter has been removed; it is now accessed as `parent1.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent1Genome2"))
+    if (terminationMessage.contains("undefined identifier parent1Genome2") &&
+            (selectionString == "parent1Genome2"))
         return offerAndExecuteAutofix(selection, "parent1.genome2", "The `parent1Genome2` pseudo-parameter has been removed; it is now accessed as `parent1.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent2Genome1"))
+    if (terminationMessage.contains("undefined identifier parent2Genome1") &&
+            (selectionString == "parent2Genome1"))
         return offerAndExecuteAutofix(selection, "parent2.genome1", "The `parent2Genome1` pseudo-parameter has been removed; it is now accessed as `parent2.genome1`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier parent2Genome2"))
+    if (terminationMessage.contains("undefined identifier parent2Genome2") &&
+            (selectionString == "parent2Genome2"))
         return offerAndExecuteAutofix(selection, "parent2.genome2", "The `parent2Genome2` pseudo-parameter has been removed; it is now accessed as `parent2.genome2`.", terminationMessage);
 
-    if (terminationMessage.contains("undefined identifier childIsFemale"))
+    if (terminationMessage.contains("undefined identifier childIsFemale") &&
+            (selectionString == "childIsFemale"))
         return offerAndExecuteAutofix(selection, "(child.sex == \"F\")", "The `childIsFemale` pseudo-parameter has been removed; it is now accessed as `child.sex == \"F\"`.", terminationMessage);
     
     // changes to InteractionType -evaluate()
@@ -1915,13 +1915,98 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         return offerAndExecuteAutofix(selection, "effect", "The `relFitness` pseudo-parameter has been renamed to `effect`.", terminationMessage);
     
     // other deprecated APIs, unrelated to multispecies and multi-phenotype
-    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
+    if ((beforeSelection4String == "sim.") &&
+            (selectionString == "inSLiMgui") &&
+            terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
     {
         QTextCursor simAndSelection = beforeSelection4;
         simAndSelection.setPosition(selection.selectionEnd(), QTextCursor::KeepAnchor);
         
         return offerAndExecuteAutofix(simAndSelection, "exists(\"slimgui\")", "The `inSLiMgui` property has been removed; now use `exists(\"slimgui\")`.", terminationMessage);
     }
+    
+    //
+    //  Shift from genome to haplosome, probably for SLiM 5.0
+    //
+    
+    if (terminationMessage.contains("could not find an Eidos class named 'Genome'") &&
+            (selectionString == "Genome"))
+        return offerAndExecuteAutofix(selection, "Haplosome", "The `Genome` class has been renamed to `Haplosome`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomeType is not defined for object element type Haplosome") &&
+            (selectionString == "genomeType"))
+        return offerAndExecuteAutofix(selection, "chromosome.type", "The `genomeType` property of Haplosome has been removed; it is now accessed as `chromosome.type`.", terminationMessage);
+    
+    if (terminationMessage.contains("property isNullGenome is not defined for object element type Haplosome") &&
+            (selectionString == "isNullGenome"))
+        return offerAndExecuteAutofix(selection, "isNullHaplosome", "The `isNullGenome` property of Haplosome has been renamed to `isNullHaplosome`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomePedigreeID is not defined for object element type Haplosome") &&
+            (selectionString == "genomePedigreeID"))
+        return offerAndExecuteAutofix(selection, "haplosomePedigreeID", "The `genomePedigreeID` property of Haplosome has been renamed to `haplosomePedigreeID`.", terminationMessage);
+    
+    if (terminationMessage.contains("method mutationCountsInGenomes() is not defined on object element type Haplosome") &&
+            (selectionString == "mutationCountsInGenomes"))
+        return offerAndExecuteAutofix(selection, "mutationCountsInHaplosomes", "The `mutationCountsInGenomes` method of Haplosome has been renamed to `mutationCountsInHaplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("method mutationFrequenciesInGenomes() is not defined on object element type Haplosome") &&
+            (selectionString == "mutationFrequenciesInGenomes"))
+        return offerAndExecuteAutofix(selection, "mutationFrequenciesInHaplosomes", "The `mutationFrequenciesInGenomes` property of Haplosome has been renamed to `mutationFrequenciesInHaplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomes is not defined for object element type Individual") &&
+            (selectionString == "genomes"))
+        return offerAndExecuteAutofix(selection, "haplosomes", "The `genomes` property of Individual has been renamed to `haplosomes`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomesNonNull is not defined for object element type Individual") &&
+            (selectionString == "genomesNonNull"))
+        return offerAndExecuteAutofix(selection, "haplosomesNonNull", "The `genomesNonNull` property of Individual has been renamed to `haplosomesNonNull`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genome1 is not defined for object element type Individual") &&
+            (selectionString == "genome1"))
+        return offerAndExecuteAutofix(selection, "haplosomesFromParent1", "The `genome1` property of Individual has been renamed to `haplosomesFromParent1`.", terminationMessage);
+
+    if (terminationMessage.contains("property genome2 is not defined for object element type Individual") &&
+            (selectionString == "genome2"))
+        return offerAndExecuteAutofix(selection, "haplosomesFromParent2", "The `genome2` property of Individual has been renamed to `haplosomesFromParent2`.", terminationMessage);
+    
+    if (terminationMessage.contains("property genomes is not defined for object element type Subpopulation") &&
+            (selectionString == "genomes"))
+        return offerAndExecuteAutofix(selection, "haplosomes", "The `genomes` property of Subpopulation has been renamed to `haplosomes`.", terminationMessage);
+
+    if (terminationMessage.contains("property genomesNonNull is not defined for object element type Subpopulation") &&
+            (selectionString == "genomesNonNull"))
+        return offerAndExecuteAutofix(selection, "haplosomesNonNull", "The `genomesNonNull` property of Subpopulation has been renamed to `haplosomesNonNull`.", terminationMessage);
+
+    if (terminationMessage.contains("property chromosome is not defined for object element type Species") &&
+            (selectionString == "chromosome"))
+        return offerAndExecuteAutofix(selection, "chromosomes", "The `chromosome` property of Species has been renamed to `chromosomes`.", terminationMessage);
+
+    if (terminationMessage.contains("property chromosomeType is not defined for object element type Species") &&
+            (selectionString == "chromosomeType"))
+        return offerAndExecuteAutofix(selection, "chromosomes.type", "The `chromosomeType` property of Species has been removed; it is now accessed as `chromosomes.type`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome") &&
+            (selectionString == "genome"))
+        return offerAndExecuteAutofix(selection, "haplosome", "The `genome` pseudo-parameter has been renamed to `haplosome`.", terminationMessage);
+
+    // genome1 and genome2 for some callback types were removed in favor of individual.genome1 and individual.genome2 for SLiM 4.0,
+    // and used to be autofixed above; however, in recombination() callbacks genome1 has become haplosome1 and genome2 has
+    // become haplosome2, which conflicted with the previous autofix.  This sequence of fixes works for all cases.
+    if (terminationMessage.contains("undefined identifier genome1") &&
+            (selectionString == "genome1"))
+        return offerAndExecuteAutofix(selection, "haplosome1", "The `genome1` pseudo-parameter has been renamed to `haplosome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier haplosome1") &&
+            (selectionString == "haplosome1"))
+        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent1", "The `haplosome1` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome2") &&
+            (selectionString == "genome2"))
+        return offerAndExecuteAutofix(selection, "haplosome2", "The `genome2` pseudo-parameter has been renamed to `haplosome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier haplosome2") &&
+            (selectionString == "haplosome2"))
+        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent2", "The `haplosome2` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent2`.", terminationMessage);
     
     return false;
 }
@@ -2182,6 +2267,7 @@ void QtSLiMWindow::selectedSpeciesChanged(void)
     
     // do a full update to show the state for the new species
     updateAfterTickFull(true);
+    updateUIEnabling();
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -2493,15 +2579,7 @@ void QtSLiMWindow::removeExtraChromosomeViews(void)
         
         ui->chromosomeLayout->removeItem(widgetLayout);
         
-        // remove all items under widgetLayout
-        QLayoutItem *child;
-        
-        while ((child = widgetLayout->takeAt(0)) != nullptr)
-        {
-            delete child->widget(); // delete the widget
-            delete child;   // delete the layout item
-        }
-        
+        QtSLiMClearLayout(widgetLayout, /* deleteWidgets */ true);
         delete widgetLayout;
         
         ui->chromosomeLayout->update();
@@ -2511,7 +2589,7 @@ void QtSLiMWindow::removeExtraChromosomeViews(void)
         chromosomeZoomedWidgets.pop_back();
     }
     
-    // Sometimes the call above to "delete child->widget()" hangs for up to a second.  This appears to be due to
+    // Sometimes the call above to QtSLiMClearLayout hangs for up to a second.  This appears to be due to
     // disposing of the OpenGL context used for the widget, and might be an AMD Radeon issue.  Here's a backtrace
     // I managed to get from sample.  The only thing I can think of to do about this would be to keep the view
     // around and reuse it, to avoid having to dispose of its context.  But this may be specific to my hardware;
@@ -2577,13 +2655,13 @@ void QtSLiMWindow::updateChromosomeViewSetup(void)
                 sizePolicy1.setVerticalStretch(0);
                 
                 QVBoxLayout *chromosomeWidgetLayout = new QVBoxLayout();
-                chromosomeWidgetLayout->setSpacing(15);
+                chromosomeWidgetLayout->setSpacing(4);
                 
                 overviewWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
                 sizePolicy1.setHeightForWidth(overviewWidget->sizePolicy().hasHeightForWidth());
                 overviewWidget->setSizePolicy(sizePolicy1);
-                overviewWidget->setMinimumSize(QSize(0, 30));
-                overviewWidget->setMaximumSize(QSize(16777215, 30));
+                overviewWidget->setMinimumSize(QSize(0, 20));
+                overviewWidget->setMaximumSize(QSize(16777215, 20));
                 chromosomeWidgetLayout->addWidget(overviewWidget);
                 
                 zoomedWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
@@ -2704,9 +2782,6 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	// Now update our other UI, some of which depends upon the state of subpopTableView
     ui->individualsWidget->update();
     
-    for (QtSLiMChromosomeWidget *zoomedWidget : chromosomeZoomedWidgets)
-        zoomedWidget->stateChanged();
-    
     if (fullUpdate)
         updateTickCounter();
     
@@ -2818,8 +2893,14 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
 	
 	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
-	if (fullUpdate)
-        emit controllerUpdatedAfterTick();
+    // BCH 9/26/2024: This mechanism is now used to update chromosome views as well.  We now have two signals,
+    // one for partial updates and one for full updates; a given receiver should connect to just one of these signals.
+    // The partial update signal is always emitted; the full update signal is emitted only for full updates,
+    // which are less frequent.
+    if (fullUpdate)
+        emit controllerFullUpdateAfterTick();
+    
+    emit controllerPartialUpdateAfterTick();
 }
 
 void QtSLiMWindow::updatePlayButtonIcon(bool pressed)
@@ -2885,7 +2966,11 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->browserButton->setEnabled(true);
     ui->jumpToPopupButton->setEnabled(true);
     
+    Species *species = focalDisplaySpecies();
+    bool canMakeChromosomeDisplay = !invalidSimulation_ && (species != nullptr) && species->HasGenetics() && (species->Chromosomes().size() > 0);
+    
     ui->chromosomeActionButton->setEnabled(!invalidSimulation_);
+    ui->chromosomeDisplayButton->setEnabled(canMakeChromosomeDisplay);
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->debugOutputButton->setEnabled(true);
@@ -3490,10 +3575,10 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText((isWF ? " : stage 2 – offspring generation\n" : " : stage 2 – early() event execution\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage4Time, fw, 'f', 2).arg(percentStage4, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : " : stage 3 – fitness calculation\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 3 – generation swap\n" : " : stage 3 – fitness calculation\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage5Time, fw, 'f', 2).arg(percentStage5, 5, 'f', 2), menlo11_d);
-		tc.insertText((isWF ? " : stage 4 – generation swap\n" : " : stage 4 – viability/survival selection\n"), optima13_d);
+		tc.insertText((isWF ? " : stage 4 – bookkeeping (fixed mutation removal, etc.)\n" : " : stage 4 – viability/survival selection\n"), optima13_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage6Time, fw, 'f', 2).arg(percentStage6, 5, 'f', 2), menlo11_d);
 		tc.insertText((isWF ? " : stage 5 – late() event execution\n" : " : stage 5 – bookkeeping (fixed mutation removal, etc.)\n"), optima13_d);
@@ -3889,78 +3974,92 @@ void QtSLiMWindow::displayProfileResults(void)
             continue;
         }
         
-		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
+        {
+            int64_t regime_tallies[3];
+            int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
+            
+            for (int regime = 0; regime < 3; ++regime)
+                regime_tallies[regime] = 0;
+            
+            for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
+                if ((regime >= 1) && (regime <= 3))
+                    regime_tallies[regime - 1]++;
+                else
+                    regime_tallies_total--;
+            
+            for (int regime = 0; regime < 3; ++regime)
+            {
+                tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+                tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
+            }
+            
+            tc.insertText(" \n", optima8_d);
+        }
 		
-		for (int power = 0; power < 20; ++power)
-			power_tallies[power] = 0;
-		
-		for (int32_t count : focal_species->profile_mutcount_history_)
-		{
-			int power = static_cast<int>(round(log2(count)));
-			
-			power_tallies[power]++;
-		}
-		
-		for (int power = 0; power < 20; ++power)
-		{
-			if (power_tallies[power] > 0)
-			{
-				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-				tc.insertText(QString(" of ticks : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
-			}
-		}
-		
-		
-		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
-		
-		for (int regime = 0; regime < 3; ++regime)
-			regime_tallies[regime] = 0;
-		
-		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-			if ((regime >= 1) && (regime <= 3))
-				regime_tallies[regime - 1]++;
-			else
-				regime_tallies_total--;
-		
-		tc.insertText(" \n", optima13_d);
-		
-		for (int regime = 0; regime < 3; ++regime)
-		{
-			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
-		}
-		
-		
-		tc.insertText(" \n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_mutation_total_usage_), menlo11_d);
-		tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_nonneutral_mutation_total_), menlo11_d);
-		tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg(((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / static_cast<double>(focal_species->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
-		tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
+        tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
+        
+        
+        const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
-		
-		tc.insertText(" \n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_mutrun_total_usage_), menlo11_d);
-		tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
-		
-		tc.insertText(QString("%1").arg(focal_species->profile_unique_mutrun_total_), menlo11_d);
-		tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg((focal_species->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_species->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
-		
-		tc.insertText(QString("%1%").arg(((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / static_cast<double>(focal_species->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation runs shared among genomes", optima13_d);
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+            tc.insertText(" \n", optima13_d);
+            tc.insertText("Chromosome ", optima13i_d);
+            tc.insertText(QString::fromStdString(focal_chromosome->Symbol()), optima13i_d);
+            tc.insertText(":\n", optima13i_d);
+            tc.insertText(" \n", optima3_d);
+            
+            {
+                int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+                int64_t power_tallies_total = static_cast<int>(focal_chromosome->profile_mutcount_history_.size());
+                
+                for (int power = 0; power < 20; ++power)
+                    power_tallies[power] = 0;
+                
+                for (int32_t count : focal_chromosome->profile_mutcount_history_)
+                {
+                    int power = static_cast<int>(round(log2(count)));
+                    
+                    power_tallies[power]++;
+                }
+                
+                for (int power = 0; power < 20; ++power)
+                {
+                    if (power_tallies[power] > 0)
+                    {
+                        tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
+                        tc.insertText(QString(" of ticks : %1 mutation runs per haplosome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+                    }
+                }
+            }
+            
+            tc.insertText(" \n", optima8_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_mutation_total_usage_), menlo11_d);
+            tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_nonneutral_mutation_total_), menlo11_d);
+            tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg(((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / static_cast<double>(focal_chromosome->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
+            tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
+            
+            
+            tc.insertText(" \n", optima8_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_mutrun_total_usage_), menlo11_d);
+            tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
+            
+            tc.insertText(QString("%1").arg(focal_chromosome->profile_unique_mutrun_total_), menlo11_d);
+            tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg((focal_chromosome->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_chromosome->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
+            tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
+            
+            tc.insertText(QString("%1%").arg(((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / static_cast<double>(focal_chromosome->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
+            tc.insertText(" of mutation runs shared among haplosomes\n", optima13_d);
+        }
 	}
 #endif
 	
@@ -3977,7 +4076,6 @@ void QtSLiMWindow::displayProfileResults(void)
         double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
 		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
-		tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("SLiM memory usage (average / final tick)\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
@@ -4015,29 +4113,29 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(attributedStringForByteCount(mem_last_C.communityObjects, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : Community object\n", optima13_d);
 		
-		// Genome
+		// Haplosome
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot_S.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Haplosome objects (%1 / %2)\n").arg(mem_tot_S.haplosomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.haplosomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationRun* buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.haplosomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.haplosomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// GenomicElement
@@ -5035,6 +5133,18 @@ void QtSLiMWindow::showDrawerClicked(void)
     tablesDrawerController->activateWindow();
 }
 
+void QtSLiMWindow::chromosomeDisplayClicked(void)
+{
+    QWidget *chromosomeDisplay = newChromosomeDisplay();
+    
+    if (chromosomeDisplay)
+    {
+        chromosomeDisplay->show();
+        chromosomeDisplay->raise();
+        chromosomeDisplay->activateWindow();
+    }
+}
+
 void QtSLiMWindow::showConsoleClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -5078,174 +5188,6 @@ void QtSLiMWindow::debugOutputClicked(void)
     debugOutputWindow_->show();
     debugOutputWindow_->raise();
     debugOutputWindow_->activateWindow();
-}
-
-void QtSLiMWindow::runChromosomeContextMenuAtPoint(QPoint p_globalPoint)
-{
-    if (!invalidSimulation() && community && community->simulation_valid_)
-	{
-        QMenu contextMenu("chromosome_menu", this);
-        
-        QAction *displayMutations = contextMenu.addAction("Display Mutations");
-        displayMutations->setCheckable(true);
-        displayMutations->setChecked(chromosome_shouldDrawMutations_);
-        
-        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
-        displaySubstitutions->setCheckable(true);
-        displaySubstitutions->setChecked(chromosome_shouldDrawFixedSubstitutions_);
-        
-        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
-        displayGenomicElements->setCheckable(true);
-        displayGenomicElements->setChecked(chromosome_shouldDrawGenomicElements_);
-        
-        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
-        displayRateMaps->setCheckable(true);
-        displayRateMaps->setChecked(chromosome_shouldDrawRateMaps_);
-        
-        contextMenu.addSeparator();
-        
-        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
-        displayFrequencies->setCheckable(true);
-        displayFrequencies->setChecked(!chromosome_display_haplotypes_);
-        
-        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
-        displayHaplotypes->setCheckable(true);
-        displayHaplotypes->setChecked(chromosome_display_haplotypes_);
-        
-        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
-        displayGroup->addAction(displayFrequencies);
-        displayGroup->addAction(displayHaplotypes);
-        
-        QAction *displayAllMutations = nullptr;
-        QAction *selectNonneutralMutations = nullptr;
-        
-		// mutation type checkmark items
-        {
-            const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
-			
-			if (muttypes.size() > 0)
-			{
-                contextMenu.addSeparator();
-                
-                displayAllMutations = contextMenu.addAction("Display All Mutations");
-                displayAllMutations->setCheckable(true);
-                displayAllMutations->setChecked(chromosome_display_muttypes_.size() == 0);
-                
-                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
-				std::vector<slim_objectid_t> all_muttypes;
-				
-				for (auto muttype_iter : muttypes)
-				{
-					MutationType *muttype = muttype_iter.second;
-					slim_objectid_t muttype_id = muttype->mutation_type_id_;
-					
-					all_muttypes.emplace_back(muttype_id);
-				}
-				
-				all_muttypes.insert(all_muttypes.end(), chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end());
-                
-                // Avoid building a huge menu, which will hang the app
-				if (all_muttypes.size() <= 500)
-				{
-					std::sort(all_muttypes.begin(), all_muttypes.end());
-					all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
-					
-					// Then add menu items for each of those muttypes
-					for (slim_objectid_t muttype_id : all_muttypes)
-					{
-                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
-                        MutationType *muttype = community->MutationTypeWithID(muttype_id);  // try to look up the mutation type; can fail if it doesn't exists now
-                        
-                        if (muttype && (community->all_species_.size() > 1))
-                            menuItemTitle.append(" ").append(QString::fromStdString(muttype->species_.avatar_));
-                        
-                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
-                        
-                        mutationAction->setData(muttype_id);
-                        mutationAction->setCheckable(true);
-                        
-						if (std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id) != chromosome_display_muttypes_.end())
-							mutationAction->setChecked(true);
-					}
-				}
-                
-                contextMenu.addSeparator();
-                
-                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
-            }
-        }
-        
-        // Run the context menu synchronously
-        QAction *action = contextMenu.exec(p_globalPoint);
-        
-        // Act upon the chosen action; we just do it right here instead of dealing with slots
-        if (action)
-        {
-            if (action == displayMutations)
-                chromosome_shouldDrawMutations_ = !chromosome_shouldDrawMutations_;
-            else if (action == displaySubstitutions)
-                chromosome_shouldDrawFixedSubstitutions_ = !chromosome_shouldDrawFixedSubstitutions_;
-            else if (action == displayGenomicElements)
-                chromosome_shouldDrawGenomicElements_ = !chromosome_shouldDrawGenomicElements_;
-            else if (action == displayRateMaps)
-                chromosome_shouldDrawRateMaps_ = !chromosome_shouldDrawRateMaps_;
-            else if (action == displayFrequencies)
-                chromosome_display_haplotypes_ = false;
-            else if (action == displayHaplotypes)
-                chromosome_display_haplotypes_ = true;
-            else
-            {
-                const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
-                
-                if (action == displayAllMutations)
-                    chromosome_display_muttypes_.clear();
-                else if (action == selectNonneutralMutations)
-                {
-                    // - (IBAction)filterNonNeutral:(id)sender
-                    chromosome_display_muttypes_.clear();
-                    
-                    for (auto muttype_iter : muttypes)
-                    {
-                        MutationType *muttype = muttype_iter.second;
-                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
-                        
-                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
-                            chromosome_display_muttypes_.emplace_back(muttype_id);
-                    }
-                }
-                else
-                {
-                    // - (IBAction)filterMutations:(id)sender
-                    slim_objectid_t muttype_id = action->data().toInt();
-                    auto present_iter = std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id);
-                    
-                    if (present_iter == chromosome_display_muttypes_.end())
-                    {
-                        // this mut-type is not being displayed, so add it to our display list
-                        chromosome_display_muttypes_.emplace_back(muttype_id);
-                    }
-                    else
-                    {
-                        // this mut-type is being displayed, so remove it from our display list
-                        chromosome_display_muttypes_.erase(present_iter);
-                    }
-                }
-            }
-            
-            for (auto *widget : chromosomeZoomedWidgets)
-                widget->update();
-        }
-    }
-}
-
-void QtSLiMWindow::chromosomeActionRunMenu(void)
-{
-    QPoint mousePos = QCursor::pos();
-    
-    runChromosomeContextMenuAtPoint(mousePos);
-    
-    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    chromosomeActionReleased();
 }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
@@ -5808,7 +5750,7 @@ void QtSLiMWindow::displayGraphClicked(void)
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
             }
             else
             {
@@ -6222,6 +6164,8 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView, double wi
     
     graph_window->setAttribute(Qt::WA_DeleteOnClose, true);
     
+    graphView->updateSpeciesBadge();
+    
     return graph_window;
 }
 
@@ -6310,7 +6254,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(this);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
             }
             else
             {
@@ -6378,6 +6322,60 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     graphPopupButtonReleased();
 }
 
+QWidget *QtSLiMWindow::newChromosomeDisplay(void)
+{
+    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+    
+    // Create a chromosome display window for the focal species; if the window is on the "all" tab
+    // in a multispecies model, just return (we shouldn't be called in that case anyway).
+    // FIXME there is a flaw in the whole design here -- none of this updates dynamically if the
+    // user changes the number of chromosomes, the chromosome symbols, etc.  The user will need
+    // to close the display window and open a new one, if that happens; not the end of the world.
+    // Fixing this would require a smarter controller object that rebuilds the whole content of
+    // the display after a recycle-and-step to reflect whatever the initialize() process built.
+    Species *species = focalDisplaySpecies();
+    
+    if (!species)
+        return nullptr;
+    
+    // Make a new window to show the chromosome display
+    QWidget *display_window = new QWidget(this, Qt::Window | Qt::Tool);    // the display window has us as a parent, but is still a standalone window
+    
+    display_window->setWindowTitle("Chromosome Display");
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
+    display_window->setWindowIcon(QIcon());
+#endif
+    
+    // Make a new layout for chromosome views and build the display inside it
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    display_window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    
+    QtSLiMChromosomeWidgetController *displayController = new QtSLiMChromosomeWidgetController(this, display_window, species);
+    
+    displayController->buildChromosomeDisplay(/* resetWindowSize */ true);
+    
+    // force geometry calculation, which is lazy
+    display_window->setAttribute(Qt::WA_DontShowOnScreen, true);
+    display_window->show();
+    display_window->hide();
+    display_window->setAttribute(Qt::WA_DontShowOnScreen, false);
+    
+    // Position the window nicely
+    display_window->move(this->frameGeometry().topLeft() + QPoint(50, 50));
+    
+    // make window actions for all global menu items
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent window's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(display_window);
+    
+    display_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    return display_window;
+}
+
 void QtSLiMWindow::changeDirectoryClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -6435,8 +6433,11 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
         
         // If the selection has changed, that means that the mutation tallies need to be recomputed
         for (Species *species : community->AllSpecies())
-            species->population_.TallyMutationReferencesAcrossPopulation(true);
-        
+		{
+			species->population_.InvalidateMutationReferencesCache();	// force a retally
+			species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
+		}
+		
         // It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
         // selection changes should not happen often, so we can just always update, I think.
         ui->individualsWidget->update();

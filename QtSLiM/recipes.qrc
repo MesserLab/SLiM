@@ -4,7 +4,7 @@
         <file>recipes/Recipe 4.1 - A basic neutral simulation.txt</file>
         <file>recipes/Recipe 4.2.1 - Basic output, Entire population.txt</file>
         <file>recipes/Recipe 4.2.2 - Basic output, Random population sample.txt</file>
-        <file>recipes/Recipe 4.2.3 - Basic output, Sampling individuals rather than genomes.txt</file>
+        <file>recipes/Recipe 4.2.3 - Basic output, Sampling individuals rather than haplosomes.txt</file>
         <file>recipes/Recipe 4.2.4 - Basic output, Substitutions.txt</file>
         <file>recipes/Recipe 4.2.5 - Basic output, Automatic logging with LogFile.txt</file>
         <file>recipes/Recipe 4.2.6 - Basic output, Custom output with Eidos.txt</file>

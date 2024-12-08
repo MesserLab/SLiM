@@ -34,6 +34,10 @@
 #include <unordered_map>
 #include <cstdint>
 
+// Workaround for Xcode bug: when you want to debug build problems with a Release build related to profiling, uncomment this,
+// since the target-level definition of SLIMPROFILING doesn't seem to affect syntax highlighting and build errors correctly.
+//#define SLIMPROFILING 1
+
 #if defined(__APPLE__) && defined(__MACH__)
 // On macOS we use mach_absolute_time() for profiling and benchmarking
 #include <mach/mach_time.h>
@@ -331,7 +335,7 @@ typedef enum {
 	k_FITNESS_SEX_2,				// fitness calculation, sexual, with neither individual fitnessScaling nor non-neutral mutations
 	k_FITNESS_SEX_3,				// fitness calculation, sexual, with individual fitnessScaling values and non-neutral mutations
 	k_MIGRANT_CLEAR,				// clearing the migrant flag of individuals, at end of tick
-	k_PARENTS_CLEAR,				// clearing the genomes of parents at generation switch, in WF models
+	k_PARENTS_CLEAR,				// clearing the haplosomes of parents at generation switch, in WF models
 	k_UNIQUE_MUTRUNS,				// uniquing mutation runs (periodic bookkeeping)
 	k_SURVIVAL,						// evaluating survival in nonWF models (without callbacks)
 	
@@ -1013,7 +1017,7 @@ extern const std::string &gEidosStr_color;
 extern const std::string &gEidosStr_filePath;
 
 extern const std::string &gEidosStr_Mutation;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-extern const std::string &gEidosStr_Genome;		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+extern const std::string &gEidosStr_Haplosome;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gEidosStr_Individual;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 // the compile-time-constant IDs associated with the above strings
@@ -1144,11 +1148,11 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_filePath,
 
 	gEidosID_Mutation,
-	gEidosID_Genome,
+	gEidosID_Haplosome,
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 510		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 520		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN

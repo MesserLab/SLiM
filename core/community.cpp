@@ -1396,19 +1396,19 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
 }
 
-Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int value_count)
+Species *Community::SpeciesForHaplosomesVector(const Haplosome * const *haplosomes, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
 	
-	Species *consensus_species = &genomes[0]->OwningIndividual()->subpopulation_->species_;
+	Species *consensus_species = &haplosomes[0]->OwningIndividual()->subpopulation_->species_;
 	
 	if (consensus_species->community_.all_species_.size() == 1)	// with only one species, all objects must be in this species
 		return consensus_species;
 	
 	for (int value_index = 1; value_index < value_count; ++value_index)
 	{
-		const Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
+		const Species *species = &haplosomes[value_index]->OwningIndividual()->subpopulation_->species_;
 		
 		if (species != consensus_species)
 			return nullptr;
@@ -1417,10 +1417,10 @@ Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int v
 	return consensus_species;
 }
 
-Species *Community::SpeciesForGenomes(EidosValue *value)
+Species *Community::SpeciesForHaplosomes(EidosValue *value)
 {
 	if (value->Type() != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of type object." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of type object." << EidosTerminate();
 	
 	EidosValue_Object *object_value = (EidosValue_Object *)value;
 	
@@ -1429,16 +1429,16 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
 		return nullptr;
 	
-	if (object_value->Class() != gSLiM_Genome_Class)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
+	if (object_value->Class() != gSLiM_Haplosome_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of class Haplosome." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+		return &((Haplosome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	const Genome * const *genomes = (Genome **)object_vector_value->data();
+	const Haplosome * const *haplosomes = (Haplosome **)object_vector_value->data();
 	
-	return Community::SpeciesForGenomesVector(genomes, value_count);
+	return Community::SpeciesForHaplosomesVector(haplosomes, value_count);
 }
 
 Species *Community::SpeciesForMutationsVector(const Mutation * const *mutations, int value_count)
@@ -2346,10 +2346,9 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 void Community::AllSpecies_CheckIntegrity(void)
 {
 #if DEBUG
-	// Check the integrity of all the information in the individuals and genomes of the parental population
+	// Check the integrity of all the information in the individuals and haplosomes of the parental population
 	for (Species *species : all_species_)
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
-			subpop_pair.second->CheckIndividualIntegrity();
+		species->Species_CheckIntegrity();
 #endif
 	
 #if DEBUG
@@ -2367,8 +2366,19 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (species->species_id_ != (int)species_index)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
 		
-		if (&species->TheChromosome().species_ != species)
-			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->TheChromosome().species_ mismatch." << EidosTerminate();
+		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+		size_t chromosomes_count = chromosomes.size();
+		
+		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
+		{
+			Chromosome *chromosome = chromosomes[chromosome_index];
+			
+			if (&chromosome->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
+			
+			if (&chromosome->community_ != this)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->community_ mismatch." << EidosTerminate();
+		}
 		
 		Population &population = species->population_;
 		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
@@ -2430,8 +2440,8 @@ void Community::AllSpecies_PurgeRemovedObjects(void)
 	// with PurgeRemovedSubpopulations() only in Population::SwapGenerations().
 	for (Species *species : all_species_)
 	{
+		species->EmptyGraveyard();		// needs to be done first; uses subpopulation references
 		species->population_.PurgeRemovedSubpopulations();
-		species->EmptyGraveyard();
 	}
 }
 
@@ -2547,8 +2557,18 @@ bool Community::_RunOneTickWF(void)
 			if (species->Active())
 				species->WF_SwitchToChildGeneration();
 		
+		// invalidate interactions, now that the generation they were valid for has disappeared
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		for (Species *species : all_species_)
+			if (species->Active())
+				InvalidateInteractionsForSpecies(species);
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
+		
+		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		DeregisterScheduledInteractionBlocks();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2562,27 +2582,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 3: Remove fixed mutations and associated tasks
+	// Stage 3: Swap generations
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "remove fixed mutations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage3RemoveFixedMutations;
+		cycle_stage_ = SLiMCycleStage::kWFStage3SwapGenerations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->MaintainMutationRegistry();
-		
-		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (Species *species : all_species_)
-			if (species->Active())
-				InvalidateInteractionsForSpecies(species);
-		
-		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
-		DeregisterScheduledInteractionBlocks();
+				species->WF_SwapGenerations();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2596,19 +2610,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 4: Swap generations
+	// Stage 4: Remove fixed mutations and associated tasks
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "swap generations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage4SwapGenerations;
+		cycle_stage_ = SLiMCycleStage::kWFStage4RemoveFixedMutations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->WF_SwapGenerations();
+				species->MaintainMutationRegistry();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2679,9 +2695,9 @@ bool Community::_RunOneTickWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in the fitness recalculation step??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2714,7 +2730,7 @@ bool Community::_RunOneTickWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 #endif
 		
 		for (Species *species : all_species_)
@@ -3076,9 +3092,9 @@ bool Community::_RunOneTickNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in late() events??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -3113,7 +3129,7 @@ bool Community::_RunOneTickNonWF(void)
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 #endif
 		
 		for (Species *species : all_species_)
@@ -3283,14 +3299,18 @@ void Community::StartProfiling(void)
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{
-		focal_species->profile_mutcount_history_.clear();
 		focal_species->profile_nonneutral_regime_history_.clear();
-		focal_species->profile_mutation_total_usage_ = 0;
-		focal_species->profile_nonneutral_mutation_total_ = 0;
-		focal_species->profile_mutrun_total_usage_ = 0;
-		focal_species->profile_unique_mutrun_total_ = 0;
-		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
 		focal_species->profile_max_mutation_index_ = 0;
+		
+		for (Chromosome *focal_chromosome : focal_species->Chromosomes())
+		{
+			focal_chromosome->profile_mutcount_history_.clear();
+			focal_chromosome->profile_mutation_total_usage_ = 0;
+			focal_chromosome->profile_nonneutral_mutation_total_ = 0;
+			focal_chromosome->profile_mutrun_total_usage_ = 0;
+			focal_chromosome->profile_unique_mutrun_total_ = 0;
+			focal_chromosome->profile_mutrun_nonneutral_recache_total_ = 0;
+		}
 	}
 #endif
 	

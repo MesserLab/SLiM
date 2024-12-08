@@ -54,6 +54,7 @@ class QtSLiMScriptTextEdit;
 class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
 class QtSLiMChromosomeWidget;
+class QtSLiMChromosomeWidgetController;
 class LogFile;
 
 
@@ -131,15 +132,9 @@ public:
     bool reloadingSubpopTableview = false;
     bool reloadingSpeciesBar = false;
     
-    // chromosome view configuration, kept by us because it applies to all chromosome views in multispecies models
-    bool chromosome_shouldDrawMutations_ = true;
-    bool chromosome_shouldDrawFixedSubstitutions_ = false;
-    bool chromosome_shouldDrawGenomicElements_ = false;
-    bool chromosome_shouldDrawRateMaps_ = false;
+    // chromosome view configuration, applied to all chromosome views in multispecies models
+    QtSLiMChromosomeWidgetController *chromosomeConfig = nullptr;
     
-    bool chromosome_display_haplotypes_ = false;                // if false, displaying frequencies; if true, displaying haplotypes
-    std::vector<slim_objectid_t> chromosome_display_muttypes_;  // if empty, display all mutation types; otherwise, display only the muttypes chosen
-
 public:
     typedef enum {
         WF = 0,
@@ -165,8 +160,6 @@ public:
     
     std::vector<Subpopulation *> listedSubpopulations(void);
     std::vector<Subpopulation*> selectedSubpopulations(void);
-    void chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
-    const std::vector<slim_objectid_t> &chromosomeDisplayMuttypes(void);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
     void setInvalidSimulation(bool p_invalid);
@@ -250,8 +243,8 @@ signals:
     void playStateChanged(void);
     void controllerChangeCountChanged(int changeCount);
     
-    void controllerUpdatedAfterTick(void);
-    void controllerChromosomeSelectionChanged(void);
+    void controllerPartialUpdateAfterTick(void);
+    void controllerFullUpdateAfterTick(void);
     void controllerTickFinished(void);
     void controllerRecycled(void);
     
@@ -264,7 +257,7 @@ public slots:
     void playSpeedChanged(void);
 
     void showDrawerClicked(void);
-    void chromosomeActionRunMenu(void);
+    void chromosomeDisplayClicked(void);
     void showConsoleClicked(void);
     void showBrowserClicked(void);
     void jumpToPopupButtonRunMenu(void);
@@ -307,6 +300,8 @@ private slots:
     void toggleDrawerReleased(void);
     void chromosomeActionPressed(void);
     void chromosomeActionReleased(void);
+    void chromosomeDisplayPressed(void);
+    void chromosomeDisplayReleased(void);
 
     void clearDebugPressed(void);
     void clearDebugReleased(void);
@@ -346,6 +341,7 @@ protected:
     void positionNewSubsidiaryWindow(QWidget *window);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth=300, double windowHeight=300);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
+    QWidget *newChromosomeDisplay(void);
     
     // used to suppress saving of resize/position info until we are fully constructed
     bool donePositioning_ = false;

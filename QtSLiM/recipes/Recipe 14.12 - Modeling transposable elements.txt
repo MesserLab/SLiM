@@ -28,22 +28,22 @@ initialize() {
 	sim.tag = 0;	// the next unique tag value to use for TEs
 	
 	// create some transposons at random positions
-	genomes = sim.subpopulations.genomes;
+	haplosomes = sim.subpopulations.haplosomes;
 	positions = rdunif(teInitialCount, 0, L-1);
 	
 	for (teIndex in 0:(teInitialCount-1))
 	{
 		pos = positions[teIndex];
-		mut = genomes.addNewDrawnMutation(m2, pos);
+		mut = haplosomes.addNewDrawnMutation(m2, pos);
 		mut.tag = sim.tag;
 		sim.tag = sim.tag + 1;
 	}
 }
 modifyChild() {
 	// disable transposons with rate teDisableP
-	for (genome in child.genomes)
+	for (haplosome in child.haplosomes)
 	{
-		tes = genome.mutationsOfType(m2);
+		tes = haplosome.mutationsOfType(m2);
 		teCount = tes.size();
 		mutatedCount = teCount ? rpois(1, teCount * teDisableP) else 0;
 		
@@ -59,14 +59,14 @@ modifyChild() {
 				if (size(disabledTE))
 				{
 					// use the existing disabled TE mutation
-					genome.removeMutations(te);
-					genome.addMutations(disabledTE);
+					haplosome.removeMutations(te);
+					haplosome.addMutations(disabledTE);
 					next;
 				}
 				
 				// make a new disabled TE mutation with the right tag
-				genome.removeMutations(te);
-				disabledTE = genome.addNewDrawnMutation(m3, te.position);
+				haplosome.removeMutations(te);
+				disabledTE = haplosome.addNewDrawnMutation(m3, te.position);
 				disabledTE.tag = te.tag;
 			}
 		}
@@ -78,9 +78,9 @@ late() {
 	// make active transposons copy themselves with rate teJumpP
 	for (individual in sim.subpopulations.individuals)
 	{
-		for (genome in individual.genomes)
+		for (haplosome in individual.haplosomes)
 		{
-			tes = genome.mutationsOfType(m2);
+			tes = haplosome.mutationsOfType(m2);
 			teCount = tes.size();
 			jumpCount = teCount ? rpois(1, teCount * teJumpP) else 0;
 			
@@ -92,7 +92,7 @@ late() {
 				{
 					// make a new TE mutation
 					pos = rdunif(1, 0, L-1);
-					jumpTE = genome.addNewDrawnMutation(m2, pos);
+					jumpTE = haplosome.addNewDrawnMutation(m2, pos);
 					jumpTE.tag = sim.tag;
 					sim.tag = sim.tag + 1;
 				}
@@ -104,7 +104,7 @@ late() {
 	// print information on each TE, including the fraction of it disabled
 	all_tes = sortBy(sim.mutationsOfType(m2), "position");
 	all_disabledTEs = sortBy(sim.mutationsOfType(m3), "position");
-	genomeCount = size(sim.subpopulations.genomes);
+	haplosomeCount = size(sim.subpopulations.haplosomes);
 	
 	catn("Active TEs:");
 	for (te in all_tes)
@@ -126,7 +126,7 @@ late() {
 		
 		total = active + disabled;
 		
-		cat("frequency " + format("%0.3f", total / genomeCount) + ", ");
+		cat("frequency " + format("%0.3f", total / haplosomeCount) + ", ");
 		catn(round(active / total * 100) + "% active");
 	}
 	

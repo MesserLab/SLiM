@@ -1205,6 +1205,10 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						if ((p_call_signature->call_name_ == "defineSpatialMap") && ((named_arg == "values") || (named_arg == "interpolate")))
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 						
+						// Special error-handling for initializeSLiMOptions() because its mutationRuns parameter changed to doMutationRunExperiments in SLiM 5
+						if ((p_call_signature->call_name_ == "initializeSLiMOptions") && (named_arg == "mutationRuns"))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+						
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << EidosTerminate(nullptr);
 					}
 				}
