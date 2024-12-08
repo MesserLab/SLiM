@@ -128,6 +128,8 @@ private:
 	
 	Haplosome *_NewHaplosome_NULL(Individual *p_individual);		// internal use only
 	Haplosome *_NewHaplosome_NONNULL(Individual *p_individual);		// internal use only
+	Haplosome *_NewHaplosome_NULL(Individual *p_individual);		// internal use only; does not set chromosome_subposition_
+	Haplosome *_NewHaplosome_NONNULL(Individual *p_individual);		// internal use only; does not set chromosome_subposition_
 	
 	// Chromosome now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
 	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
@@ -353,6 +355,8 @@ public:
 	// make a non-null haplosome, which is associated with an individual and has an associated chromosome
 	Haplosome *NewHaplosome_NULL(Individual *p_individual);
 	Haplosome *NewHaplosome_NONNULL(Individual *p_individual);
+	Haplosome *NewHaplosome_NULL(Individual *p_individual, uint8_t p_chromosome_subposition);
+	Haplosome *NewHaplosome_NONNULL(Individual *p_individual, uint8_t p_chromosome_subposition);
 	void FreeHaplosome(Haplosome *p_haplosome);
 	
 	const std::vector<Haplosome *> &HaplosomesJunkyardNonnull(void) { return haplosomes_junkyard_nonnull; }
@@ -676,6 +680,7 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 #include "haplosome.h"
 
 inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(Individual *p_individual)
+inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(Individual *p_individual, uint8_t p_chromosome_subposition)
 {
 	if (haplosomes_junkyard_null.size())
 	{
@@ -683,14 +688,19 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(I
 		haplosomes_junkyard_null.pop_back();
 		
 		//back->chromosome_index_ = index_;		// guaranteed already set
+		back->chromosome_subposition_ = p_chromosome_subposition;
 		back->individual_ = p_individual;
 		return back;
 	}
 	
 	return _NewHaplosome_NULL(p_individual);
+	Haplosome *hap = _NewHaplosome_NULL(p_individual);
+	hap->chromosome_subposition_ = p_chromosome_subposition;
+	return hap;
 }
 
 inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNULL(Individual *p_individual)
+inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNULL(Individual *p_individual, uint8_t p_chromosome_subposition)
 {
 	if (haplosomes_junkyard_nonnull.size())
 	{
@@ -737,11 +747,15 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 		}
 		
 		//back->chromosome_index_ = index_;		// guaranteed already set
+		back->chromosome_subposition_ = p_chromosome_subposition;
 		back->individual_ = p_individual;
 		return back;
 	}
 	
 	return _NewHaplosome_NONNULL(p_individual);
+	Haplosome *hap = _NewHaplosome_NONNULL(p_individual);
+	hap->chromosome_subposition_ = p_chromosome_subposition;
+	return hap;
 }
 
 // Frees a haplosome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!

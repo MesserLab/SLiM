@@ -1759,6 +1759,7 @@ void Chromosome::SetUpMutationRunContexts(void)
 
 Haplosome *Chromosome::_NewHaplosome_NULL(Individual *p_individual)
 {
+	// this does not set chromosome_subposition_; use NewHaplosome_NULL()
 	if (haplosomes_junkyard_nonnull.size())
 	{
 		Haplosome *back = haplosomes_junkyard_nonnull.back();
@@ -1775,6 +1776,7 @@ Haplosome *Chromosome::_NewHaplosome_NULL(Individual *p_individual)
 
 Haplosome *Chromosome::_NewHaplosome_NONNULL(Individual *p_individual)
 {
+	// this does not set chromosome_subposition_; use NewHaplosome_NONNULL()
 	if (haplosomes_junkyard_null.size())
 	{
 		Haplosome *back = haplosomes_junkyard_null.back();

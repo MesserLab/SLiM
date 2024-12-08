@@ -113,7 +113,9 @@ private:
 #endif
 	
 	slim_chromosome_index_t /* uint8_t */ chromosome_index_;		// the index of this haplosome's chromosome
+	uint8_t chromosome_subposition_;								// 0 for the first haplosome for the chromosome, 1 for the second
 	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
+	// 1 BYTE UNUSED HERE!
 	
 	int32_t mutrun_count_;											// number of runs being used; 0 for a null haplosome, otherwise >= 1
 	slim_position_t mutrun_length_;									// the length, in base pairs, of each run; the last run may not use its full length
@@ -145,12 +147,14 @@ public:
 	struct NonNullHaplosome final {};
 	
 	// make a null haplosome; the Haplosome::NullHaplosome{} parameter is just a tag to select this constructor
+	// this constructor is for internal use only, and does not set chromosome_subposition_; use NewHaplosome_NULL()
 	inline Haplosome(NullHaplosome, Individual *p_individual, Chromosome *p_chromosome) :
 		chromosome_index_(p_chromosome->Index()), mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(p_individual), haplosome_id_(-1)
 	{
 	};
 	
 	// make a non-null haplosome; the Haplosome::NonNullHaplosome{} parameter is just a tag to select this constructor
+	// this constructor is for internal use only, and does not set chromosome_subposition_; use NewHaplosome_NONNULL()
 	inline Haplosome(NonNullHaplosome, Individual *p_individual, Chromosome *p_chromosome) :
 		chromosome_index_(p_chromosome->Index()), mutrun_count_(p_chromosome->mutrun_count_), mutrun_length_(p_chromosome->mutrun_length_), individual_(p_individual), haplosome_id_(-1)
 	{
