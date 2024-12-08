@@ -213,6 +213,8 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kNullY_YSexChromosomeWithNull:
 			chromosome_for_haplosome_index_.push_back(p_chromosome);
 			chromosome_for_haplosome_index_.push_back(p_chromosome);
+			chromosome_subindex_for_haplosome_index_.push_back(0);
+			chromosome_subindex_for_haplosome_index_.push_back(1);
 			first_haplosome_index_.push_back(haplosome_count_per_individual_);
 			last_haplosome_index_.push_back(haplosome_count_per_individual_ + 1);
 			haplosome_count_per_individual_ += 2;
@@ -227,6 +229,7 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 		case ChromosomeType::kHM_HaploidMaleInherited:
 		case ChromosomeType::kML_HaploidMaleLine:
 			chromosome_for_haplosome_index_.push_back(p_chromosome);
+			chromosome_subindex_for_haplosome_index_.push_back(0);
 			first_haplosome_index_.push_back(haplosome_count_per_individual_);
 			last_haplosome_index_.push_back(haplosome_count_per_individual_);
 			haplosome_count_per_individual_ += 1;
