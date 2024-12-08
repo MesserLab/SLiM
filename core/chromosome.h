@@ -126,8 +126,6 @@ private:
 	std::vector<Haplosome *> haplosomes_junkyard_nonnull;	// OWNED: non-null haplosomes go here when we're done with them, for reuse
 	std::vector<Haplosome *> haplosomes_junkyard_null;		// OWNED: null haplosomes go here when we're done with them, for reuse
 	
-	Haplosome *_NewHaplosome_NULL(Individual *p_individual);		// internal use only
-	Haplosome *_NewHaplosome_NONNULL(Individual *p_individual);		// internal use only
 	Haplosome *_NewHaplosome_NULL(Individual *p_individual);		// internal use only; does not set chromosome_subposition_
 	Haplosome *_NewHaplosome_NONNULL(Individual *p_individual);		// internal use only; does not set chromosome_subposition_
 	
@@ -353,8 +351,6 @@ public:
 	
 	// Make a null haplosome, which is associated with an individual, but has no associated chromosome, or
 	// make a non-null haplosome, which is associated with an individual and has an associated chromosome
-	Haplosome *NewHaplosome_NULL(Individual *p_individual);
-	Haplosome *NewHaplosome_NONNULL(Individual *p_individual);
 	Haplosome *NewHaplosome_NULL(Individual *p_individual, uint8_t p_chromosome_subposition);
 	Haplosome *NewHaplosome_NONNULL(Individual *p_individual, uint8_t p_chromosome_subposition);
 	void FreeHaplosome(Haplosome *p_haplosome);
@@ -679,7 +675,6 @@ inline __attribute__((always_inline)) void Chromosome::DrawMutationAndBreakpoint
 // defer this include until now, to resolve mutual dependencies
 #include "haplosome.h"
 
-inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(Individual *p_individual)
 inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(Individual *p_individual, uint8_t p_chromosome_subposition)
 {
 	if (haplosomes_junkyard_null.size())
@@ -693,13 +688,11 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NULL(I
 		return back;
 	}
 	
-	return _NewHaplosome_NULL(p_individual);
 	Haplosome *hap = _NewHaplosome_NULL(p_individual);
 	hap->chromosome_subposition_ = p_chromosome_subposition;
 	return hap;
 }
 
-inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNULL(Individual *p_individual)
 inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNULL(Individual *p_individual, uint8_t p_chromosome_subposition)
 {
 	if (haplosomes_junkyard_nonnull.size())
@@ -752,7 +745,6 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 		return back;
 	}
 	
-	return _NewHaplosome_NONNULL(p_individual);
 	Haplosome *hap = _NewHaplosome_NONNULL(p_individual);
 	hap->chromosome_subposition_ = p_chromosome_subposition;
 	return hap;
