@@ -59,7 +59,7 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 early() {
-	sim.chromosome.colorSubstitution = "";
+	sim.chromosomes.colorSubstitution = "";
 	sim.addSubpop("p1", 5000);
 }
 10000 early() { sim.simulationFinished(); }

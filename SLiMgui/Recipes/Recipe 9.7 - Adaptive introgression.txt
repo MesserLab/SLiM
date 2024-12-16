@@ -18,7 +18,7 @@ initialize() {
 		sim.subpopulations[i-1].setMigrationRates(i+1, 0.2);
 }
 100 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 100:100000 late() {

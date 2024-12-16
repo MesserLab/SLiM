@@ -35,7 +35,7 @@ public:
     explicit QtSLiMHaplotypeProgress(QWidget *p_parent = nullptr);
     virtual ~QtSLiMHaplotypeProgress() override;
     
-    void runProgressWithGenomeCount(size_t genome_count, int stepCount);
+    void runProgressWithHaplosomeCount(size_t haplosome_count, int stepCount);
     bool haplotypeProgressIsCancelled(void);
     
     void setHaplotypeProgress(size_t progress, int stage);

@@ -36,16 +36,16 @@ void QtSLiMHaplotypeManager::glDrawSubpopStripsInRect(QRect interior)
     // Set up to draw rects
     SLIM_GL_PREPARE();
 	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
-	size_t genome_index = 0, genome_count = genomeSubpopIDs.size();
-	float height_divisor = genome_count;
+	// Loop through the haplosomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
+	size_t haplosome_index = 0, haplosome_count = haplosomeSubpopIDs.size();
+	float height_divisor = haplosome_count;
 	float left = static_cast<float>(interior.x());
 	float right = static_cast<float>(interior.x() + interior.width());
 	
-	for (slim_objectid_t genome_subpop_id : genomeSubpopIDs)
+	for (slim_objectid_t haplosome_subpop_id : haplosomeSubpopIDs)
 	{
-		float top = interior.y() + (genome_index / height_divisor) * interior.height();
-		float bottom = interior.y() + ((genome_index + 1) / height_divisor) * interior.height();
+		float top = interior.y() + (haplosome_index / height_divisor) * interior.height();
+		float bottom = interior.y() + ((haplosome_index + 1) / height_divisor) * interior.height();
 		
 		if (bottom - top > 1.0f)
 		{
@@ -63,7 +63,7 @@ void QtSLiMHaplotypeManager::glDrawSubpopStripsInRect(QRect interior)
         SLIM_GL_PUSHRECT();
 		
 		float colorRed, colorGreen, colorBlue, colorAlpha;
-		double hue = (genome_subpop_id - minSubpopID) / static_cast<double>(maxSubpopID - minSubpopID + 1);
+		double hue = (haplosome_subpop_id - minSubpopID) / static_cast<double>(maxSubpopID - minSubpopID + 1);
         QColor hsbColor = QtSLiMColorWithHSV(hue, 1.0, 1.0, 1.0);
 		QColor rgbColor = hsbColor.toRgb();
         
@@ -75,7 +75,7 @@ void QtSLiMHaplotypeManager::glDrawSubpopStripsInRect(QRect interior)
         SLIM_GL_PUSHRECT_COLORS();
         SLIM_GL_CHECKBUFFERS();
 		
-		genome_index++;
+		haplosome_index++;
 	}
 	
 	// Draw any leftovers
@@ -88,29 +88,29 @@ void QtSLiMHaplotypeManager::glDrawDisplayListInRect(QRect interior, bool displa
     SLIM_GL_PREPARE();
 	
 	// decide whether to plot in ascending order or descending order; we do this based on a calculated
-	// similarity to the previously displayed first genome, so that we maximize visual continuity
-	size_t genome_count = displayList->size();
+	// similarity to the previously displayed first haplosome, so that we maximize visual continuity
+	size_t haplosome_count = displayList->size();
 	bool ascending = true;
 	
-	if (previousFirstBincounts && (genome_count > 1))
+	if (previousFirstBincounts && (haplosome_count > 1))
 	{
-		std::vector<MutationIndex> &first_genome_list = (*displayList)[0];
-		std::vector<MutationIndex> &last_genome_list = (*displayList)[genome_count - 1];
-		static int64_t *first_genome_bincounts = nullptr;
-		static int64_t *last_genome_bincounts = nullptr;
+		std::vector<MutationIndex> &first_haplosome_list = (*displayList)[0];
+		std::vector<MutationIndex> &last_haplosome_list = (*displayList)[haplosome_count - 1];
+		static int64_t *first_haplosome_bincounts = nullptr;
+		static int64_t *last_haplosome_bincounts = nullptr;
 		
-		if (!first_genome_bincounts)	first_genome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
-		if (!last_genome_bincounts)		last_genome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
+		if (!first_haplosome_bincounts)	first_haplosome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
+		if (!last_haplosome_bincounts)		last_haplosome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
 		
-		tallyBincounts(first_genome_bincounts, first_genome_list);
-		tallyBincounts(last_genome_bincounts, last_genome_list);
+		tallyBincounts(first_haplosome_bincounts, first_haplosome_list);
+		tallyBincounts(last_haplosome_bincounts, last_haplosome_list);
 		
 		if (*previousFirstBincounts)
 		{
-			int64_t first_genome_distance = distanceForBincounts(first_genome_bincounts, *previousFirstBincounts);
-			int64_t last_genome_distance = distanceForBincounts(last_genome_bincounts, *previousFirstBincounts);
+			int64_t first_haplosome_distance = distanceForBincounts(first_haplosome_bincounts, *previousFirstBincounts);
+			int64_t last_haplosome_distance = distanceForBincounts(last_haplosome_bincounts, *previousFirstBincounts);
 			
-			if (first_genome_distance > last_genome_distance)
+			if (first_haplosome_distance > last_haplosome_distance)
 				ascending = false;
 			
 			free(*previousFirstBincounts);
@@ -118,27 +118,27 @@ void QtSLiMHaplotypeManager::glDrawDisplayListInRect(QRect interior, bool displa
 		
 		// take over one of our buffers, to avoid having to copy values
 		if (ascending) {
-			*previousFirstBincounts = first_genome_bincounts;
-			first_genome_bincounts = nullptr;
+			*previousFirstBincounts = first_haplosome_bincounts;
+			first_haplosome_bincounts = nullptr;
 		} else {
-			*previousFirstBincounts = last_genome_bincounts;
-			last_genome_bincounts = nullptr;
+			*previousFirstBincounts = last_haplosome_bincounts;
+			last_haplosome_bincounts = nullptr;
 		}
 	}
 	
-	// Loop through the genomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
+	// Loop through the haplosomes and draw them; we do this in two passes, neutral mutations underneath selected mutations
 	for (int pass_count = 0; pass_count <= 1; ++pass_count)
 	{
 		bool plotting_neutral = (pass_count == 0);
-		float height_divisor = genome_count;
+		float height_divisor = haplosome_count;
 		float width_subtractor = (usingSubrange ? subrangeFirstBase : 0);
 		float width_divisor = (usingSubrange ? (subrangeLastBase - subrangeFirstBase + 1) : (mutationLastPosition + 1));
 		
-		for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
+		for (size_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
 		{
-			std::vector<MutationIndex> &genome_list = (ascending ? (*displayList)[genome_index] : (*displayList)[(genome_count - 1) - genome_index]);
-			float top = interior.y() + (genome_index / height_divisor) * interior.height();
-			float bottom = interior.y() + ((genome_index + 1) / height_divisor) * interior.height();
+			std::vector<MutationIndex> &haplosome_list = (ascending ? (*displayList)[haplosome_index] : (*displayList)[(haplosome_count - 1) - haplosome_index]);
+			float top = interior.y() + (haplosome_index / height_divisor) * interior.height();
+			float bottom = interior.y() + ((haplosome_index + 1) / height_divisor) * interior.height();
 			
 			if (bottom - top > 1.0f)
 			{
@@ -153,7 +153,7 @@ void QtSLiMHaplotypeManager::glDrawDisplayListInRect(QRect interior, bool displa
 				bottom = top + 1;
 			}
 			
-			for (MutationIndex mut_index : genome_list)
+			for (MutationIndex mut_index : haplosome_list)
 			{
 				HaploMutation &mut_info = mutationInfo[mut_index];
 				

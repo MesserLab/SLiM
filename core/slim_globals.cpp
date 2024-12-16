@@ -23,7 +23,7 @@
 #include "chromosome.h"
 #include "individual.h"
 #include "interaction_type.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "genomic_element.h"
 #include "genomic_element_type.h"
 #include "log_file.h"
@@ -73,7 +73,7 @@ void SLiM_WarmUp(void)
 		gSLiM_Chromosome_Class =			new Chromosome_Class(			gStr_Chromosome,			gEidosDictionaryRetained_Class);
 		gSLiM_Individual_Class =			new Individual_Class(			gEidosStr_Individual,		gEidosDictionaryUnretained_Class);
 		gSLiM_InteractionType_Class =		new InteractionType_Class(		gStr_InteractionType,		gEidosDictionaryUnretained_Class);
-		gSLiM_Genome_Class =				new Genome_Class(				gEidosStr_Genome,			gEidosObject_Class);
+		gSLiM_Haplosome_Class =				new Haplosome_Class(			gEidosStr_Haplosome,		gEidosObject_Class);
 		gSLiM_GenomicElement_Class =		new GenomicElement_Class(		gStr_GenomicElement,		gEidosObject_Class);
 		gSLiM_GenomicElementType_Class =	new GenomicElementType_Class(	gStr_GenomicElementType,	gEidosDictionaryUnretained_Class);
 		gSLiM_LogFile_Class =				new LogFile_Class(				gStr_LogFile,				gEidosDictionaryRetained_Class);
@@ -211,7 +211,7 @@ void SLiM_RaiseObjectidRangeError(int64_t p_long_value)
 
 void SLiM_RaisePopsizeRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiM_RaisePopsizeRangeError): value " << p_long_value << " for a subpopulation size, individual index, or genome index is out of range." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaisePopsizeRangeError): value " << p_long_value << " for a subpopulation size, individual index, or haplosome index is out of range." << EidosTerminate();
 }
 
 void SLiM_RaiseUsertagRangeError(int64_t p_long_value)
@@ -479,10 +479,10 @@ void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
 		p_usage.chromosomeMutationRateMaps +
 		p_usage.chromosomeRecombinationRateMaps +
 		p_usage.chromosomeAncestralSequence +
-		p_usage.genomeObjects +
-		p_usage.genomeExternalBuffers +
-		p_usage.genomeUnusedPoolSpace +
-		p_usage.genomeUnusedPoolBuffers +
+		p_usage.haplosomeObjects +
+		p_usage.haplosomeExternalBuffers +
+		p_usage.haplosomeUnusedPoolSpace +
+		p_usage.haplosomeUnusedPoolBuffers +
 		p_usage.genomicElementObjects +
 		p_usage.genomicElementTypeObjects +
 		p_usage.individualObjects +
@@ -530,11 +530,11 @@ void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SL
 	p_total.chromosomeRecombinationRateMaps += p_usage.chromosomeRecombinationRateMaps;
 	p_total.chromosomeAncestralSequence += p_usage.chromosomeAncestralSequence;
 	
-	p_total.genomeObjects_count += p_usage.genomeObjects_count;
-	p_total.genomeObjects += p_usage.genomeObjects;
-	p_total.genomeExternalBuffers += p_usage.genomeExternalBuffers;
-	p_total.genomeUnusedPoolSpace += p_usage.genomeUnusedPoolSpace;
-	p_total.genomeUnusedPoolBuffers += p_usage.genomeUnusedPoolBuffers;
+	p_total.haplosomeObjects_count += p_usage.haplosomeObjects_count;
+	p_total.haplosomeObjects += p_usage.haplosomeObjects;
+	p_total.haplosomeExternalBuffers += p_usage.haplosomeExternalBuffers;
+	p_total.haplosomeUnusedPoolSpace += p_usage.haplosomeUnusedPoolSpace;
+	p_total.haplosomeUnusedPoolBuffers += p_usage.haplosomeUnusedPoolBuffers;
 	
 	p_total.genomicElementObjects_count += p_usage.genomicElementObjects_count;
 	p_total.genomicElementObjects += p_usage.genomicElementObjects;
@@ -620,8 +620,8 @@ std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 		case SLiMCycleStage::kWFStage0ExecuteFirstScripts: return "first";
 		case SLiMCycleStage::kWFStage1ExecuteEarlyScripts: return "early";
 		case SLiMCycleStage::kWFStage2GenerateOffspring: return "reproduction";
-		case SLiMCycleStage::kWFStage3RemoveFixedMutations: return "tally";
-		case SLiMCycleStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage3SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage4RemoveFixedMutations: return "tally";
 		case SLiMCycleStage::kWFStage5ExecuteLateScripts: return "late";
 		case SLiMCycleStage::kWFStage6CalculateFitness: return "fitness";
 		case SLiMCycleStage::kWFStage7AdvanceTickCounter: return "end";
@@ -640,20 +640,47 @@ std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 }
 
 // stream output for enumerations
-std::string StringForGenomeType(GenomeType p_genome_type)
+std::string StringForChromosomeType(ChromosomeType p_chromosome_type)
 {
-	switch (p_genome_type)
+	switch (p_chromosome_type)
 	{
-		case GenomeType::kAutosome:		return gStr_A;
-		case GenomeType::kXChromosome:	return gStr_X;		// SEX ONLY
-		case GenomeType::kYChromosome:	return gStr_Y;		// SEX ONLY
+		case ChromosomeType::kA_DiploidAutosome:				return gStr_A;
+		case ChromosomeType::kH_HaploidAutosome:				return gStr_H;
+		case ChromosomeType::kX_XSexChromosome:					return gStr_X;
+		case ChromosomeType::kY_YSexChromosome:					return gStr_Y;
+		case ChromosomeType::kZ_ZSexChromosome:					return gStr_Z;
+		case ChromosomeType::kW_WSexChromosome:					return gStr_W;
+		case ChromosomeType::kHF_HaploidFemaleInherited:		return gStr_HF;
+		case ChromosomeType::kFL_HaploidFemaleLine:				return gStr_FL;
+		case ChromosomeType::kHM_HaploidMaleInherited:			return gStr_HM;
+		case ChromosomeType::kML_HaploidMaleLine:				return gStr_ML;
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:	return gStr_H_;		// "H-"
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:		return gStr__Y;		// "-Y"
 	}
-	EIDOS_TERMINATION << "ERROR (StringForGenomeType): (internal error) unexpected p_genome_type value." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (StringForChromosomeType): (internal error) unexpected p_chromosome_type value." << EidosTerminate();
 }
 
-std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type)
+ChromosomeType ChromosomeTypeForString(std::string type)
 {
-	p_out << StringForGenomeType(p_genome_type);
+	if (type == gStr_A)			return ChromosomeType::kA_DiploidAutosome;
+	else if (type == gStr_H)	return ChromosomeType::kH_HaploidAutosome;
+	else if (type == gStr_X)	return ChromosomeType::kX_XSexChromosome;
+	else if (type == gStr_Y)	return ChromosomeType::kY_YSexChromosome;
+	else if (type == gStr_Z)	return ChromosomeType::kZ_ZSexChromosome;
+	else if (type == gStr_W)	return ChromosomeType::kW_WSexChromosome;
+	else if (type == gStr_HF)	return ChromosomeType::kHF_HaploidFemaleInherited;
+	else if (type == gStr_FL)	return ChromosomeType::kFL_HaploidFemaleLine;
+	else if (type == gStr_HM)	return ChromosomeType::kHM_HaploidMaleInherited;
+	else if (type == gStr_ML)	return ChromosomeType::kML_HaploidMaleLine;
+	else if (type == gStr_H_)	return ChromosomeType::kHNull_HaploidAutosomeWithNull;
+	else if (type == gStr__Y)	return ChromosomeType::kNullY_YSexChromosomeWithNull;
+	else
+		EIDOS_TERMINATION << "ERROR (ChromosomeTypeForString): unrecognized chromosome type '" << type << "'." << EidosTerminate();
+}
+
+std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type)
+{
+	p_out << StringForChromosomeType(p_chromosome_type);
 	return p_out;
 }
 
@@ -1125,6 +1152,7 @@ const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initia
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
 const std::string &gStr_initializeMutationType = EidosRegisteredString("initializeMutationType", gID_initializeMutationType);
 const std::string &gStr_initializeMutationTypeNuc = EidosRegisteredString("initializeMutationTypeNuc", gID_initializeMutationTypeNuc);
+const std::string &gStr_initializeChromosome = EidosRegisteredString("initializeChromosome", gID_initializeChromosome);
 const std::string &gStr_initializeGeneConversion = EidosRegisteredString("initializeGeneConversion", gID_initializeGeneConversion);
 const std::string &gStr_initializeMutationRate = EidosRegisteredString("initializeMutationRate", gID_initializeMutationRate);
 const std::string &gStr_initializeHotspotMap = EidosRegisteredString("initializeHotspotMap", gID_initializeHotspotMap);
@@ -1138,6 +1166,7 @@ const std::string &gStr_initializeInteractionType = EidosRegisteredString("initi
 
 // mostly property names
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
+const std::string &gStr_firstPosition = EidosRegisteredString("firstPosition", gID_firstPosition);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
 const std::string &gStr_hotspotEndPositionsM = EidosRegisteredString("hotspotEndPositionsM", gID_hotspotEndPositionsM);
@@ -1163,13 +1192,14 @@ const std::string &gStr_recombinationEndPositionsF = EidosRegisteredString("reco
 const std::string &gStr_recombinationRates = EidosRegisteredString("recombinationRates", gID_recombinationRates);
 const std::string &gStr_recombinationRatesM = EidosRegisteredString("recombinationRatesM", gID_recombinationRatesM);
 const std::string &gStr_recombinationRatesF = EidosRegisteredString("recombinationRatesF", gID_recombinationRatesF);
+const std::string &gStr_symbol = EidosRegisteredString("symbol", gID_symbol);
 const std::string &gStr_geneConversionEnabled = EidosRegisteredString("geneConversionEnabled", gID_geneConversionEnabled);
 const std::string &gStr_geneConversionGCBias = EidosRegisteredString("geneConversionGCBias", gID_geneConversionGCBias);
 const std::string &gStr_geneConversionNonCrossoverFraction = EidosRegisteredString("geneConversionNonCrossoverFraction", gID_geneConversionNonCrossoverFraction);
 const std::string &gStr_geneConversionMeanLength = EidosRegisteredString("geneConversionMeanLength", gID_geneConversionMeanLength);
 const std::string &gStr_geneConversionSimpleConversionFraction = EidosRegisteredString("geneConversionSimpleConversionFraction", gID_geneConversionSimpleConversionFraction);
-const std::string &gStr_genomeType = EidosRegisteredString("genomeType", gID_genomeType);
-const std::string &gStr_isNullGenome = EidosRegisteredString("isNullGenome", gID_isNullGenome);
+const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
+const std::string &gStr_isNullHaplosome = EidosRegisteredString("isNullHaplosome", gID_isNullHaplosome);
 const std::string &gStr_mutations = EidosRegisteredString("mutations", gID_mutations);
 const std::string &gStr_uniqueMutations = EidosRegisteredString("uniqueMutations", gID_uniqueMutations);
 const std::string &gStr_genomicElementType = EidosRegisteredString("genomicElementType", gID_genomicElementType);
@@ -1206,8 +1236,7 @@ const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTyp
 const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
-const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
-const std::string &gStr_chromosomeType = EidosRegisteredString("chromosomeType", gID_chromosomeType);
+const std::string &gStr_chromosomes = EidosRegisteredString("chromosomes", gID_chromosomes);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1215,6 +1244,7 @@ const std::string &gStr_lifetimeReproductiveOutputF = EidosRegisteredString("lif
 const std::string &gStr_modelType = EidosRegisteredString("modelType", gID_modelType);
 const std::string &gStr_nucleotideBased = EidosRegisteredString("nucleotideBased", gID_nucleotideBased);
 const std::string &gStr_scriptBlocks = EidosRegisteredString("scriptBlocks", gID_scriptBlocks);
+const std::string &gStr_sexChromosomes = EidosRegisteredString("sexChromosomes", gID_sexChromosomes);
 const std::string &gStr_sexEnabled = EidosRegisteredString("sexEnabled", gID_sexEnabled);
 const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations", gID_subpopulations);
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
@@ -1233,8 +1263,12 @@ const std::string &gStr_tagL4 = EidosRegisteredString("tagL4", gID_tagL4);
 const std::string &gStr_migrant = EidosRegisteredString("migrant", gID_migrant);
 const std::string &gStr_fitnessScaling = EidosRegisteredString("fitnessScaling", gID_fitnessScaling);
 const std::string &gStr_firstMaleIndex = EidosRegisteredString("firstMaleIndex", gID_firstMaleIndex);
-const std::string &gStr_genomes = EidosRegisteredString("genomes", gID_genomes);
-const std::string &gStr_genomesNonNull = EidosRegisteredString("genomesNonNull", gID_genomesNonNull);
+const std::string &gStr_haplosomes = EidosRegisteredString("haplosomes", gID_haplosomes);
+const std::string &gStr_haplosomesNonNull = EidosRegisteredString("haplosomesNonNull", gID_haplosomesNonNull);
+const std::string &gStr_haploidGenome1 = EidosRegisteredString("haploidGenome1", gID_haploidGenome1);
+const std::string &gStr_haploidGenome2 = EidosRegisteredString("haploidGenome2", gID_haploidGenome2);
+const std::string &gStr_haploidGenome1NonNull = EidosRegisteredString("haploidGenome1NonNull", gID_haploidGenome1NonNull);
+const std::string &gStr_haploidGenome2NonNull = EidosRegisteredString("haploidGenome2NonNull", gID_haploidGenome2NonNull);
 const std::string &gStr_sex = EidosRegisteredString("sex", gID_sex);
 const std::string &gStr_individuals = EidosRegisteredString("individuals", gID_individuals);
 const std::string &gStr_subpopulation = EidosRegisteredString("subpopulation", gID_subpopulation);
@@ -1259,7 +1293,7 @@ const std::string &gStr_pedigreeID = EidosRegisteredString("pedigreeID", gID_ped
 const std::string &gStr_pedigreeParentIDs = EidosRegisteredString("pedigreeParentIDs", gID_pedigreeParentIDs);
 const std::string &gStr_pedigreeGrandparentIDs = EidosRegisteredString("pedigreeGrandparentIDs", gID_pedigreeGrandparentIDs);
 const std::string &gStr_reproductiveOutput = EidosRegisteredString("reproductiveOutput", gID_reproductiveOutput);
-const std::string &gStr_genomePedigreeID = EidosRegisteredString("genomePedigreeID", gID_genomePedigreeID);
+const std::string &gStr_haplosomePedigreeID = EidosRegisteredString("haplosomePedigreeID", gID_haplosomePedigreeID);
 const std::string &gStr_reciprocal = EidosRegisteredString("reciprocal", gID_reciprocal);
 const std::string &gStr_sexSegregation = EidosRegisteredString("sexSegregation", gID_sexSegregation);
 const std::string &gStr_dimensionality = EidosRegisteredString("dimensionality", gID_dimensionality);
@@ -1286,6 +1320,7 @@ const std::string &gStr_containsMutations = EidosRegisteredString("containsMutat
 const std::string &gStr_countOfMutationsOfType = EidosRegisteredString("countOfMutationsOfType", gID_countOfMutationsOfType);
 const std::string &gStr_positionsOfMutationsOfType = EidosRegisteredString("positionsOfMutationsOfType", gID_positionsOfMutationsOfType);
 const std::string &gStr_containsMarkerMutation = EidosRegisteredString("containsMarkerMutation", gID_containsMarkerMutation);
+const std::string &gStr_haplosomesForChromosomes = EidosRegisteredString("haplosomesForChromosomes", gID_haplosomesForChromosomes);
 const std::string &gStr_relatedness = EidosRegisteredString("relatedness", gID_relatedness);
 const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentCount", gID_sharedParentCount);
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);
@@ -1304,6 +1339,9 @@ const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSe
 const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);
 const std::string &gStr_addSubpop = EidosRegisteredString("addSubpop", gID_addSubpop);
 const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit", gID_addSubpopSplit);
+const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);
+const std::string &gStr_chromosomesWithIDs = EidosRegisteredString("chromosomesWithIDs", gID_chromosomesWithIDs);
+const std::string &gStr_chromosomesWithSymbols = EidosRegisteredString("chromosomesWithSymbols", gID_chromosomesWithSymbols);
 const std::string &gStr_estimatedLastTick = EidosRegisteredString("estimatedLastTick", gID_estimatedLastTick);
 const std::string &gStr_deregisterScriptBlock = EidosRegisteredString("deregisterScriptBlock", gID_deregisterScriptBlock);
 const std::string &gStr_genomicElementTypesWithIDs = EidosRegisteredString("genomicElementTypesWithIDs", gID_genomicElementTypesWithIDs);
@@ -1316,9 +1354,9 @@ const std::string &gStr_subpopulationsWithNames = EidosRegisteredString("subpopu
 const std::string &gStr_individualsWithPedigreeIDs = EidosRegisteredString("individualsWithPedigreeIDs", gID_individualsWithPedigreeIDs);
 const std::string &gStr_killIndividuals = EidosRegisteredString("killIndividuals", gID_killIndividuals);
 const std::string &gStr_mutationCounts = EidosRegisteredString("mutationCounts", gID_mutationCounts);
-const std::string &gStr_mutationCountsInGenomes = EidosRegisteredString("mutationCountsInGenomes", gID_mutationCountsInGenomes);
+const std::string &gStr_mutationCountsInHaplosomes = EidosRegisteredString("mutationCountsInHaplosomes", gID_mutationCountsInHaplosomes);
 const std::string &gStr_mutationFrequencies = EidosRegisteredString("mutationFrequencies", gID_mutationFrequencies);
-const std::string &gStr_mutationFrequenciesInGenomes = EidosRegisteredString("mutationFrequenciesInGenomes", gID_mutationFrequenciesInGenomes);
+const std::string &gStr_mutationFrequenciesInHaplosomes = EidosRegisteredString("mutationFrequenciesInHaplosomes", gID_mutationFrequenciesInHaplosomes);
 //const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);
 //const std::string &gStr_countOfMutationsOfType = EidosRegisteredString("countOfMutationsOfType", gID_countOfMutationsOfType);
 const std::string &gStr_outputFixedMutations = EidosRegisteredString("outputFixedMutations", gID_outputFixedMutations);
@@ -1426,9 +1464,9 @@ const std::string &gStr_sim = EidosRegisteredString("sim", gID_sim);
 const std::string &gStr_self = EidosRegisteredString("self", gID_self);
 const std::string &gStr_individual = EidosRegisteredString("individual", gID_individual);
 const std::string &gStr_element = EidosRegisteredString("element", gID_element);
-const std::string &gStr_genome = EidosRegisteredString("genome", gID_genome);
-const std::string &gStr_genome1 = EidosRegisteredString("genome1", gID_genome1);
-const std::string &gStr_genome2 = EidosRegisteredString("genome2", gID_genome2);
+const std::string &gStr_haplosome = EidosRegisteredString("haplosome", gID_haplosome);
+const std::string &gStr_haplosome1 = EidosRegisteredString("haplosome1", gID_haplosome1);
+const std::string &gStr_haplosome2 = EidosRegisteredString("haplosome2", gID_haplosome2);
 const std::string &gStr_subpop = EidosRegisteredString("subpop", gID_subpop);
 const std::string &gStr_sourceSubpop = EidosRegisteredString("sourceSubpop", gID_sourceSubpop);
 //const std::string &gStr_weights = EidosRegisteredString("weights", gID_weights);		now gEidosStr_weights
@@ -1473,7 +1511,7 @@ const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 
 // mostly SLiM element types
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
-//const std::string &gStr_Genome = EidosRegisteredString("Genome", gID_Genome);				// in Eidos; see EidosValue_Object::EidosValue_Object()
+//const std::string &gStr_Haplosome = EidosRegisteredString("Haplosome", gID_Haplosome);				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_GenomicElement = EidosRegisteredString("GenomicElement", gID_GenomicElement);
 const std::string &gStr_GenomicElementType = EidosRegisteredString("GenomicElementType", gID_GenomicElementType);
 //const std::string &gStr_Mutation = EidosRegisteredString("Mutation", gID_Mutation);			// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1514,12 +1552,21 @@ const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_w
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings
-const std::string &gStr_A = EidosRegisteredString("A", gID_A);
-const std::string gStr_C = "C";	// these nucleotide strings are not registered, no need
+const std::string gStr_A = "A";	// these nucleotide strings are not registered, no need
+const std::string gStr_C = "C";
 const std::string gStr_G = "G";
 const std::string gStr_T = "T";
-const std::string &gStr_X = EidosRegisteredString("X", gID_X);
-const std::string &gStr_Y = EidosRegisteredString("Y", gID_Y);
+const std::string gStr_H = "H";	// these chromosome type strings (and "A" above) are not registered, no need
+const std::string gStr_X = "X";
+const std::string gStr_Y = "Y";
+const std::string gStr_Z = "Z";
+const std::string gStr_W = "W";
+const std::string gStr_HF = "HF";
+const std::string gStr_FL = "FL";
+const std::string gStr_HM = "HM";
+const std::string gStr_ML = "ML";
+const std::string gStr_H_ = "H-";
+const std::string gStr__Y = "-Y";
 const std::string &gStr_f = EidosRegisteredString("f", gID_f);
 const std::string &gStr_g = EidosRegisteredString("g", gID_g);
 const std::string &gStr_e = EidosRegisteredString("e", gID_e);
@@ -1610,7 +1657,7 @@ const std::string gSLiM_tsk_mutation_metadata_schema =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_node_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"genome_type":0,"is_null":false,"slim_id":123}],"properties":{"genome_type":{"binaryFormat":"B","description":"The 'type' of this genome (0 for autosome, 1 for X, 2 for Y).","index":2,"type":"integer"},"is_null":{"binaryFormat":"?","description":"Whether this node describes a 'null' (non-existant) chromosome.","index":1,"type":"boolean"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this chromosome in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_null","genome_type"],"type":["object","null"]})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"haplosome_type":0,"is_null":false,"slim_id":123}],"properties":{"haplosome_type":{"binaryFormat":"B","description":"The 'type' of this haplosome (0 for autosome, 1 for X, 2 for Y).","index":2,"type":"integer"},"is_null":{"binaryFormat":"?","description":"Whether this node describes a 'null' (non-existant) chromosome.","index":1,"type":"boolean"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this chromosome in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_null","haplosome_type"],"type":["object","null"]})V0G0N";
 
 const std::string gSLiM_tsk_individual_metadata_schema =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
@@ -1960,10 +2007,10 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 2 - offspring generation" : " : stage 2 - early() event execution") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage4Time, percentStage4);
-		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 3 - bookkeeping (fixed mutation removal, etc.)" : " : stage 3 - fitness calculation") << "<BR>\n";
+		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 3 - generation swap" : " : stage 3 - fitness calculation") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage5Time, percentStage5);
-		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 4 - generation swap" : " : stage 4 - viability/survival selection") << "<BR>\n";
+		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 4 - bookkeeping (fixed mutation removal, etc.)" : " : stage 4 - viability/survival selection") << "<BR>\n";
 		
 		snprintf(buf, 256, "<tt>%*.2f s (%5.2f%%)</tt>", fw, elapsedStage6Time, percentStage6);
 		fout << HTMLMakeSpacesNonBreaking(buf) << (isWF ? " : stage 5 - late() event execution" : " : stage 5 - bookkeeping (fixed mutation removal, etc.)") << "<BR>\n";
@@ -2293,38 +2340,6 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		}
 		
 		{
-			int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-			int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
-			
-			for (int power = 0; power < 20; ++power)
-				power_tallies[power] = 0;
-			
-			for (int32_t count : focal_species->profile_mutcount_history_)
-			{
-				int power = (int)round(log2(count));
-				
-				power_tallies[power]++;
-			}
-			
-			fout << "<p>";
-			bool first_line = true;
-			
-			for (int power = 0; power < 20; ++power)
-			{
-				if (power_tallies[power] > 0)
-				{
-					if (!first_line)
-						fout << "<BR>\n";
-					snprintf(buf, 256, "%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0);
-					fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : " << ((int)(round(pow(2.0, power)))) << " mutation runs per genome";
-					first_line = false;
-				}
-			}
-			
-			fout << "</p>\n";
-		}
-		
-		{
 			int64_t regime_tallies[3];
 			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 			
@@ -2352,18 +2367,58 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 			fout << "</p>\n";
 		}
 		
-		fout << "<p><tt>" << focal_species->profile_mutation_total_usage_ << "</tt> mutations referenced, summed across all ticks<BR>\n";
-		fout << "<tt>" << focal_species->profile_nonneutral_mutation_total_ << "</tt> mutations considered potentially nonneutral<BR>\n";
-		snprintf(buf, 256, "%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0);
-		fout << "<tt>" << buf << "</tt> of mutations excluded from fitness calculations<BR>\n";
-		fout << "<tt>" << focal_species->profile_max_mutation_index_ << "</tt> maximum simultaneous mutations</p>\n";
+		fout << "<p><tt>" << focal_species->profile_max_mutation_index_ << "</tt> maximum simultaneous mutations</p>\n";
 		
-		fout << "<p><tt>" << focal_species->profile_mutrun_total_usage_ << "</tt> mutation runs referenced, summed across all ticks<BR>\n";
-		fout << "<tt>" << focal_species->profile_unique_mutrun_total_ << "</tt> unique mutation runs maintained among those<BR>\n";
-		snprintf(buf, 256, "%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0);
-		fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation run nonneutral caches rebuilt per tick<BR>\n";
-		snprintf(buf, 256, "%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0);
-		fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation runs shared among genomes</p>\n\n";
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
+		
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+			fout << "<p><i>Chromosome " << focal_chromosome->Symbol() << ":</i></p>\n";
+			
+			{
+				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+				int64_t power_tallies_total = (int)focal_chromosome->profile_mutcount_history_.size();
+				
+				for (int power = 0; power < 20; ++power)
+					power_tallies[power] = 0;
+				
+				for (int32_t count : focal_chromosome->profile_mutcount_history_)
+				{
+					int power = (int)round(log2(count));
+					
+					power_tallies[power]++;
+				}
+				
+				fout << "<p>";
+				bool first_line = true;
+				
+				for (int power = 0; power < 20; ++power)
+				{
+					if (power_tallies[power] > 0)
+					{
+						if (!first_line)
+							fout << "<BR>\n";
+						snprintf(buf, 256, "%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0);
+						fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of ticks : " << ((int)(round(pow(2.0, power)))) << " mutation runs per haplosome";
+						first_line = false;
+					}
+				}
+				
+				fout << "</p>\n";
+			}
+			
+			fout << "<p><tt>" << focal_chromosome->profile_mutation_total_usage_ << "</tt> mutations referenced, summed across all ticks<BR>\n";
+			fout << "<tt>" << focal_chromosome->profile_nonneutral_mutation_total_ << "</tt> mutations considered potentially nonneutral<BR>\n";
+			snprintf(buf, 256, "%0.2f%%", ((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / (double)focal_chromosome->profile_mutation_total_usage_) * 100.0);
+			fout << "<tt>" << buf << "</tt> of mutations excluded from fitness calculations</p>\n";
+			
+			fout << "<p><tt>" << focal_chromosome->profile_mutrun_total_usage_ << "</tt> mutation runs referenced, summed across all ticks<BR>\n";
+			fout << "<tt>" << focal_chromosome->profile_unique_mutrun_total_ << "</tt> unique mutation runs maintained among those<BR>\n";
+			snprintf(buf, 256, "%6.2f%%", (focal_chromosome->profile_mutrun_nonneutral_recache_total_ / (double)focal_chromosome->profile_unique_mutrun_total_) * 100.0);
+			fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation run nonneutral caches rebuilt per tick<BR>\n";
+			snprintf(buf, 256, "%6.2f%%", ((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / (double)focal_chromosome->profile_mutrun_total_usage_) * 100.0);
+			fout << "<tt>" << HTMLMakeSpacesNonBreaking(buf) << "</tt> of mutation runs shared among haplosomes</p>\n\n";
+		}
 	}
 #endif
 	
@@ -2393,12 +2448,12 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		// Community
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_C.communityObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.communityObjects, final_total) << "</tt> : Community object</p>\n\n";
 		
-		// Genome
-		snprintf(buf, 256, "%0.2f", mem_tot_S.genomeObjects_count / ddiv);
-		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.genomeObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.genomeObjects, final_total) << "</tt> : Genome objects (" << buf << " / " << mem_last_S.genomeObjects_count << ")<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.genomeExternalBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.genomeExternalBuffers, final_total) << "</tt> : external MutationRun* buffers<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.genomeUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.genomeUnusedPoolSpace, final_total) << "</tt> : unused pool space<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.genomeUnusedPoolBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.genomeUnusedPoolBuffers, final_total) << "</tt> : unused pool buffers</p>\n\n";
+		// Haplosome
+		snprintf(buf, 256, "%0.2f", mem_tot_S.haplosomeObjects_count / ddiv);
+		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.haplosomeObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.haplosomeObjects, final_total) << "</tt> : Haplosome objects (" << buf << " / " << mem_last_S.haplosomeObjects_count << ")<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.haplosomeExternalBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.haplosomeExternalBuffers, final_total) << "</tt> : external MutationRun* buffers<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.haplosomeUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.haplosomeUnusedPoolSpace, final_total) << "</tt> : unused pool space<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.haplosomeUnusedPoolBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.haplosomeUnusedPoolBuffers, final_total) << "</tt> : unused pool buffers</p>\n\n";
 		
 		// GenomicElement
 		snprintf(buf, 256, "%0.2f", mem_tot_S.genomicElementObjects_count / ddiv);
