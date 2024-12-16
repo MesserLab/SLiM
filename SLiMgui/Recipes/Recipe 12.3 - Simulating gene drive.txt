@@ -34,12 +34,12 @@ mutationEffect(m2) {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 1)
 	{
-		hasMutOnChromosome1 = child.haplosomesFromParent1.containsMutations(mut);
-		hasMutOnChromosome2 = child.haplosomesFromParent2.containsMutations(mut);
+		hasMutOnChromosome1 = child.haploidGenome1.containsMutations(mut);
+		hasMutOnChromosome2 = child.haploidGenome2.containsMutations(mut);
 		if (hasMutOnChromosome1 & !hasMutOnChromosome2)
-			child.haplosomesFromParent2.addMutations(mut);
+			child.haploidGenome2.addMutations(mut);
 		else if (hasMutOnChromosome2 & !hasMutOnChromosome1)
-			child.haplosomesFromParent1.addMutations(mut);
+			child.haploidGenome1.addMutations(mut);
 	}
 	return T;
 }

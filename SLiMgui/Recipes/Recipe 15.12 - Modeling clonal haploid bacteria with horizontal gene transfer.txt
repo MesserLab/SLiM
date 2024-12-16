@@ -16,7 +16,7 @@ reproduction() {
 	if (runif(1) < H)
 	{
 		// horizontal gene transfer from a randomly chosen individual
-		HGTsource = p1.sampleIndividuals(1, exclude=individual).haplosomesFromParent1;
+		HGTsource = p1.sampleIndividuals(1, exclude=individual).haploidGenome1;
 		
 		// draw two distinct locations; redraw if we get a duplicate
 		do breaks = rdunif(2, max=L-1);
@@ -26,12 +26,12 @@ reproduction() {
 		if (breaks[0] > breaks[1])
 			breaks = c(0, breaks[1], breaks[0]);
 		
-		subpop.addRecombinant(individual.haplosomesFromParent1, HGTsource, breaks, NULL, NULL, NULL);
+		subpop.addRecombinant(individual.haploidGenome1, HGTsource, breaks, NULL, NULL, NULL);
 	}
 	else
 	{
 		// no horizontal gene transfer; clonal replication
-		subpop.addRecombinant(individual.haplosomesFromParent1, NULL, NULL, NULL, NULL, NULL);
+		subpop.addRecombinant(individual.haploidGenome1, NULL, NULL, NULL, NULL, NULL);
 	}
 }
 1 early() {
@@ -39,7 +39,7 @@ reproduction() {
 	sim.addSubpop("p1", 2, haploid=T);
 	
 	// add beneficial mutations to each bacterium, but at different loci
-	g = p1.individuals.haplosomesFromParent1;
+	g = p1.individuals.haploidGenome1;
 	g[0].addNewDrawnMutation(m2, asInteger(L * 0.25));
 	g[1].addNewDrawnMutation(m2, asInteger(L * 0.75));
 }

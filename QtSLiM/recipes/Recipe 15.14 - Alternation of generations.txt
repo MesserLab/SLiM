@@ -23,8 +23,8 @@ initialize()
 }
 reproduction(p1)
 {
-	g_1 = individual.haplosomesFromParent1;
-	g_2 = individual.haplosomesFromParent2;
+	g_1 = individual.haploidGenome1;
+	g_2 = individual.haploidGenome2;
 	
 	for (meiosisCount in 1:5)
 	{
@@ -51,8 +51,8 @@ reproduction(p2, "F")
 	mate = p2.sampleIndividuals(1, sex="M", tagL0=F);
 	mate.tagL0 = T;
 	
-	child = p1.addRecombinant(individual.haplosomesFromParent1, NULL, NULL,
-		mate.haplosomesFromParent1, NULL, NULL);
+	child = p1.addRecombinant(individual.haploidGenome1, NULL, NULL,
+		mate.haploidGenome1, NULL, NULL);
 }
 early()
 {

@@ -192,12 +192,13 @@ jobs:
           - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
           # Ubuntu 22.04 with the most recent Qt6 and GCC; this is the min for Qt6
           - {os: ubuntu-22.04, qt: 6.7.2, gcc: 12}
-          # old macOS with oldest supported Qt5
-          - {os: macos-12, qt: 5.9.5}
-          # new macOS with most recent Qt5
+          # old macOS with oldest supported Qt5; macos-12 was removed by GitHub,
+          # so we can't CI with Qt 5.9.5 any more, oh well
+          #- {os: macos-12, qt: 5.9.5}
+          # old macOS with most recent Qt5
           - {os: macos-13, qt: 5.15.2}
           # new macOS with most recent Qt6
-          - {os: macos-13, qt: 6.7.2}
+          - {os: macos-15, qt: 6.7.2}
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR

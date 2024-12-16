@@ -55,7 +55,7 @@ ticks all late() {
 	for (p in parasites, h in chosen_hosts)
 	{
 		// infection depends upon a match (diploid matching-allele model)
-		all_nucleotides = c(p.haplosomes.nucleotides(), h.haplosomes.nucleotides());
+		all_nucleotides = c(p,h).haplosomes.nucleotides();
 		
 		if (size(unique(all_nucleotides, preserveOrder=F)) == 1)
 		{

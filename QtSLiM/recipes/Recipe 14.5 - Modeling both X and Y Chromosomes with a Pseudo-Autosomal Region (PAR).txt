@@ -25,15 +25,15 @@ initialize()
 	// initialize the pop, with a Y marker for each male
 	sim.addSubpop("p1", 1000);
 	i = p1.individuals;
-	i[i.sex == "M"].haplosomesFromParent2.addNewMutation(m3, 0.0, 5999999);
+	i[i.sex == "M"].haploidGenome2.addNewMutation(m3, 0.0, 5999999);
 }
 
 modifyChild() {
 	// females should not have a Y, males should have a Y
 	if (child.sex == "F")
-		return !child.haplosomesFromParent2.containsMarkerMutation(m3, 5999999);
+		return !child.haploidGenome2.containsMarkerMutation(m3, 5999999);
 	else
-		return child.haplosomesFromParent2.containsMarkerMutation(m3, 5999999);
+		return child.haploidGenome2.containsMarkerMutation(m3, 5999999);
 }
 
 1:10000 late() {
