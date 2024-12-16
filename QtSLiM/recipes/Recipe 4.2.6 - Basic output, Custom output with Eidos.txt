@@ -18,7 +18,7 @@ initialize() {
 	h = sample(sim.subpopulations.haplosomes, 10, T);
 	
 	// get the unique mutations in the sample, sorted by position
-	m = sortBy(unique(g.mutations), "position");
+	m = sortBy(unique(h.mutations, preserveOrder=F), "position");
 	
 	// print the number of segregating sites
 	cat("\n\nsegsites: " + size(m) + "\n");
