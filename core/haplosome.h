@@ -127,7 +127,7 @@ private:
 	
 	// TREE SEQUENCE RECORDING
 	slim_haplosomeid_t haplosome_id_;	// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
-	tsk_id_t tsk_node_id_;				// tskit's tsk_id_t for this haplosome, which is its index in the nodes table kept by the tree-seq code.
+										// note this is shared by all haplosomes at the same position (1st/2nd) in the same individual
 	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all haplosomes with the same initial MutationRun (since

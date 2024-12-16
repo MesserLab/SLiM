@@ -85,7 +85,8 @@ static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";		// SLiM 3.4.x, with th
 static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, with information in metadata instead of provenance
 static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
-static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
+static const char *SLIM_TREES_FILE_VERSION_SPECIES = "0.8";		// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
+static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 4.4 onward, with haplosomes not genomes, and `chromosomes` key
 
 #pragma mark -
 #pragma mark Species
@@ -146,6 +147,118 @@ Species::~Species(void)
 	chromosomes_.clear();
 	chromosome_from_id_.clear();
 	chromosome_from_symbol_.clear();
+}
+
+void Species::_MakeHaplosomeMetadataRecords(void)
+{
+	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
+	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
+	// added to the new individual, the is_null_ bits get tweaked as needed in the recorded metadata, which
+	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
+	// See HaplosomeMetadataRec for comments on this design.
+	
+	// First, calculate how many bytes we need
+	size_t bits_needed_for_is_null = (chromosomes_.size() * 2);			// each chromosome needs two bits
+	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;		// -1 to subtract out the is_null_[1] in the record
+	haplosome_metadata_size_ += ((bits_needed_for_is_null + 7) / 8);	// (x+7)/8 rounds up to the number of bytes needed
+	
+	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
+	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_1M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
+	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
+	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
+	
+	// Then set the is_null_ bits for the default state for males and females; this is the state in which
+	// all chromosomes that dictate the is_null_ state by sex have that dictated state, while all others
+	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
+	// given chromosome type (like the second position for type "Y") are left as 0 here, but that should
+	// not be assumed by code that uses these flags for model behavior.  We go from least-significant bit
+	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
+	// of those two bits is is_null_ for haplosome 1 for that chromosome; the more significant of those
+	// two bits is is_null_ for haplosome 2 for that chromosome.
+	IndividualSex sex = IndividualSex::kFemale;
+	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
+	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
+	
+	while (true)
+	{
+		// FIXME MULTICHROM: Probably this knowledge should be built into Chromosome, so that it doesn't need
+		// to be replicated here and elsewhere, but I won't do that work for now, to keep the PR simple.
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			bool haplosome_1_is_null_or_unused, haplosome_2_is_null_or_unused;
+			
+			switch (chromosome->Type())
+			{
+				case ChromosomeType::kA_DiploidAutosome:
+					haplosome_1_is_null_or_unused = false;								// always present (by default)
+					haplosome_2_is_null_or_unused = false;								// always present (by default)
+					break;
+					
+				case ChromosomeType::kH_HaploidAutosome:
+				case ChromosomeType::kHF_HaploidFemaleInherited:
+				case ChromosomeType::kHM_HaploidMaleInherited:
+				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+					haplosome_1_is_null_or_unused = false;								// always present (by default)
+					haplosome_2_is_null_or_unused = true;								// always null or unused
+					break;
+					
+				case ChromosomeType::kX_XSexChromosome:
+					haplosome_1_is_null_or_unused = false;								// always present
+					haplosome_2_is_null_or_unused = (sex == IndividualSex::kMale);		// null in males
+					break;
+					
+				case ChromosomeType::kY_YSexChromosome:
+				case ChromosomeType::kML_HaploidMaleLine:
+					haplosome_1_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_null_or_unused = true;								// always unused
+					break;
+					
+				case ChromosomeType::kZ_ZSexChromosome:
+					haplosome_1_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_null_or_unused = false;								// always present
+					break;
+					
+				case ChromosomeType::kW_WSexChromosome:
+				case ChromosomeType::kFL_HaploidFemaleLine:
+					haplosome_1_is_null_or_unused = (sex == IndividualSex::kMale);		// null in males
+					haplosome_2_is_null_or_unused = true;								// always unused
+					break;
+					
+				case ChromosomeType::kNullY_YSexChromosomeWithNull:
+					haplosome_1_is_null_or_unused = true;								// always unused
+					haplosome_2_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
+					break;
+			}
+			
+			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
+			if (haplosome_1_is_null_or_unused)
+			{
+				int byte_index = chromosome_index / 8;
+				int bit_shift = chromosome_index % 8;
+				
+				focal_metadata_1->is_null_[byte_index] |= (0x01 << bit_shift);
+			}
+			if (haplosome_2_is_null_or_unused)
+			{
+				int byte_index = chromosome_index / 8;
+				int bit_shift = chromosome_index % 8;
+				
+				focal_metadata_2->is_null_[byte_index] |= (0x01 << bit_shift);
+			}
+		}
+		
+		// loop from female to male, then break out
+		if (sex == IndividualSex::kFemale)
+		{
+			sex = IndividualSex::kMale;
+			focal_metadata_1 = hap_metadata_1M_;
+			focal_metadata_2 = hap_metadata_2M_;
+			continue;
+		}
+		break;
+	}
 }
 
 Chromosome *Species::ChromosomeFromID(int64_t p_id)
@@ -584,12 +697,15 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 			simplify_elapsed_ = 0;
 			
 			// reset our last coalescence state; we don't know whether we're coalesced now or not
-			last_coalescence_state_ = false;
+			for (TreeSeqInfo &tsinfo : treeseq_)
+				tsinfo.last_coalescence_state_ = false;
 		}
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_kastore)
 	{
+#if INTERIM_TREESEQ_DISABLE
 		new_tick = _InitializePopulationFromTskitBinaryFile(file_cstr, p_interpreter, p_subpop_remap);
+#endif // INTERIM_TREESEQ_DISABLE
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_HDF5)
 		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): msprime HDF5 binary files are not supported; that file format has been superseded by kastore." << EidosTerminate();
@@ -2064,6 +2180,9 @@ void Species::RunInitializeCallbacks(void)
 	if (nucleotide_based_)
 		CacheNucleotideMatrices();
 	
+	// initialize pre-allocated default Haplosome metadata records (HaplosomeMetadataRec) based on the chromosome configuration
+	_MakeHaplosomeMetadataRecords();
+	
 	// initialize chromosomes
 	for (Chromosome *chromosome : chromosomes_)
 	{
@@ -3142,7 +3261,15 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		p_usage->speciesObjects_count = 1;
 		p_usage->speciesObjects = (sizeof(Species) - sizeof(Chromosome)) * p_usage->speciesObjects_count;	// Chromosome is handled separately above
 		
-		p_usage->speciesTreeSeqTables = recording_tree_ ? MemoryUsageForTables(tables_) : 0;
+		// this now adds up usage across all table collections, avoiding overcounting of shared tables
+		p_usage->speciesTreeSeqTables = 0;
+		bool first = true;
+		
+		for (TreeSeqInfo &tsinfo : treeseq_)
+		{
+			p_usage->speciesTreeSeqTables += MemoryUsageForTreeSeqInfo(tsinfo, /* p_count_shared_tables */ first);
+			first = false;
+		}
 	}
 	
 	// Subpopulation
@@ -3385,6 +3512,49 @@ void Species::AboutToSplitSubpop(void)
 {
 	// see Population::AddSubpopulationSplit()
 	community_.tree_seq_tick_offset_ += 0.00001;
+}
+
+void Species::CopySharedTablesIn(tsk_table_collection_t &p_tables)
+{
+	// This directly copies the shared tables (nodes, individuals, and populations) into the
+	// table collection p_tables.  This means that p_tables will point to the same table
+	// column buffers as the main table collection does, BUT will have its own separate row
+	// counts for those buffers.  This is an extraordinarily dangerous state to be in; if
+	// either table collection adds/removes rows from a shared table, the two collections
+	// will get out of synch, and buffer overruns and other problems will soon follow.
+	// As soon as possible, DisconnectCopiedSharedTables() should be called to undo this.
+#if DEBUG
+	if (&p_tables == &treeseq_[0].tables_)
+		EIDOS_TERMINATION << "ERROR (Species::CopySharedTablesIn): (internal error) trying to copy shared tables into the main table collection!" << EidosTerminate();
+#endif
+	
+	tsk_table_collection_t &main_tables = treeseq_[0].tables_;
+	
+	p_tables.nodes = main_tables.nodes;
+	p_tables.individuals = main_tables.individuals;
+	p_tables.populations = main_tables.populations;
+}
+
+void Species::DisconnectCopiedSharedTables(tsk_table_collection_t &p_tables)
+{
+	// This zeroes out copies of shared tables (nodes, individuals, and populations) set up
+	// by CopySharedTablesIn().  Note that changes to shared column data will persist, but
+	// changes to row counts will *not* persist; they get zeroed here.  Be careful!
+	
+	// The tskit example at https://github.com/tskit-dev/tskit/pull/2665/files only
+	// disconnects at the end, in free_tables(), but that seems very dangerous; any
+	// accidental use of a tskit API that modifies a copied table will make things
+	// go out of sync.  Our design here means we have to copy in and then disconnect
+	// around every operation that references the contents of a given table, but it seems
+	// safer to me.
+#if DEBUG
+	if (&p_tables == &treeseq_[0].tables_)
+		EIDOS_TERMINATION << "ERROR (Species::DisconnectCopiedSharedTables): (internal error) trying to disconnect the main table collection!" << EidosTerminate();
+#endif
+	
+	EIDOS_BZERO(&p_tables.nodes, sizeof(p_tables.nodes));
+	EIDOS_BZERO(&p_tables.individuals, sizeof(p_tables.individuals));
+	EIDOS_BZERO(&p_tables.populations, sizeof(p_tables.populations));
 }
 
 void Species::handle_error(const std::string &msg, int err)
@@ -3636,6 +3806,10 @@ static void _Eidos_ParallelQuicksort_ASCENDING(edge_plus_time *values, int64_t l
 static int
 slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 {
+	// this is the same as slim_sort_edges_PARALLEL(), but the loops are not parallelized.
+	// this is used for multi-chromosome models, since we then parallelize across chromosomes.
+	// so this function can be run *inside* a parallel region, but does not make a parallel region.
+	
 	if (sorter->tables->edges.metadata_length != 0)
 		throw std::invalid_argument("the sorter does not currently handle edge metadata");
 	if (start != 0)
@@ -3647,6 +3821,63 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 	edge_plus_time *temp_edge_data = (edge_plus_time *)malloc(num_rows * sizeof(edge_plus_time));
 	if (!temp_edge_data)
 		EIDOS_TERMINATION << "ERROR (slim_sort_edges): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	tsk_edge_table_t *edges = &sorter->tables->edges;
+	double *node_times = sorter->tables->nodes.time;
+	
+	// pre-sort: assemble the temp_edge_data vector
+	for (tsk_size_t i = 0; i < num_rows; ++i)
+	{
+		temp_edge_data[i] = edge_plus_time{ node_times[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] };
+	}
+	
+	// sort with std::sort
+	std::sort(temp_edge_data, temp_edge_data + num_rows,
+			  [](const edge_plus_time &lhs, const edge_plus_time &rhs) {
+		if (lhs.time == rhs.time) {
+			if (lhs.parent == rhs.parent) {
+				if (lhs.child == rhs.child) {
+					return lhs.left < rhs.left;
+				}
+				return lhs.child < rhs.child;
+			}
+			return lhs.parent < rhs.parent;
+		}
+		return lhs.time < rhs.time;
+	});
+	
+	// post-sort: copy the sorted temp_edge_data vector back into the edge table
+	for (std::size_t i = 0; i < num_rows; ++i)
+	{
+		edges->left[i] = temp_edge_data[i].left;
+		edges->right[i] = temp_edge_data[i].right;
+		edges->parent[i] = temp_edge_data[i].parent;
+		edges->child[i] = temp_edge_data[i].child;
+	}
+	
+	free(temp_edge_data);
+	
+	return 0;
+}
+
+#ifdef _OPENMP
+static int
+slim_sort_edges_PARALLEL(tsk_table_sorter_t *sorter, tsk_size_t start)
+{
+	// this is the same as slim_sort_edges(), but the loops are (potentially) parallelized.
+	// this is used for single-chromosome models, to get some parallelization benefit.
+	
+	if (sorter->tables->edges.metadata_length != 0)
+		throw std::invalid_argument("the sorter does not currently handle edge metadata");
+	if (start != 0)
+		throw std::invalid_argument("the sorter requires start==0");
+	
+	std::size_t num_rows = static_cast<std::size_t>(sorter->tables->edges.num_rows);
+	//std::cout << num_rows << " edge table rows to be sorted" << std::endl;
+	
+	edge_plus_time *temp_edge_data = (edge_plus_time *)malloc(num_rows * sizeof(edge_plus_time));
+	if (!temp_edge_data)
+		EIDOS_TERMINATION << "ERROR (slim_sort_edges_PARALLEL): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	tsk_edge_table_t *edges = &sorter->tables->edges;
 	double *node_times = sorter->tables->nodes.time;
@@ -3738,81 +3969,13 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 	
 	return 0;
 }
+#endif
 
-void Species::SimplifyTreeSequence(void)
+void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_id_t> &samples)
 {
-#if DEBUG
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (Species::SimplifyTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
-#endif
-	
-	if (tables_.nodes.num_rows == 0)
-		return;
-	
-	std::vector<tsk_id_t> samples;
-	
-	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_haplosomes_,
-	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
-	// We need to be able to find out the index of an entry, in remembered_haplosomes_, once we have found it;
-	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
-	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
-	{
-#if EIDOS_ROBIN_HOOD_HASHING
-		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_haplosomes_lookup;
-		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
-		std::unordered_map<tsk_id_t, uint32_t> remembered_haplosomes_lookup;
-		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
-#endif
-		
-		// the remembered_haplosomes_ come first in the list of samples
-		uint32_t index = 0;
-		
-		for (tsk_id_t sid : remembered_haplosomes_)
-		{
-			samples.emplace_back(sid);
-			remembered_haplosomes_lookup.emplace(sid, index);
-			index++;
-		}
-		
-		// and then come all the haplosomes of the extant individuals
-		tsk_id_t newValueInNodeTable = (tsk_id_t)remembered_haplosomes_.size();
-		int haplosome_count_per_individual = HaplosomeCountPerIndividual();
-		
-		for (auto subpop_iter : population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_iter.second;
-			
-			for (Individual *ind : subpop->parent_individuals_)
-			{
-				Haplosome **haplosomes = ind->haplosomes_;
-				
-				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
-					
-					tsk_id_t M = haplosome->tsk_node_id_;
-					
-					// check if this sample is already being remembered, and assign the correct tsk_node_id_
-					// if not remembered, it is currently alive, so we need to mark it as a sample so it persists through simplify()
-					auto iter = remembered_haplosomes_lookup.find(M);
-					
-					if (iter == remembered_haplosomes_lookup.end())
-					{
-						samples.emplace_back(M);
-						haplosome->tsk_node_id_ = newValueInNodeTable++;
-					}
-					else
-					{
-						haplosome->tsk_node_id_ = (tsk_id_t)(iter->second);
-					}
-				}
-			}
-		}
-	}
-	
-	// the tables need to have a population table to be able to sort it
-	WritePopulationTable(&tables_);
+	// BEWARE!  This is an internal method, and should only be called from SimplifyAllTreeSequences()!
+	// It assumes that a variety of things will be done by the caller, and those things are not optional!
+	// With multiple chromosomes when running parallel, this will be called from inside a parallel region!
 	
 	// sort the table collection
 	{
@@ -3827,7 +3990,7 @@ void Species::SimplifyTreeSequence(void)
 		
 #if 0
 		// sort the tables using tsk_table_collection_sort() to get the default behavior
-		int ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
+		int ret = tsk_table_collection_sort(&tsinfo.tables_, /* edge_start */ NULL, /* flags */ flags);
 		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 #else
 		// sort the tables using our own custom edge sorter, for additional speed through inlining of the comparison function
@@ -3835,15 +3998,24 @@ void Species::SimplifyTreeSequence(void)
 		// FIXME for additional speed we could perhaps be smart about only sorting the portions of the edge table
 		// that need it, but the tricky thing is that all the old stuff has to be at the bottom of the table, not the top...
 		tsk_table_sorter_t sorter;
-		int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
+		int ret = tsk_table_sorter_init(&sorter, &tsinfo.tables_, /* flags */ flags);
 		if (ret != 0) handle_error("tsk_table_sorter_init", ret);
 		
+#ifdef _OPENMP
+		// When running multithreaded, we can parallelize the sorting work.  We do so only for single-chromosome models,
+		// however.  With multiple chromosomes we parallelize across chromosomes, allowing simplification in parallel too.
+		if (chromosomes_.size() > 1)
+			sorter.sort_edges = slim_sort_edges;
+		else
+			sorter.sort_edges = slim_sort_edges_PARALLEL;
+#else
 		sorter.sort_edges = slim_sort_edges;
+#endif	// _OPENMP
 		
 		try {
 			ret = tsk_table_sorter_run(&sorter, NULL);
 		} catch (std::exception &e) {
-			EIDOS_TERMINATION << "ERROR (Species::SimplifyTreeSequence): (internal error) exception raised during tsk_table_sorter_run(): " << e.what() << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_SimplifyTreeSequence): (internal error) exception raised during tsk_table_sorter_run(): " << e.what() << "." << EidosTerminate();
 		}
 		if (ret != 0) handle_error("tsk_table_sorter_run", ret);
 		
@@ -3854,7 +4026,7 @@ void Species::SimplifyTreeSequence(void)
 	
 	// remove redundant sites we added
 	{
-		int ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
+		int ret = tsk_table_collection_deduplicate_sites(&tsinfo.tables_, 0);
 		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	}
 	
@@ -3862,20 +4034,262 @@ void Species::SimplifyTreeSequence(void)
 	{
 		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_CORE);
 		
-		tsk_flags_t flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+		// BCH 12/9/2024: Removing TSK_SIMPLIFY_FILTER_INDIVIDUALS here, because we now need to filter the individuals
+		// table ourselves after simplifying all the tree sequences (perhaps in parallel); see SimplifyAllTreeSequences().
+		tsk_flags_t flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+		
+		// BCH 12/10/2024: This should still work, with our own node table filtering code.  As Jerome explains, "simplify
+		// will still keep the *edges* that are unary, and that's all that matters. The downstream filtering code you
+		// have just looks to see what nodes have references, and filters out those that are not used in any edges."
 		if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
-		int ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
+		
+		// BCH 12/9/2024: These flags are added for multichromosome support; we want to simplify all the tree sequences
+		// (perhaps in parallel), without touching the node table at all, and then we clean up the node table afterwards.
+		flags |= TSK_SIMPLIFY_NO_FILTER_NODES | TSK_SIMPLIFY_NO_UPDATE_SAMPLE_FLAGS;
+		
+		int ret = tsk_table_collection_simplify(&tsinfo.tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 		if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 		
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_CORE);
 	}
 	
-	// update map of remembered_haplosomes_, which are now the first n entries in the node table
-	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_haplosomes_.size(); i++)
-		remembered_haplosomes_[i] = i;
+	// note that we leave things in a partially completed state; the node table still needs to be filtered!
+}
+
+void Species::SimplifyAllTreeSequences(void)
+{
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+#endif
 	
-	// remake our hash table of pedigree ids to tsk_ids, since simplify reordered the individuals table
-	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);
+	// if we have no recorded nodes, there is nothing to simplify; note that the nodes table is shared
+	if (treeseq_[0].tables_.nodes.num_rows == 0)
+		return;
+	
+	std::vector<tsk_id_t> samples;
+	
+	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_nodes_,
+	// so that the find() operations in the loop below can be done in constant time instead of O(N) time.
+	// We need to be able to find out the index of an entry, in remembered_nodes_, once we have found it;
+	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
+	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
+	// BCH 12/9/2024: The point of all this kerfuffle is that an extant individual might also be a
+	// remembered individual, and we don't want to put it into the samples vector twice, I think.
+	{
+#if EIDOS_ROBIN_HOOD_HASHING
+		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
+		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
+		std::unordered_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
+		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
+#endif
+		
+		// the remembered_nodes_ come first in the list of samples
+		uint32_t index = 0;
+		
+		for (tsk_id_t sample_id : remembered_nodes_)
+		{
+			samples.emplace_back(sample_id);
+			remembered_nodes_lookup.emplace(sample_id, index);
+			index++;
+		}
+		
+		// and then come all the nodes of the extant individuals
+		for (auto subpop_iter : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_iter.second;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				// all the haplosomes for an individual share the same two tskit node ids (shared node table)
+				// since both nodes for an individual are always remembered together, we only need to do
+				// one hash table lookup to determine whether this individual's haplosomes are remembered
+				tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
+				
+				auto iter = remembered_nodes_lookup.find(tsk_node_id_base);
+				bool not_remembered = (iter == remembered_nodes_lookup.end());
+				
+				if (not_remembered)
+				{
+					samples.emplace_back(tsk_node_id_base);
+					samples.emplace_back(tsk_node_id_base + 1);
+				}
+				
+#if DEBUG
+				// check that both of the individual's haplosomes are (or are not) remembered together
+				auto iter_2 = remembered_nodes_lookup.find(tsk_node_id_base + 1);
+				bool not_remembered_2 = (iter == remembered_nodes_lookup.end());
+				
+				if (not_remembered != not_remembered_2)
+					EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): one node remembered, one node not!." << EidosTerminate(nullptr);
+#endif
+			}
+		}
+	}
+	
+	// the tables need to have a population table to be able to sort it; we make this in index 0's table
+	// collection, and the other table collections will share it temporarily using CopySharedTablesIn()
+	tsk_table_collection_t &main_tables = treeseq_[0].tables_;
+	
+	WritePopulationTable(&main_tables);
+	
+	// simplify all of the tree sequences
+	// FIXME MULTI_TREESEQ: parallelize simplification here!
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		slim_chromosome_index_t chromosome_index = chromosome->Index();
+		TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+		tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+		
+		// swap in the shared tables from the main tree sequence; we need them for simplify to work, but
+		// simplify should not touch any of them, so it should be safe to simplify using them directly
+		if (chromosome_index > 0)
+			CopySharedTablesIn(chromosome_tables);
+		
+		// simplify
+		_SimplifyTreeSequence(chromosome_tsinfo, samples);
+		
+		// swap out the shared tables immediately after; the filtering code below does not need the shared tables
+		if (chromosome_index > 0)
+			DisconnectCopiedSharedTables(chromosome_tables);
+	}
+	
+	// the node table needs to be filtered now; we turned that off for simplification, so it could be parallelized.
+	// this code is copied from https://github.com/tskit-dev/tskit/pull/2665/files (multichrom_wright_fisher.c)
+	{
+		tsk_size_t sample_count = (tsk_size_t)samples.size();
+		int ret;
+		const tsk_size_t num_nodes = main_tables.nodes.num_rows;
+		tsk_bool_t *keep_nodes = (tsk_bool_t *)calloc(num_nodes, sizeof(tsk_bool_t));	// note: cleared by calloc
+		tsk_id_t *node_id_map = (tsk_id_t *)malloc(num_nodes * sizeof(tsk_id_t));
+		
+		if (!keep_nodes || !node_id_map)
+			EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		// mark the nodes we want to keep: samples (including remembered nodes), plus all nodes referenced by edges
+		for (tsk_size_t j = 0; j < sample_count; j++)
+			keep_nodes[samples[j]] = true;
+		
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			tsk_id_t *edge_child = chromosome_tables.edges.child;
+			tsk_id_t *edge_parent = chromosome_tables.edges.parent;
+			tsk_size_t edges_num_rows = chromosome_tables.edges.num_rows;
+			
+			for (tsk_size_t k = 0; k < edges_num_rows; k++) {
+				keep_nodes[edge_child[k]] = true;
+				keep_nodes[edge_parent[k]] = true;
+			}
+		}
+		
+		// tskit does the work for us and provides an index map
+		ret = tsk_node_table_keep_rows(&main_tables.nodes, keep_nodes, 0, node_id_map);
+		if (ret < 0) handle_error("tsk_node_table_keep_rows", ret);
+		
+		// remap node references
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+			tsk_id_t *edge_child = chromosome_tables.edges.child;
+			tsk_id_t *edge_parent = chromosome_tables.edges.parent;
+			tsk_size_t edges_num_rows = chromosome_tables.edges.num_rows;
+			
+			for (tsk_size_t k = 0; k < edges_num_rows; k++) {
+				edge_child[k] = node_id_map[edge_child[k]];
+				edge_parent[k] = node_id_map[edge_parent[k]];
+			}
+			
+#if DEBUG
+			ret = tsk_table_collection_check_integrity(&chromosome_tables, 0);
+			if (ret < 0) handle_error("SimplifyAllTreeSequences() tsk_table_collection_check_integrity after node remapping", ret);
+#endif
+		}
+		
+		// update map of remembered_nodes_; with a single chromosome and a standard simplify,
+		// they would now be the first n entries in the node table (and we used to assume that),
+		// but now that is not guaranteed, and we need to remap them using node_id_map
+		for (tsk_id_t j = 0; j < (tsk_id_t)remembered_nodes_.size(); j++)
+			remembered_nodes_[j] = node_id_map[samples[j]];
+		
+		// and update the tskit node id base for all extant individuals, similarly
+		for (auto subpop_iter : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_iter.second;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				// all the haplosomes for an individual share the same two tskit node ids (shared node table)
+				// we thus need to just remap the base id, and the second id should always remap with it
+				tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
+				tsk_id_t remapped_base = node_id_map[tsk_node_id_base];
+				
+				ind->SetTskitNodeIdBase(remapped_base);
+				
+#if DEBUG
+				// check that the second id did remap alongside the first id
+				if (node_id_map[tsk_node_id_base + 1] != remapped_base + 1)
+					EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): node table filtering did not preserve order!" << EidosTerminate(nullptr);
+#endif
+			}
+		}
+		
+		free(keep_nodes);
+		free(node_id_map);
+	}
+	
+	// the individual table needs to be filtered now; we no longer pass TSK_SIMPLIFY_FILTER_INDIVIDUALS for simplification,
+	// so it could be parallelized.  The code here is based on the node table filtering above, mutatis mutandis
+	{
+		int ret;
+		const tsk_size_t num_individuals = main_tables.individuals.num_rows;
+		tsk_bool_t *keep_individuals = (tsk_bool_t *)calloc(num_individuals, sizeof(tsk_bool_t));	// note: cleared by calloc
+		tsk_id_t *individual_id_map = (tsk_id_t *)malloc(num_individuals * sizeof(tsk_id_t));
+		
+		if (!keep_individuals || !individual_id_map)
+			EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		// mark the individuals we want to keep: all individuals referenced by nodes; note that the node table is shared,
+		// so we only need to loop through that one shared node table that is kept by the main table collection
+		{
+			tsk_id_t *node_individual = main_tables.nodes.individual;
+			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
+			
+			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
+				keep_individuals[node_individual[k]] = true;
+			}
+		}
+		
+		// tskit does the work for us and provides an index map
+		ret = tsk_individual_table_keep_rows(&main_tables.individuals, keep_individuals, 0, individual_id_map);
+		if (ret < 0) handle_error("tsk_individual_table_keep_rows", ret);
+		
+		// remap individual references; again, this is a shared table so we only need to modify it for the main tables
+		{
+			tsk_id_t *node_individual = main_tables.nodes.individual;
+			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
+			
+			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
+				node_individual[k] = individual_id_map[node_individual[k]];
+			}
+			
+#if DEBUG
+			ret = tsk_table_collection_check_integrity(&main_tables, 0);
+			if (ret < 0) handle_error("SimplifyAllTreeSequences() tsk_table_collection_check_integrity after individual remapping", ret);
+#endif
+		}
+		
+		// remake our hash table of pedigree ids to tsk_ids, since we have reordered the (shared) individuals table
+		BuildTabledIndividualsHash(&main_tables, &tabled_individuals_hash_);
+	}
+	
+	// note that simplify does not mess with the population table, at least with the flags we pass it,
+	// so we don't need to filter it as we filtered the node and individual tables above
 	
 	// reset current position, used to rewind individuals that are rejected by modifyChild()
 	RecordTablePosition();
@@ -3884,29 +4298,57 @@ void Species::SimplifyTreeSequence(void)
 	simplify_elapsed_ = 0;
 	
 	// as a side effect of simplification, update a "model has coalesced" flag that the user can consult, if requested
+	// this could potentially be parallelized, but it's kind of a fringe feature, and not that slow...
 	if (running_coalescence_checks_)
-		CheckCoalescenceAfterSimplification();
+	{
+		for (TreeSeqInfo &tsinfo : treeseq_)
+			CheckCoalescenceAfterSimplification(tsinfo);
+	}
 }
 
-void Species::CheckCoalescenceAfterSimplification(void)
+void Species::CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo)
 {
 #if DEBUG
 	if (!recording_tree_ || !running_coalescence_checks_)
 		EIDOS_TERMINATION << "ERROR (Species::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
 #endif
 	
-	// Copy the table collection; Jerome says this is unnecessary since tsk_table_collection_build_index()
-	// does not modify the core information in the table collection, but just adds some separate indices.
-	// However, we also need to add a population table, so really it is best to make a copy I think.
+	// Copy the table collection, which will (if it is not the main table collection) have empty tables for
+	// the shared node, individual, and population tables.  We copy *first*, because we don't want to make
+	// a copy of the shared tables, we just want to share them at the pointer level.  (Jerome said at one
+	// point that this copy is unnecessary since tsk_table_collection_build_index() does not modify the core
+	// information in the table collection, but just adds some separate indices.  However, we also need to
+	// add a population table, so really it is best to make a copy I think.)
 	tsk_table_collection_t tables_copy;
 	int ret;
 	
-	ret = tsk_table_collection_copy(&tables_, &tables_copy, 0);
+	ret = tsk_table_collection_copy(&tsinfo.tables_, &tables_copy, 0);
 	if (ret < 0) handle_error("tsk_table_collection_copy", ret);
 	
-	// Our tables copy needs to have a population table now, since this is required to build a tree sequence
+	// If tsinfo is not the main table collection (which has the shared tables), copy the shared tables in now.
+	// If it is the main table collection, it now has a deep copy of the population table, so it is fine.
+	if (tsinfo.chromosome_index_ > 0)
+	{
+		CopySharedTablesIn(tables_copy);
+		
+		// Now we have a pointer-level copy of the main table collection's population table; if we modify it,
+		// which we need to do, we would actually modify the original table in the main table collection,
+		// which we don't want.  So now we make a deep copy of it that we can modify safely.  We own that
+		// deep copy, and will free it at the end.
+		tsk_population_table_t deep_copy_pop_table;
+		
+		ret = tsk_population_table_copy(&tables_copy.populations, &deep_copy_pop_table, 0);
+		if (ret < 0) handle_error("tsk_population_table_copy", ret);
+		
+		tables_copy.populations = deep_copy_pop_table;		// overwrite with the copy
+	}
+	
+	// Our tables copy needs to have a population table now, since this is required to build a tree sequence.
+	// We could build this once and reuse it across all the calls to this method for different chromosomes,
+	// but I think's probably not worth the trouble; the overhead should be small.
 	WritePopulationTable(&tables_copy);
 	
+	// Build an index (which does not modify the main tables) and make a tree sequence.
 	ret = tsk_table_collection_build_index(&tables_copy, 0);
 	if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
 	
@@ -3915,8 +4357,9 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	ret = tsk_treeseq_init(&ts, &tables_copy, 0);
 	if (ret < 0) handle_error("tsk_treeseq_init", ret);
 	
-	// Collect a vector of all extant haplosome node IDs
-	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+	// Collect a vector of all extant haplosome node IDs belonging to the chromosome that tsinfo records
+	int first_haplosome_index = FirstHaplosomeIndices()[tsinfo.chromosome_index_];
+	int last_haplosome_index = LastHaplosomeIndices()[tsinfo.chromosome_index_];
 	std::vector<tsk_id_t> all_extant_nodes;
 	
 	for (auto subpop_iter : population_.subpops_)
@@ -3925,13 +4368,21 @@ void Species::CheckCoalescenceAfterSimplification(void)
 		
 		for (Individual *ind : subpop->parent_individuals_)
 		{
+			// all the haplosomes for an individual share the same two tskit node ids (shared node table)
+			// we only want to trace back from haplosomes that are used by the focal chromosome, however;
+			// and only from haplosomes that are non-null (a test which was missing before, a bug I think)
+			tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
 			Haplosome **haplosomes = ind->haplosomes_;
 			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 			{
 				Haplosome *haplosome = haplosomes[haplosome_index];
 				
-				all_extant_nodes.emplace_back(haplosome->tsk_node_id_);
+				if (!haplosome->IsNull())
+				{
+					// the tskit node id for a haplosome is the base ID from the individual, plus 0 or 1
+					all_extant_nodes.emplace_back(tsk_node_id_base + haplosome->chromosome_subposition_);
+				}
 			}
 		}
 	}
@@ -3991,14 +4442,21 @@ void Species::CheckCoalescenceAfterSimplification(void)
 	ret = tsk_treeseq_free(&ts);
 	if (ret < 0) handle_error("tsk_treeseq_free", ret);
 	
-	if (&tables_copy != &tables_)
+	if (tsinfo.chromosome_index_ > 0)
 	{
-		ret = tsk_table_collection_free(&tables_copy);
-		if (ret < 0) handle_error("tsk_table_collection_free", ret);
+		// we made a new deep copy of the population table above, so we need to free it before disconnecting
+		ret = tsk_population_table_free(&tables_copy.populations);
+		if (ret < 0) handle_error("tsk_population_table_free", ret);
+		
+		// now we can disconnect, zeroing out the other shared tables that we made pointer-level copies of
+		DisconnectCopiedSharedTables(tables_copy);
 	}
 	
+	ret = tsk_table_collection_free(&tables_copy);
+	if (ret < 0) handle_error("tsk_table_collection_free", ret);
+	
 	//std::cout << "tick " << community->Tick() << ": fully_coalesced == " << (fully_coalesced ? "TRUE" : "false") << std::endl;
-	last_coalescence_state_ = fully_coalesced;
+	tsinfo.last_coalescence_state_ = fully_coalesced;
 }
 
 bool Species::_SubpopulationIDInUse(slim_objectid_t p_subpop_id)
@@ -4009,12 +4467,16 @@ bool Species::_SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	// assume that *any* metadata means we can't use the subpop, which means we
 	// won't clobber any existing metadata, although there might be subpops
 	// with metadata not put in by SLiM.
-	if (RecordingTreeSequence()) {
-		if (p_subpop_id < (int)tables_.populations.num_rows) {
+	if (RecordingTreeSequence() && treeseq_.size())
+	{
+		// We only need to consult the first (shared) populations table
+		tsk_population_table_t &shared_populations_table = treeseq_[0].tables_.populations;
+		
+		if (p_subpop_id < (int)shared_populations_table.num_rows) {
 			int ret;
 			tsk_population_t row;
 
-			ret = tsk_population_table_get_row(&tables_.populations, p_subpop_id, &row);
+			ret = tsk_population_table_get_row(&shared_populations_table, p_subpop_id, &row);
 			if (ret != 0) handle_error("tsk_population_table_get_row", ret);
 			if (row.metadata_length > 0) {
 				// Check the metadata is not "null". It would maybe be better
@@ -4031,14 +4493,14 @@ bool Species::_SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 
 void Species::RecordTablePosition(void)
 {
-	// keep the current table position for rewinding if a proposed child is rejected
-	tsk_table_collection_record_num_rows(&tables_, &table_position_);
+	// keep the current position in each table collection for rewinding if a proposed child is rejected
+	// note that for freed tables (because of table sharing), this will record/restore a position of 0
+	for (TreeSeqInfo &tsinfo : treeseq_)
+		tsk_table_collection_record_num_rows(&tsinfo.tables_, &tsinfo.table_position_);
 }
 
 void Species::AllocateTreeSequenceTables(void)
 {
-	Chromosome &chromosome = TheChromosome();
-	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::AllocateTreeSequenceTables): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -4047,16 +4509,39 @@ void Species::AllocateTreeSequenceTables(void)
 	if (tables_initialized_)
 		EIDOS_TERMINATION << "ERROR (Species::AllocateTreeSequenceTables): (internal error) tree sequence tables already initialized." << EidosTerminate();
 	
-	// Set up the table collection before loading a saved population or starting a simulation
+	// Set up the table collections before loading a saved population or starting a simulation
+	// We have one TreeSeqInfo struct for each chromosome, and allocate and initialize them all here
+	treeseq_.resize(chromosomes_.size());
 	
-	//INITIALIZE NODE AND EDGE TABLES.
-	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
-	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
-	
-	tables_initialized_ = true;
-	tables_.sequence_length = (double)chromosome.last_position_ + 1;
+	bool first = true;
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		slim_chromosome_index_t index = chromosome->Index();
+		TreeSeqInfo &tsinfo = treeseq_[index];
+		
+		//INITIALIZE NODE AND EDGE TABLES.
+		int ret = tsk_table_collection_init(&tsinfo.tables_, TSK_TC_NO_EDGE_METADATA);
+		if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
+		
+		if (!first)
+		{
+			// the node, individual, and population tables are shared; only the first TreeSeqInfo
+			// contains them at most times, and the tables are shared with the others when needed
+			// attempting to access these freed tables will probably crash, beware
+			tsk_node_table_free(&tsinfo.tables_.nodes);
+			tsk_individual_table_free(&tsinfo.tables_.individuals);
+			tsk_population_table_free(&tsinfo.tables_.populations);
+		}
+		
+		tsinfo.tables_.sequence_length = (double)chromosome->last_position_ + 1;
+		tsinfo.chromosome_index_ = chromosome->Index();
+		tsinfo.last_coalescence_state_ = false;
+		
+		first = false;
+	}
 	
 	RecordTablePosition();
+	tables_initialized_ = true;
 }
 
 void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_individual)
@@ -4074,6 +4559,63 @@ void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	
 	// Remember the current table position so we can return to it later in RetractNewIndividual()
 	RecordTablePosition();
+	
+	// Record the usage of the next two node table entries for this individual, for (up to) two
+	// haplosomes in each tree sequence.  Some chromosomes will involve only one haplosome, because
+	// they are haploid; and sometimes null haplosomes will mean that fewer (or none) of these
+	// node table entries will actually be used.  That's OK; we want to use the same node table
+	// entries for a given individual in every tree sequences, so we (in general) have to reserve
+	// two entries in any case, and tskit will ignore the ones we don't use.  Note that this work
+	// used to be done in RecordNewHaplosome(), but it needs to be done just once for each new
+	// individual, whereas RecordNewHaplosome() has to record each new haplosome created.
+	
+	// Add haplosome nodes; we mark all nodes with TSK_NODE_IS_SAMPLE here because we have full
+	// genealogical information on all of them (until simplify, which clears TSK_NODE_IS_SAMPLE
+	// from nodes that are not kept in the sample).
+	double time = (double) -1 * (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
+	tsk_flags_t flags = TSK_NODE_IS_SAMPLE;
+	tsk_node_table_t &shared_node_table = treeseq_[0].tables_.nodes;
+	
+	// Figure out the metadata to use, which is a version of the default metadata.  We patch in
+	// the correct haplosome pedigree IDs, directly into the default metadata records, so
+	// this code is not thread-safe!  The design is this way because the size of HaplosomeMetadataRec
+	// is determined dynamically at runtime, depending on the number of chromosomes in the model.
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL();
+	static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
+	HaplosomeMetadataRec *metadata1, *metadata2;
+	
+	if (p_individual->sex_ == IndividualSex::kMale)
+	{
+		// this case covers only males
+		metadata1 = hap_metadata_1M_;
+		metadata2 = hap_metadata_2M_;
+	}
+	else
+	{
+		// this case covers both females and hermaphrodites
+		metadata1 = hap_metadata_1F_;
+		metadata2 = hap_metadata_2F_;
+	}
+	
+	metadata1->haplosome_id_ = p_individual->PedigreeID() * 2;
+	metadata2->haplosome_id_ = p_individual->PedigreeID() * 2 + 1;
+	
+	// Make the node table entries, with default metadata for now
+	tsk_id_t nodeTSKID1 = tsk_node_table_add_row(&shared_node_table, flags, time,
+												 (tsk_id_t)p_individual->subpopulation_->subpopulation_id_,
+												 TSK_NULL, (char *)metadata1, (tsk_size_t)haplosome_metadata_size_);
+	if (nodeTSKID1 < 0) handle_error("tsk_node_table_add_row", nodeTSKID1);
+	
+	tsk_id_t nodeTSKID2 = tsk_node_table_add_row(&shared_node_table, flags, time,
+												 (tsk_id_t)p_individual->subpopulation_->subpopulation_id_,
+												 TSK_NULL, (char *)metadata2, (tsk_size_t)haplosome_metadata_size_);
+	if (nodeTSKID2 < 0) handle_error("tsk_node_table_add_row", nodeTSKID2);
+	
+	// The individual remembers the tskid of the first node (which is the same across all haplosomes
+	// in 1st position).  For haplosomes in 2nd position, it is first_tsk_node_id + 1.
+	p_individual->SetTskitNodeIdBase(nodeTSKID1);
+	
+	// The haplosome metadata is presently all zero.  FinalizeCurrentNewIndividual() will clean it up.
 }
 
 void Species::RetractNewIndividual()
@@ -4091,50 +4633,46 @@ void Species::RetractNewIndividual()
 	// around the code since it seems to keep coming back...
 	//current_new_individual_ = nullptr;
 	
-	tsk_table_collection_truncate(&tables_, &table_position_);
+	for (TreeSeqInfo &tsinfo : treeseq_)
+		tsk_table_collection_truncate(&tsinfo.tables_, &tsinfo.table_position_);
 }
 
 void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
 		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
-	Chromosome &chromosome = TheChromosome();
-	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
+	slim_chromosome_index_t index = p_new_haplosome->chromosome_index_;
+	Chromosome &chromosome = *chromosomes_[index];
+	TreeSeqInfo &tsinfo = treeseq_[index];
+	
 	// This records information about an individual in both the Node and Edge tables.
-
+	// BCH 12/6/2024: Note that recording the new node table entries is now done by SetCurrentNewIndividual().  That method
+	// determines the tskit node ids for the two haplosome positions of the individual, as tsk_node_id_base_ (+ 1).
+	
 	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
 	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
 	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
 
-	// add haplosome node; we mark all nodes with TSK_NODE_IS_SAMPLE here because we have full genealogical information on all of them
-	// (until simplify, which clears TSK_NODE_IS_SAMPLE from nodes that are not kept in the sample).
-	double time = (double) -1 * (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
-	tsk_flags_t flags = TSK_NODE_IS_SAMPLE;
-	HaplosomeMetadataRec metadata_rec;
-	
-	MetadataForHaplosome(p_new_haplosome, &metadata_rec);
-	
-	const char *metadata = (char *)&metadata_rec;
-	size_t metadata_length = sizeof(HaplosomeMetadataRec)/sizeof(char);
-	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_haplosome->individual_->subpopulation_->subpopulation_id_,
-		TSK_NULL, metadata, (tsk_size_t)metadata_length);
-	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
-	
-	p_new_haplosome->tsk_node_id_ = offspringTSKID;
-	
 	// if there is no parent then no need to record edges
 	if (!p_initial_parental_haplosome && !p_second_parental_haplosome)
 		return;
 	
 	assert(p_initial_parental_haplosome);	// this cannot be nullptr if p_second_parental_haplosome is non-null, so now it is guaranteed non-null
 	
-	// map the Parental Haplosome SLiM Id's to TSK IDs.
-	tsk_id_t haplosome1TSKID = p_initial_parental_haplosome->tsk_node_id_;
-	tsk_id_t haplosome2TSKID = (!p_second_parental_haplosome) ? haplosome1TSKID : p_second_parental_haplosome->tsk_node_id_;
+	// get the TSK IDs for all the haplosomes involved; they are the tsk_node_id_base_ of the owning individual,
+	// plus 0 or 1 depending on whether they are the first or second haplosome for their associated chromosome
+	tsk_id_t offspringTSKID, haplosome1TSKID, haplosome2TSKID;
+	
+	offspringTSKID = p_new_haplosome->OwningIndividual()->TskitNodeIdBase() + p_new_haplosome->chromosome_subposition_;
+	haplosome1TSKID = p_initial_parental_haplosome->OwningIndividual()->TskitNodeIdBase() + p_initial_parental_haplosome->chromosome_subposition_;
+	if (!p_second_parental_haplosome)
+		haplosome2TSKID = haplosome1TSKID;
+	else
+		haplosome2TSKID = p_second_parental_haplosome->OwningIndividual()->TskitNodeIdBase() + p_second_parental_haplosome->chromosome_subposition_;
 	
 	// fix possible excess past-the-end breakpoint
 	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
@@ -4152,7 +4690,7 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 		right = (*p_breakpoints)[i];
 
 		tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
-		int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
+		int ret = tsk_edge_table_add_row(&tsinfo.tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 		if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 		
 		polarity = !polarity;
@@ -4161,8 +4699,29 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 	
 	right = (double)chromosome.last_position_+1;
 	tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
-	int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
+	int ret = tsk_edge_table_add_row(&tsinfo.tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
+	
+	// BCH 12/10/2024: With the new metadata scheme for haplosome, we also need to fix the is_null_metadata if
+	// the new haplosome is a null haplosome *and* it belongs to a chromosome type where that is notable.  In
+	// the present design, that can only be chromosome types "A" and "H"; the other chromosome types do not
+	// allow deviation from the default null-haplosme configuration.
+	if (p_new_haplosome->IsNull())
+	{
+		ChromosomeType chromosome_type = chromosome.Type();
+		
+		if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome))
+		{
+			slim_chromosome_index_t chromosome_index = chromosome.Index();
+			tsk_node_table_t &shared_node_table = treeseq_[0].tables_.nodes;
+			HaplosomeMetadataRec *metadata = (HaplosomeMetadataRec *)(shared_node_table.metadata + shared_node_table.metadata_offset[offspringTSKID]);
+			uint8_t *metadata_is_null = metadata->is_null_;
+			int byte_index = chromosome_index / 8;
+			int bit_shift = chromosome_index % 8;
+			
+			metadata_is_null[byte_index] |= (0x01 << bit_shift);
+		}
+	}
 }
 
 void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations)
@@ -4194,13 +4753,15 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	if (p_haplosome->IsNull())
 		EIDOS_TERMINATION << "ERROR (Species::RecordNewDerivedState): new derived states cannot be recorded for null haplosomes." << EidosTerminate();
 	
-	tsk_id_t haplosomeTSKID = p_haplosome->tsk_node_id_;
+	tsk_id_t haplosomeTSKID = p_haplosome->OwningIndividual()->TskitNodeIdBase() + p_haplosome->chromosome_subposition_;
+	slim_chromosome_index_t index = p_haplosome->chromosome_index_;
+	TreeSeqInfo &tsinfo = treeseq_[index];
 
 	// Identify any previous mutations at this site in this haplosome, and add a new site.
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
 	double tsk_position = (double) p_position;
 
-	tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
+	tsk_id_t site_id = tsk_site_table_add_row(&tsinfo.tables_.sites, tsk_position, NULL, 0, NULL, 0);
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
 	// form derived state
@@ -4244,15 +4805,15 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
 
 	double time = -(double) (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
-	int ret = tsk_mutation_table_add_row(&tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
+	int ret = tsk_mutation_table_add_row(&tsinfo.tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
 					time,
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
 					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 	
 #if DEBUG
-	if (time < tables_.nodes.time[haplosomeTSKID]) 
-		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tables_.nodes.time[haplosomeTSKID] << std::endl;
+	if (time < tsinfo.tables_.nodes.time[haplosomeTSKID]) 
+		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tsinfo.tables_.nodes.time[haplosomeTSKID] << std::endl;
 #endif
 }
 
@@ -4277,7 +4838,7 @@ void Species::CheckAutoSimplification(void)
 		// means the simplification ratio is being used, as implemented below; any other value is a target interval.
 		if ((simplify_elapsed_ >= 1) && (simplify_elapsed_ >= simplification_interval_))
 		{
-			SimplifyTreeSequence();
+			SimplifyAllTreeSequences();
 		}
 	}
 	else if (!std::isinf(simplification_ratio_))
@@ -4287,17 +4848,29 @@ void Species::CheckAutoSimplification(void)
 			// We could, in principle, calculate actual memory used based on number of rows * sizeof(column), etc.,
 			// but that seems like overkill; adding together the number of rows in all the tables should be a
 			// reasonable proxy, and this whole thing is just a heuristic that needs to be tailored anyway.
-			uint64_t old_table_size = (uint64_t)tables_.nodes.num_rows;
-			old_table_size += (uint64_t)tables_.edges.num_rows;
-			old_table_size += (uint64_t)tables_.sites.num_rows;
-			old_table_size += (uint64_t)tables_.mutations.num_rows;
+			// Note that this overcounts the rows for shared tables, but since the ratio of old:new is what matters
+			// for the decision below, it seems to me that that overcounting is unimportant, and simpler to code.
+			uint64_t old_table_size = 0;
+			uint64_t new_table_size = 0;
 			
-			SimplifyTreeSequence();
+			for (TreeSeqInfo &tsinfo : treeseq_)
+			{
+				old_table_size += (uint64_t)tsinfo.tables_.nodes.num_rows;
+				old_table_size += (uint64_t)tsinfo.tables_.edges.num_rows;
+				old_table_size += (uint64_t)tsinfo.tables_.sites.num_rows;
+				old_table_size += (uint64_t)tsinfo.tables_.mutations.num_rows;
+			}
 			
-			uint64_t new_table_size = (uint64_t)tables_.nodes.num_rows;
-			new_table_size += (uint64_t)tables_.edges.num_rows;
-			new_table_size += (uint64_t)tables_.sites.num_rows;
-			new_table_size += (uint64_t)tables_.mutations.num_rows;
+			SimplifyAllTreeSequences();
+				
+			for (TreeSeqInfo &tsinfo : treeseq_)
+			{
+				new_table_size += (uint64_t)tsinfo.tables_.nodes.num_rows;
+				new_table_size += (uint64_t)tsinfo.tables_.edges.num_rows;
+				new_table_size += (uint64_t)tsinfo.tables_.sites.num_rows;
+				new_table_size += (uint64_t)tsinfo.tables_.mutations.num_rows;
+			}
+			
 			double ratio = old_table_size / (double)new_table_size;
 			
 			//std::cout << "auto-simplified in tick " << community->Tick() << "; old size " << old_table_size << ", new size " << new_table_size;
@@ -4336,7 +4909,6 @@ void Species::CheckAutoSimplification(void)
 void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 {
 	// This modifies p_tables in place, replacing the derived_state column of p_tables with a binary version.
-	// See TreeSequenceDataFromAscii() for comments; this is basically just a pruned version of that method.
 	tsk_mutation_table_t mutations_copy;
 	int ret = tsk_mutation_table_copy(&p_tables->mutations, &mutations_copy, 0);
 	if (ret < 0) handle_error("derived_to_ascii", ret);
@@ -4395,7 +4967,7 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 										 binary_derived_state_offset.data(),
 										 mutations_copy.metadata,
 										 mutations_copy.metadata_offset);
-		if (ret < 0) handle_error("convert_from_ascii", ret);
+		if (ret < 0) handle_error("derived_to_ascii", ret);
 	}
 	
 	tsk_mutation_table_free(&mutations_copy);
@@ -4404,7 +4976,6 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 void Species::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 {
 	// This modifies p_tables in place, replacing the derived_state column of p_tables with an ASCII version.
-	// See TreeSequenceDataToAscii() for comments; this is basically just a pruned version of that method.
 	tsk_mutation_table_t mutations_copy;
 	int ret = tsk_mutation_table_copy(&p_tables->mutations, &mutations_copy, 0);
 	if (ret < 0) handle_error("derived_to_ascii", ret);
@@ -4460,10 +5031,11 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	// individuals. In the most extreme case, individuals who are remembered, then
 	// permanently remembered but still alive when the tree sequence is written out will
 	// have this method called on them three times, and they get all flags set.
-
-	// do this so that we can access the internal tables from outside, by passing in nullptr
+	
+	// Passing nullptr used to be allowed as a shorthand for "use the internal tables", but that is
+	// no longer allowed since we now might have multiple internal table collections, per chromosome.
 	if (p_tables == nullptr)
-		p_tables = &tables_;
+		EIDOS_TERMINATION << "ERROR (Species::AddIndividualsToTable): (internal error) p_tables is nullptr!" << EidosTerminate();
 	
 	// loop over individuals and add entries to the individual table; if they are already
 	// there, we just need to update their flags, metadata, location, etc.
@@ -4494,17 +5066,18 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// Add the new individual to our hash table, for fast lookup as done above
 			p_individuals_hash->emplace(ped_id, tsk_individual);
 
-			// Update node table
-			assert(ind->haplosomes_[0]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->haplosomes_[1]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
-			p_tables->nodes.individual[ind->haplosomes_[0]->tsk_node_id_] = tsk_individual;
-			p_tables->nodes.individual[ind->haplosomes_[1]->tsk_node_id_] = tsk_individual;
+			// Update node table to have the individual's tskit id in its individual column
+			tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
+			
+			assert(tsk_node_id_base + 1 < (tsk_id_t) p_tables->nodes.num_rows);		// base and base+1 must both be in range
+			p_tables->nodes.individual[tsk_node_id_base] = tsk_individual;
+			p_tables->nodes.individual[tsk_node_id_base + 1] = tsk_individual;
 
-			// update remembered haplosomes
+			// Update remembered nodes; there are just two entries, base and base+1, for all haplosomes
 			if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 			{
-				remembered_haplosomes_.emplace_back(ind->haplosomes_[0]->tsk_node_id_);
-				remembered_haplosomes_.emplace_back(ind->haplosomes_[1]->tsk_node_id_);
+				remembered_nodes_.emplace_back(tsk_node_id_base);
+				remembered_nodes_.emplace_back(tsk_node_id_base + 1);
 			}
 		} else {
 			// This individual is already there; we need to update the information.
@@ -4518,14 +5091,15 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 					   == (p_tables->individuals.metadata_offset[tsk_individual + 1]
 						   - p_tables->individuals.metadata_offset[tsk_individual])));
 			
-			// It could have been previously inserted but not with the 
-			// SLIM_TSK_INDIVIDUAL_REMEMBERED flag: if so, it now needs adding to the
-			// list of remembered_haplosomes_
+			// It could have been previously inserted but not with the SLIM_TSK_INDIVIDUAL_REMEMBERED
+			// flag: if so, it now needs adding to the list of remembered nodes
+			tsk_id_t tsk_node_id_base = ind->TskitNodeIdBase();
+			
 			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
 				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
 			{
-				remembered_haplosomes_.emplace_back(ind->haplosomes_[0]->tsk_node_id_);
-				remembered_haplosomes_.emplace_back(ind->haplosomes_[1]->tsk_node_id_);
+				remembered_nodes_.emplace_back(tsk_node_id_base);
+				remembered_nodes_.emplace_back(tsk_node_id_base + 1);
 			}
 
 			memcpy(p_tables->individuals.location
@@ -4537,14 +5111,13 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			p_tables->individuals.flags[tsk_individual] |= p_flags;
 			
 			// Check node table
-			assert(ind->haplosomes_[0]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
-				   && ind->haplosomes_[1]->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
+			assert(ind->TskitNodeIdBase() + 1 < (tsk_id_t) p_tables->nodes.num_rows);	// base and base+1 must both be in range
 			
 			// BCH 4/29/2019: These asserts are, we think, not technically necessary – the code
 			// would work even if they were violated.  But they're a nice invariant to guarantee,
 			// and right now they are always true.
-			assert(p_tables->nodes.individual[ind->haplosomes_[0]->tsk_node_id_] == (tsk_id_t)tsk_individual);
-			assert(p_tables->nodes.individual[ind->haplosomes_[1]->tsk_node_id_] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[tsk_node_id_base] == (tsk_id_t)tsk_individual);
+			assert(p_tables->nodes.individual[tsk_node_id_base + 1] == (tsk_id_t)tsk_individual);
 		}
 	}
 }
@@ -4824,7 +5397,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 	free(population_table_copy);
 }
 
-void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict)
+void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict, slim_chromosome_index_t p_chromosome_index)
 {
 	int ret = 0;
 
@@ -4845,6 +5418,9 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		
 		//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
 	}
+	
+	// We could support per-chromosome top-level metadata, too, that would only be saved out
+	// to that chromosome's file, but let's wait to see whether somebody asks for it...
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF) {
 		metadata["SLiM"]["model_type"] = "WF";
@@ -4904,6 +5480,30 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	}
 	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
 	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
+	
+	metadata["SLiM"]["chromosomes"] = nlohmann::json::array();
+	for (Chromosome *chromosome : chromosomes_)
+	{
+		nlohmann::json chromosome_info;
+		
+		chromosome_info["index"] = chromosome->Index();
+		chromosome_info["id"] = chromosome->ID();
+		chromosome_info["symbol"] = chromosome->Symbol();
+		if (chromosome->Name().length() > 0)
+			chromosome_info["name"] = chromosome->Name();
+		chromosome_info["type"] = StringForChromosomeType(chromosome->Type());
+		
+		metadata["SLiM"]["chromosomes"].push_back(chromosome_info);
+		
+		if (p_chromosome_index == chromosome->Index())		// true for the chromosome being written
+		{
+			// write out all the same information again in a key called "this_chromosome"; this way the
+			// user can trivially get the info for the chromosome represented by the file; note that a
+			// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome
+			metadata["SLiM"]["this_chromosome"] = chromosome_info;
+		}
+	}
+	
 	std::string new_metadata_str = metadata.dump();
 
 	ret = tsk_table_collection_set_metadata(
@@ -4969,7 +5569,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	char *provenance_str;
 	provenance_str = (char *)malloc(1024);
 	sprintf(provenance_str, "{\"program\": \"SLiM\", \"version\": \"%s\", \"file_version\": \"%s\", \"model_type\": \"%s\", \"generation\": %d, \"remembered_node_count\": %ld}",
-			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_haplosomes_.size());
+			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_nodes_.size());
 	
 	time(&timer);
 	tm_info = localtime(&timer);
@@ -5005,7 +5605,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["slim"]["name"] = name_;
 	if (description_.length())
 		j["slim"]["description"] = description_;
-	//j["slim"]["remembered_node_count"] = (long)remembered_haplosomes_.size();	// no longer writing this key!
+	//j["slim"]["remembered_node_count"] = (long)remembered_nodes_.size();	// no longer writing this key!
 	
 	// compute the SHA-256 hash of the script string
 	const std::string &scriptString = community_.ScriptString();
@@ -5461,7 +6061,8 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 
 void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
 {
-	Chromosome &chromosome = TheChromosome();
+	int ret = 0;
+	bool is_multichrom = (chromosomes_.size() > 1);
 	
 #if DEBUG
 	if (!recording_tree_)
@@ -5470,14 +6071,28 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	
 	// If this is a single-chromosome species, then write out the single tree sequence to the path;
 	// otherwise, create p_recording_tree_path as a directory, and write out to that directory
-	int ret = 0;
-	
 	// Standardize the path, resolving a leading ~ and maybe other things
-	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
+	std::string resolved_user_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_recording_tree_path));
+	
+	if (is_multichrom)
+	{
+		std::string error_string;
+		bool success = Eidos_CreateDirectory(resolved_user_path, &error_string);
+		
+		// Fatal error if we can't create the directory
+		if (error_string.length())
+			EIDOS_TERMINATION << error_string << EidosTerminate();
+		else if (!success)
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", for unknown reasons." << EidosTerminate();
+	}
 	
 	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information
-	// comes from the time of output.  This needs to happen before simplify/sort.
-	WritePopulationTable(&tables_);
+	// comes from the time of output.  This needs to happen before simplify/sort.  We write the population
+	// table once, into treeseq_[0], and then share it into the other tree sequences below.  Note that
+	// SimplifyAllTreeSequences() also writes the population table, so this call is redundant when
+	// p_simplify is true, but I'm leaving it this way for redundancy, to prevent future bugs, and
+	// because I'm not 100% certain that we didn't do it this way originally for a good reason.  :->
+	WritePopulationTable(&treeseq_[0].tables_);
 	
 	// First we simplify, on the original table collection; we considered doing this on the copy,
 	// but then the copy takes longer and the simplify's work is lost, and there doesn't seem to
@@ -5486,131 +6101,165 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	// it *does* change the order of the rows; see https://github.com/MesserLab/SLiM/issues/209
 	if (p_simplify)
 	{
-		SimplifyTreeSequence();
+		SimplifyAllTreeSequences();
 	}
 	
-	// Copy the table collection so that modifications we do for writing don't affect the original tables
-	tsk_table_collection_t output_tables;
-	ret = tsk_table_collection_copy(&tables_, &output_tables, 0);
-	if (ret < 0) handle_error("tsk_table_collection_copy", ret);
-	
-	// Sort and deduplicate; we don't need to do this if we simplified above, since simplification does these steps
-	if (!p_simplify)
+	for (Chromosome *chromosome : chromosomes_)
 	{
-		int flags = TSK_NO_CHECK_INTEGRITY;
+		slim_chromosome_index_t chromosome_index = chromosome->Index();
+		TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
+		tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
+		
+		// Copy in the shared tables (node, individual, population) at this point, so the shared tables then get
+		// copied below; we will be modifying the tables, and don't want our modification to go into the original
+		// shared tables, which we are not allowed to change.
+		if (chromosome_index > 0)
+			CopySharedTablesIn(chromosome_tables);
+		
+		// Copy the table collection so that modifications we do for writing don't affect the original tables.
+		// Note that there's a lot of work below to clean up the individuals table and node table for saving.
+		// Those tables are shared.  We don't want to do this cleanup in the original tables, since that would
+		// modify our recording state I guess; but I think this cleanup will be the same for every chromosome,
+		// so technically we could do this work just once, I think (?), and share the processed tables across
+		// all the chromosomes.  I've chosen not to pursue that idea, because I don't see a path to doing it
+		// without increasing the high-water mark for the memory usage of this code, which is very important
+		// to keep low.  Anyhow, maybe this is unimportant since it is only overhead at save time, and is
+		// probably not a hotspot.
+		tsk_table_collection_t output_tables;
+		ret = tsk_table_collection_copy(&chromosome_tables, &output_tables, 0);
+		if (ret < 0) handle_error("tsk_table_collection_copy", ret);
+		
+		// We can unshare the shared tables in the original table collection immediately, zeroing them out.
+		if (chromosome_index > 0)
+			DisconnectCopiedSharedTables(chromosome_tables);
+		
+		// Sort and deduplicate; we don't need to do this if we simplified above, since simplification does these steps
+		if (!p_simplify)
+		{
+			int flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-		flags = 0;
+			flags = 0;
 #endif
-		ret = tsk_table_collection_sort(&output_tables, /* edge_start */ NULL, /* flags */ flags);
-		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+			ret = tsk_table_collection_sort(&output_tables, /* edge_start */ NULL, /* flags */ flags);
+			if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+			
+			// Remove redundant sites we added
+			ret = tsk_table_collection_deduplicate_sites(&output_tables, 0);
+			if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+		}
 		
-		// Remove redundant sites we added
-		ret = tsk_table_collection_deduplicate_sites(&output_tables, 0);
-		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
-	}
-	
-	// Add in the mutation.parent information; valid tree sequences need parents, but we don't keep them while running
-	ret = tsk_table_collection_build_index(&output_tables, 0);
-	if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
-	ret = tsk_table_collection_compute_mutation_parents(&output_tables, 0);
-	if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
-	
-	{
-		// Create a local hash table for pedigree IDs to individuals table indices.  If we simplified, that validated
-		// tabled_individuals_hash_ as a side effect, so we can copy that as a base; otherwise, we make one from scratch.
-		// Note that this hash table is used only for AddLiveIndividualsToIndividualsTable() below; after that we reorder
-		// the individuals table, so we'll make another hash table for AddParentsColumnForOutput(), unfortunately.
-		INDIVIDUALS_HASH local_individuals_lookup;
-
-		if (p_simplify)
-			local_individuals_lookup = tabled_individuals_hash_;
-		else
+		// Add in the mutation.parent information; valid tree sequences need parents, but we don't keep them while running
+		ret = tsk_table_collection_build_index(&output_tables, 0);
+		if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
+		ret = tsk_table_collection_compute_mutation_parents(&output_tables, 0);
+		if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
+		
+		{
+			// Create a local hash table for pedigree IDs to individuals table indices.  If we simplified, that validated
+			// tabled_individuals_hash_ as a side effect, so we can copy that as a base; otherwise, we make one from scratch.
+			// Note that this hash table is used only for AddLiveIndividualsToIndividualsTable() below; after that we reorder
+			// the individuals table, so we'll make another hash table for AddParentsColumnForOutput(), unfortunately.
+			INDIVIDUALS_HASH local_individuals_lookup;
+			
+			if (p_simplify)
+				local_individuals_lookup = tabled_individuals_hash_;		// copies
+			else
+				BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
+			
+			// Add information about the current cycle to the individual table; 
+			// this modifies "remembered" individuals, since information comes from the
+			// time of output, not creation
+			AddLiveIndividualsToIndividualsTable(&output_tables, &local_individuals_lookup);
+		}
+		
+		// We need the individual table's order, for alive individuals, to match that of
+		// SLiM so that when we read back in it doesn't cause a reordering as a side effect
+		// all other individuals in the table will be retained, at the end
+		std::vector<int> individual_map;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			for (Individual *individual : subpop->parent_individuals_)
+			{
+				tsk_id_t node_id = individual->TskitNodeIdBase();
+				tsk_id_t ind_id = output_tables.nodes.individual[node_id];
+				
+				individual_map.emplace_back(ind_id);
+			}
+		}
+		
+		ReorderIndividualTable(&output_tables, individual_map, true);
+		
+		// Now that the table is reordered, we can build the parents column of the individuals table
+		// This requires a new pedigree id to tskid lookup table, which we construct here.
+		{
+			INDIVIDUALS_HASH local_individuals_lookup;
+			
 			BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
-
-		// Add information about the current cycle to the individual table; 
-		// this modifies "remembered" individuals, since information comes from the
-		// time of output, not creation
-		AddLiveIndividualsToIndividualsTable(&output_tables, &local_individuals_lookup);
-	}
-
-	// We need the individual table's order, for alive individuals, to match that of
-	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
-	// all other individuals in the table will be retained, at the end
-	std::vector<int> individual_map;
-	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		for (Individual *individual : subpop->parent_individuals_)
-		{
-			tsk_id_t node_id = individual->haplosomes_[0]->tsk_node_id_;
-			tsk_id_t ind_id = output_tables.nodes.individual[node_id];
-			
-			individual_map.emplace_back(ind_id);
-		}
-	}
-
-	ReorderIndividualTable(&output_tables, individual_map, true);
-	
-	// Now that the table is reordered, we can build the parents column of the individuals table
-	// This requires a new pedigree id to tskid lookup table, which we construct here.
-	{
-		INDIVIDUALS_HASH local_individuals_lookup;
-
-		BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
-		AddParentsColumnForOutput(&output_tables, &local_individuals_lookup);
-	}
-
-	// Rebase the times in the nodes to be in tskit-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
-	// BCH 4/4/2019: switched to using tree_seq_tick_ to avoid a parent/child timestamp conflict
-	// This makes sense; as far as tree-seq recording is concerned, tree_seq_tick_ is the time counter
-	slim_tick_t time_adjustment = community_.tree_seq_tick_;
-	
-	for (size_t node_index = 0; node_index < output_tables.nodes.num_rows; ++node_index)
-		output_tables.nodes.time[node_index] += time_adjustment;
-
-	for (size_t mut_index = 0; mut_index < output_tables.mutations.num_rows; ++mut_index)
-		output_tables.mutations.time[mut_index] += time_adjustment;
-	
-	// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
-	// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
-	WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model);
-
-	// Add top-level metadata and metadata schema
-	WriteTreeSequenceMetadata(&output_tables, p_metadata_dict);
-	
-	// Set the simulation time unit, in case that is useful to someone.  This is set up in initializeTreeSeq().
-	ret = tsk_table_collection_set_time_units(&output_tables, community_.treeseq_time_unit_.c_str(), community_.treeseq_time_unit_.length());
-	if (ret < 0) handle_error("tsk_table_collection_set_time_units", ret);
-	
-	// Write out the copied tables
-	{
-		// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
-		DerivedStatesToAscii(&output_tables);
-		
-		// In nucleotide-based models, put an ASCII representation of the reference sequence into the tables
-		if (nucleotide_based_)
-		{
-			std::size_t buflen = chromosome.AncestralSequence()->size();
-			char *buffer = (char *)malloc(buflen);
-			
-			if (!buffer)
-				EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
-			
-			chromosome.AncestralSequence()->WriteNucleotidesToBuffer(buffer);
-			
-			ret = tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
-			if (ret < 0) handle_error("tsk_reference_sequence_takeset_data", ret);
+			AddParentsColumnForOutput(&output_tables, &local_individuals_lookup);
 		}
 		
-		ret = tsk_table_collection_dump(&output_tables, path.c_str(), 0);
-		if (ret < 0) handle_error("tsk_table_collection_dump", ret);
+		// Rebase the times in the nodes to be in tskit-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
+		// BCH 4/4/2019: switched to using tree_seq_tick_ to avoid a parent/child timestamp conflict
+		// This makes sense; as far as tree-seq recording is concerned, tree_seq_tick_ is the time counter
+		slim_tick_t time_adjustment = community_.tree_seq_tick_;
+		
+		for (size_t node_index = 0; node_index < output_tables.nodes.num_rows; ++node_index)
+			output_tables.nodes.time[node_index] += time_adjustment;
+		
+		for (size_t mut_index = 0; mut_index < output_tables.mutations.num_rows; ++mut_index)
+			output_tables.mutations.time[mut_index] += time_adjustment;
+		
+		// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
+		// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
+		WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model);
+		
+		// Add top-level metadata and metadata schema
+		WriteTreeSequenceMetadata(&output_tables, p_metadata_dict, /* p_chromosome_index */ 0);
+		
+		// Set the simulation time unit, in case that is useful to someone.  This is set up in initializeTreeSeq().
+		ret = tsk_table_collection_set_time_units(&output_tables, community_.treeseq_time_unit_.c_str(), community_.treeseq_time_unit_.length());
+		if (ret < 0) handle_error("tsk_table_collection_set_time_units", ret);
+		
+		// Write out the copied tables
+		{
+			// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
+			DerivedStatesToAscii(&output_tables);
+			
+			// In nucleotide-based models, put an ASCII representation of the reference sequence into the tables
+			if (nucleotide_based_)
+			{
+				std::size_t buflen = chromosome->AncestralSequence()->size();
+				char *buffer = (char *)malloc(buflen);
+				
+				if (!buffer)
+					EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+				
+				chromosome->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+				
+				ret = tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
+				if (ret < 0) handle_error("tsk_reference_sequence_takeset_data", ret);
+			}
+			
+			// With one chromosome, we write out to resolved_user_path directly; with more than one, we
+			// created a directory at resolved_user_path above, and now we generate a generic filename
+			std::string output_path;
+			
+			if (chromosomes_.size() == 1)
+				output_path = resolved_user_path;
+			else
+				output_path = resolved_user_path + "/chromosome_" + chromosome->Symbol() + ".trees";
+			
+			ret = tsk_table_collection_dump(&output_tables, output_path.c_str(), 0);
+			if (ret < 0) handle_error("tsk_table_collection_dump", ret);
+		}
+		
+		// Done with our tables copy
+		ret = tsk_table_collection_free(&output_tables);
+		if (ret < 0) handle_error("tsk_table_collection_free", ret);
 	}
-	
-	// Done with our tables copy
-	ret = tsk_table_collection_free(&output_tables);
-	if (ret < 0) handle_error("tsk_table_collection_free", ret);
 }
 
 
@@ -5623,11 +6272,24 @@ void Species::FreeTreeSequence()
 	{
 		// Free any tree-sequence recording stuff that has been allocated; called when Species is getting deallocated,
 		// and also when we're wiping the slate clean with something like readFromPopulationFile().
-		tsk_table_collection_free(&tables_);
-		tables_initialized_ = false;
+		bool first = true;
+		for (TreeSeqInfo &tsinfo : treeseq_)
+		{
+			// the node, individual, and population tables are shared; avoid doing a double free
+			// (I don't think any of the shared tables should be copied at this point anyway,
+			// though; maybe there should be an assert here to that effect?)
+			if (!first)
+				DisconnectCopiedSharedTables(tsinfo.tables_);
+			
+			tsk_table_collection_free(&tsinfo.tables_);
+			first = false;
+		}
 		
-		remembered_haplosomes_.clear();
+		treeseq_.resize(0);
+		
+		remembered_nodes_.clear();
 		tabled_individuals_hash_.clear();
+		tables_initialized_ = false;
 	}
 }
 
@@ -5700,18 +6362,6 @@ void Species::MetadataForSubstitution(Substitution *p_substitution, MutationMeta
 	p_metadata->nucleotide_ = p_substitution->nucleotide_;
 }
 
-void Species::MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec *p_metadata)
-{
-	static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
-	
-	if (!p_haplosome || !p_metadata)
-		EIDOS_TERMINATION << "ERROR (Species::MetadataForHaplosome): (internal error) bad parameters to MetadataForHaplosome()." << EidosTerminate();
-	
-	p_metadata->haplosome_id_ = p_haplosome->haplosome_id_;
-	p_metadata->is_null_ = p_haplosome->IsNull();
-	p_metadata->type_ = p_haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM this should be index, not type; two "A" chromosomes are different and cannot mix; or really we can leave this out entirely, it is the same for every haplosome in a given tree sequence, and can be in the top-level metadata instead!
-}
-
 void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
 	static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
@@ -5731,55 +6381,15 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 		p_metadata->flags_ |= SLIM_INDIVIDUAL_METADATA_MIGRATED;
 }
 
-void Species::DumpMutationTable(void)
-{
-#if DEBUG
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (Species::DumpMutationTable): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
-#endif
-	
-	// Dump for debugging; should not be called in production code!
-	
-	tsk_mutation_table_t &mutations = tables_.mutations;
-	
-	for (tsk_size_t mutindex = 0; mutindex < mutations.num_rows; ++mutindex)
-	{
-		tsk_id_t node_id = mutations.node[mutindex];
-		tsk_id_t site_id = mutations.site[mutindex];
-		tsk_id_t parent_id = mutations.parent[mutindex];
-		char *derived_state = mutations.derived_state + mutations.derived_state_offset[mutindex];
-		tsk_size_t derived_state_length = mutations.derived_state_offset[mutindex + 1] - mutations.derived_state_offset[mutindex];
-		//char *metadata_state = mutations.metadata + mutations.metadata_offset[mutindex];
-		tsk_size_t metadata_length = mutations.metadata_offset[mutindex + 1] - mutations.metadata_offset[mutindex];
-		
-		/* DEBUG : output a mutation only if its derived state contains a certain mutation ID
-		{
-			bool contains_id = false;
-			
-			for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
-				if (((slim_mutationid_t *)derived_state)[mutid_index] == 72)
-					contains_id = true;
-			
-			if (!contains_id)
-				continue;
-		}
-		// */
-		
-		std::cout << "Mutation index " << mutindex << " has node_id " << node_id << ", site_id " << site_id << ", position " << tables_.sites.position[site_id] << ", parent id " << parent_id << ", derived state length " << derived_state_length << ", metadata length " << metadata_length << std::endl;
-		
-		std::cout << "   derived state: ";
-		for (size_t mutid_index = 0; mutid_index < derived_state_length / sizeof(slim_mutationid_t); ++mutid_index)
-			std::cout << ((slim_mutationid_t *)derived_state)[mutid_index] << " ";
-		std::cout << std::endl;
-	}
-}
-
 void Species::CheckTreeSeqIntegrity(void)
 {
 	// Here we call tskit to check the integrity of the tree-sequence tables themselves – not against
 	// SLiM's parallel data structures (done in CrosscheckTreeSeqIntegrity()), just on their own.
-	int ret = tsk_table_collection_check_integrity(&tables_, TSK_NO_CHECK_POPULATION_REFS);
-	if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
+	for (TreeSeqInfo &tsinfo : treeseq_)
+	{
+		int ret = tsk_table_collection_check_integrity(&tsinfo.tables_, TSK_NO_CHECK_POPULATION_REFS);
+		if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
+	}
 }
 
 void Species::CrosscheckTreeSeqIntegrity(void)
@@ -5806,242 +6416,209 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mismatch between SLiM substitutions and the treeseq substitution multimap." << EidosTerminate();
 	}
 	
-	// get all haplosomes from all subpopulations; we will cross-check them all simultaneously
-	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
-	static std::vector<Haplosome *> haplosomes;
-	haplosomes.clear();
-	
-	for (auto pop_iter : population_.subpops_)
+	// crosscheck haplosomes and mutations one chromosome at a time
+	for (Chromosome *chromosome : chromosomes_)
 	{
-		Subpopulation *subpop = pop_iter.second;
+		int chromosome_index = chromosome->Index();
+		int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+		tsk_table_collection_t &chromosome_tables = treeseq_[chromosome_index].tables_;
 		
-		for (Individual *ind : subpop->parent_individuals_)
+		// get all haplosomes from all subpopulations for the focal chromosome; we will cross-check them all simultaneously
+		static std::vector<Haplosome *> haplosomes;
+		haplosomes.clear();
+		
+		for (auto pop_iter : population_.subpops_)
 		{
-			Haplosome **ind_haplosomes = ind->haplosomes_;
+			Subpopulation *subpop = pop_iter.second;
 			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-				haplosomes.emplace_back(ind_haplosomes[haplosome_index]);
-		}
-	}
-	
-	// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
-	size_t haplosome_count = haplosomes.size();
-	
-	if (haplosome_count == 0)
-		return;
-	
-	// check for correspondence between SLiM's haplosomes and the tree_seq's nodes, including their metadata
-	// FIXME unimplemented
-	
-	// if we're recording mutations, we can check all of them
-	if (recording_mutations_)
-	{
-		// prepare to walk all the haplosomes by making HaplosomeWalker objects for them all
-		static std::vector<HaplosomeWalker> haplosome_walkers;
-		haplosome_walkers.clear();
-		haplosome_walkers.reserve(haplosome_count);
-		
-		for (Haplosome *haplosome : haplosomes)
-			haplosome_walkers.emplace_back(haplosome);
-		
-		// make a copy of the full table collection, so that we can sort/clean/simplify without modifying anything
-		int ret;
-		tsk_table_collection_t *tables_copy;
-		
-		tables_copy = (tsk_table_collection_t *)malloc(sizeof(tsk_table_collection_t));
-		if (!tables_copy)
-			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		ret = tsk_table_collection_copy(&tables_, tables_copy, 0);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_copy()", ret);
-		
-		// our tables copy needs to have a population table now, since this is required to build a tree sequence
-		WritePopulationTable(tables_copy);
-		
-		// simplify before making our tree_sequence object; the sort and deduplicate and compute parents are required for the crosscheck, whereas the simplify
-		// could perhaps be removed, which would cause the iteration over variants to visit a bunch of stuff unrelated to the current individuals.
-		// this code is adapted from Species::SimplifyTreeSequence(), but we don't need to update the TSK map table or the table position,
-		// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
-		if (tables_copy->nodes.num_rows != 0)
-		{
-			std::vector<tsk_id_t> samples;
-			
-			for (auto iter : population_.subpops_)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Subpopulation *subpop = iter.second;
+				Haplosome **ind_haplosomes = ind->haplosomes_;
 				
-				for (Individual *ind : subpop->parent_individuals_)
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+					haplosomes.emplace_back(ind_haplosomes[haplosome_index]);
+			}
+		}
+		
+		// if we have no haplosomes to check, we return; we could check that the tree sequences are also empty, but we don't
+		size_t haplosome_count = haplosomes.size();
+		
+		if (haplosome_count == 0)
+			continue;
+		
+		// check for correspondence between SLiM's haplosomes and the tree_seq's nodes, including their metadata
+		// FIXME unimplemented
+		
+		// if we're recording mutations, we can check all of them
+		if (recording_mutations_)
+		{
+			// prepare to walk all the haplosomes by making HaplosomeWalker objects for them all
+			static std::vector<HaplosomeWalker> haplosome_walkers;
+			haplosome_walkers.clear();
+			haplosome_walkers.reserve(haplosome_count);
+			
+			for (Haplosome *haplosome : haplosomes)
+				haplosome_walkers.emplace_back(haplosome);
+			
+			// Copy in the shared tables (node, individual, population) at this point, so the shared tables then get
+			// copied below; we will be modifying the tables, and don't want our modification to go into the original
+			// shared tables, which we are not allowed to change.
+			if (chromosome_index > 0)
+				CopySharedTablesIn(chromosome_tables);
+			
+			// Copy the table collection so that modifications we do for crosscheck don't affect the original tables.
+			// FIXME this could be stack-local rather than malloced; not making that change now to keep the diffs simpler
+			int ret;
+			tsk_table_collection_t *tables_copy;
+			
+			tables_copy = (tsk_table_collection_t *)malloc(sizeof(tsk_table_collection_t));
+			if (!tables_copy)
+				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			ret = tsk_table_collection_copy(&chromosome_tables, tables_copy, 0);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_copy()", ret);
+			
+			// We can unshare the shared tables in the original table collection immediately, zeroing them out.
+			if (chromosome_index > 0)
+				DisconnectCopiedSharedTables(chromosome_tables);
+			
+			// our tables copy needs to have a population table now, since this is required to build a tree sequence
+			// we could build this once and reuse it across all the calls to this method for different chromosomes,
+			// but I think's probably not worth the trouble; the overhead should be small.
+			WritePopulationTable(tables_copy);
+			
+			// simplify before making our tree_sequence object; the sort and deduplicate and compute parents are required for the crosscheck, whereas the simplify
+			// could perhaps be removed, which would cause the iteration over variants to visit a bunch of stuff unrelated to the current individuals.
+			// this code is adapted from Species::_SimplifyTreeSequence(), but we don't need to update the TSK map table or the table position,
+			// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
+			if (tables_copy->nodes.num_rows != 0)
+			{
+				std::vector<tsk_id_t> samples;
+				
+				for (auto iter : population_.subpops_)
 				{
-					Haplosome **ind_haplosomes = ind->haplosomes_;
+					Subpopulation *subpop = iter.second;
 					
-					for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-						samples.emplace_back(ind_haplosomes[haplosome_index]->tsk_node_id_);
+					for (Individual *ind : subpop->parent_individuals_)
+					{
+						Haplosome **ind_haplosomes = ind->haplosomes_;
+						
+						for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+							samples.emplace_back(ind->TskitNodeIdBase() + ind_haplosomes[haplosome_index]->chromosome_subposition_);
+					}
 				}
+				
+				tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
+#if DEBUG
+				flags = 0;
+#endif
+				ret = tsk_table_collection_sort(tables_copy, /* edge_start */ NULL, /* flags */ flags);
+				if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+				
+				ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
+				if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+				
+				// crosscheck is not going to be parallelized, so we use different flags for simplify here than in
+				// Species::_SimplifyTreeSequence(); in particular, we let it filter nodes and individuals for us
+				flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+				if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
+				ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
+				if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
+				
+				// must build indexes before compute mutation parents
+				ret = tsk_table_collection_build_index(tables_copy, 0);
+				if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
+				
+				ret = tsk_table_collection_compute_mutation_parents(tables_copy, 0);
+				if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
+				
 			}
 			
-			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
-#if DEBUG
-			flags = 0;
-#endif
-			ret = tsk_table_collection_sort(tables_copy, /* edge_start */ NULL, /* flags */ flags);
-			if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+			// allocate and set up the tree_sequence object that contains all the tree sequences
+			tsk_treeseq_t *ts;
 			
-			ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
-			if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+			ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
+			if (!ts)
+				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
-			flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
-			if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
-			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
-			if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
+			ret = tsk_treeseq_init(ts, tables_copy, TSK_TS_INIT_BUILD_INDEXES);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
 			
-		// must build indexes before compute mutation parents
-		ret = tsk_table_collection_build_index(tables_copy, 0);
-		if (ret < 0) handle_error("tsk_table_collection_build_index", ret);
-
-		ret = tsk_table_collection_compute_mutation_parents(tables_copy, 0);
-		if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
+			// allocate and set up the variant object we'll update as we walk along the sequence
+			tsk_variant_t variant;
 			
-		}
-		
-		// allocate and set up the tree_sequence object that contains all the tree sequences
-		tsk_treeseq_t *ts;
-		
-		ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
-		if (!ts)
-			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		ret = tsk_treeseq_init(ts, tables_copy, TSK_TS_INIT_BUILD_INDEXES);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
-		
-		// allocate and set up the variant object we'll update as we walk along the sequence
-		tsk_variant_t variant;
-
-		ret = tsk_variant_init(
-				&variant, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_init()", ret);
-		
-		// crosscheck by looping through variants
-		for (tsk_size_t i = 0; i < ts->tables->sites.num_rows; i++)
-		{
-			ret = tsk_variant_decode(&variant, (tsk_id_t)i, 0);
-			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
+			ret = tsk_variant_init(
+								   &variant, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_init()", ret);
 			
-			// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
-			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which haplosomes
-			// in the sample are using them.  We will then check that all the haplosomes that the variant claims to involve have
-			// the allele the variant attributes to them, and that no haplosomes contain any alleles at the position that are not
-			// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
-			// every extant haplosome's mutruns, advance those pointers a step at a time, and check that everything matches at every
-			// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
-			slim_position_t variant_pos_int = (slim_position_t)variant.site.position;		// should be no loss of precision, fingers crossed
-			
-			// Get all the substitutions involved at this site, which should be present in every sample
-			auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
-			static std::vector<slim_mutationid_t> fixed_mutids;
-			
-			fixed_mutids.clear();
-			for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
-				fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
-			
-			// Check all the haplosomes against the variant's belief about this site
-			for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
+			// crosscheck by looping through variants
+			for (tsk_size_t i = 0; i < ts->tables->sites.num_rows; i++)
 			{
-				HaplosomeWalker &haplosome_walker = haplosome_walkers[haplosome_index];
-				int32_t haplosome_variant = variant.genotypes[haplosome_index];
-				tsk_size_t haplosome_allele_length = variant.allele_lengths[haplosome_variant];
+				ret = tsk_variant_decode(&variant, (tsk_id_t)i, 0);
+				if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
 				
-				if (haplosome_allele_length % sizeof(slim_mutationid_t) != 0)
-					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-				haplosome_allele_length /= sizeof(slim_mutationid_t);
+				// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
+				// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which haplosomes
+				// in the sample are using them.  We will then check that all the haplosomes that the variant claims to involve have
+				// the allele the variant attributes to them, and that no haplosomes contain any alleles at the position that are not
+				// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
+				// every extant haplosome's mutruns, advance those pointers a step at a time, and check that everything matches at every
+				// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
+				slim_position_t variant_pos_int = (slim_position_t)variant.site.position;		// should be no loss of precision, fingers crossed
 				
-				//std::cout << "variant for haplosome: " << (int)haplosome_variant << " (allele length == " << haplosome_allele_length << ")" << std::endl;
+				// Get all the substitutions involved at this site, which should be present in every sample
+				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
+				static std::vector<slim_mutationid_t> fixed_mutids;
 				
-				// BCH 4/29/2018: null haplosomes shouldn't ever contain any mutations, including fixed mutations
-				if (haplosome_walker.WalkerHaplosome()->IsNull())
+				fixed_mutids.clear();
+				for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
+					fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
+				
+				// Check all the haplosomes against the variant's belief about this site
+				for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 				{
+					HaplosomeWalker &haplosome_walker = haplosome_walkers[haplosome_index];
+					int32_t haplosome_variant = variant.genotypes[haplosome_index];
+					tsk_size_t haplosome_allele_length = variant.allele_lengths[haplosome_variant];
+					
+					if (haplosome_allele_length % sizeof(slim_mutationid_t) != 0)
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+					haplosome_allele_length /= sizeof(slim_mutationid_t);
+					
+					//std::cout << "variant for haplosome: " << (int)haplosome_variant << " (allele length == " << haplosome_allele_length << ")" << std::endl;
+					
+					// BCH 4/29/2018: null haplosomes shouldn't ever contain any mutations, including fixed mutations
+					if (haplosome_walker.WalkerHaplosome()->IsNull())
+					{
+						if (haplosome_allele_length == 0)
+							continue;
+						
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null haplosome has non-zero treeseq allele length " << haplosome_allele_length << "." << EidosTerminate();
+					}
+					
+					// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a haplosome contains no
+					// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
+					// check that the next mutation in the haplosome in question exists and has the right mutation id; (3) if the variant's
+					// allele has more than one mutation id, we have to check them all against all the mutations at the given position
+					// in the haplosome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
+					// the variant is for a mutation that has fixed, it will not be present in the haplosome; we check for a substitution
+					// with the right ID.
+					slim_mutationid_t *haplosome_allele = (slim_mutationid_t *)variant.alleles[haplosome_variant];
+					
 					if (haplosome_allele_length == 0)
-						continue;
-					
-					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null haplosome has non-zero treeseq allele length " << haplosome_allele_length << "." << EidosTerminate();
-				}
-				
-				// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a haplosome contains no
-				// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
-				// check that the next mutation in the haplosome in question exists and has the right mutation id; (3) if the variant's
-				// allele has more than one mutation id, we have to check them all against all the mutations at the given position
-				// in the haplosome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
-				// the variant is for a mutation that has fixed, it will not be present in the haplosome; we check for a substitution
-				// with the right ID.
-				slim_mutationid_t *haplosome_allele = (slim_mutationid_t *)variant.alleles[haplosome_variant];
-				
-				if (haplosome_allele_length == 0)
-				{
-					// If there are no fixed mutations at this site, we can continue; haplosomes that have a mutation at this site will
-					// raise later when they realize they have been skipped over, so we don't have to check for that now...
-					if (fixed_mutids.size() == 0)
-						continue;
-					
-					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
-				}
-				else if (haplosome_allele_length == 1)
-				{
-					// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
-					slim_mutationid_t allele_mutid = *haplosome_allele;
-					Mutation *current_mut = haplosome_walker.CurrentMutation();
-					
-					if (current_mut)
 					{
-						slim_position_t current_mut_pos = current_mut->position_;
+						// If there are no fixed mutations at this site, we can continue; haplosomes that have a mutation at this site will
+						// raise later when they realize they have been skipped over, so we don't have to check for that now...
+						if (fixed_mutids.size() == 0)
+							continue;
 						
-						if (current_mut_pos < variant_pos_int)
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (single case)." << EidosTerminate();
-						if (current_mut->position_ > variant_pos_int)
-							current_mut = nullptr;	// not a candidate for this position, we'll see it again later
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
 					}
-					
-					if (!current_mut && (fixed_mutids.size() == 1))
+					else if (haplosome_allele_length == 1)
 					{
-						// We have one fixed mutation and no segregating mutation, versus one mutation in the tree; crosscheck
-						if (allele_mutid != fixed_mutids[0])
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a fixed mutation of id " << fixed_mutids[0] << EidosTerminate();
-						
-						continue;	// the match was against a fixed mutation, so don't go to the next mutation
-					}
-					else if (current_mut && (fixed_mutids.size() == 0))
-					{
-						// We have one segregating mutation and no fixed mutation, versus one mutation in the tree; crosscheck
-						if (allele_mutid != current_mut->mutation_id_)
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a segregating mutation of id " << current_mut->mutation_id_ << EidosTerminate();
-					}
-					else
-					{
-						// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
-					}
-					
-					haplosome_walker.NextMutation();
-					
-					// Check the next mutation to see if it's at this position as well, and is missing from the tree;
-					// this would get caught downstream, but for debugging it is clearer to catch it here
-					Mutation *next_mut = haplosome_walker.CurrentMutation();
-					
-					if (next_mut && next_mut->position_ == variant_pos_int)
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
-				}
-				else // (haplosome_allele_length > 1)
-				{
-					static std::vector<slim_mutationid_t> allele_mutids;
-					static std::vector<slim_mutationid_t> haplosome_mutids;
-					allele_mutids.clear();
-					haplosome_mutids.clear();
-					
-					// tabulate all tree mutations
-					for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
-						allele_mutids.emplace_back(haplosome_allele[mutid_index]);
-					
-					// tabulate segregating SLiM mutations
-					while (true)
-					{
+						// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
+						slim_mutationid_t allele_mutid = *haplosome_allele;
 						Mutation *current_mut = haplosome_walker.CurrentMutation();
 						
 						if (current_mut)
@@ -6049,65 +6626,121 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 							slim_position_t current_mut_pos = current_mut->position_;
 							
 							if (current_mut_pos < variant_pos_int)
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (bulk case)." << EidosTerminate();
-							else if (current_mut_pos == variant_pos_int)
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (single case)." << EidosTerminate();
+							if (current_mut->position_ > variant_pos_int)
+								current_mut = nullptr;	// not a candidate for this position, we'll see it again later
+						}
+						
+						if (!current_mut && (fixed_mutids.size() == 1))
+						{
+							// We have one fixed mutation and no segregating mutation, versus one mutation in the tree; crosscheck
+							if (allele_mutid != fixed_mutids[0])
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a fixed mutation of id " << fixed_mutids[0] << EidosTerminate();
+							
+							continue;	// the match was against a fixed mutation, so don't go to the next mutation
+						}
+						else if (current_mut && (fixed_mutids.size() == 0))
+						{
+							// We have one segregating mutation and no fixed mutation, versus one mutation in the tree; crosscheck
+							if (allele_mutid != current_mut->mutation_id_)
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a segregating mutation of id " << current_mut->mutation_id_ << EidosTerminate();
+						}
+						else
+						{
+							// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+						}
+						
+						haplosome_walker.NextMutation();
+						
+						// Check the next mutation to see if it's at this position as well, and is missing from the tree;
+						// this would get caught downstream, but for debugging it is clearer to catch it here
+						Mutation *next_mut = haplosome_walker.CurrentMutation();
+						
+						if (next_mut && next_mut->position_ == variant_pos_int)
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
+					}
+					else // (haplosome_allele_length > 1)
+					{
+						static std::vector<slim_mutationid_t> allele_mutids;
+						static std::vector<slim_mutationid_t> haplosome_mutids;
+						allele_mutids.clear();
+						haplosome_mutids.clear();
+						
+						// tabulate all tree mutations
+						for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
+							allele_mutids.emplace_back(haplosome_allele[mutid_index]);
+						
+						// tabulate segregating SLiM mutations
+						while (true)
+						{
+							Mutation *current_mut = haplosome_walker.CurrentMutation();
+							
+							if (current_mut)
 							{
-								haplosome_mutids.emplace_back(current_mut->mutation_id_);
-								haplosome_walker.NextMutation();
+								slim_position_t current_mut_pos = current_mut->position_;
+								
+								if (current_mut_pos < variant_pos_int)
+									EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome mutation was not represented in trees (bulk case)." << EidosTerminate();
+								else if (current_mut_pos == variant_pos_int)
+								{
+									haplosome_mutids.emplace_back(current_mut->mutation_id_);
+									haplosome_walker.NextMutation();
+								}
+								else break;
 							}
 							else break;
 						}
-						else break;
+						
+						// tabulate fixed SLiM mutations
+						haplosome_mutids.insert(haplosome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
+						
+						// crosscheck, sorting so there is no order-dependency
+						if (allele_mutids.size() != haplosome_mutids.size())
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (haplosome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+						
+						std::sort(allele_mutids.begin(), allele_mutids.end());
+						std::sort(haplosome_mutids.begin(), haplosome_mutids.end());
+						
+						for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
+							if (allele_mutids[mutid_index] != haplosome_mutids[mutid_index])
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele bulk mutid mismatch." << EidosTerminate();
 					}
-					
-					// tabulate fixed SLiM mutations
-					haplosome_mutids.insert(haplosome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
-					
-					// crosscheck, sorting so there is no order-dependency
-					if (allele_mutids.size() != haplosome_mutids.size())
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (haplosome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
-					
-					std::sort(allele_mutids.begin(), allele_mutids.end());
-					std::sort(haplosome_mutids.begin(), haplosome_mutids.end());
-					
-					for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)
-						if (allele_mutids[mutid_index] != haplosome_mutids[mutid_index])
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) haplosome/allele bulk mutid mismatch." << EidosTerminate();
 				}
 			}
+			
+			// we have finished all variants, so all the haplosomes we're tracking should be at their ends; any left-over mutations
+			// should have been in the trees but weren't, so this is an error
+			for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
+				if (!haplosome_walkers[haplosome_index].Finished())
+					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in haplosome beyond those in tree." << EidosTerminate();
+			
+			// free
+			ret = tsk_variant_free(&variant);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_free()", ret);
+			
+			ret = tsk_treeseq_free(ts);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_free()", ret);
+			free(ts);
+			
+			ret = tsk_table_collection_free(tables_copy);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_free()", ret);
+			free(tables_copy);
 		}
-		
-		// we have finished all variants, so all the haplosomes we're tracking should be at their ends; any left-over mutations
-		// should have been in the trees but weren't, so this is an error
-		for (size_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
-			if (!haplosome_walkers[haplosome_index].Finished())
-				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in haplosome beyond those in tree." << EidosTerminate();
-		
-		// free
-		ret = tsk_variant_free(&variant);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_free()", ret);
-		
-		ret = tsk_treeseq_free(ts);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_free()", ret);
-		free(ts);
-		
-		ret = tsk_table_collection_free(tables_copy);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_free()", ret);
-		free(tables_copy);
 	}
-
+	
 	// check that tabled_individuals_hash_ is the right size and has all the right entries
 	if (recording_tree_)
 	{
-		tsk_individual_table_t &individuals = tables_.individuals;
-
-		if (individuals.num_rows != tabled_individuals_hash_.size())
-			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) tabled_individuals_hash_ size (" << tabled_individuals_hash_.size() << ") does not match the individuals table size (" << individuals.num_rows << ")." << EidosTerminate();
-
-		for (tsk_size_t individual_index = 0; individual_index < individuals.num_rows; individual_index++)
+		tsk_individual_table_t &shared_individuals_table = treeseq_[0].tables_.individuals;
+		
+		if (shared_individuals_table.num_rows != tabled_individuals_hash_.size())
+			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) tabled_individuals_hash_ size (" << tabled_individuals_hash_.size() << ") does not match the individuals table size (" << shared_individuals_table.num_rows << ")." << EidosTerminate();
+		
+		for (tsk_size_t individual_index = 0; individual_index < shared_individuals_table.num_rows; individual_index++)
 		{
 			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
-			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(individuals.metadata + individuals.metadata_offset[tsk_individual]);
+			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(shared_individuals_table.metadata + shared_individuals_table.metadata_offset[tsk_individual]);
 			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 			auto lookup = tabled_individuals_hash_.find(pedigree_id);
 
@@ -6122,6 +6755,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	}
 }
 
+#if INTERIM_TREESEQ_DISABLE
 void Species::__RewriteOldIndividualsMetadata(int p_file_version)
 {
 	// rewrite individuals table metadata if it is in the old (pre-parent-pedigree-id) format; after this,
@@ -7813,8 +8447,9 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	__CheckNodePedigreeIDs(p_interpreter);
 	
 	// Set up the remembered haplosomes by looking though the list of nodes and their individuals
-	if (remembered_haplosomes_.size() != 0)
-		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): (internal error) remembered_haplosomes_ is not empty." << EidosTerminate();
+	// FIXME MULTI_TREESEQ this doubtless needs work; at a minimum, remembered_nodes_ no longer always has an even number of entries
+	if (remembered_nodes_.size() != 0)
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): (internal error) remembered_nodes_ is not empty." << EidosTerminate();
 	
 	for (tsk_id_t j = 0; (size_t) j < tables_.nodes.num_rows; j++)
 	{
@@ -7823,14 +8458,14 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		{
 			uint32_t flags = tables_.individuals.flags[ind];
 			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-				remembered_haplosomes_.emplace_back(j);
+				remembered_nodes_.emplace_back(j);
 		}
 	}
-	assert(remembered_haplosomes_.size() % 2 == 0);
+	assert(remembered_nodes_.size() % 2 == 0);
 
 	// Sort them to match the order of the individual table, so that they satisfy
 	// the invariants asserted in Species::AddIndividualsToTable(); see the comments there
-	std::sort(remembered_haplosomes_.begin(), remembered_haplosomes_.end(), [this](tsk_id_t l, tsk_id_t r) {
+	std::sort(remembered_nodes_.begin(), remembered_nodes_.end(), [this](tsk_id_t l, tsk_id_t r) {
 		tsk_id_t l_ind = tables_.nodes.individual[l];
 		tsk_id_t r_ind = tables_.nodes.individual[r];
 		if (l_ind != r_ind)
@@ -7980,45 +8615,58 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	
 	return metadata_tick;
 }
+#endif	// INTERIM_TREESEQ_DISABLE
 
-size_t Species::MemoryUsageForTables(tsk_table_collection_t &p_tables)
+size_t Species::MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables)
 {
-	tsk_table_collection_t &t = p_tables;
+	tsk_table_collection_t &t = p_tsinfo.tables_;
 	size_t usage = 0;
 	
-	usage += sizeof(tsk_individual_table_t);
-	
-	if (t.individuals.flags)
-		usage += t.individuals.max_rows * sizeof(uint32_t);
-	if (t.individuals.location_offset)
-		usage += t.individuals.max_rows * sizeof(tsk_size_t);
-	if (t.individuals.parents_offset)
-		usage += t.individuals.max_rows * sizeof(tsk_size_t);
-	if (t.individuals.metadata_offset)
-		usage += t.individuals.max_rows * sizeof(tsk_size_t);
-	
-	if (t.individuals.location)
-		usage += t.individuals.max_location_length * sizeof(double);
-	if (t.individuals.parents)
-		usage += t.individuals.max_parents_length * sizeof(tsk_id_t);
-	if (t.individuals.metadata)
-		usage += t.individuals.max_metadata_length * sizeof(char);
-	
-	usage += sizeof(tsk_node_table_t);
-	
-	if (t.nodes.flags)
-		usage += t.nodes.max_rows * sizeof(uint32_t);
-	if (t.nodes.time)
-		usage += t.nodes.max_rows * sizeof(double);
-	if (t.nodes.population)
-		usage += t.nodes.max_rows * sizeof(tsk_id_t);
-	if (t.nodes.individual)
-		usage += t.nodes.max_rows * sizeof(tsk_id_t);
-	if (t.nodes.metadata_offset)
-		usage += t.nodes.max_rows * sizeof(tsk_size_t);
-	
-	if (t.nodes.metadata)
-		usage += t.nodes.max_metadata_length * sizeof(char);
+	// the individuals table, nodes table, and population table are shared
+	if (p_count_shared_tables)
+	{
+		usage += sizeof(tsk_individual_table_t);
+		
+		if (t.individuals.flags)
+			usage += t.individuals.max_rows * sizeof(uint32_t);
+		if (t.individuals.location_offset)
+			usage += t.individuals.max_rows * sizeof(tsk_size_t);
+		if (t.individuals.parents_offset)
+			usage += t.individuals.max_rows * sizeof(tsk_size_t);
+		if (t.individuals.metadata_offset)
+			usage += t.individuals.max_rows * sizeof(tsk_size_t);
+		
+		if (t.individuals.location)
+			usage += t.individuals.max_location_length * sizeof(double);
+		if (t.individuals.parents)
+			usage += t.individuals.max_parents_length * sizeof(tsk_id_t);
+		if (t.individuals.metadata)
+			usage += t.individuals.max_metadata_length * sizeof(char);
+		
+		usage += sizeof(tsk_node_table_t);
+		
+		if (t.nodes.flags)
+			usage += t.nodes.max_rows * sizeof(uint32_t);
+		if (t.nodes.time)
+			usage += t.nodes.max_rows * sizeof(double);
+		if (t.nodes.population)
+			usage += t.nodes.max_rows * sizeof(tsk_id_t);
+		if (t.nodes.individual)
+			usage += t.nodes.max_rows * sizeof(tsk_id_t);
+		if (t.nodes.metadata_offset)
+			usage += t.nodes.max_rows * sizeof(tsk_size_t);
+		
+		if (t.nodes.metadata)
+			usage += t.nodes.max_metadata_length * sizeof(char);
+		
+		usage += sizeof(tsk_population_table_t);
+		
+		if (t.populations.metadata_offset)
+			usage += t.populations.max_rows * sizeof(tsk_size_t);
+		
+		if (t.populations.metadata)
+			usage += t.populations.max_metadata_length * sizeof(char);
+	}
 	
 	usage += sizeof(tsk_edge_table_t);
 	
@@ -8078,14 +8726,6 @@ size_t Species::MemoryUsageForTables(tsk_table_collection_t &p_tables)
 	if (t.mutations.metadata)
 		usage += t.mutations.max_metadata_length * sizeof(char);
 	
-	usage += sizeof(tsk_population_table_t);
-	
-	if (t.populations.metadata_offset)
-		usage += t.populations.max_rows * sizeof(tsk_size_t);
-	
-	if (t.populations.metadata)
-		usage += t.populations.max_metadata_length * sizeof(char);
-	
 	usage += sizeof(tsk_provenance_table_t);
 	
 	if (t.provenances.timestamp_offset)
@@ -8098,7 +8738,7 @@ size_t Species::MemoryUsageForTables(tsk_table_collection_t &p_tables)
 	if (t.provenances.record)
 		usage += t.provenances.max_record_length * sizeof(char);
 	
-	usage += remembered_haplosomes_.size() * sizeof(tsk_id_t);
+	usage += remembered_nodes_.size() * sizeof(tsk_id_t);
 	
 	return usage;
 }
