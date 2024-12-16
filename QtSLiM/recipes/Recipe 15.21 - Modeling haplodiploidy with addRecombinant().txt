@@ -14,8 +14,8 @@ initialize() {
 	initializeSex("A");
 }
 reproduction(NULL, "F") {
-	gen1 = individual.haplosomesFromParent1;
-	gen2 = individual.haplosomesFromParent2;
+	gen1 = individual.haploidGenome1;
+	gen2 = individual.haploidGenome2;
 	breaks = sim.chromosomes.drawBreakpoints(individual);
 	
 	// decide whether we're generating a haploid male or a diploid female
@@ -33,7 +33,7 @@ reproduction(NULL, "F") {
 		//		- one haplosome comes from recombination of the female's haplosomes
 		//		- the other haplosome comes from the mate (a haploid male)
 		mate = subpop.sampleIndividuals(1, sex="M");
-		subpop.addRecombinant(gen1, gen2, breaks, mate.haplosomesFromParent1, NULL, NULL, "F",
+		subpop.addRecombinant(gen1, gen2, breaks, mate.haploidGenome1, NULL, NULL, "F",
 			randomizeStrands=T);
 	}
 }

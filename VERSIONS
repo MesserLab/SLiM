@@ -22,8 +22,8 @@ development head (in the master branch):
 		x	Individual class:
 		x		property genomes -> haplosomes
 		x		property genomesNonNull -> haplosomesNonNull
-		x		property genome1 -> haplosomesFromParent1
-		x		property genome2 -> haplosomesFromParent2
+		x		property genome1 -> haploidGenome1
+		x		property genome2 -> haploidGenome2
 		x	Species class:
 		x		property chromosome -> chromosomes
 		x		property chromosomeType -> removed in favor of `chromosomes.type`
@@ -51,8 +51,6 @@ development head (in the master branch):
 		x		method: (object<Chromosome>)chromosomesWithIDs(integer ids)
 		x		method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
 		x	Individual class:
-		x		property haplosomesFromParent1 => object<Haplosome>
-		x		property haplosomesFromParent2 => object<Haplosome>
 		x		method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
 		x	Mutation class:
 		x		property: chromosome => (object<Chromosome>$)

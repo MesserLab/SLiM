@@ -13,7 +13,7 @@ initialize() {
 }
 late() {
 	// remove any new mutations added to the disabled diploid haplosomes
-	sim.subpopulations.individuals.haplosomesFromParent2.removeMutations();
+	sim.subpopulations.individuals.haploidGenome2.removeMutations();
 	
 	// remove mutations in the haploid haplosomes that have fixed
 	muts = sim.mutationsOfType(m1);

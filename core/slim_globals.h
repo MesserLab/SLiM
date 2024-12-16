@@ -853,10 +853,10 @@ extern const std::string &gStr_fitnessScaling;
 extern const std::string &gStr_firstMaleIndex;
 extern const std::string &gStr_haplosomes;
 extern const std::string &gStr_haplosomesNonNull;
-extern const std::string &gStr_haplosomesFromParent1;
-extern const std::string &gStr_haplosomesFromParent2;
-extern const std::string &gStr_haplosomesFromParent1NonNull;
-extern const std::string &gStr_haplosomesFromParent2NonNull;
+extern const std::string &gStr_haploidGenome1;
+extern const std::string &gStr_haploidGenome2;
+extern const std::string &gStr_haploidGenome1NonNull;
+extern const std::string &gStr_haploidGenome2NonNull;
 extern const std::string &gStr_sex;
 extern const std::string &gStr_individuals;
 extern const std::string &gStr_subpopulation;
@@ -1293,10 +1293,10 @@ enum _SLiMGlobalStringID : int {
 	gID_firstMaleIndex,
 	gID_haplosomes,
 	gID_haplosomesNonNull,
-	gID_haplosomesFromParent1,
-	gID_haplosomesFromParent2,
-	gID_haplosomesFromParent1NonNull,
-	gID_haplosomesFromParent2NonNull,
+	gID_haploidGenome1,
+	gID_haploidGenome2,
+	gID_haploidGenome1NonNull,
+	gID_haploidGenome2NonNull,
 	gID_sex,
 	gID_individuals,
 	gID_subpopulation,

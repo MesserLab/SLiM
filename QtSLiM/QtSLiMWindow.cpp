@@ -1963,11 +1963,11 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     if (terminationMessage.contains("property genome1 is not defined for object element type Individual") &&
             (selectionString == "genome1"))
-        return offerAndExecuteAutofix(selection, "haplosomesFromParent1", "The `genome1` property of Individual has been renamed to `haplosomesFromParent1`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "haploidGenome1", "The `genome1` property of Individual has been renamed to `haploidGenome1`.", terminationMessage);
 
     if (terminationMessage.contains("property genome2 is not defined for object element type Individual") &&
             (selectionString == "genome2"))
-        return offerAndExecuteAutofix(selection, "haplosomesFromParent2", "The `genome2` property of Individual has been renamed to `haplosomesFromParent2`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "haploidGenome2", "The `genome2` property of Individual has been renamed to `haploidGenome2`.", terminationMessage);
     
     if (terminationMessage.contains("property genomes is not defined for object element type Subpopulation") &&
             (selectionString == "genomes"))
@@ -1998,7 +1998,7 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
 
     if (terminationMessage.contains("undefined identifier haplosome1") &&
             (selectionString == "haplosome1"))
-        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent1", "The `haplosome1` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent1`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "individual.haploidGenome1", "The `haplosome1` pseudo-parameter has been removed; it is now accessed as `individual.haploidGenome1`.", terminationMessage);
 
     if (terminationMessage.contains("undefined identifier genome2") &&
             (selectionString == "genome2"))
@@ -2006,7 +2006,7 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
 
     if (terminationMessage.contains("undefined identifier haplosome2") &&
             (selectionString == "haplosome2"))
-        return offerAndExecuteAutofix(selection, "individual.haplosomesFromParent2", "The `haplosome2` pseudo-parameter has been removed; it is now accessed as `individual.haplosomesFromParent2`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "individual.haploidGenome2", "The `haplosome2` pseudo-parameter has been removed; it is now accessed as `individual.haploidGenome2`.", terminationMessage);
     
     return false;
 }
