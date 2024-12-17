@@ -29,21 +29,21 @@
         <file>recipes/Recipe 5.4 - The Gravel et al. (2011) model of human evolution II.txt</file>
         <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance I.txt</file>
         <file>recipes/Recipe 5.5 - Rescaling population sizes to improve simulation performance II.txt</file>
-        <file>recipes/Recipe 6.1.1 - Recombination, Crossing over (Making a random recombination map).txt</file>
-        <file>recipes/Recipe 6.1.2 - Recombination, Crossing over (Reading a recombination map from a file).txt</file>
-        <file>recipes/Recipe 6.1.3 - Recombination, Gene conversion.txt</file>
-        <file>recipes/Recipe 6.1.4 - Recombination, Multiple chromosomes.txt</file>
-        <file>recipes/Recipe 6.2.1 - Separate sexes, Enabling separate sexes.txt</file>
-        <file>recipes/Recipe 6.2.2 - Separate sexes, Sex ratios I.txt</file>
-        <file>recipes/Recipe 6.2.2 - Separate sexes, Sex ratios II.txt</file>
-        <file>recipes/Recipe 6.2.3 - Separate sexes, Modeling sex-chromosome evolution.txt</file>
-        <file>recipes/Recipe 6.3.1 - Selfing and cloning, Selfing in hermaphroditic populations.txt</file>
-        <file>recipes/Recipe 6.3.2 - Selfing and cloning, Cloning I.txt</file>
-        <file>recipes/Recipe 6.3.2 - Selfing and cloning, Cloning II.txt</file>
-        <file>recipes/Recipe 7.1 - Genomic structure, Part I (Mutation types and fitness effects).txt</file>
-        <file>recipes/Recipe 7.2 - Genomic structure, Part II (Genomic element types).txt</file>
-        <file>recipes/Recipe 7.3 - Genomic structure, Part III (Chromosome organization).txt</file>
-        <file>recipes/Recipe 7.4 - Genomic structure, Part IV (Custom display colors in SLiMgui).txt</file>
+        <file>recipes/Recipe 6.1 - Genomic structure, Part I (Mutation types and fitness effects).txt</file>
+        <file>recipes/Recipe 6.2 - Genomic structure, Part II (Genomic element types).txt</file>
+        <file>recipes/Recipe 6.3 - Genomic structure, Part III (Chromosome organization).txt</file>
+        <file>recipes/Recipe 6.4 - Genomic structure, Part IV (Custom display colors in SLiMgui).txt</file>
+        <file>recipes/Recipe 8.1.1 - Recombination, Crossing over (Making a random recombination map).txt</file>
+        <file>recipes/Recipe 8.1.2 - Recombination, Crossing over (Reading a recombination map from a file).txt</file>
+        <file>recipes/Recipe 8.1.3 - Recombination, Gene conversion.txt</file>
+        <file>recipes/Recipe 8.1.4 - Recombination, Multiple chromosomes.txt</file>
+        <file>recipes/Recipe 8.2.1 - Separate sexes, Enabling separate sexes.txt</file>
+        <file>recipes/Recipe 8.2.2 - Separate sexes, Sex ratios I.txt</file>
+        <file>recipes/Recipe 8.2.2 - Separate sexes, Sex ratios II.txt</file>
+        <file>recipes/Recipe 8.2.3 - Separate sexes, Modeling sex-chromosome evolution.txt</file>
+        <file>recipes/Recipe 8.3.1 - Selfing and cloning, Selfing in hermaphroditic populations.txt</file>
+        <file>recipes/Recipe 8.3.2 - Selfing and cloning, Cloning I.txt</file>
+        <file>recipes/Recipe 8.3.2 - Selfing and cloning, Cloning II.txt</file>
         <file>recipes/Recipe 9.1 - Introducing adaptive mutations.txt</file>
         <file>recipes/Recipe 9.2 - Making sweeps conditional on fixation.txt</file>
         <file>recipes/Recipe 9.3 - Making sweeps conditional on establishment.txt</file>
