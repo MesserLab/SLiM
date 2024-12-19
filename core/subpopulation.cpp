@@ -1334,6 +1334,7 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 		{
 			int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
 			int32_t nonneutral_regime = species_.last_nonneutral_regime_;
+#error 	FIXME this *2 is now based on an incorrect assumption of simple diploidy
 			slim_popsize_t haplosomeCount = parent_subpop_size_ * 2;
 			
 			for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosomeCount; haplosome_index++)

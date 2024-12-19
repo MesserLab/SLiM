@@ -7449,7 +7449,7 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 					}
 				}
 				
-				tallied_haplosome_count += (subpop->parent_individuals_.size() * 2);
+				tallied_haplosome_count += (subpop->parent_individuals_.size() * (last_haplosome_index - first_haplosome_index + 1));
 			}
 		}
 	}
@@ -7624,7 +7624,7 @@ void Population::TallyMutationRunReferencesForSubpopsForChromosome(std::vector<S
 					}
 				}
 				
-				tallied_haplosome_count += subpop->parent_individuals_.size() * 2;
+				tallied_haplosome_count += subpop->parent_individuals_.size() * (last_haplosome_index - first_haplosome_index + 1);
 			}
 		}
 	}
