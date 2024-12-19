@@ -24,5 +24,5 @@ initialize() {
 		initializeGenomicElement(g1, 0, length-1);
 	}
 }
-1 early() { sim.addSubpop("p1", 500); }
-10000 early() { sim.simulationFinished(); }
+1 early() { sim.addSubpop("p1", 100); }
+1000 early() { sim.simulationFinished(); }

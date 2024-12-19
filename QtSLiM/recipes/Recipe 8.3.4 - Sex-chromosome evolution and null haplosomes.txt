@@ -1,17 +1,20 @@
 // Keywords: multiple chromosomes
 
 initialize() {
+	defineConstant("X_LEN", 156040895);
+	defineConstant("Y_LEN", 57227415);
+
 	initializeSex();
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
 	
-	initializeChromosome(1, 0, 156040895, type="X", symbol="X");
-	initializeGenomicElement(g1, 0, 156040895-1);
+	initializeChromosome(1, 0, X_LEN, type="X", symbol="X");
+	initializeGenomicElement(g1, 0, X_LEN-1);
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 	
-	initializeChromosome(2, 0, 57227415, type="Y", symbol="Y");
-	initializeGenomicElement(g1, 0, 57227415-1);
+	initializeChromosome(2, 0, Y_LEN, type="Y", symbol="Y");
+	initializeGenomicElement(g1, 0, Y_LEN-1);
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(0.0);
 }
