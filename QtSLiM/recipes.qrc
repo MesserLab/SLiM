@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>recipes/_README.txt</file>
         <file>recipes/Recipe 4.1 - A basic neutral simulation.txt</file>
+        <file>recipes/Recipe 4.1.10 - Using symbolic constants for model parameters.txt</file>
         <file>recipes/Recipe 4.2.1 - Basic output, Entire population.txt</file>
         <file>recipes/Recipe 4.2.2 - Basic output, Random population sample.txt</file>
         <file>recipes/Recipe 4.2.3 - Basic output, Sampling individuals rather than haplosomes.txt</file>
@@ -33,17 +34,21 @@
         <file>recipes/Recipe 6.2 - Genomic structure, Part II (Genomic element types).txt</file>
         <file>recipes/Recipe 6.3 - Genomic structure, Part III (Chromosome organization).txt</file>
         <file>recipes/Recipe 6.4 - Genomic structure, Part IV (Custom display colors in SLiMgui).txt</file>
-        <file>recipes/Recipe 8.1.1 - Recombination, Crossing over (Making a random recombination map).txt</file>
-        <file>recipes/Recipe 8.1.2 - Recombination, Crossing over (Reading a recombination map from a file).txt</file>
-        <file>recipes/Recipe 8.1.3 - Recombination, Gene conversion.txt</file>
-        <file>recipes/Recipe 8.1.4 - Recombination, Multiple chromosomes.txt</file>
-        <file>recipes/Recipe 8.2.1 - Separate sexes, Enabling separate sexes.txt</file>
-        <file>recipes/Recipe 8.2.2 - Separate sexes, Sex ratios I.txt</file>
-        <file>recipes/Recipe 8.2.2 - Separate sexes, Sex ratios II.txt</file>
-        <file>recipes/Recipe 8.2.3 - Separate sexes, Modeling sex-chromosome evolution.txt</file>
-        <file>recipes/Recipe 8.3.1 - Selfing and cloning, Selfing in hermaphroditic populations.txt</file>
-        <file>recipes/Recipe 8.3.2 - Selfing and cloning, Cloning I.txt</file>
-        <file>recipes/Recipe 8.3.2 - Selfing and cloning, Cloning II.txt</file>
+        <file>recipes/Recipe 8.1.1 - Reproduction, Enabling separate sexes.txt</file>
+        <file>recipes/Recipe 8.1.2 - Reproduction, Sex ratios I.txt</file>
+        <file>recipes/Recipe 8.1.2 - Reproduction, Sex ratios II.txt</file>
+        <file>recipes/Recipe 8.1.3 - Reproduction, Selfing in hermaphroditic populations.txt</file>
+        <file>recipes/Recipe 8.1.4 - Reproduction, Cloning I.txt</file>
+        <file>recipes/Recipe 8.1.4 - Reproduction, Cloning II.txt</file>
+        <file>recipes/Recipe 8.2.1 - Recombination, Making a random recombination map.txt</file>
+        <file>recipes/Recipe 8.2.2 - Recombination, Reading a recombination map from a file.txt</file>
+        <file>recipes/Recipe 8.2.3 - Recombination, Unlinked loci.txt</file>
+        <file>recipes/Recipe 8.2.4 - Recombination, Gene conversion.txt</file>
+        <file>recipes/Recipe 8.3.1 - Multiple diploid autosomes.txt</file>
+        <file>recipes/Recipe 8.3.2 - Clonal haploids and chromosome types.txt</file>
+        <file>recipes/Recipe 8.3.3 - Haploids with recombination.txt</file>
+        <file>recipes/Recipe 8.3.4 - Sex-chromosome evolution and null haplosomes.txt</file>
+        <file>recipes/Recipe 8.3.5 - Modeling the full human genome.txt</file>
         <file>recipes/Recipe 9.1 - Introducing adaptive mutations.txt</file>
         <file>recipes/Recipe 9.2 - Making sweeps conditional on fixation.txt</file>
         <file>recipes/Recipe 9.3 - Making sweeps conditional on establishment.txt</file>
@@ -203,6 +208,5 @@
         <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
         <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
         <file>recipes/Recipe 19.8 - Within-host reproduction in a host-pathogen model.txt</file>
-        <file>recipes/Recipe 4.1.10 - Using symbolic constants for model parameters.txt</file>
     </qresource>
 </RCC>

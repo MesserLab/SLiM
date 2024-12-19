@@ -1,0 +1,28 @@
+// Keywords: multiple chromosomes
+
+initialize() {
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// length data: https://www.ncbi.nlm.nih.gov/grc/human/data,
+	// Human Genome Assembly GRCh38.p14, 2022-02-03
+	ids = 1:24;
+	symbols = c(1:22, "X", "Y");
+	lengths = c(248956422, 242193529, 198295559, 190214555, 181538259,
+					170805979, 159345973, 145138636, 138394717, 133797422,
+					135086622, 133275309, 114364328, 107043718, 101991189,
+					90338345, 83257441, 80373285, 58617616, 64444167,
+					46709983, 50818468, 156040895, 57227415);
+	types = c(rep("A", 22), "X", "Y");
+	
+	for (id in ids, symbol in symbols, length in lengths, type in types)
+	{
+		initializeChromosome(id, 0, length, type, symbol);
+		initializeMutationRate(1e-7);
+		initializeRecombinationRate(1e-8);
+		initializeGenomicElement(g1, 0, length-1);
+	}
+}
+1 early() { sim.addSubpop("p1", 500); }
+10000 early() { sim.simulationFinished(); }
