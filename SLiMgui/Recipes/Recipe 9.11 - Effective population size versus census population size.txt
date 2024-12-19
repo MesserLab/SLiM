@@ -32,7 +32,7 @@ initialize() {
 	p1.setValue("previous_N", p1.individualCount);
 }
 10000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, integerDiv(L, 2));
 }
 20000 late() {
@@ -49,7 +49,7 @@ function (float)mutTypeFrequency(o<MutationType>$ mutType)
 
 function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop)
 {
-	pi = calcHeterozygosity(p1.genomes);
+	pi = calcHeterozygosity(p1.haplosomes);
 	return pi / (4 * MU);
 }
 

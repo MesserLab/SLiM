@@ -1484,7 +1484,7 @@
 	// Run the options sheet for the haplotype plot.  If OK is pressed there, -createHaplotypePlot does the real work.
 	[self runHaplotypePlotOptionsSheet];
 	
-	// The sequence of events involved in this is actually quite complicated, because the genome clustering work happens in
+	// The sequence of events involved in this is actually quite complicated, because the haplosome clustering work happens in
 	// a background thread, which gets launched halfway through the setup of the plot window, and there is a progress panel
 	// that is run in SLiMWindowController's window as a sheet even though the clustering is done in SLiMHaplotypeManager,
 	// and there is a configuration sheet that runs first, and so forth.  The sequence of events involved here is:
@@ -1497,8 +1497,8 @@
 	//		- configureForDisplayWithSlimWindowController: is called on the SLiMHaplotypeGraphView
 	//			* the SLiMHaplotypeManager is created by the SLiMHaplotypeGraphView
 	//			- initWithClusteringMethod:... is called on the SLiMHaplotypeManager
-	//				* the first stage of the haplotype analysis is done; genome references are kept
-	//				- runHaplotypePlotProgressSheetWithGenomeCount: is called to start the progress sheet
+	//				* the first stage of the haplotype analysis is done; haplosome references are kept
+	//				- runHaplotypePlotProgressSheetWithHaplosomeCount: is called to start the progress sheet
 	//					* the progress sheet nib is loaded
 	//					* haplotypeProgressTaskCancelled is set to NO to indicate we are not cancelled
 	//					* the progress sheet starts running; it will run until haplotypeProgressSheetOK: below
@@ -1515,7 +1515,7 @@
 	//					* the sheet completion handler spins until the background task sees haplotypeProgressTaskCancelled and drops out
 	//					* the progress sheet is released and goes away
 	//		* OTHERWISE (NO CANCELLATION):
-	//			* the genomes are clustered
+	//			* the haplosomes are clustered
 	//			* the display list is created
 	//		* IN EITHER CASE:
 	//			- haplotypeProgressTaskFinished is called on SLiMWindowController
@@ -1656,10 +1656,10 @@
 		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 3 – generation swap\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 4 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
 		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
@@ -2059,78 +2059,92 @@
 			continue;
 		}
 		
-		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
-		
-		for (int power = 0; power < 20; ++power)
-			power_tallies[power] = 0;
-		
-		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
-			int power = (int)round(log2(count));
+			int64_t regime_tallies[3];
+			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 			
-			power_tallies[power]++;
-		}
-		
-		for (int power = 0; power < 20; ++power)
-		{
-			if (power_tallies[power] > 0)
+			for (int regime = 0; regime < 3; ++regime)
+				regime_tallies[regime] = 0;
+			
+			for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
+				if ((regime >= 1) && (regime <= 3))
+					regime_tallies[regime - 1]++;
+				else
+					regime_tallies_total--;
+			
+			for (int regime = 0; regime < 3; ++regime)
 			{
-				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
 			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
 		}
-		
-		
-		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
-		
-		for (int regime = 0; regime < 3; ++regime)
-			regime_tallies[regime] = 0;
-		
-		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-			if ((regime >= 1) && (regime <= 3))
-				regime_tallies[regime - 1]++;
-			else
-				regime_tallies_total--;
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		for (int regime = 0; regime < 3; ++regime)
-		{
-			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
-		}
-		
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
 		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation runs shared among genomes" attributes:optima13_d];
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"Chromosome " attributes:optima13i_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_chromosome->Symbol().c_str()] attributes:optima13i_d];
+			[content eidosAppendString:@":\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			{
+				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+				int64_t power_tallies_total = (int)focal_chromosome->profile_mutcount_history_.size();
+				
+				for (int power = 0; power < 20; ++power)
+					power_tallies[power] = 0;
+				
+				for (int32_t count : focal_chromosome->profile_mutcount_history_)
+				{
+					int power = (int)round(log2(count));
+					
+					power_tallies[power]++;
+				}
+				
+				for (int power = 0; power < 20; ++power)
+				{
+					if (power_tallies[power] > 0)
+					{
+						[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
+						[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per haplosome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+					}
+				}
+			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutation_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / (double)focal_chromosome->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
+			
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutrun_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_unique_mutrun_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_chromosome->profile_mutrun_nonneutral_recache_total_ / (double)focal_chromosome->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / (double)focal_chromosome->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation runs shared among haplosomes\n" attributes:optima13_d];
+		}
 	}
 #endif
 	
@@ -2147,7 +2161,6 @@
 		double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
 		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
-		[content eidosAppendString:@"\n" attributes:menlo11_d];
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"SLiM memory usage (average / final tick)\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -2183,29 +2196,29 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.communityObjects total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : Community object\n" attributes:optima13_d];
 		
-		// Genome
+		// Haplosome
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, (long long int)mem_last_S.genomeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Haplosome objects (%0.2f / %lld)\n", mem_tot_S.haplosomeObjects_count / ddiv, (long long int)mem_last_S.haplosomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeExternalBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeExternalBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeExternalBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : external MutationRun* buffers\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// GenomicElement
@@ -3508,7 +3521,7 @@
 			[graphView configureForDisplayWithSlimWindowController:self];
 			
 			// The call above will create a background thread for clustering and return quickly.  As a side
-			// effect, however, it will call runHaplotypePlotProgressSheetWithGenomeCount:
+			// effect, however, it will call runHaplotypePlotProgressSheetWithHaplosomeCount:
 			// which will show the plot window once it is ready, using newHaplotypeGraphView.
 			newHaplotypeGraphView = [graphView retain];
 			
@@ -3527,7 +3540,7 @@
 	graphWindow = nil;
 }
 
-- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count
+- (void)runHaplotypePlotProgressSheetWithHaplosomeCount:(int)haplosome_count
 {
 	// Nil out our outlets for a bit of safety, and then load our sheet nib
 	_haplotypeProgressSheet = nil;
@@ -3551,9 +3564,9 @@
 		haplotypeProgressTaskClustering_Value = 0;
 		haplotypeProgressTaskOptimization_Value = 0;
 		
-		[_haplotypeProgressDistances setMaxValue:genome_count];
-		[_haplotypeProgressClustering setMaxValue:genome_count];
-		[_haplotypeProgressOptimization setMaxValue:genome_count];
+		[_haplotypeProgressDistances setMaxValue:haplosome_count];
+		[_haplotypeProgressClustering setMaxValue:haplosome_count];
+		[_haplotypeProgressOptimization setMaxValue:haplosome_count];
 		
 		[_haplotypeProgressDistances setDoubleValue:0.0];
 		[_haplotypeProgressClustering setDoubleValue:0.0];
@@ -4245,8 +4258,8 @@
 									break;
 								case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome1,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome2,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
@@ -4254,7 +4267,7 @@
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_element,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_GenomicElement_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
@@ -4655,7 +4668,8 @@
 			}
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
-			population.TallyMutationReferencesAcrossPopulation(true);
+			population.InvalidateMutationReferencesCache();	// force a retally
+			population.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 			
 			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
 			// selection changes should not happen often, so we can just always update, I think.

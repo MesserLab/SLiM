@@ -21,7 +21,7 @@
 #include "species.h"
 
 #include "community.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
@@ -57,7 +57,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	EidosValue *sequence_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if (num_ancseq_declarations_ > 0)
+	if (num_ancseq_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() may be called only once." << EidosTerminate();
 	if (!nucleotide_based_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() may be only be called in nucleotide-based models." << EidosTerminate();
@@ -68,12 +68,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	if (sequence_value_count == 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): initializeAncestralNucleotides() requires a sequence of length >= 1." << EidosTerminate();
 	
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
 	if (sequence_value_type == EidosValueType::kValueInt)
 	{
 		// A vector of integers has been provided, where ACGT == 0123
 		const int64_t *int_data = sequence_value->IntData();
 		
-		chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
+		chromosome->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, int_data);
 	}
 	else if (sequence_value_type == EidosValueType::kValueString)
 	{
@@ -82,7 +88,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 			// A vector of characters has been provided, which must all be "A" / "C" / "G" / "T"
 			const std::string *string_data = sequence_value->StringData();
 			
-			chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, string_data);
+			chromosome->ancestral_seq_buffer_ = new NucleotideArray(sequence_value_count, string_data);
 		}
 		else	// sequence_value_count == 1
 		{
@@ -101,7 +107,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 			gEidosTerminateThrows = true;
 			
 			try {
-				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
+				chromosome->ancestral_seq_buffer_ = new NucleotideArray(sequence_string.length(), sequence_string.c_str());
 			} catch (...) {
 				contains_only_nuc = false;
 				
@@ -149,9 +155,15 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 				if (fasta_sequence.length() == 0)
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): no FASTA sequence found in " << sequence_string << "." << EidosTerminate();
 				
-				chromosome_->ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
+				chromosome->ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 			}
 		}
+	}
+	
+	if (chromosome->extent_immutable_)
+	{
+		if (chromosome->ancestral_seq_buffer_->size() != (std::size_t)(chromosome->last_position_ - chromosome->first_position_ + 1))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeAncestralNucleotides): the length of the provided ancestral sequence does not match the length of the chromosome." << EidosTerminate();
 	}
 	
 	// debugging
@@ -162,18 +174,161 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 		output_stream << "initializeAncestralNucleotides(\"";
 		
 		// output up to 20 nucleotides, followed by an ellipsis if necessary
-		for (std::size_t i = 0; (i < 20) && (i < chromosome_->ancestral_seq_buffer_->size()); ++i)
-			output_stream << "ACGT"[chromosome_->ancestral_seq_buffer_->NucleotideAtIndex(i)];
+		for (std::size_t i = 0; (i < 20) && (i < chromosome->ancestral_seq_buffer_->size()); ++i)
+			output_stream << "ACGT"[chromosome->ancestral_seq_buffer_->NucleotideAtIndex(i)];
 		
-		if (chromosome_->ancestral_seq_buffer_->size() > 20)
+		if (chromosome->ancestral_seq_buffer_->size() > 20)
 			output_stream << gEidosStr_ELLIPSIS;
 		
 		output_stream << "\");" << std::endl;
 	}
 	
-	num_ancseq_declarations_++;
+	num_ancseq_inits_++;
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome_->ancestral_seq_buffer_->size()));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome->ancestral_seq_buffer_->size()));
+}
+
+//	*********************	(void)initializeChromosome(integer$ id, integer$ start, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+//
+EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_interpreter)
+	// We are starting the definition of a new explicitly defined chromosome.  We zero out counts for all
+	// chromosome-specific initialization functions; this is a blank slate.  An implicit chromosome is
+	// not allowed to have already been defined.
+	if (has_implicit_chromosome_)
+	{
+		if (num_mutrate_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeMutationRate() was called.  To fix this error, call initializeChromosome() first and then call initializeMutationRate(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		if (num_recrate_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeRecombinationRate() was called.  To fix this error, call initializeChromosome() first and then call initializeRecombinationRate(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		if (num_genomic_element_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeGenomicElement() was called.  To fix this error, call initializeChromosome() first and then call initializeGenomicElement(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		if (num_gene_conv_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeGeneConversion() was called.  To fix this error, call initializeChromosome() first and then call initializeGeneConversion(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		if (num_ancseq_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeAncestralNucleotides() was called.  To fix this error, call initializeChromosome() first and then call initializeAncestralNucleotides(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		if (num_hotmap_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot be called to explicitly create a chromosome, because the chromosome has already been implicitly defined.  This occurred because initializeHotspotMap() was called.  To fix this error, call initializeChromosome() first and then call initializeHotspotMap(), or don't call initializeChromosome() at all if you do not need an explicitly defined chromosome." << EidosTerminate();
+		
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): (internal error) initializeChromosome() was called with an implicitly defined chromosome.  However, the cause of this cannot be diagnosed, indicating an internal logic error." << EidosTerminate();
+	}
+	
+	if (chromosomes_.size() >= SLIM_MAX_CHROMOSOMES)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() cannot make a new chromosome because the maximum number of chromosomes allowed per species (" << SLIM_MAX_CHROMOSOMES << ") has already been reached.  If you want to model a large number of unlinked loci, using a recombination rate of 0.5, rather than multiple chromosomes, is recommended." << EidosTerminate();
+	
+	if (num_chromosome_inits_ > 0)
+	{
+		// A previous explicitly defined chromosome terminates its definition here,
+		// so we do some checking of that previous chromosome's integrity.
+		EndCurrentChromosome(/* starting_new_chromosome */ true);
+	}
+	
+	num_mutrate_inits_ = 0;
+	num_recrate_inits_ = 0;
+	num_genomic_element_inits_ = 0;
+	num_gene_conv_inits_ = 0;
+	num_ancseq_inits_ = 0;
+	num_hotmap_inits_ = 0;
+	
+	// Get parameters and bounds-check
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *start_value = p_arguments[1].get();
+	EidosValue *length_value = p_arguments[2].get();
+	EidosValue *type_value = p_arguments[3].get();
+	EidosValue *symbol_value = p_arguments[4].get();
+	EidosValue *name_value = p_arguments[5].get();
+	EidosValue *mutationRuns_value = p_arguments[6].get();
+	
+	int64_t id = id_value->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (id < 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires id to be non-negative." << EidosTerminate();
+	
+	if (ChromosomeFromID(id))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires id to be unique within the species; two chromosomes in the same species may not have the same id." << EidosTerminate();
+	
+	slim_position_t start = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex_NOCAST(0, nullptr));
+	slim_position_t length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
+	
+	if (start != 0)		// FIXME MULTICHROM support a first posititon != 0
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not yet support start != 0." << EidosTerminate();
+	if (start + length - 1 > SLIM_MAX_BASE_POSITION)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (start+length-1) to be <= 1e15." << EidosTerminate();
+	
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	ChromosomeType chromosome_type = ChromosomeTypeForString(type_string);
+	
+	if (!sex_enabled_ &&
+		((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+		 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+		 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
+		 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+		 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+		 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): chromosome type '" << chromosome_type << "' is only allowed in sexual models; call initializeSex() to enable sex first." << EidosTerminate();
+	
+	std::string symbol;
+	
+	if (symbol_value->Type() == EidosValueType::kValueString)
+		symbol = symbol_value->StringAtIndex_NOCAST(0, nullptr);
+	else
+		symbol = std::to_string(id);
+	
+	if ((symbol.length() == 0) || (symbol.length() > 3))
+	{
+		if (symbol_value->Type() == EidosValueType::kValueString)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters." << EidosTerminate();
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters; since the id given to the chromosome (" << id << ") is more than three digits, a symbol must be supplied explicitly to satisfy this requirement." << EidosTerminate();
+	}
+	
+	if (ChromosomeFromSymbol(symbol))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be unique within the species; two chromosomes in the same species may not have the same symbol." << EidosTerminate();
+	
+	std::string name;
+	
+	if (name_value->Type() == EidosValueType::kValueString)
+		name = name_value->StringAtIndex_NOCAST(0, nullptr);
+	
+	int64_t mutrun_count = mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (mutrun_count != 0)
+	{
+		if ((mutrun_count < 1) || (mutrun_count > 10000))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires mutationRuns to be between 1 and 10000, inclusive." << EidosTerminate();
+	}
+	
+	// Set up the new chromosome object
+	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ (uint8_t)num_chromosome_inits_, (int)mutrun_count);
+	
+	chromosome->SetName(name);
+	chromosome->first_position_ = start;
+	chromosome->last_position_ = start + length - 1;
+	chromosome->extent_immutable_ = true;
+	
+	AddChromosome(chromosome);
+	num_chromosome_inits_++;
+	has_currently_initializing_chromosome_ = true;
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << "initializeChromosome(" << id << ", " << start << ", " << length << ", " << type_string;
+		if (symbol_value->Type() == EidosValueType::kValueString)
+			output_stream << ", symbol='" << symbol << "'";
+		if (name.length())
+			output_stream << ", name='" << name << "'";
+		if (mutrun_count != 0)
+			output_stream << ", mutationRuns='" << mutrun_count << "'";
+		output_stream << ");" << std::endl;
+	}
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
@@ -197,6 +352,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 	if (element_count == 0)
 		return gStaticEidosValueVOID;
 	
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
 	GenomicElementType *genomic_element_type_ptr_0 = ((type_count == 1) ? SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, &community_, this, "initializeGenomicElement()") : nullptr);					// SPECIES CONSISTENCY CHECK
 	GenomicElementType *genomic_element_type_ptr = nullptr;
 	slim_position_t start_position = 0, end_position = 0;
@@ -211,12 +372,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 		if (end_position < start_position)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() end position " << end_position << " is less than start position " << start_position << "." << EidosTerminate();
 		
+		if (chromosome->extent_immutable_)
+		{
+			if ((start_position < chromosome->first_position_) || (end_position > chromosome->last_position_))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element extent lies outside of the extent of the chromosome." << EidosTerminate();
+		}
+		
 		// Check that the new element will not overlap any existing element; if end_position > last_genomic_element_position we are safe.
 		// Otherwise, we have to check all previously defined elements.  The use of last_genomic_element_position is an optimization to
 		// avoid an O(N) scan with each added element; as long as elements are added in sorted order there is no need to scan.
 		if (start_position <= last_genomic_element_position_)
 		{
-			for (GenomicElement *element : chromosome_->GenomicElements())
+			for (GenomicElement *element : chromosome->GenomicElements())
 			{
 				if ((element->start_position_ <= end_position) && (element->end_position_ >= start_position))
 					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() genomic element from start position " << start_position << " to end position " << end_position << " overlaps existing genomic element." << EidosTerminate();
@@ -229,18 +396,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 		// Create and add the new element
 		GenomicElement *new_genomic_element = new GenomicElement(genomic_element_type_ptr, start_position, end_position);
 		
-		chromosome_->GenomicElements().emplace_back(new_genomic_element);
+		chromosome->GenomicElements().emplace_back(new_genomic_element);
 		result_vec->set_object_element_no_check_NORR(new_genomic_element, element_index);
 		
 		community_.chromosome_changed_ = true;
-		num_genomic_elements_++;
+		num_genomic_element_inits_++;
 	}
 	
 	if (SLiM_verbosity_level >= 1)
 	{
-		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_elements_ > 20) && (num_genomic_elements_ != element_count))
+		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_inits_ > 20) && (num_genomic_element_inits_ != element_count))
 		{
-			if ((num_genomic_elements_ - element_count) <= 20)
+			if ((num_genomic_element_inits_ - element_count) <= 20)
 				output_stream << "(...initializeGenomicElement() calls omitted...)" << std::endl;
 		}
 		else if (element_count == 1)
@@ -330,9 +497,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	if (SLiM_verbosity_level >= 1)
 	{
-		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_types_ > 99))
+		if (ABBREVIATE_DEBUG_INPUT && (num_ge_type_inits_ > 99))
 		{
-			if (num_genomic_element_types_ == 100)
+			if (num_ge_type_inits_ == 100)
 				output_stream << "(...more initializeGenomicElementType() calls omitted...)" << std::endl;
 		}
 		else
@@ -353,7 +520,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 		}
 	}
 	
-	num_genomic_element_types_++;
+	num_ge_type_inits_++;
 	return symbol_entry.second;
 }
 
@@ -390,7 +557,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	
 #ifdef SLIMGUI
 	// each new mutation type gets a unique zero-based index, used by SLiMgui to categorize mutations
-	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings, num_mutation_types_);
+	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings, num_mutation_type_inits_);
 #else
 	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings);
 #endif
@@ -412,9 +579,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	
 	if (SLiM_verbosity_level >= 1)
 	{
-		if (ABBREVIATE_DEBUG_INPUT && (num_mutation_types_ > 99))
+		if (ABBREVIATE_DEBUG_INPUT && (num_mutation_type_inits_ > 99))
 		{
-			if (num_mutation_types_ == 100)
+			if (num_mutation_type_inits_ == 100)
 				output_stream << "(...more " << p_function_name << "() calls omitted...)" << std::endl;
 		}
 		else
@@ -436,7 +603,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 		}
 	}
 	
-	num_mutation_types_++;
+	num_mutation_type_inits_++;
 	return symbol_entry.second;
 }
 
@@ -468,20 +635,26 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << EidosTerminate();
 	
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_recombination_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->recombination_rates_M_.size() != 0) || (chromosome_->recombination_rates_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->recombination_rates_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome->recombination_rates_M_.size() != 0) || (chromosome->recombination_rates_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome->recombination_rates_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
-	if (((requested_sex == IndividualSex::kUnspecified) && (num_recombination_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_recombination_rates_ > 1)))
+	if (((requested_sex == IndividualSex::kUnspecified) && (num_recrate_inits_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_recrate_inits_ > 1)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() may be called only once (or once per sex, with sex-specific recombination maps).  The multiple recombination regions of a recombination map must be set up in a single call to initializeRecombinationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->recombination_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_->recombination_end_positions_M_ : chromosome_->recombination_end_positions_F_));
-	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->recombination_rates_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_->recombination_rates_M_ : chromosome_->recombination_rates_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->recombination_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome->recombination_end_positions_M_ : chromosome->recombination_end_positions_F_));
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->recombination_rates_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome->recombination_rates_M_ : chromosome->recombination_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -520,6 +693,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((recombination_end_position <= chromosome->first_position_) || (recombination_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them
@@ -583,7 +762,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 		output_stream << ");" << std::endl;
 	}
 	
-	num_recombination_rates_++;
+	num_recrate_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -600,7 +779,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	EidosValue *redrawLengthsOnFailure_value = p_arguments[4].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if (num_gene_conversions_ > 0)
+	if (num_gene_conv_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() may be called only once." << EidosTerminate();
 	
 	double non_crossover_fraction = nonCrossoverFraction_value->NumericAtIndex_NOCAST(0, nullptr);
@@ -620,13 +799,19 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	if ((bias != 0.0) && !nucleotide_based_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() bias must be 0.0 in non-nucleotide-based models." << EidosTerminate();
 	
-	chromosome_->using_DSB_model_ = true;
-	chromosome_->non_crossover_fraction_ = non_crossover_fraction;
-	chromosome_->gene_conversion_avg_length_ = gene_conversion_avg_length;
-	chromosome_->gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
-	chromosome_->simple_conversion_fraction_ = simple_conversion_fraction;
-	chromosome_->mismatch_repair_bias_ = bias;
-	chromosome_->redraw_lengths_on_failure_ = redraw_lengths_on_failure;
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
+	chromosome->using_DSB_model_ = true;
+	chromosome->non_crossover_fraction_ = non_crossover_fraction;
+	chromosome->gene_conversion_avg_length_ = gene_conversion_avg_length;
+	chromosome->gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
+	chromosome->simple_conversion_fraction_ = simple_conversion_fraction;
+	chromosome->mismatch_repair_bias_ = bias;
+	chromosome->redraw_lengths_on_failure_ = redraw_lengths_on_failure;
 	
 	if (SLiM_verbosity_level >= 1)
 	{
@@ -638,7 +823,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 		output_stream << ");" << std::endl;
 	}
 	
-	num_gene_conversions_++;
+	num_gene_conv_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -674,19 +859,25 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() sex-specific hotspot map supplied in non-sexual simulation." << EidosTerminate();
 	
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
 	// Make sure specifying a map for that sex is legal, given our current state
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->hotspot_multipliers_M_.size() != 0) || (chromosome_->hotspot_multipliers_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->hotspot_multipliers_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome->hotspot_multipliers_M_.size() != 0) || (chromosome->hotspot_multipliers_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome->hotspot_multipliers_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
-	if (((requested_sex == IndividualSex::kUnspecified) && (num_hotspot_maps_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_hotspot_maps_ > 1)))
+	if (((requested_sex == IndividualSex::kUnspecified) && (num_hotmap_inits_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_hotmap_inits_ > 1)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() may be called only once (or once per sex, with sex-specific hotspot maps).  The multiple hotspot regions of a hotspot map must be set up in a single call to initializeHotspotMap()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->hotspot_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_->hotspot_end_positions_M_ : chromosome_->hotspot_end_positions_F_));
-	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->hotspot_multipliers_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_->hotspot_multipliers_M_ : chromosome_->hotspot_multipliers_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->hotspot_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome->hotspot_end_positions_M_ : chromosome->hotspot_end_positions_F_));
+	std::vector<double> &multipliers = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->hotspot_multipliers_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome->hotspot_multipliers_M_ : chromosome->hotspot_multipliers_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -725,6 +916,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 			
 			if ((multiplier < 0.0) || !std::isfinite(multiplier))		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires multipliers to be >= 0 (" << EidosStringForFloat(multiplier) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((multiplier_end_position <= chromosome->first_position_) || (multiplier_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them
@@ -788,7 +985,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 		output_stream << ");" << std::endl;
 	}
 	
-	num_hotspot_maps_++;
+	num_hotmap_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -824,20 +1021,26 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << EidosTerminate();
 	
+	// This function triggers the creation of an implicit chromosome if a chromosome has not already been set up
+	if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+		MakeImplicitChromosome(ChromosomeType::kA_DiploidAutosome);
+	
+	Chromosome *chromosome = CurrentlyInitializingChromosome();
+	
 	// Make sure specifying a map for that sex is legal, given our current state.  Since single_mutation_map_ has not been set
 	// yet, we just look to see whether the chromosome's policy has already been determined or not.
-	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome_->mutation_rates_M_.size() != 0) || (chromosome_->mutation_rates_F_.size() != 0))) ||
-		((requested_sex != IndividualSex::kUnspecified) && (chromosome_->mutation_rates_H_.size() != 0)))
+	if (((requested_sex == IndividualSex::kUnspecified) && ((chromosome->mutation_rates_M_.size() != 0) || (chromosome->mutation_rates_F_.size() != 0))) ||
+		((requested_sex != IndividualSex::kUnspecified) && (chromosome->mutation_rates_H_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() cannot change the chromosome between using a single map versus separate maps for the sexes; the original configuration must be preserved." << EidosTerminate();
 	
-	if (((requested_sex == IndividualSex::kUnspecified) && (num_mutation_rates_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutation_rates_ > 1)))
+	if (((requested_sex == IndividualSex::kUnspecified) && (num_mutrate_inits_ > 0)) || ((requested_sex != IndividualSex::kUnspecified) && (num_mutrate_inits_ > 1)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() may be called only once (or once per sex, with sex-specific mutation maps).  The multiple mutation regions of a mutation map must be set up in a single call to initializeMutationRate()." << EidosTerminate();
 	
 	// Set up to replace the requested map
-	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->mutation_end_positions_H_ : 
-											   ((requested_sex == IndividualSex::kMale) ? chromosome_->mutation_end_positions_M_ : chromosome_->mutation_end_positions_F_));
-	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome_->mutation_rates_H_ : 
-								  ((requested_sex == IndividualSex::kMale) ? chromosome_->mutation_rates_M_ : chromosome_->mutation_rates_F_));
+	std::vector<slim_position_t> &positions = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->mutation_end_positions_H_ : 
+											   ((requested_sex == IndividualSex::kMale) ? chromosome->mutation_end_positions_M_ : chromosome->mutation_end_positions_F_));
+	std::vector<double> &rates = ((requested_sex == IndividualSex::kUnspecified) ? chromosome->mutation_rates_H_ : 
+								  ((requested_sex == IndividualSex::kMale) ? chromosome->mutation_rates_M_ : chromosome->mutation_rates_F_));
 	
 	if (ends_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -876,6 +1079,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 			
 			if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0.0 and < 1.0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
+			
+			if (chromosome->extent_immutable_)
+			{
+				if ((mutation_end_position <= chromosome->first_position_) || (mutation_end_position > chromosome->last_position_))
+					EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires all end positions to be within the extent of the chromosome." << EidosTerminate();
+			}
 		}
 		
 		// then adopt them
@@ -939,12 +1148,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 		output_stream << ");" << std::endl;
 	}
 	
-	num_mutation_rates_++;
+	num_mutrate_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSex(string$ chromosomeType)
+//	*********************	(void)initializeSex(Ns$ chromosomeType)
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -952,34 +1161,69 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	EidosValue *chromosomeType_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if (num_sex_declarations_ > 0)
+	if (num_sex_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() may be called only once." << EidosTerminate();
+	if (num_chromosome_inits_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() must be called before initializeChromosome(), so that initializeChromosome() knows it is in a sexual model." << EidosTerminate();
 	
-	std::string chromosome_type = chromosomeType_value->StringAtIndex_NOCAST(0, nullptr);
-	
-	if (chromosome_type.compare(gStr_A) == 0)
-		modeled_chromosome_type_ = GenomeType::kAutosome;
-	else if (chromosome_type.compare(gStr_X) == 0)
-		modeled_chromosome_type_ = GenomeType::kXChromosome;
-	else if (chromosome_type.compare(gStr_Y) == 0)
-		modeled_chromosome_type_ = GenomeType::kYChromosome;
-	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of 'A', 'X', or 'Y' ('" << chromosome_type << "' supplied)." << EidosTerminate();
-	
-	if (SLiM_verbosity_level >= 1)
+	if (chromosomeType_value->Type() == EidosValueType::kValueNULL)
 	{
-		output_stream << "initializeSex(\"" << chromosome_type << "\"";
+		// NULL case: we are enabling sex, but not defining an implicit chromosome, and not setting the chromosome type
+		// An implicit chromosome is OK in this code path; it has already been assumed to be diploid autosomal, which is fine
 		
-		output_stream << ");" << std::endl;
+		if (SLiM_verbosity_level >= 1)
+		{
+			output_stream << "initializeSex(NULL);" << std::endl;
+		}
+	}
+	else
+	{
+		// Backward-compatibility case: the user is setting the type of the implicit chromosome with "A", "X", or "Y".
+		std::string chromosome_type = chromosomeType_value->StringAtIndex_NOCAST(0, nullptr);
+		
+		if (chromosome_type.compare(gStr_A) == 0)
+		{
+			// We want to allow initializeSex() in a no-genetics model; it makes sense to have a sexual but non-genetic species.
+			// We allow that only in the "A" case, though; it doesn't make much sense if an "X" or "Y" model is requested.
+			// So in this code path we do not make an implicit chromosome; if it is made by somebody else, it will be "A".
+		}
+		else if ((chromosome_type.compare(gStr_X) == 0) ||
+				 (chromosome_type.compare(gStr_Y) == 0))
+		{
+			// In this "X" / "Y" code path we want to force an implicit chromosome to be defined.
+			if (has_implicit_chromosome_)
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() with type 'X' or 'Y' must be called before other methods that define an implicit chromosome - initializeAncestralNucleotides(), initializeGeneConversion(), initializeGenomicElement(), initializeHotspotMap(), initializeMutationRate(), and initializeRecombinationRate() - so that the implicit chromosome knows it is a sex chromosome when it is created." << EidosTerminate();
+			
+			ChromosomeType modeled_chromosome_type;
+			
+			if (chromosome_type.compare(gStr_X) == 0)
+				modeled_chromosome_type = ChromosomeType::kX_XSexChromosome;
+			else if (chromosome_type.compare(gStr_Y) == 0)
+				modeled_chromosome_type = ChromosomeType::kNullY_YSexChromosomeWithNull;	// not ChromosomeType::kY_YSexChromosome, for backward compatibility
+			else
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): (internal error) unexpected type." << EidosTerminate();
+			
+			if ((num_chromosome_inits_ == 0) && !has_implicit_chromosome_)
+				MakeImplicitChromosome(modeled_chromosome_type);
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of 'A', 'X', or 'Y' ('" << chromosome_type << "' supplied), or NULL if the chromosome type will be set in initializeChromosome()." << EidosTerminate();
+		
+		if (SLiM_verbosity_level >= 1)
+		{
+			output_stream << "initializeSex(\"" << chromosome_type << "\"";
+			
+			output_stream << ");" << std::endl;
+		}
 	}
 	
 	sex_enabled_ = true;
-	num_sex_declarations_++;
+	num_sex_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -987,16 +1231,21 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_keepPedigrees_value = p_arguments[0].get();
 	EidosValue *arg_dimensionality_value = p_arguments[1].get();
 	EidosValue *arg_periodicity_value = p_arguments[2].get();
-	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
+	EidosValue *arg_doMutationRunExperiments_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
 	EidosValue *arg_randomizeCallbacks_value = p_arguments[6].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if (num_options_declarations_ > 0)
+	if (num_slimoptions_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() may be called only once." << EidosTerminate();
 	
-	if ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0))
+	if (num_chromosome_inits_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before initializeChromosome(), so that initializeChromosome() has the model configuration information it needs to set up the chromosome." << EidosTerminate();
+	
+	// see also Species::HasDoneAnyInitialization() for the check used by initializeModelType()
+	// we have no order-dependency with initializeSpecies()
+	if ((num_mutation_type_inits_ > 0) || (num_mutrate_inits_ > 0) || (num_ge_type_inits_ > 0) || (num_genomic_element_inits_ > 0) || (num_recrate_inits_ > 0) || (num_gene_conv_inits_ > 0) || (num_sex_inits_ > 0) || (num_treeseq_inits_ > 0) || (num_ancseq_inits_ > 0) || (num_hotmap_inits_ > 0) || has_implicit_chromosome_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): initializeSLiMOptions() must be called before all other species-specific initialization functions." << EidosTerminate();
 	
 	{
@@ -1074,16 +1323,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	}
 	
 	{
-		// [integer$ mutationRuns = 0]
-		int64_t mutrun_count = arg_mutationRuns_value->IntAtIndex_NOCAST(0, nullptr);
+		// [logical$ doMutationRunExperiments = T]
+		// note this parameter position used to be [integer$ mutationRuns = 0] instead!
+		bool do_mutrun_experiments = arg_doMutationRunExperiments_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
-		if (mutrun_count != 0)
-		{
-			if ((mutrun_count < 1) || (mutrun_count > 10000))
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSLiMOptions): in initializeSLiMOptions(), parameter mutationRuns currently must be between 1 and 10000, inclusive." << EidosTerminate();
-			
-			preferred_mutrun_count_ = (int)mutrun_count;
-		}
+		do_mutrun_experiments_ = do_mutrun_experiments;
 	}
 	
 	{
@@ -1145,13 +1389,6 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 			previous_params = true;
 		}
 		
-		if (preferred_mutrun_count_)
-		{
-			if (previous_params) output_stream << ", ";
-			output_stream << "mutationRunCount = " << preferred_mutrun_count_;
-			previous_params = true;
-		}
-		
 		if (prevent_incidental_selfing_)
 		{
 			if (previous_params) output_stream << ", ";
@@ -1177,7 +1414,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		output_stream << ");" << std::endl;
 	}
 	
-	num_options_declarations_++;
+	num_slimoptions_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -1199,8 +1436,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	if (!community_.is_explicit_species_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may only be called if species have been explicitly declared, with a 'species <name>' specifier preceding an initialize() callback." << EidosTerminate();
 	
-	if (num_species_declarations_ > 0)
+	if (num_species_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may be called only once per species." << EidosTerminate();
+	
+	if (num_chromosome_inits_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() must be called before initializeChromosome(), so that initializeChromosome() has the model configuration information it needs to set up the chromosome." << EidosTerminate();
 	
 	int64_t tickModulo = arg_tickModulo_value->IntAtIndex_NOCAST(0, nullptr);
 	
@@ -1260,7 +1500,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 		output_stream << ");" << std::endl;
 	}
 	
-	num_species_declarations_++;
+	num_species_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -1280,8 +1520,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	EidosValue *arg_timeUnit_value = p_arguments[6].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	if (num_treeseq_declarations_ > 0)
+	if (num_treeseq_inits_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() may be called only once." << EidosTerminate();
+	
+	if (num_chromosome_inits_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() must be called before initializeChromosome(), so that initializeChromosome() has the model configuration information it needs to set up the chromosome." << EidosTerminate();
 	
 	// NOTE: the TSXC_Enable() method also sets up tree-seq recording by setting these sorts of flags;
 	// if the code here changes, that method should probably be updated too.
@@ -1418,7 +1661,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		output_stream << ");" << std::endl;
 	}
 	
-	num_treeseq_declarations_++;
+	num_treeseq_inits_++;
 	
 	return gStaticEidosValueVOID;
 }
@@ -1448,17 +1691,15 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(avatar_));
 		}
-		case gID_chromosome:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome_, gSLiM_Chromosome_Class));
-		case gID_chromosomeType:
+		case gID_chromosomes:
 		{
-			switch (modeled_chromosome_type_)
-			{
-				case GenomeType::kAutosome:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case GenomeType::kXChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
-			}
-			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (Chromosome *chromosome : chromosomes_)
+				vec->push_object_element_RR(chromosome);
+			
+			return result_SP;
 		}
 		case gEidosID_color:
 		{
@@ -1578,6 +1819,35 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_sexChromosomes:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (Chromosome *chromosome : chromosomes_)
+			{
+				switch (chromosome->Type())
+				{
+					case ChromosomeType::kX_XSexChromosome:
+					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
+					case ChromosomeType::kW_WSexChromosome:
+					case ChromosomeType::kNullY_YSexChromosomeWithNull:
+						vec->push_object_element_RR(chromosome);
+						break;
+					case ChromosomeType::kA_DiploidAutosome:
+					case ChromosomeType::kH_HaploidAutosome:
+					case ChromosomeType::kHF_HaploidFemaleInherited:
+					case ChromosomeType::kFL_HaploidFemaleLine:
+					case ChromosomeType::kHM_HaploidMaleInherited:
+					case ChromosomeType::kML_HaploidMaleLine:
+					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+						break;
+				}
+			}
+			
+			return result_SP;
+		}
 		case gID_sexEnabled:
 			return (sex_enabled_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_subpopulations:
@@ -1679,6 +1949,9 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_addSubpopSplit:					return ExecuteMethod_addSubpopSplit(p_method_id, p_arguments, p_interpreter);
 			
 		case gID_addSubpop:							return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
+		case gID_chromosomesOfType:					return ExecuteMethod_chromosomesOfType(p_method_id, p_arguments, p_interpreter);
+		case gID_chromosomesWithIDs:				return ExecuteMethod_chromosomesWithIDs(p_method_id, p_arguments, p_interpreter);
+		case gID_chromosomesWithSymbols:			return ExecuteMethod_chromosomesWithSymbols(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:		return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_killIndividuals:					return ExecuteMethod_killIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
@@ -1743,8 +2016,8 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	{
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option in WF models." << EidosTerminate();
-		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when simulating sex chromosomes; in sex chromosome models, null genomes are determined by sex." << EidosTerminate();
+		if (has_implicit_chromosome_)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when explicit chromosomes are enabled; simply use a haploid chromosome type if you want haploid individuals.  The haploid=T option is largely for backward compatibility now, for models with an implicit diploid chromosome." << EidosTerminate();
 	}
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
@@ -1807,6 +2080,85 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	return symbol_entry.second;
 }
 
+//  *********************	– chromosomesOfType(string$ type)
+EidosValue_SP Species::ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *type_value = p_arguments[0].get();
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	ChromosomeType chromosome_type = ChromosomeTypeForString(type_string);
+	
+	// count the number of chromosomes of the requested type
+	int chromosome_count = 0;
+	
+	for (Chromosome *chromosome : Chromosomes())
+		if (chromosome->Type() == chromosome_type)
+			chromosome_count++;
+	
+	// gather and return the matches
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class))->reserve(chromosome_count);	// reserve enough space for all results
+	
+	for (Chromosome *chromosome : Chromosomes())
+		if (chromosome->Type() == chromosome_type)
+			result->push_object_element_no_check_RR(chromosome);
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– chromosomesWithIDs(integer ids)
+EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *ids_value = p_arguments[0].get();
+	int ids_count = ids_value->Count();
+	
+	if (ids_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class));
+	
+	const int64_t *ids_data = ids_value->IntData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class))->reserve(ids_count);	// reserve enough space for all results
+	
+	for (int ids_index = 0; ids_index < ids_count; ids_index++)
+	{
+		int64_t id = ids_data[ids_index];
+		Chromosome *chromosome = ChromosomeFromID(id);
+		
+		if (!chromosome)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithIDs): chromosomesWithIDs() could not find a chromosome with the given id (" << id << ")." << EidosTerminate();
+		
+		result->push_object_element_no_check_RR(chromosome);
+	}
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– chromosomesWithSymbols(string symbols)
+EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *symbols_value = p_arguments[0].get();
+	int symbols_count = symbols_value->Count();
+	
+	if (symbols_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class));
+	
+	const std::string *symbols_data = symbols_value->StringData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Chromosome_Class))->reserve(symbols_count);	// reserve enough space for all results
+	
+	for (int symbols_index = 0; symbols_index < symbols_count; symbols_index++)
+	{
+		const std::string &symbol = symbols_data[symbols_index];
+		Chromosome *chromosome = ChromosomeFromSymbol(symbol);
+		
+		if (!chromosome)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithSymbols): chromosomesWithSymbols() could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
+		
+		result->push_object_element_no_check_RR(chromosome);
+	}
+	
+	return EidosValue_SP(result);
+}
+
 //	*********************	– (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [Nio<Subpopulation> subpops = NULL])
 EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1848,7 +2200,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	const int64_t *pedigree_id_data = pedigreeIDs_value->IntData();
 	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class))->reserve(pedigreeIDs_count);	// reserve enough space for all results
 	
-	if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across paltforms etc.
+	if (pedigreeIDs_count < 30)		// crossover point determined by timing tests on macOS with various subpop sizes; 30 seems good, although it will vary across platforms etc.
 	{
 		// for smaller problem sizes, we do sequential search for each pedigree ID
 		for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
@@ -1857,7 +2209,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 			
 			for (Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 				{
@@ -1890,7 +2242,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		try {
 			for (Subpopulation *subpop : subpops_to_search)
 			{
-				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+				std::vector<Individual *> &inds = subpop->parent_individuals_;
 				
 				for (Individual *ind : inds)
 					fromIDToIndividual.emplace(ind->PedigreeID(), ind);
@@ -2016,9 +2368,6 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
-				
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1];
 			}
 			
 			if (source_first_male - 1 < source_subpop_size - 1)
@@ -2027,14 +2376,10 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 				backfill->index_ = source_first_male - 1;
-				
-				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 			
 			source_subpop->parent_first_male_index_ = --source_first_male;
 		}
@@ -2047,14 +2392,10 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
-				
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 		}
 		
 		// add the doomed individual to our temporary graveyard
@@ -2073,17 +2414,11 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 	
 	if (killed_count)
 	{
-		// First, clear our genome and individual caches in all subpopulations; any subpops involved in
+		// First, clear our individual caches in all subpopulations; any subpops involved in
 		// this method would be invalidated anyway so this probably isn't even that much overkill in
-		// most models.  Note that the child genomes/individuals caches don't need to be thrown away,
-		// because they aren't used in nonWF models and this is a nonWF-only method.
+		// most models.
 		for (auto subpop_pair : population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->cached_parent_genomes_value_.reset();
-			subpop->cached_parent_individuals_value_.reset();
-		}
+			subpop_pair.second->cached_parent_individuals_value_.reset();
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the deaths that occurred
@@ -2105,13 +2440,11 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *mutations_value = p_arguments[1].get();
 	
-	slim_refcount_t total_genome_count = 0;
-	
-	// tally across the requested subpops
+	// tally across the requested subpops; total haplosome counts are put into the chromosomes
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
-		total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+		population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 	}
 	else
 	{
@@ -2138,9 +2471,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.
 		// Since we uniqued the subpops_to_tally vector above, we can check for equality by just comparing sizes.
 		if (subpops_to_tally.size() == population_.subpops_.size())
-			total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+			population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
 		else
-			total_genome_count = population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally, false);
+			population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally);
 	}
 	
 	// SPECIES CONSISTENCY CHECK
@@ -2153,11 +2486,12 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	}
 	
 	// OK, now construct our result vector from the tallies for just the requested mutations
-	// We now have utility methods on Population that do this for us
+	// We now have utility methods on Population that do this for us; we pass a denominator
+	// of nullptr, which says the denominator is the total haplosome count for each chromosome
 	if (p_method_id == gID_mutationFrequencies)
-		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value, total_genome_count);
+		return population_.Eidos_FrequenciesForTalliedMutations(mutations_value);
 	else // p_method_id == gID_mutationCounts
-		return population_.Eidos_CountsForTalliedMutations(mutations_value, total_genome_count);
+		return population_.Eidos_CountsForTalliedMutations(mutations_value);
 }
 
 //	*********************	- (object<Mutation>)mutationsOfType(io<MutationType>$ mutType)
@@ -2439,7 +2773,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	// BCH 3/6/2022: Note that in SLiM 4 we now output the species cycle after the tick.  This breaks backward compatibility
 	// for code that parses the output from outputFull(), but in a minor way.  It is necessary so that we can round-trip a model
 	// with outputFull()/readFromPopulationFile(); that needs to restore the species cycle.  The cycle is also added to
-	// the other text output formats, except those on Genome (where the genomes might come from multiple species).
+	// the other text output formats, except those on Haplosome (where the haplosomes might come from multiple species).
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -2547,7 +2881,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		if (mutations_species != this)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputMutations): outputMutations() requires that all mutations belong to the target species." << EidosTerminate();
 		
-		// as we scan through genomes building the polymorphism map, we want to process only mutations that are
+		// as we scan through haplosomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
 		int registry_size;
@@ -2574,24 +2908,30 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			Subpopulation *subpop = subpop_pair.second;
 			PolymorphismMap polymorphisms;
 			
-			for (slim_popsize_t i = 0; i < 2 * subpop->parent_subpop_size_; i++)	// go through all parents
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Genome &genome = *subpop->parent_genomes_[i];
-				int mutrun_count = genome.mutrun_count_;
+				int haplosome_count_per_individual = HaplosomeCountPerIndividual();
 				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					const MutationRun *mutrun = genome.mutruns_[run_index];
-					int mut_count = mutrun->size();
-					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+					Haplosome *haplosome = ind->haplosomes_[haplosome_index];
 					
-					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+					int mutrun_count = haplosome->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						int mut_count = mutrun->size();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
-						// use scratch_ to check whether the mutation is one we are outputting
-						if (scan_mutation->scratch_)
-							AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+						{
+							Mutation *scan_mutation = mut_block_ptr + mut_ptr[mut_index];
+							
+							// use scratch_ to check whether the mutation is one we are outputting
+							if (scan_mutation->scratch_)
+								AddMutationToPolymorphismMap(&polymorphisms, scan_mutation);
+						}
 					}
 				}
 			}
@@ -3023,7 +3363,7 @@ EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, c
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
+//	*********************	- (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL], [Niso<Chromosome>$ chromosome])
 //
 EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3034,6 +3374,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	EidosValue *nucleotide_value = p_arguments[3].get();
 	EidosValue *tag_value = p_arguments[4].get();
 	EidosValue *id_value = p_arguments[5].get();
+	EidosValue *chromosome_value = p_arguments[6].get();
 	
 	// parse our arguments
 	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex_NOCAST(0, nullptr);
@@ -3044,10 +3385,28 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex_NOCAST(0, nullptr) : 0);
 	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
 	slim_mutationid_t id = (has_id ? id_value->IntAtIndex_NOCAST(0, nullptr) : 0);
+	bool has_chromosome = !(chromosome_value->Type() == EidosValueType::kValueNULL);
+	Chromosome *chromosome = nullptr;
+	slim_chromosome_index_t chromosome_index = 0;
+	
+	if (has_chromosome)
+	{
+		std::vector<slim_chromosome_index_t> chromosome_indices;
+		
+		GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+		
+		if (chromosome_indices.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): (internal error) chromosome lookup failed." << EidosTerminate();
+		
+		chromosome = chromosomes_[chromosome_indices[0]];
+		chromosome_index = chromosome->Index();
+	}
 	
 	// SPECIES CONSISTENCY CHECK
 	if (exclude && (&exclude->mutation_type_ptr_->species_ != this))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that exclude belong to the target species." << EidosTerminate();
+	if (chromosome && (&chromosome->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that chromosome belong to the target species." << EidosTerminate();
 	
 	if (nucleotide_value->Type() == EidosValueType::kValueInt)
 	{
@@ -3078,7 +3437,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	Mutation *first_match = nullptr;
 	EidosValue_Object *vec = nullptr;
 	
-	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag)
+	if (has_id && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_chromosome)
 	{
 		// id-only search; nice for this to be fast since people will use it to look up a specific mutation
 		for (registry_index = 0; registry_index < registry_size; ++registry_index)
@@ -3086,6 +3445,34 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			Mutation *mut = mut_block_ptr + registry[registry_index];
 			
 			if (mut->mutation_id_ != id)
+				continue;
+			
+			match_count++;
+			
+			if (match_count == 1)
+			{
+				first_match = mut;
+			}
+			else if (match_count == 2)
+			{
+				vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class));
+				vec->push_object_element_RR(first_match);
+				vec->push_object_element_RR(mut);
+			}
+			else
+			{
+				vec->push_object_element_RR(mut);
+			}
+		}
+	}
+	else if (has_chromosome && !exclude && !mutation_type_ptr && (position == -1) && (nucleotide == -1) && !has_tag && !has_id)
+	{
+		// chromosome-only search; nice for this to be fast since people will use it to look up all the mutations for a chromosome
+		for (registry_index = 0; registry_index < registry_size; ++registry_index)
+		{
+			Mutation *mut = mut_block_ptr + registry[registry_index];
+			
+			if (mut->chromosome_index_ != chromosome_index)
 				continue;
 			
 			match_count++;
@@ -3116,6 +3503,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if (mutation_type_ptr && (mut->mutation_type_ptr_ != mutation_type_ptr))	continue;
 			if ((position != -1) && (mut->position_ != position))						continue;
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
+			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
 			
 			match_count++;
 			
@@ -3148,6 +3536,7 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 			if ((nucleotide != -1) && (mut->nucleotide_ != nucleotide))					continue;
 			if (has_tag && (mut->tag_value_ != tag))									continue;
 			if (has_id && (mut->mutation_id_ != id))									continue;
+			if (has_chromosome && (mut->chromosome_index_ != chromosome_index))			continue;
 			
 			match_count++;
 			
@@ -3254,7 +3643,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No$ metadata = NULL], [logical$ _binary = T]) (note the _binary flag is undocumented)
+//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No$ metadata = NULL])
 //
 EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3263,7 +3652,6 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	EidosValue *simplify_value = p_arguments[1].get();
 	EidosValue *includeModel_value = p_arguments[2].get();
 	EidosValue *metadata_value = p_arguments[3].get();
-	EidosValue *binary_value = p_arguments[4].get();
 	
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called when tree recording is enabled." << EidosTerminate();
@@ -3280,7 +3668,6 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
 	
 	std::string path_string = path_value->StringAtIndex_NOCAST(0, nullptr);
-	bool binary = binary_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool simplify = simplify_value->LogicalAtIndex_NOCAST(0, nullptr);
 	EidosDictionaryUnretained *metadata_dict = nullptr;
 	bool includeModel = includeModel_value->LogicalAtIndex_NOCAST(0, nullptr);
@@ -3301,7 +3688,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): (internal) metadata object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
 	}
 	
-	WriteTreeSequence(path_string, binary, simplify, includeModel, metadata_dict);
+	WriteTreeSequence(path_string, simplify, includeModel, metadata_dict);
 	
 	return gStaticEidosValueVOID;
 }
@@ -3351,8 +3738,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomes,			true,	kEidosValueMaskObject, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -3364,6 +3750,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexChromosomes,			true,	kEidosValueMaskObject, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
@@ -3388,6 +3775,9 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesOfType, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString_S("type"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithIDs, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddInt("ids"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesWithSymbols, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString("symbols"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_individualsWithPedigreeIDs, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt("pedigreeIDs")->AddIntObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_killIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
@@ -3409,11 +3799,11 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerReproductionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL)->AddLogical_OS("_binary", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__debug, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

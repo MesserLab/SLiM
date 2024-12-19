@@ -20,7 +20,7 @@
 
 #include "community.h"
 
-#include "genome.h"
+#include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
@@ -88,6 +88,7 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);			// NOLINT(*-branch-clone) : intentional consecutive branches
 	else if (p_function_name.compare(gStr_initializeMutationTypeNuc) == 0)		return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return active_species_->ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeChromosome) == 0)			return active_species_->ExecuteContextFunction_initializeChromosome(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)		return active_species_->ExecuteContextFunction_initializeGeneConversion(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationRate) == 0)			return active_species_->ExecuteContextFunction_initializeMutationRate(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeHotspotMap) == 0)			return active_species_->ExecuteContextFunction_initializeHotspotMap(p_function_name, p_arguments, p_interpreter);
@@ -122,6 +123,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 									   ->AddIntString_S("id")->AddNumeric_S("dominanceCoeff")->AddString_S("distributionType")->AddEllipsis());
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeRecombinationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric("rates")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeChromosome, nullptr, kEidosValueMaskVOID, "SLiM"))->AddInt_S("id")->AddInt_S("start")->AddInt_S("length")->AddString_OS("type", gStaticEidosValue_StringA)->AddString_OSN("symbol", gStaticEidosValueNULL)->AddString_OSN("name", gStaticEidosValueNULL)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGeneConversion, nullptr, kEidosValueMaskVOID, "SLiM"))
 										->AddNumeric_S("nonCrossoverFraction")->AddNumeric_S("meanLength")->AddNumeric_S("simpleConversionFraction")->AddNumeric_OS("bias", gStaticEidosValue_Integer0)->AddLogical_OS("redrawLengthsOnFailure", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeMutationRate, nullptr, kEidosValueMaskVOID, "SLiM"))
@@ -129,9 +131,9 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeHotspotMap, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskVOID, "SLiM"))
-										->AddString_S("chromosomeType"));
+										->AddString_OSN("chromosomeType", gStaticEidosValueNULL));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF)->AddLogical_OS("randomizeCallbacks", gStaticEidosValue_LogicalT));
+									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddLogical_OS("doMutationRunExperiments", gStaticEidosValue_LogicalT)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF)->AddLogical_OS("randomizeCallbacks", gStaticEidosValue_LogicalT));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSpecies, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddInt_OS("tickModulo", gStaticEidosValue_Integer1)->AddInt_OS("tickPhase", gStaticEidosValue_Integer1)->AddString_OS(gStr_avatar, gStaticEidosValue_StringEmpty)->AddString_OS("color", gStaticEidosValue_StringEmpty));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
@@ -932,11 +934,11 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "      Recombination rate maps: " << PrintBytes(usage_all_species.chromosomeRecombinationRateMaps) << std::endl;
 	out << "      Ancestral nucleotides: " << PrintBytes(usage_all_species.chromosomeAncestralSequence) << std::endl;
 	
-	// Genome
-	out << "   Genome objects (" << usage_all_species.genomeObjects_count << "): " << PrintBytes(usage_all_species.genomeObjects) << std::endl;
-	out << "      External MutationRun* buffers: " << PrintBytes(usage_all_species.genomeExternalBuffers) << std::endl;
-	out << "      Unused pool space: " << PrintBytes(usage_all_species.genomeUnusedPoolSpace) << std::endl;
-	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.genomeUnusedPoolBuffers) << std::endl;
+	// Haplosome
+	out << "   Haplosome objects (" << usage_all_species.haplosomeObjects_count << "): " << PrintBytes(usage_all_species.haplosomeObjects) << std::endl;
+	out << "      External MutationRun* buffers: " << PrintBytes(usage_all_species.haplosomeExternalBuffers) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_all_species.haplosomeUnusedPoolSpace) << std::endl;
+	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.haplosomeUnusedPoolBuffers) << std::endl;
 	
 	// GenomicElement
 	out << "   GenomicElement objects (" << usage_all_species.genomicElementObjects_count << "): " << PrintBytes(usage_all_species.genomicElementObjects) << std::endl;
@@ -1157,8 +1159,8 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kWFStage4SwapGenerations; break;				// never hit
-			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
@@ -1175,12 +1177,12 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kNonWFStage7AdvanceTickCounter; break;
-			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;			// never hit
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kNonWFStage4SurvivalSelection; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();

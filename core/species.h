@@ -68,10 +68,14 @@ enum class SLiMFileFormat
 	kFormatUnrecognized = 0,
 	kFormatSLiMText,				// as saved by outputFull(filePath, binary=F)
 	kFormatSLiMBinary,				// as saved by outputFull(filePath, binary=T)
-	kFormatTskitText,				// as saved by treeSeqOutput(path, binary=F)
 	kFormatTskitBinary_HDF5,		// old file format, no longer supported
-	kFormatTskitBinary_kastore,	// as saved by treeSeqOutput(path, binary=T)
+	kFormatTskitBinary_kastore,		// as saved by treeSeqOutput(path)
 };
+
+
+// We have a defined maximum number of chromosomes that we resize to immediately, so the chromosome vector never reallocs
+// There would be an upper limit of 256 anyway because Mutation uses uint8_t to keep the index of its chromosome
+#define SLIM_MAX_CHROMOSOMES	256
 
 
 // TREE SEQUENCE RECORDING
@@ -100,10 +104,13 @@ typedef struct __attribute__((__packed__)) {
 } MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
-	slim_genomeid_t genome_id_;				// 8 bytes (int64_t): the SLiM genome ID for this genome, assigned by pedigree rec
-	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null genome (should never contain mutations)
-	GenomeType type_;						// 1 byte (uint8_t): the type of the genome (A, X, Y)
-} GenomeMetadataRec;
+	slim_haplosomeid_t haplosome_id_;		// 8 bytes (int64_t): the SLiM haplosome ID for this haplosome, assigned by pedigree rec
+	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null haplosome (should never contain mutations)
+	ChromosomeType type_;					// 1 byte (uint8_t): the type of the chromosome represented by the haplosome
+												// 9/19/2024: this changed from (A, X, Y) to all the new chromosome types
+												// FIXME MULTICHROM Peter observes that it should not be in this metadata at all any more; it will be
+												// identical for every haplosome in a given tree sequence (one tree sequence per chromosome)
+} HaplosomeMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
@@ -148,7 +155,7 @@ typedef struct __attribute__((__packed__)) {
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
-static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
+static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec is not 10 bytes!");
 static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec_PREJSON) == 88, "SubpopulationMetadataRec_PREJSON is not 88 bytes!");
 static_assert(sizeof(SubpopulationMigrationMetadataRec_PREJSON) == 12, "SubpopulationMigrationMetadataRec_PREJSON is not 12 bytes!");
@@ -191,6 +198,28 @@ private:
 	
 	bool has_genetics_ = true;														// false if the species has no mutation, no recombination, no muttypes/getypes, no genomic elements
 	
+	// for multiple chromosomes, we now have a vector of pointers to Chromosome objects,
+	// as well as hash tables for quick lookup by id and symbol
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef robin_hood::unordered_flat_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<int64_t, Chromosome *> CHROMOSOME_ID_HASH;
+	typedef std::unordered_map<std::string, Chromosome *> CHROMOSOME_SYMBOL_HASH;
+#endif
+	
+	// Chromosome state
+	std::vector<Chromosome *> chromosomes_;				// OWNED; all our chromosomes, in the order in which they were defined
+	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
+	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
+	
+	std::vector<Chromosome *> chromosome_for_haplosome_index_;	// NOT OWNED; of length haplosome_count_per_individual_
+	std::vector<uint8_t> chromosome_subindex_for_haplosome_index_;	// 0 or 1, the first or second haplosome for the chromosome
+	std::vector<int> first_haplosome_index_;			// the first index in haplosomes_ for a given chromosome (synced to chromosomes_)
+	std::vector<int> last_haplosome_index_;				// the last index in haplosomes_ for a given chromosome (synced to chromosomes_)
+	int haplosome_count_per_individual_ = 0;			// the total number of haplosomes per individual, based on the chromosome types
+	bool chromosomes_use_null_haplosomes_ = false;		// set to true if our chromosome types use null haplosomes; check this with CouldContainNullHaplosomes()
+	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
@@ -199,7 +228,6 @@ private:
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
-	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	
 	// private initialization methods
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -213,22 +241,6 @@ private:
 	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from the file
 	slim_tick_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);				// initialize the population from a SLiM text file
 	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
-	
-	// initialization completeness check counts; used only when running initialize() callbacks
-	int num_mutation_types_;
-	int num_mutation_rates_;
-	int num_genomic_element_types_;
-	int num_genomic_elements_;
-	int num_recombination_rates_;
-	int num_gene_conversions_;
-	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
-	int num_options_declarations_;
-	int num_treeseq_declarations_;
-	int num_ancseq_declarations_;
-	int num_hotspot_maps_;
-	int num_species_declarations_;
-	
-	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
 	// a "temporary graveyard" for keeping individuals that have been killed by killIndividuals(), until they can be freed
 	std::vector<Individual *> graveyard_;
@@ -244,60 +256,22 @@ private:
 	bool periodic_y_ = false;
 	bool periodic_z_ = false;
 	
-	// preferred mutation run length
-	int preferred_mutrun_count_ = 0;												// 0 represents no preference
-	
-	// Species now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
-	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
-	// When running multithreaded, each of these becomes a vector of per-thread objects, so we can alloc/free runs in parallel code.
-	// This stuff is not set up until after initialize() callbacks; nobody should be using MutationRuns before then.
-#ifndef _OPENMP
-	MutationRunContext mutation_run_context_SINGLE_;
-#else
-	int mutation_run_context_COUNT_ = 0;											// the number of PERTHREAD contexts
-	std::vector<MutationRunContext *> mutation_run_context_PERTHREAD;
-#endif
-	
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
+	// mutation run timing experiment configuration
+	bool do_mutrun_experiments_ = true;				// user-level flag in initializeSLiMOptions(); if false, experiments are never run
+	bool doing_any_mutrun_experiments_ = false;		// is any chromosome actually running mutation run timing experiments?
+	
 	// nucleotide-based models
 	bool nucleotide_based_ = false;
+	
 	double max_nucleotide_mut_rate_;				// the highest rate for any genetic background in any genomic element type
+	void CacheNucleotideMatrices(void);
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;								// a user-defined tag value
-	
-	// Mutation run optimization.  The ivars here are used only internally by Species; the canonical reference regarding the
-	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Genome (for each genome object).
-	// If Species decides to change the number of mutation runs, it will update those canonical repositories accordingly.
-	// A prefix of x_ is used on all mutation run experiment ivars, to avoid confusion.
-#define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
-#define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
-	
-	bool x_experiments_enabled_;				// if false, no experiments are run and no cycle runtimes are recorded
-	
-	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
-	double *x_current_runtimes_;				// cycle runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_current_buflen_;						// the number of runtimes in the current_mutcount_runtimes_ buffer
-	
-	int32_t x_previous_mutcount_;				// the number of mutation runs we previously used
-	double *x_previous_runtimes_;				// cycle runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_previous_buflen_;						// the number of runtimes in the previous_mutcount_runtimes_ buffer
-	
-	bool x_continuing_trend_;					// if true, the current experiment continues a trend, such that the opposite trend can be excluded
-	
-	int64_t x_stasis_limit_;					// how many stasis experiments we're running between change experiments; gets longer over time
-	double x_stasis_alpha_;						// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
-	int64_t x_stasis_counter_;					// how many stasis experiments we have run so far
-	int32_t x_prev1_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis last time
-	int32_t x_prev2_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis the time before last
-	
-	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each cycle
-	
-	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
-												// look at MUTRUNEXP_START_TIMING() / MUTRUNEXP_END_TIMING() usage to see which blocks are measured
 	
 	// Shuffle buffer.  This is a shared buffer of sequential values that can be used by client code to shuffle the order in which
 	// operations are performed.  The buffer always contains [0, 1, ..., N-1] shuffled into a new random order with each request
@@ -309,7 +283,34 @@ private:
 	bool shuffle_buf_borrowed_ = false;			// a safeguard against re-entrancy
 	bool shuffle_buf_is_enabled_ = true;		// if false, the buffer is "pass-through" - just sequential integers
 	
+	//
+	// Initialization completeness check counts; should be used only when running initialize() callbacks
+	//
+	
+	// per-species initialization; zeroed by Species::RunInitializeCallbacks()
+	int num_species_inits_;				// number of calls to initializeSpecies()
+	int num_slimoptions_inits_;			// number of calls to initializeSLiMOptions()
+	int num_mutation_type_inits_;		// number of calls to initializeMutationType() and initializeMutationTypeNuc()
+	int num_ge_type_inits_;				// number of calls to initializeGenomicElementType()
+	int num_sex_inits_;					// SEX ONLY: number of calls to initializeSex()
+	int num_treeseq_inits_;				// number of calls to initializeTreeSeq()
+	int num_chromosome_inits_;			// number of calls to initializeChromosome()
+	bool has_implicit_chromosome_;		// true if the model implicitly defines a chromosome, with no initializeChromosome() call
+	bool has_currently_initializing_chromosome_ = false;
+	
+	// per-chromosome initialization; zeroed by initializeChromosome()
+	int num_mutrate_inits_;				// number of calls to initializeMutationRate()
+	int num_recrate_inits_;				// number of calls to initializeRecombinationRate()
+	int num_genomic_element_inits_;		// number of calls to initializeGenomicElement()
+	int num_gene_conv_inits_;			// number of calls to initializeGeneConversion()
+	int num_ancseq_inits_;				// number of calls to initializeAncestralNucleotides()
+	int num_hotmap_inits_;				// number of calls to initializeHotspotMap()
+	
+	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
+	
+	//
 	// TREE SEQUENCE RECORDING
+	//
 #pragma mark -
 #pragma mark treeseq recording ivars
 #pragma mark -
@@ -321,7 +322,7 @@ private:
 	tsk_table_collection_t tables_;
 	tsk_bookmark_t table_position_;
 	
-    std::vector<tsk_id_t> remembered_genomes_;
+    std::vector<tsk_id_t> remembered_haplosomes_;
 	//Individual *current_new_individual_;
 	
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -346,7 +347,6 @@ public:
 	
 	SLiMModelType model_type_;
 	Community &community_;						// the community that this species belongs to
-	Chromosome *chromosome_;					// the chromosome, which defines genomic elements
 	Population population_;						// the population, which contains sub-populations
 
 	std::string avatar_;						// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
@@ -384,17 +384,12 @@ public:
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
+	// BCH 11/24/2024: Note that Chromosome now keeps additional profile information that is per-chromosome
 	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
-	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across cycles
-	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
-	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across cycles
-	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
-	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 #endif	// (SLIMPROFILING == 1)
@@ -404,20 +399,43 @@ public:
 	Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name);			// construct a Species from a community / id / name
 	~Species(void);																						// destructor
 	
+	// Chromosome configuration and access
+#warning remove TheChromosome() step by step
+	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)
+	{
+		if (chromosomes_.size() == 0)
+			EIDOS_TERMINATION << "ERROR (Species::TheChromosome): (internal error) there is no chromosome; check for no genetics first." << EidosTerminate();
+		return *(chromosomes_[0]);
+	}
+	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
+	inline __attribute__((always_inline)) const std::vector<Chromosome *> &ChromosomesForHaplosomeIndices(void) { return chromosome_for_haplosome_index_; }
+	inline __attribute__((always_inline)) const std::vector<uint8_t> &ChromosomeSubindicesForHaplosomeIndices(void) { return chromosome_subindex_for_haplosome_index_; }
+	inline __attribute__((always_inline)) const std::vector<int> &FirstHaplosomeIndices(void) { return first_haplosome_index_; }
+	inline __attribute__((always_inline)) const std::vector<int> &LastHaplosomeIndices(void) { return last_haplosome_index_; }
+	Chromosome *ChromosomeFromID(int64_t p_id);
+	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
+	void MakeImplicitChromosome(ChromosomeType p_type);
+	Chromosome *CurrentlyInitializingChromosome(void);								// the last chromosome defined (currently initializing)
+	void AddChromosome(Chromosome *p_chromosome);
+	inline __attribute__((always_inline)) bool ChromosomesUseNullHaplosomes(void) { return chromosomes_use_null_haplosomes_; }
+	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
+	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);
+	
+	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
+	void EndCurrentChromosome(bool starting_new_chromosome);
 	bool HasDoneAnyInitialization(void);
-	void SetUpMutationRunContexts(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(void);
 	void MaintainTreeSequence(void);
 	void EmptyGraveyard(void);
-	void FinishMutationRunExperimentTiming(void);
+	void FinishMutationRunExperimentTimings(void);
 	
 	void WF_GenerateOffspring(void);
 	void WF_SwitchToChildGeneration(void);
@@ -429,6 +447,7 @@ public:
 	
 	void AdvanceCycleCounter(void);
 	void SimulationHasFinished(void);
+	void Species_CheckIntegrity(void);
 	
 	// Shared shuffle buffer to save
 	inline bool RandomizingCallbackOrder(void) { return shuffle_buf_is_enabled_; }
@@ -442,21 +461,14 @@ public:
 #endif
 #endif
 	
-	// Mutation run experiments
-	void InitiateMutationRunExperiments(void);
-	void TransitionToNewExperimentAgainstCurrentExperiment(int32_t p_new_mutrun_count);
-	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
-	void EnterStasisForMutationRunExperiments(void);
-	void MaintainMutationRunExperiments(double p_last_gen_runtime);
-	
 	// Mutation stack policy checking
 	inline __attribute__((always_inline)) void MutationStackPolicyChanged(void)												{ mutation_stack_policy_changed_ = true; }
 	inline __attribute__((always_inline)) void CheckMutationStackPolicy(void)												{ if (mutation_stack_policy_changed_) _CheckMutationStackPolicy(); }
 	void _CheckMutationStackPolicy(void);
 	
 	// Nucleotide-based models
-	void CacheNucleotideMatrices(void);
-	void CreateNucleotideMutationRateMap(void);
+	inline __attribute__((always_inline)) double MaxNucleotideMutationRate(void)											{ return max_nucleotide_mut_rate_; }
+	void MaxNucleotideMutationRateChanged(void);
 	
 	// accessors
 	inline __attribute__((always_inline)) slim_tick_t Cycle(void) const														{ return cycle_; }
@@ -467,52 +479,10 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t TickModulo(void) { return tick_modulo_; }
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
-	
-#ifndef _OPENMP
-	inline int SpeciesMutationRunContextCount(void) { return 1; }
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
-	{
-#if DEBUG
-		if (p_thread_num != 0)
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
-#endif
-		return mutation_run_context_SINGLE_;
-	}
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
-	{
-#if DEBUG
-		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
-#endif
-		return mutation_run_context_SINGLE_;
-	}
-#else
-	inline int SpeciesMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(int p_thread_num)
-	{
-#if DEBUG
-		if ((p_thread_num < 0) || (p_thread_num >= mutation_run_context_COUNT_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
-#endif
-		return *(mutation_run_context_PERTHREAD[p_thread_num]);
-	}
-	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
-	{
-#if DEBUG
-		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
-			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
-#endif
-		// The range of the genome that each thread is responsible for does not change across
-		// splits/joins; one mutrun becomes two, or two become one, owned by the same thread
-		int thread_num = (int)(p_mutrun_index / chromosome_->mutrun_count_multiplier_);
-		return *(mutation_run_context_PERTHREAD[thread_num]);
-	}
-#endif
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);
@@ -540,7 +510,6 @@ public:
 	inline __attribute__((always_inline)) bool PedigreesEnabled(void) const													{ return pedigrees_enabled_; }
 	inline __attribute__((always_inline)) bool PedigreesEnabledByUser(void) const											{ return pedigrees_enabled_by_user_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
-	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
 	inline __attribute__((always_inline)) int SpatialDimensionality(void) const												{ return spatial_dimensionality_; }
 	inline __attribute__((always_inline)) void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
 	{
@@ -548,6 +517,10 @@ public:
 		if (p_y) *p_y = periodic_y_;
 		if (p_z) *p_z = periodic_z_;
 	}
+	
+	inline __attribute__((always_inline)) bool UserWantsMutrunExperiments(void) const										{ return do_mutrun_experiments_; }
+	inline __attribute__((always_inline)) void DoingMutrunExperimentsForChromosome(void)									{ doing_any_mutrun_experiments_ = true; }
+	inline __attribute__((always_inline)) bool DoingAnyMutationRunExperiments(void) const									{ return doing_any_mutrun_experiments_; }
 	
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
 	
@@ -563,9 +536,8 @@ public:
 	static void handle_error(const std::string &msg, int error);
 	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
 	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
-	static void MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata);
+	static void MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec *p_metadata);
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
-	static void TreeSequenceDataToAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
@@ -573,8 +545,8 @@ public:
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
-	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
-	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
+	void RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome);
+	void RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
 	void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags);
 	void AddLiveIndividualsToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
@@ -583,14 +555,13 @@ public:
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
 	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
-	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
+	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
-    void TreeSequenceDataFromAscii(const std::string &NodeFileName, const std::string &EdgeFileName, const std::string &SiteFileName, const std::string &MutationFileName, const std::string &IndividualsFileName, const std::string &PopulationFileName, const std::string &ProvenanceFileName);
 	void FreeTreeSequence();
 	void RecordAllDerivedStatesFromSLiM(void);
 	void DumpMutationTable(void);
@@ -602,15 +573,14 @@ public:
 	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_file_version);
 	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
-	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);
+	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, int p_file_version);
-	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
+	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
-	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
+	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, genomes, and mutations
-	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map);	// initialize the population from an tskit text file
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, haplosomes, and mutations
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
 	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
@@ -630,6 +600,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -648,6 +619,9 @@ public:
 	
 	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_killIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

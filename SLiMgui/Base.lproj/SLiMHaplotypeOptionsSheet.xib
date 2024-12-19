@@ -50,7 +50,7 @@
                     </textField>
                     <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xbu-26-qvn">
                         <rect key="frame" x="98" y="214" width="128" height="17"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Genomes to display:" id="sV2-7L-1fs">
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Haplosomes to display:" id="sV2-7L-1fs">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -92,7 +92,7 @@ Gw
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="UXl-VS-LUk">
                         <rect key="frame" x="111" y="189" width="286" height="18"/>
-                        <buttonCell key="cell" type="radio" title="All genomes in the selected subpopulations" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="4Nj-rP-dWG">
+                        <buttonCell key="cell" type="radio" title="All haplosomes in the selected subpopulations" bezelStyle="regularSquare" imagePosition="left" alignment="left" state="on" inset="2" id="4Nj-rP-dWG">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
@@ -102,7 +102,7 @@ Gw
                     </button>
                     <button tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="O1Z-4M-hK4">
                         <rect key="frame" x="111" y="167" width="254" height="18"/>
-                        <buttonCell key="cell" type="radio" title="A sample from those genomes of size:" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="9Gl-Gx-Lbe">
+                        <buttonCell key="cell" type="radio" title="A sample from those haplosomes of size:" bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="9Gl-Gx-Lbe">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>

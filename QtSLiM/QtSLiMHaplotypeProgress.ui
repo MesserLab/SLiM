@@ -195,7 +195,7 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string>Clustering genomes:</string>
+            <string>Clustering haplosomes:</string>
            </property>
            <property name="flat">
             <bool>true</bool>

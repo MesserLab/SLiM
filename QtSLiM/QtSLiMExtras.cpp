@@ -52,6 +52,23 @@
 #include "eidos_value.h"
 
 
+void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets)
+{
+    // this code from https://stackoverflow.com/a/7077340/2752221
+    // thanks to stackoverflow user Darko Maksimovic
+    while (QLayoutItem *item = layout->takeAt(0))
+    {
+        if (deleteWidgets)
+        {
+            if (QWidget *widget = item->widget())
+                widget->deleteLater();
+        }
+        if (QLayout *childLayout = item->layout())
+            QtSLiMClearLayout(childLayout, deleteWidgets);
+        delete item;
+    }
+}
+
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter)
 {
     p_painter.fillRect(QRect(p_rect.left(), p_rect.top(), p_rect.width(), 1), p_color);                                 // top edge

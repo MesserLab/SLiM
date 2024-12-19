@@ -10,7 +10,7 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 early() {
-	c = sim.chromosome;
+	c = sim.chromosomes;
 	catn("Ancestral: " + c.ancestralNucleotides());
 	catn("Ancestral: " + paste(c.ancestralNucleotides(format="char")));
 	catn("Ancestral: " + paste(c.ancestralNucleotides(format="integer")));
@@ -25,14 +25,14 @@ initialize() {
 	catn("positions: " + paste(sim.substitutions.position));
 	catn();
 	
-	c = sim.chromosome;
+	c = sim.chromosomes;
 	catn("Ancestral: " + c.ancestralNucleotides());
 	catn("Ancestral: " + paste(c.ancestralNucleotides(format="char")));
 	catn("Ancestral: " + paste(c.ancestralNucleotides(format="integer")));
 	catn("positions: " + paste(0:(L-1)));
 	catn();
 	
-	g = p1.genomes[0];
+	g = p1.haplosomes[0];
 	
 	catn("SNPs:      " + paste(g.mutations.nucleotide));
 	catn("SNPs:      " + paste(g.mutations.nucleotideValue));
