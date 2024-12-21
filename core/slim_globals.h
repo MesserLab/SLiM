@@ -640,7 +640,7 @@ extern const std::string gSLiM_tsk_metadata_schema;
 extern const std::string gSLiM_tsk_edge_metadata_schema;
 extern const std::string gSLiM_tsk_site_metadata_schema;
 extern const std::string gSLiM_tsk_mutation_metadata_schema;
-extern const std::string gSLiM_tsk_node_metadata_schema;
+extern const std::string gSLiM_tsk_node_metadata_schema_FORMAT;
 extern const std::string gSLiM_tsk_individual_metadata_schema;
 extern const std::string gSLiM_tsk_population_metadata_schema_PREJSON;		// before SLiM 3.7
 extern const std::string gSLiM_tsk_population_metadata_schema;

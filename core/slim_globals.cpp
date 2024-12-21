@@ -141,9 +141,9 @@ void SLiM_WarmUp(void)
 			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema must be a JSON string." << EidosTerminate();
 		}
 		try {
-			node_schema = nlohmann::json::parse(gSLiM_tsk_node_metadata_schema);
+			node_schema = nlohmann::json::parse(gSLiM_tsk_node_metadata_schema_FORMAT);
 		}  catch (...) {
-			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema must be a JSON string." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema_FORMAT must be a JSON string." << EidosTerminate();
 		}
 		try {
 			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema);
@@ -162,7 +162,7 @@ void SLiM_WarmUp(void)
 		std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << edge_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << site_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << mutation_schema.dump(4) << std::endl << std::endl;
-		std::cout << "gSLiM_tsk_node_metadata_schema == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_node_metadata_schema_FORMAT == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_individual_metadata_schema == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
 		std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << population_schema.dump(4) << std::endl << std::endl;
 #endif
@@ -1665,19 +1665,25 @@ R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false
 // The number of byte (uint8_t) entries in is_null depends on the number of chromosomes in
 // the full set of tree sequences, because the node metadata has to contain flags (bits) for
 // every chromosome, not just for the chromosome represented by this file.  So we deduce the
-// length of is_null from that, but it is variable and has no count associated with it in
-// the metadata here.  I think this is actually not allowed in JSON Schema, understandably.
-// The schema here provides 8 bits, so it suffices for up to an 8-chromosome model.  We can
-// have up to 256 chromosomes, so we would have up to 32 uint8_t bytes of is_null data here,
-// in that extreme case.  It is very ugly, but I think the solution might be to write out
-// a different version of the metadata schema depending on the number of bytes used.  In
-// other words, if 7 bytes of is_null data are needed (for 49-56 chromosomes), we'd write
-// out a version of the schema that specifies 7 bytes of is_null data, named is_null1 to
-// is_null7, I suppose.  This effectively puts the count into the schema itself.  Peter,
-// do you see a better option than this?  I'd really prefer not to add a count, since it's
-// completely redundant.
-const std::string gSLiM_tsk_node_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"slim_id":123,"is_null":0}],"properties":{"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":0,"type":"integer"},"is_null":{"binaryFormat":"B","description":"A vector of byte (uint8_t) values, with each bit representing whether the haplosome in the corresponding chromosome is a null haplosome (1) or not (0).","index":1,"type":"integer"}},"required":["slim_id","is_null"],"type":["object","null"]})V0G0N";
+// length of is_null from that, but it is variable-length and has no count associated with
+// it in the metadata.  I think this is actually not allowed in JSON Schema, understandably.
+// To make this work, we have to write out a DIFFERENT VERSION OF THIS METADATA SCHEMA
+// depending on the number of bytes used.  In other words, if 7 bytes of is_null data are
+// needed (for 49-56 chromosomes), we'd write out a version of the schema that specifies
+// 7 bytes of is_null data using binaryFormat:7B.  This effectively puts the count into the
+// schema itself.  The number of bytes present can thus be inferred from the schema present
+// in the file, but also from the 'chromosomes' top-level metadata key; one bit is taken
+// for each chromosome, in order, regardless of their type, providing flags for one node
+// table entry for one haplosome of each chromosome.  (Remember, there are two node table
+// entries per individual; the first corresponds to haplosome 1, so its is_null_ data only
+// records null haplosome flags for haplosome 1 of each chromosome, and similarly for the
+// second entry corresponding to haplosome 2 of each chromosome.)  The variable name here
+// ends in "_FORMAT" because it is a format string containing `%d`, which must be replaced
+// by the correct byte count when it is used for output.  See SetCurrentNewIndividual() and
+// RecordNewHaplosome() for how this dynamic metadata structure is used in practice, and
+// WriteTreeSequenceMetadata() for where this schema format string is used.
+const std::string gSLiM_tsk_node_metadata_schema_FORMAT =
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"slim_id":123,"is_null":0}],"properties":{"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of the haplosomes associated with this node in SLiM.","index":0,"type":"integer"},"is_null":{"binaryFormat":"%dB","description":"A vector of byte (uint8_t) values, with each bit representing whether the haplosome in the corresponding chromosome is a null haplosome (1) or not (0). This field encodes null haplosome information for all of the chromosomes in the model, not just the chromosome represented in this file (so that the node table is identical across all chromosomes for a multi-chromosome model). Each chromosome receives one bit here; there are two node table entries per individual, used for the two haplosomes of every chromosome, so only one bit is needed in each entry (making two bits total per chromosome, across the two node table entries). The least significant bit of the first byte is used first (for one haplosome of the first chromosome); the most significant bit of the last byte is used last. The number of bytes present in this field is indicated by this schema's 'binaryFormat' field, which is variable (!), and can also be deduced from the number of chromosomes in the model as given in the top-level 'chromosomes' metadata key, which should always be present if this metadata is present.","index":1,"type":"integer"}},"required":["slim_id","is_null"],"type":["object","null"]})V0G0N";
 
 const std::string gSLiM_tsk_individual_metadata_schema =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";

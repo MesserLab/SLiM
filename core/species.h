@@ -357,6 +357,7 @@ private:
 	double simplify_interval_;					// the current number of cycles between automatic simplifications when using simplification_ratio_
 	
 	size_t haplosome_metadata_size_;			// the number of bytes for haplosome metadata, for this species, including is_null_ flags
+	size_t haplosome_metadata_isnull_bytes_;	// the number of bytes used for is_null_ in the haplosome metadata
 	HaplosomeMetadataRec *hap_metadata_1F_;		// malloced; default is_null_ flags for first haplosomes in females/hermaphrodites
 	HaplosomeMetadataRec *hap_metadata_1M_;		// malloced; default is_null_ flags for first haplosomes in males
 	HaplosomeMetadataRec *hap_metadata_2F_;		// malloced; default is_null_ flags for second haplosomes in females/hermaphrodites

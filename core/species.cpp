@@ -158,9 +158,10 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 	// See HaplosomeMetadataRec for comments on this design.
 	
 	// First, calculate how many bytes we need
-	size_t bits_needed_for_is_null = (chromosomes_.size() * 2);			// each chromosome needs two bits
-	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;		// -1 to subtract out the is_null_[1] in the record
-	haplosome_metadata_size_ += ((bits_needed_for_is_null + 7) / 8);	// (x+7)/8 rounds up to the number of bytes needed
+	size_t bits_needed_for_is_null = chromosomes_.size();					// each chromosome needs one bit per node table entry
+	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_null_[1] in the record
+	haplosome_metadata_isnull_bytes_ = ((bits_needed_for_is_null + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
+	haplosome_metadata_size_ += haplosome_metadata_isnull_bytes_;
 	
 	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
 	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
@@ -4042,6 +4043,8 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 		// will still keep the *edges* that are unary, and that's all that matters. The downstream filtering code you
 		// have just looks to see what nodes have references, and filters out those that are not used in any edges."
 		if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
+		// FIXME Peter comments "I think this is supposed to be TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS; see #487."
+		// That isn't related to multichrom at all, though, so I'm going to leave it for later, with #487.
 		
 		// BCH 12/9/2024: These flags are added for multichromosome support; we want to simplify all the tree sequences
 		// (perhaps in parallel), without touching the node table at all, and then we clean up the node table afterwards.
@@ -4074,8 +4077,10 @@ void Species::SimplifyAllTreeSequences(void)
 	// We need to be able to find out the index of an entry, in remembered_nodes_, once we have found it;
 	// that is what the mapped value provides, whereas the key value is the tsk_id_t we need to find below.
 	// We do all this inside a block so the map gets deallocated as soon as possible, to minimize footprint.
-	// BCH 12/9/2024: The point of all this kerfuffle is that an extant individual might also be a
-	// remembered individual, and we don't want to put it into the samples vector twice, I think.
+	// BCH 12/9/2024: The point of all this kerfuffle with the lookup table is that an extant individual
+	// might also be a remembered individual, and we don't want to put it into the samples vector twice,
+	// I think; otherwise we could just throw the remembered nodes and extant individuals into `samples`
+	// with no lookup table complication.
 	{
 #if EIDOS_ROBIN_HOOD_HASHING
 		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_nodes_lookup;
@@ -4176,13 +4181,13 @@ void Species::SimplifyAllTreeSequences(void)
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
 			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
 			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
-			tsk_id_t *edge_child = chromosome_tables.edges.child;
-			tsk_id_t *edge_parent = chromosome_tables.edges.parent;
+			tsk_id_t *edges_child = chromosome_tables.edges.child;
+			tsk_id_t *edges_parent = chromosome_tables.edges.parent;
 			tsk_size_t edges_num_rows = chromosome_tables.edges.num_rows;
 			
 			for (tsk_size_t k = 0; k < edges_num_rows; k++) {
-				keep_nodes[edge_child[k]] = true;
-				keep_nodes[edge_parent[k]] = true;
+				keep_nodes[edges_child[k]] = true;
+				keep_nodes[edges_parent[k]] = true;
 			}
 		}
 		
@@ -4196,13 +4201,30 @@ void Species::SimplifyAllTreeSequences(void)
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
 			TreeSeqInfo &chromosome_tsinfo = treeseq_[chromosome_index];
 			tsk_table_collection_t &chromosome_tables = chromosome_tsinfo.tables_;
-			tsk_id_t *edge_child = chromosome_tables.edges.child;
-			tsk_id_t *edge_parent = chromosome_tables.edges.parent;
+			
+			// remap in the edges table
+			tsk_id_t *edges_child = chromosome_tables.edges.child;
+			tsk_id_t *edges_parent = chromosome_tables.edges.parent;
 			tsk_size_t edges_num_rows = chromosome_tables.edges.num_rows;
 			
 			for (tsk_size_t k = 0; k < edges_num_rows; k++) {
-				edge_child[k] = node_id_map[edge_child[k]];
-				edge_parent[k] = node_id_map[edge_parent[k]];
+				edges_child[k] = node_id_map[edges_child[k]];
+				edges_parent[k] = node_id_map[edges_parent[k]];
+			}
+			
+			// remap in the mutations table also; Jerome's example didn't have mutations so it didn't do this
+			tsk_id_t *mutations_node = chromosome_tables.mutations.node;
+			tsk_size_t mutations_num_rows = chromosome_tables.mutations.num_rows;
+			
+			for (tsk_size_t k = 0; k < mutations_num_rows; k++) {
+				tsk_id_t remapped_id = node_id_map[mutations_node[k]];
+				
+				// Peter says: You might also think we need to loop through the mutation table to add nodes that are
+				// referred to there to keep_nodes, but I don't think that's true - we should be able to assert
+				// node_id_map[mutations_node[k]] >= 0. (it'll be -1 if the node has been removed).  So, doing that.
+				assert(remapped_id >= 0);
+				
+				mutations_node[k] = remapped_id;
 			}
 			
 #if DEBUG
@@ -4257,11 +4279,11 @@ void Species::SimplifyAllTreeSequences(void)
 		// mark the individuals we want to keep: all individuals referenced by nodes; note that the node table is shared,
 		// so we only need to loop through that one shared node table that is kept by the main table collection
 		{
-			tsk_id_t *node_individual = main_tables.nodes.individual;
+			tsk_id_t *nodes_individual = main_tables.nodes.individual;
 			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
 			
 			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
-				keep_individuals[node_individual[k]] = true;
+				keep_individuals[nodes_individual[k]] = true;
 			}
 		}
 		
@@ -4271,11 +4293,11 @@ void Species::SimplifyAllTreeSequences(void)
 		
 		// remap individual references; again, this is a shared table so we only need to modify it for the main tables
 		{
-			tsk_id_t *node_individual = main_tables.nodes.individual;
+			tsk_id_t *nodes_individual = main_tables.nodes.individual;
 			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
 			
 			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
-				node_individual[k] = individual_id_map[node_individual[k]];
+				nodes_individual[k] = individual_id_map[nodes_individual[k]];
 			}
 			
 #if DEBUG
@@ -4712,6 +4734,9 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 		
 		if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome))
 		{
+			// it is null and that was unexpected; we need to flip the corresponding is_null_ bit
+			// each chromosome has two node table entries; entry 1 is for haplosome 1, entry 2 is
+			// for haplosome 2, so there is only one bit per chromosome in a given is_null_ vector
 			slim_chromosome_index_t chromosome_index = chromosome.Index();
 			tsk_node_table_t &shared_node_table = treeseq_[0].tables_.nodes;
 			HaplosomeMetadataRec *metadata = (HaplosomeMetadataRec *)(shared_node_table.metadata + shared_node_table.metadata_offset[offspringTSKID]);
@@ -4911,7 +4936,7 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 	// This modifies p_tables in place, replacing the derived_state column of p_tables with a binary version.
 	tsk_mutation_table_t mutations_copy;
 	int ret = tsk_mutation_table_copy(&p_tables->mutations, &mutations_copy, 0);
-	if (ret < 0) handle_error("derived_to_ascii", ret);
+	if (ret < 0) handle_error("derived_from_ascii", ret);
 	
 	{
 		const char *derived_state = p_tables->mutations.derived_state;
@@ -4967,7 +4992,7 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 										 binary_derived_state_offset.data(),
 										 mutations_copy.metadata,
 										 mutations_copy.metadata_offset);
-		if (ret < 0) handle_error("derived_to_ascii", ret);
+		if (ret < 0) handle_error("derived_from_ascii", ret);
 	}
 	
 	tsk_mutation_table_free(&mutations_copy);
@@ -5535,11 +5560,6 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			(tsk_size_t)gSLiM_tsk_mutation_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_mutation_table_set_metadata_schema", ret);
-	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
-			gSLiM_tsk_node_metadata_schema.c_str(),
-			(tsk_size_t)gSLiM_tsk_node_metadata_schema.length());
-	if (ret != 0)
-		handle_error("tsk_node_table_set_metadata_schema", ret);
 	ret = tsk_individual_table_set_metadata_schema(&p_tables->individuals,
 			gSLiM_tsk_individual_metadata_schema.c_str(),
 			(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
@@ -5550,6 +5570,27 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 			(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
 	if (ret != 0)
 		handle_error("tsk_population_table_set_metadata_schema", ret);
+	
+	// For the node table the schema we save out depends upon the number of
+	// bits needed to represent the null haplosome structure of the model.
+	// We allocate one bit per chromosome, in each node table entry (note
+	// there are two entries per individual, so it ends up being two bits
+	// of information per chromosome, across the two node table entries.)
+	// See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
+	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
+	size_t pos = tsk_node_metadata_schema.find("%d");
+	std::string count_string = std::to_string(haplosome_metadata_isnull_bytes_);
+	
+	if (pos == std::string::npos)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
+	
+	tsk_node_metadata_schema.replace(pos, 2, count_string);		// replace %d in the format string with the byte count
+	
+	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
+			tsk_node_metadata_schema.c_str(),
+			(tsk_size_t)tsk_node_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_node_table_set_metadata_schema", ret);
 }
 
 void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model)
