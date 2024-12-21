@@ -95,6 +95,14 @@ private:
 	slim_pedigreeid_t pedigree_g4_;		// the id of grandparent 4
 	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
 	
+	// This holds the base tskit id used for haplosomes (nodes) belonging to this individual.  If the haplosome is
+	// in 1st position (the first for its chromosome), its node id is tsk_node_id_base_; if it is in 2nd position
+	// (the second for its chromosome), its node id is tsk_node_id_base_ + 1.  Since this is the same for all
+	// haplosomes for a given individual, we store it here for space efficiency.  This is set up by the method
+	// SetCurrentNewIndividual(), which creates the two new entries in the shared node table that are used by all
+	// haplosomes for the individual.
+	tsk_id_t /* int32_t */ tsk_node_id_base_;
+	
 public:
 	
 	// BCH 6 April 2017: making these ivars public; lots of other classes want to access them, but writing
@@ -260,6 +268,10 @@ public:
 	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID()		{ return pedigree_p2_; }
 	inline __attribute__((always_inline)) void SetParentPedigreeID(slim_pedigreeid_t p1_new_id, slim_pedigreeid_t p2_new_id)		{ pedigree_p1_ = p1_new_id; pedigree_p2_ = p2_new_id; }	// also?
 	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
+	
+	// Each individual reserves two consecutive nodes in the node table; these get/set the base tskit id for that 2-node block
+	inline __attribute__((always_inline)) tsk_id_t TskitNodeIdBase(void) const { return tsk_node_id_base_; }
+	inline __attribute__((always_inline)) void SetTskitNodeIdBase(tsk_id_t p_id) { tsk_node_id_base_ = p_id; }
 	
 	// Spatial position inheritance from a parent; should be called in every code path that generates an offspring from a parent
 	inline __attribute__((always_inline)) void InheritSpatialPosition(int p_dimensionality, Individual *p_parent) {
