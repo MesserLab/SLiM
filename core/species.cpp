@@ -4124,7 +4124,7 @@ void Species::SimplifyAllTreeSequences(void)
 #if DEBUG
 				// check that both of the individual's haplosomes are (or are not) remembered together
 				auto iter_2 = remembered_nodes_lookup.find(tsk_node_id_base + 1);
-				bool not_remembered_2 = (iter == remembered_nodes_lookup.end());
+				bool not_remembered_2 = (iter_2 == remembered_nodes_lookup.end());
 				
 				if (not_remembered != not_remembered_2)
 					EIDOS_TERMINATION << "ERROR (Species::SimplifyAllTreeSequences): one node remembered, one node not!." << EidosTerminate(nullptr);
@@ -4162,10 +4162,12 @@ void Species::SimplifyAllTreeSequences(void)
 	
 	// the node table needs to be filtered now; we turned that off for simplification, so it could be parallelized.
 	// this code is copied from https://github.com/tskit-dev/tskit/pull/2665/files (multichrom_wright_fisher.c)
+	const tsk_size_t num_nodes = main_tables.nodes.num_rows;
+	
+	if (num_nodes > 0)
 	{
 		tsk_size_t sample_count = (tsk_size_t)samples.size();
 		int ret;
-		const tsk_size_t num_nodes = main_tables.nodes.num_rows;
 		tsk_bool_t *keep_nodes = (tsk_bool_t *)calloc(num_nodes, sizeof(tsk_bool_t));	// note: cleared by calloc
 		tsk_id_t *node_id_map = (tsk_id_t *)malloc(num_nodes * sizeof(tsk_id_t));
 		
@@ -4267,9 +4269,11 @@ void Species::SimplifyAllTreeSequences(void)
 	
 	// the individual table needs to be filtered now; we no longer pass TSK_SIMPLIFY_FILTER_INDIVIDUALS for simplification,
 	// so it could be parallelized.  The code here is based on the node table filtering above, mutatis mutandis
+	const tsk_size_t num_individuals = main_tables.individuals.num_rows;
+	
+	if (num_individuals > 0)
 	{
 		int ret;
-		const tsk_size_t num_individuals = main_tables.individuals.num_rows;
 		tsk_bool_t *keep_individuals = (tsk_bool_t *)calloc(num_individuals, sizeof(tsk_bool_t));	// note: cleared by calloc
 		tsk_id_t *individual_id_map = (tsk_id_t *)malloc(num_individuals * sizeof(tsk_id_t));
 		
@@ -4283,7 +4287,10 @@ void Species::SimplifyAllTreeSequences(void)
 			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
 			
 			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
-				keep_individuals[nodes_individual[k]] = true;
+				tsk_id_t individual_index = nodes_individual[k];
+				
+				if (individual_index != TSK_NULL)
+					keep_individuals[individual_index] = true;
 			}
 		}
 		
@@ -4297,7 +4304,10 @@ void Species::SimplifyAllTreeSequences(void)
 			tsk_size_t nodes_num_rows = main_tables.nodes.num_rows;
 			
 			for (tsk_size_t k = 0; k < nodes_num_rows; k++) {
-				nodes_individual[k] = individual_id_map[nodes_individual[k]];
+				tsk_id_t individual_index = nodes_individual[k];
+				
+				if (individual_index != TSK_NULL)
+					nodes_individual[k] = individual_id_map[individual_index];
 			}
 			
 #if DEBUG
