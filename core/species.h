@@ -104,12 +104,26 @@ typedef struct __attribute__((__packed__)) {
 } MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
+	// BCH 12/10/2024: This metadata record is becoming a bit complicated, for multichromosome SLiM, and is now actually variable-length.
+	// The difficulty is that this metadata gets attached to nodes in the tree sequence, and in multichrom models the node table is
+	// shared by all of the chromosome-specific tree sequences.  That implies that the haplosome metadata has to be the *same* for all
+	// of the haplosomes that reference that node -- all the first haplosomes of an individual, or all the second haplosomes of an
+	// individual.  We want to keep is_null_ state separately for each haplosome; within one individual, some haplosomes might be nulls,
+	// other might not be, and we need to know the difference to correctly read/analyze a tree sequence.  To achieve this, each node's
+	// metadata -- HaplosomeMetadataRec -- will record a *vector* of is_null_ bytes, each containing 8 bits, recording the is_null_
+	// state for each of the haplosome slots represented by the node in its owning individual.  Note that haplosome slots for a given
+	// node can actually have three states in an individual: "real", "null", or "unused".  "Real" would be the first haplosome for the
+	// Y in a male; "null" would be the first haplosome for the Y in a female (a placeholder for the Y that could be there but is not);
+	// and "unused" would be the *second* haplosome for the Y in either sex (because the Y is a haploid chromosome, and haplosomes for
+	// the second position therefore do not exist -- but a node for that slot still exists, because we *always* make two nodes in the
+	// tree sequence for each chromosome, to maintain the 1:2 individual_id:node_id invariant that we assume throughout the code).  The
+	// flags in is_null_ only differentiate between "real" and "null"; the value for "unused" positions should indicate "null", but it
+	// should also not be used anywhere, so it shouldn't matter.  See Species::_MakeHaplosomeMetadataRecords() and elsewhere.
+	//
 	slim_haplosomeid_t haplosome_id_;		// 8 bytes (int64_t): the SLiM haplosome ID for this haplosome, assigned by pedigree rec
-	uint8_t is_null_;						// 1 byte (uint8_t): true if this is a null haplosome (should never contain mutations)
-	ChromosomeType type_;					// 1 byte (uint8_t): the type of the chromosome represented by the haplosome
-												// 9/19/2024: this changed from (A, X, Y) to all the new chromosome types
-												// FIXME MULTICHROM Peter observes that it should not be in this metadata at all any more; it will be
-												// identical for every haplosome in a given tree sequence (one tree sequence per chromosome)
+											// 		note that the ID is the same across all chromosomes in an individual!
+	uint8_t is_null_[1];					// 1 byte (8 bits, handled bitwise) -- but this field is actually variable-length, see above
+	// BCH 12/6/2024: type_, the chromosome type for the haplosome, has moved to top-level metadata; it is constant across a tree sequence
 } HaplosomeMetadataRec;
 
 typedef struct __attribute__((__packed__)) {
@@ -155,7 +169,7 @@ typedef struct __attribute__((__packed__)) {
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
-static_assert(sizeof(HaplosomeMetadataRec) == 10, "HaplosomeMetadataRec is not 10 bytes!");
+static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");	// but its size is dynamic at runtime
 static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec_PREJSON) == 88, "SubpopulationMetadataRec_PREJSON is not 88 bytes!");
 static_assert(sizeof(SubpopulationMigrationMetadataRec_PREJSON) == 12, "SubpopulationMigrationMetadataRec_PREJSON is not 12 bytes!");
@@ -314,15 +328,16 @@ private:
 #pragma mark -
 #pragma mark treeseq recording ivars
 #pragma mark -
+	// ********** first we have tree-seq state that is shared across all chromosomes
+	//
 	bool recording_tree_ = false;				// true if we are doing tree sequence recording
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool retain_coalescent_only_ = true;		// true if "retain" keeps only individuals for coalescent nodes, not also individuals for unary nodes
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
-	tsk_table_collection_t tables_;
-	tsk_bookmark_t table_position_;
 	
-    std::vector<tsk_id_t> remembered_haplosomes_;
+    std::vector<tsk_id_t> remembered_nodes_;	// used to be called remembered_genomes_, but it remembers tskit nodes, which might
+												// actually be shared by multiple haplosomes in different chromosomes
 	//Individual *current_new_individual_;
 	
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -333,8 +348,6 @@ private:
 	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
 
 	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
-	bool last_coalescence_state_ = false;		// if running_coalescence_checks_==true, updated every simplification
-	
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
 	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ cycles
 	
@@ -342,6 +355,30 @@ private:
 	int64_t simplification_interval_;			// the cycle interval between simplifications; -1 if not used (in which case the ratio is used)
 	int64_t simplify_elapsed_ = 0;				// the number of cycles elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;					// the current number of cycles between automatic simplifications when using simplification_ratio_
+	
+	size_t haplosome_metadata_size_;			// the number of bytes for haplosome metadata, for this species, including is_null_ flags
+	size_t haplosome_metadata_isnull_bytes_;	// the number of bytes used for is_null_ in the haplosome metadata
+	HaplosomeMetadataRec *hap_metadata_1F_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_1M_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in males
+	HaplosomeMetadataRec *hap_metadata_2F_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_2M_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in males
+	void _MakeHaplosomeMetadataRecords(void);
+	
+	// ********** then we have tree-seq state that is kept separately for each chromosome; each has its own tree sequence
+	//
+	typedef struct _TreeSeqInfo {
+		slim_chromosome_index_t chromosome_index_;	// this should range from 0 to N-1, following the corresponding chromosome indices
+		tsk_table_collection_t tables_;				// the table collection; the node, individual, and popultation tables are shared
+		tsk_bookmark_t table_position_;				// a bookmarked position in tables_ for retraction of a proposed child
+		bool last_coalescence_state_;				// have we coalesced? updated after simplify if running_coalescence_checks_==true
+	} TreeSeqInfo;
+	
+	std::vector<TreeSeqInfo> treeseq_;				// OWNED; all our tree-sequence state, in the order the chromosomes were defined
+													// index 0's table collection contains the shared tables; see CopySharedTablesIn()
+	
+	// FIXME MULTI_TREESEQ this define is temporary, used to disable chunks of treeseq code that I don't want to deal with porting yet
+#warning need to re-enable treeseq reading from disk
+#define INTERIM_TREESEQ_DISABLE	0
 	
 public:
 	
@@ -533,10 +570,12 @@ public:
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
 	void AboutToSplitSubpop(void);	// see Population::AddSubpopulationSplit()
 	
-	static void handle_error(const std::string &msg, int error);
+	void CopySharedTablesIn(tsk_table_collection_t &p_tables);				// copies the shared tables for the species into p_tables
+	void DisconnectCopiedSharedTables(tsk_table_collection_t &p_tables);	// zeroes out the shared table copies in p_tables
+	
+	static void handle_error(const std::string &msg, int error) __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
 	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
-	static void MetadataForHaplosome(Haplosome *p_haplosome, HaplosomeMetadataRec *p_metadata);
 	static void MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata);
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
@@ -553,18 +592,18 @@ public:
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
-	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
+	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict, slim_chromosome_index_t p_chromosome_index);
 	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
-	void SimplifyTreeSequence(void);
-	void CheckCoalescenceAfterSimplification(void);
+	void _SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_id_t> &samples);
+	void SimplifyAllTreeSequences(void);
+	void CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo);
 	void CheckAutoSimplification(void);
 	void FreeTreeSequence();
 	void RecordAllDerivedStatesFromSLiM(void);
-	void DumpMutationTable(void);
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	
@@ -581,9 +620,11 @@ public:
 	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter);
 	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+#if INTERIM_TREESEQ_DISABLE
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
+#endif	// INTERIM_TREESEQ_DISABLE
 	
-	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
+	size_t MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables);
 	void TSXC_Enable(void);
 	void TSF_Enable(void);
 	

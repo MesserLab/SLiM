@@ -286,6 +286,15 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters; since the id given to the chromosome (" << id << ") is more than three digits, a symbol must be supplied explicitly to satisfy this requirement." << EidosTerminate();
 	}
 	
+	// these checks for symbol try to ensure that it can be used in a filename, as in tree-seq recording, without causing problems
+	for (char c : symbol) {
+		if (!std::isprint(static_cast<unsigned char>(c))) {
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to consist only of printable ASCII characters." << EidosTerminate();
+		}
+	}
+	if (symbol.find_first_of(" \\/:$*?<>|._-\"") != std::string::npos)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() does not allow symbol to contain the characters [space], \\, /, :, $, *, ?, <, >, |, ., _, -, or \"." << EidosTerminate();
+	
 	if (ChromosomeFromSymbol(symbol))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be unique within the species; two chromosomes in the same species may not have the same symbol." << EidosTerminate();
 	
@@ -3576,7 +3585,13 @@ EidosValue_SP Species::ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_meth
 	if (!running_coalescence_checks_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqCoalesced): treeSeqCoalesced() may only be called when coalescence checking is enabled; pass checkCoalescence=T to initializeTreeSeq() to enable this feature." << EidosTerminate();
 	
-	return (last_coalescence_state_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	// This method now checks for *all* of the tree sequences being coalesced.  It could be extended to
+	// take a [Niso<Chromosome>$ chromosome = NULL] parameter, to allow one chromosome to be checked.
+	for (const TreeSeqInfo &tsinfo : treeseq_)
+		if (tsinfo.last_coalescence_state_ == false)
+			return gStaticEidosValue_LogicalF;
+	
+	return gStaticEidosValue_LogicalT;
 }
 
 // TREE SEQUENCE RECORDING
@@ -3597,7 +3612,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
 	
-	SimplifyTreeSequence();
+	SimplifyAllTreeSequences();
 	
 	return gStaticEidosValueVOID;
 }
@@ -3635,9 +3650,11 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (species != this)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
+	// This method remembers the given individuals once, in the shared individuals table kept by treeseq_[0]
 	EidosObject * const *oe_buffer = individuals_value->ObjectData();
 	Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-	AddIndividualsToTable(ind_buffer, ind_count, &tables_, &tabled_individuals_hash_, flag);
+	
+	AddIndividualsToTable(ind_buffer, ind_count, &treeseq_[0].tables_, &tabled_individuals_hash_, flag);
 	
 	return gStaticEidosValueVOID;
 }
