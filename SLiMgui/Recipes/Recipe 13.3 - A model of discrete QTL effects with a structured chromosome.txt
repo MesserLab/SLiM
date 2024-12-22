@@ -1,8 +1,6 @@
 // Keywords: migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
-	initializeMutationRate(1e-6);
-	
 	// neutral mutations in non-coding regions
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -15,30 +13,20 @@ initialize() {
 	m2.mutationStackPolicy = "l";
 	
 	// set up our chromosome: 10 QTLs, surrounded by neutral regions
-	defineConstant("C", 10);    // number of QTLs
+	defineConstant("C", 10);    // number of QTLs / chromosomes
 	defineConstant("W", 1000);  // size of neutral buffer on each side
-	pos = 0;
-	q = NULL;
 	
 	for (i in 1:C)
 	{
-		initializeGenomicElement(g1, pos, pos + W-1);
-		pos = pos + W;
+		initializeChromosome(i, 0, W*2 + 1);
 		
-		initializeGenomicElement(g2, pos, pos);
-		q = c(q, pos);
-		pos = pos + 1;
+		initializeGenomicElement(g1, 0, W-1);
+		initializeGenomicElement(g2, W, W);
+		initializeGenomicElement(g1, W+1, W+1 + W-1);
 		
-		initializeGenomicElement(g1, pos, pos + W-1);
-		pos = pos + W;
+		initializeMutationRate(1e-6);
+		initializeRecombinationRate(1e-8);
 	}
-	
-	defineConstant("Q", q);     // remember our QTL positions
-	
-	// we want the QTLs to be unlinked; build a recombination map for that
-	rates = c(rep(c(1e-8, 0.5), C-1), 1e-8);
-	ends = (repEach(Q + W, 2) + rep(c(0,1), C))[0:(C*2 - 2)];
-	initializeRecombinationRate(rates, ends);
 }
 1 late() {
 	sim.addSubpop("p1", 500);
@@ -48,17 +36,15 @@ initialize() {
 	p1.setMigrationRates(p2, 0.01);
 	p2.setMigrationRates(p1, 0.01);
 	
-	// replicate the s1 event to output in tick 2 also
-	community.registerEarlyEvent("s2", s1.source, 2, 2);
-	
 	// optional: give m2 mutations to everyone, as standing variation
-	g = sim.subpopulations.haplosomes;
+	individuals = sim.subpopulations.individuals;
 	
-	for (q in Q)
+	for (i in 1:C)
 	{
+		g = sim.subpopulations.individuals.haplosomesForChromosomes(i);
 		isPlus = asLogical(rbinom(size(g), 1, 0.5));
-		g[isPlus].addNewMutation(m2, 1.0, q);
-		g[!isPlus].addNewMutation(m2, -1.0, q);
+		g[isPlus].addNewMutation(m2, 1.0, W);
+		g[!isPlus].addNewMutation(m2, -1.0, W);
 	}
 }
 mutationEffect(m2) { return 1.0; }
@@ -78,7 +64,7 @@ mateChoice() {
 	others = sourceSubpop.individuals.tagF;
 	return weights * dnorm(others, phenotype, 5.0);
 }
-s1 2001 early() {
+c(2,2001) early() {
 	cat("-------------------------------\n");
 	cat("Output for end of cycle " + (sim.cycle - 1) + ":\n\n");
 	
@@ -96,18 +82,18 @@ s1 2001 early() {
 	minus = muts[muts.selectionCoeff == -1.0];
 	
 	cat("\nOverall frequencies:\n\n");
-	for (q in Q)
+	for (i in 1:C)
 	{
-		qPlus = plus[plus.position == q];
-		qMinus = minus[minus.position == q];
-		pf = sum(sim.mutationFrequencies(NULL, qPlus));
-		mf = sum(sim.mutationFrequencies(NULL, qMinus));
-		pf1 = sum(sim.mutationFrequencies(p1, qPlus));
-		mf1 = sum(sim.mutationFrequencies(p1, qMinus));
-		pf2 = sum(sim.mutationFrequencies(p2, qPlus));
-		mf2 = sum(sim.mutationFrequencies(p2, qMinus));
+		iPlus = plus[plus.chromosome.id == i];
+		iMinus = minus[minus.chromosome.id == i];
+		pf = sum(sim.mutationFrequencies(NULL, iPlus));
+		mf = sum(sim.mutationFrequencies(NULL, iMinus));
+		pf1 = sum(sim.mutationFrequencies(p1, iPlus));
+		mf1 = sum(sim.mutationFrequencies(p1, iMinus));
+		pf2 = sum(sim.mutationFrequencies(p2, iPlus));
+		mf2 = sum(sim.mutationFrequencies(p2, iMinus));
 		
-		cat("   QTL " + q + ": f(+) == " + pf + ", f(-) == " + mf + "\n");
+		cat("   QTL " + i + ": f(+) == " + pf + ", f(-) == " + mf + "\n");
 		cat("         in p1: f(+) == " + pf1 + ", f(-) == " + mf1 + "\n");
 		cat("         in p2: f(+) == " + pf2 + ", f(-) == " + mf2 + "\n\n");
 	}
