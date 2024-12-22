@@ -86,7 +86,7 @@ static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, 
 static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
 static const char *SLIM_TREES_FILE_VERSION_SPECIES = "0.8";		// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
-static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 4.4 onward, with haplosomes not genomes, and `chromosomes` key
+static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 4.4 onward, for multichrom (haplosomes not genomes, and `chromosomes` key)
 
 #pragma mark -
 #pragma mark Species
@@ -139,6 +139,23 @@ Species::~Species(void)
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
 		FreeTreeSequence();
+	
+	if (hap_metadata_1F_) {
+		free(hap_metadata_1F_);
+		hap_metadata_1F_ = nullptr;
+	}
+	if (hap_metadata_1M_) {
+		free(hap_metadata_1M_);
+		hap_metadata_1M_ = nullptr;
+	}
+	if (hap_metadata_2F_) {
+		free(hap_metadata_2F_);
+		hap_metadata_2F_ = nullptr;
+	}
+	if (hap_metadata_2M_) {
+		free(hap_metadata_2M_);
+		hap_metadata_2M_ = nullptr;
+	}
 	
 	// Let go of our chromosome objects
 	for (Chromosome *chromosome : chromosomes_)
@@ -234,20 +251,14 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 			}
 			
 			// set the appropriate bits in the focal metadata, which we know was cleared to zero initially
+			int byte_index = chromosome_index / 8;
+			int bit_shift = chromosome_index % 8;
+			
 			if (haplosome_1_is_null_or_unused)
-			{
-				int byte_index = chromosome_index / 8;
-				int bit_shift = chromosome_index % 8;
-				
 				focal_metadata_1->is_null_[byte_index] |= (0x01 << bit_shift);
-			}
+			
 			if (haplosome_2_is_null_or_unused)
-			{
-				int byte_index = chromosome_index / 8;
-				int bit_shift = chromosome_index % 8;
-				
 				focal_metadata_2->is_null_[byte_index] |= (0x01 << bit_shift);
-			}
 		}
 		
 		// loop from female to male, then break out
@@ -706,6 +717,8 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 	{
 #if INTERIM_TREESEQ_DISABLE
 		new_tick = _InitializePopulationFromTskitBinaryFile(file_cstr, p_interpreter, p_subpop_remap);
+#else
+		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): (internal error) loading tree-sequence archives is temporarily disabled." << EidosTerminate();
 #endif // INTERIM_TREESEQ_DISABLE
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_HDF5)
@@ -4056,7 +4069,8 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_CORE);
 	}
 	
-	// note that we leave things in a partially completed state; the node table still needs to be filtered!
+	// note that we leave things in a partially completed state; the nodes and individuals tables still
+	// need to be filtered!  that is the responsibility of the caller -- i.e., SimplifyAllTreeSequences().
 }
 
 void Species::SimplifyAllTreeSequences(void)
@@ -4612,6 +4626,8 @@ void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_indiv
 	// the correct haplosome pedigree IDs, directly into the default metadata records, so
 	// this code is not thread-safe!  The design is this way because the size of HaplosomeMetadataRec
 	// is determined dynamically at runtime, depending on the number of chromosomes in the model.
+	// (If we want this to run in parallel across chromosomes eventually, we could keep separate
+	// copies of the default haplosome metadata for each chromosome, to make this thread-safe...)
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL();
 	static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec has changed size; this code probably needs to be updated");
 	HaplosomeMetadataRec *metadata1, *metadata2;
@@ -4737,7 +4753,7 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 	// BCH 12/10/2024: With the new metadata scheme for haplosome, we also need to fix the is_null_metadata if
 	// the new haplosome is a null haplosome *and* it belongs to a chromosome type where that is notable.  In
 	// the present design, that can only be chromosome types "A" and "H"; the other chromosome types do not
-	// allow deviation from the default null-haplosme configuration.
+	// allow deviation from the default null-haplosome configuration.
 	if (p_new_haplosome->IsNull())
 	{
 		ChromosomeType chromosome_type = chromosome.Type();
@@ -5534,7 +5550,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		{
 			// write out all the same information again in a key called "this_chromosome"; this way the
 			// user can trivially get the info for the chromosome represented by the file; note that a
-			// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome
+			// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome,
+			// but a no-genetics model can't write a tree sequence anyway, so that is moot.
 			metadata["SLiM"]["this_chromosome"] = chromosome_info;
 		}
 	}

@@ -358,10 +358,10 @@ private:
 	
 	size_t haplosome_metadata_size_;			// the number of bytes for haplosome metadata, for this species, including is_null_ flags
 	size_t haplosome_metadata_isnull_bytes_;	// the number of bytes used for is_null_ in the haplosome metadata
-	HaplosomeMetadataRec *hap_metadata_1F_;		// malloced; default is_null_ flags for first haplosomes in females/hermaphrodites
-	HaplosomeMetadataRec *hap_metadata_1M_;		// malloced; default is_null_ flags for first haplosomes in males
-	HaplosomeMetadataRec *hap_metadata_2F_;		// malloced; default is_null_ flags for second haplosomes in females/hermaphrodites
-	HaplosomeMetadataRec *hap_metadata_2M_;		// malloced; default is_null_ flags for second haplosomes in males
+	HaplosomeMetadataRec *hap_metadata_1F_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_1M_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in males
+	HaplosomeMetadataRec *hap_metadata_2F_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_2M_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in males
 	void _MakeHaplosomeMetadataRecords(void);
 	
 	// ********** then we have tree-seq state that is kept separately for each chromosome; each has its own tree sequence
@@ -377,6 +377,7 @@ private:
 													// index 0's table collection contains the shared tables; see CopySharedTablesIn()
 	
 	// FIXME MULTI_TREESEQ this define is temporary, used to disable chunks of treeseq code that I don't want to deal with porting yet
+#warning need to re-enable treeseq reading from disk
 #define INTERIM_TREESEQ_DISABLE	0
 	
 public:

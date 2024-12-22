@@ -3586,7 +3586,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqCoalesced): treeSeqCoalesced() may only be called when coalescence checking is enabled; pass checkCoalescence=T to initializeTreeSeq() to enable this feature." << EidosTerminate();
 	
 	// This method now checks for *all* of the tree sequences being coalesced.  It could be extended to
-	// take a [Niso<Chromosome> chromosome = NULL] parameter, to allow one chromosome to be checked.
+	// take a [Niso<Chromosome>$ chromosome = NULL] parameter, to allow one chromosome to be checked.
 	for (const TreeSeqInfo &tsinfo : treeseq_)
 		if (tsinfo.last_coalescence_state_ == false)
 			return gStaticEidosValue_LogicalF;

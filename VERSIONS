@@ -75,7 +75,8 @@ development head (in the master branch):
 		shift to a tree sequence for each chromosome, sharing the node, individual, and population tables across all tree sequences; new TreeSeqInfo struct for per-chromosome state
 		remembered_haplosomes_ is now remembered_nodes_; it retains nodes that are shared across the tree sequences, and that can represent multiple haplosomes
 		Haplosome no longer keeps its tskit node id; the individual keeps two tskit node ids for first and second position, used across all chromosomes in the shared node table
-		added a list of chromosomes to the top-level metadata, changed the top-level schema to require this list
+		added a list of chromosomes to the top-level metadata (`chromosomes`), changed the top-level schema to describe this (optional) list
+		added a description of the focal chromosome to the top-level metadata (`this_chromosome`), changed the top-level schema to describe this (required) key
 		changed Genome metadata to Haplosome metadata, removed chromosome type, identical for all haplosomes of a given position in an individual
 			the way the is_null flags for haplosomes is handled is completely reworked and rather complex, of necessity; see comments in the code
 		bumped .trees version number to 0.9
