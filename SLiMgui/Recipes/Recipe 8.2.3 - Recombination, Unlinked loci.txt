@@ -1,0 +1,11 @@
+// Keywords: unlinked loci, free recombination, linkage disequilibrium
+
+initialize() {
+	initializeMutationRate(1e-5);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99);
+	initializeRecombinationRate(0.5);
+}
+1 early() { sim.addSubpop("p1", 500); }
+10000 early() { sim.simulationFinished(); }
