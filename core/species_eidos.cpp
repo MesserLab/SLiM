@@ -327,13 +327,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	{
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		output_stream << "initializeChromosome(" << id << ", " << start << ", " << length << ", " << type_string;
+		output_stream << "initializeChromosome(" << id << ", " << start << ", " << length << ", '" << type_string << "'";
 		if (symbol_value->Type() == EidosValueType::kValueString)
 			output_stream << ", symbol='" << symbol << "'";
 		if (name.length())
 			output_stream << ", name='" << name << "'";
 		if (mutrun_count != 0)
-			output_stream << ", mutationRuns='" << mutrun_count << "'";
+			output_stream << ", mutationRuns=" << mutrun_count;
 		output_stream << ");" << std::endl;
 	}
 	
