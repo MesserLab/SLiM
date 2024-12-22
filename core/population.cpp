@@ -8316,7 +8316,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 	
 	// Fetch total haplosome counts for all chromosomes up front; these will be set up beforehand
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
-	static std::vector<slim_refcount_t> total_haplosome_counts;		// static to avoid alloc/dealloc
+	static std::vector<double> total_haplosome_counts;		// static to avoid alloc/dealloc
 	
 	total_haplosome_counts.clear();
 	total_haplosome_counts.reserve(chromosomes.size());
@@ -8369,12 +8369,8 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 			const Mutation *mut = mutation_block_ptr + mut_index;
 			double freq;
 			
-			if (mut->state_ == MutationState::kInRegistry)
-			{
-				slim_refcount_t total_haplosome_count = total_haplosome_counts[mut->chromosome_index_];
-				freq = *(refcount_block_ptr + mut_index) / total_haplosome_count;
-			}
-			else /* MutationState::kRemovedWithSubstitution */	freq = 1.0;
+			if (mut->state_ == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut_index) / total_haplosome_counts[mut->chromosome_index_];
+			else /* MutationState::kRemovedWithSubstitution */		freq = 1.0;
 			
 			float_result->set_float_no_check(freq, registry_index);
 		}
@@ -8393,8 +8389,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		{
 			MutationIndex mut_index = registry[registry_index];
 			const Mutation *mut = mutation_block_ptr + mut_index;
-			slim_refcount_t total_haplosome_count = total_haplosome_counts[mut->chromosome_index_];
-			float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / total_haplosome_count, registry_index);
+			float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / total_haplosome_counts[mut->chromosome_index_], registry_index);
 		}
 	}
 	
