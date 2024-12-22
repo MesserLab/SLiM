@@ -5,7 +5,7 @@
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(keepPedigrees=T);
-	initializeSex("A");
+	initializeSex();
 	defineConstant("K", 500);
 	
 	initializeMutationRate(1e-7);

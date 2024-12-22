@@ -6,7 +6,7 @@
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeTreeSeq();
-	initializeSex("A");
+	initializeSex();
 	initializeMutationRate(0);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeMutationType("m2", 0.5, "f", 0.1);

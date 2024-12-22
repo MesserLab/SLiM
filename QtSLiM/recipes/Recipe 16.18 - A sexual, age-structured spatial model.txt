@@ -3,7 +3,7 @@
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(dimensionality="xy");
-	initializeSex("A");
+	initializeSex();
 	defineConstant("K", 300);   // carrying-capacity density
 	defineConstant("S", 0.1);   // SIGMA_S, the spatial interaction width
 	

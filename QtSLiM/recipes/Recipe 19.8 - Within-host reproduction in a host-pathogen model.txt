@@ -15,7 +15,7 @@ species all initialize() {
 species monkey initialize() {
 	initializeSpecies(tickModulo=G_MONKEY, avatar="🐵", color="tan3");
 	initializeSLiMOptions(keepPedigrees=T);
-	initializeSex("A");
+	initializeSex();
 	// pedigree IDs are used to identify host-pathogen matches
 	// colors: blue == uninfected, yellow -> red == infected, black == dead
 }

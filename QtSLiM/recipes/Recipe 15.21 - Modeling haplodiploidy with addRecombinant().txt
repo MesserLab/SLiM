@@ -11,7 +11,7 @@ initialize() {
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, 999999);
 	initializeRecombinationRate(1e-6);
-	initializeSex("A");
+	initializeSex();
 }
 reproduction(NULL, "F") {
 	gen1 = individual.haploidGenome1;

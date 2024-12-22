@@ -8,7 +8,7 @@ initialize()
 	defineConstant("L1", 1e5-1);  // chromosome end (length - 1)
 	
 	initializeSLiMModelType("nonWF");
-	initializeSex("A");
+	initializeSex();
 	initializeMutationRate(MU);
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	m1.convertToSubstitution = T;

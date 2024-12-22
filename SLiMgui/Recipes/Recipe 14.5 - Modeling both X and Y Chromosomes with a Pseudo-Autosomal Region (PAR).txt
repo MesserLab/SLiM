@@ -14,7 +14,7 @@ initialize()
 	initializeGenomicElement(g2, 2700000, 5999999);  // non-PAR
 	
 	// turn on sex and model as an autosome
-	initializeSex("A");
+	initializeSex();
 	
 	// no recombination in males outside PAR
 	initializeRecombinationRate(c(1e-8, 0), c(2699999, 5999999), sex="M");
