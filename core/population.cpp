@@ -6779,7 +6779,7 @@ void Population::UniqueMutationRuns(void)
 	std::clock_t end = std::clock();
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
-	std::cout << "UniqueMutationRuns(): \n   " << total_mutruns << " run pointers analyzed\n   " << total_preexisting << " runs pre-existing\n   " << total_uniqued_away << " duplicate runs discovered and uniqued away\n   " << (total_mutruns - total_identical) << " final uniqued mutation runs\n   " << total_hash_collisions << " hash collisions\n   " << time_spent << " seconds elapsed" << std::endl;
+	std::cout << "UniqueMutationRuns(), tick " << community_.Tick() << ": \n   " << total_mutruns << " run pointers analyzed\n   " << total_preexisting << " runs pre-existing\n   " << total_uniqued_away << " duplicate runs discovered and uniqued away\n   " << (total_mutruns - total_identical) << " final uniqued mutation runs\n   " << total_hash_collisions << " hash collisions\n   " << time_spent << " seconds elapsed" << std::endl;
 #else
     // get rid of unused variable warnings
     (void)total_hash_collisions;
@@ -7240,74 +7240,88 @@ void Population::AssessMutationRuns(void)
 	
 	if (tick % 1000 == 0)
 	{
-		// First, unique our runs; this is just for debugging the uniquing, and should be removed.  FIXME
-		int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-		slim_refcount_t total_haplosome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
-		int mutrun_count = 0, use_count_total = 0;
-		slim_position_t mutrun_length = 0;
-		int64_t mutation_total = 0;
+		std::cout << "***** AssessMutationRuns(), tick " << tick << ":" << std::endl;
+		std::cout << "   Mutation count: " << mutation_registry_.size() << std::endl;
 		
-		int64_t operation_id = MutationRun::GetNextOperationID();
-		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		for (Chromosome *chromosome : species_.Chromosomes())
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			slim_chromosome_index_t chromosome_index = chromosome->Index();
+			int registry_size = 0, registry_count_in_chromosome = 0;
+			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+			const MutationIndex *registry = MutationRegistry(&registry_size);
 			
-			for (Individual *ind : subpop->parent_individuals_)
+			for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 			{
-				Haplosome **haplosomes = ind->haplosomes_;
+				Mutation *mut = mut_block_ptr + registry[registry_index];
 				
-				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				if (mut->chromosome_index_ == chromosome_index)
+					registry_count_in_chromosome++;
+			}
+			
+			int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
+			int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
+			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+			slim_refcount_t total_haplosome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
+			int mutrun_count = 0, use_count_total = 0;
+			slim_position_t mutrun_length = 0;
+			int64_t mutation_total = 0;
+			
+			int64_t operation_id = MutationRun::GetNextOperationID();
+			
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				for (Individual *ind : subpop->parent_individuals_)
 				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
+					Haplosome **haplosomes = ind->haplosomes_;
 					
-					if (!haplosome->IsNull())
+					for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 					{
-						// FIXME MULTICHROM These values are different for different chromosomes,
-						// but get reported below as if they're all the same.  This code doesn't
-						// really make much sense.  Probably it needs to be restructured to report
-						// on one chromosome at a time.
-						mutrun_count = haplosome->mutrun_count_;
-						mutrun_length = haplosome->mutrun_length_;
+						Haplosome *haplosome = haplosomes[haplosome_index];
 						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						if (!haplosome->IsNull())
 						{
-							const MutationRun *mutrun = haplosome->mutruns_[run_index];
-							int mutrun_size = mutrun->size();
+							mutrun_count = haplosome->mutrun_count_;
+							mutrun_length = haplosome->mutrun_length_;
 							
-							total_mutrun_count++;
-							mutation_total += mutrun_size;
-							
-							if (mutrun->operation_id_ != operation_id)
+							for (int run_index = 0; run_index < mutrun_count; ++run_index)
 							{
-								slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+								const MutationRun *mutrun = haplosome->mutruns_[run_index];
+								int mutrun_size = mutrun->size();
 								
-								total_shared_mutrun_count++;
-								use_count_total += use_count;
+								total_mutrun_count++;
+								mutation_total += mutrun_size;
 								
-								mutrun->operation_id_ = operation_id;
+								if (mutrun->operation_id_ != operation_id)
+								{
+									slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+									
+									total_shared_mutrun_count++;
+									use_count_total += use_count;
+									
+									mutrun->operation_id_ = operation_id;
+								}
 							}
+							
+							total_haplosome_count++;
 						}
-						
-						total_haplosome_count++;
 					}
 				}
 			}
+			
+			std::cout << "   ========== Chromosome index " << (int)(chromosome->Index()) << ", id " << chromosome->ID() << ", symbol " << chromosome->Symbol() << " (length " << (chromosome->last_position_ + 1) << ")" << std::endl;
+			std::cout << "   Mutation count in chromosome: " << registry_count_in_chromosome << std::endl;
+			std::cout << "   Haplosome count: " << total_haplosome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
+			
+			std::cout << "   Mutation run unshared: " << total_mutrun_count;
+			if (total_mutrun_count) std::cout << " (containing " << (mutation_total / (double)total_mutrun_count) << " mutations on average)";
+			std::cout << std::endl;
+			
+			std::cout << "   Mutation run actual: " << total_shared_mutrun_count;
+			if (total_shared_mutrun_count) std::cout << " (mean use count " << (use_count_total / (double)total_shared_mutrun_count) << ")";
+			std::cout << std::endl;
 		}
-		
-		std::cout << "***** Tick " << tick << ":" << std::endl;
-		std::cout << "   Mutation count: " << mutation_registry_.size() << std::endl;
-		std::cout << "   Haplosome count: " << total_haplosome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
-		
-		std::cout << "   Mutation run unshared: " << total_mutrun_count;
-		if (total_mutrun_count) std::cout << " (containing " << (mutation_total / (double)total_mutrun_count) << " mutations on average)";
-		std::cout << std::endl;
-		
-		std::cout << "   Mutation run actual: " << total_shared_mutrun_count;
-		if (total_shared_mutrun_count) std::cout << " (mean use count " << (use_count_total / (double)total_shared_mutrun_count) << ")";
-		std::cout << std::endl;
-		
-		std::cout << "*****" << std::endl;
 	}
 }
 
