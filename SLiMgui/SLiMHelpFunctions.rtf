@@ -872,7 +872,7 @@ See the documentation for
 \f1\fs18 0.5
 \f2\fs20 ].  A rate of 
 \f1\fs18 0.5
-\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/haplosome), and a supplied rate of 
+\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement unlinked loci.  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/haplosome), and a supplied rate of 
 \f1\fs18 0.5
 \f2\fs20  will therefore result in an actual probability of 
 \f1\fs18 0.5
@@ -904,59 +904,6 @@ There are two ways to call this function.  If the optional
 \f2\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f1\fs18 ends
 \f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-For example, if the following call is made:\
-\pard\pardeftab720\ri720\partightenfactor0
-
-\f4 \cf0 \kerning1\expnd0\expndtw0 	
-\f1\fs18 initializeRecombinationRate(c(0, 0.5, 0), c(5000, 5001, 9999));\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-then the result is that the recombination rates between bases 
-\f1\fs18 0
-\f2\fs20 \'a0/\'a0
-\f1\fs18 1
-\f2\fs20 , 
-\f1\fs18 1
-\f2\fs20 \'a0/\'a0
-\f1\fs18 2
-\f2\fs20 , ..., 
-\f1\fs18 4999
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5000
-\f2\fs20  will be 
-\f1\fs18 0
-\f2\fs20 , the rate between bases 
-\f1\fs18 5000
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5001
-\f2\fs20  will be 
-\f1\fs18 0.5
-\f2\fs20 , and the rate between bases 
-\f1\fs18 5001
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5002
-\f2\fs20  onward (up to 
-\f1\fs18 9998
-\f2\fs20 \'a0/\'a0
-\f1\fs18 9999
-\f2\fs20 ) will again be 
-\f1\fs18 0
-\f2\fs20 .  Setting the recombination rate between one specific pair of bases to 
-\f1\fs18 0.5
-\f2\fs20  forces recombination to occur with a probability of 
-\f1\fs18 0.5
-\f2\fs20  between those bases, which effectively breaks the simulated locus into separate chromosomes at that point; this example effectively has one simulated chromosome from base position 
-\f1\fs18 0
-\f2\fs20  to 
-\f1\fs18 5000
-\f2\fs20 , and another from 
-\f1\fs18 5001
-\f2\fs20  to 
-\f1\fs18 9999
-\f2\fs20 .\
 If the optional 
 \f1\fs18 sex
 \f2\fs20  parameter is 
@@ -972,7 +919,7 @@ If the optional
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeSex([Ns$\'a0chromosomeType\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (void)initializeSex([Ns$\'a0chromosomeType\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Enable sex in the simulation.  Beginning in SLiM 5, this method should generally be passed 
