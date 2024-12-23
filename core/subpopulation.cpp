@@ -2845,7 +2845,7 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 	else if (haplosome1_null || haplosome2_null)
 	{
 		// one haplosome is null, so we just need to scan through the non-null haplosome and account
-		// for its mutations, including the haploid dominance coefficient
+		// for its mutations, including the hemizygous dominance coefficient
 		const Haplosome *haplosome = haplosome1_null ? haplosome2 : haplosome1;
 		const int32_t mutrun_count = haplosome->mutrun_count_;
 		
@@ -2864,7 +2864,7 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 			const MutationIndex *haplosome_max = mutrun->end_pointer_const();
 #endif
 			
-			// with an unpaired chromosome, we multiply each selection coefficient by the haploid dominance coefficient
+			// with an unpaired chromosome, we multiply each selection coefficient by the hemizygous dominance coefficient
 			// this is for a single X chromosome in a male, for example; dosage compensation, as opposed to heterozygosity
 			while (haplosome_iter != haplosome_max)
 			{
@@ -2873,14 +2873,14 @@ double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosom
 				
 				if (f_callbacks && (!f_singlecallback || (mutation->mutation_type_ptr_ == single_callback_mut_type)))
 				{
-					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
+					w *= ApplyMutationEffectCallbacks(haplosome_mutindex, -1, mutation->cached_one_plus_hemizygousdom_sel_, p_mutationEffect_callbacks, haplosome->individual_);
 					
 					if (w <= 0.0)
 						return 0.0;
 				}
 				else
 				{
-					w *= mutation->cached_one_plus_haploiddom_sel_;
+					w *= mutation->cached_one_plus_hemizygousdom_sel_;
 				}
 			}
 		}

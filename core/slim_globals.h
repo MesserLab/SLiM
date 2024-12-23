@@ -810,7 +810,7 @@ extern const std::string &gStr_convertToSubstitution;
 extern const std::string &gStr_distributionType;
 extern const std::string &gStr_distributionParams;
 extern const std::string &gStr_dominanceCoeff;
-extern const std::string &gStr_haploidDominanceCoeff;
+extern const std::string &gStr_hemizygousDominanceCoeff;
 extern const std::string &gStr_mutationStackGroup;
 extern const std::string &gStr_mutationStackPolicy;
 //extern const std::string &gStr_start;		now gEidosStr_start
@@ -1250,7 +1250,7 @@ enum _SLiMGlobalStringID : int {
 	gID_distributionType,
 	gID_distributionParams,
 	gID_dominanceCoeff,
-	gID_haploidDominanceCoeff,
+	gID_hemizygousDominanceCoeff,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
 	//gID_start,	now gEidosID_start

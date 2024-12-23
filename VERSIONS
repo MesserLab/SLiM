@@ -27,6 +27,8 @@ development head (in the master branch):
 		x	Species class:
 		x		property chromosome -> chromosomes
 		x		property chromosomeType -> removed in favor of `chromosomes.type`
+		x	MutationType class:
+		x		property haploidDominanceCoeff -> hemizygousDominanceCoeff (applies only facing a null haplosome, not in "true" haploid chromosomes!)
 		x	mutation() callbacks:
 		x		pseudo-parameter genome -> haplosome
 		x	recombination() callbacks:
@@ -81,6 +83,7 @@ development head (in the master branch):
 			the way the is_null flags for haplosomes is handled is completely reworked and rather complex, of necessity; see comments in the code
 		bumped .trees version number to 0.9
 		treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a directory with .trees files inside for multichrom models
+		for addSubpop(), haploid=T now requests specifically that type "A" chromosomes be made with their second haplosome null (for haplodiploidy, and backward compatibility)
 
 
 version 4.3 (Eidos version 3.3):

@@ -5753,7 +5753,7 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 haploidDominanceCoeff\cf0  <\cf2 \'96> (float$)\
+\f3\fs18 \cf2 hemizygousDominanceCoeff <\'96> (float$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null haplosome (as can occur in sex-chromosome models and models involving a mix of haploids and diploids).  This defaults to 
@@ -5765,8 +5765,7 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 As with the 
+As with the 
 \f3\fs18 dominanceCoeff
 \f4\fs20  property, this is stored internally using a single-precision float; see the documentation for 
 \f3\fs18 dominanceCoeff
@@ -7711,7 +7710,9 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 haploid
 \f4\fs20  parameter may be 
 \f3\fs18 T
-\f4\fs20 ; in this case, the second haplosome of each new individual will be a null haplosome, rather than an empty haplosome.  For even greater control in nonWF models, you can call 
+\f4\fs20 ; in this case, for all chromosomes of type 
+\f3\fs18 "A"
+\f4\fs20  (and only that type), the second haplosome of each new individual will be a null haplosome, rather than an empty haplosome.  For even greater control in nonWF models, you can call 
 \f3\fs18 addSubpop()
 \f4\fs20  with an initial size of 
 \f3\fs18 0

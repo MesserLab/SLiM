@@ -6273,11 +6273,11 @@ void Population::ValidateMutationFitnessCaches(void)
 		Mutation *mut = mut_block_ptr + mut_index;
 		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
 		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
-		slim_selcoeff_t haploid_dom_coeff = mut->mutation_type_ptr_->haploid_dominance_coeff_;
+		slim_selcoeff_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
 		
 		mut->cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
 		mut->cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
-		mut->cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + haploid_dom_coeff * sel_coeff);
+		mut->cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + hemizygous_dom_coeff * sel_coeff);
 	}
 }
 
@@ -9321,7 +9321,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_position_t position = mutation_ptr->position_;
 		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
 		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
-		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved; too edge to be bothered...
+		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 		slim_tick_t tick = mutation_ptr->origin_tick_;
 		slim_refcount_t prevalence = polymorphism.prevalence_;

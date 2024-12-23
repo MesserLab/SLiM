@@ -376,7 +376,7 @@ private:
 	std::vector<TreeSeqInfo> treeseq_;				// OWNED; all our tree-sequence state, in the order the chromosomes were defined
 													// index 0's table collection contains the shared tables; see CopySharedTablesIn()
 	
-	// FIXME MULTI_TREESEQ this define is temporary, used to disable chunks of treeseq code that I don't want to deal with porting yet
+	// FIXME MULTICHROM this define is temporary, used to disable chunks of treeseq code that I don't want to deal with porting yet
 #warning need to re-enable treeseq reading from disk
 #define INTERIM_TREESEQ_DISABLE	0
 	

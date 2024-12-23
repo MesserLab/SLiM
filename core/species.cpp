@@ -944,7 +944,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
-		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 		
 		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -1661,7 +1661,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
 		
-		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 		
 		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -4154,7 +4154,7 @@ void Species::SimplifyAllTreeSequences(void)
 	WritePopulationTable(&main_tables);
 	
 	// simplify all of the tree sequences
-	// FIXME MULTI_TREESEQ: parallelize simplification here!
+	// FIXME MULTICHROM: parallelize simplification here!
 	for (Chromosome *chromosome : chromosomes_)
 	{
 		slim_chromosome_index_t chromosome_index = chromosome->Index();
@@ -8515,7 +8515,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	__CheckNodePedigreeIDs(p_interpreter);
 	
 	// Set up the remembered haplosomes by looking though the list of nodes and their individuals
-	// FIXME MULTI_TREESEQ this doubtless needs work; at a minimum, remembered_nodes_ no longer always has an even number of entries
+	// FIXME MULTICHROM this doubtless needs work
 	if (remembered_nodes_.size() != 0)
 		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): (internal error) remembered_nodes_ is not empty." << EidosTerminate();
 	

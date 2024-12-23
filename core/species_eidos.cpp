@@ -2025,8 +2025,9 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	{
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option in WF models." << EidosTerminate();
-		if (has_implicit_chromosome_)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when explicit chromosomes are enabled; simply use a haploid chromosome type if you want haploid individuals.  The haploid=T option is largely for backward compatibility now, for models with an implicit diploid chromosome." << EidosTerminate();
+		// BCH 12/23/2024: For a brief time I also raised an error here if explicit chromosomes had been defined,
+		// but then I realized that this flag remains useful in models of haplodiploidy, where you still want a
+		// diploid chromosome (type "A") and want some individuals to have a null second haplosome.
 	}
 	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity

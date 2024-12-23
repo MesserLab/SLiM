@@ -1579,7 +1579,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
 	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
 	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
-	// Note that at present we do not output the haploid dominance coefficient; too edge
+	// Note that at present we do not output the hemizygous dominance coefficient; too edge
 	p_out << "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">" << std::endl;
 	p_out << "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">" << std::endl;			// changed to ticks for 4.0, and changed "GO" to "TO"
 	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;

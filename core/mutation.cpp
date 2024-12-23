@@ -242,7 +242,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->haploid_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -309,7 +309,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->haploid_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	// zero out our refcount, which is now kept in a separate buffer
 	gSLiM_Mutation_Refcounts[BlockIndex()] = 0;
@@ -753,7 +753,7 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->haploid_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	return gStaticEidosValueVOID;
 }
@@ -781,7 +781,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	// cache values used by the fitness calculation code for speed; see header
 	cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + selection_coeff_);
 	cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->dominance_coeff_ * selection_coeff_);
-	cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->haploid_dominance_coeff_ * selection_coeff_);
+	cached_one_plus_hemizygousdom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + mutation_type_ptr_->hemizygous_dominance_coeff_ * selection_coeff_);
 	
 	return gStaticEidosValueVOID;
 }
