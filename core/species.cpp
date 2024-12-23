@@ -262,7 +262,7 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		}
 		
 		// loop from female to male, then break out
-		if (sex == IndividualSex::kFemale)
+		if (sex_enabled_ && (sex == IndividualSex::kFemale))
 		{
 			sex = IndividualSex::kMale;
 			focal_metadata_1 = hap_metadata_1M_;
