@@ -18,9 +18,10 @@ initialize() {
 	
 	for (id in ids, symbol in symbols, length in lengths, type in types)
 	{
-		initializeChromosome(id, 0, length, type, symbol);
+		initializeChromosome(id, length, type, symbol);
 		initializeMutationRate(1e-7);
-		initializeRecombinationRate(1e-8);
+		if (type != "Y")
+			initializeRecombinationRate(1e-8);
 		initializeGenomicElement(g1, 0, length-1);
 	}
 }

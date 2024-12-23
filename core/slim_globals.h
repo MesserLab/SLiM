@@ -754,7 +754,6 @@ extern const std::string &gStr_initializeSLiMModelType;
 extern const std::string &gStr_initializeInteractionType;
 
 extern const std::string &gStr_genomicElements;
-extern const std::string &gStr_firstPosition;
 extern const std::string &gStr_lastPosition;
 extern const std::string &gStr_hotspotEndPositions;
 extern const std::string &gStr_hotspotEndPositionsM;
@@ -1194,7 +1193,6 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeInteractionType,
 	
 	gID_genomicElements,
-	gID_firstPosition,
 	gID_lastPosition,
 	gID_hotspotEndPositions,
 	gID_hotspotEndPositionsM,

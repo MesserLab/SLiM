@@ -130,7 +130,7 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
     
     for (Chromosome *chromosome : chromosomes)
     {
-        slim_position_t length = chromosome->last_position_ - chromosome->first_position_ + 1;
+        slim_position_t length = chromosome->last_position_ + 1;
         
         chromosomeMaxLength = std::max(chromosomeMaxLength, length);
     }
@@ -166,10 +166,10 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         
         chromosomeWidget->setController(this);
         chromosomeWidget->setFocalChromosome(chromosome);
-        chromosomeWidget->setDisplayedRange(QtSLiMRange(chromosome->first_position_, chromosome->last_position_ + 1));
+        chromosomeWidget->setDisplayedRange(QtSLiMRange(0, chromosome->last_position_ + 1));
         chromosomeWidget->setShowsTicks(false);
         
-        slim_position_t length = chromosome->last_position_ - chromosome->first_position_ + 1;
+        slim_position_t length = chromosome->last_position_ + 1;
         double fractionOfMax = length / (double)chromosomeMaxLength;
         int chromosomeStretch = (int)(round(fractionOfMax * 255));  // Qt requires a max value of 255
         
@@ -921,7 +921,7 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
     
     for (Chromosome *chrom : chromosomes)
     {
-        slim_position_t chromLength = (chrom->last_position_ - chrom->first_position_ + 1);
+        slim_position_t chromLength = (chrom->last_position_ + 1);
         
         totalLength += chromLength;
     }
@@ -950,7 +950,7 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
     for (Chromosome *chrom : chromosomes)
     {
         double scale = (double)availableWidth / remainingLength;
-        slim_position_t chromLength = (chrom->last_position_ - chrom->first_position_ + 1);
+        slim_position_t chromLength = (chrom->last_position_ + 1);
         int width = (int)round(chromLength * scale);
         int paddedWidth = 2 + width;
         QRect chromContentRect(leftPosition, contentRect.top(), paddedWidth, contentRect.height());
@@ -1204,7 +1204,7 @@ Chromosome *QtSLiMChromosomeWidget::_findFocalChromosomeForTracking(QMouseEvent 
     
     for (Chromosome *chrom : chromosomes)
     {
-        slim_position_t chromLength = (chrom->last_position_ - chrom->first_position_ + 1);
+        slim_position_t chromLength = (chrom->last_position_ + 1);
         
         totalLength += chromLength;
     }
@@ -1218,7 +1218,7 @@ Chromosome *QtSLiMChromosomeWidget::_findFocalChromosomeForTracking(QMouseEvent 
     for (Chromosome *chrom : chromosomes)
     {
         double scale = (double)availableWidth / remainingLength;
-        slim_position_t chromLength = (chrom->last_position_ - chrom->first_position_ + 1);
+        slim_position_t chromLength = (chrom->last_position_ + 1);
         int width = (int)round(chromLength * scale);
         int paddedWidth = 2 + width;
         QRect chromOverallFrame(leftPosition, overallRect.top(), paddedWidth, overallRect.height());

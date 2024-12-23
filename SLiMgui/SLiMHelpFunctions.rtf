@@ -48,7 +48,7 @@ A utility function,
 \f3\i \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeChromosome(integer$\'a0id, integer$\'a0start, integer$\'a0length, [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
+\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeChromosome(integer$\'a0id, integer$\'a0length, [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function, added in SLiM\'a05, initiates the configuration of a chromosome in the species being initialized.  That chromosome is then the \'93focal chromosome\'94 for subsequent genetic initialization functions \'96 specifically, for 
@@ -137,21 +137,13 @@ There are three parameters that in some way identify the chromosome.  First, the
 \f2\fs20 .  The 
 \f1\fs18 name
 \f2\fs20  is not used by SLiM, and can be used in any way you wish.\
-There are two parameters that configure the extent of the chromosome, in 
-\f1\fs18 integer
-\f2\fs20  base positions.  The 
-\f1\fs18 start
-\f2\fs20  parameter sets the first valid base position in the chromosome.  Usually this is simply 
-\f1\fs18 0
-\f2\fs20 , but if, for example, you wish to model a specific subset of an empirical chromosome and match its base positions, you might use a different (non-negative 
-\f1\fs18 integer
-\f2\fs20 ) value.  The 
+The 
 \f1\fs18 length
 \f2\fs20  parameter sets the length, in base positions, of the chromosome, and must be greater than or equal to 
 \f1\fs18 1
 \f2\fs20 .  The last valid base position in the chromosome will be 
-\f1\fs18 start+length-1
-\f2\fs20 .  Attempting to add a genomic element or a mutation before the first position or after the last position will raise an error.  Similarly, the last position of the chromosome must match the last position specified for recombination, mutation, and hotspot maps for that chromosome, but not all positions on a chromosome have to actually be used in the model (i.e., not all positions must be covered by a genomic element).\
+\f1\fs18 length-1
+\f2\fs20 .  Attempting to add a genomic element or a mutation after the last position will raise an error.  Similarly, the last position of the chromosome must match the last position specified for recombination, mutation, and hotspot maps for that chromosome, but not all positions on a chromosome have to actually be used in the model (i.e., not all positions must be covered by a genomic element).\
 The 
 \f1\fs18 type
 \f2\fs20  parameter specifies the type of chromosome to be created.  There are numerous options, and they are somewhat complex.  First of all, in hermaphroditic models 

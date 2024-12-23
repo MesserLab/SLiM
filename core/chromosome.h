@@ -215,9 +215,8 @@ public:
 	
 	bool any_recombination_rates_05_ = false;				// set to T if any recombination rate is 0.5; those are excluded from gene conversion
 	
-	slim_position_t first_position_;						// first valid position
 	slim_position_t last_position_;							// last valid position
-	bool extent_immutable_;									// can the start/end still be changed?
+	bool extent_immutable_;									// can the chromosome endpoint still be changed?
 	
 	double overall_mutation_rate_H_;						// overall mutation rate (AFTER intersection with GEs)
 	double overall_mutation_rate_M_;						// overall mutation rate

@@ -1166,7 +1166,6 @@ const std::string &gStr_initializeInteractionType = EidosRegisteredString("initi
 
 // mostly property names
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
-const std::string &gStr_firstPosition = EidosRegisteredString("firstPosition", gID_firstPosition);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
 const std::string &gStr_hotspotEndPositionsM = EidosRegisteredString("hotspotEndPositionsM", gID_hotspotEndPositionsM);

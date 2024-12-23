@@ -37,13 +37,12 @@ development head (in the master branch):
 		x	parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
 		x	parameter name changes: addEmpty(), addRecombinant()
 		API additions:
-		x	(void)initializeChromosome(integer$ id, integer$ start, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+		x	(void)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
 		x	initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
 		x	Haplosome class:
 		x		property: chromosome => (object<Chromosome>$)
 		x	Chromosome class:
 		x		property id => (integer$)
-		x		property firstPosition => (integer$)
 		x		property length => (integer$)
 		x		property type => (string$)
 		x		property symbol => (string$)

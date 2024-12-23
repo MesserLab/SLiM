@@ -144,21 +144,7 @@ hotspotEndPositions => (integer)\
 \f4\fs20 , when using sex-specific hotspot maps; unavailable otherwise.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 firstPosition => (integer$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 The first valid position in the chromosome, as given to 
-\f3\fs18 initializeChromosome()
-\f4\fs20 .  For an implicitly defined chromosome, the chromosome\'92s first position is 
-\f3\fs18 0
-\f4\fs20 .  See also 
-\f3\fs18 lastPosition
-\f4\fs20  and 
-\f3\fs18 length
-\f4\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 id => (integer$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The id for the chromosome, as given to 
@@ -178,18 +164,14 @@ hotspotEndPositions => (integer)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The last valid position in the chromosome; equal to 
-\f3\fs18 firstPosition+length-1
+\f3\fs18 length-1
 \f4\fs20 , where 
-\f3\fs18 firstPosition
-\f4\fs20  and 
 \f3\fs18 length
-\f4\fs20  are the first position and length as given to 
+\f4\fs20  is the length as given to 
 \f3\fs18 initializeChromosome()
 \f4\fs20 .  For an implicitly defined chromosome, the chromosome\'92s last position is determined by the 
 \f1\i maximum
 \f4\i0  of the end of the last genomic element, the end of the last recombination region, and the end of the last mutation map region (or hotspot map region).  See also 
-\f3\fs18 firstPosition
-\f4\fs20  and 
 \f3\fs18 length
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -199,13 +181,11 @@ hotspotEndPositions => (integer)\
 
 \f4\fs20 \cf2 The length of the chromosome (meaning the number of valid base positions it contains), as given to 
 \f3\fs18 initializeChromosome()
-\f4\fs20 .  For an implicitly defined chromosome, the length is simply equal to the last position plus 
+\f4\fs20 .  The length is simply equal to the last position plus 
 \f3\fs18 1
-\f4\fs20 , since the first position is 
+\f4\fs20 , since the chromosome always starts at 
 \f3\fs18 0
 \f4\fs20 .  See also 
-\f3\fs18 firstPosition
-\f4\fs20  and 
 \f3\fs18 lastPosition
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -1728,6 +1708,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1838,6 +1819,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -7705,6 +7687,7 @@ The spatial periodicity of the simulation for this species, as specified in
 \f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty haplosomes. In order to model subpopulations that split from an already existing subpopulation, use 
 \f3\fs18 addSubpopSplit()
 \f5\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4 \cf2 Only in nonWF models, the 
 \f3\fs18 haploid
