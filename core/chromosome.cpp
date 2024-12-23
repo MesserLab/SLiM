@@ -623,6 +623,57 @@ void Chromosome::ChooseMutationRunLayout(void)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 }
 
+bool Chromosome::RequiresZeroRecombination(void) const
+{
+	switch (type_)
+	{
+			// these chromosome types allow recombination
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kH_HaploidAutosome:
+		case ChromosomeType::kX_XSexChromosome:
+		case ChromosomeType::kZ_ZSexChromosome:
+			return false;
+			
+			// these types do not, because they are haploid
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		case ChromosomeType::kML_HaploidMaleLine:
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			return true;
+	}
+}
+
+bool Chromosome::DefaultsToZeroRecombination(void) const
+{
+	switch (type_)
+	{
+			// these chromosome types allow recombination
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kX_XSexChromosome:
+		case ChromosomeType::kZ_ZSexChromosome:
+			return false;
+			
+			// this type allows recombination, but defaults to zero
+		case ChromosomeType::kH_HaploidAutosome:
+			return true;
+			
+			// these types do not, because they are haploid
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		case ChromosomeType::kML_HaploidMaleLine:
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			return true;
+	}
+}
+
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
 void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, std::vector<slim_position_t> &p_end_positions, std::vector<double> &p_rates, double &p_overall_rate, double &p_exp_neg_overall_rate, double &p_overall_rate_userlevel)
 {
@@ -3411,8 +3462,11 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		double recombination_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
 		// check values
-		if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+		if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
+		
+		if ((recombination_rate != 0.0) && RequiresZeroRecombination())
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -3439,8 +3493,11 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 				if (recombination_end_position <= ends_value->IntAtIndex_NOCAST(value_index - 1, nullptr))
 					EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires ends to be in strictly ascending order." << EidosTerminate();
 			
-			if ((recombination_rate < 0.0) || (recombination_rate > 0.5))
+			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
+			
+			if ((recombination_rate != 0.0) && RequiresZeroRecombination())
+				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is

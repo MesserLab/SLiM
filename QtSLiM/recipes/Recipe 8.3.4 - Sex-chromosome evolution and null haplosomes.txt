@@ -16,7 +16,6 @@ initialize() {
 	initializeChromosome(2, 0, Y_LEN, type="Y", symbol="Y");
 	initializeGenomicElement(g1, 0, Y_LEN-1);
 	initializeMutationRate(1e-7);
-	initializeRecombinationRate(0.0);
 }
 1 early() {
 	sim.addSubpop("p1", 500);

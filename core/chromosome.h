@@ -307,6 +307,9 @@ public:
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
 	inline size_t GenomicElementCount(void) const { return genomic_elements_.size(); }
 	
+	bool RequiresZeroRecombination(void) const;
+	bool DefaultsToZeroRecombination(void) const;
+	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(IndividualSex p_sex) const;
 	

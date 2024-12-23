@@ -2299,7 +2299,27 @@ void Species::EndCurrentChromosome(bool starting_new_chromosome)
 		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one genomic element must be defined " << contextStr << " with initializeGenomicElement()." << finalStr << EidosTerminate();
 	
 	if (num_recrate_inits_ == 0)
-		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one recombination rate interval must be defined " << contextStr << " with initializeRecombinationRate(), although the rate given can be zero." << finalStr << EidosTerminate();
+	{
+		if (chromosome->DefaultsToZeroRecombination())
+		{
+			// For chromosomes that require zero recombination, we allow the
+			// initializeRecombinationRate() call to be omitted for brevity.
+			// Derived from ExecuteContextFunction_initializeRecombinationRate().
+			std::vector<slim_position_t> &positions = chromosome->recombination_end_positions_H_;
+			std::vector<double> &rates = chromosome->recombination_rates_H_;
+			rates.clear();
+			positions.clear();
+			
+			rates.emplace_back(0.0);
+			//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
+			
+			num_recrate_inits_++;
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): The initialization of the " << chromosomeStr << " is incomplete.  At least one recombination rate interval must be defined " << contextStr << " with initializeRecombinationRate(), although the rate given can be zero." << finalStr << EidosTerminate();
+		}
+	}
 	
 	if ((chromosome->recombination_rates_H_.size() != 0) && ((chromosome->recombination_rates_M_.size() != 0) || (chromosome->recombination_rates_F_.size() != 0)))
 		EIDOS_TERMINATION << "ERROR (Species::EndCurrentChromosome): Cannot define both sex-specific and sex-nonspecific recombination rates." << EidosTerminate();
