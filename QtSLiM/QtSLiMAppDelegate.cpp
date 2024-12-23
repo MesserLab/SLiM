@@ -472,9 +472,9 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                 {
                     case 4: chapterName = "Getting started: Neutral evolution in a panmictic population";		break;
                     case 5: chapterName = "Demography and population structure";								break;
-                    case 6: chapterName = "Sexual reproduction";												break;
-                    case 7: chapterName = "Mutation types, genomic elements, and chromosome structure";         break;
-                    case 8: chapterName = "SLiMgui visualizations for polymorphism patterns";					break;
+                    case 6: chapterName = "Mutation types, genomic elements, and chromosome structure";			break;
+                    case 7: chapterName = "SLiMgui visualizations for polymorphism patterns";         			break;
+                    case 8: chapterName = "Reproduction, meiosis, and multiple chromosomes";					break;
                     case 9:	chapterName = "Selective sweeps";													break;
                     case 10:chapterName = "Context-dependent selection using mutationEffect() callbacks";		break;
                     case 11:chapterName = "Complex mating schemes using mateChoice() callbacks";				break;
