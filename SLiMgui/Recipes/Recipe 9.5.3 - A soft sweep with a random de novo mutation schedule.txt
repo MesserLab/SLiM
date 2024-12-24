@@ -14,13 +14,9 @@ initialize() {
 	gens = cumSum(rpois(10, 10));      // make a vector of start gens
 	gens = gens + (1000 - min(gens));  // align to start at 1000
 	defineConstant("Z", max(gens));    // remember the last gen
-	
-	for (gen in gens)
-		community.registerLateEvent(NULL, s1.source, gen, gen);
-	
-	community.deregisterScriptBlock(s1);
+	defineConstant("ADD_GENS", gens);  // schedule the add events
 }
-s1 1000 late() {
+ADD_GENS late() {
 	target = sample(p1.haplosomes, 1);
 	mut = sim.mutationsOfType(m2);
 	if (mut.size() > 0)
