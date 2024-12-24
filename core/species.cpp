@@ -6388,35 +6388,33 @@ void Species::RecordAllDerivedStatesFromSLiM(void)
 		EIDOS_TERMINATION << "ERROR (Species::RecordAllDerivedStatesFromSLiM): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
+	// This method does nothing but record mutations, so...
+	if (!recording_mutations_)
+		return;
+	
 	// This is called when new tree sequence tables need to be built to correspond to the current state of SLiM, such as
 	// after handling a readFromPopulationFile() call.  It is guaranteed by the caller of this method that any old tree
 	// sequence recording stuff has been freed with a call to FreeTreeSequence(), and then a new recording session has
 	// been initiated with AllocateTreeSequenceTables(); it might be good for this method to do a sanity check that all
-	// of the recording tables are indeed allocated but empty, I guess.  This method then records every extant individual
-	// by making calls to SetCurrentNewIndividual(), and RecordNewHaplosome(). Note
-	// that modifyChild() callbacks do not happen in this scenario, so new individuals will not get retracted.  Note
-	// also that new mutations will not be added one at a time, when they are stacked; instead, each block of stacked
-	// mutations in a haplosome will be added with a single derived state call here.
+	// of the recording tables are indeed allocated but empty, I guess.  Every extant individual and haplosome has been
+	// recorded already, with calls to SetCurrentNewIndividual() and RecordNewHaplosome(), in the readPopulationFile()
+	// code. Our job is just to record the mutations ("derived states") in the SLiM data into the tree sequence.  Note
+	// that new mutations will not be added one at a time, when they are stacked; each block of stacked mutations in a
+	// haplosome will be added with a single derived state call here.
+	int haplosome_count_per_individual = HaplosomeCountPerIndividual();
+	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
 		for (Individual *individual : subpop->parent_individuals_)
 		{
-			Haplosome *haplosome1 = individual->haplosomes_[0];
-			Haplosome *haplosome2 = individual->haplosomes_[1];
-			
-			// This is done for us, at present, as a side effect of the readPopulationFile() code...
-			//SetCurrentNewIndividual(individual);
-			//RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
-			//RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
-			
-			if (recording_mutations_)
+			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 			{
-				if (!haplosome1->IsNull())
-					haplosome1->record_derived_states(this);
-				if (!haplosome2->IsNull())
-					haplosome2->record_derived_states(this);
+				Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+				
+				if (!haplosome->IsNull())
+					haplosome->record_derived_states(this);
 			}
 		}
 	}
