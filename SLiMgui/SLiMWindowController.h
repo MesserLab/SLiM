@@ -36,8 +36,6 @@
 #include <ctime>
 
 
-@class SLiMHaplotypeGraphView;
-
 class Community;
 
 
@@ -177,18 +175,6 @@ class Community;
 	// Profile Report window ivars
 	IBOutlet NSWindow *profileWindow;		// outlet for ProfileReport.xib; note this does not stay wired up, it is just used transiently
 	IBOutlet NSTextView *profileTextView;	// ditto
-	
-	// Haplotype plot progress panel
-	NSLock *haplotypeProgressLock;
-	BOOL haplotypeProgressTaskCancelled;
-	
-	SLiMHaplotypeGraphView *newHaplotypeGraphView;
-	
-	int haplotypeProgressTaskDistances_Value;
-	int haplotypeProgressTaskClustering_Value;
-	int haplotypeProgressTaskOptimization_Value;
-	
-	volatile int haplotypeProgressGreedySortProgressFlag;		// see greedyPeriodicCounterUpdateWithBackgroundController: for comments on this
 	
 	// Misc
 	bool observingKeyPaths;

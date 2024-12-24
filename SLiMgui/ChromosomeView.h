@@ -52,8 +52,6 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	float *glArrayColors;
 	
 	// Display options
-	BOOL display_haplotypes_;						// if NO, displaying frequencies; if YES, displaying haplotypes
-	int64_t *haplotype_previous_bincounts;			// used by SLiMHaplotypeManager to keep the sort order stable
 	std::vector<slim_objectid_t> display_muttypes_;	// if empty, display all mutation types; otherwise, display only the muttypes chosen
 }
 
