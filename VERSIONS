@@ -84,6 +84,7 @@ development head (in the master branch):
 		treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a directory with .trees files inside for multichrom models
 		for addSubpop(), haploid=T now requests specifically that type "A" chromosomes be made with their second haplosome null (for haplodiploidy, and backward compatibility)
 		remove the SLiMguiLegacy haplotype plot; it would need to be fixed, and is no longer used by anybody (the one in SLiMgui remains, of course)
+		remove the SLiMguiLegacy chromosome view OpenGL code; again, it would need to be fixed, and maintaining it is an unnecessary headache
 
 
 version 4.3 (Eidos version 3.3):

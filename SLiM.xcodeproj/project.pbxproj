@@ -252,7 +252,6 @@
 		984824F5210B9F31002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
 		984824F6210B9F32002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
 		984824F7210B9F32002402A5 /* ddot.c in Sources */ = {isa = PBXBuildFile; fileRef = 984824ED210B9E8F002402A5 /* ddot.c */; };
-		984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
 		984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984D5FB21E3AF18C00473719 /* EidosTests.mm */; };
 		984D5FB51E3AF1F000473719 /* SLiMTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984D5FB41E3AF1F000473719 /* SLiMTests.mm */; };
 		9850D8E32063098E006BFD2E /* tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9850D8DF2063098E006BFD2E /* tables.c */; };
@@ -1006,7 +1005,6 @@
 		98CF5266294A3FC900557BBA /* polymorphism.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */; };
 		98CF5267294A3FC900557BBA /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
 		98CF5268294A3FC900557BBA /* species.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9878A93D1A4E57E70007B9D6 /* species.cpp */; };
-		98CF5269294A3FC900557BBA /* ChromosomeGLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */; };
 		98CF526A294A3FC900557BBA /* zeta.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C8211E1C7A980000548839 /* zeta.c */; };
 		98CF526B294A3FC900557BBA /* text_input.c in Sources */ = {isa = PBXBuildFile; fileRef = D0A758F620A4CC9800132D2F /* text_input.c */; };
 		98CF526C294A3FC900557BBA /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 98C8211A1C7A980000548839 /* log.c */; };
@@ -1828,8 +1826,6 @@
 		984824EF210B9EE6002402A5 /* source_dot_r.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = source_dot_r.h; path = cblas/source_dot_r.h; sourceTree = "<group>"; };
 		984824F0210B9F23002402A5 /* dtrsv.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dtrsv.c; path = cblas/dtrsv.c; sourceTree = "<group>"; };
 		984824F8210B9F63002402A5 /* source_trsv_r.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = source_trsv_r.h; path = cblas/source_trsv_r.h; sourceTree = "<group>"; };
-		984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChromosomeGLView.h; sourceTree = "<group>"; };
-		984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ChromosomeGLView.mm; sourceTree = "<group>"; };
 		984D5FA81E3AF0D200473719 /* EidosSLiMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EidosSLiMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		984D5FAC1E3AF0D200473719 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		984D5FB21E3AF18C00473719 /* EidosTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTests.mm; sourceTree = "<group>"; };
@@ -3002,8 +2998,6 @@
 				98D4C2061A704EA700FFB083 /* PopulationView.mm */,
 				98D4C2081A7086FF00FFB083 /* ChromosomeView.h */,
 				98D4C2091A7086FF00FFB083 /* ChromosomeView.mm */,
-				984AD1941DF54E3C002D4AC8 /* ChromosomeGLView.h */,
-				984AD1951DF54E3C002D4AC8 /* ChromosomeGLView.mm */,
 				984252C1216FA9930019696A /* FindRecipeController.h */,
 				984252C2216FA9930019696A /* FindRecipeController.mm */,
 				98D4C1BE1A6F537B00FFB083 /* MainMenu.xib */,
@@ -4332,7 +4326,6 @@
 				98CF5267294A3FC900557BBA /* eidos_class_Object.cpp in Sources */,
 				98CEFD322AAFABAA00D2C9B4 /* spline.c in Sources */,
 				98CF5268294A3FC900557BBA /* species.cpp in Sources */,
-				98CF5269294A3FC900557BBA /* ChromosomeGLView.mm in Sources */,
 				98CF526A294A3FC900557BBA /* zeta.c in Sources */,
 				98CF526B294A3FC900557BBA /* text_input.c in Sources */,
 				98CF526C294A3FC900557BBA /* log.c in Sources */,
@@ -4672,7 +4665,6 @@
 				98ACDC9E253522B80038703F /* eidos_class_Object.cpp in Sources */,
 				98CEFD312AAFABAA00D2C9B4 /* spline.c in Sources */,
 				98D4C1D41A6F541700FFB083 /* species.cpp in Sources */,
-				984AD1961DF54E3C002D4AC8 /* ChromosomeGLView.mm in Sources */,
 				98C8215D1C7A983700548839 /* zeta.c in Sources */,
 				D0A758F920A4CCCF00132D2F /* text_input.c in Sources */,
 				98C821591C7A983700548839 /* log.c in Sources */,

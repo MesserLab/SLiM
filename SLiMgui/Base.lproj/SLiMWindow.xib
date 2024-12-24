@@ -118,7 +118,7 @@
                                                                     </textFieldCell>
                                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                 </tableColumn>
-                                                                <tableColumn editable="NO" width="48" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
+                                                                <tableColumn editable="NO" width="30" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
                                                                     <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="N">
                                                                         <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                         <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -221,24 +221,9 @@
                                             </customView>
                                             <customView translatesAutoresizingMaskIntoConstraints="NO" id="nQF-Rr-G8N" customClass="ChromosomeView">
                                                 <rect key="frame" x="13" y="10" width="1079" height="65"/>
-                                                <subviews>
-                                                    <openGLView wantsLayer="YES" colorSize="5bit_RGB_8bit_Alpha" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ufe-5v-Ypd" customClass="ChromosomeGLView">
-                                                        <rect key="frame" x="3" y="17" width="1073" height="47"/>
-                                                        <connections>
-                                                            <outlet property="delegate" destination="nQF-Rr-G8N" id="XPo-oM-wzf"/>
-                                                        </connections>
-                                                    </openGLView>
-                                                </subviews>
                                                 <constraints>
-                                                    <constraint firstItem="ufe-5v-Ypd" firstAttribute="top" secondItem="nQF-Rr-G8N" secondAttribute="top" constant="1" id="5HY-3s-kYQ"/>
-                                                    <constraint firstItem="ufe-5v-Ypd" firstAttribute="leading" secondItem="nQF-Rr-G8N" secondAttribute="leading" constant="3" id="BJ6-mg-YsL"/>
                                                     <constraint firstAttribute="height" constant="65" id="JPS-fW-ATa"/>
-                                                    <constraint firstAttribute="trailing" secondItem="ufe-5v-Ypd" secondAttribute="trailing" constant="3" id="h09-Jb-ZwP"/>
-                                                    <constraint firstAttribute="bottom" secondItem="ufe-5v-Ypd" secondAttribute="bottom" constant="17" id="iA1-fJ-3Bo"/>
                                                 </constraints>
-                                                <connections>
-                                                    <outlet property="proxyGLView" destination="ufe-5v-Ypd" id="fRo-PK-N0P"/>
-                                                </connections>
                                             </customView>
                                             <button toolTip="step one tick" translatesAutoresizingMaskIntoConstraints="NO" id="KIv-hd-PKz">
                                                 <rect key="frame" x="969" y="317" width="60" height="62"/>

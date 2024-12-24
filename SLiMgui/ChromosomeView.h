@@ -22,7 +22,6 @@
 
 #import "CocoaExtra.h"
 #include "slim_globals.h"
-#include "ChromosomeGLView.h"
 
 #include <vector>
 
@@ -47,10 +46,6 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 	int trackingXAdjust;	// to keep the cursor stuck on a knob that is click-dragged
 	SLiMSelectionMarker *startMarker, *endMarker;
 	
-	// OpenGL buffers
-	float *glArrayVertices;
-	float *glArrayColors;
-	
 	// Display options
 	std::vector<slim_objectid_t> display_muttypes_;	// if empty, display all mutation types; otherwise, display only the muttypes chosen
 }
@@ -64,8 +59,6 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 @property (nonatomic) BOOL shouldDrawMutations;
 @property (nonatomic) BOOL shouldDrawFixedSubstitutions;
 
-@property (nonatomic, retain) IBOutlet ChromosomeGLView *proxyGLView;	// we can have an OpenGL subview to do our interior drawing for us
-
 - (NSRange)selectedRange;
 - (void)setSelectedRange:(NSRange)selectionRange;
 - (void)restoreLastSelection;
@@ -73,9 +66,6 @@ extern NSString *SLiMChromosomeSelectionChangedNotification;
 - (NSRange)displayedRange;	// either the full chromosome range, or the selected range of our reference chromosome
 
 - (void)setNeedsDisplayInInterior;	// set to need display only within the interior; avoid redrawing ticks unnecessarily
-
-// called by proxyGLView to do OpenGL drawing in the interior
-- (void)glDrawRect:(NSRect)dirtyRect;
 
 @end
 
