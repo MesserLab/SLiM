@@ -985,8 +985,8 @@
 	
 	if (!displaySpecies || community->chromosome_changed_)
 	{
-		[chromosomeOverview restoreLastSelection];
 		[chromosomeOverview setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplay:YES];
 		
 		if (community)
 			community->chromosome_changed_ = false;
@@ -1096,15 +1096,13 @@
 	[scriptTextView recolorAfterChanges];
 	
 	// Set up our chromosome views to show the proper stuff
-	[chromosomeOverview setReferenceChromosomeView:nil];
-	[chromosomeOverview setSelectable:YES];
+	[chromosomeOverview setOverview:true];
 	[chromosomeOverview setShouldDrawGenomicElements:YES];
 	[chromosomeOverview setShouldDrawMutations:NO];
 	[chromosomeOverview setShouldDrawFixedSubstitutions:NO];
 	[chromosomeOverview setShouldDrawRateMaps:NO];
 	
-	[chromosomeZoomed setReferenceChromosomeView:chromosomeOverview];
-	[chromosomeZoomed setSelectable:NO];
+	[chromosomeZoomed setOverview:false];
 	[chromosomeZoomed setShouldDrawGenomicElements:zoomedChromosomeShowsGenomicElements];
 	[chromosomeZoomed setShouldDrawMutations:zoomedChromosomeShowsMutations];
 	[chromosomeZoomed setShouldDrawFixedSubstitutions:zoomedChromosomeShowsFixedSubstitutions];

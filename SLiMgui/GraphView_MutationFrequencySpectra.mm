@@ -73,12 +73,6 @@
 	for (unsigned int i = 0; i < usedSpectrumBins; ++i)
 		spectrum[i] = 0;
 	
-	// get the selected chromosome range
-	ChromosomeView *chromosome = controller->chromosomeOverview;
-	BOOL hasSelection = chromosome->hasSelection;
-	slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
-	slim_position_t selectionLastBase = chromosome->selectionLastBase;
-	
 	// tally into our bins
 	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
@@ -93,15 +87,6 @@
 	for (int registry_index = 0; registry_index < registry_size; ++registry_index)
 	{
 		const Mutation *mutation = mut_block_ptr + registry[registry_index];
-		
-		// if the user has selected a subrange of the chromosome, we will work from that
-		if (hasSelection)
-		{
-			slim_position_t mutationPosition = mutation->position_;
-			
-			if ((mutationPosition < selectionFirstBase) || (mutationPosition > selectionLastBase))
-				continue;
-		}
 		
 		Chromosome *mut_chromosome = displaySpecies->Chromosomes()[mutation->chromosome_index_];
 		slim_refcount_t mutationRefCount = *(refcount_block_ptr + mutation->BlockIndex());
@@ -148,28 +133,6 @@
 	
 	// plot our histogram bars
 	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:spectrum subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:(1.0 / binCount)];
-	
-	// if we have a limited selection range, overdraw a note about that
-	ChromosomeView *chromosome = controller->chromosomeOverview;
-	
-	if (chromosome->hasSelection)
-	{
-		slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
-		slim_position_t selectionLastBase = chromosome->selectionLastBase;
-		static NSDictionary *attrs = nil;
-		
-		if (!attrs)
-			attrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:10], NSForegroundColorAttributeName : [NSColor darkGrayColor]} retain];
-		
-		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (long long int)selectionFirstBase, (long long int)selectionLastBase];
-		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];
-		NSSize labelSize = [attributedLabel size];
-		double labelX = interiorRect.origin.x + (interiorRect.size.width - labelSize.width) / 2.0;
-		double labelY = interiorRect.origin.y + interiorRect.size.height - (labelSize.height + 4);
-		
-		[attributedLabel drawAtPoint:NSMakePoint(labelX, labelY)];
-		[attributedLabel release];
-	}
 }
 
 - (NSArray *)legendKey
@@ -185,15 +148,6 @@
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
 {
 	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: Mutation frequency spectrum\n"];
-	ChromosomeView *chromosome = controller->chromosomeOverview;
-	
-	if (chromosome->hasSelection)
-	{
-		slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
-		slim_position_t selectionLastBase = chromosome->selectionLastBase;
-		
-		[string appendFormat:@"# Selected chromosome range: %lld – %lld\n", (long long int)selectionFirstBase, (long long int)selectionLastBase];
-	}
 	
 	[string appendString:[self dateline]];
 	[string appendString:@"\n\n"];

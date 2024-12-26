@@ -26,44 +26,27 @@
 #include <vector>
 
 
+class Chromosome;
+
 extern NSString *SLiMChromosomeSelectionChangedNotification;
 
 
 @interface ChromosomeView : NSView
 {
 @public
-	// Selection
-	BOOL hasSelection;
-	slim_position_t selectionFirstBase, selectionLastBase;
-	
-	// Selection memory – saved and restored across events like recycles
-	BOOL savedHasSelection;
-	slim_position_t savedSelectionFirstBase, savedSelectionLastBase;
-	
-	// Tracking
-	BOOL isTracking;
-	slim_position_t trackingStartBase, trackingLastBase;
-	int trackingXAdjust;	// to keep the cursor stuck on a knob that is click-dragged
-	SLiMSelectionMarker *startMarker, *endMarker;
-	
 	// Display options
 	std::vector<slim_objectid_t> display_muttypes_;	// if empty, display all mutation types; otherwise, display only the muttypes chosen
 }
 
-@property (nonatomic, retain) ChromosomeView *referenceChromosomeView;		// asked for the range to display
-@property (nonatomic, getter=isSelectable) BOOL selectable;
 @property (nonatomic) BOOL enabled;
+@property (nonatomic) BOOL overview;
 
 @property (nonatomic) BOOL shouldDrawGenomicElements;
 @property (nonatomic) BOOL shouldDrawRateMaps;
 @property (nonatomic) BOOL shouldDrawMutations;
 @property (nonatomic) BOOL shouldDrawFixedSubstitutions;
 
-- (NSRange)selectedRange;
-- (void)setSelectedRange:(NSRange)selectionRange;
-- (void)restoreLastSelection;
-
-- (NSRange)displayedRange;	// either the full chromosome range, or the selected range of our reference chromosome
+- (NSRange)displayedRangeForChromosome:(Chromosome *)chromosome;	// the full chromosome range
 
 - (void)setNeedsDisplayInInterior;	// set to need display only within the interior; avoid redrawing ticks unnecessarily
 

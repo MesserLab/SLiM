@@ -33,11 +33,12 @@ static const int tickLength = 5;
 static const int heightForTicks = 16;
 static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
 static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
+static const int spaceBetweenChromosomes = 5;
 
 
 @implementation ChromosomeView
 
-@synthesize referenceChromosomeView, shouldDrawGenomicElements, shouldDrawFixedSubstitutions, shouldDrawMutations, shouldDrawRateMaps;
+@synthesize shouldDrawGenomicElements, shouldDrawFixedSubstitutions, shouldDrawMutations, shouldDrawRateMaps;
 
 + (void)initialize
 {
@@ -62,7 +63,15 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	if (_enabled != enabled)
 	{
 		_enabled = enabled;
-		
+		[self setNeedsDisplayAll];
+	}
+}
+
+- (void)setOverview:(BOOL)overview
+{
+	if (_overview != overview)
+	{
+		_overview = overview;
 		[self setNeedsDisplayAll];
 	}
 }
@@ -74,147 +83,18 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
 }
 
-- (void)removeSelectionMarkers
-{
-	[startMarker close];
-	[startMarker release];
-	startMarker = nil;
-	
-	[endMarker close];
-	[endMarker release];
-	endMarker = nil;
-}
-
 - (void)dealloc
 {
-	[self setReferenceChromosomeView:nil];
-	
 	[self unbind:@"enabled"];
-	
-	[self removeSelectionMarkers];
 	
 	[super dealloc];
 }
 
-- (void)setReferenceChromosomeView:(ChromosomeView *)refView
+- (NSRange)displayedRangeForChromosome:(Chromosome *)chromosome
 {
-	if (referenceChromosomeView != refView)
-	{
-		[refView retain];
-		[referenceChromosomeView release];
-		referenceChromosomeView = refView;
-		
-		[[NSNotificationCenter defaultCenter] removeObserver:self];
-		
-		if (referenceChromosomeView)
-			[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(referenceChromosomeViewSelectionChanged:) name:SLiMChromosomeSelectionChangedNotification object:referenceChromosomeView];
-	}
-}
-
-- (void)referenceChromosomeViewSelectionChanged:(NSNotification *)note
-{
-	[self setNeedsDisplayAll];
-}
-
-- (NSRange)selectedRange
-{
-	if (hasSelection)
-	{
-		return NSMakeRange(selectionFirstBase, selectionLastBase - selectionFirstBase + 1);	// number of bases encompassed; a selection from x to x encompasses 1 base
-	}
-	else
-	{
-		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Species *displaySpecies = [controller focalDisplaySpecies];
-		
-		if (displaySpecies->chromosomes_.size())
-		{
-			Chromosome &chromosome = displaySpecies->TheChromosome();
-			slim_position_t chromosomeLastPosition = chromosome.last_position_;
-			
-			return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
-		}
-		else
-		{
-			return NSMakeRange(0, 0);
-		}
-	}
-}
-
-- (void)setSelectedRange:(NSRange)selectionRange
-{
-	if ([self isSelectable] && (selectionRange.length >= 1))
-	{
-		selectionFirstBase = (slim_position_t)selectionRange.location;
-		selectionLastBase = (slim_position_t)(selectionRange.location + selectionRange.length) - 1;
-		hasSelection = YES;
-		
-		// Save the selection for restoring across recycles, etc.
-		savedSelectionFirstBase = selectionFirstBase;
-		savedSelectionLastBase = selectionLastBase;
-		savedHasSelection = hasSelection;
-	}
-	else if (hasSelection)
-	{
-		hasSelection = NO;
-		
-		// Save the selection for restoring across recycles, etc.
-		savedHasSelection = hasSelection;
-	}
-	else
-	{
-		// Save the selection for restoring across recycles, etc.
-		savedHasSelection = NO;
-		
-		return;
-	}
+	slim_position_t chromosomeLastPosition = chromosome->last_position_;
 	
-	// Our selection changed, so update and post a change notification
-	[self setNeedsDisplayAll];
-	
-	[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
-}
-
-- (void)restoreLastSelection
-{
-	if ([self isSelectable] && savedHasSelection)
-	{
-		selectionFirstBase = savedSelectionFirstBase;
-		selectionLastBase = savedSelectionLastBase;
-		hasSelection = savedHasSelection;
-	}
-	else if (hasSelection)
-	{
-		hasSelection = NO;
-	}
-	else
-	{
-		// We want to always post the notification, to make sure updating happens correctly;
-		// this ensures that correct ticks marks get drawn after a recycle, etc.
-		//return;
-	}
-	
-	// Our selection changed, so update and post a change notification
-	[self setNeedsDisplayAll];
-	
-	[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
-}
-
-- (NSRange)displayedRange
-{
-	ChromosomeView *reference = [self referenceChromosomeView];
-	
-	if (reference)
-		return [reference selectedRange];
-	else
-	{
-		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Species *displaySpecies = [controller focalDisplaySpecies];
-		Chromosome &chromosome = displaySpecies->TheChromosome();
-		slim_position_t chromosomeLastPosition = chromosome.last_position_;
-		
-		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
-	}
+	return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
 }
 
 - (NSRect)rectEncompassingBase:(slim_position_t)startBase toBase:(slim_position_t)endBase interiorRect:(NSRect)interiorRect displayedRange:(NSRange)displayedRange
@@ -247,7 +127,10 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	// Two things are going on here.  The width gets inset by two pixels on each side because our frame is outset that much from our apparent frame, to
 	// make room for the selection knobs to spill over a bit.  The height gets adjusted because our "content rect" does not include our ticks.
-	return NSMakeRect(bounds.origin.x + 2, bounds.origin.y + heightForTicks, bounds.size.width - 4, bounds.size.height - heightForTicks);
+	if ([self overview])
+		return NSMakeRect(bounds.origin.x + 2, bounds.origin.y, bounds.size.width - 4, bounds.size.height);
+	else
+		return NSMakeRect(bounds.origin.x + 2, bounds.origin.y + heightForTicks, bounds.size.width - 4, bounds.size.height - heightForTicks);
 }
 
 - (NSRect)interiorRect
@@ -279,12 +162,12 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	NSRect interiorRect = [self interiorRect];
+	NSRect interiorRect = NSInsetRect(contentRect, 1, 1);
 	
 	if (displayedRange.length == 0)
 	{
 		// Handle the "no genetics" case separately
-		if (!_selectable)
+		if (![self overview])
 		{
 			NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:@"no genetics" attributes:tickAttrs];
 			NSSize tickLabelSize = [tickAttrLabel size];
@@ -304,8 +187,47 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	double tickIndexDivisor = ((lastTickIndex == 0) ? 1.0 : (double)lastTickIndex);		// avoid a divide by zero when we are displaying a single site
 	
+	// BCH 12/25/2024: Start by measuring the tick labels and figuring out who fits.  FIXME we could be even smarter
+	// and switch to scientific notation if things get too crowded, but I'll leave that for another day.
+	double widthAllLabels = 0.0, widthLeftRightLabels = 0.0, widthRightLabelOnly = 0.0;
+	
 	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
 	{
+		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+		NSString *tickLabel;
+		
+		if (tickBase >= 1e10)
+			tickLabel = [NSString stringWithFormat:@"%.6e", (double)tickBase];
+		else
+			tickLabel = [NSString stringWithFormat:@"%lld", (long long int)tickBase];
+		
+		NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:tickAttrs];
+		NSSize tickLabelSize = [tickAttrLabel size];
+		int tickLabelWidth = 5 + (int)tickLabelSize.width;
+		[tickAttrLabel release];
+		
+		widthAllLabels += tickLabelWidth;
+		if (tickIndex == 0)
+		{
+			widthLeftRightLabels += tickLabelWidth;
+		}
+		if (tickIndex == lastTickIndex)
+		{
+			widthLeftRightLabels += tickLabelWidth;
+			widthRightLabelOnly += tickLabelWidth;
+		}
+	}
+	
+	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
+	{
+		// BCH 12/25/2024: If we're not going to draw the middle tick labels, skip their tick marks also;
+		// and if we're not going to draw any tick labels at all, then skip drawing all the tick marks
+		int interiorWidth = (int)interiorRect.size.width;
+		
+		if ((widthRightLabelOnly > interiorWidth) ||
+			((widthAllLabels > interiorWidth) && (tickIndex != 0) && (tickIndex != lastTickIndex)))
+			continue;
+		
 		slim_position_t tickBase = (slim_position_t)displayedRange.location + (slim_position_t)ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
 		NSRect tickRect = [self rectEncompassingBase:tickBase toBase:tickBase interiorRect:interiorRect displayedRange:displayedRange];
 		
@@ -321,6 +243,20 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		
 		[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
 		NSRectFill(tickRect);
+		
+		// BCH 12/25/2024: Using the measurements taken above, decide whether to draw this tick label or not
+		if (widthAllLabels > interiorWidth)
+		{
+			if ((tickIndex != 0) && (tickIndex != lastTickIndex))
+				continue;
+			if (widthLeftRightLabels > interiorWidth)
+			{
+				if (tickIndex != lastTickIndex)
+					continue;
+				if (widthRightLabelOnly > interiorWidth)
+					continue;
+			}
+		}
 		
 		// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
 		NSString *tickLabel;
@@ -345,13 +281,11 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
 	CGFloat previousIntervalLeftEdge = -10000;
 	
-	for (GenomicElement *genomicElement : chromosome.GenomicElements())
+	for (GenomicElement *genomicElement : chromosome->GenomicElements())
 	{
 		slim_position_t startPosition = genomicElement->start_position_;
 		slim_position_t endPosition = genomicElement->end_position_;
@@ -456,14 +390,11 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
-	
-	if (chromosome.single_recombination_map_)
+	if (chromosome->single_recombination_map_)
 	{
-		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_H_ rates:chromosome.recombination_rates_H_];
+		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome->recombination_end_positions_H_ rates:chromosome->recombination_rates_H_];
 	}
 	else
 	{
@@ -475,19 +406,16 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_M_ rates:chromosome.recombination_rates_M_];
-		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.recombination_end_positions_F_ rates:chromosome.recombination_rates_F_];
+		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome->recombination_end_positions_M_ rates:chromosome->recombination_rates_M_];
+		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome->recombination_end_positions_F_ rates:chromosome->recombination_rates_F_];
 	}
 }
 
-- (void)drawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawMutationIntervalsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
-	
-	if (chromosome.single_mutation_map_)
+	if (chromosome->single_mutation_map_)
 	{
-		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_H_ rates:chromosome.mutation_rates_H_];
+		[self _drawRateMapIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange ends:chromosome->mutation_end_positions_H_ rates:chromosome->mutation_rates_H_];
 	}
 	else
 	{
@@ -499,36 +427,34 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_M_ rates:chromosome.mutation_rates_M_];
-		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome.mutation_end_positions_F_ rates:chromosome.mutation_rates_F_];
+		[self _drawRateMapIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange ends:chromosome->mutation_end_positions_M_ rates:chromosome->mutation_rates_M_];
+		[self _drawRateMapIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange ends:chromosome->mutation_end_positions_F_ rates:chromosome->mutation_rates_F_];
 	}
 }
 
-- (void)drawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawRateMapsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
 	BOOL recombinationWorthShowing = NO;
 	BOOL mutationWorthShowing = NO;
 	
-	if (chromosome.single_mutation_map_)
-		mutationWorthShowing = (chromosome.mutation_end_positions_H_.size() > 1);
+	if (chromosome->single_mutation_map_)
+		mutationWorthShowing = (chromosome->mutation_end_positions_H_.size() > 1);
 	else
-		mutationWorthShowing = ((chromosome.mutation_end_positions_M_.size() > 1) || (chromosome.mutation_end_positions_F_.size() > 1));
+		mutationWorthShowing = ((chromosome->mutation_end_positions_M_.size() > 1) || (chromosome->mutation_end_positions_F_.size() > 1));
 	
-	if (chromosome.single_recombination_map_)
-		recombinationWorthShowing = (chromosome.recombination_end_positions_H_.size() > 1);
+	if (chromosome->single_recombination_map_)
+		recombinationWorthShowing = (chromosome->recombination_end_positions_H_.size() > 1);
 	else
-		recombinationWorthShowing = ((chromosome.recombination_end_positions_M_.size() > 1) || (chromosome.recombination_end_positions_F_.size() > 1));
+		recombinationWorthShowing = ((chromosome->recombination_end_positions_M_.size() > 1) || (chromosome->recombination_end_positions_F_.size() > 1));
 	
 	// If neither map is worth showing, we show just the recombination map, to mirror the behavior of 2.4 and earlier
 	if ((!mutationWorthShowing && !recombinationWorthShowing) || (!mutationWorthShowing && recombinationWorthShowing))
 	{
-		[self drawRecombinationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		[self drawRecombinationIntervalsInInteriorRect:interiorRect chromosome:chromosome withController:controller displayedRange:displayedRange];
 	}
 	else if (mutationWorthShowing && !recombinationWorthShowing)
 	{
-		[self drawMutationIntervalsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		[self drawMutationIntervalsInInteriorRect:interiorRect chromosome:chromosome withController:controller displayedRange:displayedRange];
 	}
 	else	// mutationWorthShowing && recombinationWorthShowing
 	{
@@ -540,26 +466,25 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		topInteriorRect.origin.y += remainingHeight;
 		bottomInteriorRect.size.height = remainingHeight;
 		
-		[self drawRecombinationIntervalsInInteriorRect:topInteriorRect withController:controller displayedRange:displayedRange];
-		[self drawMutationIntervalsInInteriorRect:bottomInteriorRect withController:controller displayedRange:displayedRange];
+		[self drawRecombinationIntervalsInInteriorRect:topInteriorRect chromosome:chromosome withController:controller displayedRange:displayedRange];
+		[self drawMutationIntervalsInInteriorRect:bottomInteriorRect chromosome:chromosome withController:controller displayedRange:displayedRange];
 	}
 }
 
-- (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
 	Population &pop = displaySpecies->population_;
-	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
+	bool chromosomeHasDefaultColor = !chromosome->color_sub_.empty();
 	
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f;
 	
 	if (chromosomeHasDefaultColor)
 	{
-		colorRed = chromosome.color_sub_red_;
-		colorGreen = chromosome.color_sub_green_;
-		colorBlue = chromosome.color_sub_blue_;
+		colorRed = chromosome->color_sub_red_;
+		colorGreen = chromosome->color_sub_green_;
+		colorBlue = chromosome->color_sub_blue_;
 	}
 	
 	[[NSColor colorWithCalibratedRed:colorRed green:colorGreen blue:colorBlue alpha:1.0] set];
@@ -707,14 +632,13 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)drawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
+- (void)drawMutationsInInteriorRect:(NSRect)interiorRect chromosome:(Chromosome *)chromosome withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *displaySpecies = [controller focalDisplaySpecies];
-	Chromosome &chromosome = displaySpecies->TheChromosome();
-	slim_chromosome_index_t chromosome_index = chromosome.Index();
+	slim_chromosome_index_t chromosome_index = chromosome->Index();
 	Population &pop = displaySpecies->population_;
-	double totalHaplosomeCount = chromosome.gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
+	double totalHaplosomeCount = chromosome->gui_total_haplosome_count_;				// this includes only haplosomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -946,54 +870,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	}
 }
 
-- (void)overlaySelectionInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
-{
-	if (hasSelection)
-	{
-		// darken the interior of the selection slightly
-		NSRect selectionRect = [self rectEncompassingBase:selectionFirstBase toBase:selectionLastBase interiorRect:interiorRect displayedRange:displayedRange];
-		
-		[[NSColor colorWithCalibratedWhite:0.0 alpha:0.30] set];
-		NSRectFillUsingOperation(selectionRect, NSCompositingOperationSourceOver);
-		
-		// draw a bar at the start and end of the selection
-		NSRect selectionStartBar1 = NSMakeRect(selectionRect.origin.x - 1, interiorRect.origin.y, 1, interiorRect.size.height);
-		NSRect selectionStartBar2 = NSMakeRect(selectionRect.origin.x, interiorRect.origin.y - 5, 1, interiorRect.size.height + 5);
-		//NSRect selectionStartBar3 = NSMakeRect(selectionRect.origin.x + 1, interiorRect.origin.y, 1, interiorRect.size.height);
-		//NSRect selectionEndBar1 = NSMakeRect(selectionRect.origin.x + selectionRect.size.width - 2, interiorRect.origin.y, 1, interiorRect.size.height);
-		NSRect selectionEndBar2 = NSMakeRect(selectionRect.origin.x + selectionRect.size.width - 1, interiorRect.origin.y - 5, 1, interiorRect.size.height + 5);
-		NSRect selectionEndBar3 = NSMakeRect(selectionRect.origin.x + selectionRect.size.width, interiorRect.origin.y, 1, interiorRect.size.height);
-		
-		[[NSColor colorWithCalibratedWhite:1.0 alpha:0.15] set];
-		NSRectFillUsingOperation(selectionStartBar1, NSCompositingOperationSourceOver);
-		//NSRectFillUsingOperation(selectionEndBar1, NSCompositingOperationSourceOver);
-		
-		[[NSColor blackColor] set];
-		NSRectFill(selectionStartBar2);
-		NSRectFill(selectionEndBar2);
-		
-		[[NSColor colorWithCalibratedWhite:0.0 alpha:0.30] set];
-		//NSRectFillUsingOperation(selectionStartBar3, NSCompositingOperationSourceOver);
-		NSRectFillUsingOperation(selectionEndBar3, NSCompositingOperationSourceOver);
-		
-		// draw a ball at the end of each bar
-		NSRect selectionStartBall = NSMakeRect(selectionRect.origin.x - selectionKnobSizeExtension, interiorRect.origin.y - (selectionKnobSize + 2), selectionKnobSize, selectionKnobSize);
-		NSRect selectionEndBall = NSMakeRect(selectionRect.origin.x + selectionRect.size.width - (selectionKnobSizeExtension + 1), interiorRect.origin.y - (selectionKnobSize + 2), selectionKnobSize, selectionKnobSize);
-		
-		[[NSColor blackColor] set];	// outline
-		[[NSBezierPath bezierPathWithOvalInRect:selectionStartBall] fill];
-		[[NSBezierPath bezierPathWithOvalInRect:selectionEndBall] fill];
-		
-		[[NSColor colorWithCalibratedWhite:0.3 alpha:1.0] set];	// interior
-		[[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(selectionStartBall, 1.0, 1.0)] fill];
-		[[NSBezierPath bezierPathWithOvalInRect:NSInsetRect(selectionEndBall, 1.0, 1.0)] fill];
-		
-		[[NSColor colorWithCalibratedWhite:1.0 alpha:0.5] set];	// highlight
-		[[NSBezierPath bezierPathWithOvalInRect:NSOffsetRect(NSInsetRect(selectionStartBall, 1.5, 1.5), -1.0, 1.0)] fill];
-		[[NSBezierPath bezierPathWithOvalInRect:NSOffsetRect(NSInsetRect(selectionEndBall, 1.5, 1.5), -1.0, 1.0)] fill];
-	}
-}
-
 - (void)drawRect:(NSRect)dirtyRect
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
@@ -1008,52 +884,78 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (ready)
 	{
-		// erase the content area itself
-		[[NSColor colorWithCalibratedWhite:0.0 alpha:1.0] set];
-		NSRectFill(interiorRect);
+		Species *displaySpecies = [controller focalDisplaySpecies];
+		const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
+		int chromosomeCount = (int)chromosomes.size();
+		int64_t availableWidth = (int64_t)(contentRect.size.width - (chromosomeCount * 2) - (chromosomeCount - 1) * spaceBetweenChromosomes);
+		int64_t totalLength = 0;
 		
-		NSRange displayedRange = [self displayedRange];
+		for (Chromosome *chrom : chromosomes)
+		{
+			slim_position_t chromLength = (chrom->last_position_ + 1);
+			
+			totalLength += chromLength;
+		}
 		
-		BOOL splitHeight = (shouldDrawRateMaps && shouldDrawGenomicElements);
-		NSRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
-		CGFloat halfHeight = ceil(interiorRect.size.height / 2.0);
-		CGFloat remainingHeight = interiorRect.size.height - halfHeight;
+		int64_t remainingLength = totalLength;
+		int leftPosition = (int)contentRect.origin.x;
 		
-		topInteriorRect.size.height = halfHeight;
-		topInteriorRect.origin.y += remainingHeight;
-		bottomInteriorRect.size.height = remainingHeight;
-		
-		// draw ticks at bottom of content rect
-		if (!NSContainsRect(interiorRect, dirtyRect))
-			[self drawTicksInContentRect:contentRect withController:controller displayedRange:displayedRange];
-		
-		// draw recombination intervals in interior
-		if (shouldDrawRateMaps)
-			[self drawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
-		
-		// draw genomic elements in interior
-		if (shouldDrawGenomicElements)
-			[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : interiorRect) withController:controller displayedRange:displayedRange];
-		
-		// figure out which mutation types we're displaying
-		if (shouldDrawFixedSubstitutions || shouldDrawMutations)
-			[self updateDisplayedMutationTypes];
-		
-		// draw fixed substitutions in interior
-		if (shouldDrawFixedSubstitutions)
-			[self drawFixedSubstitutionsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
-		
-		// draw mutations in interior
-		if (shouldDrawMutations)
-			[self drawMutationsInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
-		
-		// frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
-		[[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] set];
-		NSFrameRect(contentRect);
-		
-		// overlay the selection last, since it bridges over the frame
-		if (hasSelection)
-			[self overlaySelectionInInteriorRect:interiorRect withController:controller displayedRange:displayedRange];
+		for (Chromosome *chrom : chromosomes)
+		{
+			double scale = (double)availableWidth / remainingLength;
+			slim_position_t chromLength = (chrom->last_position_ + 1);
+			int width = (int)round(chromLength * scale);
+			int paddedWidth = 2 + width;
+			NSRect chromContentRect = NSMakeRect(leftPosition, contentRect.origin.y, paddedWidth, contentRect.size.height);
+			NSRect chromInteriorRect = NSInsetRect(chromContentRect, 1, 1);
+			
+			// erase the content area itself
+			[[NSColor colorWithCalibratedWhite:0.0 alpha:1.0] set];
+			NSRectFill(chromInteriorRect);
+			
+			NSRange displayedRange = [self displayedRangeForChromosome:chrom];
+			
+			BOOL splitHeight = (shouldDrawRateMaps && shouldDrawGenomicElements);
+			NSRect topInteriorRect = chromInteriorRect, bottomInteriorRect = chromInteriorRect;
+			CGFloat halfHeight = ceil(chromInteriorRect.size.height / 2.0);
+			CGFloat remainingHeight = chromInteriorRect.size.height - halfHeight;
+			
+			topInteriorRect.size.height = halfHeight;
+			topInteriorRect.origin.y += remainingHeight;
+			bottomInteriorRect.size.height = remainingHeight;
+			
+			// draw ticks at bottom of content rect
+			if (![self overview] && !NSContainsRect(chromInteriorRect, dirtyRect))
+				[self drawTicksInContentRect:chromContentRect withController:controller displayedRange:displayedRange];
+			
+			// draw recombination intervals in interior
+			if (shouldDrawRateMaps)
+				[self drawRateMapsInInteriorRect:(splitHeight ? topInteriorRect : chromInteriorRect) chromosome:chrom withController:controller displayedRange:displayedRange];
+			
+			// draw genomic elements in interior
+			if (shouldDrawGenomicElements)
+				[self drawGenomicElementsInInteriorRect:(splitHeight ? bottomInteriorRect : chromInteriorRect) chromosome:chrom withController:controller displayedRange:displayedRange];
+			
+			// figure out which mutation types we're displaying
+			if (shouldDrawFixedSubstitutions || shouldDrawMutations)
+				[self updateDisplayedMutationTypes];
+			
+			// draw fixed substitutions in interior
+			if (shouldDrawFixedSubstitutions)
+				[self drawFixedSubstitutionsInInteriorRect:chromInteriorRect chromosome:chrom withController:controller displayedRange:displayedRange];
+			
+			// draw mutations in interior
+			if (shouldDrawMutations)
+				[self drawMutationsInInteriorRect:chromInteriorRect chromosome:chrom withController:controller displayedRange:displayedRange];
+			
+			// frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
+			[[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] set];
+			NSFrameRect(chromContentRect);
+			
+			leftPosition += (paddedWidth + spaceBetweenChromosomes);
+			availableWidth -= width;
+			remainingLength -= chromLength;
+		}
 	}
 	else
 	{
@@ -1065,225 +967,6 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		[[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] set];
 		NSFrameRect(contentRect);
 	}
-}
-
-#pragma mark Mouse tracking
-
-- (void)mouseDown:(NSEvent *)theEvent
-{
-	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
-	bool ready = ([self isSelectable] && [self enabled] && displaySpecies);
-	
-	// if the simulation is at tick 0, it is not ready
-	if (ready)
-		if (controller->community->Tick() == 0)
-			ready = NO;
-	
-	if (ready)
-	{
-		NSRect contentRect = [self contentRect];
-		NSRect interiorRect = [self interiorRect];
-		NSRange displayedRange = [self displayedRange];
-		NSPoint curPoint = [self convertPoint:[theEvent locationInWindow] fromView:nil];
-		
-		// We deal with rounded x-coordinates to make adjusting the click point easier
-		curPoint.x = (int)round(curPoint.x);
-		
-		// Option-clicks just set the selection to the clicked genomic element, no questions asked
-		if ([theEvent modifierFlags] & NSEventModifierFlagOption)
-		{
-			if (NSPointInRect(curPoint, contentRect))
-			{
-				slim_position_t clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
-				NSRange selectionRange = NSMakeRange(0, 0);
-				Chromosome &chromosome = displaySpecies->TheChromosome();
-				
-				for (GenomicElement *genomicElement : chromosome.GenomicElements())
-				{
-					slim_position_t startPosition = genomicElement->start_position_;
-					slim_position_t endPosition = genomicElement->end_position_;
-					
-					if ((clickedBase >= startPosition) && (clickedBase <= endPosition))
-						selectionRange = NSMakeRange(startPosition, endPosition - startPosition + 1);
-				}
-				
-				[self setSelectedRange:selectionRange];
-				return;
-			}
-		}
-		
-		// first check for a hit in one of our selection handles
-		if (hasSelection)
-		{
-			NSRect selectionRect = [self rectEncompassingBase:selectionFirstBase toBase:selectionLastBase interiorRect:interiorRect displayedRange:displayedRange];
-			double leftEdge = selectionRect.origin.x;
-			double rightEdge = selectionRect.origin.x + selectionRect.size.width - 1;	// -1 to be on the left edge of the right-edge pixel strip
-			NSRect leftSelectionBar = NSMakeRect(leftEdge - 2, selectionRect.origin.y - 1, 5, selectionRect.size.height + 2);
-			NSRect leftSelectionKnob = NSMakeRect(leftEdge - (selectionKnobSizeExtension + 1), selectionRect.origin.y - (selectionKnobSize + 2 + 1), (selectionKnobSizeExtension + 1) * 2 + 1, selectionKnobSize + 2);
-			NSRect rightSelectionBar = NSMakeRect(rightEdge - 2, selectionRect.origin.y - 1, 5, selectionRect.size.height + 2);
-			NSRect rightSelectionKnob = NSMakeRect(rightEdge - (selectionKnobSizeExtension + 1), selectionRect.origin.y - (selectionKnobSize + 2 + 1), (selectionKnobSizeExtension + 1) * 2 + 1, selectionKnobSize + 2);
-			
-			if (NSPointInRect(curPoint, leftSelectionBar) || NSPointInRect(curPoint, leftSelectionKnob))
-			{
-				isTracking = YES;
-				trackingXAdjust = (int)(curPoint.x - leftEdge) - 1;		// I'm not sure why the -1 is needed, but it is...
-				trackingStartBase = selectionLastBase;	// we're dragging the left knob, so the right knob is the tracking anchor
-				trackingLastBase = [self baseForPosition:(curPoint.x - trackingXAdjust) interiorRect:interiorRect displayedRange:displayedRange];	// instead of selectionFirstBase, so the selection does not change at all if the mouse does not move
-				
-				[self mouseDragged:theEvent];	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
-				return;
-			}
-			else if (NSPointInRect(curPoint, rightSelectionBar) || NSPointInRect(curPoint, rightSelectionKnob))
-			{
-				isTracking = YES;
-				trackingXAdjust = (int)(curPoint.x - rightEdge);
-				trackingStartBase = selectionFirstBase;	// we're dragging the right knob, so the left knob is the tracking anchor
-				trackingLastBase = [self baseForPosition:(curPoint.x - trackingXAdjust) interiorRect:interiorRect displayedRange:displayedRange];	// instead of selectionLastBase, so the selection does not change at all if the mouse does not move
-				
-				[self mouseDragged:theEvent];	// the click may not be aligned exactly on the center of the bar, so clicking might shift it a bit; do that now
-				return;
-			}
-		}
-		
-		if (NSPointInRect(curPoint, contentRect))
-		{
-			isTracking = YES;
-			trackingStartBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
-			trackingLastBase = trackingStartBase;
-			trackingXAdjust = 0;
-			
-			// We start off with no selection, and wait for the user to drag out a selection
-			if (hasSelection)
-			{
-				hasSelection = NO;
-				
-				// Save the selection for restoring across recycles, etc.
-				savedHasSelection = hasSelection;
-				
-				[self setNeedsDisplayAll];
-				[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
-			}
-		}
-	}
-}
-
-- (void)setUpMarker:(SLiMSelectionMarker **)marker atBase:(slim_position_t)selectionBase isLeft:(BOOL)isLeftMarker
-{
-	BOOL justCreated = NO;
-	
-	// if the marker is not yet created, create it
-	if (!*marker)
-	{
-		*marker = [SLiMSelectionMarker new];
-		justCreated = YES;
-	}
-	
-	// then move the marker to the appropriate position
-	NSRect interiorRect = [self interiorRect];
-	NSRange displayedRange = [self displayedRange];
-	NSRect selectionRect = [self rectEncompassingBase:selectionFirstBase toBase:selectionLastBase interiorRect:interiorRect displayedRange:displayedRange];
-	NSPoint selectionStartTipPoint = NSMakePoint(selectionRect.origin.x, interiorRect.origin.y + interiorRect.size.height - 3);
-	NSPoint selectionEndTipPoint = NSMakePoint(selectionRect.origin.x + selectionRect.size.width - 1, interiorRect.origin.y + interiorRect.size.height - 3);
-	NSPoint tipPoint = (isLeftMarker ? selectionStartTipPoint : selectionEndTipPoint);
-	
-	tipPoint = [self convertPoint:tipPoint toView:nil];
-	tipPoint = [[self window] convertRectToScreen:NSMakeRect(tipPoint.x, tipPoint.y, 0, 0)].origin;
-	
-	// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
-	if (selectionBase >= 1e10)
-		[*marker setLabel:[NSString stringWithFormat:@"%.6e", (double)selectionBase]];
-	else
-		[*marker setLabel:[NSString stringWithFormat:@"%lld", (long long int)selectionBase]];
-	
-	[*marker setTipPoint:tipPoint];
-	[*marker setIsLeftMarker:isLeftMarker];
-	
-	if (justCreated)
-		[*marker orderFront:nil];
-}
-
-- (void)_mouseTrackEvent:(NSEvent *)theEvent
-{
-	NSRect interiorRect = [self interiorRect];
-	NSRange displayedRange = [self displayedRange];
-	NSPoint curPoint = [self convertPoint:[theEvent locationInWindow] fromView:nil];
-	
-	// We deal with rounded x-coordinates to make adjusting the click point easier
-	curPoint.x = (int)round(curPoint.x);
-	
-	NSPoint correctedPoint = NSMakePoint(curPoint.x - trackingXAdjust, curPoint.y);
-	slim_position_t trackingNewBase = [self baseForPosition:correctedPoint.x interiorRect:interiorRect displayedRange:displayedRange];
-	BOOL selectionChanged = NO;
-	
-	if (trackingNewBase != trackingLastBase)
-	{
-		trackingLastBase = trackingNewBase;
-		
-		slim_position_t trackingLeftBase = trackingStartBase, trackingRightBase = trackingLastBase;
-		
-		if (trackingLeftBase > trackingRightBase)
-		{
-			trackingLeftBase = trackingLastBase;
-			trackingRightBase = trackingStartBase;
-		}
-		
-		if (trackingLeftBase <= (slim_position_t)displayedRange.location)
-			trackingLeftBase = (slim_position_t)displayedRange.location;
-		if (trackingRightBase > (slim_position_t)(displayedRange.location + displayedRange.length) - 1)
-			trackingRightBase = (slim_position_t)(displayedRange.location + displayedRange.length) - 1;
-		
-		if (trackingRightBase <= trackingLeftBase + 100)
-		{
-			if (hasSelection)
-				selectionChanged = YES;
-			
-			hasSelection = NO;
-			
-			// Save the selection for restoring across recycles, etc.
-			savedHasSelection = hasSelection;
-			
-			[self removeSelectionMarkers];
-		}
-		else
-		{
-			selectionChanged = YES;
-			hasSelection = YES;
-			selectionFirstBase = trackingLeftBase;
-			selectionLastBase = trackingRightBase;
-			
-			// Save the selection for restoring across recycles, etc.
-			savedSelectionFirstBase = selectionFirstBase;
-			savedSelectionLastBase = selectionLastBase;
-			savedHasSelection = hasSelection;
-			
-			[self setUpMarker:&startMarker atBase:selectionFirstBase isLeft:YES];
-			[self setUpMarker:&endMarker atBase:selectionLastBase isLeft:NO];
-		}
-		
-		if (selectionChanged)
-		{
-			[self setNeedsDisplayAll];
-			[[NSNotificationCenter defaultCenter] postNotificationName:SLiMChromosomeSelectionChangedNotification object:self];
-		}
-	}
-}
-
-- (void)mouseDragged:(NSEvent *)theEvent
-{
-	if ([self isSelectable] && isTracking)
-		[self _mouseTrackEvent:theEvent];
-}
-
-- (void)mouseUp:(NSEvent *)theEvent
-{
-	if ([self isSelectable] && isTracking)
-	{
-		[self _mouseTrackEvent:theEvent];
-		[self removeSelectionMarkers];
-	}
-	
-	isTracking = NO;
 }
 
 - (IBAction)filterMutations:(id)sender
@@ -1342,7 +1025,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
 	
-	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && ![self isSelectable] && [self enabled])
+	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && ![self overview] && [self enabled])
 	{
 		Species *displaySpecies = [controller focalDisplaySpecies];
 		
