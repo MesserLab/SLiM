@@ -981,9 +981,8 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
             }
             else if (chromosomes.size() > 1)
             {
-                // highlight the selected chromosome, if we have more than one chromosome
-                painter.fillRect(chromInteriorRect, QtSLiMColorWithWhite(0.0, 0.30));
-                QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 1.0 : 0.0, 1.0), painter);
+                // the selected chromosome gets a heavier frame, if we have more than one chromosome
+                QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.0 : 0.4, 1.0), painter);
             }
             else
             {
@@ -992,7 +991,16 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
         }
         else
         {
-            QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
+            if ((chromosomes.size() > 1) && focalChrom)
+            {
+                // with more than one chromosome, chromosomes other than the focal chromosome get washed out
+                painter.fillRect(chromInteriorRect, QtSLiMColorWithWhite(inDarkMode ? 0.0 : 1.0, inDarkMode ? 0.50 : 0.60));
+                QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.1 : 0.8, 1.0), painter);
+            }
+            else
+            {
+                QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
+            }
         }
         
         leftPosition += (paddedWidth + spaceBetweenChromosomes);
@@ -1258,12 +1266,24 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange di
 {
 	if (hasSelection_)
 	{
-        // darken the interior of the selection slightly
-        QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
+        // wash out the exterior of the selection
+        bool inDarkMode = QtSLiMInDarkMode();
         
-        painter.fillRect(selectionRect, QtSLiMColorWithWhite(0.0, 0.30));
+        if (selectionFirstBase_ > 0)
+        {
+            QRect leftOfSelectionRect = rectEncompassingBaseToBase(0, selectionFirstBase_ - 1, interiorRect, displayedRange);
+            
+            painter.fillRect(leftOfSelectionRect, QtSLiMColorWithWhite(inDarkMode ? 0.0 : 1.0, inDarkMode ? 0.50 : 0.60));
+        }
+        if (selectionLastBase_ < displayedRange.length - 1)
+        {
+            QRect rightOfSelectionRect = rectEncompassingBaseToBase(selectionLastBase_ + 1, displayedRange.length - 1, interiorRect, displayedRange);
+            
+            painter.fillRect(rightOfSelectionRect, QtSLiMColorWithWhite(inDarkMode ? 0.0 : 1.0, inDarkMode ? 0.50 : 0.60));
+        }
         
 		// draw a bar at the start and end of the selection
+        QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
 		QRect selectionStartBar1 = QRect(selectionRect.left() - 1, interiorRect.top(), 1, interiorRect.height());
 		QRect selectionStartBar2 = QRect(selectionRect.left(), interiorRect.top(), 1, interiorRect.height() + 5);
 		//QRect selectionStartBar3 = QRect(selectionRect.left() + 1, interiorRect.top(), 1, interiorRect.height());
@@ -1273,9 +1293,9 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange di
 		
         painter.fillRect(selectionStartBar1, QtSLiMColorWithWhite(1.0, 0.15));
         //painter.fillRect(selectionEndBar1, QtSLiMColorWithWhite(1.0, 0.15));
-		
-		painter.fillRect(selectionStartBar2, Qt::black);
-		painter.fillRect(selectionEndBar2, Qt::black);
+        
+        painter.fillRect(selectionStartBar2, inDarkMode ? QtSLiMColorWithWhite(0.8, 1.0) : Qt::black);
+        painter.fillRect(selectionEndBar2, inDarkMode ? QtSLiMColorWithWhite(0.8, 1.0) : Qt::black);
 		
         //painter.fillRect(selectionStartBar3, QtSLiMColorWithWhite(0.0, 0.30));
         painter.fillRect(selectionEndBar3, QtSLiMColorWithWhite(0.0, 0.30));
@@ -1289,7 +1309,7 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange di
         painter.save();
         painter.setPen(Qt::NoPen);
         
-        painter.setBrush(Qt::black);	// outline
+        painter.setBrush(inDarkMode ? QtSLiMColorWithWhite(0.65, 1.0) : Qt::black);	// outline
 		painter.drawEllipse(selectionStartBall);
 		painter.drawEllipse(selectionEndBall);
 		
