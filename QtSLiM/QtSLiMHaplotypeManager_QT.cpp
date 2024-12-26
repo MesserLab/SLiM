@@ -80,48 +80,22 @@ void QtSLiMHaplotypeManager::qtDrawSubpopStripsInRect(QRect interior, QPainter &
     SLIM_GL_FINISH();
 }
 
-void QtSLiMHaplotypeManager::qtDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts, QPainter &painter)
+void QtSLiMHaplotypeManager::qtDrawDisplayListInRect(QRect interior, bool displayBW, QPainter &painter)
 {
 	// Set up to draw rects
     SLIM_GL_PREPARE();
 	
-	// decide whether to plot in ascending order or descending order; we do this based on a calculated
-	// similarity to the previously displayed first haplosome, so that we maximize visual continuity
+	// decide whether to plot in ascending order or descending order; we do this based on
+    // which end has higher mutational density, to try to maximize visual continuity
 	size_t haplosome_count = displayList->size();
 	bool ascending = true;
 	
-	if (previousFirstBincounts && (haplosome_count > 1))
+	if (haplosome_count > 1)
 	{
 		std::vector<MutationIndex> &first_haplosome_list = (*displayList)[0];
 		std::vector<MutationIndex> &last_haplosome_list = (*displayList)[haplosome_count - 1];
-		static int64_t *first_haplosome_bincounts = nullptr;
-		static int64_t *last_haplosome_bincounts = nullptr;
-		
-		if (!first_haplosome_bincounts)	first_haplosome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
-		if (!last_haplosome_bincounts)		last_haplosome_bincounts = static_cast<int64_t *>(malloc(1024 * sizeof(int64_t)));
-		
-		tallyBincounts(first_haplosome_bincounts, first_haplosome_list);
-		tallyBincounts(last_haplosome_bincounts, last_haplosome_list);
-		
-		if (*previousFirstBincounts)
-		{
-			int64_t first_haplosome_distance = distanceForBincounts(first_haplosome_bincounts, *previousFirstBincounts);
-			int64_t last_haplosome_distance = distanceForBincounts(last_haplosome_bincounts, *previousFirstBincounts);
-			
-			if (first_haplosome_distance > last_haplosome_distance)
-				ascending = false;
-			
-			free(*previousFirstBincounts);
-		}
-		
-		// take over one of our buffers, to avoid having to copy values
-		if (ascending) {
-			*previousFirstBincounts = first_haplosome_bincounts;
-			first_haplosome_bincounts = nullptr;
-		} else {
-			*previousFirstBincounts = last_haplosome_bincounts;
-			last_haplosome_bincounts = nullptr;
-		}
+        
+        ascending = (first_haplosome_list.size() < last_haplosome_list.size());
 	}
 	
 	// Loop through the haplosomes and draw them; we do this in two passes, neutral mutations underneath selected mutations

@@ -33,10 +33,10 @@
 //  OpenGL-based drawing; maintain this in parallel with the Qt-based drawing!
 //
 
-void QtSLiMChromosomeWidget::qtDrawRect(Species *displaySpecies, QPainter &painter)
+void QtSLiMChromosomeWidget::qtDrawRect(QRect contentRect, Species *displaySpecies, Chromosome *chromosome, QPainter &painter)
 {
     bool ready = isEnabled() && !controller_->invalidSimulation();
-	QRect interiorRect = getInteriorRect();
+	QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
@@ -48,7 +48,6 @@ void QtSLiMChromosomeWidget::qtDrawRect(Species *displaySpecies, QPainter &paint
         // erase the content area itself
         painter.fillRect(interiorRect, Qt::black);
         
-        Chromosome *chromosome = focalChromosome();
 		QtSLiMRange displayedRange = getDisplayedRange(chromosome);
 		
 		bool splitHeight = (shouldDrawRateMaps() && shouldDrawGenomicElements());
@@ -83,16 +82,13 @@ void QtSLiMChromosomeWidget::qtDrawRect(Species *displaySpecies, QPainter &paint
 			{
 				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
 				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
-                // we cache the haplotype manager here, so our display remains constant across window resizes and other
-                // invalidations; we toss the cache only when the simulation tells us that the model state has changed
-                if (!haplotype_mgr_)
-                {
-                    size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, displayedRange, interiorHeight, false);
-                }
+                size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
+                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, chromosome, displayedRange, interiorHeight, false);
                 
-                if (haplotype_mgr_)
-                    haplotype_mgr_->qtDrawHaplotypes(interiorRect, false, false, false, &haplotype_previous_bincounts, painter);
+                if (haplotype_mgr)
+                    haplotype_mgr->qtDrawHaplotypes(interiorRect, false, false, false, painter);
+                
+                delete haplotype_mgr;
 			}
 			else
 			{

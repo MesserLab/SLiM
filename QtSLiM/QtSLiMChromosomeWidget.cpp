@@ -166,7 +166,7 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         
         chromosomeWidget->setController(this);
         chromosomeWidget->setFocalChromosome(chromosome);
-        chromosomeWidget->setDisplayedRange(QtSLiMRange(0, chromosome->last_position_ + 1));
+        chromosomeWidget->setDisplayedRange(QtSLiMRange(0, 0)); // display entirety
         chromosomeWidget->setShowsTicks(false);
         
         slim_position_t length = chromosome->last_position_ + 1;
@@ -484,18 +484,6 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 {
     setDependentChromosomeView(nullptr);
 	
-    if (haplotype_mgr_)
-    {
-        delete haplotype_mgr_;
-        haplotype_mgr_ = nullptr;
-    }
-    
-    if (haplotype_previous_bincounts)
-    {
-        free(haplotype_previous_bincounts);
-        haplotype_previous_bincounts = nullptr;
-    }
-    
     controller_ = nullptr;
 }
 
@@ -511,29 +499,6 @@ void QtSLiMChromosomeWidget::setController(QtSLiMChromosomeWidgetController *con
     }
 }
 
-Chromosome *QtSLiMChromosomeWidget::resetToDefaultChromosome(void)
-{
-    Species *focalSpecies = focalDisplaySpecies();
-    Chromosome *chromosome = nullptr;
-    
-    if (focalSpecies)
-    {
-        const std::vector<Chromosome *> &chromosomes = focalSpecies->Chromosomes();
-        
-        if (chromosomes.size() > 0)
-            chromosome = chromosomes[0];   // start on the first chromosome
-    }
-    
-    setFocalChromosome(chromosome);
-    
-    // ... and reset to the default selection
-    setSelectedRange(QtSLiMRange(0, 0));
-    
-    updateDependentView();
-    
-    return chromosome;
-}
-
 void QtSLiMChromosomeWidget::setFocalDisplaySpecies(Species *displaySpecies)
 {
     // We can have no focal species (when coming out of the nib, in particular); in that case we display empty state
@@ -542,8 +507,8 @@ void QtSLiMChromosomeWidget::setFocalDisplaySpecies(Species *displaySpecies)
         // we've switched species, so we should remember the new one
         focalSpeciesName_ = displaySpecies->name_;
         
-        // ... and reset to the default chromosome
-        resetToDefaultChromosome();
+        // ... and reset to showing an overview of all the chromosomes
+        focalChromosomeSymbol_ = "";
         
         update();
         updateDependentView();
@@ -569,22 +534,35 @@ Species *QtSLiMChromosomeWidget::focalDisplaySpecies(void)
 
 void QtSLiMChromosomeWidget::setFocalChromosome(Chromosome *chromosome)
 {
-    if (chromosome && (chromosome->Symbol() != focalChromosomeSymbol_))
+    if (chromosome)
     {
-        // we've switched chromosomes, so remember the new one
-        focalChromosomeSymbol_ = chromosome->Symbol();
-        
-        // ... and reset to the default selection
-        setSelectedRange(QtSLiMRange(0, 0));
-        
-        // ... and if our new chromosome belongs to a different species, remember that
-        if (chromosome->species_.name_ != focalSpeciesName_)
-            focalSpeciesName_ = chromosome->species_.name_;
-        
-        update();
-        updateDependentView();
+        if (chromosome->Symbol() != focalChromosomeSymbol_)
+        {
+            // we've switched chromosomes, so remember the new one
+            focalChromosomeSymbol_ = chromosome->Symbol();
+            
+            // ... and reset to the default selection
+            setSelectedRange(QtSLiMRange(0, 0));
+            
+            // ... and if our new chromosome belongs to a different species, remember that
+            if (chromosome->species_.name_ != focalSpeciesName_)
+                focalSpeciesName_ = chromosome->species_.name_;
+            
+            update();
+            updateDependentView();
+        }
     }
-    
+    else
+    {
+        if (focalChromosomeSymbol_.length())
+        {
+            // we had a focal chromosome symbol, so reset to the overall view
+            focalChromosomeSymbol_ = "";
+            
+            update();
+            updateDependentView();
+        }
+    }
 }
 
 Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
@@ -597,8 +575,10 @@ Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
         
         if (isOverview_ && !chromosome)
         {
-            // force a reset to the default chromosome for the focal species
-            chromosome = resetToDefaultChromosome();
+            // the focal chromosome apparently no longer exists, but we want to keep
+            // trying to focus on it if it comes back (e.g., after a recycle), so we
+            // do not reset or forget the focal chromosome symbol here; we only reset
+            // the symbol to "" in setFocalDisplaySpecies() and setFocalChromosome()
         }
         
         return chromosome;
@@ -629,6 +609,8 @@ void QtSLiMChromosomeWidget::updateDependentView(void)
         
         if (chromosome)
             dependentChromosomeView_->setDisplayedRange(getSelectedRange(chromosome));
+        else
+            dependentChromosomeView_->setDisplayedRange(QtSLiMRange(0, 0)); // display entirely
         
         dependentChromosomeView_->stateChanged();
     }
@@ -636,13 +618,6 @@ void QtSLiMChromosomeWidget::updateDependentView(void)
 
 void QtSLiMChromosomeWidget::stateChanged(void)
 {
-    // when the model state changes, we toss our cached haplotype manager to generate a new plot
-    if (haplotype_mgr_)
-    {
-        delete haplotype_mgr_;
-        haplotype_mgr_ = nullptr;
-    }
-    
     update();
 }
 
@@ -717,11 +692,6 @@ QRect QtSLiMChromosomeWidget::getContentRect(void)
         bottomMargin = 0;
     
     return QRect(bounds.left(), bounds.top(), bounds.width(), bounds.height() - bottomMargin);
-}
-
-QRect QtSLiMChromosomeWidget::getInteriorRect(void)
-{
-    return getContentRect().marginsRemoved(QMargins(1, 1, 1, 1));
 }
 
 QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(Chromosome *chromosome)
@@ -803,11 +773,19 @@ QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(Chromosome *chromosome)
 {
     if (isOverview_)
     {
+        // the overview always displays the whole length
         slim_position_t chromosomeLastPosition = chromosome->last_position_;
         
         return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
     }
-	else
+    else if (!chromosome || (displayedRange_.length == 0))
+    {
+        // the detail view displays the entire length unless a specific displayed range is set
+        slim_position_t chromosomeLastPosition = chromosome->last_position_;
+        
+        return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
+    }
+    else
     {
 		return displayedRange_;
     }
@@ -845,7 +823,7 @@ void QtSLiMChromosomeWidget::paintEvent(QPaintEvent * /* p_paint_event */)
     Species *displaySpecies = focalDisplaySpecies();
     bool ready = (isEnabled() && controller_ && !controller_->invalidSimulation() && (displaySpecies != nullptr));
     QRect contentRect = getContentRect();
-	QRect interiorRect = getInteriorRect();
+	QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
@@ -861,28 +839,38 @@ void QtSLiMChromosomeWidget::paintEvent(QPaintEvent * /* p_paint_event */)
         else
         {
             Chromosome *chromosome = focalChromosome();
-            QtSLiMRange displayedRange = getDisplayedRange(chromosome);
             
-            // draw ticks at bottom of content rect
-            if (showsTicks_)
-                drawTicksInContentRect(contentRect, displaySpecies, displayedRange, painter);
-            
-            // do the core drawing, with or without OpenGL according to user preference
-#ifndef SLIM_NO_OPENGL
-            if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+            if (!chromosome)
             {
-                painter.beginNativePainting();
-                glDrawRect(displaySpecies);
-                painter.endNativePainting();
+                // display all chromosomes simultaneously
+                drawFullGenome(displaySpecies, painter);
             }
             else
-#endif
             {
-                qtDrawRect(displaySpecies, painter);
+                // display one chromosome in the regular way
+                QtSLiMRange displayedRange = getDisplayedRange(chromosome);
+                
+                // draw ticks at bottom of content rect
+                if (showsTicks_)
+                    drawTicksInContentRect(contentRect, displaySpecies, displayedRange, painter);
+                    
+                    // do the core drawing, with or without OpenGL according to user preference
+#ifndef SLIM_NO_OPENGL
+                if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+                {
+                    painter.beginNativePainting();
+                    glDrawRect(contentRect, displaySpecies, chromosome);
+                    painter.endNativePainting();
+                }
+                else
+#endif
+                {
+                    qtDrawRect(contentRect, displaySpecies, chromosome, painter);
+                }
+                
+                // frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
+                QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
             }
-            
-            // frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
-            QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
         }
     }
     else
@@ -904,10 +892,10 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
     
     if (!displaySpecies->HasGenetics())
     {
-        QRect interiorRect = getInteriorRect();
+        QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
         
-        painter.fillRect(interiorRect, Qt::black);
-        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
+        painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.9, 1.0));
+        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.77, 1.0), painter);
         return;
     }
     
@@ -1018,10 +1006,80 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
     }
 }
 
+void QtSLiMChromosomeWidget::drawFullGenome(Species *displaySpecies, QPainter &painter)
+{
+    // this is similar to drawOverview(), but shows the detail view and can use GL
+    QRect contentRect = getContentRect();
+    bool inDarkMode = QtSLiMInDarkMode();
+    const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
+    int chromosomeCount = (int)chromosomes.size();
+    int64_t availableWidth = contentRect.width() - (chromosomeCount * 2) - ((chromosomeCount - 1) * spaceBetweenChromosomes);
+    int64_t totalLength = 0;
+    
+    if (!displaySpecies->HasGenetics())
+    {
+        QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
+        
+        painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.9, 1.0));
+        QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.77, 1.0), painter);
+        return;
+    }
+    
+    for (Chromosome *chrom : chromosomes)
+    {
+        slim_position_t chromLength = (chrom->last_position_ + 1);
+        
+        totalLength += chromLength;
+    }
+    
+    int64_t remainingLength = totalLength;
+    int leftPosition = contentRect.left();
+    
+    for (Chromosome *chrom : chromosomes)
+    {
+        // display one chromosome in the regular way
+        double scale = (double)availableWidth / remainingLength;
+        slim_position_t chromLength = (chrom->last_position_ + 1);
+        int width = (int)round(chromLength * scale);
+        int paddedWidth = 2 + width;
+        QRect chromContentRect(leftPosition, contentRect.top(), paddedWidth, contentRect.height());
+        QRect chromInteriorRect = chromContentRect.marginsRemoved(QMargins(1, 1, 1, 1));
+        slim_position_t chromosomeLastPosition = chrom->last_position_;
+        QtSLiMRange displayedRange = QtSLiMRange(0, chromosomeLastPosition + 1);    // chromosomeLastPosition + 1 bases are encompassed
+        
+        painter.fillRect(chromInteriorRect, Qt::black);
+        
+        // draw ticks at bottom of content rect
+        if (showsTicks_)
+            drawTicksInContentRect(chromContentRect, displaySpecies, displayedRange, painter);
+        
+        // do the core drawing, with or without OpenGL according to user preference
+#ifndef SLIM_NO_OPENGL
+        if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+        {
+            painter.beginNativePainting();
+            glDrawRect(chromContentRect, displaySpecies, chrom);
+            painter.endNativePainting();
+        }
+        else
+#endif
+        {
+            qtDrawRect(chromContentRect, displaySpecies, chrom, painter);
+        }
+        
+        // frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
+        QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
+        
+        leftPosition += (paddedWidth + spaceBetweenChromosomes);
+        availableWidth -= width;
+        remainingLength -= chromLength;
+    }
+}
+
 void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribute__((__unused__)) Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter)
 {
     bool inDarkMode = QtSLiMInDarkMode();
-	QRect interiorRect = getInteriorRect();
+	QRect interiorRect = contentRect.marginsRemoved(QMargins(1, 1, 1, 1));
 	int64_t lastTickIndex = numberOfTicksPlusOne;
 	
     painter.save();
@@ -1044,6 +1102,8 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
     }
     painter.setFont(*tickFont);
     
+    QFontMetricsF fontMetrics(*tickFont);
+    
     if (displayedRange.length == 0)
 	{
 		// Handle the "no genetics" case separately
@@ -1061,8 +1121,49 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 		return;
 	}
     
+    // BCH 12/25/2024: Start by measuring the tick labels and figuring out who fits.  FIXME we could be even smarter
+    // and switch to scientific notation if things get too crowded, but I'll leave that for another day.
+    double widthAllLabels = 0.0, widthLeftRightLabels = 0.0, widthRightLabelOnly = 0.0;
+    
+    for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
+    {
+        slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+        QString tickLabel;
+        
+        if (tickBase >= 1e10)
+            tickLabel = QString::asprintf("%.6e", static_cast<double>(tickBase));
+        else
+            QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
+
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        double tickLabelWidth = 5 + fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        double tickLabelWidth = 5 + fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        widthAllLabels += tickLabelWidth;
+        if (tickIndex == 0)
+        {
+            widthLeftRightLabels += tickLabelWidth;
+        }
+        if (tickIndex == lastTickIndex)
+        {
+            widthLeftRightLabels += tickLabelWidth;
+            widthRightLabelOnly += tickLabelWidth;
+        }
+    }
+    
+    // Now actually draw tick marks and tick labels
 	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
 	{
+        // BCH 12/25/2024: If we're not going to draw the middle tick labels, skip their tick marks also;
+        // and if we're not going to draw any tick labels at all, then skip drawing all the tick marks
+        int interiorWidth = interiorRect.width();
+        
+        if ((widthRightLabelOnly > interiorWidth) ||
+            ((widthAllLabels > interiorWidth) && (tickIndex != 0) && (tickIndex != lastTickIndex)))
+            continue;
+        
 		slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
 		QRect tickRect = rectEncompassingBaseToBase(tickBase, tickBase, interiorRect, displayedRange);
 		
@@ -1077,7 +1178,21 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 		}
 		
         painter.fillRect(tickRect, inDarkMode ? QColor(10, 10, 10, 255) : QColor(127, 127, 127, 255));  // in dark mode, 17 matches the frame, but is too light
-		
+        
+        // BCH 12/25/2024: Using the measurements taken above, decide whether to draw this tick label or not
+        if (widthAllLabels > interiorWidth)
+        {
+            if ((tickIndex != 0) && (tickIndex != lastTickIndex))
+                continue;
+            if (widthLeftRightLabels > interiorWidth)
+            {
+                if (tickIndex != lastTickIndex)
+                    continue;
+                if (widthRightLabelOnly > interiorWidth)
+                    continue;
+            }
+        }
+        
 		// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
         QString tickLabel;
         int tickLabelX = static_cast<int>(floor(tickRect.left() + tickRect.width() / 2.0));
@@ -1255,6 +1370,8 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
         // note that it hit-tests aginst the overall chromosome view, including the selection knob margin, though
         Chromosome *hitChromosome = _findFocalChromosomeForTracking(p_event);
         
+        trackingStartedInFocalChromosome_ = false;     // only true in the one case set below
+        
         // if the click was not in a chromosome (like in the gap between them), just return with no effect
         if (!hitChromosome)
             return;
@@ -1302,10 +1419,19 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
         if (!contentRect.contains(curPoint))
             return;
         
-        // given that it wasn't a hit in a selection handle, we now switch to the chromosome that was clicked in;
-        // other kinds of clicks change the focal chromosome to the one hit by the click
-        if (hitChromosome != focalChromosome())
+        // our behavior depends on whether the hit chromosome was already the focal chromosome
+        if ((hitChromosome == focalChromosome()) && !hasSelection_)
         {
+            // if the click was in the currently selected chromosome, and there is presently no selection, remember
+            // that fact; if we get a mouse-up without a selection being dragged out, we will deselect completely
+            // (if we presently have a selection, the click removes the selection, but does not deselect completely)
+            trackingStartedInFocalChromosome_ = true;
+            update();
+        }
+        else if (hitChromosome != focalChromosome())
+        {
+            // given that it wasn't a hit in a selection handle, we now switch to the chromosome that was clicked in;
+            // other kinds of clicks change the focal chromosome to the one hit by the click
             setFocalChromosome(hitChromosome);
             update();
         }
@@ -1326,6 +1452,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
             }
             
             mouseInsideCounter_++;  // prevent a flip to displaying chromosome numbers
+            trackingStartedInFocalChromosome_ = false;
             
             setSelectedRange(selectionRange);
             return;
@@ -1397,6 +1524,7 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 			hasSelection_ = true;
 			selectionFirstBase_ = trackingLeftBase;
 			selectionLastBase_ = trackingRightBase;
+            trackingStartedInFocalChromosome_ = false;  // no resetting to overview
 			
 			// Save the selection for restoring across recycles, etc.
 			savedSelectionFirstBase_ = selectionFirstBase_;
@@ -1426,6 +1554,16 @@ void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
         
         // prevent a flip to showing chromosome numbers after user tracking
         mouseInsideCounter_++;
+        showChromosomeNumbers_ = false;
+        
+        // if we had a simple click and mouse-up in the focal chromosome, and there
+        // was no existing selection, then reset to showing all chromosomes
+        if (trackingStartedInFocalChromosome_)
+        {
+            setFocalChromosome(nullptr);
+            update();
+            updateDependentView();
+        }
 	}
 	
 	isTracking_ = false;

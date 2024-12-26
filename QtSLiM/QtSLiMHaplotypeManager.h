@@ -67,14 +67,14 @@ public:
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, QtSLiMRange displayedRange,
-                           size_t sampleSize, bool showProgress);
+                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
+                           QtSLiMRange displayedRange, size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     
 #ifndef SLIM_NO_OPENGL
-    void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts);
+    void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground);
 #endif
-    void qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter);
+    void qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, QPainter &painter);
     
     // Public properties
     QString titleString;
@@ -128,7 +128,7 @@ private:
 	bool displayingMuttypeSubset = false;
     
     void finishClusteringAnalysis(void);
-    void configureMutationInfoBuffer(void);
+    void configureMutationInfoBuffer(Chromosome *chromosome);
     void sortHaplosomes(void);
     void configureDisplayBuffers(void);
     void allocateGLBuffers(void);
@@ -138,12 +138,12 @@ private:
     // OpenGL drawing; this is the primary drawing code
 #ifndef SLIM_NO_OPENGL
     void glDrawSubpopStripsInRect(QRect interior);
-    void glDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts);
+    void glDrawDisplayListInRect(QRect interior, bool displayBW);
 #endif
     
     // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
     void qtDrawSubpopStripsInRect(QRect interior, QPainter &painter);
-    void qtDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts, QPainter &painter);
+    void qtDrawDisplayListInRect(QRect interior, bool displayBW, QPainter &painter);
     
     int64_t *buildDistanceArray(void);
     int64_t *buildDistanceArrayForSubrange(void);

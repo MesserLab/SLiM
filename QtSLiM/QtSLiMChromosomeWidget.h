@@ -140,18 +140,14 @@ class QtSLiMChromosomeWidget : public QWidget
     QRect contentRectForTrackedChromosome_;
     slim_position_t trackingStartBase_ = 0, trackingLastBase_ = 0;
 	int trackingXAdjust_ = 0;	// to keep the cursor stuck on a knob that is click-dragged
+    bool trackingStartedInFocalChromosome_ = false;     // used to keep track of whether we could deselect on mouse-up
 	//SLiMSelectionMarker *startMarker, *endMarker;
-    
-    // Haplotype display
-    int64_t *haplotype_previous_bincounts = nullptr;    // used by QtSLiMHaplotypeManager to keep the sort order stable
-    QtSLiMHaplotypeManager *haplotype_mgr_ = nullptr;   // the haplotype manager constructed for the current display; cached
     
 public:
     explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, QtSLiMChromosomeWidgetController *controller = nullptr, Species *displaySpecies = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMChromosomeWidget() override;
     
     void setController(QtSLiMChromosomeWidgetController *controller);
-    Chromosome *resetToDefaultChromosome(void);
     void setFocalDisplaySpecies(Species *displaySpecies);
     Species *focalDisplaySpecies(void);
     void setFocalChromosome(Chromosome *chromosome);
@@ -186,16 +182,17 @@ protected:
     QRect rectEncompassingBaseToBase(slim_position_t startBase, slim_position_t endBase, QRect interiorRect, QtSLiMRange displayedRange);
     slim_position_t baseForPosition(double position, QRect interiorRect, QtSLiMRange displayedRange);
     QRect getContentRect(void);
-    QRect getInteriorRect(void);
     
     void drawOverview(Species *displaySpecies, QPainter &painter);
+    void drawFullGenome(Species *displaySpecies, QPainter &painter);
+    
     void drawTicksInContentRect(QRect contentRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
     void overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter);
     void updateDisplayedMutationTypes(Species *displaySpecies);
     
     // OpenGL drawing; this is the primary drawing code
 #ifndef SLIM_NO_OPENGL
-    void glDrawRect(Species *displaySpecies);
+    void glDrawRect(QRect contentRect, Species *displaySpecies, Chromosome *chromosome);
     void glDrawGenomicElements(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
     void glDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
     void glDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange);
@@ -206,7 +203,7 @@ protected:
 #endif
     
     // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
-    void qtDrawRect(Species *displaySpecies, QPainter &painter);
+    void qtDrawRect(QRect contentRect, Species *displaySpecies, Chromosome *chromosome, QPainter &painter);
     void qtDrawGenomicElements(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
     void qtDrawFixedSubstitutions(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);
     void qtDrawMutations(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter);

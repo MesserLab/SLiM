@@ -64,8 +64,10 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         
         // First generate the haplotype plot data, with a progress panel
         // FIXME MULTICHROM this code path should work with all of the chromosomes, probably...
-        QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, displaySpecies, QtSLiMRange(0,0), haplosomeSampleSize, true);
+        Chromosome *chromosome = &displaySpecies->TheChromosome();
+        
+        QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
+                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize, true);
         
         if (haplotypeManager->valid_)
         {
@@ -151,8 +153,8 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, QtSLiMRange displayedRange,
-                                               size_t sampleSize, bool showProgress) :
+                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
+                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress) :
     QObject(p_parent)
 {
     controller_ = controller;
@@ -216,7 +218,9 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     subpopCount = static_cast<int>(selected_subpops.size());
     
     // Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
-    int haplosome_count_per_individual = graphSpecies->HaplosomeCountPerIndividual();
+    slim_chromosome_index_t chromosome_index = chromosome->Index();
+    int first_haplosome_index = graphSpecies->FirstHaplosomeIndices()[chromosome_index];
+    int last_haplosome_index = graphSpecies->LastHaplosomeIndices()[chromosome_index];
     
     for (Subpopulation *subpop : selected_subpops)
     {
@@ -224,7 +228,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         {
             Haplosome **ind_haplosomes = ind->haplosomes_;
             
-            for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+            for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
             {
                 Haplosome *haplosome = ind_haplosomes[haplosome_index];
                 
@@ -242,7 +246,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     }
     
     // Cache all the information about the mutations that we're going to need
-    configureMutationInfoBuffer();
+    configureMutationInfoBuffer(chromosome);
     
     // Keep track of the range of subpop IDs we reference, even if not represented by any haplosomes here
     maxSubpopID = 0;
@@ -332,7 +336,7 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 	haplosomes.resize(0);
 }
 
-void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
+void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 {
     Species *graphSpecies = focalDisplaySpecies();
     
@@ -347,6 +351,10 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	MutationIndex biggest_index = 0;
 	
 	// First, find the biggest index presently in use; that's how many entries we need
+    // BCH 12/25/2024: With multiple chromosomes, this is rather wasteful; I think this class
+    // could be redesigned to capture just the subset of mutations that are live for a given
+    // chromosome, essentially re-indexing the mutations, but it's not clear this matters
+    // to performance; we just waste a bit of memory here, but it's not a big deal.
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
 		MutationIndex mut_index = *reg_ptr;
@@ -391,7 +399,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = graphSpecies->TheChromosome().last_position_;
+	mutationLastPosition = chromosome->last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortHaplosomes(void)
@@ -583,7 +591,7 @@ int64_t QtSLiMHaplotypeManager::distanceForBincounts(int64_t *bincounts1, int64_
 }
 
 #ifndef SLIM_NO_OPENGL
-void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts)
+void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground)
 {
     // Erase the background to either black or white, depending on displayBW
 	if (eraseBackground)
@@ -608,11 +616,11 @@ void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bo
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
-	glDrawDisplayListInRect(interior, displayBW, previousFirstBincounts);
+	glDrawDisplayListInRect(interior, displayBW);
 }
 #endif
 
-void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter)
+void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, QPainter &painter)
 {
     // Erase the background to either black or white, depending on displayBW
     if (eraseBackground)
@@ -633,7 +641,7 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
     }
     
     // Draw the haplotypes in the remaining portion of the interior
-    qtDrawDisplayListInRect(interior, displayBW, previousFirstBincounts, painter);
+    qtDrawDisplayListInRect(interior, displayBW, painter);
 }
 
 // Traveling Salesman Problem code
@@ -1561,13 +1569,13 @@ void QtSLiMHaplotypeView::paintEvent(QPaintEvent * /* p_paint_event */)
         if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
         {
             painter.beginNativePainting();
-            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr);
+            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true);
             painter.endNativePainting();
         }
         else
 #endif
         {
-            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr, painter);
+            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, painter);
         }
     }
 }
