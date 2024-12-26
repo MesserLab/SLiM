@@ -975,9 +975,10 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
         {
             if (hasSelection_)
             {
-                // overlay the selection last, since it bridges over the frame
+                // overlay the selection last, since it bridges over the frame; when showing chromosome numbers
+                // in light mode, drawing the interior shadow looks better because of the white background
                 QtSLiMFrameRect(chromContentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.6, 1.0), painter);
-                overlaySelection(chromInteriorRect, displayedRange, painter);
+                overlaySelection(chromInteriorRect, displayedRange, /* drawInteriorShadow */ showChromosomeNumbers && !inDarkMode, painter);
             }
             else if (chromosomes.size() > 1)
             {
@@ -1262,7 +1263,7 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(Species *displaySpecie
     }
 }
 
-void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter)
+void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, bool drawInteriorShadow, QPainter &painter)
 {
 	if (hasSelection_)
 	{
@@ -1286,18 +1287,20 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange di
         QRect selectionRect = rectEncompassingBaseToBase(selectionFirstBase_, selectionLastBase_, interiorRect, displayedRange);
 		QRect selectionStartBar1 = QRect(selectionRect.left() - 1, interiorRect.top(), 1, interiorRect.height());
 		QRect selectionStartBar2 = QRect(selectionRect.left(), interiorRect.top(), 1, interiorRect.height() + 5);
-		//QRect selectionStartBar3 = QRect(selectionRect.left() + 1, interiorRect.top(), 1, interiorRect.height());
-		//QRect selectionEndBar1 = QRect(selectionRect.left() + selectionRect.width() - 2, interiorRect.top(), 1, interiorRect.height());
+		QRect selectionStartBar3 = QRect(selectionRect.left() + 1, interiorRect.top(), 1, interiorRect.height());
+		QRect selectionEndBar1 = QRect(selectionRect.left() + selectionRect.width() - 2, interiorRect.top(), 1, interiorRect.height());
 		QRect selectionEndBar2 = QRect(selectionRect.left() + selectionRect.width() - 1, interiorRect.top(), 1, interiorRect.height() + 5);
 		QRect selectionEndBar3 = QRect(selectionRect.left() + selectionRect.width(), interiorRect.top(), 1, interiorRect.height());
 		
         painter.fillRect(selectionStartBar1, QtSLiMColorWithWhite(1.0, 0.15));
-        //painter.fillRect(selectionEndBar1, QtSLiMColorWithWhite(1.0, 0.15));
+        if (drawInteriorShadow)
+            painter.fillRect(selectionEndBar1, QtSLiMColorWithWhite(1.0, 0.15));
         
         painter.fillRect(selectionStartBar2, inDarkMode ? QtSLiMColorWithWhite(0.8, 1.0) : Qt::black);
         painter.fillRect(selectionEndBar2, inDarkMode ? QtSLiMColorWithWhite(0.8, 1.0) : Qt::black);
 		
-        //painter.fillRect(selectionStartBar3, QtSLiMColorWithWhite(0.0, 0.30));
+        if (drawInteriorShadow)
+            painter.fillRect(selectionStartBar3, QtSLiMColorWithWhite(0.0, 0.30));
         painter.fillRect(selectionEndBar3, QtSLiMColorWithWhite(0.0, 0.30));
         
 		// draw a ball at the end of each bar
@@ -1390,7 +1393,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
         // note that it hit-tests aginst the overall chromosome view, including the selection knob margin, though
         Chromosome *hitChromosome = _findFocalChromosomeForTracking(p_event);
         
-        trackingStartedInFocalChromosome_ = false;     // only true in the one case set below
+        simpleClickInFocalChromosome_ = false;     // only true in the one case set below
         
         // if the click was not in a chromosome (like in the gap between them), just return with no effect
         if (!hitChromosome)
@@ -1415,6 +1418,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 			if (leftSelectionBar.contains(curPoint) || leftSelectionKnob.contains(curPoint))
 			{
 				isTracking_ = true;
+                movedSufficiently_ = true;  // a hit in a selection bar is unambiguously a drag
 				trackingXAdjust_ = (curPoint.x() - leftEdge) - 1;		// I'm not sure why the -1 is needed, but it is...
 				trackingStartBase_ = selectionLastBase_;	// we're dragging the left knob, so the right knob is the tracking anchor
 				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionFirstBase, so the selection does not change at all if the mouse does not move
@@ -1425,6 +1429,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 			else if (rightSelectionBar.contains(curPoint) || rightSelectionKnob.contains(curPoint))
 			{
 				isTracking_ = true;
+                movedSufficiently_ = true;  // a hit in a selection bar is unambiguously a drag
 				trackingXAdjust_ = (curPoint.x() - rightEdge);
 				trackingStartBase_ = selectionFirstBase_;	// we're dragging the right knob, so the left knob is the tracking anchor
 				trackingLastBase_ = baseForPosition(curPoint.x() - trackingXAdjust_, interiorRect, displayedRange);	// instead of selectionLastBase, so the selection does not change at all if the mouse does not move
@@ -1445,7 +1450,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
             // if the click was in the currently selected chromosome, and there is presently no selection, remember
             // that fact; if we get a mouse-up without a selection being dragged out, we will deselect completely
             // (if we presently have a selection, the click removes the selection, but does not deselect completely)
-            trackingStartedInFocalChromosome_ = true;
+            simpleClickInFocalChromosome_ = true;
             update();
         }
         else if (hitChromosome != focalChromosome())
@@ -1472,7 +1477,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
             }
             
             mouseInsideCounter_++;  // prevent a flip to displaying chromosome numbers
-            trackingStartedInFocalChromosome_ = false;
+            simpleClickInFocalChromosome_ = false;
             
             setSelectedRange(selectionRange);
             return;
@@ -1481,6 +1486,8 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
         // otherwise we have an ordinary click, selecting a chromosome and perhaps dragging out a selection
         {
             isTracking_ = true;
+            movedSufficiently_ = false;     // require a movement threshold before beginning to drag
+            initialMouseX = curPoint.x();
             trackingStartBase_ = baseForPosition(curPoint.x(), interiorRect, displayedRange);
             trackingLastBase_ = trackingStartBase_;
             trackingXAdjust_ = 0;
@@ -1528,7 +1535,7 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 		if (trackingRightBase > static_cast<slim_position_t>((displayedRange.location + displayedRange.length) - 1))
 			trackingRightBase = static_cast<slim_position_t>((displayedRange.location + displayedRange.length) - 1);
 		
-		if (trackingRightBase <= trackingLeftBase + 100)
+		if (trackingRightBase <= trackingLeftBase + 3)      // minimum selection length is 5; below that, reset to no selection
 		{
 			if (hasSelection_)
 				selectionChanged = true;
@@ -1538,13 +1545,14 @@ void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 			// Save the selection for restoring across recycles, etc.
 			savedHasSelection_ = hasSelection_;
 		}
-		else
+        else if (movedSufficiently_ || (abs(initialMouseX - curPoint.x()) > 2))  // movement threshold before drag-selection begins
 		{
 			selectionChanged = true;
 			hasSelection_ = true;
+            movedSufficiently_ = true;
 			selectionFirstBase_ = trackingLeftBase;
 			selectionLastBase_ = trackingRightBase;
-            trackingStartedInFocalChromosome_ = false;  // no resetting to overview
+            simpleClickInFocalChromosome_ = false;  // no resetting to overview
 			
 			// Save the selection for restoring across recycles, etc.
 			savedSelectionFirstBase_ = selectionFirstBase_;
@@ -1578,7 +1586,7 @@ void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
         
         // if we had a simple click and mouse-up in the focal chromosome, and there
         // was no existing selection, then reset to showing all chromosomes
-        if (trackingStartedInFocalChromosome_)
+        if (simpleClickInFocalChromosome_)
         {
             setFocalChromosome(nullptr);
             update();

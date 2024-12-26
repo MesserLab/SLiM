@@ -133,14 +133,17 @@ class QtSLiMChromosomeWidget : public QWidget
     // Mouse-over display change (only in the overview)
     bool mouseInside_ = false;
     int mouseInsideCounter_ = 0;
-    bool showChromosomeNumbers_ = false;    // set true after a delay when the mouse is inside
+    bool showChromosomeNumbers_ = false;            // set true after a delay when the mouse is inside
     
     // Tracking (only in the overview)
     bool isTracking_ = false;
+    bool movedSufficiently_ = false;                // a movement threshold is required before dragging begins
+    int initialMouseX = 0;                          // the initial x for the movement threshold
+    
     QRect contentRectForTrackedChromosome_;
     slim_position_t trackingStartBase_ = 0, trackingLastBase_ = 0;
-	int trackingXAdjust_ = 0;	// to keep the cursor stuck on a knob that is click-dragged
-    bool trackingStartedInFocalChromosome_ = false;     // used to keep track of whether we could deselect on mouse-up
+	int trackingXAdjust_ = 0;                       // to keep the cursor stuck on a knob that is click-dragged
+    bool simpleClickInFocalChromosome_ = false;     // used to keep track of whether we could deselect on mouse-up
 	//SLiMSelectionMarker *startMarker, *endMarker;
     
 public:
@@ -187,7 +190,7 @@ protected:
     void drawFullGenome(Species *displaySpecies, QPainter &painter);
     
     void drawTicksInContentRect(QRect contentRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
-    void overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter);
+    void overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, bool drawInteriorShadow, QPainter &painter);
     void updateDisplayedMutationTypes(Species *displaySpecies);
     
     // OpenGL drawing; this is the primary drawing code
