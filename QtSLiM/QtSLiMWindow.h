@@ -185,6 +185,8 @@ public:
     void setScriptStringAndInitializeSimulation(std::string string);
     
     Species *focalDisplaySpecies(void);
+    Chromosome *focalChromosome(void);
+    
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);

@@ -569,19 +569,48 @@ Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
 {
     Species *focalSpecies = focalDisplaySpecies();
     
-    if (focalSpecies && focalChromosomeSymbol_.length())
+    if (focalSpecies)
     {
-        Chromosome *chromosome = focalSpecies->ChromosomeFromSymbol(focalChromosomeSymbol_);
-        
-        if (isOverview_ && !chromosome)
+        if (focalChromosomeSymbol_.length())
         {
-            // the focal chromosome apparently no longer exists, but we want to keep
-            // trying to focus on it if it comes back (e.g., after a recycle), so we
-            // do not reset or forget the focal chromosome symbol here; we only reset
-            // the symbol to "" in setFocalDisplaySpecies() and setFocalChromosome()
+            Chromosome *chromosome = focalSpecies->ChromosomeFromSymbol(focalChromosomeSymbol_);
+            
+            if (isOverview_ && !chromosome)
+            {
+                // The focal chromosome apparently no longer exists, but we want to keep
+                // trying to focus on it if it comes back (e.g., after a recycle), so we
+                // do not reset or forget the focal chromosome symbol here; we only reset
+                // the symbol to "" in setFocalDisplaySpecies() and setFocalChromosome().
+                // However, if the focal species has chromosomes (and they don't match),
+                // then apparently we're waiting for something that won't happen; give up
+                // and switch.
+                if (focalSpecies->Chromosomes().size() > 1)
+                {
+                    focalChromosomeSymbol_ = "";
+                    return nullptr;
+                }
+                else if (focalSpecies->Chromosomes().size() == 1)
+                {
+                    Chromosome *chromosome = focalSpecies->Chromosomes()[0];
+                    
+                    focalChromosomeSymbol_ = chromosome->Symbol();
+                    return chromosome;
+                }
+            }
+            
+            return chromosome;
         }
-        
-        return chromosome;
+        else if (focalSpecies->Chromosomes().size() == 1)
+        {
+            // The species has just one chromosome, so there is no visual difference
+            // between that chromosome being selected vs. not selected.  However, we
+            // want to return that chromosome to the caller, so if it is not selected,
+            // we fix that here and return it.
+            Chromosome *chromosome = focalSpecies->Chromosomes()[0];
+            
+            focalChromosomeSymbol_ = chromosome->Symbol();
+            return chromosome;
+        }
     }
     
     return nullptr;

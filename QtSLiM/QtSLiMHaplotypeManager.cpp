@@ -35,6 +35,7 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QLabel>
+#include <QMessageBox>
 #include <QDebug>
 
 #include <vector>
@@ -51,7 +52,40 @@
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
 void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller)
 {
+    QtSLiMWindow *slimWindow = controller->slimWindow();
+    
+    if (!slimWindow)
+        return;
+    
     Species *displaySpecies = controller->focalDisplaySpecies();
+    
+    if (!displaySpecies)
+    {
+        QMessageBox messageBox(slimWindow);
+        messageBox.setText("Haplotype Plot");
+        messageBox.setInformativeText("A single species must be chosen to create a haplotype plot; the plot will be based upon the selected species.");
+        messageBox.setIcon(QMessageBox::Warning);
+        messageBox.setWindowModality(Qt::WindowModal);
+        messageBox.exec();
+        return;
+    }
+    
+    // We need a single chromosome to work with; QtSLiMHaplotypeManager creates a haplotype
+    // plot for one chromosome, which makes sense since haplosomes assort independently.
+    // If we can't get a single chromosome, then we tell the user to select a chromosome.
+    Chromosome *chromosome = slimWindow->focalChromosome();
+    
+    if (!chromosome)
+    {
+        QMessageBox messageBox(slimWindow);
+        messageBox.setText("Haplotype Plot");
+        messageBox.setInformativeText("A single chromosome must be chosen to create a haplotype plot; the plot will be based upon the selected chromosome.");
+        messageBox.setIcon(QMessageBox::Warning);
+        messageBox.setWindowModality(Qt::WindowModal);
+        messageBox.exec();
+        return;
+    }
+    
     QtSLiMHaplotypeOptions optionsPanel(controller->slimWindow());
     
     int result = optionsPanel.exec();
@@ -63,9 +97,6 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
         
         // First generate the haplotype plot data, with a progress panel
-        // FIXME MULTICHROM this code path should work with all of the chromosomes, probably...
-        Chromosome *chromosome = &displaySpecies->TheChromosome();
-        
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
                                                                               displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize, true);
         
@@ -213,6 +244,9 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         title.append(QString(", positions %1:%2").arg(subrangeFirstBase).arg(subrangeLastBase));
     
     title.append(QString(", tick %1").arg(community->Tick()));
+    
+    if (displaySpecies->Chromosomes().size() > 1)
+        title.append(QString(", chromosome '%2'").arg(QString::fromStdString(chromosome->Symbol())));
     
     titleString = title;
     subpopCount = static_cast<int>(selected_subpops.size());

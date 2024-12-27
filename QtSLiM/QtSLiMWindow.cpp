@@ -2236,6 +2236,25 @@ Species *QtSLiMWindow::focalDisplaySpecies(void)
 	return nullptr;
 }
 
+Chromosome *QtSLiMWindow::focalChromosome(void)
+{
+    // There needs to be a focal display species to answer this question; if
+    // we are on the "all" tab in a multispecies model, there are multiple
+    // focal chromosomes, so we return nullptr.
+    Species *species = focalDisplaySpecies();
+    
+    if (!species)
+        return nullptr;
+    
+    // If there is one focal display species, then the first overview widget
+    // if the one being displayed (see updateChromosomeViewSetup()).
+    QtSLiMChromosomeWidget *overviewWidget = chromosomeOverviewWidgets[0];
+    
+    Chromosome *chromosome = overviewWidget->focalChromosome();
+    
+    return chromosome;
+}
+
 void QtSLiMWindow::selectedSpeciesChanged(void)
 {
     // We don't want to react to automatic tab changes as we are adding or removing tabs from the species bar
