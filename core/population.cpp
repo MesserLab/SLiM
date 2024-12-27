@@ -7821,6 +7821,9 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 #ifdef SLIMGUI
 	// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
 	// separate from slim's since the user can select just a subset of subpopulations.
+	for (Chromosome *chromosome : species_.Chromosomes())
+		chromosome->gui_total_haplosome_count_ = 0;
+	
 	bool slimgui_subpop_subset_selected = false;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
