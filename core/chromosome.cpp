@@ -2364,6 +2364,10 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			if (SLiM_verbosity_level >= 2)
 				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
+			
+#if DEBUG
+		community_.AllSpecies_CheckIntegrity();
+#endif
 		}
 		
 		while (x_current_mutcount_ < mutrun_count_)
@@ -2392,6 +2396,10 @@ void Chromosome::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		
 		if (mutrun_count_ != x_current_mutcount_)
 			EIDOS_TERMINATION << "ERROR (Chromosome::MaintainMutationRunExperiments): Failed to transition to new mutation run count" << x_current_mutcount_ << "." << EidosTerminate();
+		
+#if DEBUG
+		community_.AllSpecies_CheckIntegrity();
+#endif
 	}
 }
 
