@@ -734,10 +734,7 @@ inline __attribute__((always_inline)) Haplosome *Chromosome::NewHaplosome_NONNUL
 		{
 #if SLIM_CLEAR_HAPLOSOMES
 			// the number of mutruns is unchanged, but we need to zero out the reused buffer here
-			if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-				EIDOS_BZERO(back->run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
-			else
-				EIDOS_BZERO(back->mutruns_, mutrun_count_ * sizeof(const MutationRun *));
+			EIDOS_BZERO(back->mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 #endif
 		}
 		
@@ -757,6 +754,9 @@ inline __attribute__((always_inline)) void Chromosome::FreeHaplosome(Haplosome *
 {
 #if DEBUG
 	p_haplosome->individual_ = nullptr;		// crash if anybody tries to use this pointer after the free
+#endif
+#if SLIM_CLEAR_HAPLOSOMES
+	p_haplosome->clear_to_nullptr();
 #endif
 	
 	// somebody needs to reset the tag value of reused haplosomes; it might as well be us

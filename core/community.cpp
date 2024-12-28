@@ -2723,14 +2723,10 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kWFStage7AdvanceTickCounter;
 		
 #ifdef SLIMGUI
-		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
-		// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
-		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
-		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences...() will be made at that
-		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+		// re-tally for SLiMgui; this tallies into separate counters, uses the selected subpops, etc.
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
+				species->population_.TallyMutationReferencesAcrossPopulation_SLiMgui();
 #endif
 		
 		for (Species *species : all_species_)
@@ -3122,14 +3118,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 #ifdef SLIMGUI
-		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
-		// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
-		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
-		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences...() will be made at that
-		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+		// re-tally for SLiMgui; this tallies into separate counters, uses the selected subpops, etc.
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
+				species->population_.TallyMutationReferencesAcrossPopulation_SLiMgui();
 #endif
 		
 		for (Species *species : all_species_)

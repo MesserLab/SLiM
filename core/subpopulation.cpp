@@ -637,7 +637,10 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						if (found_iter == mutrun_position_map.end())
 							mutrun_position_map[mutrun] = mutrun_index;
 						else if (found_iter->second != mutrun_index)
+						{
+							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+						}
 					}
 				}
 			}
@@ -744,7 +747,10 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						if (found_iter == mutrun_position_map.end())
 							mutrun_position_map[mutrun] = mutrun_index;
 						else if (found_iter->second != mutrun_index)
+						{
+							// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+						}
 					}
 				}
 			}
@@ -925,7 +931,10 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							if (found_iter == mutrun_position_map.end())
 								mutrun_position_map[mutrun] = mutrun_index;
 							else if (found_iter->second != mutrun_index)
+							{
+								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+							}
 						}
 					}
 				}
@@ -1028,7 +1037,10 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							if (found_iter == mutrun_position_map.end())
 								mutrun_position_map[mutrun] = mutrun_index;
 							else if (found_iter->second != mutrun_index)
+							{
+								// see Population::FreeUnusedMutationRuns() for debugging code helpful for this error
 								EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+							}
 						}
 					}
 				}

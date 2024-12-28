@@ -85,6 +85,9 @@ development head (in the master branch):
 		for addSubpop(), haploid=T now requests specifically that type "A" chromosomes be made with their second haplosome null (for haplodiploidy, and backward compatibility)
 		remove the SLiMguiLegacy haplotype plot; it would need to be fixed, and is no longer used by anybody (the one in SLiMgui remains, of course)
 		remove the SLiMguiLegacy chromosome view OpenGL code; again, it would need to be fixed, and maintaining it is an unnecessary headache
+		fixed a long-standing SLiMgui bug involving mutation frequencies and mutation run reuse when a subset of the subpopulations are selected in the GUI
+			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
+			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
 
 
 version 4.3 (Eidos version 3.3):

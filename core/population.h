@@ -280,9 +280,12 @@ public:
 	// tallying across all subpopulations, total_haplosome_count_ for each chromosome is also set to this same
 	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
-	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tallies_valid_ = false; }
+	void InvalidateMutationReferencesCache(void);
 
 	void TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun_experiments);
+#ifdef SLIMGUI
+	void TallyMutationReferencesAcrossPopulation_SLiMgui(void);		// tallies selected subpops into SLiMgui-private counters
+#endif
 	void TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally);
 	void TallyMutationReferencesAcrossHaplosomes(const Haplosome * const *haplosomes, slim_popsize_t haplosomes_count);
 	

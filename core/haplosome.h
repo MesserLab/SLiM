@@ -327,11 +327,7 @@ public:
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
 		// It is legal to call this method on null haplosomes, for speed/simplicity; it does no harm
-		// That is because it zeroes run_buffer_, even for null haplosomes; it isn't worth the time to check for a null haplosome
-		if (mutrun_count_ <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
-		else
-			EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
+		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 	}
 	
 	inline void check_cleared_to_nullptr(void)

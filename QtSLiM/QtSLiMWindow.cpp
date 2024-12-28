@@ -6450,11 +6450,11 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
             subpopIter++;
         }
         
-        // If the selection has changed, that means that the mutation tallies need to be recomputed
+        // If the selection has changed, that means that our private mutation tallies need to be recomputed
         for (Species *species : community->AllSpecies())
 		{
 			species->population_.InvalidateMutationReferencesCache();	// force a retally
-			species->population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
+			species->population_.TallyMutationReferencesAcrossPopulation_SLiMgui();
 		}
 		
         // It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;

@@ -324,10 +324,7 @@ void Haplosome::ReinitializeHaplosomeToNonNull(Individual *individual, Chromosom
 	{
 #if SLIM_CLEAR_HAPLOSOMES
 		// the number of mutruns has not changed; need to zero out
-		if (p_mutrun_count <= SLIM_HAPLOSOME_MUTRUN_BUFSIZE)
-			EIDOS_BZERO(run_buffer_, SLIM_HAPLOSOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
-		else
-			EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 #endif
 	}
 }
