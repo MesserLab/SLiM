@@ -232,6 +232,12 @@ public:
 	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
+	// generate offspring within a reproduction() callback using templated Subpopulation methods; these pointers get
+	// set up at the beginning of each tick's reproduction() callback stage, and should not be used outside of it
+	Individual *(Subpopulation::*GenerateIndividualCrossed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex) = nullptr;
+	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
+	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
+
 	// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
 	void DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &p_child_haplosome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);

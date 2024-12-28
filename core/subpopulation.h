@@ -372,13 +372,17 @@ public:
 	double ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual);
 	double ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index);
 	
-	// generate offspring individuals from parent individuals; these methods loop over chromosomes/haplosomes
-	// FIXME MULTICHROM these should be templated like the MungeIndividualX() methods are!
-	//					could choose the template variant ONCE after initialize() and cache it across all nonWF calls!
-	//					the registered callbacks won't change within the reproduction tick cycle stage, right?  so that can also be figured out ONCE!
+	// generate newly allocated offspring individuals from parent individuals; these methods loop over
+	// chromosomes/haplosomes, and are templated for speed, providing a set of optimized variants
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	Individual *GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+	
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	Individual *GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	
+	template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 	Individual *GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+	
 	Individual *GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq);
 	
 	// these WF-only "munge" variants munge an existing individual into the new child, reusing the individual

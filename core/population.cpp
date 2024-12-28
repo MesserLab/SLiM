@@ -1322,7 +1322,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		{
 			if (recording_tree_sequence)
 			{
-				if (has_munge_callback)	// has any of the callbacks that the Munge...() methods care about; this can be refined later
+				if (has_munge_callback)
 				{
 					if (is_spatial)
 					{
@@ -2756,7 +2756,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	}
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = f_treeseq && species_.RecordingTreeSequence();
+	bool recording_tree_sequence = f_treeseq;
 	bool recording_tree_sequence_mutations = f_treeseq && species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
@@ -3523,7 +3523,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	
 	// TREE SEQUENCE RECORDING
 	// FIXME MULTICHROM separate critical region for each chromosome, too!
-	bool recording_tree_sequence = f_treeseq && species_.RecordingTreeSequence();
+	bool recording_tree_sequence = f_treeseq;
 	bool recording_tree_sequence_mutations = f_treeseq && species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)

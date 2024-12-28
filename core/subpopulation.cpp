@@ -3329,6 +3329,7 @@ void Subpopulation::SwapChildAndParentHaplosomes(void)
 		GenerateChildrenToFitWF();
 }
 
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex)
 {
 	Subpopulation &parent1_subpop = *p_parent1->subpopulation_;
@@ -3351,32 +3352,40 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
-	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
+	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
-	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
-	if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
-	if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
+		parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
+		parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
+		parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent1_subpop.registered_modify_child_callbacks_;
+		
+		if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
+		if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+		if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
+		if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Create the offspring and record it
-	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *individual = NewSubpopIndividual(/* index */ -1, p_child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (p_parent1->age_ + (float)p_parent2->age_) / 2.0F);
 	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Biparental(p_pedigree_id, *p_parent1, *p_parent2);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent1);
 	
 	// Configure the offspring's haplosomes one by one
 	int currentHaplosomeIndex = 0;
@@ -3388,7 +3397,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
-		chromosome->StartMutationRunExperimentClock();
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
 		
 		// Determine what kind of haplosomes to make for this chromosome
 		ChromosomeType chromosomeType = chromosome->Type();
@@ -3404,14 +3413,14 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// parent 1 copy 2
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				}
 				{
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// parent 2 copy 1
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// parent 2 copy 2
 					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
 					
-					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
 				}
 				break;
 			}
@@ -3422,7 +3431,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex];				// parent 2 copy
 				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 				
-				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kX_XSexChromosome:
@@ -3434,7 +3443,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];		// female's X 2
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, parent1_recombination_callbacks, parent1_mutation_callbacks);
 				}
 				{
 					if (p_child_sex == IndividualSex::kFemale)
@@ -3442,7 +3451,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];		// male's X (from female)
 						haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
 						
-						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome1, parent2_mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parent2_mutation_callbacks);
 					}
 					else
 					{
@@ -3463,7 +3472,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's Y
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				}
 				else
 				{
@@ -3484,7 +3493,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome2 = p_parent1->haplosomes_[currentHaplosomeIndex+1];	// female's Z
 						haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 						
-						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome2, parent1_mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome2, parent1_mutation_callbacks);
 					}
 					else
 					{
@@ -3499,7 +3508,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Z
 					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
 					
-					population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
+					population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, parent2_recombination_callbacks, parent2_mutation_callbacks);
 				}
 				break;
 			}
@@ -3512,7 +3521,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's W
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				}
 				else
 				{
@@ -3529,7 +3538,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 				
-				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kFL_HaploidFemaleLine:
@@ -3540,7 +3549,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent1->haplosomes_[currentHaplosomeIndex];			// female's copy
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent1_mutation_callbacks);
 				}
 				else
 				{
@@ -3557,7 +3566,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 				Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 				
-				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kML_HaploidMaleLine:
@@ -3568,7 +3577,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 					Haplosome *parental_haplosome1 = p_parent2->haplosomes_[currentHaplosomeIndex];			// male's copy
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 					
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parent2_mutation_callbacks);
 				}
 				else
 				{
@@ -3599,7 +3608,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 						Haplosome *parental_haplosome2 = p_parent2->haplosomes_[currentHaplosomeIndex+1];		// male's Y
 						haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
 						
-						population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, parent2_mutation_callbacks);
+						population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, parent2_mutation_callbacks);
 					}
 					else
 					{
@@ -3613,30 +3622,30 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 			}
 		}
 		
-		chromosome->StopMutationRunExperimentClock("GenerateIndividualCrossed()");
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("GenerateIndividualCrossed()");
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
 			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
 			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 		
@@ -3645,21 +3654,21 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Biparental(*p_parent1, *p_parent2);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
 		}
 	}
@@ -3667,6 +3676,40 @@ Individual *Subpopulation::GenerateIndividualCrossed(slim_pedigreeid_t p_pedigre
 	return individual;
 }
 
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<false, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+template Individual *Subpopulation::GenerateIndividualCrossed<true, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
+
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 	Subpopulation &parent_subpop = *p_parent->subpopulation_;
@@ -3685,28 +3728,34 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
-	std::vector<SLiMEidosBlock*> *recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	std::vector<SLiMEidosBlock*> *recombination_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
-	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!recombination_callbacks->size()) recombination_callbacks = nullptr;
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Create the offspring and record it
-	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *individual = NewSubpopIndividual(/* index */ -1, IndividualSex::kHermaphrodite, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
 	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Configure the offspring's haplosomes one by one
 	int currentHaplosomeIndex = 0;
@@ -3718,7 +3767,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
-		chromosome->StartMutationRunExperimentClock();
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
 		
 		// Determine what kind of haplosomes to make for this chromosome
 		ChromosomeType chromosomeType = chromosome->Type();
@@ -3733,10 +3782,10 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];		// parent copy 2
 				
 				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				
 				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-				population_.HaplosomeCrossed<true, true>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
+				population_.HaplosomeCrossed<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome1, parental_haplosome2, recombination_callbacks, mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kH_HaploidAutosome:
@@ -3746,7 +3795,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];				// parent copy
 				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
 				
-				population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				break;
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
@@ -3767,30 +3816,30 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 				break;
 		}
 		
-		chromosome->StopMutationRunExperimentClock("GenerateIndividualSelfed()");
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("GenerateIndividualSelfed()");
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
 			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
 			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 		
@@ -3799,21 +3848,21 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
 		{
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Uniparental(*p_parent);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
 		}
 	}
@@ -3821,6 +3870,40 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 	return individual;
 }
 
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<false, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualSelfed<true, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+
+template <const bool f_mutrunexps, const bool f_pedigree_rec, const bool f_treeseq, const bool f_callbacks, const bool f_spatial>
 Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree_id, Individual *p_parent)
 {
 	IndividualSex parent_sex = p_parent->sex_;
@@ -3836,26 +3919,31 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
-	std::vector<SLiMEidosBlock*> *mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
+	std::vector<SLiMEidosBlock*> *mutation_callbacks = nullptr;
+	std::vector<SLiMEidosBlock*> *modify_child_callbacks_ = nullptr;
 	
-	if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+	if (f_callbacks)
+	{
+		mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+		modify_child_callbacks_ = &parent_subpop.registered_modify_child_callbacks_;
+		
+		if (!mutation_callbacks->size()) mutation_callbacks = nullptr;
+		if (!modify_child_callbacks_->size()) modify_child_callbacks_ = nullptr;
+	}
 	
 	// Create the offspring and record it
-	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *individual = NewSubpopIndividual(/* index */ -1, parent_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ p_parent->age_);
 	
-	if (pedigrees_enabled)
+	if (f_pedigree_rec)
 		individual->TrackParentage_Uniparental(p_pedigree_id, *p_parent);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = species_.RecordingTreeSequence();
-	
-	if (recording_tree_sequence)
+	if (f_treeseq)
 		species_.SetCurrentNewIndividual(individual);
 	
 	// BCH 9/26/2023: inherit the spatial position of the parent by default, to set up for deviatePositions()/pointDeviated()
-	individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
+	if (f_spatial)
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), p_parent);
 	
 	// Configure the offspring's haplosomes one by one
 	int currentHaplosomeIndex = 0;
@@ -3867,7 +3955,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
-		chromosome->StartMutationRunExperimentClock();
+		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
 		
 		// Determine what kind of haplosomes to make for this chromosome
 		// We just faithfully clone the existing haplosomes of the parent, regardless of type
@@ -3892,7 +3980,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
 				}
 
 				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
@@ -3904,7 +3992,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
 				}
 				break;
 			}
@@ -3927,36 +4015,36 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 				else
 				{
 					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-					population_.HaplosomeCloned<true, true>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
+					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
 				}
 				break;
 			}
 		}
 		
-		chromosome->StopMutationRunExperimentClock("GenerateIndividualCloned()");
+		if (f_mutrunexps) chromosome->StopMutationRunExperimentClock("GenerateIndividualCloned()");
 		
 		// For each haplosome generated, we need to add them to the individual.  We also need
 		// to record the null haplosomes for tree-seq; non-null haplosomes were already
-		// recorded by the methods above, HaplosomeCrossed<true, true>() and HaplosomeCloned().  We also
+		// recorded by the methods above, HaplosomeCrossed() and HaplosomeCloned().  We also
 		// have to set their haplosome_id_ as appropriate.
 		if (haplosome1)
 		{
 			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
-			if (haplosome1->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome1->IsNull())
 					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
 		}
 		if (haplosome2)
 		{
 			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
 			
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
-			if (haplosome2->IsNull() && recording_tree_sequence)
+			if (f_treeseq && haplosome2->IsNull())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 		}
 		
@@ -3965,23 +4053,281 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
-	if (modify_child_callbacks_.size())
+	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
 		{
 			// revoke parentage
-			if (pedigrees_enabled)
+			if (f_pedigree_rec)
 				individual->RevokeParentage_Uniparental(*p_parent);
 			
 			FreeSubpopIndividual(individual);
 			individual = nullptr;
 			
 			// TREE SEQUENCE RECORDING
-			if (recording_tree_sequence)
+			if (f_treeseq)
 				species_.RetractNewIndividual();
+		}
+	}
+	
+	return individual;
+}
+
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<false, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, false, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, false, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, false, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, false>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+template Individual *Subpopulation::GenerateIndividualCloned<true, true, true, true, true>(slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
+
+Individual *Subpopulation::GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
+{
+	// Create the offspring and record it
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *individual = NewSubpopIndividual(p_individual_index, p_child_sex, p_age, p_fitness, p_mean_parent_age);
+	
+	if (pedigrees_enabled)
+		individual->TrackParentage_Parentless(p_pedigree_id);
+	
+	// TREE SEQUENCE RECORDING
+	if (p_record_in_treeseq)
+		species_.SetCurrentNewIndividual(individual);
+	
+	// BCH 9/26/2023: note that there is no parent, so the spatial position of the offspring is left uninitialized.
+	// individual->InheritSpatialPosition(species_.spatial_dimensionality_, ???)
+	
+	// Configure the offspring's haplosomes one by one
+	int currentHaplosomeIndex = 0;
+	
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+#if DEBUG
+		if (!species_.HasGenetics())
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+#endif
+		
+		chromosome->StartMutationRunExperimentClock();
+		
+		// Determine what kind of haplosomes to make for this chromosome
+		ChromosomeType chromosomeType = chromosome->Type();
+		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
+		
+		switch (chromosomeType)
+		{
+			case ChromosomeType::kA_DiploidAutosome:
+			{
+				// the flags p_haplosome1_null / p_haplosome2_null apply only here!
+				// need to set has_null_haplosomes_ here because these haplosomes
+				// are not normally null, according to the chromosome type
+				if (p_haplosome1_null)
+				{
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+					has_null_haplosomes_ = true;
+				}
+				else
+				{
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				}
+				
+				if (p_haplosome2_null)
+				{
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+					has_null_haplosomes_ = true;
+				}
+				else
+				{
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				}
+				break;
+			}
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			{
+				// non-null for all
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kX_XSexChromosome:
+			{
+				// XX for females, X- for males
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				else
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kML_HaploidMaleLine:
+			{
+				// - for females, Y for males
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kZ_ZSexChromosome:
+			{
+				// ZZ for males, -Z for females
+				if (p_child_sex == IndividualSex::kFemale)
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				
+				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			{
+				// - for males, W for females
+				if (p_child_sex == IndividualSex::kFemale)
+					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				else
+					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				break;
+			}
+			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+			{
+				// non-null + null for all
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				break;
+			}
+			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			{
+				// -- for females, -Y for males
+				haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+				
+				if (p_child_sex == IndividualSex::kMale)
+					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				else
+					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+				break;
+			}
+		}
+		
+		// For each haplosome generated, we need to add them to the individual.  We also need
+		// to record all haplosomes for tree-seq; since even the non-null haplosomes are empty,
+		// not filled by HaplosomeCrossed() and HaplosomeCloned() which record them, they need
+		// to be recorded here also.
+		
+		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+		// the correct per-thread allocation pool.  Would be nice to share these empty runs across
+		// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
+		// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
+		// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
+		if (haplosome1)
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome1->check_cleared_to_nullptr();
+#endif
+			if (!haplosome1->IsNull())
+			{
+				int32_t mutrun_count = chromosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
+					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+					
+					haplosome1->mutruns_[run_index] = mutrun;
+				}
+			}
+			
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
+			
+			if (pedigrees_enabled)
+				haplosome1->haplosome_id_ = p_pedigree_id * 2;
+			
+			if (p_record_in_treeseq)
+				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+		}
+		if (haplosome2)
+		{
+#if SLIM_CLEAR_HAPLOSOMES
+			haplosome2->check_cleared_to_nullptr();
+#endif
+			if (!haplosome2->IsNull())
+			{
+				int32_t mutrun_count = chromosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
+					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+					
+					haplosome2->mutruns_[run_index] = mutrun;
+				}
+			}
+			
+			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
+			
+			if (pedigrees_enabled)
+				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
+			
+			if (p_record_in_treeseq)
+				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+		}
+		
+		chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
+		
+		// move forward 1 or 2, depending on whether a haplosome2 was created
+		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
+	}
+	
+	if (p_run_modify_child)
+	{
+		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
+		if (registered_modify_child_callbacks_.size())
+		{
+			bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+			
+			// If the child was rejected, un-record it and dispose of it
+			if (!proposed_child_accepted)
+			{
+				if (pedigrees_enabled)
+					individual->RevokeParentage_Parentless();
+				
+				FreeSubpopIndividual(individual);
+				individual = nullptr;
+				
+				// TREE SEQUENCE RECORDING
+				if (p_record_in_treeseq)
+					species_.RetractNewIndividual();
+			}
 		}
 	}
 	
@@ -4870,231 +5216,6 @@ template bool Subpopulation::MungeIndividualCloned<true, true, true, false, fals
 template bool Subpopulation::MungeIndividualCloned<true, true, true, false, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 template bool Subpopulation::MungeIndividualCloned<true, true, true, true, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 template bool Subpopulation::MungeIndividualCloned<true, true, true, true, true>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
-
-Individual *Subpopulation::GenerateIndividualEmpty(slim_pedigreeid_t p_pedigree_id, slim_popsize_t p_individual_index, IndividualSex p_child_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age, bool p_haplosome1_null, bool p_haplosome2_null, bool p_run_modify_child, bool p_record_in_treeseq)
-{
-	// Create the offspring and record it
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	Individual *individual = NewSubpopIndividual(p_individual_index, p_child_sex, p_age, p_fitness, p_mean_parent_age);
-	
-	if (pedigrees_enabled)
-		individual->TrackParentage_Parentless(p_pedigree_id);
-	
-	// TREE SEQUENCE RECORDING
-	if (p_record_in_treeseq)
-		species_.SetCurrentNewIndividual(individual);
-	
-	// BCH 9/26/2023: note that there is no parent, so the spatial position of the offspring is left uninitialized.
-	// individual->InheritSpatialPosition(species_.spatial_dimensionality_, ???)
-	
-	// Configure the offspring's haplosomes one by one
-	int currentHaplosomeIndex = 0;
-	
-	for (Chromosome *chromosome : species_.Chromosomes())
-	{
-#if DEBUG
-		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualEmpty): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
-#endif
-		
-		chromosome->StartMutationRunExperimentClock();
-		
-		// Determine what kind of haplosomes to make for this chromosome
-		ChromosomeType chromosomeType = chromosome->Type();
-		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
-		
-		switch (chromosomeType)
-		{
-			case ChromosomeType::kA_DiploidAutosome:
-			{
-				// the flags p_haplosome1_null / p_haplosome2_null apply only here!
-				// need to set has_null_haplosomes_ here because these haplosomes
-				// are not normally null, according to the chromosome type
-				if (p_haplosome1_null)
-				{
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-					has_null_haplosomes_ = true;
-				}
-				else
-				{
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				}
-				
-				if (p_haplosome2_null)
-				{
-					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
-					has_null_haplosomes_ = true;
-				}
-				else
-				{
-					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-				}
-				break;
-			}
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-			{
-				// non-null for all
-				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				break;
-			}
-			case ChromosomeType::kX_XSexChromosome:
-			{
-				// XX for females, X- for males
-				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				
-				if (p_child_sex == IndividualSex::kMale)
-					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
-				else
-					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-				break;
-			}
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kML_HaploidMaleLine:
-			{
-				// - for females, Y for males
-				if (p_child_sex == IndividualSex::kMale)
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				else
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				break;
-			}
-			case ChromosomeType::kZ_ZSexChromosome:
-			{
-				// ZZ for males, -Z for females
-				if (p_child_sex == IndividualSex::kFemale)
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				else
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				
-				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-				break;
-			}
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			{
-				// - for males, W for females
-				if (p_child_sex == IndividualSex::kFemale)
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				else
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				break;
-			}
-			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-			{
-				// non-null + null for all
-				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-				haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
-				break;
-			}
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			{
-				// -- for females, -Y for males
-				haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				
-				if (p_child_sex == IndividualSex::kMale)
-					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-				else
-					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
-				break;
-			}
-		}
-		
-		// For each haplosome generated, we need to add them to the individual.  We also need
-		// to record all haplosomes for tree-seq; since even the non-null haplosomes are empty,
-		// not filled by HaplosomeCrossed() and HaplosomeCloned() which record them, they need
-		// to be recorded here also.
-		
-		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
-		// the correct per-thread allocation pool.  Would be nice to share these empty runs across
-		// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
-		// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
-		// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
-		if (haplosome1)
-		{
-#if SLIM_CLEAR_HAPLOSOMES
-			haplosome1->check_cleared_to_nullptr();
-#endif
-			if (!haplosome1->IsNull())
-			{
-				int32_t mutrun_count = chromosome->mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				{
-					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
-					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
-					
-					haplosome1->mutruns_[run_index] = mutrun;
-				}
-			}
-			
-			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
-			
-			if (pedigrees_enabled)
-				haplosome1->haplosome_id_ = p_pedigree_id * 2;
-			
-			if (p_record_in_treeseq)
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
-		}
-		if (haplosome2)
-		{
-#if SLIM_CLEAR_HAPLOSOMES
-			haplosome2->check_cleared_to_nullptr();
-#endif
-			if (!haplosome2->IsNull())
-			{
-				int32_t mutrun_count = chromosome->mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				{
-					MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
-					const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
-					
-					haplosome2->mutruns_[run_index] = mutrun;
-				}
-			}
-			
-			individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex+1);
-			
-			if (pedigrees_enabled)
-				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
-			
-			if (p_record_in_treeseq)
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
-		}
-		
-		chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
-		
-		// move forward 1 or 2, depending on whether a haplosome2 was created
-		currentHaplosomeIndex += (haplosome2 ? 2 : 1);
-	}
-	
-	if (p_run_modify_child)
-	{
-		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
-		if (registered_modify_child_callbacks_.size())
-		{
-			bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
-			
-			// If the child was rejected, un-record it and dispose of it
-			if (!proposed_child_accepted)
-			{
-				if (pedigrees_enabled)
-					individual->RevokeParentage_Parentless();
-				
-				FreeSubpopIndividual(individual);
-				individual = nullptr;
-				
-				// TREE SEQUENCE RECORDING
-				if (p_record_in_treeseq)
-					species_.RetractNewIndividual();
-			}
-		}
-	}
-	
-	return individual;
-}
 
 // nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
@@ -6287,7 +6408,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	{
 		// Make the new individual as a candidate
 		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-		Individual *individual = GenerateIndividualCloned(individual_pid, parent);
+		Individual *individual = (this->*(population_.GenerateIndividualCloned_TEMPLATED))(individual_pid, parent);
 		
 		if (individual)
 		{
@@ -6403,7 +6524,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		
 		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
 		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-		Individual *individual = GenerateIndividualCrossed(individual_pid, parent1, parent2, child_sex);
+		Individual *individual = (this->*(population_.GenerateIndividualCrossed_TEMPLATED))(individual_pid, parent1, parent2, child_sex);
 		
 		// If the child was accepted, add it to our staging area and to our result vector
 		if (individual)
@@ -7161,7 +7282,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	{
 		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
 		slim_pedigreeid_t individual_pid = pedigrees_enabled ? SLiM_GetNextPedigreeID() : 0;
-		Individual *individual = GenerateIndividualSelfed(individual_pid, parent);
+		Individual *individual = (this->*(population_.GenerateIndividualSelfed_TEMPLATED))(individual_pid, parent);
 		
 		if (individual)
 		{

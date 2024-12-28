@@ -2584,6 +2584,304 @@ void Species::nonWF_GenerateOffspring(void)
 	std::vector<SLiMEidosBlock*> recombination_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, -1);
 	std::vector<SLiMEidosBlock*> mutation_callbacks = CallbackBlocksMatching(tick, SLiMEidosBlockType::SLiMEidosMutationCallback, -1, -1, -1);
 	
+	// choose templated variants for GenerateIndividualsX() methods of Subpopulation, called during reproduction() callbacks
+	// this is an optimization technique that lets us optimize away unused cruft at compile time
+	// some relevant posts that were helpful in figuring out the correct syntax:
+	// 	http://goodliffe.blogspot.com/2011/07/c-declaring-pointer-to-template-method.html
+	// 	https://stackoverflow.com/questions/115703/storing-c-template-function-definitions-in-a-cpp-file
+	// 	https://stackoverflow.com/questions/22275786/change-boolean-flags-into-template-arguments
+	// and a Godbolt experiment I did to confirm that this really works: https://godbolt.org/z/Mva4Kbhrd
+	//
+	// callbacks are "on" if they exist for any subpopulation, since nonWF allows parents to belong to any subpop
+	// note this optimization depends upon the fact that none of these flags can change during one reproduction() stage!
+	bool pedigrees_enabled = PedigreesEnabled();
+	bool recording_tree_sequence = RecordingTreeSequence();
+	bool has_reproduction_callbacks = ((reproduction_callbacks.size() > 0) || (modify_child_callbacks.size() > 0) || (recombination_callbacks.size() > 0) || (mutation_callbacks.size() > 0));
+	bool is_spatial = (SpatialDimensionality() >= 1);
+	
+	if (DoingAnyMutationRunExperiments())
+	{
+		if (pedigrees_enabled)
+		{
+			if (recording_tree_sequence)
+			{
+				if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, true, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, true, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, true, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, true, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, true, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, true, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, true, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, true, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, true, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, true, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, false, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, false, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, false, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, false, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, false, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, false, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, false, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, false, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, true, false, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, true, false, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, true, false, false, false>;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (recording_tree_sequence)
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, true, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, true, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, true, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, true, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, true, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, true, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, true, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, true, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, true, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, true, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, false, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, false, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, false, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, false, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, false, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, false, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, false, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, false, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<true, false, false, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<true, false, false, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<true, false, false, false, false>;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		if (pedigrees_enabled)
+		{
+			if (recording_tree_sequence)
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, true, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, true, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, true, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, true, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, true, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, true, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, true, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, true, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, true, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, true, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, false, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, false, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, false, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, false, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, false, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, false, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, false, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, false, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, true, false, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, true, false, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, true, false, false, false>;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (recording_tree_sequence)
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, true, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, true, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, true, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, true, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, true, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, true, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, true, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, true, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, true, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, true, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (has_reproduction_callbacks)
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, false, true, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, false, true, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, false, true, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, false, true, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, false, true, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, false, false, true>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, false, false, true>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, false, false, true>;
+					}
+					else
+					{
+						population_.GenerateIndividualCrossed_TEMPLATED = &Subpopulation::GenerateIndividualCrossed<false, false, false, false, false>;
+						population_.GenerateIndividualSelfed_TEMPLATED = &Subpopulation::GenerateIndividualSelfed<false, false, false, false, false>;
+						population_.GenerateIndividualCloned_TEMPLATED = &Subpopulation::GenerateIndividualCloned<false, false, false, false, false>;
+					}
+				}
+			}
+		}
+	}
+	
 	// cache a list of callbacks registered for each subpop
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{

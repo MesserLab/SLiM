@@ -88,6 +88,7 @@ development head (in the master branch):
 		fixed a long-standing SLiMgui bug involving mutation frequencies and mutation run reuse when a subset of the subpopulations are selected in the GUI
 			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
+		add templating of GenerateIndividualX() for speed, as was done before for the MungeIndividualX() and HaplosomeX() methods, for speed
 
 
 version 4.3 (Eidos version 3.3):
