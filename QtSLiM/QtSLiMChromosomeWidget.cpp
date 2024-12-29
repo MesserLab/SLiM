@@ -1159,14 +1159,57 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 		return;
 	}
     
-    int rightmostNotDrawn = interiorRect.right();   // used to avoid overlapping labels
+    // We use scientific notation in two situations: (1) for numbers larger than 1e8, for readability, with four digits
+    // after the decimal point, and (2) when the largest tick label and 0 won't fit together, for space-efficiency,
+    // with two digits after the decimal point
     bool useScientificNotation = false;             // the rightmost tick determines this since it has the largest tickBase
+    int scientificNotationDigits = 4;
+    slim_position_t largestTickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (lastTickIndex / tickIndexDivisor)));
+    
+    if (largestTickBase >= 1e7)
+    {
+        useScientificNotation = true;
+    }
+    
+    {
+        QString largestTickLabel;
+        
+        if (useScientificNotation)   // assume X.XXXXeX and check whether space forces us down to X.XXeX format
+        {
+            largestTickLabel = QString::asprintf("0  %.4e", static_cast<double>(largestTickBase));   // is there enough room for a zero and the max tick label?
+            
+            largestTickLabel.replace(".0000e", ".0e");
+            largestTickLabel.replace(".000e", ".0e");
+            largestTickLabel.replace("000e", "e");     // didn't get replaced by the previous line, so it must follow a non-zero digit
+            largestTickLabel.replace(".00e", ".0e");
+            largestTickLabel.replace("00e", "e");      // didn't get replaced by the previous line, so it must follow a non-zero digit
+            largestTickLabel.replace("e+0", "e");
+            largestTickLabel.replace("e+", "e");
+        }
+        else
+            QTextStream(&largestTickLabel) << "0  " << static_cast<int64_t>(largestTickBase);   // is there enough room for a zero and the max tick label?
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        double tickLabelWidth = fontMetrics.width(largestTickLabel);               // deprecated in 5.11
+#else
+        double tickLabelWidth = fontMetrics.horizontalAdvance(largestTickLabel);   // added in Qt 5.11
+#endif
+        
+        if (tickLabelWidth > interiorRect.width())
+        {
+            useScientificNotation = true;
+            scientificNotationDigits = 2;   // space is tight, so just assume we need to display fewer digits; trying to decide how many we can fit gets very complex
+        }
+    }
     
     // Draw tick marks and tick labels; we go from the right backwards because we want to at least fit the rightmost tick label if we can
-    // FIXME even better would be to do lastTickIndex, then 0, then the middle, then the rest, but we'd have to track leftmostNotDrawn as well...
-	for (int tickIndex = lastTickIndex; tickIndex >= 0; --tickIndex)
+    int leftmostNotDrawn = interiorRect.left();     // used to avoid overlapping labels
+    int rightmostNotDrawn = interiorRect.right();   // used to avoid overlapping labels
+    
+	for (int simpleTickIndex = 0; simpleTickIndex <= lastTickIndex; ++simpleTickIndex)
 	{
         // first figure out the tick position
+        int tickIndex = ((simpleTickIndex == 0) ? lastTickIndex : (((simpleTickIndex == 1) ? 0 : (lastTickIndex - simpleTickIndex + 1))));  // lastTickIndex first, 0 second, then the rest in backwards order
         slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
         QRect tickRect = rectEncompassingBaseToBase(tickBase, tickBase, interiorRect, displayedRange);
         
@@ -1197,19 +1240,27 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         // make the label
         QString tickLabel;
         
-        if (tickBase >= 1e9)
-            useScientificNotation = true;
-        
         if (useScientificNotation && (tickBase != 0))
         {
-            tickLabel = QString::asprintf("%.4e", static_cast<double>(tickBase));		// scientific notation above a threshold
+            // we remove cruft around the exponential; we want "1.5000e+09" -> "1.5e9", "1.0000e+09" -> "1.0e9", etc.
+            if (scientificNotationDigits == 4)
+            {
+                tickLabel = QString::asprintf("%.4e", static_cast<double>(tickBase));
+                
+                tickLabel.replace(".0000e", ".0e");
+                tickLabel.replace(".000e", ".0e");
+                tickLabel.replace("000e", "e");     // didn't get replaced by the previous line, so it must follow a non-zero digit
+                tickLabel.replace(".00e", ".0e");
+                tickLabel.replace("00e", "e");      // didn't get replaced by the previous line, so it must follow a non-zero digit
+            }
+            else
+            {
+                tickLabel = QString::asprintf("%.2e", static_cast<double>(tickBase));
+                
+                tickLabel.replace(".00e", ".0e");
+                tickLabel.replace("00e", "e");      // didn't get replaced by the previous line, so it must follow a non-zero digit
+            }
             
-            // remove cruft around the exponential; we want "1.5000e+09" -> "1.5e9", "1.0000e+09" -> "1.0e9", etc.
-            tickLabel.replace(".0000e", ".0e");
-            tickLabel.replace(".000e", ".0e");
-            tickLabel.replace("000e", "e");     // didn't get replaced by the previous line, so it must follow a non-zero digit
-            tickLabel.replace(".00e", ".0e");
-            tickLabel.replace("00e", "e");      // didn't get replaced by the previous line, so it must follow a non-zero digit
             tickLabel.replace("e+0", "e");
             tickLabel.replace("e+", "e");
         }
@@ -1244,7 +1295,9 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         // decide whether the label fits
         bool drawLabel = true;
         
-        if ((tickIndex > 0) && (labelLeftEdge < interiorRect.left()))
+        if ((tickIndex == lastTickIndex) && (labelLeftEdge < leftmostNotDrawn))
+            drawLabel = false;
+        else if ((tickIndex > 0) && (tickIndex != lastTickIndex) && (labelLeftEdge - 5 < leftmostNotDrawn))
             drawLabel = false;
         else if ((tickIndex < lastTickIndex) && (labelRightEdge + 5 > rightmostNotDrawn))
             drawLabel = false;
@@ -1274,7 +1327,8 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
         
         // keep track of where we have drawn text, to avoid overlap
-        rightmostNotDrawn = labelLeftEdge;
+        leftmostNotDrawn = std::max(leftmostNotDrawn, labelRightEdge);
+        rightmostNotDrawn = std::min(rightmostNotDrawn, labelLeftEdge);
 	}
     
     painter.restore();
