@@ -4179,6 +4179,18 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot_S.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.individualObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualHaplosomeVectors / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualHaplosomeVectors, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : external Haplosome* buffers\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualJunkyardAndHaplosomes / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualJunkyardAndHaplosomes, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : individuals awaiting reuse\n", optima13_d);
+		
+		tc.insertText("   ", menlo11_d);
 		tc.insertText(attributedStringForByteCount(mem_tot_S.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_S.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);

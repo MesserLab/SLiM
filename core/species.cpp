@@ -200,8 +200,6 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 	
 	while (true)
 	{
-		// FIXME MULTICHROM: Probably this knowledge should be built into Chromosome, so that it doesn't need
-		// to be replicated here and elsewhere, but I won't do that work for now, to keep the PR simple.
 		for (Chromosome *chromosome : chromosomes_)
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
@@ -3509,12 +3507,19 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			objectCount += subpop.nonWF_offspring_individuals_.size();
 		}
 		
-		// FIXME MULTICHROM the junkyard objects should be a separate tally category
-		objectCount += population_.species_individuals_junkyard_.size();
-		
-		// FIXME MULTICHROM p_usage->individualObjects should include the haplosomes buffer, too; a lot of memory now, potentially
 		p_usage->individualObjects_count = objectCount;
 		p_usage->individualObjects = sizeof(Individual) * p_usage->individualObjects_count;
+		
+		// externally allocated haplosome buffers; don't count if the internal buffer (capacity 2) is in use
+		if (haplosome_count_per_individual > 2)
+			p_usage->individualHaplosomeVectors = p_usage->individualObjects_count * haplosome_count_per_individual * sizeof(Haplosome*);
+		
+		// individuals in the junkyard, awaiting reuse, including their haplosome buffers
+		p_usage->individualJunkyardAndHaplosomes = sizeof(Individual) * population_.species_individuals_junkyard_.size();
+		if (haplosome_count_per_individual > 2)
+			p_usage->individualJunkyardAndHaplosomes = population_.species_individuals_junkyard_.size() * haplosome_count_per_individual * sizeof(Haplosome*);
+		
+		// unused pool space; this is memory for new individuals that has never been used, and has no haplosome buffers
 		p_usage->individualUnusedPoolSpace = individual_pool_usage - p_usage->individualObjects;
 	}
 	

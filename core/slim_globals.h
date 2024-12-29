@@ -402,6 +402,8 @@ typedef struct
 	
 	int64_t individualObjects_count;
 	size_t individualObjects;
+	size_t individualHaplosomeVectors;
+	size_t individualJunkyardAndHaplosomes;
 	size_t individualUnusedPoolSpace;			// this pool is kept by Population, per-species
 	
 	int64_t mutationObjects_count;

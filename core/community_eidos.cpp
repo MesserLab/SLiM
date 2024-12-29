@@ -948,6 +948,8 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	
 	// Individual
 	out << "   Individual objects (" << usage_all_species.individualObjects_count << "): " << PrintBytes(usage_all_species.individualObjects) << std::endl;
+	out << "      External Haplosome* buffers: " << PrintBytes(usage_all_species.individualHaplosomeVectors) << std::endl;
+	out << "      Individuals awaiting reuse: " << PrintBytes(usage_all_species.individualJunkyardAndHaplosomes) << std::endl;
 	out << "      Unused pool space: " << PrintBytes(usage_all_species.individualUnusedPoolSpace) << std::endl;
 	
 	// InteractionType

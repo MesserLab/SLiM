@@ -486,6 +486,8 @@ void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
 		p_usage.genomicElementObjects +
 		p_usage.genomicElementTypeObjects +
 		p_usage.individualObjects +
+		p_usage.individualJunkyardAndHaplosomes +
+		p_usage.individualHaplosomeVectors +
 		p_usage.individualUnusedPoolSpace +
 		p_usage.mutationObjects +
 		p_usage.mutationRunObjects +
@@ -544,6 +546,8 @@ void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SL
 	
 	p_total.individualObjects_count += p_usage.individualObjects_count;
 	p_total.individualObjects += p_usage.individualObjects;
+	p_total.individualHaplosomeVectors += p_usage.individualHaplosomeVectors;
+	p_total.individualJunkyardAndHaplosomes += p_usage.individualJunkyardAndHaplosomes;
 	p_total.individualUnusedPoolSpace += p_usage.individualUnusedPoolSpace;
 	
 	p_total.mutationObjects_count += p_usage.mutationObjects_count;
@@ -2491,6 +2495,8 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		// Individual
 		snprintf(buf, 256, "%0.2f", mem_tot_S.individualObjects_count / ddiv);
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.individualObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.individualObjects, final_total) << "</tt> : Individual objects (" << buf << " / " << mem_last_S.individualObjects_count << ")<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.individualHaplosomeVectors / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.individualHaplosomeVectors, final_total) << "</tt> : external Haplosome* buffers</p>\n\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.individualJunkyardAndHaplosomes / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.individualJunkyardAndHaplosomes, final_total) << "</tt> : individuals awaiting reuse</p>\n\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.individualUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.individualUnusedPoolSpace, final_total) << "</tt> : unused pool space</p>\n\n";
 		
 		// InteractionType

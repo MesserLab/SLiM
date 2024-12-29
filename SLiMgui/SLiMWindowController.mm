@@ -2186,6 +2186,18 @@
 		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot_S.individualObjects_count / ddiv, (long long int)mem_last_S.individualObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualHaplosomeVectors / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualHaplosomeVectors total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : external Haplosome* buffers\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualJunkyardAndHaplosomes / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualJunkyardAndHaplosomes total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : individuals awaiting reuse\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualUnusedPoolSpace total:final_total attributes:menlo11_d]];
