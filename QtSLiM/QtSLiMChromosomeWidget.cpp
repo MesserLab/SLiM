@@ -1159,104 +1159,122 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
 		return;
 	}
     
-    // BCH 12/25/2024: Start by measuring the tick labels and figuring out who fits.  FIXME we could be even smarter
-    // and switch to scientific notation if things get too crowded, but I'll leave that for another day.
-    double widthAllLabels = 0.0, widthLeftRightLabels = 0.0, widthRightLabelOnly = 0.0;
+    int rightmostNotDrawn = interiorRect.right();   // used to avoid overlapping labels
+    bool useScientificNotation = false;             // the rightmost tick determines this since it has the largest tickBase
     
-    for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
-    {
-        slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
-        QString tickLabel;
-        
-        if (tickBase >= 1e10)
-            tickLabel = QString::asprintf("%.6e", static_cast<double>(tickBase));
-        else
-            QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
-
-#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
-        double tickLabelWidth = 5 + fontMetrics.width(tickLabel);               // deprecated in 5.11
-#else
-        double tickLabelWidth = 5 + fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
-#endif
-        
-        widthAllLabels += tickLabelWidth;
-        if (tickIndex == 0)
-        {
-            widthLeftRightLabels += tickLabelWidth;
-        }
-        if (tickIndex == lastTickIndex)
-        {
-            widthLeftRightLabels += tickLabelWidth;
-            widthRightLabelOnly += tickLabelWidth;
-        }
-    }
-    
-    // Now actually draw tick marks and tick labels
-	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
+    // Draw tick marks and tick labels; we go from the right backwards because we want to at least fit the rightmost tick label if we can
+    // FIXME even better would be to do lastTickIndex, then 0, then the middle, then the rest, but we'd have to track leftmostNotDrawn as well...
+	for (int tickIndex = lastTickIndex; tickIndex >= 0; --tickIndex)
 	{
-        // BCH 12/25/2024: If we're not going to draw the middle tick labels, skip their tick marks also;
-        // and if we're not going to draw any tick labels at all, then skip drawing all the tick marks
-        int interiorWidth = interiorRect.width();
+        // first figure out the tick position
+        slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
+        QRect tickRect = rectEncompassingBaseToBase(tickBase, tickBase, interiorRect, displayedRange);
         
-        if ((widthRightLabelOnly > interiorWidth) ||
-            ((widthAllLabels > interiorWidth) && (tickIndex != 0) && (tickIndex != lastTickIndex)))
-            continue;
-        
-		slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base
-		QRect tickRect = rectEncompassingBaseToBase(tickBase, tickBase, interiorRect, displayedRange);
-		
         tickRect.setHeight(tickLength);
         tickRect.moveBottom(contentRect.bottom() + tickLength);
-		
-		// if we are displaying a single site or two sites, make a tick mark one pixel wide, rather than a very wide one, which looks weird
-		if (displayedRange.length <= 2)
-		{
-            tickRect.setLeft(static_cast<int>(floor(tickRect.left() + tickRect.width() / 2.0 - 0.5)));
-			tickRect.setWidth(1);
-		}
-		
-        painter.fillRect(tickRect, inDarkMode ? QColor(10, 10, 10, 255) : QColor(127, 127, 127, 255));  // in dark mode, 17 matches the frame, but is too light
         
-        // BCH 12/25/2024: Using the measurements taken above, decide whether to draw this tick label or not
-        if (widthAllLabels > interiorWidth)
-        {
-            if ((tickIndex != 0) && (tickIndex != lastTickIndex))
-                continue;
-            if (widthLeftRightLabels > interiorWidth)
-            {
-                if (tickIndex != lastTickIndex)
-                    continue;
-                if (widthRightLabelOnly > interiorWidth)
-                    continue;
-            }
-        }
-        
-		// BCH 15 May 2018: display in scientific notation for positions at or above 1e10, as it gets a bit ridiculous...
-        QString tickLabel;
-        int tickLabelX = static_cast<int>(floor(tickRect.left() + tickRect.width() / 2.0));
-        int tickLabelY = contentRect.bottom() + (tickLength + 13);
-        bool forceCenteredLabel = (displayedRange.length <= 101);	// a selected subrange is never <=101 length, so this is safe even with large chromosomes
-        int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom);
-        
-        if (tickBase >= 1e10)
-            tickLabel = QString::asprintf("%.6e", static_cast<double>(tickBase));
-        else
-            QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
+        // figure out the label's alignment relative to the tick
+        bool forceCenteredLabel = (tickRect.width() > 50);      // with wide ticks, just center all labels; there's room for lots of digits here
+        Qt::AlignmentFlag labelAlignment;
+        int tickLabelX;
         
         if ((tickIndex == lastTickIndex) && !forceCenteredLabel)
         {
-            tickLabelX += 2;
-            textFlags |= Qt::AlignRight;
+            labelAlignment = Qt::AlignRight;
+            tickLabelX = tickRect.right() + 2;
         }
-        else if ((tickIndex > 0) || forceCenteredLabel)
+        else if ((tickIndex == 0) && !forceCenteredLabel)
         {
-            tickLabelX += 1;
-            textFlags |= Qt::AlignHCenter;
+            labelAlignment = Qt::AlignLeft;
+            tickLabelX = tickRect.left() - 1;
         }
         else
-            textFlags |= Qt::AlignLeft;
+        {
+            labelAlignment = Qt::AlignHCenter;
+            tickLabelX = static_cast<int>(floor(tickRect.left() + tickRect.width() / 2.0)) + 1;
+        }
+        
+        // make the label
+        QString tickLabel;
+        
+        if (tickBase >= 1e9)
+            useScientificNotation = true;
+        
+        if (useScientificNotation && (tickBase != 0))
+        {
+            tickLabel = QString::asprintf("%.4e", static_cast<double>(tickBase));		// scientific notation above a threshold
+            
+            // remove cruft around the exponential; we want "1.5000e+09" -> "1.5e9", "1.0000e+09" -> "1.0e9", etc.
+            tickLabel.replace(".0000e", ".0e");
+            tickLabel.replace(".000e", ".0e");
+            tickLabel.replace("000e", "e");     // didn't get replaced by the previous line, so it must follow a non-zero digit
+            tickLabel.replace(".00e", ".0e");
+            tickLabel.replace("00e", "e");      // didn't get replaced by the previous line, so it must follow a non-zero digit
+            tickLabel.replace("e+0", "e");
+            tickLabel.replace("e+", "e");
+        }
+        else
+            QTextStream(&tickLabel) << static_cast<int64_t>(tickBase);
+        
+        // measure it
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        double tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        double tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        int labelLeftEdge, labelRightEdge;
+        
+        if (labelAlignment == Qt::AlignRight)
+        {
+            labelLeftEdge = tickLabelX - tickLabelWidth;
+            labelRightEdge = tickLabelX;
+        }
+        else if (labelAlignment == Qt::AlignLeft)
+        {
+            labelLeftEdge = tickLabelX;
+            labelRightEdge = tickLabelX + tickLabelWidth;
+        }
+        else    // Qt::AlignHCenter
+        {
+            labelLeftEdge = tickLabelX - (int)std::ceil(tickLabelWidth / 2.0);
+            labelRightEdge = tickLabelX + (int)std::ceil(tickLabelWidth / 2.0);
+        }
+        
+        // decide whether the label fits
+        bool drawLabel = true;
+        
+        if ((tickIndex > 0) && (labelLeftEdge < interiorRect.left()))
+            drawLabel = false;
+        else if ((tickIndex < lastTickIndex) && (labelRightEdge + 5 > rightmostNotDrawn))
+            drawLabel = false;
+        
+        if (!drawLabel && (tickIndex == lastTickIndex))                         // if the rightmost label doesn't fit, skip all ticks and labels
+            break;
+        if (!drawLabel && (tickIndex != 0) && (tickIndex != lastTickIndex))     // skip interior tick marks if we skip their label
+            continue;
+        
+        // draw a tick for it; if we are displaying a single site or two sites, make a tick mark one pixel wide; a very wide one looks weird
+        if (displayedRange.length <= 2)
+        {
+            tickRect.setLeft(static_cast<int>(floor(tickRect.left() + tickRect.width() / 2.0 - 0.5)));
+            tickRect.setWidth(1);
+        }
+        
+        painter.fillRect(tickRect, inDarkMode ? QColor(10, 10, 10, 255) : QColor(127, 127, 127, 255));  // in dark mode, 17 matches the frame, but is too light
+        
+        // if we decided to draw the tick even though the label doesn't fit, now skip the label
+        if (!drawLabel)
+            continue;
+        
+        // and then draw the tick label
+        int tickLabelY = contentRect.bottom() + (tickLength + 13);
+        int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom | labelAlignment);
         
         painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
+        
+        // keep track of where we have drawn text, to avoid overlap
+        rightmostNotDrawn = labelLeftEdge;
 	}
     
     painter.restore();
