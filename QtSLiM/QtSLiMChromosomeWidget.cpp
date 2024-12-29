@@ -1326,9 +1326,11 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
         
         painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
         
-        // keep track of where we have drawn text, to avoid overlap
-        leftmostNotDrawn = std::max(leftmostNotDrawn, labelRightEdge);
-        rightmostNotDrawn = std::min(rightmostNotDrawn, labelLeftEdge);
+        // keep track of where we have drawn text, to avoid overlap; this is a bit tricky because we draw the ticks out of order
+        if (simpleTickIndex == 1)
+            leftmostNotDrawn = std::max(leftmostNotDrawn, labelRightEdge);      // changes only when we draw the left-edge tick
+        if (simpleTickIndex != 1)
+            rightmostNotDrawn = std::min(rightmostNotDrawn, labelLeftEdge);     // does not change when we draw the left-edge tick
 	}
     
     painter.restore();
