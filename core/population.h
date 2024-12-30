@@ -358,7 +358,8 @@ public:
 	void CheckForDeferralInHaplosomes(EidosValue_Object *p_haplosomes, const std::string &p_caller);
 	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller);
 	
-	void DoDeferredReproduction(void);
+	// FIXME MULTICHROM deferred reproduction is disabled for now
+	//void DoDeferredReproduction(void);
 	
 	//********** methods for all models
 	

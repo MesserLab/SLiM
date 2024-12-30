@@ -562,6 +562,8 @@ void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals,
 }
 
 // nonWF only:
+// FIXME MULTICHROM deferred reproduction is disabled for now
+#if 0
 void Population::DoDeferredReproduction(void)
 {
 	size_t deferred_count_nonrecombinant = deferred_reproduction_nonrecombinant_.size();
@@ -641,6 +643,7 @@ void Population::DoDeferredReproduction(void)
 	deferred_reproduction_nonrecombinant_.clear();
 	deferred_reproduction_recombinant_.clear();
 }
+#endif
 
 // WF only:
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per cycle  
