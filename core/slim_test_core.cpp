@@ -824,6 +824,121 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 7:9); sim.setValue('bar', 'baz'); } 10 early() { if (identical(sim.getValue('foo'), 7:9) & identical(sim.getValue('bar'), 'baz')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 3:5); sim.setValue('foo', 'foobar'); } 10 early() { if (identical(sim.getValue('foo'), 'foobar')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 3:5); sim.setValue('foo', NULL); } 10 early() { if (isNULL(sim.getValue('foo'))) stop(); }", __LINE__);
+	
+	// Test mutation frequency/counts by cross-checking different methods against each other
+	// this is a shortened version of SLiM_project/Miscellaneous/Testing/test_multichrom_freqs_counts.slim
+	// it is best when run under DEBUG, since then SLiM's self-check code is also involved
+	SLiMAssertScriptSuccess(R"V0G0N(
+	initialize() {
+		initializeSex();
+		initializeMutationType("m1", 0.5, "f", 0.0);
+		initializeMutationType("m2", 0.5, "f", 0.1);
+		initializeMutationType("m3", 0.5, "f", -0.01);
+		initializeGenomicElementType("g1", c(m1,m2,m3), c(100, 1, 10));
+
+		ids = 1:11;
+		lengths = c(2e4, rep(1e4, 10));
+		types = c("A", "A", "H", "X", "Y", "W", "Z", "HF", "FL", "HM", "ML");
+
+		for (id in ids, length in lengths, type in types)
+		{
+			initializeChromosome(id, length);
+			initializeMutationRate(1e-4);
+			initializeGenomicElement(g1, 0, length - 1);
+			initializeRecombinationRate(1e-4);
+		}
+	}
+	1 early() {
+		sim.addSubpop("p1", 10);
+		sim.addSubpop("p2", 10);
+		p1.setMigrationRates(p2, 0.001);
+		p2.setMigrationRates(p1, 0.01);
+	}
+	85 early() {
+		p1.setSubpopulationSize(30);
+		p2.setSubpopulationSize(30);
+	}
+	90:100 late() {
+		p1_haplosomes = p1.haplosomes;
+		p2_haplosomes = p2.haplosomes;
+		all_haplosomes = c(p1_haplosomes, p2_haplosomes);
+		haplosome_subsample = sample(all_haplosomes, integerDiv(size(all_haplosomes), 4));
+		all_muts = sim.mutations;
+		sampled_muts = sample(sim.mutations, integerDiv(size(sim.mutations), 2));
+
+		// check mutation counts first
+		for (iter in 1:2)
+		{
+			muts_checked = ((iter == 1) ? NULL else sampled_muts);
+
+			counts_hapsample_1 = haplosome_subsample.mutationCountsInHaplosomes(muts_checked);
+
+			counts_p1_haplosomes = p1_haplosomes.mutationCountsInHaplosomes(muts_checked);
+			counts_p1_subpop = sim.mutationCounts(p1, muts_checked);
+			if (!identical(counts_p1_haplosomes, counts_p1_subpop))
+				stop("iter == " + iter);
+
+			counts_hapsample_2 = haplosome_subsample.mutationCountsInHaplosomes(muts_checked);
+			if (!identical(counts_hapsample_1, counts_hapsample_2))
+				stop("iter == " + iter);
+
+			counts_p2_haplosomes = p2_haplosomes.mutationCountsInHaplosomes(muts_checked);
+			counts_p2_subpop = sim.mutationCounts(p2, muts_checked);
+			if (!identical(counts_p2_haplosomes, counts_p2_subpop))
+				stop("iter == " + iter);
+
+			counts_p1p1_haplosomes = c(p1_haplosomes, p2_haplosomes).mutationCountsInHaplosomes(muts_checked);
+			counts_p1p2_subpop = sim.mutationCounts(c(p1, p2), muts_checked);
+			counts_pop = sim.mutationCounts(NULL, muts_checked);
+
+			if (!identical(counts_p1p1_haplosomes, counts_p1p2_subpop))
+				stop("iter == " + iter);
+			if (!identical(counts_pop, counts_p1p2_subpop))
+				stop("iter == " + iter);
+			if (!identical(counts_p1_haplosomes + counts_p2_haplosomes, counts_p1p2_subpop))
+				stop("iter == " + iter);
+
+			counts_hapsample_3 = haplosome_subsample.mutationCountsInHaplosomes(muts_checked);
+			if (!identical(counts_hapsample_1, counts_hapsample_3))
+				stop("iter == " + iter);
+		}
+
+		// check mutation frequencies second
+		for (iter in 1:2)
+		{
+			muts_checked = ((iter == 1) ? NULL else sampled_muts);
+
+			freqs_hapsample_1 = haplosome_subsample.mutationFrequenciesInHaplosomes(muts_checked);
+
+			freqs_p1_haplosomes = p1_haplosomes.mutationFrequenciesInHaplosomes(muts_checked);
+			freqs_p1_subpop = sim.mutationFrequencies(p1, muts_checked);
+			if (!identical(freqs_p1_haplosomes, freqs_p1_subpop))
+				stop("iter == " + iter);
+
+			freqs_hapsample_2 = haplosome_subsample.mutationFrequenciesInHaplosomes(muts_checked);
+			if (!identical(freqs_hapsample_1, freqs_hapsample_2))
+				stop("iter == " + iter);
+
+			freqs_p2_haplosomes = p2_haplosomes.mutationFrequenciesInHaplosomes(muts_checked);
+			freqs_p2_subpop = sim.mutationFrequencies(p2, muts_checked);
+			if (!identical(freqs_p2_haplosomes, freqs_p2_subpop))
+				stop("iter == " + iter);
+
+			freqs_p1p1_haplosomes = c(p1_haplosomes, p2_haplosomes).mutationFrequenciesInHaplosomes(muts_checked);
+			freqs_p1p2_subpop = sim.mutationFrequencies(c(p1, p2), muts_checked);
+			freqs_pop = sim.mutationFrequencies(NULL, muts_checked);
+
+			if (!identical(freqs_p1p1_haplosomes, freqs_p1p2_subpop))
+				stop("iter == " + iter);
+			if (!identical(freqs_pop, freqs_p1p2_subpop))
+				stop("iter == " + iter);
+
+			freqs_hapsample_3 = haplosome_subsample.mutationFrequenciesInHaplosomes(muts_checked);
+			if (!identical(freqs_hapsample_1, freqs_hapsample_3))
+				stop("iter == " + iter);
+		}
+	}
+	)V0G0N", __LINE__);
 }
 
 #pragma mark Subpopulation tests
