@@ -7601,6 +7601,65 @@ void Population::TallyMutationRunReferencesForSubpopsForChromosome(std::vector<S
 		}
 	}
 	
+#if DEBUG
+	// In debug builds we do a complete re-tally single-threaded, into a side counter, for a check-back
+	// The code for this is very similar to the code above, but it at least checks that optimizations above are correct...
+	{
+		slim_refcount_t tallied_haplosome_count_CHECK = 0;
+		
+		for (int threadnum = 0; threadnum < p_chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = p_chromosome->ChromosomeMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
+			
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+				inuse_pool[pool_index]->use_count_CHECK_ = 0;
+		}
+		
+		for (const Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				Haplosome **haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					if (!haplosome->IsNull())
+					{
+						int mutrun_count = haplosome->mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+							haplosome->mutruns_[run_index]->use_count_CHECK_++;
+						
+						tallied_haplosome_count_CHECK++;
+					}
+				}
+			}
+		}
+		
+		if (tallied_haplosome_count_CHECK != tallied_haplosome_count)
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpopsForChromosome): (internal error) tallied_haplosome_count_CHECK != tallied_haplosome_count (" << tallied_haplosome_count_CHECK << " != " << tallied_haplosome_count << ")." << EidosTerminate();
+		
+		for (int threadnum = 0; threadnum < p_chromosome->ChromosomeMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = p_chromosome->ChromosomeMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
+			
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+			{
+				const MutationRun *mutrun = inuse_pool[pool_index];
+				
+				if (mutrun->use_count_CHECK_ != mutrun->use_count())
+					EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpopsForChromosome): (internal error) use_count_CHECK_ " << mutrun->use_count_CHECK_ << " != mutrun->use_count() " << mutrun->use_count() << "." << EidosTerminate();
+			}
+		}
+	}
+#endif
+	
 	p_chromosome->tallied_haplosome_count_ = tallied_haplosome_count;
 }
 
@@ -7654,65 +7713,65 @@ void Population::FreeUnusedMutationRuns(void)
 	// It is assumed by this method that mutation run tallies are up to date!
 	// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
 	
-#if 0
-	// Check for usage of each mutation run we intend to free, to catch bugs in that area
-	// This slows things down quite a lot, so I didn't leave it on even in DEBUG, but it
-	// is useful for debugging problems with mutation run freeing, such as the error
+#if DEBUG
+	// Check for usage of each mutation run we intend to free, to catch bugs in that area.
+	// This is useful for debugging problems with mutation run freeing, such as the error
 	// message "a mutation run was used at more than one position", which is a symptom
 	// of a mutation being freed while it is still in use.
+	
+	// first set the use_count_CHECK_ of all mutation runs to zero
 	for (Chromosome *chromosome : species_.Chromosomes())
 	{
-		// free all in-use MutationRun objects that are not actually in use (use count == 0)
-		// each thread does its own checking and freeing, for its own MutationRunContext
-#ifdef _OPENMP
 		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
-#endif
 		
-#pragma omp parallel default(none) num_threads(mutrun_context_count)
+		for (int mutrun_context_index = 0; mutrun_context_index < mutrun_context_count; ++mutrun_context_index)
 		{
-			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());
-			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
-			size_t pool_count = inuse_pool.size();
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(mutrun_context_index);
 			
-			for (size_t pool_index = 0; pool_index < pool_count; ++pool_index)
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->use_count_CHECK_ = 0;
+		}
+	}
+	
+	// then go through all haplosomes of all individuals of all subpops, and increment their use count
+	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		{
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				const MutationRun *mutrun = inuse_pool[pool_index];
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				if (mutrun->use_count() == 0)
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					// check for usage of this mutation run
-					int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-					int64_t use_count = 0;
+					Haplosome *haplosome = haplosomes[haplosome_index];
 					
-					for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+					if (!haplosome->IsNull())
 					{
-						Subpopulation *subpop = subpop_pair.second;
-						{
-							for (Individual *ind : subpop->parent_individuals_)
-							{
-								Haplosome **haplosomes = ind->haplosomes_;
-								
-								for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-								{
-									Haplosome *haplosome = haplosomes[haplosome_index];
-									
-									if (!haplosome->IsNull())
-									{
-										int mutrun_count = haplosome->mutrun_count_;
-										
-										for (int run_index = 0; run_index < mutrun_count; ++run_index)
-											if (haplosome->mutruns_[run_index] == mutrun)
-												use_count++;
-									}
-								}
-							}
-						}
+						int mutrun_count = haplosome->mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+							haplosome->mutruns_[run_index]->use_count_CHECK_++;
 					}
-					
-					if (use_count > 0)
-						EIDOS_TERMINATION << "ERROR (Population::FreeUnusedMutationRuns): (internal error) use_count() is zero for mutrun with actual usage count " << use_count << "!" << EidosTerminate();
 				}
 			}
+		}
+	}
+	
+	// then check for mutruns with a use count of 0 (slated to be freed) but a non-zero check count (still in use)
+	for (Chromosome *chromosome : species_.Chromosomes())
+	{
+		int mutrun_context_count = chromosome->ChromosomeMutationRunContextCount();
+		
+		for (int mutrun_context_index = 0; mutrun_context_index < mutrun_context_count; ++mutrun_context_index)
+		{
+			MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(mutrun_context_index);
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				if ((mutrun->use_count() == 0) && (mutrun->use_count_CHECK_ != 0))
+					EIDOS_TERMINATION << "ERROR (Population::FreeUnusedMutationRuns): (internal error) use_count() is zero for mutrun with actual usage count " << mutrun->use_count_CHECK_ << "!" << EidosTerminate();
 		}
 	}
 #endif
@@ -7808,7 +7867,6 @@ void Population::InvalidateMutationReferencesCache(void)
 }
 
 // count the total number of times that each Mutation in the registry is referenced by the whole population
-// the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
 void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun_experiments)
 {
 	if (child_generation_valid_)
@@ -7829,6 +7887,9 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 			if (tallied_haplosome_count != chromosome->tallied_haplosome_count_)
 				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossPopulation): (internal error) cached case hit incorrectly; tallied_haplosome_count_ is not correct." << EidosTerminate();
 		}
+		
+		// in DEBUG mode, do the complete check below as well; it should match, if the cache is valid
+		goto doDebugCheck;
 #endif
 		
 		return;
@@ -7842,6 +7903,7 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 	_TallyMutationReferences_FAST_FromMutationRunUsage(p_clock_for_mutrun_experiments);
 	
 #if DEBUG
+doDebugCheck:
 	{
 		int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
 		std::vector<Haplosome *> haplosomes;
@@ -7864,7 +7926,7 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 			}
 		}
 		
-		_CheckMutationTallyAcrossHaplosomes(haplosomes.data(), (slim_popsize_t)haplosomes.size());
+		_CheckMutationTallyAcrossHaplosomes(haplosomes.data(), (slim_popsize_t)haplosomes.size(), "Population::TallyMutationReferencesAcrossPopulation()");
 	}
 #endif
 	
@@ -7936,81 +7998,9 @@ void Population::TallyMutationReferencesAcrossPopulation_SLiMgui(void)
 	for (Chromosome *chromosome : species_.Chromosomes())
 		chromosome->gui_total_haplosome_count_ = chromosome->tallied_haplosome_count_;
 	
-#if 0
-	// Old tallying code directly from haplosomes; this might be useful for doing a debug check
-	
-	// SLOW PATH: Only a subset of subpopulations are selected in SLiMgui, so we can't use
-	// MutationRun to do the work; their refcounts span the whole population.
-	// Increment the refcounts through all pointers to Mutation in all haplosomes
-	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
-	
-	// We will increment the gui tallies one by one below, so we have to zero them out here.
-	for (Chromosome *chromosome : species_.Chromosomes())
-		chromosome->gui_total_haplosome_count_ = 0;
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int registry_size;
-	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-	const MutationIndex *registry_iter_end = registry_iter + registry_size;
-	
-	while (registry_iter != registry_iter_end)
-	{
-		MutationIndex mutation_index = *registry_iter;
-		Mutation *mutation = mut_block_ptr + mutation_index;
-		
-		mutation->gui_reference_count_ = 0;
-		registry_iter++;
-	}
-	
-	// then increment the refcounts through all pointers to Mutation in all haplosomes
-	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		// Tally only within the selected subpops
-		if (subpop->gui_selected_)
-		{
-			for (Individual *ind : subpop->parent_individuals_)
-			{
-				Haplosome **haplosomes = ind->haplosomes_;
-				
-				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
-					
-					if (!haplosome->IsNull())
-					{
-						Chromosome *chromosome = species_.ChromosomesForHaplosomeIndices()[haplosome_index];
-						int mutrun_count = haplosome->mutrun_count_;
-						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome->mutruns_[run_index];
-							const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
-							const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
-							
-							while (haplosome_iter != haplosome_end_iter)
-							{
-								MutationIndex mut_index = *haplosome_iter;
-								const Mutation *mutation = mut_block_ptr + mut_index;
-								slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
-								
-								(*refcount_ptr)++;
-								(mutation->gui_reference_count_)++;
-								haplosome_iter++;
-							}
-						}
-						
-						chromosome->gui_total_haplosome_count_++;	// count only non-null haplosomes to determine fixation
-					}
-				}
-			}
-		}
-	}
-#endif
+	// There seems to be no need for a separate DEBUG check here, because the calls above to
+	// TallyMutationReferencesAcrossPopulation() / TallyMutationReferencesAcrossSubpopulations()
+	// already have their own DEBUG check code; we just copy the work they did for us.
 }
 #endif
 
@@ -8018,44 +8008,6 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossSubpopulations): (internal error) called with child generation active!" << EidosTerminate();
-	
-	// Figure out whether the last tally was of the same thing, such that we can skip the work
-	if (cached_tallies_valid_ && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
-	{
-		// we hit the cache; we just return so the previously computed result is reused
-		
-#if DEBUG
-		// check that the cached haplosome count is correct; note that it includes only non-null haplosomes
-		for (Chromosome *chromosome : species_.Chromosomes())
-		{
-			slim_refcount_t tallied_haplosome_count = 0;
-			int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome->Index()];
-			int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome->Index()];
-			
-			// tallying across the specified set of subpops
-			for (Subpopulation *subpop : *p_subpops_to_tally)
-			{
-				for (Individual *ind : subpop->parent_individuals_)
-				{
-					Haplosome **haplosomes = ind->haplosomes_;
-					
-					for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
-					{
-						Haplosome *haplosome = haplosomes[haplosome_index];
-						
-						if (!haplosome->IsNull())
-							tallied_haplosome_count++;
-					}
-				}
-			}
-			
-			if (tallied_haplosome_count != chromosome->tallied_haplosome_count_)
-				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossSubpopulations): (internal error) cached case hit incorrectly; tallied_haplosome_count_ is not correct." << EidosTerminate();
-		}
-#endif
-		
-		return;
-	}
 	
 	// When tallying just a subset of the subpops, we don't update total_haplosome_count_,
 	// which applies only to population-wide tallies; but we do set tallied_haplosome_count_
@@ -8065,15 +8017,28 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 	
 	// We have two ways of tallying; here we decide which way to use.  We only loop through haplosomes
 	// if we are tallying for a single subpopulation and it is small; otherwise, looping through
-	// mutation runs is expected to be faster.
-	bool can_tally_using_mutruns = true;
+	// mutation runs is expected to be faster.  Tallying with mutruns would still work, just slower.
+	bool tally_using_mutruns = true;
 
 	if (p_subpops_to_tally->size() == 0)			// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
-		can_tally_using_mutruns = false;
+		tally_using_mutruns = false;
 	else if ((p_subpops_to_tally->size() == 1) && ((*p_subpops_to_tally)[0]->parent_individuals_.size() <= 5))
-		can_tally_using_mutruns = false;
+		tally_using_mutruns = false;
 	
-	if (can_tally_using_mutruns)
+	// Figure out whether the last tally was of the same thing, such that we can skip the work
+	if (cached_tallies_valid_ && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
+	{
+		// we hit the cache; we just return so the previously computed result is reused
+		
+#if DEBUG
+		// in DEBUG mode, do the complete check below as well; it should match, if the cache is valid
+		goto doDebugCheck;
+#endif
+		
+		return;
+	}
+	
+	if (tally_using_mutruns)
 	{
 		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
 		// Note that this call sets up tallied_haplosome_count_ for all chromosomes
@@ -8081,30 +8046,6 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ false);
-		
-#if DEBUG
-		{
-			std::vector<Haplosome *> haplosomes;
-			
-			for (Subpopulation *subpop : *p_subpops_to_tally)
-			{
-				for (Individual *ind : subpop->parent_individuals_)
-				{
-					Haplosome **ind_haplosomes = ind->haplosomes_;
-					
-					for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-					{
-						Haplosome *haplosome = ind_haplosomes[haplosome_index];
-						
-						if (!haplosome->IsNull())
-							haplosomes.push_back(haplosome);
-					}
-				}
-			}
-			
-			_CheckMutationTallyAcrossHaplosomes(haplosomes.data(), (slim_popsize_t)haplosomes.size());
-		}
-#endif
 	}
 	else
 	{
@@ -8146,6 +8087,31 @@ void Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopu
 		}
 	}
 	
+#if DEBUG
+doDebugCheck:
+	{
+		std::vector<Haplosome *> haplosomes;
+		
+		for (Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				Haplosome **ind_haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = ind_haplosomes[haplosome_index];
+					
+					if (!haplosome->IsNull())
+						haplosomes.push_back(haplosome);
+				}
+			}
+		}
+		
+		_CheckMutationTallyAcrossHaplosomes(haplosomes.data(), (slim_popsize_t)haplosomes.size(), "Population::TallyMutationReferencesAcrossSubpopulations()");
+	}
+#endif
+	
 	// set up the cache info
 	last_tallied_subpops_ = *p_subpops_to_tally;
 	cached_tallies_valid_ = true;
@@ -8175,10 +8141,6 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage(/* p_clock_for_mutrun_experiments */ false);
-		
-#if DEBUG
-		_CheckMutationTallyAcrossHaplosomes(haplosomes_ptr, haplosomes_count);
-#endif
 	}
 	else
 	{
@@ -8211,6 +8173,10 @@ void Population::TallyMutationReferencesAcrossHaplosomes(const Haplosome * const
 			}
 		}
 	}
+	
+#if DEBUG
+	_CheckMutationTallyAcrossHaplosomes(haplosomes_ptr, haplosomes_count, "Population::TallyMutationReferencesAcrossHaplosomes()");
+#endif
 	
 	// We have messed up any cached tallies, so mark the cache as invalid
 	InvalidateMutationReferencesCache();
@@ -8271,20 +8237,22 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 }
 
 #if DEBUG
-void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count)
+void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count, std::string caller_name)
 {
-	// This does a DEBUG check on the results of _TallyMutationReferences_FAST_FromMutationRunUsage().
-	// It should be called immediately after that method, and passed a vector of the haplosomes tallied across.
+	// This does a DEBUG check on the results of mutation reference tallying, done in several spots.
+	// It should be called immediately after tallying, and passed a vector of the haplosomes tallied across.
 	int registry_count;
 	const MutationIndex *registry_iter = MutationRegistry(&registry_count);
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
+	// zero out all check refcounts
 	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
 	{
 		const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
 		mut->refcount_CHECK_ = 0;
 	}
 	
+	// simply loop through all mutruns of all haplosomes given, and increment check refcounts
 	for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosomes_count; ++haplosome_index)
 	{
 		const Haplosome *haplosome = haplosomes_ptr[haplosome_index];
@@ -8301,6 +8269,7 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 		}
 	}
 	
+	// then loop through the registry and check that all check refcounts match tallied refcounts
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	
 	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
@@ -8314,7 +8283,7 @@ void Population::_CheckMutationTallyAcrossHaplosomes(const Haplosome * const *ha
 			slim_refcount_t refcount_checkback = mut->refcount_CHECK_;
 			
 			if (refcount_standard != refcount_checkback)
-				EIDOS_TERMINATION << "ERROR (Population::_CheckMutationTallyAcrossHaplosomes): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << "." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Population::_CheckMutationTallyAcrossHaplosomes): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << " in " << caller_name << "." << EidosTerminate();
 		}
 	}
 }

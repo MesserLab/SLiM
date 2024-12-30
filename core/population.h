@@ -298,7 +298,7 @@ public:
 	slim_refcount_t _CountNonNullHaplosomesForChromosome(Chromosome *p_chromosome);
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock_for_mutrun_experiments);
 #if DEBUG
-	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count);
+	void _CheckMutationTallyAcrossHaplosomes(const Haplosome * const *haplosomes_ptr, slim_popsize_t haplosomes_count, std::string caller_name);
 #endif
 	
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
