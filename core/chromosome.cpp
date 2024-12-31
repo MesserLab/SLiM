@@ -2944,7 +2944,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 			Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
 			Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
 			
-			species_.population_.ApplyRecombinationCallbacks(parent->index_, parent_haplosome1, parent_haplosome2, parent_subpop, all_breakpoints, recombination_callbacks);
+			species_.population_.ApplyRecombinationCallbacks(parent_haplosome1, parent_haplosome2, all_breakpoints, recombination_callbacks);
 			
 			if (all_breakpoints.size() > 1)
 			{
@@ -2959,7 +2959,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
 		Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
 		
-		species_.population_.ApplyRecombinationCallbacks(parent->index_, parent_haplosome1, parent_haplosome2, parent_subpop, all_breakpoints, recombination_callbacks);
+		species_.population_.ApplyRecombinationCallbacks(parent_haplosome1, parent_haplosome2, all_breakpoints, recombination_callbacks);
 		
 		if (all_breakpoints.size() > 1)
 		{

@@ -2459,7 +2459,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 }
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
-bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
+bool Population::ApplyRecombinationCallbacks(Haplosome *p_haplosome1, Haplosome *p_haplosome2, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyRecombinationCallbacks(): running Eidos callback");
 	
@@ -2519,7 +2519,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Hapl
 			// referred to by the values may change, but the values themselves will not change).
 			if (recombination_callback->contains_individual_)
 			{
-				Individual *individual = p_source_subpop->parent_individuals_[p_parent_index];
+				Individual *individual = p_haplosome1->OwningIndividual();
 				callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
 			}
 			if (recombination_callback->contains_haplosome1_)
@@ -2527,7 +2527,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Hapl
 			if (recombination_callback->contains_haplosome2_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_haplosome2, p_haplosome2->CachedEidosValue());
 			if (recombination_callback->contains_subpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_source_subpop->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_haplosome1->OwningIndividual()->subpopulation_->SymbolTableEntry().second);
 			
 			// All the variable entries for the crossovers and gene conversion start/end points
 			if (recombination_callback->contains_breakpoints_)
@@ -2649,8 +2649,6 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	
 	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
 	// depend upon characteristics of the first parent, so we fetch the necessary properties here
-	// FIXME MULTICHROM maybe these parameters to ApplyRecombinationCallbacks can be eliminated?
-	slim_popsize_t parent_index = parent_haplosome_1->individual_->index_;
 	Subpopulation *source_subpop = parent_haplosome_1->individual_->subpopulation_;
 	IndividualSex parent_sex = parent_haplosome_1->individual_->sex_;
 	
@@ -2697,7 +2695,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 				if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
 					EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 				
-				ApplyRecombinationCallbacks(parent_index, parent_haplosome_1, parent_haplosome_2, source_subpop, all_breakpoints, *p_recombination_callbacks);
+				ApplyRecombinationCallbacks(parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 				num_breakpoints = (int)all_breakpoints.size();
 				
 				if (num_breakpoints)
@@ -2730,7 +2728,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
 				EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 			
-			ApplyRecombinationCallbacks(parent_index, parent_haplosome_1, parent_haplosome_2, source_subpop, all_breakpoints, *p_recombination_callbacks);
+			ApplyRecombinationCallbacks(parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 			num_breakpoints = (int)all_breakpoints.size();
 			
 			if (num_breakpoints)
@@ -3517,8 +3515,6 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	
 	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
 	// depend upon characteristics of the first parent, so we fetch the necessary properties here
-	// FIXME MULTICHROM maybe these parameters to ApplyRecombinationCallbacks can be eliminated?
-	//slim_popsize_t parent_index = parent_haplosome->individual_->index_;
 	Subpopulation *source_subpop = parent_haplosome->individual_->subpopulation_;
 	IndividualSex parent_sex = parent_haplosome->individual_->sex_;
 
