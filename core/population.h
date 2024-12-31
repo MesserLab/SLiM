@@ -241,9 +241,9 @@ public:
 	
 	// generate offspring within a reproduction() callback using templated Subpopulation methods; these pointers get
 	// set up at the beginning of each tick's reproduction() callback stage, and should not be used outside of it
-	Individual *(Subpopulation::*GenerateIndividualCrossed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex) = nullptr;
-	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
-	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
+	Individual *(Subpopulation::*GenerateIndividualCrossed_TEMPLATED)(Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex) = nullptr;
+	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(Individual *p_parent) = nullptr;
+	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(Individual *p_parent) = nullptr;
 
 	// An internal method that validates cached fitness values kept by Mutation objects
 	void ValidateMutationFitnessCaches(void);
