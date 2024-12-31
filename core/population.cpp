@@ -4409,6 +4409,14 @@ template void Population::HaplosomeRecombined<true, true>(Chromosome &p_chromoso
 
 void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome)
 {
+#if DEBUG
+	if (!p_child_haplosome->individual_)
+		EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) The child haplosome must have an owning individual." << EidosTerminate();
+	if ((p_parent_haplosome_1->chromosome_index_ != p_parent_haplosome_2->chromosome_index_) ||
+		(p_parent_haplosome_1->chromosome_index_ != p_child_haplosome->chromosome_index_))
+		EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) The child haplosome and parent haplosomes must all have the same associated chromosome." << EidosTerminate();
+#endif
+	
 	// Heteroduplex mismatch repair handling: heteroduplex contains a set of start/end position
 	// pairs, representing stretches of the offspring haplosome that result from "complex" gene
 	// conversion tracts where the two homologous parental strands ended up paired, even though
@@ -4427,7 +4435,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// since new mutations could be stacked with other pre-existing mutations that should be
 	// subject to heteroduplex repair.  Anyway this is such an edge case that our chosen policy
 	// on it shouldn't matter for practical purposes.
-	double gBGC_coeff_scaled = (species_.TheChromosome().mismatch_repair_bias_ + 1.0) / 2.0;
+	Chromosome *chromosome = p_child_haplosome->AssociatedChromosome();
+	double gBGC_coeff_scaled = (chromosome->mismatch_repair_bias_ + 1.0) / 2.0;
 	bool repairs_biased = (species_.IsNucleotideBased() && (gBGC_coeff_scaled != 0.5));
 	NucleotideArray *ancestral_sequence = (repairs_biased ? species_.TheChromosome().AncestralSequence() : nullptr);
 	int heteroduplex_tract_count = (int)(p_heteroduplex.size() / 2);
@@ -4669,12 +4678,9 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	}
 	
 	// We are done scanning; now we do all of the planned repairs.  Tree-sequence recording
-	// need to be kept apprised of all the changes made.  Note that in some cases a mutation
+	// needs to be kept apprised of all the changes made.  Note that in some cases a mutation
 	// might have been newly added at a position, and then removed again by mismatch repair;
 	// we will need to make sure that the recorded state is correct when that occurs.
-	
-	// FIXME MULTICHROM This will get called for each chromosome, I think?
-	Chromosome &chromosome = species_.TheChromosome();
 	
 	if ((repair_removals.size() > 0) || (repair_additions.size() > 0))
 	{
@@ -4694,7 +4700,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		while (run_index < mutrun_count)
 		{
 			// Now we will process *all* additions and removals for run_index
-			MutationRunContext &mutrun_context_LOCKED = chromosome.ChromosomeMutationRunContextForMutationRunIndex(run_index);
+			MutationRunContext &mutrun_context_LOCKED = chromosome->ChromosomeMutationRunContextForMutationRunIndex(run_index);
 			MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(mutrun_context_LOCKED);
 			const MutationRun *old_run = p_child_haplosome->mutruns_[run_index];
 			const MutationIndex *old_run_iter		= old_run->begin_pointer_const();
