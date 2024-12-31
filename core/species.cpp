@@ -118,15 +118,20 @@ Species::~Species(void)
 	EmptyGraveyard();		// needs to be done first; uses subpopulation references
 	
 	population_.RemoveAllSubpopulationInfo();
+	population_.PurgeRemovedSubpopulations();
 	
 	DeleteAllMutationRuns();
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
+	for (auto &element : mutation_types_)
+		element.second = nullptr;
 	mutation_types_.clear();
 	
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
+	for (auto &element : genomic_element_types_)
+		element.second = nullptr;
 	genomic_element_types_.clear();
 	
 	// Free the shuffle buffer
@@ -157,13 +162,25 @@ Species::~Species(void)
 		hap_metadata_2M_ = nullptr;
 	}
 	
-	// Let go of our chromosome objects
+	// Let go of our chromosome objects.  This is tricky, because other objects deleted later might try to use
+	// the chromosome objects after they're gone, leading to undefined behavior.  To make such bugs easier to
+	// catch, we zero out pointers to chromosomes everywhere we keep them, so usage of them hopefully crashes.
 	for (Chromosome *chromosome : chromosomes_)
 		chromosome->Release();
 	
+	std::fill(chromosomes_.begin(), chromosomes_.end(), nullptr);
 	chromosomes_.clear();
+	
+	for (auto &element : chromosome_from_id_)
+		element.second = nullptr;
 	chromosome_from_id_.clear();
+	
+	for (auto &element : chromosome_from_symbol_)
+		element.second = nullptr;
 	chromosome_from_symbol_.clear();
+	
+	std::fill(chromosome_for_haplosome_index_.begin(), chromosome_for_haplosome_index_.end(), nullptr);
+	chromosome_for_haplosome_index_.clear();
 }
 
 void Species::_MakeHaplosomeMetadataRecords(void)
