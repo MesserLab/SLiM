@@ -3718,13 +3718,13 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 	IndividualSex parent_sex = p_parent->sex_;
 	
 	if (parent_sex != IndividualSex::kHermaphrodite)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be hermaphroditic." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): parent must be hermaphroditic." << EidosTerminate();
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): addSelfed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -3764,7 +3764,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -3800,7 +3800,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(slim_pedigreeid_t p_pedigree
 			}
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
 			{
-				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualSelfed): chromosome type 'H-' does not allow reproduction by selfing (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
 				break;
 			}
 			case ChromosomeType::kX_XSexChromosome:
@@ -3911,11 +3911,11 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 	
 #if DEBUG
 	if (p_parent->index_ == -1)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): addCloned() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -3952,7 +3952,7 @@ Individual *Subpopulation::GenerateIndividualCloned(slim_pedigreeid_t p_pedigree
 	{
 #if DEBUG
 		if (!species_.HasGenetics())
-			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCloned): (internal error) a chromosome is defined for a no-genetics species!" << EidosTerminate();
 #endif
 		
 		if (f_mutrunexps) chromosome->StartMutationRunExperimentClock();
@@ -4357,7 +4357,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	
 	// SPECIES CONSISTENCY CHECK
 	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCrossed): biparental crossing requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
@@ -4746,7 +4746,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualSelfed): selfing requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of each parent
@@ -4944,7 +4944,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	
 	// SPECIES CONSISTENCY CHECK
 	if (&parent_subpop.species_ != &this->species_)
-		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): addCrossed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::MungeIndividualCloned): cloning requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 #endif
 	
 	// Figure out callbacks, which are based on the subpopulation of the parents (which must be the same)
@@ -6225,19 +6225,22 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 }
 
 // nonWF only:
-IndividualSex Subpopulation::_HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null)
+IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, const char *p_caller_name)
 {
+	IndividualSex offspring_sex;
+	
+	// First, figure out what sex the user has requested and bounds-check it
 	EidosValueType sex_value_type = p_sex_value->Type();
-	IndividualSex sex;
 	
 	if (sex_enabled_)
 	{
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
-			// in sexual simulations, NULL (the default) means pick a sex with equal probability
-			Eidos_RNG_State *rng = EIDOS_STATE_RNG(omp_get_thread_num());
-			
-			sex = (Eidos_RandomBool(rng) ? IndividualSex::kMale : IndividualSex::kFemale);
+			// A sex value of NULL can be interpreted in either of two ways.  If the haplosome
+			// configuration implies that the offspring must be a particular sex, then we
+			// infer that sex.  If not, then we choose the sex of the individual with equal
+			// probability.  We will defer the decision using kUnspecified here.
+			offspring_sex = IndividualSex::kUnspecified;
 		}
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
@@ -6245,11 +6248,11 @@ IndividualSex Subpopulation::_HaplosomeConfigurationForSex(EidosValue *p_sex_val
 			const std::string &sex_string = p_sex_value->StringData()[0];
 			
 			if (sex_string == "M")
-				sex = IndividualSex::kMale;
+				offspring_sex = IndividualSex::kMale;
 			else if (sex_string == "F")
-				sex = IndividualSex::kFemale;
+				offspring_sex = IndividualSex::kFemale;
 			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): unrecognized value '" << sex_string << "' for parameter sex." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): unrecognized value '" << sex_string << "' for parameter sex passed to " << p_caller_name << "." << EidosTerminate();
 		}
 		else // if (sex_value_type == EidosValueType::kValueFloat)
 		{
@@ -6259,42 +6262,166 @@ IndividualSex Subpopulation::_HaplosomeConfigurationForSex(EidosValue *p_sex_val
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-				sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+				offspring_sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
 			}
 			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
-		}
-		
-		// FIXME MULTICHROM firstChromosomeType is a temporary hack
-		ChromosomeType firstChromosomeType = species_.Chromosomes()[0]->Type();
-		
-		switch (firstChromosomeType)
-		{
-			case ChromosomeType::kA_DiploidAutosome:
-				p_haplosome1_null = false;
-				p_haplosome2_null = false;
-				break;
-			case ChromosomeType::kX_XSexChromosome:
-				p_haplosome1_null = false;
-				p_haplosome2_null = (sex == IndividualSex::kMale);
-				break;
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				p_haplosome1_null = true;
-				p_haplosome2_null = (sex == IndividualSex::kFemale);
-				break;
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex passed to " << p_caller_name << "." << EidosTerminate();
 		}
 	}
 	else
 	{
 		if (sex_value_type != EidosValueType::kValueNULL)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::HaplosomeConfigurationForSex): sex must be NULL in non-sexual models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): NULL must be passed for parameter sex passed to " << p_caller_name << ", in non-sexual models." << EidosTerminate();
 		
-		sex = IndividualSex::kHermaphrodite;
-		p_haplosome1_null = false;
-		p_haplosome2_null = false;
+		offspring_sex = IndividualSex::kHermaphrodite;
 	}
 	
-	return sex;
+	// Second, simplify the code below by checking that all haploid chromosome types have
+	// a null second haplosome.  The types listed here allow a non-null second haplosome.
+	if (!p_haplosome2_null)
+		if ((p_chromosome_type != ChromosomeType::kA_DiploidAutosome) &&
+			(p_chromosome_type != ChromosomeType::kX_XSexChromosome) &&
+			(p_chromosome_type != ChromosomeType::kZ_ZSexChromosome) &&
+			(p_chromosome_type != ChromosomeType::kNullY_YSexChromosomeWithNull))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '" << p_chromosome_type <<"', " << p_caller_name << " requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << p_chromosome_type << "' is haploid)." << EidosTerminate();
+	
+	// Third, check the chromosome type and validate.  If a sex was chosen explicitly above,
+	// this will raise if the haplosomes supplied are not compatible with that sex.  If a sex
+	// was not explicitly chosen (i.e., NULL was passed), and the haplosomes provided imply
+	// the sex, it will be chosen here.
+	switch (p_chromosome_type)
+	{
+		// chromosome types where we need to check the second haplosome, because it can be used
+		//
+		case ChromosomeType::kA_DiploidAutosome:
+		{
+			// This type allows any null haplosome configuration in any individual, in addRecombinant()
+			break;
+		}
+		case ChromosomeType::kX_XSexChromosome:
+		{
+			// Males are required to be X-, females to be XX
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome2_null ? IndividualSex::kMale : IndividualSex::kFemale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && (p_haplosome1_null || !p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'X', " << p_caller_name << " requires that for a male offspring the first haplosome is non-null and the second is null (X-)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && (p_haplosome1_null || p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'X', " << p_caller_name << " requires that for a female offspring both haplosomes are non-null (XX)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kZ_ZSexChromosome:
+		{
+			// Males are required to be ZZ, females to be -Z
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome1_null ? IndividualSex::kFemale : IndividualSex::kMale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && (p_haplosome1_null || p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'Z', " << p_caller_name << " requires that for a male offspring both haplosomes are non-null (ZZ)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && (!p_haplosome1_null || p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'Z', " << p_caller_name << " requires that for a female offspring the first haplosome is null and the second is nonnull (-Z)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+		{
+			// Males are required to be -Y, females to be --
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome2_null ? IndividualSex::kFemale : IndividualSex::kMale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && (p_haplosome1_null || p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '-Y', " << p_caller_name << " requires that for a male offspring the first haplosome is null and the second is nonnull (-Y)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && (!p_haplosome1_null || p_haplosome2_null))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '-Y', " << p_caller_name << " requires that for a female offspring both haplosomes are null (--)." << EidosTerminate();
+			break;
+		}
+			
+		// chromosomes types that are always haploid, so the second haplosome was already checked above
+		//
+		case ChromosomeType::kH_HaploidAutosome:
+		{
+			// This type allows any null haplosome configuration in any individual, in addRecombinant()
+			break;
+		}
+		case ChromosomeType::kY_YSexChromosome:
+		{
+			// Males are required to be Y, females to be -
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome1_null ? IndividualSex::kFemale : IndividualSex::kMale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'Y', " << p_caller_name << " requires that for a male offspring the first haplosome is non-null (Y) (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && !p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'Y', " << p_caller_name << " requires that for a female offspring the first haplosome is null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kW_WSexChromosome:
+		{
+			// Males are required to be -, females to be W
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome1_null ? IndividualSex::kMale : IndividualSex::kFemale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && !p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'W', " << p_caller_name << " requires that for a male offspring the first haplosome is null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'W', " << p_caller_name << " requires that for a female offspring the first haplosome is non-null (W) (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		{
+			// Required present in both sexes; not informative about sex
+			if (!p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'HF', " << p_caller_name << " requires that the first haplosome is non-null in both sexes (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		{
+			// Males are required to be -, females to be present (like W)
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome1_null ? IndividualSex::kMale : IndividualSex::kFemale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && !p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'FL', " << p_caller_name << " requires that for a male offspring the first haplosome is null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'FL', " << p_caller_name << " requires that for a female offspring the first haplosome is non-null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		{
+			// Required present in both sexes; not informative about sex
+			if (!p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'HM', " << p_caller_name << " requires that the first haplosome is non-null in both sexes (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kML_HaploidMaleLine:
+		{
+			// Males are required to be present, females to be - (like Y)
+			if (offspring_sex == IndividualSex::kUnspecified)
+				offspring_sex = (p_haplosome1_null ? IndividualSex::kFemale : IndividualSex::kMale);
+			
+			if ((offspring_sex == IndividualSex::kMale) && p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'ML', " << p_caller_name << " requires that for a male offspring the first haplosome is non-null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			if ((offspring_sex == IndividualSex::kFemale) && !p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'ML', " << p_caller_name << " requires that for a female offspring the first haplosome is null (and the second haplosome is null, since this is a haploid chromosome type)." << EidosTerminate();
+			break;
+		}
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		{
+			// Required H- in both sexes (not flexible like type H); not informative about sex
+			if (p_haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type 'H-', " << p_caller_name << " requires that the first haplosome is non-null (and the second haplosome is null, since this is a haploid chromosome type).  If you want a haploid chromosome type that allows arbitrary null haplosomes to be present, use type 'H'." << EidosTerminate();
+			break;
+		}
+	}
+	
+	// Finally, if the sex was not determined by the code above, flip a coin now
+	if (offspring_sex == IndividualSex::kUnspecified)
+	{
+		Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+		
+		offspring_sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
+	}
+	
+	return offspring_sex;
 }
 
 IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value)
@@ -6654,6 +6781,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species; recombination requires genetics." << EidosTerminate();
 	
+	// This method may only be used in single-chromosome models; it is for the simple case, and for backward compatibility.
+	if (species_.Chromosomes().size() != 1)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called in single-chromosome models; see addMultiRecombinant() for the multi-chromosome version of this method." << EidosTerminate();
+	
+	Chromosome *chromosome = species_.Chromosomes()[0];
+	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[10].get();
 	int64_t child_count = count_value->IntData()[0];
@@ -6689,6 +6822,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	Haplosome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand3_value->ObjectData()[0]);
 	Haplosome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand4_value->ObjectData()[0]);
 	
+	// New in SLiM 5, we raise if a null haplosome was passed in; remarkably, this was not checked for
+	// previously, and could lead to a crash if the user tried to do it!  It never makes sense to do it,
+	// really; if a null haplosome is involved you can't have breakpoints, so you *know* there's a null
+	// haplosome since you have to make that breakpoint decision, so just pass NULL.  This prevents the
+	// user from accidentally passing in a null haplosome and having addRecombinant() do a weird thing.
+	if ((strand1 && strand1->IsNull()) || (strand2 && strand2->IsNull()) || (strand3 && strand3->IsNull()) || (strand4 && strand4->IsNull()))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): a parental strand for addRecombinant() is a null haplosome, which is not allowed; pass NULL instead." << EidosTerminate();
+	
 	// The parental strands must be visible in the subpopulation, and we need to be able to find them to check their sex
 	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
 	Individual *strand2_parent = (strand2 ? strand2->individual_ : nullptr);
@@ -6706,43 +6847,142 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		(strand4_parent && (&strand4_parent->subpopulation_->species_ != &this->species_)))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that all source haplosomes belong to the same species as the target subpopulation." << EidosTerminate();
 	
-	// If both strands are non-NULL for a pair, they must be the same type of haplosome
-	if (strand1 && strand2 && (strand1->AssociatedChromosome() != strand2->AssociatedChromosome()))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are not associated with the same chromosome, and thus cannot recombine." << EidosTerminate();
-	if (strand3 && strand4 && (strand3->AssociatedChromosome() != strand4->AssociatedChromosome()))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are not associated with the same chromosome, and thus cannot recombine." << EidosTerminate();
+	// We do not need to check that associated chromosomes for the strands match, because this method can
+	// only be called in a single-chromosome model; addMultiRecombinant() will need to check that, though
 	
-	// If the first strand of a pair is NULL, the second must also be NULL
+	// If the first strand of a pair is NULL, the second must also be NULL.  As above, the user has to know
+	// which strands are null and which are not anyway, so this should not be a hardship.
 	if (!strand1 && strand2)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand1 is NULL, strand2 must also be NULL." << EidosTerminate();
 	if (!strand3 && strand4)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand3 is NULL, strand4 must also be NULL." << EidosTerminate();
 	
-	// The first pair cannot be Y chromosomes; those must be supplied in the second pair (if at all)
-	if (strand1 && (strand1->AssociatedChromosome()->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the Y chromosome must be supplied as the second pair of strands in sexual models." << EidosTerminate();
+	// Determine whether or not we're making a null haplosome in each position; this is determined wholly by the input
+	// strands.  We will determine whether this is actually legal, according to sex and chromosome type, below.
+	bool haplosome1_null = (!strand1 && !strand2);
+	bool haplosome2_null = (!strand3 && !strand4);
 	
-	// Figure out what sex we're generating, and what that implies about the offspring haplosomes
-	if ((sex_value->Type() == EidosValueType::kValueNULL) && strand3)
+	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or a half-NULL pair, but must be supplied for a non-NULL pair
+	// BCH 9/20/2021: Added logic here in support of the new semantics that (NULL, NULL, NULL) makes a null haplosome, not an empty haplosome
+	int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
+	
+	if (haplosome1_null && (breaks1count != 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
+	else if ((breaks1count != 0) && !strand2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+	
+	if (haplosome2_null && (breaks2count != 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
+	else if ((breaks2count != 0) && !strand4)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+	
+	if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
+	if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
+	
+	// If we're generating any null haplosomes, we need to remember that in the Subpopulation state, to turn off optimizations
+	if (haplosome1_null || haplosome2_null)
+		has_null_haplosomes_ = true;
+	
+	// Sort and unique and bounds-check the breakpoints
+	std::vector<slim_position_t> breakvec1, breakvec2;
+	
+	if (breaks1count)
 	{
-		// NULL can mean "infer the child sex from the strands given"; do that here
-		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
-		THREAD_SAFETY_IN_ACTIVE_PARALLEL("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
+		const int64_t *breaks1_data = breaks1_value->IntData();
 		
-		static EidosValue_SP static_sex_string_F;
-		static EidosValue_SP static_sex_string_M;
+		for (int break_index = 0; break_index < breaks1count; ++break_index)
+			breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_data[break_index]));
 		
-		if (!static_sex_string_F) static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("F"));
-		if (!static_sex_string_M) static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("M"));
+		std::sort(breakvec1.begin(), breakvec1.end());
+		breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
 		
-		if (strand3->AssociatedChromosome()->Type() == ChromosomeType::kX_XSexChromosome)
-			sex_value = static_sex_string_F.get();
-		else if (strand3->AssociatedChromosome()->Type() == ChromosomeType::kNullY_YSexChromosomeWithNull)
-			sex_value = static_sex_string_M.get();
+		if (breakvec1.back() > chromosome->last_position_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		
+		// handle a breakpoint at position 0, which swaps the initial strand; HaplosomeRecombined() does not like this
+		if (breakvec1.front() == 0)
+		{
+			breakvec1.erase(breakvec1.begin());
+			std::swap(strand1, strand2);
+			std::swap(strand1_parent, strand2_parent);
+			//std::swap(strand1_value, strand2_value);		// not used henceforth
+		}
 	}
 	
-	// Figure out the parents for purposes of pedigree recording.  	If only one parent was supplied, use it for both,
-	// just as we do for cloning and selfing; it makes relatedness() work correctly
+	if (breaks2count)
+	{
+		const int64_t *breaks2_data = breaks2_value->IntData();
+		
+		for (int break_index = 0; break_index < breaks2count; ++break_index)
+			breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_data[break_index]));
+		
+		std::sort(breakvec2.begin(), breakvec2.end());
+		breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
+		
+		if (breakvec2.back() > chromosome->last_position_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		
+		// handle a breakpoint at position 0, which swaps the initial strand; HaplosomeRecombined() does not like this
+		if (breakvec2.front() == 0)
+		{
+			breakvec2.erase(breakvec2.begin());
+			std::swap(strand3, strand4);
+			std::swap(strand3_parent, strand4_parent);
+			//std::swap(strand3_value, strand4_value);		// not used henceforth
+		}
+	}
+	
+	// Figure out the mean parent age; it is averaged across the mean parent age for each non-null child haplosome
+	float mean_parent_age = 0.0;
+	int non_null_count = 0;
+	
+	if (strand1_parent && strand2_parent)
+	{
+		mean_parent_age += ((strand1_parent->age_ + (float)strand2_parent->age_) / 2.0F);
+		non_null_count++;
+	}
+	else if (strand1_parent)
+	{
+		mean_parent_age += strand1_parent->age_;
+		non_null_count++;
+	}
+	else if (strand2_parent)
+	{
+		mean_parent_age += strand2_parent->age_;
+		non_null_count++;
+	}
+	else
+	{
+		// this child haplosome is generated from NULL, NULL for parents, so there is no parent to average the age of
+	}
+	
+	if (strand3_parent && strand4_parent)
+	{
+		mean_parent_age += ((strand3_parent->age_ + (float)strand4_parent->age_) / 2.0F);
+		non_null_count++;
+	}
+	else if (strand3_parent)
+	{
+		mean_parent_age += strand3_parent->age_;
+		non_null_count++;
+	}
+	else if (strand4_parent)
+	{
+		mean_parent_age += strand4_parent->age_;
+		non_null_count++;
+	}
+	else
+	{
+		// this child haplosome is generated from NULL, NULL for parents, so there is no parent to average the age of
+	}
+	
+	if (non_null_count > 0)
+		mean_parent_age = mean_parent_age / non_null_count;
+	
+	// Figure out the parents for purposes of pedigree recording.  If only one parent was supplied, use it for both,
+	// just as we do for cloning and selfing; it makes relatedness() work.  Note mean_parent_age comes from the strands.
 	// BCH 9/26/2023 the first parent can now also be used for spatial positioning, even if pedigree tracking is not enabled.
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *pedigree_parent1 = nullptr;
@@ -6761,7 +7001,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		pedigree_parent1 = pedigree_parent2;
 	
 	// Generate the number of children requested
-	Chromosome *chromosome = &species_.TheChromosome();
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
 	if (!mutation_callbacks->size())
@@ -6778,10 +7017,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		bool haplosome1_null, haplosome2_null;
-		IndividualSex child_sex = _HaplosomeConfigurationForSex(sex_value, haplosome1_null, haplosome2_null);
+		// Now is a tricky bit: we need to validate that what the user has requested makes sense
+		// given the chromosome type, and determine the sex of the offspring if sex_value is NULL
+		// and the parameters determine what it has to be, and error if the user-supplied sex
+		// conflicts with the non/non-null haplosome state specified for the offspring.  We allow
+		// the user to play many games with addRecombinant(), but the sex-linked constraints
+		// of the chromosome type must be followed, because it is assumed in many places.
+		IndividualSex child_sex = _ValidateHaplosomesAndChooseSex(chromosome->Type(), haplosome1_null, haplosome2_null, sex_value, "addRecombinant()");
 		
-		// Randomly swap initial copy strands, if requested and applicable
+		// Randomly swap initial copy strands, if requested and applicable; this should not alter
+		// any of the decisions we made earlier about null vs. non-null, child sex, etc.
 		if (randomizeStrands)
 		{
 			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
@@ -6800,166 +7045,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 		}
 		
-		/*
-		 // FIXME MULTICHROM I think none of this checking makes sense any more?  Maybe?
-		// Check that the chosen sex makes sense with respect to the strands given
-		// BCH 9/20/2021: Improved the logic here because in sexual sex-chromosome models the null/nonnull state of the offspring haplosomes is dictated by the sex.
-		if (strand1 && haplosome1_type != strand1->Type())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand1 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
-		if (strand3 && haplosome2_type != strand3->Type())
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand3 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
-		
-		if (haplosome1_type != HaplosomeType::kAutosome)
-		{
-			if ((haplosome1_null == true) && strand1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring haplosome must be a null haplosome, according to its sex, but a parental haplosome was supplied for it." << EidosTerminate();
-			if ((haplosome1_null == false) && !strand1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring haplosome must not be a null haplosome, according to its sex, but no parental haplosome was supplied for it." << EidosTerminate();
-		}
-		if (haplosome2_type != HaplosomeType::kAutosome)
-		{
-			if ((haplosome2_null == true) && strand3)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring haplosome must be a null haplosome, according to its sex, but a parental haplosome was supplied for it." << EidosTerminate();
-			if ((haplosome2_null == false) && !strand3)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring haplosome must not be a null haplosome, according to its sex, but no parental haplosome was supplied for it." << EidosTerminate();
-		}
-		*/
-		
-		// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or a half-NULL pair, but must be supplied for a non-NULL pair
-		// BCH 9/20/2021: Added logic here in support of the new semantics that (NULL, NULL, NULL) makes a null haplosome, not an empty haplosome
-		int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
-		
-		if (!strand1 && !strand2)
-		{
-			if (breaks1count == 0)
-				haplosome1_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
-			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
-		}
-		else if ((breaks1count != 0) && !strand2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
-		
-		if (!strand3 && !strand4)
-		{
-			if (breaks2count == 0)
-				haplosome2_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
-			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
-		}
-		else if ((breaks2count != 0) && !strand4)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
-		
-		if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
-		if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
-		
-		if (haplosome1_null || haplosome2_null)
-			has_null_haplosomes_ = true;
-		
-		// Sort and unique and bounds-check the breakpoints
-		std::vector<slim_position_t> breakvec1, breakvec2;
-		
-		if (breaks1count)
-		{
-			const int64_t *breaks1_data = breaks1_value->IntData();
-			
-			for (int break_index = 0; break_index < breaks1count; ++break_index)
-				breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_data[break_index]));
-			
-			std::sort(breakvec1.begin(), breakvec1.end());
-			breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
-			
-			if (breakvec1.back() > chromosome->last_position_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-			
-			// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
-			if (breakvec1.front() == 0)
-			{
-				breakvec1.erase(breakvec1.begin());
-				std::swap(strand1, strand2);
-				std::swap(strand1_parent, strand2_parent);
-				//std::swap(strand1_value, strand2_value);		// not used henceforth
-			}
-		}
-		
-		if (breaks2count)
-		{
-			const int64_t *breaks2_data = breaks2_value->IntData();
-			
-			for (int break_index = 0; break_index < breaks2count; ++break_index)
-				breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_data[break_index]));
-			
-			std::sort(breakvec2.begin(), breakvec2.end());
-			breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
-			
-			if (breakvec2.back() > chromosome->last_position_)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-			
-			// handle a breakpoint at position 0, which swaps the initial strand; DoRecombinantMutation() does not like this
-			if (breakvec2.front() == 0)
-			{
-				breakvec2.erase(breakvec2.begin());
-				std::swap(strand3, strand4);
-				std::swap(strand3_parent, strand4_parent);
-				//std::swap(strand3_value, strand4_value);		// not used henceforth
-			}
-		}
-		
-		// Figure out the mean parent age; it is averaged across the mean parent age for each non-null child haplosome
-		float mean_parent_age = 0.0;
-		int non_null_count = 0;
-		
-		if (strand1_parent && strand2_parent)
-		{
-			mean_parent_age += ((strand1_parent->age_ + (float)strand2_parent->age_) / 2.0F);
-			non_null_count++;
-		}
-		else if (strand1_parent)
-		{
-			mean_parent_age += strand1_parent->age_;
-			non_null_count++;
-		}
-		else if (strand2_parent)
-		{
-			mean_parent_age += strand2_parent->age_;
-			non_null_count++;
-		}
-		else
-		{
-			// this child haplosome is generated from NULL, nULL for parents, so there is no parent to average the age of
-		}
-		
-		if (strand3_parent && strand4_parent)
-		{
-			mean_parent_age += ((strand3_parent->age_ + (float)strand4_parent->age_) / 2.0F);
-			non_null_count++;
-		}
-		else if (strand3_parent)
-		{
-			mean_parent_age += strand3_parent->age_;
-			non_null_count++;
-		}
-		else if (strand4_parent)
-		{
-			mean_parent_age += strand4_parent->age_;
-			non_null_count++;
-		}
-		else
-		{
-			// this child haplosome is generated from NULL, nULL for parents, so there is no parent to average the age of
-		}
-		
-		if (non_null_count > 0)
-			mean_parent_age = mean_parent_age / non_null_count;
-		
 		// Make the new individual as a candidate
 		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 		Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
 		Haplosome *haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
-		
-		individual->AddHaplosomeAtIndex(haplosome1, 0);
-		individual->AddHaplosomeAtIndex(haplosome2, 1);
 		
 		if (pedigrees_enabled)
 		{
@@ -6972,13 +7061,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			else
 				individual->TrackParentage_Biparental(pid, *pedigree_parent1, *pedigree_parent2);
 			
-			individual->haplosomes_[0]->haplosome_id_ = pid * 2;
-			individual->haplosomes_[1]->haplosome_id_ = pid * 2 + 1;
+			haplosome1->haplosome_id_ = pid * 2;
+			haplosome2->haplosome_id_ = pid * 2 + 1;
 		}
 		
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
+		
+		// Note that this has to happen after SetCurrentNewIndividual(), since it patches the node metadata
+		individual->AddHaplosomeAtIndex(haplosome1, 0);
+		individual->AddHaplosomeAtIndex(haplosome2, 1);
 		
 		// BCH 9/26/2023: inherit the spatial position of pedigree_parent1 by default, to set up for deviatePositions()/pointDeviated()
 		// Note that, unlike other addX() methods, the first parent is not necessarily defined; in that case, the
@@ -6991,54 +7084,30 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		{
 			if (strand2 && breakvec1.size())
 			{
-				// determine the sex of the "parent"; we need this to choose the mutation rate map for new mutations
-				// if we can't figure out a consistent sex, and we need one because we have separate mutation rate maps, it is an error
-				// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
-				IndividualSex parent_sex = IndividualSex::kHermaphrodite;
-				
-				if (sex_enabled_ && !chromosome->UsingSingleMutationMap())
-				{
-					if (strand1_parent && strand2_parent)
-					{
-						if (strand1_parent->sex_ == strand2_parent->sex_)
-							parent_sex = strand1_parent->sex_;
-					}
-					else if (strand1_parent)
-						parent_sex = strand1_parent->sex_;
-					else if (strand2_parent)
-						parent_sex = strand2_parent->sex_;
-					
-					if (parent_sex == IndividualSex::kHermaphrodite)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
-				}
-				
-				// both strands are non-NULL and we have a breakpoint, so we do recombination between them
-				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(&breakvec1, haplosome1, strand1, strand2);
+				if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand1_parent->sex_ != strand2_parent->sex_))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 				
 				if (defer)
 				{
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, haplosome1, parent_sex);
+					// FIXME MULTICHROM defer is no longer enabled
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, haplosome1);
 				}
 				else
 				{
-					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *haplosome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
+					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
 				}
 			}
 			else
 			{
-				// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
-				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(nullptr, haplosome1, strand1, nullptr);
-				
 				if (defer)
 				{
-					// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, haplosome1, child_sex);
+					// clone one haplosome, using a second strand of nullptr
+					// FIXME MULTICHROM defer is no longer enabled
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, haplosome1);
 				}
 				else
 				{
-					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *haplosome1, *strand1, child_sex, mutation_callbacks);
+					(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome1, strand1, mutation_callbacks);
 				}
 			}
 		}
@@ -7059,54 +7128,30 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		{
 			if (strand4 && breakvec2.size())
 			{
-				// determine the sex of the "parent"; we need this to choose the mutation rate map for new mutations
-				// if we can't figure out a consistent sex, and we need one because we have separate mutation rate maps, it is an error
-				// this seems unlikely to bite anybody, so it is not worth adding another parameter to allow it to be resolved
-				IndividualSex parent_sex = IndividualSex::kHermaphrodite;
-				
-				if (sex_enabled_ && !chromosome->UsingSingleMutationMap())
-				{
-					if (strand3_parent && strand4_parent)
-					{
-						if (strand3_parent->sex_ == strand4_parent->sex_)
-							parent_sex = strand3_parent->sex_;
-					}
-					else if (strand3_parent)
-						parent_sex = strand3_parent->sex_;
-					else if (strand4_parent)
-						parent_sex = strand4_parent->sex_;
-					
-					if (parent_sex == IndividualSex::kHermaphrodite)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
-				}
-				
-				// both strands are non-NULL and we have a breakpoint, so we do recombination between them
-				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(&breakvec2, haplosome2, strand3, strand4);
+				if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand3_parent->sex_ != strand4_parent->sex_))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 				
 				if (defer)
 				{
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, haplosome2, parent_sex);
+					// FIXME MULTICHROM defer is no longer enabled
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, haplosome2);
 				}
 				else
 				{
-					population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *haplosome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
+					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
 				}
 			}
 			else
 			{
-				// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
-				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(nullptr, haplosome2, strand3, nullptr);
-				
 				if (defer)
 				{
 					// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, haplosome2, child_sex);
+					// FIXME MULTICHROM defer is no longer enabled
+					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, haplosome2);
 				}
 				else
 				{
-					population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *haplosome2, *strand3, child_sex, mutation_callbacks);
+					(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome2, strand3, mutation_callbacks);
 				}
 			}
 		}
@@ -7133,26 +7178,34 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			// so I'm not viewing this loss of functionality as an obstacle to making this change.
 			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 			
-			if (pedigrees_enabled && !proposed_child_accepted)
+			if (!proposed_child_accepted)
 			{
-				if (pedigree_parent1 == nullptr)
-					individual->RevokeParentage_Parentless();
-				else if (pedigree_parent1 == pedigree_parent2)
-					individual->RevokeParentage_Uniparental(*pedigree_parent1);
-				else
-					individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
+				// If the child was rejected, un-record it and dispose of it
+				if (pedigrees_enabled)
+				{
+					if (pedigree_parent1 == nullptr)
+						individual->RevokeParentage_Parentless();
+					else if (pedigree_parent1 == pedigree_parent2)
+						individual->RevokeParentage_Uniparental(*pedigree_parent1);
+					else
+						individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
+				}
+				
+				FreeSubpopIndividual(individual);
+				individual = nullptr;
+				
+				// TREE SEQUENCE RECORDING
+				if (species_.RecordingTreeSequence())
+					species_.RetractNewIndividual();
 			}
-			
-			_ProcessNewOffspring(proposed_child_accepted, individual, result);
-		}
-		else
-		{
-			_ProcessNewOffspring(true, individual, result);
 		}
 		
-#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
+			nonWF_offspring_individuals_.emplace_back(individual);
+			result->push_object_element_NORR(individual);
+			
+#if defined(SLIMGUI)
 			gui_offspring_crossed_++;
 			
 			// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
@@ -7209,8 +7262,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				if (strand4_subpop != this)
 					gui_migrants_[strand4_subpop->subpopulation_id_]++;
 			}
-		}
 #endif
+		}
 	}
 	
 	return EidosValue_SP(result);

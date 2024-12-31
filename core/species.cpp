@@ -2897,6 +2897,38 @@ void Species::nonWF_GenerateOffspring(void)
 		}
 	}
 	
+	// similarly, choose templated variants for the HaplosomeCrossed()/HaplosomeCloned()/HaplosomeRecombined() methods of Population
+	if (recording_tree_sequence)
+	{
+		if (has_reproduction_callbacks)	// has any of the callbacks that the GenerateIndividuals...() methods care about; this can be refined later
+		{
+			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, true>;
+			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, true>;
+			population_.HaplosomeRecombined_TEMPLATED = &Population::HaplosomeRecombined<true, true>;
+		}
+		else
+		{
+			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<true, false>;
+			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<true, false>;
+			population_.HaplosomeRecombined_TEMPLATED = &Population::HaplosomeRecombined<true, false>;
+		}
+	}
+	else
+	{
+		if (has_reproduction_callbacks)
+		{
+			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, true>;
+			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, true>;
+			population_.HaplosomeRecombined_TEMPLATED = &Population::HaplosomeRecombined<false, true>;
+		}
+		else
+		{
+			population_.HaplosomeCrossed_TEMPLATED = &Population::HaplosomeCrossed<false, false>;
+			population_.HaplosomeCloned_TEMPLATED = &Population::HaplosomeCloned<false, false>;
+			population_.HaplosomeRecombined_TEMPLATED = &Population::HaplosomeRecombined<false, false>;
+		}
+	}
+	
 	// cache a list of callbacks registered for each subpop
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{

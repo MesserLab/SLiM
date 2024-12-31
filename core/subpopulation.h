@@ -410,27 +410,8 @@ public:
 	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
-	IndividualSex _HaplosomeConfigurationForSex(EidosValue *p_sex_value, bool &p_haplosome1_null, bool &p_haplosome2_null);
+	IndividualSex _ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, const char *p_caller_name);
 	IndividualSex _SexForSexValue(EidosValue *p_sex_value);
-	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, EidosValue_Object *p_result)
-	{
-		if (p_proposed_child_accepted)
-		{
-			// The child was accepted, so add it to our staging area and to the caller's result vector
-			nonWF_offspring_individuals_.emplace_back(p_individual);
-			
-			p_result->push_object_element_NORR(p_individual);
-		}
-		else
-		{
-			// The child was rejected, so dispose of it
-			FreeSubpopIndividual(p_individual);
-			
-			// TREE SEQUENCE RECORDING
-			if (species_.RecordingTreeSequence())
-				species_.RetractNewIndividual();
-		}
-	}
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForParentTables(void);

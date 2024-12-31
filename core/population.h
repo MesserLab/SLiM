@@ -85,16 +85,14 @@ public:
 	Haplosome *strand1_;
 	Haplosome *strand2_;
 	std::vector<slim_position_t> break_vec_;
-	IndividualSex sex_;
 	
 	SLiM_DeferredReproduction_Recombinant(SLiM_DeferredReproductionType p_type,
 							  Subpopulation *p_mutorigin_subpop,
 							  Haplosome *p_strand1,
 							  Haplosome *p_strand2,
 							  std::vector<slim_position_t> &p_break_vec,
-							  Haplosome *p_child_haplosome,
-							  IndividualSex p_sex) :
-		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), child_haplosome_(p_child_haplosome), strand1_(p_strand1), strand2_(p_strand2), sex_(p_sex)
+							  Haplosome *p_child_haplosome) :
+		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), child_haplosome_(p_child_haplosome), strand1_(p_strand1), strand2_(p_strand2)
 	{
 		std::swap(break_vec_, p_break_vec);		// take ownership of the passed vector with std::swap(), to avoid copying
 	};
@@ -224,7 +222,7 @@ public:
 	// apply recombination() callbacks to a generated child; a return of true means the breakpoints were changed
 	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Haplosome *p_haplosome1, Haplosome *p_haplosome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
 	
-	// generate a child haplosome from parental haplosome(s), very directly -- no null haplosomes etc., just cross/clone
+	// generate a child haplosome from parental haplosome(s), very directly -- no null haplosomes etc., just cross/clone/recombine
 	// these methods are templated with variants for speed; see also MungeIndividualCrossed() etc.
 	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
@@ -232,22 +230,21 @@ public:
 	template <const bool f_treeseq, const bool f_callbacks>
 	void HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 	
+	template <const bool f_treeseq, const bool f_callbacks>
+	void HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
+	
+	void (Population::*HaplosomeCrossed_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) = nullptr;
+	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) = nullptr;
+	void (Population::*HaplosomeRecombined_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) = nullptr;
+	
+	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);
+	
 	// generate offspring within a reproduction() callback using templated Subpopulation methods; these pointers get
 	// set up at the beginning of each tick's reproduction() callback stage, and should not be used outside of it
 	Individual *(Subpopulation::*GenerateIndividualCrossed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex) = nullptr;
 	Individual *(Subpopulation::*GenerateIndividualSelfed_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
 	Individual *(Subpopulation::*GenerateIndividualCloned_TEMPLATED)(slim_pedigreeid_t p_pedigree_id, Individual *p_parent) = nullptr;
 
-	// generate a child haplosome from parental haplosomes, with recombination, gene conversion, and mutation
-	void DoCrossoverMutation(Subpopulation *p_source_subpop, Haplosome &p_child_haplosome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);
-	
-	// generate a child haplosome from parental haplosomes, with predetermined recombination and mutation
-	void DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Haplosome &p_child_haplosome, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	
-	// generate a child haplosome from a single parental haplosome, without recombination or gene conversion, but with mutation
-	void DoClonalMutation(Subpopulation *p_mutorigin_subpop, Haplosome &p_child_haplosome, Haplosome &p_parent_haplosome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
-	
 	// An internal method that validates cached fitness values kept by Mutation objects
 	void ValidateMutationFitnessCaches(void);
 	

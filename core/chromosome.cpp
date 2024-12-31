@@ -2906,9 +2906,9 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[index_];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[index_];
 	
-	// Much of the breakpoint-drawing code here is taken from Population::DoCrossoverMutation().
+	// Much of the breakpoint-drawing code here is taken from Population::HaplosomeCrossed().
 	// We don't want to split it out into a separate function because (a) we don't want that
-	// overhead for DoCrossoverMutation(), which is a hotspot, and (b) we do things slightly
+	// overhead for HaplosomeCrossed(), which is a hotspot, and (b) we do things slightly
 	// differently here (not generating a past-the-end breakpoint, for example).
 	int num_breakpoints;
 	

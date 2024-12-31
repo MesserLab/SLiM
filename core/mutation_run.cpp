@@ -550,7 +550,7 @@ void MutationRun::check_nonneutral_mutation_cache() const
 
 // Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
-// this is speed: like DoClonalMutation(), we can merge the new mutations in much faster if we do it in
+// this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 // bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
 void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
 {
