@@ -6706,7 +6706,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	// Process other parameters; haplosome1Null and haplosome2Null are now interpreted specifically for chromosome type "A" only,
 	// saying whether the corresponding haplosome for a type "A" chromosome should be null (true) or non-null (false /NULL).
-	// This might need to change, it's a temporary decision to fill the gap.  FIXME MULTICHROM
 	EidosValue *sex_value = p_arguments[0].get();
 	EidosValue *haplosome1Null_value = p_arguments[1].get();
 	EidosValue *haplosome2Null_value = p_arguments[2].get();

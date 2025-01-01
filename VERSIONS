@@ -89,6 +89,7 @@ development head (in the master branch):
 			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
 		add templating of GenerateIndividualX() for speed, as was done before for the MungeIndividualX() and HaplosomeX() methods, for speed
+		policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
 
 
 version 4.3 (Eidos version 3.3):

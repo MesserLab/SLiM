@@ -7665,13 +7665,13 @@ The spatial periodicity of the simulation for this species, as specified in
 
 \f3\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio\'a0=\'a00.5]\cf2 , [logical$\'a0haploid\'a0=\'a0F]\cf0 )
 \f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Add a new subpopulation with id 
+\f4\fs20 \cf2 Add a new subpopulation with id 
 \f3\fs18 subpopID
 \f4\fs20  and 
 \f3\fs18 size
-\f4\fs20  individuals (see the SLiM manual for further details).  The 
+\f4\fs20  individuals.  The 
 \f3\fs18 subpopID
 \f4\fs20  parameter may be either an 
 \f3\fs18 integer
@@ -7681,27 +7681,32 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 "p5"
 \f4\fs20  to specify an ID of 5).  Only if sex is enabled for the species, the initial sex ratio may optionally be specified as 
 \f3\fs18 sexRatio
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
- (as the male fraction, M:M+F)\cf0 \kerning1\expnd0\expndtw0 ; if it is not specified, a default of 
+\f4\fs20  (as the male fraction, M:M+F); if it is not specified, a default of 
 \f3\fs18 0.5
-\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty haplosomes. In order to model subpopulations that split from an already existing subpopulation, use 
+\f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty haplosomes.  In order to model subpopulations that split from an already existing subpopulation, use 
 \f3\fs18 addSubpopSplit()
-\f5\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4 \cf2 Only in nonWF models, the 
+\f4\fs20 .\
+The 
 \f3\fs18 haploid
-\f4\fs20  parameter may be 
+\f4\fs20  parameter defaults to 
+\f3\fs18 F
+\f4\fs20 , indicating that the generated individuals should adopt their natural ploidy; in particular, type 
+\f3\fs18 "A"
+\f4\fs20  chromosomes should be represented in each individual by two empty haplosomes.  The 
+\f3\fs18 haploid
+\f4\fs20  parameter may instead be 
 \f3\fs18 T
 \f4\fs20 ; in this case, for all chromosomes of type 
 \f3\fs18 "A"
-\f4\fs20  (and only that type), the second haplosome of each new individual will be a null haplosome, rather than an empty haplosome.  For even greater control in nonWF models, you can call 
+\f4\fs20  (and only that type), the second haplosome of each new individual will be a null haplosome, rather than an empty haplosome.  This could be useful in a model of haplodiploidy, for example, to generate initial individuals that are haploid for the autosomal chromosomes of the species.  For even greater control in nonWF models, you can call 
 \f3\fs18 addSubpop()
 \f4\fs20  with an initial size of 
 \f3\fs18 0
 \f4\fs20  and then stock the population with new individuals created however you wish in the next tick\'92s 
 \f3\fs18 reproduction()
-\f4\fs20  callback.\
+\f4\fs20  callback, such as with the 
+\f3\fs18 addEmpty()
+\f4\fs20  method, providing separate control over the configuration of each individual.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio\'a0=\'a00.5])
@@ -9453,7 +9458,7 @@ Note that this method is only for use in nonWF models, in which offspring genera
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(object<Individual>)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0haplosome1Null\'a0=\'a0NULL], [Nl$\'a0haplosome2Null\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab529\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual with empty haplosomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  No 
 \f3\fs18 recombination()
@@ -9468,36 +9473,44 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f4\fs20  parameter is treated as in 
 \f3\fs18 addCrossed()
 \f4\fs20 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 By default \'96 when 
-\f3\fs18 haplosome1Null
-\f4\fs20  and 
-\f3\fs18 haplosome2Null
-\f4\fs20  are both 
+For all chromosome types except 
+\f3\fs18 "A"
+\f4\fs20 , null haplosomes will be generated as dictated by the sex of the individual and type of the chromosome.  For example, for chromosome type 
+\f3\fs18 "X"
+\f4\fs20  a female would be generated with two empty haplosomes for that chromosome (XX), whereas a male would be generated with one empty haplosome and one null haplosome (X\'96, in SLiM parlance).  For chromosome type 
+\f3\fs18 "H"
+\f4\fs20  an empty haplosome is always generated, not a null haplosome.  But for chromosome type 
+\f3\fs18 "A"
+\f4\fs20 , in particular, more control is afforded.  Passing 
 \f3\fs18 NULL
-\f4\fs20  \'96 null haplosomes will be generated instead of empty haplosomes only in sex-chromosome simulations, where the sex chromosome that is not being simulated is represented by a null haplosome; otherwise, empty haplosomes rather than null haplosomes will be created.  This default behavior can be changed by passing 
-\f3\fs18 T
-\f4\fs20  or 
+\f4\fs20  (the default) or 
 \f3\fs18 F
 \f4\fs20  for 
 \f3\fs18 haplosome1Null
-\f4\fs20  or 
+\f4\fs20  will make the first haplosome for every chromosome of type 
+\f3\fs18 "A"
+\f4\fs20  be a non-null (empty) haplosome, the standard behavior.  More interestingly, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 haplosome1Null
+\f4\fs20  would make the first haplosome for every chromosome of type 
+\f3\fs18 "A"
+\f4\fs20  be a null haplosome.  Similarly, passing 
+\f3\fs18 T
+\f4\fs20  for 
 \f3\fs18 haplosome2Null
-\f4\fs20 , which will force the corresponding offspring haplosome to be null (
-\f3\fs18 T
-\f4\fs20 ) or non-null (
-\f3\fs18 F
-\f4\fs20 ).  The behavior in sex-chromosome simulations cannot be changed, since the presence of null haplosomes there is dictated by sex, but 
-\f3\fs18 T
-\f4\fs20  or 
-\f3\fs18 F
-\f4\fs20  may be passed as long as it matches what SLiM would do anyway.  In all other simulations there is little point in passing 
-\f3\fs18 F
-\f4\fs20  (since that would be the default behavior anyway), but passing 
-\f3\fs18 T
-\f4\fs20  can be used to make one or both haplosomes be null haplosomes, which can be useful for, e.g., modeling haploids in a haplodiploid model.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Beginning in SLiM 4.1, the 
+\f4\fs20  would make the second haplosome for every chromosome of type 
+\f3\fs18 "A"
+\f4\fs20  be a null haplosome.  This option could be useful for situations such as adding new haploids into a haplodiploid model.  (Separate control over the haploid or diploid configuration of each chromosome of type 
+\f3\fs18 "A"
+\f4\fs20  is not presently supported, but would be a simple extension to the design, by allowing 
+\f3\fs18 haplosome1Null
+\f4\fs20  and 
+\f3\fs18 haplosome2Null
+\f4\fs20  to provide a whole vector of 
+\f3\fs18 logical
+\f4\fs20  flags rather than just a singleton value; please request this feature if you require it.)\
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
