@@ -2515,7 +2515,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 						if (mutationEffect_callback->contains_subpop_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 						
-						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
+						// p_homozygous == -1 means the mutation faces a null haplosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
 						if (mutationEffect_callback->contains_homozygous_)
 						{
