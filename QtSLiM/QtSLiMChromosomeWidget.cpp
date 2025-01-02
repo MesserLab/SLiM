@@ -244,7 +244,7 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         QLabel *chromosomeLabel = new QLabel();
         
         if (singleChromosomeDisplay)
-            chromosomeLabel->setText(QString("a chromosome with symbol '%1' was not found").arg(QString::fromStdString(chromosomeSymbol_)));
+            chromosomeLabel->setText(QString("no chromosome with symbol '%1' found").arg(QString::fromStdString(chromosomeSymbol_)));
         else
             chromosomeLabel->setText("no chromosomes found for display");
             

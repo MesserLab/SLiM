@@ -5176,7 +5176,18 @@ void QtSLiMWindow::chromosomeDisplayPopupButtonRunMenu(void)
     if (!displaySpecies || !displaySpecies->HasGenetics() || (displaySpecies->Chromosomes().size() == 0))
 	{
         // Just run a dummy menu explaining why the menu is not available
-        QAction *no_chroms = contextMenu.addAction("No chromosomes to display");
+        QString reasonString;
+        
+        if (!displaySpecies)
+            reasonString = "No focal species is selected";
+        else if (!displaySpecies->HasGenetics())
+            reasonString = "The focal species has no genetics";
+        else if (displaySpecies->community_.tick_ == 0)
+            reasonString = "The focal species has not initialized";
+        else
+            reasonString = "No chromosomes to display";     // not sure whether/when this occurs
+        
+        QAction *no_chroms = contextMenu.addAction(reasonString);
         no_chroms->setEnabled(false);
         
         QPoint mousePos = QCursor::pos();
