@@ -594,7 +594,7 @@ void QtSLiMWindow::interpolateSplitters(void)
 void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
 {
     if (!chromosomeConfig)
-        chromosomeConfig = new QtSLiMChromosomeWidgetController(this, nullptr, nullptr);
+        chromosomeConfig = new QtSLiMChromosomeWidgetController(this, nullptr, nullptr, "");
     
     overviewWidget->setController(chromosomeConfig);
 	overviewWidget->setDependentChromosomeView(zoomedWidget);
@@ -2986,10 +2986,9 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->jumpToPopupButton->setEnabled(true);
     
     Species *species = focalDisplaySpecies();
-    bool canMakeChromosomeDisplay = !invalidSimulation_ && (species != nullptr) && species->HasGenetics() && (species->Chromosomes().size() > 0);
     
     ui->chromosomeActionButton->setEnabled(!invalidSimulation_);
-    ui->chromosomeDisplayButton->setEnabled(canMakeChromosomeDisplay);
+    ui->chromosomeDisplayButton->setEnabled(!invalidSimulation_);
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->debugOutputButton->setEnabled(true);
@@ -5164,16 +5163,87 @@ void QtSLiMWindow::showDrawerClicked(void)
     tablesDrawerController->activateWindow();
 }
 
-void QtSLiMWindow::chromosomeDisplayClicked(void)
+void QtSLiMWindow::chromosomeDisplayPopupButtonRunMenu(void)
 {
-    QWidget *chromosomeDisplay = newChromosomeDisplay();
+    Species *displaySpecies = focalDisplaySpecies();
     
-    if (chromosomeDisplay)
-    {
-        chromosomeDisplay->show();
-        chromosomeDisplay->raise();
-        chromosomeDisplay->activateWindow();
+    // When the simulation is not valid and initialized, the context menu is disabled
+	if (invalidSimulation_)
+        return;
+    
+    QMenu contextMenu("chromdisplay_menu", this);
+    
+    if (!displaySpecies || !displaySpecies->HasGenetics() || (displaySpecies->Chromosomes().size() == 0))
+	{
+        // Just run a dummy menu explaining why the menu is not available
+        QAction *no_chroms = contextMenu.addAction("No chromosomes to display");
+        no_chroms->setEnabled(false);
+        
+        QPoint mousePos = QCursor::pos();
+        contextMenu.exec(mousePos);
+        chromosomeDisplayReleased();
+        return;
     }
+    
+    bool disableAll = false;
+    QAction *chromDisplayAll = contextMenu.addAction("New Chromosome Display (all)");
+    chromDisplayAll->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
+    const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
+    
+    for (Chromosome *chrom : chromosomes)
+    {
+        QString menuItemTitle = QString("New Chromosome Display (symbol '%1')").arg(QString::fromStdString(chrom->Symbol()));
+        
+        QAction *chromAction = contextMenu.addAction(menuItemTitle);
+        
+        chromAction->setData(chrom->ID());      // we use the ID temporarily, to run the menu, but the symbol will be the actual key
+        chromAction->setEnabled(!disableAll);
+    }
+    
+    // Run the context menu synchronously
+    QPoint mousePos = QCursor::pos();
+    QAction *action = contextMenu.exec(mousePos);
+    
+    if (action && !invalidSimulation_)
+    {
+        isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+        displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
+        
+        int chrom_id;               // not slim_chromosome_index_t since it can also be -1
+        std::string chrom_symbol;
+        QString windowTitle;
+        
+        if (action == chromDisplayAll)
+        {
+            chrom_id = -1;                      // -1 means "all"
+            chrom_symbol = "";                  // ditto
+            windowTitle = "Chromosome Display";
+        }
+        else
+        {
+            chrom_id = action->data().toInt();
+            
+            Chromosome *chrom = displaySpecies->ChromosomeFromID(chrom_id);
+            chrom_symbol = chrom->Symbol();
+            
+            windowTitle = QString("Chromosome Display ('%1')").arg(QString::fromStdString(chrom_symbol));
+        }
+        
+        QWidget *chromosomeDisplay = newChromosomeDisplay(chrom_symbol, windowTitle);
+        
+        if (chromosomeDisplay)
+        {
+            chromosomeDisplay->show();
+            chromosomeDisplay->raise();
+            chromosomeDisplay->activateWindow();
+        }
+    }
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    chromosomeDisplayReleased();
 }
 
 void QtSLiMWindow::showConsoleClicked(void)
@@ -6353,7 +6423,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     graphPopupButtonReleased();
 }
 
-QWidget *QtSLiMWindow::newChromosomeDisplay(void)
+QWidget *QtSLiMWindow::newChromosomeDisplay(std::string chromosome_symbol, QString windowTitle)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
@@ -6372,7 +6442,7 @@ QWidget *QtSLiMWindow::newChromosomeDisplay(void)
     // Make a new window to show the chromosome display
     QWidget *display_window = new QWidget(this, Qt::Window | Qt::Tool);    // the display window has us as a parent, but is still a standalone window
     
-    display_window->setWindowTitle("Chromosome Display");
+    display_window->setWindowTitle(windowTitle);
 #ifdef __APPLE__
     // set the window icon only on macOS; on Linux it changes the app icon as a side effect
     display_window->setWindowIcon(QIcon());
@@ -6385,7 +6455,7 @@ QWidget *QtSLiMWindow::newChromosomeDisplay(void)
     topLayout->setContentsMargins(0, 0, 0, 0);
     topLayout->setSpacing(0);
     
-    QtSLiMChromosomeWidgetController *displayController = new QtSLiMChromosomeWidgetController(this, display_window, species);
+    QtSLiMChromosomeWidgetController *displayController = new QtSLiMChromosomeWidgetController(this, display_window, species, chromosome_symbol);
     
     displayController->buildChromosomeDisplay(/* resetWindowSize */ true);
     

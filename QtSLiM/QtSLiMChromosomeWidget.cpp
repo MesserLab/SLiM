@@ -45,10 +45,11 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 static const int spaceBetweenChromosomes = 5;
 
 
-QtSLiMChromosomeWidgetController::QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies) :
+QtSLiMChromosomeWidgetController::QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies, std::string chromosomeSymbol) :
     QObject(displayWindow ? displayWindow : slimWindow),
     slimWindow_(slimWindow),
-    displayWindow_(displayWindow)
+    displayWindow_(displayWindow),
+    chromosomeSymbol_(chromosomeSymbol)
 {
     connect(slimWindow_, &QtSLiMWindow::controllerPartialUpdateAfterTick, this, &QtSLiMChromosomeWidgetController::updateFromController);
     
@@ -83,7 +84,7 @@ void QtSLiMChromosomeWidgetController::updateFromController(void)
                 // chromosomes has changed, or the length of any chromosome, or the symbol of
                 // any chromosome, etc.  There's no harm, so we just always rebuild at the
                 // first valid moment after recycling.
-                buildChromosomeDisplay(false);
+                buildChromosomeDisplay(/* resetWindowSize */ false);
                 needsRebuild_ = false;
             }
         }
@@ -124,7 +125,23 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
     
     // Assess the chromosomes to be displayed
     Species *focalSpecies = focalDisplaySpecies();
-    const std::vector<Chromosome *> &chromosomes = focalSpecies->Chromosomes();
+    std::vector<Chromosome *> chromosomes;
+    bool singleChromosomeDisplay = (chromosomeSymbol_.length() != 0);   // a single-chromosome display has an associated symbol
+    
+    if (singleChromosomeDisplay)
+    {
+        // displaying a specific chromosome; check that it still exists
+        Chromosome *symbol_chrom = focalSpecies->ChromosomeFromSymbol(chromosomeSymbol_);
+        
+        if (symbol_chrom)
+            chromosomes.push_back(symbol_chrom);
+    }
+    else
+    {
+        // displaying all chromosomes
+        chromosomes = focalSpecies->Chromosomes();  // copies it, whatever
+    }
+    
     int chromosomeCount = (int)chromosomes.size();
     slim_position_t chromosomeMaxLength = 0;
     
@@ -135,76 +152,114 @@ void QtSLiMChromosomeWidgetController::buildChromosomeDisplay(bool resetWindowSi
         chromosomeMaxLength = std::max(chromosomeMaxLength, length);
     }
     
-    // Deal with window sizing
+    // Deal with window sizing; when displaying a single chromosome, the height is 16 more to make room for ticks
     const int margin = 5;
     const int spacing = 5;
     const int buttonRowHeight = margin + margin + 20;
+    const int minChromosomeHeight = 20 + (singleChromosomeDisplay ? 35 : 0);
+    const int maxChromosomeHeight = 200 + (singleChromosomeDisplay ? 35 : 0);
+    const int defaultChromosomeHeight = 30 + (singleChromosomeDisplay ? 35 : 0);
+    const int rowCount = std::max(chromosomeCount, 1);      // space for a message row, if there are no chromosomes
     
-    displayWindow_->setMinimumSize(500, margin + 20 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
-    displayWindow_->setMaximumSize(4096, margin + 200 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
+    displayWindow_->setMinimumSize(500, margin + minChromosomeHeight * rowCount + spacing * (rowCount - 1) + buttonRowHeight);
+    displayWindow_->setMaximumSize(4096, margin + maxChromosomeHeight * rowCount + spacing * (rowCount - 1) + buttonRowHeight);
     if (resetWindowSize)
-        displayWindow_->resize(800, margin + 30 * chromosomeCount + spacing * (chromosomeCount - 1) + buttonRowHeight);
+        displayWindow_->resize(800, margin + defaultChromosomeHeight * rowCount + spacing * (rowCount - 1) + buttonRowHeight);
     
     // Find the top-level layout and remove all of its current children
     QVBoxLayout *topLayout = qobject_cast<QVBoxLayout *>(displayWindow_->layout());
     
     QtSLiMClearLayout(topLayout, /* deleteWidgets */ true);
     
-    // Add a chromosome view for each chromosome in the model, with a spacer next to it to give it the right length
-    std::vector<QLabel *> labels;
-    bool firstRow = true;
-    
-    for (Chromosome *chromosome : chromosomes)
+    if (chromosomeCount > 0)
     {
+        // Add a chromosome view for each chromosome in the model, with a spacer next to it to give it the right length
+        std::vector<QLabel *> labels;
+        bool firstRow = true;
+        
+        for (Chromosome *chromosome : chromosomes)
+        {
+            QHBoxLayout *rowLayout = new QHBoxLayout;
+            
+            rowLayout->setContentsMargins(margin, firstRow ? margin : spacing, margin, 0);
+            rowLayout->setSpacing(0);
+            topLayout->addLayout(rowLayout);
+            
+            QtSLiMChromosomeWidget *chromosomeWidget = new QtSLiMChromosomeWidget(nullptr);
+            
+            chromosomeWidget->setController(this);
+            chromosomeWidget->setFocalChromosome(chromosome);
+            chromosomeWidget->setDisplayedRange(QtSLiMRange(0, 0)); // display entirety
+            
+            // multi-chromosome displays do not show ticks, because it would be too crowded; single-chromosome displays do
+            if (!singleChromosomeDisplay)
+                chromosomeWidget->setShowsTicks(false);
+            
+            slim_position_t length = chromosome->last_position_ + 1;
+            double fractionOfMax = length / (double)chromosomeMaxLength;
+            int chromosomeStretch = (int)(round(fractionOfMax * 255));  // Qt requires a max value of 255
+            
+            QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+            sizePolicy1.setHorizontalStretch(useScaledWidths_ ? chromosomeStretch : 0);
+            sizePolicy1.setVerticalStretch(0);
+            chromosomeWidget->setSizePolicy(sizePolicy1);
+            
+            QLabel *chromosomeLabel = new QLabel();
+            chromosomeLabel->setText(QString::fromStdString(chromosome->symbol_));
+            chromosomeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            
+            QSizePolicy sizePolicy2(QSizePolicy::Fixed, QSizePolicy::Expanding);
+            chromosomeLabel->setSizePolicy(sizePolicy2);
+            
+            rowLayout->addWidget(chromosomeLabel);
+            rowLayout->addSpacing(margin);
+            rowLayout->addWidget(chromosomeWidget);
+            
+            if (useScaledWidths_)
+                rowLayout->addStretch(255 - chromosomeStretch);     // the remaining width after chromosomeStretch
+            
+            labels.push_back(chromosomeLabel);
+            
+            firstRow = false;
+        }
+        
+        // adjust all the labels to have the same width
+        int maxWidth = 0;
+        
+        for (QLabel *label : labels)
+            maxWidth = std::max(maxWidth, label->sizeHint().width());
+        
+        for (QLabel *label : labels)
+            label->setMinimumWidth(maxWidth);
+    }
+    else
+    {
+        // no chromosomes; make a single row with a message label and nothing else
         QHBoxLayout *rowLayout = new QHBoxLayout;
         
-        rowLayout->setContentsMargins(margin, firstRow ? margin : spacing, margin, 0);
+        rowLayout->setContentsMargins(margin, margin, margin, 0);
         rowLayout->setSpacing(0);
         topLayout->addLayout(rowLayout);
         
-        QtSLiMChromosomeWidget *chromosomeWidget = new QtSLiMChromosomeWidget(nullptr);
-        
-        chromosomeWidget->setController(this);
-        chromosomeWidget->setFocalChromosome(chromosome);
-        chromosomeWidget->setDisplayedRange(QtSLiMRange(0, 0)); // display entirety
-        chromosomeWidget->setShowsTicks(false);
-        
-        slim_position_t length = chromosome->last_position_ + 1;
-        double fractionOfMax = length / (double)chromosomeMaxLength;
-        int chromosomeStretch = (int)(round(fractionOfMax * 255));  // Qt requires a max value of 255
-        
-        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        sizePolicy1.setHorizontalStretch(useScaledWidths_ ? chromosomeStretch : 0);
-        sizePolicy1.setVerticalStretch(0);
-        chromosomeWidget->setSizePolicy(sizePolicy1);
-        
         QLabel *chromosomeLabel = new QLabel();
-        chromosomeLabel->setText(QString::fromStdString(chromosome->symbol_));
-        chromosomeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
         
-        QSizePolicy sizePolicy2(QSizePolicy::Fixed, QSizePolicy::Expanding);
+        if (singleChromosomeDisplay)
+            chromosomeLabel->setText(QString("a chromosome with symbol '%1' was not found").arg(QString::fromStdString(chromosomeSymbol_)));
+        else
+            chromosomeLabel->setText("no chromosomes found for display");
+            
+        chromosomeLabel->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+        chromosomeLabel->setEnabled(false);
+        
+        QFont labelFont(chromosomeLabel->font());
+        labelFont.setBold(true);
+        chromosomeLabel->setFont(labelFont);
+        
+        QSizePolicy sizePolicy2(QSizePolicy::Expanding, QSizePolicy::Expanding);
         chromosomeLabel->setSizePolicy(sizePolicy2);
         
         rowLayout->addWidget(chromosomeLabel);
-        rowLayout->addSpacing(margin);
-        rowLayout->addWidget(chromosomeWidget);
-        
-        if (useScaledWidths_)
-            rowLayout->addStretch(255 - chromosomeStretch);     // the remaining width after chromosomeStretch
-        
-        labels.push_back(chromosomeLabel);
-        
-        firstRow = false;
     }
-    
-    // adjust all the labels to have the same width
-    int maxWidth = 0;
-    
-    for (QLabel *label : labels)
-        maxWidth = std::max(maxWidth, label->sizeHint().width());
-    
-    for (QLabel *label : labels)
-        label->setMinimumWidth(maxWidth);
     
     // Add a horizontal layout at the bottom, for the action button
     QHBoxLayout *buttonLayout = nullptr;
@@ -385,7 +440,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                 if (!useScaledWidths_)
                 {
                     useScaledWidths_ = true;
-                    buildChromosomeDisplay(false);
+                    buildChromosomeDisplay(/* resetWindowSize */ false);
                 }
             }
             else if (action == unscaledWidths)
@@ -393,7 +448,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                 if (useScaledWidths_)
                 {
                     useScaledWidths_ = false;
-                    buildChromosomeDisplay(false);
+                    buildChromosomeDisplay(/* resetWindowSize */ false);
                 }
             }
             else if (action == displayMutations)

@@ -42,7 +42,7 @@ void QtSLiMWindow::glueUI(void)
 
     connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::showDrawerClicked);
     //connect(ui->chromosomeActionButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeActionClicked); // this button runs when it is pressed
-    connect(ui->chromosomeDisplayButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeDisplayClicked);
+    //connect(ui->chromosomeDisplayButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeDisplayClicked); // this button runs when it is pressed
 
     connect(ui->clearDebugButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMScriptTextEdit::clearDebugPoints);
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
@@ -289,6 +289,7 @@ void QtSLiMWindow::chromosomeActionReleased(void)
 void QtSLiMWindow::chromosomeDisplayPressed(void)
 {
     ui->chromosomeDisplayButton->qtslimSetHighlight(true);
+    chromosomeDisplayPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
 }
 void QtSLiMWindow::chromosomeDisplayReleased(void)
 {

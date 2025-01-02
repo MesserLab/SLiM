@@ -64,6 +64,7 @@ class QtSLiMChromosomeWidgetController : public QObject
     QPointer<QWidget> displayWindow_ = nullptr;
     std::string focalSpeciesName_;                  // we keep the name of our focal species, since a pointer would be unsafe
     std::string focalSpeciesAvatar_;                // cached so we can display it even when the simulation is invalid
+    std::string chromosomeSymbol_;                  // a chromosome symbol, or "" for "all chromosomes"
     bool needsRebuild_ = false;                     // true immediately after recycling
     
 public:
@@ -76,7 +77,7 @@ public:
     bool displayHaplotypes_ = false;                // if false, displaying frequencies; if true, displaying haplotypes
     std::vector<slim_objectid_t> displayMuttypes_;  // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
-    QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies);
+    QtSLiMChromosomeWidgetController(QtSLiMWindow *slimWindow, QWidget *displayWindow, Species *focalSpecies, std::string chromosomeSymbol);
     
     void buildChromosomeDisplay(bool resetWindowSize);
     void updateFromController(void);

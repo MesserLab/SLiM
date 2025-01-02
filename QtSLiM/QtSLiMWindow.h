@@ -259,7 +259,7 @@ public slots:
     void playSpeedChanged(void);
 
     void showDrawerClicked(void);
-    void chromosomeDisplayClicked(void);
+    void chromosomeDisplayPopupButtonRunMenu(void);
     void showConsoleClicked(void);
     void showBrowserClicked(void);
     void jumpToPopupButtonRunMenu(void);
@@ -343,7 +343,7 @@ protected:
     void positionNewSubsidiaryWindow(QWidget *window);
     QWidget *graphWindowWithView(QtSLiMGraphView *graphView, double windowWidth=300, double windowHeight=300);
     QtSLiMGraphView *graphViewForGraphWindow(QWidget *window);
-    QWidget *newChromosomeDisplay(void);
+    QWidget *newChromosomeDisplay(std::string chromosome_symbol, QString windowTitle);  // pass "" for all chromosomes, or a symbol for one chromosome
     
     // used to suppress saving of resize/position info until we are fully constructed
     bool donePositioning_ = false;
