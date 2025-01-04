@@ -2988,8 +2988,6 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->browserButton->setEnabled(true);
     ui->jumpToPopupButton->setEnabled(true);
     
-    Species *species = focalDisplaySpecies();
-    
     ui->chromosomeActionButton->setEnabled(!invalidSimulation_);
     ui->chromosomeDisplayButton->setEnabled(!invalidSimulation_);
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
@@ -5234,7 +5232,7 @@ void QtSLiMWindow::chromosomeDisplayPopupButtonRunMenu(void)
         
         QAction *chromAction = contextMenu.addAction(menuItemTitle);
         
-        chromAction->setData(chrom->ID());      // we use the ID temporarily, to run the menu, but the symbol will be the actual key
+        chromAction->setData(QVariant::fromValue(chrom->ID()));      // we use the ID temporarily, to run the menu, but the symbol will be the actual key
         chromAction->setEnabled(!disableAll);
     }
     

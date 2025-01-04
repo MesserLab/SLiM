@@ -1464,7 +1464,9 @@ There is one subtlety to be mentioned here, having to do with subpopulations.  T
 \f0\i gamete
 \f2\i0  that is sustaining a mutation during its production.  The exception to this rule is 
 \f3\fs18 addRecombinant()
-\f2\fs22 ; since there are four different source subpopulations potentially in play there, it was deemed simpler in that case for the 
+\f2\fs22  and 
+\f3\fs18 addMultiRecombinant()
+\f2\fs22 ; since there are four different source subpopulations potentially in play there per mutation, it was deemed simpler in that case for the 
 \f3\fs18 <subpop-id>
 \f2\fs22  to specify the 
 \f0\i target
@@ -1472,6 +1474,8 @@ There is one subtlety to be mentioned here, having to do with subpopulations.  T
 \f3\fs18 mutation()
 \f2\fs22  callback will be restricted.  If restriction to the source subpopulation is needed with 
 \f3\fs18 addRecombinant()
+\f2\fs22  or 
+\f3\fs18 addMultiRecombinant()
 \f2\fs22 , the 
 \f3\fs18 subpop
 \f2\fs22  pseudo-parameter may be consulted rather than using 

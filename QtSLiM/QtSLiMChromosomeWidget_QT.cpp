@@ -265,7 +265,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 						EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 						
 						// Scan through the mutation list for mutations of this type with the right selcoeff
-						for (int mutation_index = 0; mutation_index < mutations.size(); ++mutation_index)
+						for (int mutation_index = 0; mutation_index < (int)mutations.size(); ++mutation_index)
 						{
 							const Mutation *mutation = mutations[mutation_index];
 							
@@ -329,7 +329,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 			else
 			{
 				// We're not displaying this mutation type, so we need to mark off all the mutations belonging to it as handled
-                for (int mutation_index = 0; mutation_index < mutations.size(); ++mutation_index)
+                for (int mutation_index = 0; mutation_index < (int)mutations.size(); ++mutation_index)
 				{
                     const Mutation *mutation = mutations[mutation_index];
 					
@@ -350,7 +350,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 			if (remainingMutations < 1000)
 			{
 				// Plot the remainder by brute force, since there are not that many
-                for (int mutation_index = 0; mutation_index < mutations.size(); ++mutation_index)
+                for (int mutation_index = 0; mutation_index < (int)mutations.size(); ++mutation_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutation_index])
@@ -379,7 +379,7 @@ void QtSLiMChromosomeWidget::qtDrawMutations(QRect &interiorRect, Chromosome *ch
 				EIDOS_BZERO(heightBuffer, static_cast<size_t>(displayPixelWidth) * sizeof(int16_t));
 				
 				// Find the tallest bar in each column
-                for (int mutation_index = 0; mutation_index < mutations.size(); ++mutation_index)
+                for (int mutation_index = 0; mutation_index < (int)mutations.size(); ++mutation_index)
 				{
 					//if (mutation->gui_scratch_reference_count_ == 0)
 					if (!mutationsPlotted[mutation_index])
@@ -707,7 +707,6 @@ void QtSLiMChromosomeWidget::qtDrawMutationIntervals(QRect &interiorRect, Chromo
 
 void QtSLiMChromosomeWidget::qtDrawRateMaps(QRect &interiorRect, Chromosome *chromosome, QtSLiMRange displayedRange, QPainter &painter)
 {
-    Species *displaySpecies = &chromosome->species_;
 	bool recombinationWorthShowing = false;
 	bool mutationWorthShowing = false;
 	

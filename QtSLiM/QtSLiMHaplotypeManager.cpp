@@ -232,11 +232,10 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
     }
     
     // then create and install the haplotype managers, one by one; each will display once it is completed
-    for (int index = 0; index < chromosomes.size(); ++index)
+    for (int index = 0; index < (int)chromosomes.size(); ++index)
     {
         Chromosome *chromosome = chromosomes[index];
         QtSLiMHaplotypeView *haplotypeView = haplotypeViews[index];
-        size_t haplosomeSampleSize = optionsPanel.haplosomeSampleSize();
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,

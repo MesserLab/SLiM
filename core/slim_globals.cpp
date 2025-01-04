@@ -1405,6 +1405,7 @@ const std::string &gStr_setSubpopulationSize = EidosRegisteredString("setSubpopu
 const std::string &gStr_addCloned = EidosRegisteredString("addCloned", gID_addCloned);
 const std::string &gStr_addCrossed = EidosRegisteredString("addCrossed", gID_addCrossed);
 const std::string &gStr_addEmpty = EidosRegisteredString("addEmpty", gID_addEmpty);
+const std::string &gStr_addMultiRecombinant = EidosRegisteredString("addMultiRecombinant", gID_addMultiRecombinant);
 const std::string &gStr_addRecombinant = EidosRegisteredString("addRecombinant", gID_addRecombinant);
 const std::string &gStr_addSelfed = EidosRegisteredString("addSelfed", gID_addSelfed);
 const std::string &gStr_takeMigrants = EidosRegisteredString("takeMigrants", gID_takeMigrants);

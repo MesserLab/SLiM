@@ -2901,8 +2901,9 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	// Get the indices of the haplosomes associated with this chromosome.  Note that the first/last indices might be the same,
 	// if this is a haploid chromosome.  That is OK here.  The user is allowed to set a recombination rate on a haploid
 	// chromosome and generate breakpoints for it; what they do with that information is up to them.  (They might use them
-	// in an addRecombinant() call, for example.)  In that case, of a haploid chromosome, the same single parent haplosome
-	// will be passed twice to recombination() callbacks; that seems better than not defining one of the pseudo-parameters.
+	// in an addRecombinant() or addMultiRecombinant() call, for example.)  In that case, of a haploid chromosome, the same
+	// single parent haplosome will be passed twice to recombination() callbacks; that seems better than not defining one of
+	// the pseudo-parameters.
 	int first_haplosome_index = species_.FirstHaplosomeIndices()[index_];
 	int last_haplosome_index = species_.LastHaplosomeIndices()[index_];
 	

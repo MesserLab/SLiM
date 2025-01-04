@@ -70,7 +70,7 @@ PARALLEL changes (now in the master branch, but disabled):
 	add support for parallel reproduction when a non-default stacking policy is in use
 	add support for parallel reproduction with tree-sequence recording
 	add parallel reproduction in nonWF models, with no callbacks (recombination(), mutation()) active - modifyChild() callbacks are legal but cannot access child haplosomes since they are deferred
-		this is achieved by passing defer=T to addCrossed(), addCloned(), addSelfed(), or addRecombinant()
+		this is achieved by passing defer=T to addCrossed(), addCloned(), addSelfed(), addMultiRecombinant(), or addRecombinant()
 	thread-safety work - break in backward reproducibility for scripts that use a type 's' DFE, because the code path for that shifted
 	algorithm change for nearestNeighbors() and nearestNeighborsOfPoint(), when count is >1 and <N; the old algorithm was not thread-safe, and was inefficient; breaks backward reproducibility for the relevant case
 		the break in backward reproducibility is because the old algorithm returned the neighbors in a scrambled order, whereas the new algorithm returns them in sorted order; the order is not documented, so both are compliant

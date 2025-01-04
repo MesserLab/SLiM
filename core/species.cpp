@@ -220,7 +220,7 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		for (Chromosome *chromosome : chromosomes_)
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			bool haplosome_1_is_null_or_unused, haplosome_2_is_null_or_unused;
+			bool haplosome_1_is_null_or_unused = false, haplosome_2_is_null_or_unused = false;
 			
 			switch (chromosome->Type())
 			{
@@ -380,7 +380,7 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	switch (type)
 	{
 			// these chromosome types do not (normally) employ null haplosomes
-			// if addRecombinant() etc. places a null haplosome, it will fix this flag
+			// if addRecombinant(), addMultiRecombinant(), etc. places a null haplosome, it will fix this flag
 		case ChromosomeType::kA_DiploidAutosome:
 		case ChromosomeType::kH_HaploidAutosome:
 		case ChromosomeType::kHF_HaploidFemaleInherited:

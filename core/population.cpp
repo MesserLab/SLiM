@@ -3791,7 +3791,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 	p_child_haplosome.check_cleared_to_nullptr();
 #endif
 	
-	// for addRecombinant(), we use the destination subpop as the mutation origin
+	// for addRecombinant() and addMultiRecombinant(), we use the destination subpop as the mutation origin
 	Subpopulation *dest_subpop = p_child_haplosome.individual_->subpopulation_;
 	
 	// The parent sex is used for mutation generation; we might have sex-specific mutation
@@ -5926,7 +5926,6 @@ void Population::AssessMutationRuns(void)
 			
 			int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
 			int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
-			int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
 			slim_refcount_t total_haplosome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
 			int mutrun_count = 0, use_count_total = 0;
 			slim_position_t mutrun_length = 0;

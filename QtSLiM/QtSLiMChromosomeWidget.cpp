@@ -646,10 +646,8 @@ Chromosome *QtSLiMChromosomeWidget::focalChromosome(void)
                 }
                 else if (focalSpecies->Chromosomes().size() == 1)
                 {
-                    Chromosome *chromosome = focalSpecies->Chromosomes()[0];
-                    
+                    chromosome = focalSpecies->Chromosomes()[0];
                     focalChromosomeSymbol_ = chromosome->Symbol();
-                    return chromosome;
                 }
             }
             

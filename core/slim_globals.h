@@ -990,6 +990,7 @@ extern const std::string &gStr_setSubpopulationSize;
 extern const std::string &gStr_addCloned;
 extern const std::string &gStr_addCrossed;
 extern const std::string &gStr_addEmpty;
+extern const std::string &gStr_addMultiRecombinant;
 extern const std::string &gStr_addRecombinant;
 extern const std::string &gStr_addSelfed;
 extern const std::string &gStr_takeMigrants;
@@ -1429,6 +1430,7 @@ enum _SLiMGlobalStringID : int {
 	gID_addCloned,
 	gID_addCrossed,
 	gID_addEmpty,
+	gID_addMultiRecombinant,
 	gID_addRecombinant,
 	gID_addSelfed,
 	gID_takeMigrants,

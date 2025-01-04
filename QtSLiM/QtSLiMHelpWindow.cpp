@@ -149,6 +149,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                               "– addCloned()",
                               "– addCrossed()",
                               "– addEmpty()",
+                              "– addMultiRecombinant()",
                               "– addRecombinant()",
                               "– addSelfed()",
                               "– removeSubpopulation()",

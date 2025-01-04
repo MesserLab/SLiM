@@ -31,8 +31,6 @@ static NSDictionary *tickAttrs = nil;
 static const int numberOfTicksPlusOne = 4;
 static const int tickLength = 5;
 static const int heightForTicks = 16;
-static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2 + 1 + 2, an extension on each side plus the one pixel of the bar in the middle
-static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
 static const int spaceBetweenChromosomes = 5;
 
 

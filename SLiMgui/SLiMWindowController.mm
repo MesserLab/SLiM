@@ -1254,16 +1254,6 @@
 		return !(invalidSimulation);
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
-	if (sel == @selector(graphHaplotypes:))
-	{
-		// must be past initialize() and have subpops
-		if (invalidSimulation || !community || (community->Tick() <= 1))
-			return NO;
-		
-		Species *displaySpecies = [self focalDisplaySpecies];
-		
-		return (displaySpecies && (displaySpecies->population_.subpops_.size() > 0));	
-	}
 	
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || tickPlayOn);
