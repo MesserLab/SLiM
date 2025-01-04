@@ -427,6 +427,9 @@ void QtSLiMWindow::init(void)
     // ignores the action validation state in that case anyway; undo/redo is delivered even if the action is disabled
     connect(ui->menuEdit, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
     
+    // And also when about to show the Graph menu, because the Create Haplotype Plot items might need tweaking
+    connect(ui->menuGraph, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
+    
     // And also when about to show the Script menu, because the Show/Hide menu items might not be accurately named
     connect(ui->menuScript, &QMenu::aboutToShow, this, &QtSLiMWindow::updateUIEnabling);
     
@@ -3061,7 +3064,6 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
     Species *displaySpecies = focalDisplaySpecies();
     bool graphItemsEnabled = displaySpecies && !invalidSimulation_;
-    bool haplotypePlotEnabled = displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size();
     
     //ui->menuGraph->setEnabled(graphItemsEnabled);
     ui->actionGraph_1D_Population_SFS->setEnabled(graphItemsEnabled);
@@ -3079,7 +3081,24 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 	ui->actionGraph_Population_Size_Time->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Visualization->setEnabled(graphItemsEnabled);
     ui->actionGraph_Multispecies_Population_Size_Time->setEnabled(!invalidSimulation_);     // displaySpecies not required
-	ui->actionCreate_Haplotype_Plot->setEnabled(haplotypePlotEnabled);
+    
+    // the haplotype plot menu items are a bit complicated
+    bool haplotypePlotEnabled = displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size();
+    ui->actionCreate_Haplotype_Plot_All->setEnabled(haplotypePlotEnabled);
+    ui->actionCreate_Haplotype_Plot_Selected->setEnabled(haplotypePlotEnabled && (focalChromosome() != nullptr));
+    
+    if (haplotypePlotEnabled && (displaySpecies->Chromosomes().size() > 1))
+    {
+        // enabled with 2+ chromosomes, we show both menu items
+        ui->actionCreate_Haplotype_Plot_All->setText("Create Haplotype Plot (all chromosomes)");
+        ui->actionCreate_Haplotype_Plot_Selected->setVisible(true);
+    }
+    else
+    {
+        // disabled or with 0 or 1 chromosomes, we show only actionCreate_Haplotype_Plot_All
+        ui->actionCreate_Haplotype_Plot_All->setText("Create Haplotype Plot");
+        ui->actionCreate_Haplotype_Plot_Selected->setVisible(false);
+    }
     
     updateMenuEnablingSHARED(p_focusWidget);
 }
@@ -3138,7 +3157,12 @@ void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *f
 	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(false);
 	ui->actionGraph_Population_Size_Time->setEnabled(false);
 	ui->actionGraph_Population_Visualization->setEnabled(false);
-	ui->actionCreate_Haplotype_Plot->setEnabled(false);
+    
+    // the haplotype plot menu items take on a generic appearance when disabled
+    ui->actionCreate_Haplotype_Plot_All->setEnabled(false);
+    ui->actionCreate_Haplotype_Plot_All->setText("Create Haplotype Plot");
+    ui->actionCreate_Haplotype_Plot_Selected->setEnabled(false);
+    ui->actionCreate_Haplotype_Plot_Selected->setVisible(false);
     
     // we can show our various windows as long as we can reach the controller window
     QtSLiMWindow *slimWindow = qtSLiMAppDelegate->dispatchQtSLiMWindowFromSecondaries();
@@ -5856,13 +5880,26 @@ void QtSLiMWindow::displayGraphClicked(void)
     {
         Species *displaySpecies = focalDisplaySpecies();
         
-        if (action == ui->actionCreate_Haplotype_Plot)
+        if (action == ui->actionCreate_Haplotype_Plot_All)
         {
-            if (displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size())
+            if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig, nullptr);
+            }
+            else
+            {
+                qApp->beep();
+            }
+        }
+        else if (action == ui->actionCreate_Haplotype_Plot_Selected)
+        {
+            if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size() && (focalChromosome() != nullptr))
+            {
+                isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+                
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig, focalChromosome());
             }
             else
             {
@@ -6349,8 +6386,27 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     contextMenu.addSeparator();
     
-    QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size());
+    // the haplotype plot menu items are a bit complicated
+    bool haplotypePlotEnabled = !disableAll && displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size();
+    
+    QAction *createHaplotypePlotAll = contextMenu.addAction("Create Haplotype Plot (all chromosomes)");
+    createHaplotypePlotAll->setEnabled(haplotypePlotEnabled);
+    
+    QAction *createHaplotypePlotOne = contextMenu.addAction("Create Haplotype Plot (selected chromosome)");
+    createHaplotypePlotOne->setEnabled(haplotypePlotEnabled && (focalChromosome() != nullptr));
+    
+    if (haplotypePlotEnabled && (displaySpecies->Chromosomes().size() > 1))
+    {
+        // enabled with 2+ chromosomes, we show both menu items
+        createHaplotypePlotAll->setText("Create Haplotype Plot (all chromosomes)");
+        createHaplotypePlotOne->setVisible(true);
+    }
+    else
+    {
+        // disabled or with 0 or 1 chromosomes, we show only createHaplotypePlotAll
+        createHaplotypePlotAll->setText("Create Haplotype Plot");
+        createHaplotypePlotOne->setVisible(false);
+    }
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -6360,13 +6416,26 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     {
         displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
         
-        if (action == createHaplotypePlot)
+        if (action == createHaplotypePlotAll)
         {
             if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
-                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig);
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig, nullptr);
+            }
+            else
+            {
+                qApp->beep();
+            }
+        }
+        else if (action == createHaplotypePlotOne)
+        {
+            if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size() && (focalChromosome() != nullptr))
+            {
+                isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
+                
+                QtSLiMHaplotypeManager::CreateHaplotypePlot(chromosomeConfig, focalChromosome());
             }
             else
             {

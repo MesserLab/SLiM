@@ -63,12 +63,13 @@ public:
     };
     
     // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-    static void CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller);
+    static void CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller, Chromosome *focalChromosome);
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
                            QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
-                           QtSLiMRange displayedRange, size_t sampleSize, bool showProgress);
+                           QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
+                           int progressChromTotal);
     ~QtSLiMHaplotypeManager(void);
     
 #ifndef SLIM_NO_OPENGL
@@ -78,6 +79,7 @@ public:
     
     // Public properties
     QString titleString;
+    QString titleStringWithoutChromosome;
     int subpopCount = 0;
     bool valid_ = true;     // set to false if the user cancels the progress panel
 
@@ -162,6 +164,7 @@ private:
 // QtSLiMHaplotypeView
 //
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// It displays a haplotype view for one chromosome; QtSLiMHaplotypeTopView may contain one or more
 //
 
 #ifndef SLIM_NO_OPENGL
@@ -173,13 +176,16 @@ class QtSLiMHaplotypeView : public QWidget
     Q_OBJECT
     
 public:
+    std::string chromosomeSymbol_;
+    
     explicit QtSLiMHaplotypeView(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMHaplotypeView(void) override;
     
-    void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); }
+    void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); update(); }
     
-public slots:
-    void actionButtonRunMenu(QtSLiMPushButton *actionButton);    
+    // state changes from the action button; called by QtSLiMHaplotypeTopView
+    void setDisplayBlackAndWhite(bool flag);
+    void setDisplaySubpopulationStrips(bool flag);
     
 private:
     QtSLiMHaplotypeManager *delegate_ = nullptr;
@@ -194,8 +200,36 @@ private:
 #else
     virtual void paintEvent(QPaintEvent *event) override;
 #endif
+};
+
+
+//
+// QtSLiMHaplotypeTopView
+//
+// This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// This contains a set of QtSLiMHaplotypeViews to display a set of haplotype plots for chromosomes
+//
+
+class QtSLiMHaplotypeTopView : public QWidget
+{
+    Q_OBJECT
     
-    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
+public:
+    explicit QtSLiMHaplotypeTopView(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    virtual ~QtSLiMHaplotypeTopView(void) override;
+    
+public slots:
+    void actionButtonRunMenu(QtSLiMPushButton *actionButton);
+    
+    void setShowChromosomeSymbols(bool flag) { showChromosomeSymbols_ = flag; }
+    
+private:
+    bool displayBlackAndWhite_ = false;
+    bool showSubpopulationStrips_ = false;
+    
+    bool showChromosomeSymbols_ = false;
+    
+    virtual void paintEvent(QPaintEvent *event) override;
 };
 
 

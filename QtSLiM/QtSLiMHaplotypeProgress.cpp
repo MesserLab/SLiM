@@ -47,12 +47,14 @@ QtSLiMHaplotypeProgress::~QtSLiMHaplotypeProgress()
     delete ui;
 }
 
-void QtSLiMHaplotypeProgress::runProgressWithHaplosomeCount(size_t haplosome_count, int stepCount)
+void QtSLiMHaplotypeProgress::runProgressWithHaplosomeCount(size_t haplosome_count, int stepCount, int progressChromIndex, int progressChromTotal)
 {
     // set up initial state
     taskDistances_Value_ = 0;
 	taskClustering_Value_ = 0;
 	taskOptimization_Value_ = 0;
+    
+    ui->chromosomeIndexLabel->setText(QString("Chromosome %1 of %2:").arg(progressChromIndex).arg(progressChromTotal));
     
     ui->step1ProgressBar->setRange(0, static_cast<int>(haplosome_count));
     ui->step2ProgressBar->setRange(0, static_cast<int>(haplosome_count));

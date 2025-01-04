@@ -86,7 +86,7 @@ void QtSLiMChromosomeWidget::glDrawRect(QRect contentRect, Species *displaySpeci
 				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
 				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
                 size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, chromosome, displayedRange, interiorHeight, false);
+                QtSLiMHaplotypeManager *haplotype_mgr = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, chromosome, displayedRange, interiorHeight, false, 0, 0);
                 
                 if (haplotype_mgr)
                     haplotype_mgr->glDrawHaplotypes(interiorRect, false, false, false);

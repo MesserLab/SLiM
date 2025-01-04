@@ -36,6 +36,7 @@
 #include <QStandardPaths>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPalette>
 #include <QDebug>
 
 #include <vector>
@@ -47,10 +48,11 @@
 #include "species.h"
 
 
+const int QtSLiM_SubpopulationStripWidth = 5;
 
 
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller)
+void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller, Chromosome *focalChromosome)
 {
     QtSLiMWindow *slimWindow = controller->slimWindow();
     
@@ -70,122 +72,200 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         return;
     }
     
-    // We need a single chromosome to work with; QtSLiMHaplotypeManager creates a haplotype
-    // plot for one chromosome, which makes sense since haplosomes assort independently.
-    // If we can't get a single chromosome, then we tell the user to select a chromosome.
-    Chromosome *chromosome = slimWindow->focalChromosome();
+    // This method can create a haplotype plot for one chromosome or many.  Many is the
+    // base case, of which one is a special case.  Chromosomes assort independently, so
+    // each per-chromosome plot is independent, but it is useful to see them together.
+    std::vector<Chromosome *> chromosomes;
     
-    if (!chromosome)
-    {
-        QMessageBox messageBox(slimWindow);
-        messageBox.setText("Haplotype Plot");
-        messageBox.setInformativeText("A single chromosome must be chosen to create a haplotype plot; the plot will be based upon the selected chromosome.");
-        messageBox.setIcon(QMessageBox::Warning);
-        messageBox.setWindowModality(Qt::WindowModal);
-        messageBox.exec();
-        return;
-    }
+    if (focalChromosome)
+        chromosomes.push_back(focalChromosome);
+    else
+        chromosomes = displaySpecies->Chromosomes();
     
+    if (chromosomes.size() == 0)
+        return;         // should never happen; menu items etc. should be disabled in this case
+    
+    slim_position_t longestLength = 0;
+    
+    for (Chromosome *chromosome : chromosomes)
+        longestLength = std::max(longestLength, chromosome->last_position_ + 1);
+    
+    // Run the options panel
     QtSLiMHaplotypeOptions optionsPanel(controller->slimWindow());
     
     int result = optionsPanel.exec();
     
-    if (result == QDialog::Accepted)
+    if (result != QDialog::Accepted)
+        return;
+    
+    QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod = optionsPanel.clusteringMethod();
+    QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
+    size_t haplosomeSampleSize = optionsPanel.haplosomeSampleSize();
+    
+    // Make a new window to show the graph
+    QWidget *window = new QWidget(controller->slimWindow(), Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
+    
+    window->setMinimumSize(400, 200);
+    window->resize(500, 400);
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
+    window->setWindowIcon(QIcon());
+#endif
+    
+    // Set up a top-level view, topViewWidget, that contains all of the haplotype views (empty for now)
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    
+    QtSLiMHaplotypeTopView *topViewWidget = new QtSLiMHaplotypeTopView(nullptr);
+    QHBoxLayout *allViewsLayout = new QHBoxLayout;
+    
+    allViewsLayout->setContentsMargins(5, 5, 5, 5);
+    allViewsLayout->setSpacing(5);
+    
+    topViewWidget->setLayout(allViewsLayout);
+    topLayout->addWidget(topViewWidget);
+    
+    if (chromosomes.size() > 1)
     {
+        topViewWidget->setShowChromosomeSymbols(true);
+        allViewsLayout->setContentsMargins(5, 20, 5, 5);
+    }
+    
+    std::vector<QtSLiMHaplotypeView *> haplotypeViews;
+    
+    for (Chromosome *chromosome : chromosomes)
+    {
+        QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
+        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(std::max(3, (int)std::round(255 * ((chromosome->last_position_ + 1) / (double)longestLength))));
+        sizePolicy1.setVerticalStretch(0);
+        haplotypeView->setSizePolicy(sizePolicy1);
+        haplotypeView->chromosomeSymbol_ = chromosome->Symbol();
+        
+        allViewsLayout->addWidget(haplotypeView);
+        haplotypeViews.push_back(haplotypeView);
+    }
+    
+    // Add a horizontal layout at the bottom, for the action button, and maybe other cruft, over time
+    // The first haplotype view runs the action buttion, and forwards all state changes along the chain
+    QHBoxLayout *buttonLayout = nullptr;
+    
+    {
+        buttonLayout = new QHBoxLayout;
+        
+        buttonLayout->setContentsMargins(5, 5, 5, 5);
+        buttonLayout->setSpacing(5);
+        topLayout->addLayout(buttonLayout);
+        
+        if (controller->community()->all_species_.size() > 1)
+        {
+            // make our species avatar badge
+            QLabel *speciesLabel = new QLabel();
+            speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
+            buttonLayout->addWidget(speciesLabel);
+        }
+        
+        QSpacerItem *leftSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(leftSpacer);
+        
+        if (chromosomes.size() > 1)
+        {
+            // draw a little warning, in gray italic small, since users might think the chromosome plots are somehow correlated
+            QLabel *warningLabel = new QLabel();
+            
+            warningLabel->setText("note: each chromosome is sampled independently");
+            warningLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+            
+            QFont labelFont(warningLabel->font());
+            labelFont.setItalic(true);
+            labelFont.setPointSize(labelFont.pointSize() - 2);
+            warningLabel->setFont(labelFont);
+            
+            QPalette labelPalette(warningLabel->palette());
+            labelPalette.setColor(QPalette::WindowText, QtSLiMColorWithWhite(0.5, 1.0));
+            warningLabel->setPalette(labelPalette);
+            
+            buttonLayout->addWidget(warningLabel);
+        }
+        
+        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(rightSpacer);
+        
+        // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
+        QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
+        actionButton->setObjectName(QString::fromUtf8("actionButton"));
+        actionButton->setMinimumSize(QSize(20, 20));
+        actionButton->setMaximumSize(QSize(20, 20));
+        actionButton->setFocusPolicy(Qt::NoFocus);
+        QIcon icon4;
+        icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
+        actionButton->setIcon(icon4);
+        actionButton->setIconSize(QSize(20, 20));
+        actionButton->qtslimSetBaseName("action");
+        actionButton->setCheckable(true);
+        actionButton->setFlat(true);
+#if QT_CONFIG(tooltip)
+        actionButton->setToolTip("<html><head/><body><p>configure plot</p></body></html>");
+#endif // QT_CONFIG(tooltip)
+        buttonLayout->addWidget(actionButton);
+        
+        connect(actionButton, &QPushButton::pressed, topViewWidget, [actionButton, topViewWidget]() { actionButton->qtslimSetHighlight(true); topViewWidget->actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, topViewWidget, [actionButton]() { actionButton->qtslimSetHighlight(false); });
+        
+        actionButton->setEnabled(true);
+    }
+    
+    // make window actions for all global menu items
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+    
+    // If we have more than one chromosome to do, show the window so the user can see partial results there
+    if (chromosomes.size() > 1)
+    {
+        window->show();
+        window->raise();
+        window->activateWindow();
+    }
+    
+    // then create and install the haplotype managers, one by one; each will display once it is completed
+    for (int index = 0; index < chromosomes.size(); ++index)
+    {
+        Chromosome *chromosome = chromosomes[index];
+        QtSLiMHaplotypeView *haplotypeView = haplotypeViews[index];
         size_t haplosomeSampleSize = optionsPanel.haplosomeSampleSize();
-        QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod = optionsPanel.clusteringMethod();
-        QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
-                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize, true);
+                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize,
+                                                                              true, index + 1, chromosomes.size());
         
         if (haplotypeManager->valid_)
         {
-            // Make a new window to show the graph
-            QWidget *window = new QWidget(controller->slimWindow(), Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
-            
-            window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleString));
-            window->setMinimumSize(400, 200);
-            window->resize(500, 400);
-#ifdef __APPLE__
-            // set the window icon only on macOS; on Linux it changes the app icon as a side effect
-            window->setWindowIcon(QIcon());
-#endif
-            
-            // Install the haplotype view in the window
-            QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
-            QVBoxLayout *topLayout = new QVBoxLayout;
-            
-            window->setLayout(topLayout);
-            topLayout->setContentsMargins(0, 0, 0, 0);
-            topLayout->setSpacing(0);
-            topLayout->addWidget(haplotypeView);
+            // this will be called for each chromosome, but the titles should all be the same, so it's fine
+            window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleStringWithoutChromosome));
             
             // The haplotype manager is owned by the graph view, as a delegate object
             haplotypeView->setDelegate(haplotypeManager);
-            
-            // Add a horizontal layout at the bottom, for the action button, and maybe other cruft, over time
-            QHBoxLayout *buttonLayout = nullptr;
-            
-            {
-                buttonLayout = new QHBoxLayout;
-                
-                buttonLayout->setContentsMargins(5, 5, 5, 5);
-                buttonLayout->setSpacing(5);
-                topLayout->addLayout(buttonLayout);
-                
-                if (controller->community()->all_species_.size() > 1)
-                {
-                    // make our species avatar badge
-                    QLabel *speciesLabel = new QLabel();
-                    speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
-                    buttonLayout->addWidget(speciesLabel);
-                }
-                
-                QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-                buttonLayout->addItem(rightSpacer);
-                
-                // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
-                QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
-                actionButton->setObjectName(QString::fromUtf8("actionButton"));
-                actionButton->setMinimumSize(QSize(20, 20));
-                actionButton->setMaximumSize(QSize(20, 20));
-                actionButton->setFocusPolicy(Qt::NoFocus);
-                QIcon icon4;
-                icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
-                icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
-                actionButton->setIcon(icon4);
-                actionButton->setIconSize(QSize(20, 20));
-                actionButton->qtslimSetBaseName("action");
-                actionButton->setCheckable(true);
-                actionButton->setFlat(true);
-#if QT_CONFIG(tooltip)
-                actionButton->setToolTip("<html><head/><body><p>configure plot</p></body></html>");
-#endif // QT_CONFIG(tooltip)
-                buttonLayout->addWidget(actionButton);
-                
-                connect(actionButton, &QPushButton::pressed, haplotypeView, [actionButton, haplotypeView]() { actionButton->qtslimSetHighlight(true); haplotypeView->actionButtonRunMenu(actionButton); });
-                connect(actionButton, &QPushButton::released, haplotypeView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
-                
-                actionButton->setEnabled(true);
-            }
-            
-            // make window actions for all global menu items
-            // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
-            //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
-            
-            // Show the window
-            window->show();
-            window->raise();
-            window->activateWindow();
         }
+    }
+    
+    // If we have just one chromosome to do, show the window now that it's done
+    if (chromosomes.size() <= 1)
+    {
+        window->show();
+        window->raise();
+        window->activateWindow();
     }
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
                                                QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
-                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress) :
+                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
+                                               int progressChromTotal) :
     QObject(p_parent)
 {
     controller_ = controller;
@@ -245,6 +325,8 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     
     title.append(QString(", tick %1").arg(community->Tick()));
     
+    titleStringWithoutChromosome = title;
+    
     if (displaySpecies->Chromosomes().size() > 1)
         title.append(QString(", chromosome '%2'").arg(QString::fromStdString(chromosome->Symbol())));
     
@@ -300,7 +382,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         int progressSteps = (clusterOptimization == QtSLiMHaplotypeManager::ClusterOptimizeWith2opt) ? 3 : 2;
         
         progressPanel_ = new QtSLiMHaplotypeProgress(controller_->slimWindow());
-        progressPanel_->runProgressWithHaplosomeCount(haplosomes.size(), progressSteps);
+        progressPanel_->runProgressWithHaplosomeCount(haplosomes.size(), progressSteps, progressChromIndex, progressChromTotal);
     }
     
     // Do the clustering analysis synchronously, updating the progress panel as we go
@@ -640,13 +722,12 @@ void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bo
 	// Draw subpopulation strips if requested
 	if (showSubpopStrips)
 	{
-		const int stripWidth = 15;
 		QRect subpopStripRect = interior;
 		
-        subpopStripRect.setWidth(stripWidth);
+        subpopStripRect.setWidth(QtSLiM_SubpopulationStripWidth);
 		glDrawSubpopStripsInRect(subpopStripRect);
         
-        interior.adjust(stripWidth, 0, 0, 0);
+        interior.adjust(QtSLiM_SubpopulationStripWidth, 0, 0, 0);
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
@@ -665,13 +746,12 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
     // Draw subpopulation strips if requested
     if (showSubpopStrips)
     {
-        const int stripWidth = 15;
         QRect subpopStripRect = interior;
         
-        subpopStripRect.setWidth(stripWidth);
+        subpopStripRect.setWidth(QtSLiM_SubpopulationStripWidth);
         qtDrawSubpopStripsInRect(subpopStripRect, painter);
         
-        interior.adjust(stripWidth, 0, 0, 0);
+        interior.adjust(QtSLiM_SubpopulationStripWidth, 0, 0, 0);
     }
     
     // Draw the haplotypes in the remaining portion of the interior
@@ -1541,7 +1621,10 @@ startAgain:
 // QtSLiMHaplotypeView
 //
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// It displays a haplotype view for one chromosome; QtSLiMHaplotypeTopView may contain one or more
 //
+
+#pragma mark QtSLiMHaplotypeView
 
 QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *p_parent, Qt::WindowFlags f)
 #ifndef SLIM_NO_OPENGL
@@ -1587,42 +1670,146 @@ void QtSLiMHaplotypeView::paintEvent(QPaintEvent * /* p_paint_event */)
 #endif
 {
     QPainter painter(this);
-    
-    painter.eraseRect(rect());      // erase to background color, which is not guaranteed
-    
-    // inset and frame with gray
     QRect interior = rect();
     
-    interior.adjust(5, 5, -5, 0);   // 0 because the action button layout already has margin
-    painter.fillRect(interior, Qt::gray);
+    // frame with gray
+#ifndef SLIM_NO_OPENGL
+    if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+    {
+        painter.beginNativePainting();
+        glColor3f(0.5f, 0.5f, 0.5f);
+        glRecti(interior.x(), interior.y(), interior.x() + interior.width(), interior.y() + interior.height());
+    }
+    else
+#endif
+    {
+        painter.fillRect(interior, QtSLiMColorWithWhite(0.5, 1.0));
+    }
+        
     interior.adjust(1, 1, -1, -1);
     
     if (delegate_)
     {
 #ifndef SLIM_NO_OPENGL
         if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true);
+        else
+#endif
+            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, painter);
+    }
+    else
+    {
+#ifndef SLIM_NO_OPENGL
+        if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
         {
             painter.beginNativePainting();
-            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true);
-            painter.endNativePainting();
+            glColor3f(0.95f, 0.95f, 0.95f);
+            glRecti(interior.x(), interior.y(), interior.x() + interior.width(), interior.y() + interior.height());
         }
         else
 #endif
         {
-            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, painter);
+            painter.fillRect(interior, QtSLiMColorWithWhite(0.9, 1.0));
+        }
+    }
+
+#ifndef SLIM_NO_OPENGL
+    if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+        painter.endNativePainting();
+#endif
+}
+
+void QtSLiMHaplotypeView::setDisplayBlackAndWhite(bool flag)
+{
+    displayBlackAndWhite_ = flag;
+    update();
+}
+
+void QtSLiMHaplotypeView::setDisplaySubpopulationStrips(bool flag)
+{
+    showSubpopulationStrips_ = flag;
+    update();
+}
+
+
+//
+// QtSLiMHaplotypeTopView
+//
+// This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// This contains a set of QtSLiMHaplotypeViews to display a set of haplotype plots for chromosomes
+//
+
+#pragma mark QtSLiMHaplotypeTopView
+
+QtSLiMHaplotypeTopView::QtSLiMHaplotypeTopView(QWidget *p_parent, Qt::WindowFlags f)
+    : QWidget(p_parent, f)
+{
+}
+
+QtSLiMHaplotypeTopView::~QtSLiMHaplotypeTopView(void)
+{
+}
+
+void QtSLiMHaplotypeTopView::paintEvent(QPaintEvent * /* p_paint_event */)
+{
+    QPainter painter(this);
+    QRect interior = rect();
+    
+    painter.fillRect(interior, Qt::white);
+    
+    if (showChromosomeSymbols_)
+    {
+        // We draw the text labels for our child views, since we are a regular QWidget and they might be QOpenGLWidgets
+        // This is the main motivation for the existence of this class at all; taking a snapshot of a mixed-drawing
+        // widget with render() does not work well for some reason, so we need the QPainter drawing done in the parent
+        static QFont *tickFont = nullptr;
+        
+        if (!tickFont)
+        {
+            tickFont = new QFont();
+#ifdef __linux__
+            tickFont->setPointSize(8);
+#else
+            tickFont->setPointSize(11);
+#endif
+        }
+        painter.setFont(*tickFont);
+        painter.setPen(Qt::black);
+        
+        QFontMetricsF fontMetrics(*tickFont);
+        
+        const QObjectList &child_objects = children();
+        
+        for (QObject *child_object : child_objects)
+        {
+            QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+            
+            if (child_widget && child_widget->isVisible())
+            {
+                QString chromosomeSymbol = QString::fromStdString(child_widget->chromosomeSymbol_);
+                
+                if (chromosomeSymbol.length())
+                {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+                    double symbolLabelWidth = fontMetrics.width(chromosomeSymbol);               // deprecated in 5.11
+#else
+                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);   // added in Qt 5.11
+#endif
+                    
+                    QRect viewFrame = child_widget->geometry();
+                    QRect labelFrame = QRect(viewFrame.left(), 0, viewFrame.width(), viewFrame.top());
+                    
+                    if (symbolLabelWidth <= viewFrame.width())
+                        painter.drawText(labelFrame,
+                                         Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignVCenter | Qt::AlignHCenter,
+                                         chromosomeSymbol);
+                }
+            }
         }
     }
 }
 
-void QtSLiMHaplotypeView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
-{
-    contextMenuEvent(nullptr);
-    
-    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    p_actionButton->qtslimSetHighlight(false);
-}
-
-void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
+void QtSLiMHaplotypeTopView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
 {
     QMenu contextMenu("graph_menu", this);
     
@@ -1635,7 +1822,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
     QAction *exportPlot = contextMenu.addAction("Export Plot...");
     
     // Run the context menu synchronously
-    QPoint menuPos = (p_event ? p_event->globalPos() : QCursor::pos());
+    QPoint menuPos = QCursor::pos();
     QAction *action = contextMenu.exec(menuPos);
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
@@ -1644,23 +1831,42 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
         if (action == bwColorToggle)
         {
             displayBlackAndWhite_ = !displayBlackAndWhite_;
-            update();
+            
+            // We tell all of our child QtSLiMHaplotypeViews about this configuration change
+            const QObjectList &child_objects = children();
+            
+            for (QObject *child_object : child_objects)
+            {
+                QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+                
+                if (child_widget && child_widget->isVisible())
+                    child_widget->setDisplayBlackAndWhite(displayBlackAndWhite_);
+            }
         }
         if (action == subpopStripsToggle)
         {
             showSubpopulationStrips_ = !showSubpopulationStrips_;
-            update();
+            
+            // We tell all of our child QtSLiMHaplotypeViews about this configuration change
+            const QObjectList &child_objects = children();
+            
+            for (QObject *child_object : child_objects)
+            {
+                QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+                
+                if (child_widget && child_widget->isVisible())
+                    child_widget->setDisplaySubpopulationStrips(showSubpopulationStrips_);
+            }
         }
-#ifndef SLIM_NO_OPENGL
-        if (action == copyPlot)
+        else if (action == copyPlot)
         {
-            QImage snap = grabFramebuffer();
-            QSize snapSize = snap.size();
-            QImage interior = snap.copy(5, 5, snapSize.width() - 10, snapSize.height() - 10);
+            QPixmap pixmap(size());
+            render(&pixmap);
+            QImage snap = pixmap.toImage();
             QClipboard *clipboard = QGuiApplication::clipboard();
-            clipboard->setImage(interior);
+            clipboard->setImage(snap);
         }
-        if (action == exportPlot)
+        else if (action == exportPlot)
         {
             // FIXME maybe this should use QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
             QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -1670,17 +1876,18 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
             
             if (!fileName.isEmpty())
             {
-                QImage snap = grabFramebuffer();
-                QSize snapSize = snap.size();
-                QImage interior = snap.copy(5, 5, snapSize.width() - 10, snapSize.height() - 10);
+                QPixmap pixmap(size());
+                render(&pixmap);
+                QImage snap = pixmap.toImage();
                 
-                interior.save(fileName, "PNG", 100);    // JPG does not come out well; colors washed out
+                snap.save(fileName, "PNG", 100);    // JPG does not come out well; colors washed out
             }
         }
-#endif
     }
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    p_actionButton->qtslimSetHighlight(false);
 }
-
 
 
 

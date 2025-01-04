@@ -1421,7 +1421,8 @@ QSlider::handle:horizontal:disabled {
      <addaction name="separator"/>
      <addaction name="actionGraph_Multispecies_Population_Size_Time"/>
      <addaction name="separator"/>
-     <addaction name="actionCreate_Haplotype_Plot"/>
+     <addaction name="actionCreate_Haplotype_Plot_All"/>
+     <addaction name="actionCreate_Haplotype_Plot_Selected"/>
     </widget>
     <addaction name="actionStep"/>
     <addaction name="actionPlay"/>
@@ -1995,9 +1996,9 @@ QSlider::handle:horizontal:disabled {
     <string>Graph Population Visualization</string>
    </property>
   </action>
-  <action name="actionCreate_Haplotype_Plot">
+  <action name="actionCreate_Haplotype_Plot_All">
    <property name="text">
-    <string>Create Haplotype Plot</string>
+    <string>Create Haplotype Plot (all chromosomes)</string>
    </property>
   </action>
   <action name="actionShowCycle_WF">
@@ -2075,6 +2076,11 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionCreate_Haplotype_Plot_Selected">
+   <property name="text">
+    <string>Create Haplotype Plot (selected chromosome)</string>
    </property>
   </action>
  </widget>
