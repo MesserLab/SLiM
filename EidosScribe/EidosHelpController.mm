@@ -517,7 +517,7 @@
 						// but with different signatures, as long as they are not in the same class; we can't handle overloading, but
 						// method lookup is within-class.  So this code could be generalized as the property lookup code below was; I just
 						// haven't bothered to do so.
-						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+						NSLog(@"*** method signature mismatch:\ndocumentation: %@\ndeclaration  : %@", oldSignatureString, newSignatureString);
 					}
 				}
 				else
