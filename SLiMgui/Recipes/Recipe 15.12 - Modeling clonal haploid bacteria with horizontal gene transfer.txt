@@ -26,7 +26,7 @@ reproduction() {
 		if (breaks[0] > breaks[1])
 			breaks = c(0, breaks[1], breaks[0]);
 		
-		subpop.addRecombinant(individual.haploidGenome1, HGTsource, breaks, NULL, NULL, NULL);
+		subpop.addRecombinant(individual.haploidGenome1, HGTsource, breaks, NULL, NULL, NULL, randomizeStrands=F);
 	}
 	else
 	{

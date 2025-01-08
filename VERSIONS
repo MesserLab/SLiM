@@ -55,9 +55,9 @@ development head (in the master branch):
 		x		method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
 		x	Mutation class:
 		x		property: chromosome => (object<Chromosome>$)
-			Subpopulation class:
+		x	Subpopulation class:
 		x		method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
-				method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
+		x		method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
 							[No<Individual>$ parent2 = NULL], [logical$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
 		add autofixes in SLiMgui for the above API changes
 		revise recipes for new terminology (but they will require more revision downstream)
@@ -90,6 +90,9 @@ development head (in the master branch):
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
 		add templating of GenerateIndividualX() for speed, as was done before for the MungeIndividualX() and HaplosomeX() methods, for speed
 		policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
+		policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
+			the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
+		implement addMultiRecombinant() for complete control over reproduction in multi-chromosome models
 
 
 version 4.3 (Eidos version 3.3):

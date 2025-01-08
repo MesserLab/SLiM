@@ -31,12 +31,12 @@ reproduction(p1)
 		if (individual.sex == "M")
 		{
 			breaks = sim.chromosomes.drawBreakpoints(individual);
-			s_1 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M");
-			s_2 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M");
+			s_1 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M", randomizeStrands=F);
+			s_2 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M", randomizeStrands=F);
 			
 			breaks = sim.chromosomes.drawBreakpoints(individual);
-			s_3 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M");
-			s_4 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M");
+			s_3 = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "M", randomizeStrands=F);
+			s_4 = p2.addRecombinant(g_2, g_1, breaks, NULL, NULL, NULL, "M", randomizeStrands=F);
 		}
 		else if (individual.sex == "F")
 		{

@@ -44,7 +44,7 @@ reproduction() {
 	m = subpop.sampleIndividuals(1);
 	b1 = driveBreakpoints(individual.haploidGenome1, individual.haploidGenome2);
 	b2 = driveBreakpoints(m.haploidGenome1, m.haploidGenome2);
-	subpop.addRecombinant(individual.haploidGenome1, individual.haploidGenome2, b1, m.haploidGenome1, m.haploidGenome2, b2);
+	subpop.addRecombinant(individual.haploidGenome1, individual.haploidGenome2, b1, m.haploidGenome1, m.haploidGenome2, b2, randomizeStrands=F);
 }
 1 early() {
 	sim.addSubpop("p1", 10);

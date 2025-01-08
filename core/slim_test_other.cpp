@@ -1450,7 +1450,7 @@ void _RunContinuousSpaceTests(void)
 					model_string.append("initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeMutationRate(1e-7); initializeRecombinationRate(1e-8); } ");
 					
 					model_string.append("reproduction() { mate = subpop.sampleIndividuals(1); o1 = subpop.addCrossed(individual, mate); o2 = subpop.addCloned(individual); o3 = subpop.addSelfed(individual); ");
-					model_string.append("ig = sample(individual.haplosomes, 2, F); mg = sample(mate.haplosomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosomes.drawBreakpoints(), mg[0], mg[1], sim.chromosomes.drawBreakpoints(), parent1=individual, parent2=mate); ");
+					model_string.append("ig = sample(individual.haplosomes, 2, F); mg = sample(mate.haplosomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosomes.drawBreakpoints(), mg[0], mg[1], sim.chromosomes.drawBreakpoints(), parent1=individual, parent2=mate, randomizeStrands=T); ");
 					
 					if (dimcount == 1)
 						model_string.append("for (o in c(o1, o2, o3, o4)) if (o.x != individual.x) stop('child does not match parent!'); }");

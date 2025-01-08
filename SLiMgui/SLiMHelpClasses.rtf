@@ -9532,16 +9532,22 @@ Note that this method is only for use in nonWF models.  See
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96 (object<Individual>)addMultiRecombinant(object<Dictionary>$\'a0pattern, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [logical$\'a0randomizeStrands\'a0=\'a0F], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)addMultiRecombinant(object$\'a0pattern, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [Nl$\'a0randomizeStrands\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual based upon the inheritance pattern specified by 
 \f3\fs18 pattern
-\f4\fs20 , which is a dictionary of dictionaries.  This method is a multi-chromosome version of the 
+\f4\fs20 , queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The \'93pattern dictionary\'94 supplied in 
+\f3\fs18 pattern
+\f4\fs20  must be of class 
+\f3\fs18 Dictionary
+\f4\fs20  (or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 ), and more particularly, must be a dictionary of dictionaries structured in a specific way as described below.  This method is a multi-chromosome version of the 
 \f3\fs18 addRecombinant()
 \f4\fs20  method.  For single-chromosome models, using 
 \f3\fs18 addRecombinant()
-\f4\fs20  will be simpler; and it will be easier to understand this method if you understand 
+\f4\fs20  will be simpler; and it will be easier to understand this very complex method if you understand 
 \f3\fs18 addRecombinant()
 \f4\fs20  first.\
 The top-level \'93pattern dictionary\'94 given by 
@@ -9576,31 +9582,105 @@ The top-level \'93pattern dictionary\'94 given by
 \f3\fs18 NULL
 \f4\fs20 .  These key-value pairs are used in precisely the same way as the parameters of the same names for 
 \f3\fs18 addRecombinant()
-\f4\fs20 , to produce the offspring haplosome(s) for the specified chromosome.  There is considerable complication here regarding how these six values are used to produce results like crossing, cloning, and selfing, involving as many as four different \'93parents\'94 for each chromosome.  Rather than repeating all of that documentation here, please see the 
+\f4\fs20 , to produce the offspring haplosome(s) for each specified chromosome.  There is some complication regarding how these six values can be used to produce results like crossing, cloning, and selfing, involving as many as four different \'93parents\'94 for each chromosome; rather than repeating all of that documentation here, please see the 
 \f3\fs18 addRecombinant()
-\f4\fs20  documentation for more information; this method works in exactly the same way, except for multiple chromosomes.\
+\f4\fs20  documentation for more information.  When an inheritance dictionary is supplied for a particular chromosome, this method uses the six values that dictionary contains (
+\f3\fs18 strand1
+\f4\fs20 , 
+\f3\fs18 strand2
+\f4\fs20 , 
+\f3\fs18 breaks1
+\f4\fs20 , 
+\f3\fs18 strand3
+\f4\fs20 , 
+\f3\fs18 strand4
+\f4\fs20 , 
+\f3\fs18 breaks2
+\f4\fs20 ) in exactly the same way as 
+\f3\fs18 addRecombinant()
+\f4\fs20  does; 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20  simply supports multiple chromosomes.  In addition to that, however, 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20  also allows the pattern dictionary to omit the inheritance dictionaries for particular chromosomes; the behavior of 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20  in that case will be described below, after discussing all other aspects of the method\'92s implementation.\
 The 
 \f3\fs18 sex
-\f4\fs20  parameter optionally specifies the sex of the offspring; it can be a 
-\f3\fs18 string
-\f4\fs20  sex (
+\f4\fs20  parameter optionally specifies the sex of the offspring.  The default value of 
+\f3\fs18 NULL
+\f4\fs20  for 
+\f3\fs18 sex
+\f4\fs20  specifies \'93default behavior\'94; in a non-sexual model this is the only legal value, and produces a hermaphroditic offspring.  In a sexual model, the \'93default behavior\'94 of 
+\f3\fs18 NULL
+\f4\fs20  is that the offspring\'92s sex is dictated by the haplosome structure it inherits.  For example, if 
+\f3\fs18 pattern
+\f4\fs20  specifies that the offspring will have two non-null haplosomes for a chromosome of type 
+\f3\fs18 "X"
+\f4\fs20 , the sex of the offspring must therefore be female, whereas if it will have one non-null 
+\f3\fs18 "X"
+\f4\fs20  haplosome and one null 
+\f3\fs18 "X"
+\f4\fs20  haplosome, it must therefore be male.  SLiM will scan through 
+\f3\fs18 pattern
+\f4\fs20  to determine such constraints and enforce them.  If the constraints implied by 
+\f3\fs18 pattern
+\f4\fs20  are not self-consistent (if the offspring would have two non-null 
+\f3\fs18 "X"
+\f4\fs20  haplosomes but also a non-null 
+\f3\fs18 "Y"
+\f4\fs20  haplosome, for example), an error will be raised.  The constraints defined by each chromosome type, as described in 
+\f3\fs18 initializeChromosomeType()
+\f4\fs20 , must always be followed, even when using 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20 .  If 
+\f3\fs18 sex
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  and 
+\f3\fs18 pattern
+\f4\fs20  imposes no constraints upon the sex of the offspring, the offspring will be chosen as male or female with equal probability.  A value of 
 \f3\fs18 "M"
 \f4\fs20  or 
 \f3\fs18 "F"
-\f4\fs20 ), a 
+\f4\fs20  for 
+\f3\fs18 sex
+\f4\fs20  specifies that the offspring should be male or female, respectively.  A 
 \f3\fs18 float
-\f4\fs20  probability of being male, or 
+\f4\fs20  value from 
+\f3\fs18 0.0
+\f4\fs20  to 
+\f3\fs18 1.0
+\f4\fs20  for 
+\f3\fs18 sex
+\f4\fs20  provides the probability that the offspring will be male; a value of 
+\f3\fs18 0.0
+\f4\fs20  will produce a female, a value of 
+\f3\fs18 1.0
+\f4\fs20  will produce a male, and for intermediate values SLiM will draw the sex of the offspring randomly according to the specified probability.  In these cases where 
+\f3\fs18 sex
+\f4\fs20  is not 
 \f3\fs18 NULL
-\f4\fs20  for the default behavior (equal probabilities of male and female).  In a non-sexual model, only 
-\f3\fs18 NULL
-\f4\fs20  may be passed.  See 
-\f3\fs18 addCrossed()
-\f4\fs20  for further details.\
-By default, the offspring is considered to have no parents for the purposes of pedigree tracking, since there may be more than two \'93parents\'94 in the general case.  If pedigree tracking of parentage is desired, 
+\f4\fs20 , SLiM will first determine the sex of the individual as just described, and will then scan through 
+\f3\fs18 pattern
+\f4\fs20  to confirm that it is compatible with the sex that was determined.  Again, if there is a conflict an error will be raised; you cannot specify the sex of an individual to be incompatible with the haplosomes that it inherits, and if you specify a sex with a 
+\f3\fs18 string
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value it is up to you to ensure that that is compatible with the specifications in 
+\f3\fs18 pattern
+\f4\fs20 .  (If you need more flexibility, you should probably not use a sexual model at all, but simply use chromosome types 
+\f3\fs18 "A"
+\f4\fs20  and 
+\f3\fs18 "H"
+\f4\fs20  in a non-sexual model, track the sex of individuals yourself with a tag value such as 
+\f3\fs18 tagL0
+\f4\fs20 , and manipulate haplosomes during reproduction however you wish; SLiM then imposes no constraints.)\
+By default, the offspring is considered to have no parents, since there may be more than two \'93parents\'94 in the general case.  If desired, 
 \f3\fs18 parent1
 \f4\fs20  and/or 
 \f3\fs18 parent2
-\f4\fs20  may be passed to explicitly establish particular individuals as the parents of the offspring for purposes of pedigree tracking.  In this case, if only one of 
+\f4\fs20  may be passed to explicitly establish particular individuals as the parents of the offspring, for purposes of pedigree tracking as well as for other purposes described below.  In this case, if only one of 
 \f3\fs18 parent1
 \f4\fs20  and 
 \f3\fs18 parent2
@@ -9608,7 +9688,7 @@ By default, the offspring is considered to have no parents for the purposes of p
 \f3\fs18 NULL
 \f4\fs20 , that individual will be set as 
 \f1\i both
-\f4\i0  of the parents of the offspring, mirroring the way that parentage is tracked for other cases such as 
+\f4\i0  of the parents of the offspring, mirroring the way that pedigree tracking works for other cases such as 
 \f3\fs18 addCloned()
 \f4\fs20  and 
 \f3\fs18 addSelfed()
@@ -9617,7 +9697,11 @@ By default, the offspring is considered to have no parents for the purposes of p
 \f4\fs20  or 
 \f3\fs18 parent2
 \f4\fs20  to actually be a genetic parent of the offspring at all, although typically they would be.\
-When recombination is involved, the inheritance dictionary will specify two parental strands with crossover breakpoints between them to generate one offspring strand \'96 for example, the 
+The 
+\f3\fs18 randomizeStrands
+\f4\fs20  parameter is used to control the recombination behavior of 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20 .  An inheritance dictionary can specify two parental strands with crossover breakpoints between them to generate one offspring strand with recombination \'96 for example, with the 
 \f3\fs18 "strand1"
 \f4\fs20 , 
 \f3\fs18 "strand2"
@@ -9633,9 +9717,9 @@ When recombination is involved, the inheritance dictionary will specify two pare
 \f3\fs18 randomizeStrands
 \f4\fs20  is 
 \f3\fs18 F
-\f4\fs20  (the default), these strands are used precisely as given; for example, 
+\f4\fs20 , the supplied strands are used precisely as given; for example, 
 \f3\fs18 "strand1"
-\f4\fs20  will be the initial copy strand when generating the first gamete to form the offspring.  If 
+\f4\fs20  will be the initial copy strand when generating the first gamete to form the offspring.  This mode should be used if you want explicit control over the initial copy strand; one example would be if your script is explicitly generating all four of the products of a meiosis event.  If 
 \f3\fs18 randomizeStrands
 \f4\fs20  is T, then if 
 \f3\fs18 "strand1"
@@ -9645,51 +9729,99 @@ When recombination is involved, the inheritance dictionary will specify two pare
 \f3\fs18 NULL
 \f4\fs20 , 50% of the time they will be swapped, making 
 \f3\fs18 "strand2"
-\f4\fs20  the initial copy strand for the first gamete instead.  This is probably usually the desired behavior, to avoid an inheritance bias due to a lack of randomization in the initial copy strand, so passing 
+\f4\fs20  the initial copy strand for the first gamete instead.  This mode (
+\f3\fs18 randomizeStrands
+\f4\fs20 =
+\f3\fs18 T
+\f4\fs20 ) is usually the desired behavior, to avoid an inheritance bias due to a lack of randomization in the initial copy strand, so passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 randomizeStrands
-\f4\fs20  is recommended unless you specifically desire otherwise.  It is not the default behavior only for reasons of backward compatibility.\
+\f4\fs20  is recommended unless you specifically desire otherwise.  The default value of 
+\f3\fs18 randomizeStrands
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  in order to force either 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20  to be explicitly chosen whenever it would make a difference; if it is left as 
+\f3\fs18 NULL
+\f4\fs20 , an error will be raised if generation of the specified offspring involves recombination, since then SLiM needs to know whether the value is 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 .  (This unconventional approach has been adopted because the default value was 
+\f3\fs18 F
+\f4\fs20  prior to SLiM 5, but 
+\f3\fs18 T
+\f4\fs20  is almost always the correct behavior, as explained above.  To try to prevent accidental bugs, the new policy was thus adopted to force the user to explicitly choose 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 .)\
 Finally, 
 \f3\fs18 count
 \f4\fs20  is the number of offspring to generate using the given pattern and parameters, and 
 \f3\fs18 defer
 \f4\fs20  is used for deferral of offspring generation, as described for 
 \f3\fs18 addRecombinant()
+\f4\fs20 .  Other details, such as which callbacks are involved, how 
+\f3\fs18 meanParentAge
+\f4\fs20  for the offspring is calculated, gene conversion, spatial positioning of the offspring, and so forth, are all as described for 
+\f3\fs18 addRecombinant()
 \f4\fs20 .\
-It is important to note that not all chromosomes need to be specified by 
+Constructing a well-formed pattern dictionary with inheritance dictionaries for every chromosome can be a bit complex and require many lines of code.  To ease the process, see the 
+\f3\fs18 Chromosome
+\f4\fs20  methods 
+\f3\fs18 addPatternForCross()
+\f4\fs20 , 
+\f3\fs18 addPatternForClone()
+\f4\fs20 , 
+\f3\fs18 addPatternForNull()
+\f4\fs20 , and 
+\f3\fs18 addPatternForRecombinant()
+\f4\fs20 , which help you to build a pattern dictionary one inheritance dictionary at a time.  However, several of these methods will probably be used infrequently, because of the final aspect of 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20  that we have not yet discussed.\
+As mentioned earlier, not all chromosomes need to be specified with an inheritance dictionary in 
 \f3\fs18 pattern
-\f4\fs20 ; whenever SLiM\'92s default inheritance behavior is well-defined and is desired for a given chromosome, the inheritance dictionary for that chromosome may be omitted.  The default inheritance behavior is based upon the values of 
+\f4\fs20 ; whenever SLiM\'92s default inheritance behavior is well-defined and is desired for a given chromosome, the inheritance dictionary for that chromosome may be omitted, and will be inferred by 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20  automatically.  This behavior makes it easy to specify a reproduction event that is, for example, like a regular biparental cross involving many chromosomes, but that uses a different reproductive pattern just for one particular chromosome that behaves in a special way.  The inferred inheritance dictionary for a given chromosome is based upon the chromosome type, the values of 
 \f3\fs18 parent1
 \f4\fs20  and 
 \f3\fs18 parent2
-\f4\fs20 .  If two parents are specified (that is, non-
+\f4\fs20 , and the sex of the offspring (which has, by this point, been determined in all cases).  The rules for this inference are actually quite simple.  If both parents are specified (that is, are both non-
 \f3\fs18 NULL
-\f4\fs20 ), the default behavior is as it would be for a call to 
-\f3\fs18 addCrossed()
-\f4\fs20  with those two parents, given in that order.  If only one parent is specified (non-
+\f4\fs20 ), the inferred inheritance dictionary is the same as would be produced by a call to 
+\f3\fs18 addPatternForCross()
+\f4\fs20  with those two parents, given in that order, for that chromosome, for the determined offspring sex.  If only one parent is specified (non-
 \f3\fs18 NULL
-\f4\fs20 ), the default behavior is as it would be for a call to 
-\f3\fs18 addCloned()
-\f4\fs20  with that one parent.  (If selfing is desired as the default behavior, pass the same individual for both 
+\f4\fs20 ), the inferred inheritance dictionary is the same as would be produced by a call to 
+\f3\fs18 addPatternForClone()
+\f4\fs20  with that one parent, for that chromosome, for the determined offspring sex.  If selfing is desired for the inferred inheritance dictionary, pass the same individual for both 
 \f3\fs18 parent1
 \f4\fs20  and 
 \f3\fs18 parent2
-\f4\fs20 .)  Precisely what the default behavior consists of depends upon the type of chromosome, as specified in the documentation for 
-\f3\fs18 initializeChromosome()
-\f4\fs20 .  If the default behavior for a given chromosome is not well-defined, or if both 
+\f4\fs20 ; the behavior of 
+\f3\fs18 addPatternForCross()
+\f4\fs20  in that case is essentially to self the individual, as discussed in that method.  If the inferred inheritance dictionary for a given chromosome is not well-defined, as discussed in the documentation for 
+\f3\fs18 addPatternForCross()
+\f4\fs20  and 
+\f3\fs18 addPatternForClone()
+\f4\fs20 , or if both 
 \f3\fs18 parent1
 \f4\fs20  and 
 \f3\fs18 parent2
 \f4\fs20  are 
 \f3\fs18 NULL
-\f4\fs20 , the inheritance pattern for that chromosome must be specified in 
+\f4\fs20 , an error will be raised.  In such cases, the inheritance dictionary cannot be inferred, and will need to be given explicitly in 
 \f3\fs18 pattern
-\f4\fs20 , or an error will be raised.  This default behavior makes it easy to specify a reproduction event like a biparental cross involving many chromosomes, but deviate from that default to specify a different reproductive pattern just for one particular chromosome that behaves in a special way.\
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(object<Individual>)addRecombinant(No<Haplosome>$\'a0strand1, No<Haplosome>$\'a0strand2, Ni\'a0breaks1, No<Haplosome>$\'a0strand3, No<Haplosome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [logical$\'a0randomizeStrands\'a0=\'a0F], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)addRecombinant(No<Haplosome>$\'a0strand1, No<Haplosome>$\'a0strand2, Ni\'a0breaks1, No<Haplosome>$\'a0strand3, No<Haplosome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [Nl$\'a0randomizeStrands\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parental haplosomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
@@ -9706,7 +9838,9 @@ It is important to note that not all chromosomes need to be specified by
 \f3\fs18 addSelfed()
 \f4\fs20 , or 
 \f3\fs18 addCloned()
-\f4\fs20  instead.\
+\f4\fs20  instead.  This method may only be used in single-chromosome models; in multi-chromosome models, use 
+\f3\fs18 addMultiRecombinant()
+\f4\fs20 , a more general version of this method.\
 This method supports several possible configurations for 
 \f3\fs18 strand1
 \f4\fs20 , 
@@ -9787,12 +9921,10 @@ This method supports several possible configurations for
 \f3\fs18 subpopID
 \f4\fs20  property will be the 
 \f3\fs18 id
-\f4\fs20  of the offspring\'92s subpopulation, since the parental subpopulation is ambiguous\kerning1\expnd0\expndtw0  in the general case\expnd0\expndtw0\kerning0
-; this behavior differs from the other 
+\f4\fs20  of the offspring\'92s subpopulation, since the parental subpopulation is ambiguous in the general case; this behavior differs from the other 
 \f3\fs18 add...()
 \f4\fs20  methods.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 The 
+The 
 \f3\fs18 sex
 \f4\fs20  parameter is interpreted exactly as in 
 \f3\fs18 addCrossed()
@@ -9804,21 +9936,9 @@ This method supports several possible configurations for
 \f3\fs18 sex
 \f4\fs20  is 
 \f3\fs18 NULL
-\f4\fs20 ), the sex will be inferred from the strands provided where possible (when modeling an X or Y chromosome), or will be chosen randomly otherwise (when modeling autosomes); it will 
+\f4\fs20 ), the sex will be inferred from the strands provided where possible (when modeling a chromosome with a sex-specific inheritance pattern), or will be chosen randomly otherwise (e.g., when modeling autosomes); it will 
 \f1\i not
-\f4\i0  be inferred from the sex of the individuals possessing the parental strands, even when the reproductive mode is essentially clonal from a single parent, since such inference would be ambiguous in the general case.  When modeling the X or Y, 
-\f3\fs18 strand1
-\f4\fs20  and 
-\f3\fs18 strand2
-\f4\fs20  must be X haplosomes (or 
-\f3\fs18 NULL
-\f4\fs20 ), and 
-\f3\fs18 strand3
-\f4\fs20  and 
-\f3\fs18 strand4
-\f4\fs20  must both be X haplosomes or both be Y haplosomes (or 
-\f3\fs18 NULL
-\f4\fs20 ).\
+\f4\i0  be inferred from the sex of the individuals possessing the parental strands, even when the reproductive mode is essentially clonal from a single parent, since such inference would be ambiguous in the general case.\
 By default, the offspring is considered to have no parents for the purposes of pedigree tracking, since there may be more than two \'93parents\'94 in the general case.  If pedigree tracking of parentage is desired, 
 \f3\fs18 parent1
 \f4\fs20  and/or 
@@ -9840,6 +9960,69 @@ By default, the offspring is considered to have no parents for the purposes of p
 \f4\fs20  or 
 \f3\fs18 parent2
 \f4\fs20  to actually be a genetic parent of the offspring at all, although typically they would be.\
+The 
+\f3\fs18 randomizeStrands
+\f4\fs20  parameter is used to control the recombination behavior of 
+\f3\fs18 addRecombinant()
+\f4\fs20 .  Two parental strands with crossover breakpoints between them can be specified as described above to generate one offspring strand with recombination \'96 for example, with the 
+\f3\fs18 strand1
+\f4\fs20 , 
+\f3\fs18 strand2
+\f4\fs20 , and 
+\f3\fs18 breaks1
+\f4\fs20  parameters, as described above, but the same is true of the 
+\f3\fs18 strand3
+\f4\fs20 , 
+\f3\fs18 strand4
+\f4\fs20 , and 
+\f3\fs18 breaks2
+\f4\fs20  parameters, and the discussion that follows applies to both cases.  If 
+\f3\fs18 randomizeStrands
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , the supplied strands are used precisely as given; for example, 
+\f3\fs18 strand1
+\f4\fs20  will be the initial copy strand when generating the first gamete to form the offspring.  This mode should be used if you want explicit control over the initial copy strand; one example would be if your script is explicitly generating all four of the products of a meiosis event.  If 
+\f3\fs18 randomizeStrands
+\f4\fs20  is T, then if 
+\f3\fs18 strand1
+\f4\fs20  and 
+\f3\fs18 strand2
+\f4\fs20  are both non-
+\f3\fs18 NULL
+\f4\fs20 , 50% of the time they will be swapped, making 
+\f3\fs18 strand2
+\f4\fs20  the initial copy strand for the first gamete instead.  This mode (
+\f3\fs18 randomizeStrands
+\f4\fs20 =
+\f3\fs18 T
+\f4\fs20 ) is usually the desired behavior, to avoid an inheritance bias due to a lack of randomization in the initial copy strand, so passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 randomizeStrands
+\f4\fs20  is recommended unless you specifically desire otherwise.  The default value of 
+\f3\fs18 randomizeStrands
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  in order to force either 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20  to be explicitly chosen whenever it would make a difference; if it is left as 
+\f3\fs18 NULL
+\f4\fs20 , an error will be raised if generation of the specified offspring involves recombination, since then SLiM needs to know whether the value is 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 .  (This unconventional approach has been adopted because the default value was 
+\f3\fs18 F
+\f4\fs20  prior to SLiM 5, but 
+\f3\fs18 T
+\f4\fs20  is almost always the correct behavior, as explained above.  To try to prevent accidental bugs, the new policy was thus adopted to force the user to explicitly choose 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 .)\
 If 
 \f3\fs18 randomizeStrands
 \f4\fs20  is 
@@ -9871,8 +10054,6 @@ If
 \f4\fs20  for 
 \f3\fs18 randomizeStrands
 \f4\fs20  is recommended unless you specifically desire otherwise.  It is not the default behavior only for reasons of backward compatibility.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 These semantics allow several uses for 
 \f3\fs18 addRecombinant()
 \f4\fs20 .  When all strands are non-
@@ -9898,8 +10079,7 @@ These semantics allow several uses for
 \f4\fs20  to replace segments of an otherwise clonal copy of 
 \f3\fs18 strand1
 \f4\fs20 , while the second haplosome of the generated offspring will again be kept empty; this could be useful for modeling bacterial conjugation, for example.  Other variations are also possible.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 The value of the 
+The value of the 
 \f3\fs18 meanParentAge
 \f4\fs20  property of the generated offspring is calculated from the mean parent age of each of its two haplosomes (whether they turn out to be null haplosomes or not); that may be an average of two values (if both offspring haplosomes have at least one parent), a single value (if one offspring haplosome has no parent), or no values (if both offspring haplosomes have no parent, in which case 
 \f3\fs18 0.0
@@ -9912,13 +10092,10 @@ These semantics allow several uses for
 \f4\fs20  then that offspring haplosome is parentless and is not used in the final calculation.  In other words, if one offspring haplosome has two parents with ages A and B, and the other offspring haplosome has one parent with age C, the 
 \f3\fs18 meanParentAge
 \f4\fs20  of the offspring will be (A+B+C+C)\'a0/\'a04, not (A+B+C)\'a0/\'a03.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Note that gene conversion tracts are not explicitly supported by this method; the 
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -9965,11 +10142,10 @@ Also beginning in SLiM 4.1, in spatial models the spatial position of the offspr
 \f4\fs20  will be used; if it is also 
 \f3\fs18 NULL
 \f4\fs20 , no spatial position will be inherited.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
-\f4\fs20  for further general notes on the addition of new offspring individuals.\
+\f4\fs20  for further general notes on the addition of new offspring individuals.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)addSelfed(object<Individual>$\'a0parent, [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
