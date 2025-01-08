@@ -6280,12 +6280,15 @@ IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_ch
 	
 	// Second, simplify the code below by checking that all haploid chromosome types have
 	// a null second haplosome.  The types listed here allow a non-null second haplosome.
+	// This is marked as internal error because the caller should have already checked this.
+#if DEBUG
 	if (!p_haplosome2_null)
 		if ((p_chromosome_type != ChromosomeType::kA_DiploidAutosome) &&
 			(p_chromosome_type != ChromosomeType::kX_XSexChromosome) &&
 			(p_chromosome_type != ChromosomeType::kZ_ZSexChromosome) &&
 			(p_chromosome_type != ChromosomeType::kNullY_YSexChromosomeWithNull))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '" << p_chromosome_type <<"', " << p_caller_name << " requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << p_chromosome_type << "' is haploid)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): (internal error) for chromosome type '" << p_chromosome_type <<"', " << p_caller_name << " requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << p_chromosome_type << "' is haploid)." << EidosTerminate();
+#endif
 	
 	// Third, check the chromosome type and validate.  If a sex was chosen explicitly above,
 	// this will raise if the haplosomes supplied are not compatible with that sex.  If a sex
@@ -6993,9 +6996,23 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		bool haplosome1_null = (!strand1 && !strand2);
 		bool haplosome2_null = (!strand3 && !strand4);
 		
+		// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
+		// _ValidateHaplosomesAndChooseSex() does this check, but only in DEBUG; this is our responsibility.
+		ChromosomeType inheritance_chromosome_type = inheritance_chromosome->Type();
+		bool make_second_haplosome = false;
+		
+		if ((inheritance_chromosome_type == ChromosomeType::kA_DiploidAutosome) ||
+			(inheritance_chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+			(inheritance_chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+			(inheritance_chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+			make_second_haplosome = true;
+		
+		if (!haplosome2_null && !make_second_haplosome)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): for chromosome type '" << inheritance_chromosome_type <<"', addMultiRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << inheritance_chromosome_type << "' is haploid)." << EidosTerminate();
+		
 		// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
-		// to turn off optimizations
-		if (haplosome1_null || haplosome2_null)
+		// to turn off optimizations.  If the chromosome is haploid, we chack only haplosome1_null.
+		if (haplosome1_null || (haplosome2_null && make_second_haplosome))
 			has_null_haplosomes_ = true;
 		
 		// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
@@ -7079,7 +7096,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		// chosen.  Otherwise, IndividualSex::kUnspecified will be returned, allowing a free choice below.
 		// We allow the user to play many games with addRecombinant(), but the sex-linked constraints of the
 		// chromosome type must be followed, because it is assumed in many places.
-		IndividualSex inheritance_child_sex = _ValidateHaplosomesAndChooseSex(inheritance_chromosome->Type(), haplosome1_null, haplosome2_null, sex_value, "addMultiRecombinant()");
+		IndividualSex inheritance_child_sex = _ValidateHaplosomesAndChooseSex(inheritance_chromosome_type, haplosome1_null, haplosome2_null, sex_value, "addMultiRecombinant()");
 		
 		if (constrained_child_sex == IndividualSex::kUnspecified)
 		{
@@ -7344,19 +7361,35 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			bool haplosome1_null = (!strand1 && !strand2);
 			bool haplosome2_null = (!strand3 && !strand4);
 			
+			// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
+			// We do this also in pass 1, but we need to do it again because we need make_second_haplosome.
+			ChromosomeType chromosome_type = chromosome->Type();
+			bool make_second_haplosome = false;
+			
+			if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) ||
+				(chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+				(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+				(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+				make_second_haplosome = true;
+			
 			// Make the new haplosomes for this chromosome
 			Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
-			Haplosome *haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
+			Haplosome *haplosome2 = nullptr;
+			
+			if (make_second_haplosome)
+				haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
 			
 			if (pedigrees_enabled)
 			{
 				haplosome1->haplosome_id_ = pid * 2;
-				haplosome2->haplosome_id_ = pid * 2 + 1;
+				if (make_second_haplosome)
+					haplosome2->haplosome_id_ = pid * 2 + 1;
 			}
 			
 			// This has to happen after SetCurrentNewIndividual(), since it patches the node metadata
 			individual->AddHaplosomeAtIndex(haplosome1, 0);
-			individual->AddHaplosomeAtIndex(haplosome2, 1);
+			if (make_second_haplosome)
+				individual->AddHaplosomeAtIndex(haplosome2, 1);
 			
 			chromosome->StartMutationRunExperimentClock();
 			
@@ -7660,9 +7693,23 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	bool haplosome1_null = (!strand1 && !strand2);
 	bool haplosome2_null = (!strand3 && !strand4);
 	
+	// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
+	// _ValidateHaplosomesAndChooseSex() does this check, but only in DEBUG; this is our responsibility.
+	ChromosomeType chromosome_type = chromosome->Type();
+	bool make_second_haplosome = false;
+	
+	if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) ||
+		(chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+		(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+		(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+		make_second_haplosome = true;
+	
+	if (!haplosome2_null && !make_second_haplosome)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): for chromosome type '" << chromosome_type <<"', addRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << chromosome_type << "' is haploid)." << EidosTerminate();
+	
 	// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
-	// to turn off optimizations
-	if (haplosome1_null || haplosome2_null)
+	// to turn off optimizations.  If the chromosome is haploid, we chack only haplosome1_null.
+	if (haplosome1_null || (haplosome2_null && make_second_haplosome))
 		has_null_haplosomes_ = true;
 	
 	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
@@ -7797,10 +7844,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		pedigree_parent2 = (Individual *)parent2_value->ObjectData()[0];
 	
 	if ((&pedigree_parent1->subpopulation_->species_ != &species_) || (&pedigree_parent1->subpopulation_->species_ != &species_))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 	
 	if ((pedigree_parent1->index_ == -1) || (pedigree_parent1->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	if (pedigree_parent1 && !pedigree_parent2)
 		pedigree_parent2 = pedigree_parent1;
@@ -7813,7 +7860,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// chosen.  Otherwise, IndividualSex::kUnspecified will be returned, allowing a free choice below.
 	// We allow the user to play many games with addRecombinant(), but the sex-linked constraints of the
 	// chromosome type must be followed, because it is assumed in many places.
-	IndividualSex constrained_child_sex = _ValidateHaplosomesAndChooseSex(chromosome->Type(), haplosome1_null, haplosome2_null, sex_value, "addRecombinant()");
+	IndividualSex constrained_child_sex = _ValidateHaplosomesAndChooseSex(chromosome_type, haplosome1_null, haplosome2_null, sex_value, "addRecombinant()");
 	
 	// Generate the number of children requested
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
@@ -7854,7 +7901,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// Make the new individual as a candidate
 		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 		Haplosome *haplosome1 = haplosome1_null ? chromosome->NewHaplosome_NULL(individual, 0) : chromosome->NewHaplosome_NONNULL(individual, 0);
-		Haplosome *haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
+		Haplosome *haplosome2 = nullptr;
+		
+		if (make_second_haplosome)
+			haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
 		
 		if (pedigrees_enabled)
 		{
@@ -7868,7 +7918,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				individual->TrackParentage_Biparental(pid, *pedigree_parent1, *pedigree_parent2);
 			
 			haplosome1->haplosome_id_ = pid * 2;
-			haplosome2->haplosome_id_ = pid * 2 + 1;
+			if (make_second_haplosome)
+				haplosome2->haplosome_id_ = pid * 2 + 1;
 		}
 		
 		// TREE SEQUENCE RECORDING
@@ -7877,7 +7928,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		
 		// This has to happen after SetCurrentNewIndividual(), since it patches the node metadata
 		individual->AddHaplosomeAtIndex(haplosome1, 0);
-		individual->AddHaplosomeAtIndex(haplosome2, 1);
+		if (make_second_haplosome)
+			individual->AddHaplosomeAtIndex(haplosome2, 1);
 		
 		// BCH 9/26/2023: inherit the spatial position of pedigree_parent1 by default, to set up for deviatePositions()/pointDeviated()
 		// Note that, unlike other addX() methods, the first parent is not necessarily defined; in that case, the
