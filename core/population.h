@@ -220,7 +220,8 @@ public:
 	bool ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
 	// apply recombination() callbacks to a generated child; a return of true means the breakpoints were changed
-	bool ApplyRecombinationCallbacks(Haplosome *p_haplosome1, Haplosome *p_haplosome2, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
+	// note that in the general case (e.g., addRecombinant()), the haplosomes might not belong to the parent
+	bool ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_haplosome1, Haplosome *p_haplosome2, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);
 	
 	// generate a child haplosome from parental haplosome(s), very directly -- no null haplosomes etc., just cross/clone/recombine
 	// these methods are templated with variants for speed; see also MungeIndividualCrossed() etc.

@@ -621,30 +621,6 @@ void Chromosome::ChooseMutationRunLayout(void)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 }
 
-bool Chromosome::RequiresZeroRecombination(void) const
-{
-	switch (type_)
-	{
-			// these chromosome types allow recombination
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kH_HaploidAutosome:
-		case ChromosomeType::kX_XSexChromosome:
-		case ChromosomeType::kZ_ZSexChromosome:
-			return false;
-			
-			// these types do not, because they are haploid
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		case ChromosomeType::kHM_HaploidMaleInherited:
-		case ChromosomeType::kML_HaploidMaleLine:
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			return true;
-	}
-}
-
 bool Chromosome::DefaultsToZeroRecombination(void) const
 {
 	switch (type_)
@@ -1407,7 +1383,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 }
 
 // draw a set of uniqued breakpoints according to the "crossover breakpoint" model and run them through recombination() callbacks, returning the final usable set
-void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
+void Chromosome::_DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const
 {
 	// BEWARE! Chromosome::DrawDSBBreakpoints() below must be altered in parallel with this method!
 #if DEBUG
@@ -1515,7 +1491,7 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 
 // draw a set of uniqued breakpoints according to the "double-stranded break" model and run them through recombination() callbacks, returning the final usable set
 // the information returned here also includes a list of heteroduplex regions where mismatches between the two parental strands will need to be resolved
-void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const
+void Chromosome::_DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome::DrawDSBBreakpoints(): usage of statics, probably many other issues");
 	
@@ -1704,6 +1680,170 @@ generateDSBsWithoutRedrawingLengths:
 			}
 		}
 	}
+}
+
+// This high-level function is the funnel for drawing breakpoints.  It delegates down to DrawDSBBreakpoints()
+// or DrawCrossoverBreakpoints(), handles recombination() callbacks, and returns a sorted, uniqued vector.
+// You can supply it with a number of breakpoints to draw, or pass -1 to have it draw the number for you.
+// If the caller can handle complex gene conversion tracts, they should pass a vector for those to be placed
+// in.  If not, pass nullptr, and this method will raise if complex gene conversion tracts are in use.  For
+// addRecombinant() and addMultiRecombinant(), this method allows the parent to be different from the
+// haplosomes that are supplied; the parent individual is used to look up the haplosomes if they are passed
+// as nullptr.  The haplosomes are used only if recombination() callbacks are in effect.  The parent
+// is also used to look up the sex, for sex-specific recombination rates.
+void Chromosome::DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, Haplosome *p_haplosome2, int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> *p_heteroduplex, const char *p_caller_name)
+{
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", recombination breakpoints cannot be drawn for a species with no genetics." << EidosTerminate();
+	
+	if (!p_heteroduplex && using_DSB_model_ && (simple_conversion_fraction_ != 1.0))
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", complex gene conversion tracts cannot be active since there is no provision for handling heteroduplex regions." << EidosTerminate();
+	
+	// look up parent information; note that if parent is nullptr, we do not run recombination() callbacks!
+	// the parent is a required pseudo-parameter for the recombination() callback
+	IndividualSex parent_sex = IndividualSex::kUnspecified;
+	std::vector<SLiMEidosBlock*> recombination_callbacks;
+	Subpopulation *parent_subpop = nullptr;
+	
+	if (p_parent)
+	{
+		parent_sex = p_parent->sex_;
+		parent_subpop = p_parent->subpopulation_;
+		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
+		
+		// SPECIES CONSISTENCY CHECK
+		if (&p_parent->subpopulation_->species_ != &species_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", the parent, if supplied, must belong to the same species as the target chromosome." << EidosTerminate();
+	}
+	else	// !p_parent
+	{
+		// In a sexual model with sex-specific recombination maps, we need to know the parent we're
+		// generating breakpoints for; in other situations it is optional, but recombination()
+		// breakpoints will not be called if parent is NULL.
+		if (!single_recombination_map_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", a parent must be supplied since sex-specific recombination maps are in use (to determine which map to use, from the sex of the parent)." << EidosTerminate();
+	}
+	
+	// look up haplosome information, used only for the recombination() callback
+	if ((!p_haplosome1 && p_haplosome2) || (!p_haplosome2 && p_haplosome1))
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): (internal error) in " << p_caller_name << ", haplosomes must either be supplied or not supplied." << EidosTerminate();
+	
+	if (p_haplosome1)
+	{
+		// SPECIES CONSISTENCY CHECK
+		if ((&p_haplosome1->OwningIndividual()->subpopulation_->species_ != &species_) ||
+			(&p_haplosome2->OwningIndividual()->subpopulation_->species_ != &species_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", parental haplosomes must belong to the same species as the target chromosome." << EidosTerminate();
+		
+		if ((p_haplosome1->chromosome_index_ != index_) || (p_haplosome2->chromosome_index_ != index_))
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", parental haplosomes must belong to the target chromosome." << EidosTerminate();
+		
+		// Note that if haplosomes were passed in but p_parent is nullptr, we do NOT attempt to infer a parent
+		// subpopulation in order to get recombination() callbacks from it.  In the general case that would
+		// not work, since the two haplosomes might belong to different subpopulations; and if we can't do it
+		// in general, we shouldn't try to do it at all.  If you want recombination() callbacks, pass p_parent.
+	}
+	else if (p_parent)
+	{
+		// Get the indices of the haplosomes associated with this chromosome.  Note that the first/last indices
+		// might be the same, if this is a haploid chromosome.  That is OK here.  The user is allowed to set a
+		// recombination rate on a haploid chromosome and generate breakpoints for it; what they do with that
+		// information is up to them.  (They might use them in an addRecombinant() or addMultiRecombinant() call,
+		// for example.)  In that case, of a haploid chromosome, the same single parent haplosome will be passed
+		// twice to recombination() callbacks; that seems better than not defining one of the pseudo-parameters.
+		int first_haplosome_index = species_.FirstHaplosomeIndices()[index_];
+		int last_haplosome_index = species_.LastHaplosomeIndices()[index_];
+		
+		// Note that for calling recombination() callbacks below, we treat the parent's first haplosome as the
+		// initial copy strand.  If a distinction needs to be made, pass the haplosomes in to this method.
+		p_haplosome1 = p_parent->haplosomes_[first_haplosome_index];
+		p_haplosome2 = p_parent->haplosomes_[last_haplosome_index];
+	}
+	
+	// Draw the number of breakpoints, if it was not supplied
+	if (p_num_breakpoints == -1)
+		p_num_breakpoints = DrawBreakpointCount(parent_sex);
+	
+	if ((p_num_breakpoints < 0) || (p_num_breakpoints > 1000000L))
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): in " << p_caller_name << ", the number of recombination breakpoints must be in [0, 1000000]." << EidosTerminate();
+	
+#if DEBUG
+	if (p_crossovers.size())
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): (internal error) in " << p_caller_name << ", p_crossovers was not supplied empty." << EidosTerminate();
+#endif
+	
+	// draw the breakpoints based on the recombination rate map, and sort and unique the result
+	if (p_num_breakpoints)
+	{
+		if (using_DSB_model_)
+		{
+			if (p_heteroduplex)
+			{
+				// p_heteroduplex is not nullptr, so the caller intends to use it for something
+				_DrawDSBBreakpoints(parent_sex, p_num_breakpoints, p_crossovers, *p_heteroduplex);
+			}
+			else
+			{
+				// p_heteroduplex is nullptr, so we need to pass in our own vector; it is not actually used
+				// in this case anyway, since simple_conversion_fraction_ must be 1.0 (as checked above)
+				std::vector<slim_position_t> heteroduplex;
+				
+				_DrawDSBBreakpoints(parent_sex, p_num_breakpoints, p_crossovers, heteroduplex);
+			}
+		}
+		else
+		{
+			_DrawCrossoverBreakpoints(parent_sex, p_num_breakpoints, p_crossovers);
+		}
+		
+		// p_crossovers is sorted and uniqued at this point
+		
+		if (recombination_callbacks.size())
+		{
+			// a non-zero number of breakpoints, with recombination callbacks
+			bool breaks_changed = species_.population_.ApplyRecombinationCallbacks(p_parent, p_haplosome1, p_haplosome2, p_crossovers, recombination_callbacks);
+			
+			// we only sort/unique if the breakpoints have changed, since they were sorted/uniqued before
+			if (breaks_changed && (p_crossovers.size() > 1))
+			{
+				std::sort(p_crossovers.begin(), p_crossovers.end());
+				p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+			}
+		}
+	}
+	else if (recombination_callbacks.size())
+	{
+		// zero breakpoints from the SLiM core, but we have recombination() callbacks
+		species_.population_.ApplyRecombinationCallbacks(p_parent, p_haplosome1, p_haplosome2, p_crossovers, recombination_callbacks);
+		
+		if (p_crossovers.size() > 1)
+		{
+			std::sort(p_crossovers.begin(), p_crossovers.end());
+			p_crossovers.erase(unique(p_crossovers.begin(), p_crossovers.end()), p_crossovers.end());
+		}
+	}
+	else
+	{
+		// no breakpoints, no gene conversion, no recombination() callbacks
+	}
+	
+	// values in p_crossovers and p_heteroduplex are returned to the caller
+	// p_crossovers is guaranteed to be sorted and uniqued, which we check here
+	// we also check that no position is less than zero or beyond the chromosome end
+#if DEBUG
+	slim_position_t previous_value = -1;
+	slim_position_t last_chrom_position = last_position_;
+	
+	for (slim_position_t value : p_crossovers)
+	{
+		if (value <= previous_value)
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): (internal error) breakpoints vector is not sorted/uniqued." << EidosTerminate();
+		if (value > last_chrom_position)
+			EIDOS_TERMINATION << "ERROR (Chromosome::DrawBreakpoints): (internal error) breakpoints vector goes beyond the chromosome end." << EidosTerminate();
+		
+		previous_value = value;
+	}
+#endif
 }
 
 size_t Chromosome::MemoryUsageForMutationMaps(void)
@@ -2862,60 +3002,17 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (!species_.HasGenetics())
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() may not be called for a species with no genetics." << EidosTerminate();
-	
 	EidosValue *parent_value = p_arguments[0].get();
 	EidosValue *n_value = p_arguments[1].get();
 	
-	if (using_DSB_model_ && (simple_conversion_fraction_ != 1.0))
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() does not allow complex gene conversion tracts to be in use, since there is no provision for handling heteroduplex regions." << EidosTerminate();
-	
-	// In a sexual model with sex-specific recombination maps, we need to know the parent we're
-	// generating breakpoints for; in other situations it is optional, but recombination()
-	// breakpoints will not be called if parent is NULL.
 	Individual *parent = nullptr;
 	
 	if (parent_value->Type() != EidosValueType::kValueNULL)
 		parent = (Individual *)parent_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
-	if (!parent && !single_recombination_map_)
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires a non-NULL parent parameter in sexual models with sex-specific recombination maps." << EidosTerminate();
+	int num_breakpoints = -1;	// means "draw them for us"
 	
-	IndividualSex parent_sex = IndividualSex::kUnspecified;
-	std::vector<SLiMEidosBlock*> recombination_callbacks;
-	Subpopulation *parent_subpop = nullptr;
-	
-	// Note that if parent is nullptr, we ignore recombination() callbacks!  This is strange, but necessary and documented.
-	if (parent)
-	{
-		parent_sex = parent->sex_;
-		parent_subpop = parent->subpopulation_;
-		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
-		
-		// SPECIES CONSISTENCY CHECK
-		if (&parent_subpop->species_ != &this->species_)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires that parent, if non-NULL, belongs to the same species as the target chromosome." << EidosTerminate();
-	}
-	
-	// Get the indices of the haplosomes associated with this chromosome.  Note that the first/last indices might be the same,
-	// if this is a haploid chromosome.  That is OK here.  The user is allowed to set a recombination rate on a haploid
-	// chromosome and generate breakpoints for it; what they do with that information is up to them.  (They might use them
-	// in an addRecombinant() or addMultiRecombinant() call, for example.)  In that case, of a haploid chromosome, the same
-	// single parent haplosome will be passed twice to recombination() callbacks; that seems better than not defining one of
-	// the pseudo-parameters.
-	int first_haplosome_index = species_.FirstHaplosomeIndices()[index_];
-	int last_haplosome_index = species_.LastHaplosomeIndices()[index_];
-	
-	// Much of the breakpoint-drawing code here is taken from Population::HaplosomeCrossed().
-	// We don't want to split it out into a separate function because (a) we don't want that
-	// overhead for HaplosomeCrossed(), which is a hotspot, and (b) we do things slightly
-	// differently here (not generating a past-the-end breakpoint, for example).
-	int num_breakpoints;
-	
-	if (n_value->Type() == EidosValueType::kValueNULL)
-		num_breakpoints = DrawBreakpointCount(parent_sex);
-	else
+	if (n_value->Type() != EidosValueType::kValueNULL)
 	{
 		int64_t n = n_value->IntAtIndex_NOCAST(0, nullptr);
 		
@@ -2926,52 +3023,18 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	}
 	
 	std::vector<slim_position_t> all_breakpoints;
-	std::vector<slim_position_t> heteroduplex;				// never actually used since simple_conversion_fraction_ must be 1.0
 	
-	// Note that for calling recombination() callbacks below, we always treat the parent's first haplosome as the initial copy strand.  This is
-	// documented; it is perhaps a weakness of the API here, but if we randomly chose an initial copy strand it would not be used downstream, so.
+	// Note that for calling recombination() callbacks below, we always treat the parent's first haplosome as
+	// the initial copy strand.  This is documented; it is perhaps a weakness of the API here, but if we
+	// randomly chose an initial copy strand it would not be used downstream, so.
+	// FIXME an idea: a new parameter, [l$ randomizeStrands = F], could be added that, if true, would
+	// put a breakpoint at 0 half of the time, regardless of recombination rate, so the initial copy
+	// strand is randomized for anyone using the generated breakpoints.  This solves the problem, a
+	// little bit clunkily.  The main client of this method is users of addRecombinant(), though, and
+	// it now has its own randomizeStrands flag, so maybe this change is unnecessary?
 	
-	// draw the breakpoints based on the recombination rate map, and sort and unique the result
-	if (num_breakpoints)
-	{
-		if (using_DSB_model_)
-			DrawDSBBreakpoints(parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
-		else
-			DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
-		
-		if (parent && recombination_callbacks.size())
-		{
-			// a non-zero number of breakpoints, with recombination callbacks
-			Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
-			Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
-			
-			species_.population_.ApplyRecombinationCallbacks(parent_haplosome1, parent_haplosome2, all_breakpoints, recombination_callbacks);
-			
-			if (all_breakpoints.size() > 1)
-			{
-				std::sort(all_breakpoints.begin(), all_breakpoints.end());
-				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-			}
-		}
-	}
-	else if (parent && recombination_callbacks.size())
-	{
-		// zero breakpoints from the SLiM core, but we have recombination() callbacks
-		Haplosome *parent_haplosome1 = parent->haplosomes_[first_haplosome_index];
-		Haplosome *parent_haplosome2 = parent->haplosomes_[last_haplosome_index];
-		
-		species_.population_.ApplyRecombinationCallbacks(parent_haplosome1, parent_haplosome2, all_breakpoints, recombination_callbacks);
-		
-		if (all_breakpoints.size() > 1)
-		{
-			std::sort(all_breakpoints.begin(), all_breakpoints.end());
-			all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-		}
-	}
-	else
-	{
-		// no breakpoints, no gene conversion, no recombination() callbacks
-	}
+	DrawBreakpoints(parent, /* p_haplosome1 */ nullptr, /* p_haplosome2 */ nullptr, num_breakpoints,
+					all_breakpoints, /* p_heteroduplex */ nullptr, "drawBreakpoints()");
 	
 	if (all_breakpoints.size() == 0)
 		return gStaticEidosValue_Integer_ZeroVec;
@@ -3468,9 +3531,6 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 		if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
 		
-		if ((recombination_rate != 0.0) && RequiresZeroRecombination())
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
-		
 		// then adopt them
 		rates.clear();
 		positions.clear();
@@ -3498,9 +3558,6 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
-			
-			if ((recombination_rate != 0.0) && RequiresZeroRecombination())
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
 		}
 		
 		// The stake here is that the last position in the chromosome is not allowed to change after the chromosome is

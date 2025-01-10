@@ -306,7 +306,6 @@ public:
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
 	inline size_t GenomicElementCount(void) const { return genomic_elements_.size(); }
 	
-	bool RequiresZeroRecombination(void) const;
 	bool DefaultsToZeroRecombination(void) const;
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
@@ -325,9 +324,12 @@ public:
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;
 	
-	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene conversion parameters
-	void DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
-	void DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const;
+	// choose a set of recombination breakpoints, based on recomb. intervals, overall recomb. rate, and gene
+	// conversion parameters; DrawBreakpoints() is the high-level funnel that most callers should use, whereas
+	// the low-level functions do not handle recombination() callbacks and other niceties
+	void _DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers) const;
+	void _DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const;
+	void DrawBreakpoints(Individual *p_parent, Haplosome *p_haplosome1, Haplosome *p_haplosome2, int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> *p_heteroduplex, const char *p_caller_name);
 	
 #ifndef USE_GSL_POISSON
 	// draw both the mutation count and breakpoint count, using a single Poisson draw for speed

@@ -667,12 +667,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 		
 		double recombination_rate = rates_value->NumericAtIndex_NOCAST(0, nullptr);
 		
-		// check values
+		// check values; I thought about requiring a rate of 0.0 for all haploid chromosome types, but maybe
+		// the user wants to recombine them sometimes with addRecombinant(), no need to prevent them
 		if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
-		
-		if ((recombination_rate != 0.0) && chromosome->RequiresZeroRecombination())
-			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
 		
 		// then adopt them
 		rates.clear();
@@ -700,9 +698,6 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 			
 			if ((recombination_rate < 0.0) || (recombination_rate > 0.5) || std::isnan(recombination_rate))
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requires rates to be in [0.0, 0.5] (" << EidosStringForFloat(recombination_rate) << " supplied)." << EidosTerminate();
-			
-			if ((recombination_rate != 0.0) && chromosome->RequiresZeroRecombination())
-				EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requires a recombination rate of 0.0 for all chromosome types except 'A', 'H', 'X', and 'Z'." << EidosTerminate();
 			
 			if (chromosome->extent_immutable_)
 			{

@@ -2459,7 +2459,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 }
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
-bool Population::ApplyRecombinationCallbacks(Haplosome *p_haplosome1, Haplosome *p_haplosome2, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
+bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_haplosome1, Haplosome *p_haplosome2, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyRecombinationCallbacks(): running Eidos callback");
 	
@@ -2518,16 +2518,13 @@ bool Population::ApplyRecombinationCallbacks(Haplosome *p_haplosome1, Haplosome 
 			// the value objects, and we know that the values we are setting here will not change (the objects
 			// referred to by the values may change, but the values themselves will not change).
 			if (recombination_callback->contains_individual_)
-			{
-				Individual *individual = p_haplosome1->OwningIndividual();
-				callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-			}
+				callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_parent->CachedEidosValue());
 			if (recombination_callback->contains_haplosome1_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_haplosome1, p_haplosome1->CachedEidosValue());
 			if (recombination_callback->contains_haplosome2_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_haplosome2, p_haplosome2->CachedEidosValue());
 			if (recombination_callback->contains_subpop_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_haplosome1->OwningIndividual()->subpopulation_->SymbolTableEntry().second);
+				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_parent->subpopulation_->SymbolTableEntry().second);
 			
 			// All the variable entries for the crossovers and gene conversion start/end points
 			if (recombination_callback->contains_breakpoints_)
@@ -2649,8 +2646,9 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	
 	// some behaviors -- which callbacks to use, which recombination/mutation rate to use, subpop of origin for mutations, etc. --
 	// depend upon characteristics of the first parent, so we fetch the necessary properties here
-	Subpopulation *source_subpop = parent_haplosome_1->individual_->subpopulation_;
-	IndividualSex parent_sex = parent_haplosome_1->individual_->sex_;
+	Individual *parent_individual = parent_haplosome_1->individual_;
+	Subpopulation *source_subpop = parent_individual->subpopulation_;
+	IndividualSex parent_sex = parent_individual->sex_;
 	
 	// determine how many mutations and breakpoints we have
 	int num_mutations, num_breakpoints;
@@ -2682,12 +2680,15 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 		//std::cout << num_mutations << " mutations, " << num_breakpoints << " breakpoints" << std::endl;
 		
 		// draw the breakpoints based on the recombination rate map, and sort and unique the result
+		// we don't use Chromosome::DrawBreakpoints(), for speed, but this code mirrors it
 		if (num_breakpoints)
 		{
 			if (p_chromosome.using_DSB_model_)
-				p_chromosome.DrawDSBBreakpoints(parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
+				p_chromosome._DrawDSBBreakpoints(parent_sex, num_breakpoints, all_breakpoints, heteroduplex);
 			else
-				p_chromosome.DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+				p_chromosome._DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
+			
+			// all_breakpoints is sorted and uniqued at this point
 			
 			if (f_callbacks && p_recombination_callbacks)
 			{
@@ -2695,12 +2696,13 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 				if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
 					EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 				
-				ApplyRecombinationCallbacks(parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
+				bool breaks_changed = ApplyRecombinationCallbacks(parent_individual, parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 				num_breakpoints = (int)all_breakpoints.size();
 				
 				if (num_breakpoints)
 				{
-					if (all_breakpoints.size() > 1)
+					// we only sort/unique if the breakpoints have changed, since they were sorted/uniqued before
+					if (breaks_changed && (all_breakpoints.size() > 1))
 					{
 						std::sort(all_breakpoints.begin(), all_breakpoints.end());
 						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
@@ -2728,7 +2730,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			if (p_chromosome.using_DSB_model_ && (p_chromosome.simple_conversion_fraction_ != 1.0))
 				EIDOS_TERMINATION << "ERROR (Population::HaplosomeCrossed): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 			
-			ApplyRecombinationCallbacks(parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
+			ApplyRecombinationCallbacks(parent_individual, parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 			num_breakpoints = (int)all_breakpoints.size();
 			
 			if (num_breakpoints)
@@ -2756,6 +2758,15 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 		}
 	}
+	
+	// A leading zero in the breakpoints vector switches copy strands before copying begins.
+	// In HaplosomeRecombined() we explicitly remove that, to prevent it from being recorded
+	// in the tree sequence.  That's a bit trickier to do here, since we've deferred adding the
+	// past-the-end marker above in some cases.  It is not essential to do, I think, just a
+	// nicety that makes for a cleaner recorded tree sequence.  Also, a leading zero should
+	// be much less common in HaplosomeCrossed(), since the user is not playing games the way
+	// they do with HaplosomeRecombined().  So I'm going to skip it for now, which I think is
+	// basically harmless; but I'll revisit this later.  FIXME MULTICHROM
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_sequence = f_treeseq;
@@ -3803,8 +3814,24 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 	// determine how many mutations we have
 	int num_mutations = p_chromosome.DrawMutationCount(parent_sex);
 	
-	// we need a defined end breakpoint, so we add it now
-	p_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
+	// A leading zero in the breakpoints vector switches copy strands before copying begins.
+	// We want to handle that up front, primarily because we don't want to record it in treeseq.
+	// FIXME MULTICHROM erase() here can be very expensive; would be good to switch to using a start pointer
+	// and count, which would allow the first element to be removed in O(1) time by advancing the pointer
+	// I've put off doing that change because it echos across many calls and will make big diffs
+	// As a part of this work, RecordNewHaplosome() should get a derived version for the no-recombination case,
+	// especially the null haplosome case; recording those should be fast to avoid bogging down the model
+	while (p_breakpoints.front() == 0)
+	{
+		p_breakpoints.erase(p_breakpoints.begin());
+		std::swap(parent_haplosome_1, parent_haplosome_2);
+	}
+	
+	// we need a defined end breakpoint, so we add it now; we don't want more than one, though
+	// in some cases the caller might already have this breakpoint added, so we need to check
+	// (that happens with multiple children in addRecombinant(), for example)
+	if (p_breakpoints.back() <= p_chromosome.last_position_mutrun_)
+		p_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_sequence = f_treeseq;

@@ -93,6 +93,9 @@ development head (in the master branch):
 		policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
 			the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
 		implement addMultiRecombinant() for complete control over reproduction in multi-chromosome models
+		extend addRecombinant() and addMultiRecombinant() to allow NULL as a breaks vector with two strands, meaning "draw breakpoints for me", to avoid needing drawBreakpoints() in most cases
+			this new code path also allows gene conversion including heteroduplex mismatch repair and gBGC to work with addRecombinant() and addMultiRecombinant()
+			also change to allow a recombination rate to be set for haploid chromosomes; this is potentially useful with addRecombinant() etc.
 
 
 version 4.3 (Eidos version 3.3):

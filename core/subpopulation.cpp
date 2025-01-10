@@ -6940,8 +6940,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		if ((strand1 && strand1->IsNull()) || (strand2 && strand2->IsNull()) || (strand3 && strand3->IsNull()) || (strand4 && strand4->IsNull()))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): a parental strand for addMultiRecombinant() is a null haplosome, which is not allowed; pass NULL instead." << EidosTerminate();
 		
-		// The parental strands must be visible in the subpopulation, and we need to be able to find them
-		// to check their sex
+		// The parental strands must be visible in the subpopulation
 		Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
 		Individual *strand2_parent = (strand2 ? strand2->individual_ : nullptr);
 		Individual *strand3_parent = (strand3 ? strand3->individual_ : nullptr);
@@ -6976,7 +6975,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		
 		// Determine whether we are randomizing strands; note this sets randomizeStrands once for each
 		// iteration, but always to the same value.  We need to check each inheritance dictionary against
-		// the specified value of randomizeStrands to validate it.
+		// the specified value of randomizeStrands to validate it, so we need it in pass 1.
 		if (randomizeStrands_value->Type() == EidosValueType::kValueLogical)
 		{
 			randomizeStrands = randomizeStrands_value->LogicalData()[0];
@@ -6997,6 +6996,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		bool haplosome2_null = (!strand3 && !strand4);
 		
 		// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
+		// The second haplosome might be a null haplosome; the question is whether to make one at all.
 		// _ValidateHaplosomesAndChooseSex() does this check, but only in DEBUG; this is our responsibility.
 		ChromosomeType inheritance_chromosome_type = inheritance_chromosome->Type();
 		bool make_second_haplosome = false;
@@ -7008,7 +7008,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			make_second_haplosome = true;
 		
 		if (!haplosome2_null && !make_second_haplosome)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): for chromosome type '" << inheritance_chromosome_type <<"', addMultiRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << inheritance_chromosome_type << "' is haploid)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): for chromosome type '" << inheritance_chromosome_type <<"', addMultiRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << inheritance_chromosome_type << "' is intrinsically haploid)." << EidosTerminate();
 		
 		// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
 		// to turn off optimizations.  If the chromosome is haploid, we chack only haplosome1_null.
@@ -7018,6 +7018,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
 		// a half-NULL pair, but must be supplied for a non-NULL pair.  BCH 9/20/2021: Added logic here in
 		// support of the new semantics that (NULL, NULL, NULL) makes a null haplosome, not an empty haplosome.
+		// BCH 1/8/2025: Changed logic here in support of the new semantics that (haplosome, haplosome, NULL)
+		// requests that SLiM generate breakpoints for a cross in the usual way, so the user doesn't have to.
+		//
 		// First we need to check the types of the supplied breakpoint vectors; again, Eidos has done no
 		// validation for us!  We do not sort/unique/bounds-check the breakpoint vectors here, since we don't
 		// need them until the second pass.
@@ -7034,20 +7037,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		
 		int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
 		
-		if (haplosome1_null && (breaks1count != 0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
-		else if ((breaks1count != 0) && !strand2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
-		
-		if (haplosome2_null && (breaks2count != 0))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
-		else if ((breaks2count != 0) && !strand4)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
-		
-		if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
-		if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
+		if (breaks1count != 0)
+		{
+			if (haplosome1_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
+			else if (!strand2)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+		}
+		if (breaks2count != 0)
+		{
+			if (haplosome2_null)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
+			else if (!strand4)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+		}
 		
 		// The mean parent age is averaged across the mean parent age for each non-null child haplosome
 		if (strand1_parent && strand2_parent)
@@ -7101,6 +7104,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		if (constrained_child_sex == IndividualSex::kUnspecified)
 		{
 			// So far we have seen no constraint; accept the choice _ValidateHaplosomesAndChooseSex() made.
+			// Note that this might still be IndividualSex::kUnspecified, until we get to a constraint.
 			constrained_child_sex = inheritance_child_sex;
 		}
 		else if ((inheritance_child_sex != IndividualSex::kUnspecified) && (constrained_child_sex != inheritance_child_sex))
@@ -7115,8 +7119,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	
 	// Figure out the parents for purposes of pedigree recording.  If only one parent was supplied, use it
 	// for both, just as we do for cloning and selfing; it makes relatedness() work.  Note mean_parent_age
-	// comes from the strands.  BCH 9/26/2023 the first parent can now also be used for spatial positioning,
-	// even if pedigree tracking is not enabled.
+	// comes from the strands.  BCH 9/26/2023: The first parent can now also be used for spatial positioning,
+	// even if pedigree tracking is not enabled.  BCH 1/10/2025: We infer selfing/cloning for the parental
+	// pattern here, which addRecombinant() does not do, because we need that to infer missing inheritance
+	// dictionaries below.
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *pedigree_parent1 = nullptr;
 	Individual *pedigree_parent2 = nullptr;
@@ -7126,12 +7132,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		pedigree_parent1 = (Individual *)parent1_value->ObjectData()[0];
 	if (parent2_value->Type() != EidosValueType::kValueNULL)
 		pedigree_parent2 = (Individual *)parent2_value->ObjectData()[0];
-	
-	if ((&pedigree_parent1->subpopulation_->species_ != &species_) || (&pedigree_parent1->subpopulation_->species_ != &species_))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
-	
-	if ((pedigree_parent1->index_ == -1) || (pedigree_parent1->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
 	if (pedigree_parent1 == pedigree_parent2)
 		is_selfing = true;
@@ -7147,7 +7147,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		is_cloning = true;
 	}
 	
-	// Generate the number of children requested
+	if (pedigree_parent1)
+	{
+		// if we have pedigree parents, we need to sanity-check them
+		if ((&pedigree_parent1->subpopulation_->species_ != &species_) || (&pedigree_parent2->subpopulation_->species_ != &species_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		
+		if ((pedigree_parent1->index_ == -1) || (pedigree_parent2->index_ == -1))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+	}
+	
+	// Generate the number of children requested, using mutation() callbacks from the target subpopulation (this)
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
@@ -7159,13 +7169,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
-		// Determine the sex of the child if it remains unconstrained
+		// If the child's sex is unconstrained, each child generated draws its sex independently
 		IndividualSex child_sex = constrained_child_sex;
 		
 		if (child_sex == IndividualSex::kUnspecified)
 			child_sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
 		
-		// Make the new individual as a candidate
+		// Make the new individual as a candidate; we make its haplosomes in the pass 2 loop below
 		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 		slim_pedigreeid_t pid = 0;
 		
@@ -7200,6 +7210,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		
 		for (Chromosome *chromosome : chromosomes)
 		{
+			ChromosomeType chromosome_type = chromosome->Type();
 			EidosDictionaryUnretained *inheritance = nullptr;
 			
 			if (pattern_integerKeys)
@@ -7218,7 +7229,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			}
 			
 			if (!inheritance && !pedigree_parent1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant):  addMultiRecombinant() has insufficient information to handle a chromosome (id " << chromosome->ID() << ", symbol '" << chromosome->Symbol() << "'); no inheritance dictionary was specified for this chromosome, and parent1 / parent2 are NULL." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant):  addMultiRecombinant() has insufficient information to handle a chromosome (id " << chromosome->ID() << ", symbol '" << chromosome->Symbol() << "'); no inheritance dictionary was specified for this chromosome, and inference of a default behavior is not possible since parent1 and parent2 are NULL." << EidosTerminate();
 			
 			// this is the information we will need, from the inheritance dictionary or synthesized
 			Haplosome *strand1 = nullptr;
@@ -7226,42 +7237,50 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			Haplosome *strand3 = nullptr;
 			Haplosome *strand4 = nullptr;
 			std::vector<slim_position_t> breakvec1, breakvec2;
+			bool generate_breakvec1 = false;
+			bool generate_breakvec2 = false;
 			
 			if (inheritance)
 			{
 				// process the inheritance dictionary; note that validation was done in pass 1
-				const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
-				EidosValue *strand1_value = nullptr;
-				EidosValue *strand2_value = nullptr;
 				EidosValue *breaks1_value = nullptr;
-				EidosValue *strand3_value = nullptr;
-				EidosValue *strand4_value = nullptr;
 				EidosValue *breaks2_value = nullptr;
 				
-				for (auto const &inheritance_element : *inheritance_stringKeys)
 				{
-					const std::string &inheritance_key = inheritance_element.first;
-					EidosValue * const inheritance_value = inheritance_element.second.get();
+					const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
+					EidosValue *strand1_value = nullptr;
+					EidosValue *strand2_value = nullptr;
+					EidosValue *strand3_value = nullptr;
+					EidosValue *strand4_value = nullptr;
 					
-					if (inheritance_key == strand1_string)		strand1_value = inheritance_value;
-					else if (inheritance_key == strand2_string)	strand2_value = inheritance_value;
-					else if (inheritance_key == breaks1_string)	breaks1_value = inheritance_value;
-					else if (inheritance_key == strand3_string)	strand3_value = inheritance_value;
-					else if (inheritance_key == strand4_string)	strand4_value = inheritance_value;
-					else if (inheritance_key == breaks2_string)	breaks2_value = inheritance_value;
+					for (auto const &inheritance_element : *inheritance_stringKeys)
+					{
+						const std::string &inheritance_key = inheritance_element.first;
+						EidosValue * const inheritance_value = inheritance_element.second.get();
+						
+						if (inheritance_key == strand1_string)		strand1_value = inheritance_value;
+						else if (inheritance_key == strand2_string)	strand2_value = inheritance_value;
+						else if (inheritance_key == breaks1_string)	breaks1_value = inheritance_value;
+						else if (inheritance_key == strand3_string)	strand3_value = inheritance_value;
+						else if (inheritance_key == strand4_string)	strand4_value = inheritance_value;
+						else if (inheritance_key == breaks2_string)	breaks2_value = inheritance_value;
+					}
+					
+					// Get the haplosomes for the supplied strands, or nullptr for NULL
+					if (strand1_value && (strand1_value->Type() == EidosValueType::kValueObject))
+						strand1 = (Haplosome *)strand1_value->ObjectData()[0];
+					if (strand2_value && (strand2_value->Type() == EidosValueType::kValueObject))
+						strand2 = (Haplosome *)strand2_value->ObjectData()[0];
+					if (strand3_value && (strand3_value->Type() == EidosValueType::kValueObject))
+						strand3 = (Haplosome *)strand3_value->ObjectData()[0];
+					if (strand4_value && (strand4_value->Type() == EidosValueType::kValueObject))
+						strand4 = (Haplosome *)strand4_value->ObjectData()[0];
 				}
 				
-				// Get the haplosomes for the supplied strands, or nullptr for NULL
-				if (strand1_value && (strand1_value->Type() == EidosValueType::kValueObject))
-					strand1 = (Haplosome *)strand1_value->ObjectData()[0];
-				if (strand2_value && (strand2_value->Type() == EidosValueType::kValueObject))
-					strand2 = (Haplosome *)strand2_value->ObjectData()[0];
-				if (strand3_value && (strand3_value->Type() == EidosValueType::kValueObject))
-					strand3 = (Haplosome *)strand3_value->ObjectData()[0];
-				if (strand4_value && (strand4_value->Type() == EidosValueType::kValueObject))
-					strand4 = (Haplosome *)strand4_value->ObjectData()[0];
-				
-				// Sort/unique/bounds-check the breakpoint vectors
+				// Copy the breakpoints into local buffers, since we will sort and modify them below.
+				// If NULL is supplied for breaks, that is a request for the recombination breakpoints
+				// to be generated automatically for a cross.  Note that the breaks count could also be
+				// zero because integer(0) was passed; that just means "no breakpoints for this cross".
 				if (!breaks1_value)
 					breaks1_value = gStaticEidosValueNULL.get();
 				if (!breaks2_value)
@@ -7275,21 +7294,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					
 					for (int break_index = 0; break_index < breaks1count; ++break_index)
 						breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_data[break_index]));
-					
-					std::sort(breakvec1.begin(), breakvec1.end());
-					breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
-					
-					if (breakvec1.back() > chromosome->last_position_)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-					
-					// handle a breakpoint at position 0, which swaps the initial strand;
-					// HaplosomeRecombined() does not like this so we do it here
-					if (breakvec1.front() == 0)
-					{
-						breakvec1.erase(breakvec1.begin());
-						std::swap(strand1, strand2);
-						//std::swap(strand1_value, strand2_value);		// not used henceforth
-					}
+				}
+				else if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
+				{
+					generate_breakvec1 = true;
 				}
 				
 				if (breaks2count)
@@ -7298,21 +7306,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					
 					for (int break_index = 0; break_index < breaks2count; ++break_index)
 						breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_data[break_index]));
-					
-					std::sort(breakvec2.begin(), breakvec2.end());
-					breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
-					
-					if (breakvec2.back() > chromosome->last_position_)
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-					
-					// handle a breakpoint at position 0, which swaps the initial strand;
-					// HaplosomeRecombined() does not like this so we do it here
-					if (breakvec2.front() == 0)
-					{
-						breakvec2.erase(breakvec2.begin());
-						std::swap(strand3, strand4);
-						//std::swap(strand3_value, strand4_value);		// not used henceforth
-					}
+				}
+				else if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
+				{
+					generate_breakvec2 = true;
 				}
 				
 				// Randomly swap initial copy strands, if requested and applicable; this should not alter
@@ -7320,27 +7317,59 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				if (randomizeStrands)
 				{
 					if (strand1 && strand2 && Eidos_RandomBool(rng_state))
-					{
 						std::swap(strand1, strand2);
-						//std::swap(strand1_value, strand2_value);		// not used henceforth
-					}
 					if (strand3 && strand4 && Eidos_RandomBool(rng_state))
-					{
 						std::swap(strand3, strand4);
-						//std::swap(strand3_value, strand4_value);		// not used henceforth
-					}
 				}
 			}
 			else if (is_cloning)
 			{
-				// Infer the inheritance dictionary information as addPatternForClone() would
+				// Infer the inheritance dictionary info as addPatternForClone() would (same code path).
 #warning implement me!
+				//species_.InferInheritanceForClone(chromosome_type, pedigree_parent1, child_sex, &strand1, &strand2, breakvec1, &generate_breakvec1);
 			}
-			else // crossed and selfed cases; not sure if selfing needs any special handling here
+			else // crossed and selfed cases
 			{
-				// Infer the inheritance dictionary information as addPatternForCross() would
+				// Infer the inheritance dictionary info as addPatternForCross() would (same code path).
+				// Note that this randomizes the strand order for us, so we can ignore randomizeStrands.
 #warning implement me!
+				//species_.InferInheritanceForCross(chromosome_type, pedigree_parent1, pedigree_parent2, child_sex, &strand1, &strand2, breakvec1, &generate_breakvec1, &strand3, &strand4, breakvec2, &generate_breakvec2);
 			}
+			
+			// Generate breakpoints.  If the user passed NULL for breaks1, but strand1 and strand2 are
+			// both non-NULL, it used to be an error but in SLiM 5 it requests that SLiM generate the
+			// breakpoints for the cross automatically, avoiding the need to call drawBreakpoints().
+			// This also allows addRecombinant() and addMultiRecombinant() to do gene conversion with
+			// heteroduplex mismatch repair and gBGC, which was not previously possible.
+			std::vector<slim_position_t> heteroduplex1, heteroduplex2;
+			
+			if (generate_breakvec1)
+			{
+				chromosome->DrawBreakpoints(pedigree_parent1, strand1, strand2, /* p_num_breakpoints */ -1, breakvec1, &heteroduplex1, "addMultiRecombinant()");
+			}
+			else
+			{
+				std::sort(breakvec1.begin(), breakvec1.end());
+				breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
+			}
+			
+			if (generate_breakvec2)
+			{
+				chromosome->DrawBreakpoints(pedigree_parent2, strand3, strand4, /* p_num_breakpoints */ -1, breakvec2, &heteroduplex2, "addMultiRecombinant()");
+			}
+			else
+			{
+				std::sort(breakvec2.begin(), breakvec2.end());
+				breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
+			}
+			
+			if (breakvec1.back() > chromosome->last_position_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+			if (breakvec2.back() > chromosome->last_position_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+			
+			// We used to need to look for a leading 0 in the breaks vectors, and swap the corresponding strands,
+			// but HaplosomeRecombined() now handles that for us since it is shared functionality.
 			
 			//
 			// Now, one way or another, we have all the information we need to generate the offspring
@@ -7363,7 +7392,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			
 			// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
 			// We do this also in pass 1, but we need to do it again because we need make_second_haplosome.
-			ChromosomeType chromosome_type = chromosome->Type();
 			bool make_second_haplosome = false;
 			
 			if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) ||
@@ -7377,7 +7405,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			Haplosome *haplosome2 = nullptr;
 			
 			if (make_second_haplosome)
-				haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
+				haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
 			
 			if (pedigrees_enabled)
 			{
@@ -7409,6 +7437,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					else
 					{
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
+						
+						if (heteroduplex1.size() > 0)
+							population_.DoHeteroduplexRepair(heteroduplex1, breakvec1, strand1, strand2, haplosome1);
 					}
 				}
 				else
@@ -7453,6 +7484,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					else
 					{
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
+						
+						if (heteroduplex2.size() > 0)
+							population_.DoHeteroduplexRepair(heteroduplex2, breakvec2, strand3, strand4, haplosome2);
 					}
 				}
 				else
@@ -7469,9 +7503,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					}
 				}
 			}
-			else
+			else if (make_second_haplosome)
 			{
-				// both strands are NULL, so we make a null haplosome; we do nothing but record it
+				// both strands are NULL and this is a diploid chromosome, so we record a null haplosome
 				if (species_.RecordingTreeSequence())
 					species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 				
@@ -7485,8 +7519,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		}
 		
 		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
 		if (registered_modify_child_callbacks_.size())
 		{
 			// BCH 4/5/2022: When removing excess pseudo-parameters from callbacks, we lost a bit of
@@ -7495,12 +7527,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			// documented, and I doubt anybody was using it, and they can do the same without the
 			// modifyChild() callback, so I'm not viewing this loss of functionality as an obstacle
 			// to making this change.
-			// In addMultiRecombinant() we follow addRecombinant()'s lead: we pass nullptr for the
-			// parents, and false for p_is_selfing and p_is_cloning.  We could use pedigree_parent1
-			// and pedigree_parent2, and draw inferences from them about selfing/cloning, but that
-			// would not always be correct; it would just be a guess.  The user knows what they are
-			// doing, and can script what they need to do.
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+			// BCH 1/10/2025: Note that we pass nullptr for the parents, and false for p_is_selfing and
+			// p_is_cloning.  We could use pedigree_parent1 and pedigree_parent2, and draw inferences from
+			// them about selfing/cloning, but that would not always be correct; it would just be a guess.
+			bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 			
 			if (!proposed_child_accepted)
 			{
@@ -7591,11 +7621,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	Chromosome *chromosome = species_.Chromosomes()[0];
 	
 	// Get arguments and do trivial processing
-	EidosValue *strand1_value = p_arguments[0].get();
-	EidosValue *strand2_value = p_arguments[1].get();
 	EidosValue *breaks1_value = p_arguments[2].get();
-	EidosValue *strand3_value = p_arguments[3].get();
-	EidosValue *strand4_value = p_arguments[4].get();
 	EidosValue *breaks2_value = p_arguments[5].get();
 	EidosValue *sex_value = p_arguments[6].get();
 	EidosValue *parent1_value = p_arguments[7].get();
@@ -7628,12 +7654,26 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// both NULL and breaks1 is NULL/empty, the offspring haplosome will be a *null* haplosome (not just empty),
 	// and as before will not receive mutations.  That is the way it always should have worked.  Again, mutatis
 	// mutandis, for strand3, strand4, and breaks2.  See https://github.com/MesserLab/SLiM/issues/205.
+	// BCH 1/8/2025: A further change for SLiM 5: if strand1 and strand2 are both non-NULL (doing a cross),
+	// breaks1 may now be NULL indicating that addRecombinant() should draw breakpoints in the usual way.
 	
 	// Get the haplosomes for the supplied strands, or nullptr for NULL
-	Haplosome *strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand1_value->ObjectData()[0]);
-	Haplosome *strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand2_value->ObjectData()[0]);
-	Haplosome *strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand3_value->ObjectData()[0]);
-	Haplosome *strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand4_value->ObjectData()[0]);
+	Haplosome *strand1;
+	Haplosome *strand2;
+	Haplosome *strand3;
+	Haplosome *strand4;
+	
+	{
+		EidosValue *strand1_value = p_arguments[0].get();
+		EidosValue *strand2_value = p_arguments[1].get();
+		EidosValue *strand3_value = p_arguments[3].get();
+		EidosValue *strand4_value = p_arguments[4].get();
+		
+		strand1 = ((strand1_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand1_value->ObjectData()[0]);
+		strand2 = ((strand2_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand2_value->ObjectData()[0]);
+		strand3 = ((strand3_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand3_value->ObjectData()[0]);
+		strand4 = ((strand4_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Haplosome *)strand4_value->ObjectData()[0]);
+	}
 	
 	// New in SLiM 5, we raise if a null haplosome was passed in; remarkably, this was not checked for
 	// previously, and could lead to a crash if the user tried to do it!  It never makes sense to do it,
@@ -7643,8 +7683,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if ((strand1 && strand1->IsNull()) || (strand2 && strand2->IsNull()) || (strand3 && strand3->IsNull()) || (strand4 && strand4->IsNull()))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): a parental strand for addRecombinant() is a null haplosome, which is not allowed; pass NULL instead." << EidosTerminate();
 	
-	// The parental strands must be visible in the subpopulation, and we need to be able to find them
-	// to check their sex
+	// The parental strands must be visible in the subpopulation
 	Individual *strand1_parent = (strand1 ? strand1->individual_ : nullptr);
 	Individual *strand2_parent = (strand2 ? strand2->individual_ : nullptr);
 	Individual *strand3_parent = (strand3 ? strand3->individual_ : nullptr);
@@ -7671,7 +7710,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!strand3 && strand4)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): if strand3 is NULL, strand4 must also be NULL." << EidosTerminate();
 	
-	// Determine whether we are randomizing strands
+	// Determine whether we are randomizing strands; if we are, we will do it for each child generated
 	bool randomizeStrands = false;
 	
 	if (randomizeStrands_value->Type() == EidosValueType::kValueLogical)
@@ -7694,6 +7733,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	bool haplosome2_null = (!strand3 && !strand4);
 	
 	// Determine whether we're going to make a second haplosome -- if the chromosome type is diploid.
+	// The second haplosome might be a null haplosome; the question is whether to make one at all.
 	// _ValidateHaplosomesAndChooseSex() does this check, but only in DEBUG; this is our responsibility.
 	ChromosomeType chromosome_type = chromosome->Type();
 	bool make_second_haplosome = false;
@@ -7705,35 +7745,42 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		make_second_haplosome = true;
 	
 	if (!haplosome2_null && !make_second_haplosome)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): for chromosome type '" << chromosome_type <<"', addRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << chromosome_type << "' is haploid)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): for chromosome type '" << chromosome_type <<"', addRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << chromosome_type << "' is intrinsically haploid)." << EidosTerminate();
 	
 	// If we're generating any null haplosomes, we need to remember that in the Subpopulation state,
-	// to turn off optimizations.  If the chromosome is haploid, we chack only haplosome1_null.
+	// to turn off optimizations.  If the chromosome is haploid, we check only haplosome1_null.
 	if (haplosome1_null || (haplosome2_null && make_second_haplosome))
 		has_null_haplosomes_ = true;
 	
 	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or
 	// a half-NULL pair, but must be supplied for a non-NULL pair.  BCH 9/20/2021: Added logic here in
 	// support of the new semantics that (NULL, NULL, NULL) makes a null haplosome, not an empty haplosome.
+	// BCH 1/8/2025: Changed logic here in support of the new semantics that (haplosome, haplosome, NULL)
+	// requests that SLiM generate breakpoints for a cross in the usual way, so the user doesn't have to.
 	int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
 	
-	if (haplosome1_null && (breaks1count != 0))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
-	else if ((breaks1count != 0) && !strand2)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+	if (breaks1count != 0)
+	{
+		if (haplosome1_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
+		else if (!strand2)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+	}
+	if (breaks2count != 0)
+	{
+		if (haplosome2_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
+		else if (!strand4)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+	}
 	
-	if (haplosome2_null && (breaks2count != 0))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
-	else if ((breaks2count != 0) && !strand4)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
-	
-	if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
-	if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
-	
-	// Sort and unique and bounds-check the breakpoints
+	// Copy the breakpoints into local buffers, since we will sort and modify them below.
+	// If NULL is supplied for breaks, that is a request for the recombination breakpoints
+	// to be generated automatically for a cross.  Note that the breaks count could also be
+	// zero because integer(0) was passed; that just means "no breakpoints for this cross".
 	std::vector<slim_position_t> breakvec1, breakvec2;
+	bool generate_breakvec1 = false;
+	bool generate_breakvec2 = false;
 	
 	if (breaks1count)
 	{
@@ -7741,22 +7788,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		
 		for (int break_index = 0; break_index < breaks1count; ++break_index)
 			breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_data[break_index]));
-		
-		std::sort(breakvec1.begin(), breakvec1.end());
-		breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
-		
-		if (breakvec1.back() > chromosome->last_position_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-		
-		// handle a breakpoint at position 0, which swaps the initial strand;
-		// HaplosomeRecombined() does not like this so we do it here
-		if (breakvec1.front() == 0)
-		{
-			breakvec1.erase(breakvec1.begin());
-			std::swap(strand1, strand2);
-			std::swap(strand1_parent, strand2_parent);
-			//std::swap(strand1_value, strand2_value);		// not used henceforth
-		}
+	}
+	else if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
+	{
+		generate_breakvec1 = true;
 	}
 	
 	if (breaks2count)
@@ -7765,22 +7800,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		
 		for (int break_index = 0; break_index < breaks2count; ++break_index)
 			breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_data[break_index]));
-		
-		std::sort(breakvec2.begin(), breakvec2.end());
-		breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
-		
-		if (breakvec2.back() > chromosome->last_position_)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-		
-		// handle a breakpoint at position 0, which swaps the initial strand;
-		// HaplosomeRecombined() does not like this so we do it here
-		if (breakvec2.front() == 0)
-		{
-			breakvec2.erase(breakvec2.begin());
-			std::swap(strand3, strand4);
-			std::swap(strand3_parent, strand4_parent);
-			//std::swap(strand3_value, strand4_value);		// not used henceforth
-		}
+	}
+	else if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
+	{
+		generate_breakvec2 = true;
 	}
 	
 	// The mean parent age is averaged across the mean parent age for each non-null child haplosome
@@ -7832,8 +7855,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	// Figure out the parents for purposes of pedigree recording.  If only one parent was supplied, use it
 	// for both, just as we do for cloning and selfing; it makes relatedness() work.  Note mean_parent_age
-	// comes from the strands.  BCH 9/26/2023 the first parent can now also be used for spatial positioning,
-	// even if pedigree tracking is not enabled.
+	// comes from the strands.  BCH 9/26/2023: the first parent can now also be used for spatial positioning,
+	// even if pedigree tracking is not enabled.  BCH 1/10/2025: We do not need to infer selfing/cloning
+	// here, the way addMultiRecombinant() does, since we don't need to infer inheritance patterns.
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *pedigree_parent1 = nullptr;
 	Individual *pedigree_parent2 = nullptr;
@@ -7843,16 +7867,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (parent2_value->Type() != EidosValueType::kValueNULL)
 		pedigree_parent2 = (Individual *)parent2_value->ObjectData()[0];
 	
-	if ((&pedigree_parent1->subpopulation_->species_ != &species_) || (&pedigree_parent1->subpopulation_->species_ != &species_))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
-	
-	if ((pedigree_parent1->index_ == -1) || (pedigree_parent1->index_ == -1))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
-	
 	if (pedigree_parent1 && !pedigree_parent2)
 		pedigree_parent2 = pedigree_parent1;
 	if (pedigree_parent2 && !pedigree_parent1)
 		pedigree_parent1 = pedigree_parent2;
+	
+	if (pedigree_parent1)
+	{
+		// if we have pedigree parents, we need to sanity-check them
+		if ((&pedigree_parent1->subpopulation_->species_ != &species_) || (&pedigree_parent2->subpopulation_->species_ != &species_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+		
+		if ((pedigree_parent1->index_ == -1) || (pedigree_parent2->index_ == -1))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+	}
 	
 	// Figure out what sex the offspring has to be, based on the chromosome type and haplosomes provided.
 	// If sex_value specifies a sex, or a probability of a sex, then the sex will be chosen and checked
@@ -7862,7 +7890,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// chromosome type must be followed, because it is assumed in many places.
 	IndividualSex constrained_child_sex = _ValidateHaplosomesAndChooseSex(chromosome_type, haplosome1_null, haplosome2_null, sex_value, "addRecombinant()");
 	
-	// Generate the number of children requested
+	// Generate the number of children requested, using mutation() callbacks from the target subpopulation (this)
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
@@ -7881,22 +7909,60 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			child_sex = (Eidos_RandomBool(rng_state) ? IndividualSex::kMale : IndividualSex::kFemale);
 		
 		// Randomly swap initial copy strands, if requested and applicable; this should not alter
-		// any of the decisions we made earlier about null vs. non-null, child sex, etc.
+		// any of the decisions we made earlier about null vs. non-null, child sex, etc.  Note that
+		// with child_count > 1 we'll be swapping back and forth, but that's fine.
 		if (randomizeStrands)
 		{
 			if (strand1 && strand2 && Eidos_RandomBool(rng_state))
 			{
 				std::swap(strand1, strand2);
 				std::swap(strand1_parent, strand2_parent);
-				//std::swap(strand1_value, strand2_value);		// not used henceforth
 			}
 			if (strand3 && strand4 && Eidos_RandomBool(rng_state))
 			{
 				std::swap(strand3, strand4);
 				std::swap(strand3_parent, strand4_parent);
-				//std::swap(strand3_value, strand4_value);		// not used henceforth
 			}
 		}
+		
+		// Generate breakpoints.  If the user passed NULL for breaks1, but strand1 and strand2 are
+		// both non-NULL, it used to be an error but in SLiM 5 it requests that SLiM generate the
+		// breakpoints for the cross automatically, avoiding the need to call drawBreakpoints().
+		// This also allows addRecombinant() and addMultiRecombinant() to do gene conversion with
+		// heteroduplex mismatch repair and gBGC, which was not previously possible.
+		std::vector<slim_position_t> heteroduplex1, heteroduplex2;
+		
+		if (generate_breakvec1)
+		{
+			breakvec1.resize(0);		// we might be reusing this vector from a previous child
+			
+			chromosome->DrawBreakpoints(pedigree_parent1, strand1, strand2, /* p_num_breakpoints */ -1, breakvec1, &heteroduplex1, "addRecombinant()");
+		}
+		else
+		{
+			std::sort(breakvec1.begin(), breakvec1.end());
+			breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
+		}
+		
+		if (generate_breakvec2)
+		{
+			breakvec2.resize(0);		// we might be reusing this vector from a previous child
+			
+			chromosome->DrawBreakpoints(pedigree_parent2, strand3, strand4, /* p_num_breakpoints */ -1, breakvec2, &heteroduplex2, "addRecombinant()");
+		}
+		else
+		{
+			std::sort(breakvec2.begin(), breakvec2.end());
+			breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
+		}
+		
+		if (breakvec1.size() && (breakvec1.back() > chromosome->last_position_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		if (breakvec2.size() && (breakvec2.back() > chromosome->last_position_))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
+		
+		// We used to need to look for a leading 0 in the breaks vectors, and swap the corresponding strands,
+		// but HaplosomeRecombined() now handles that for us since it is shared functionality.
 		
 		// Make the new individual as a candidate
 		Individual *individual = NewSubpopIndividual(/* index */ -1, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
@@ -7904,7 +7970,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		Haplosome *haplosome2 = nullptr;
 		
 		if (make_second_haplosome)
-			haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
+			haplosome2 = haplosome2_null ? chromosome->NewHaplosome_NULL(individual, 1) : chromosome->NewHaplosome_NONNULL(individual, 1);
 		
 		if (pedigrees_enabled)
 		{
@@ -7955,6 +8021,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				else
 				{
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
+					
+					if (heteroduplex1.size() > 0)
+						population_.DoHeteroduplexRepair(heteroduplex1, breakvec1, strand1, strand2, haplosome1);
 				}
 			}
 			else
@@ -7999,6 +8068,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				else
 				{
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
+					
+					if (heteroduplex2.size() > 0)
+						population_.DoHeteroduplexRepair(heteroduplex2, breakvec2, strand3, strand4, haplosome2);
 				}
 			}
 			else
@@ -8015,9 +8087,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				}
 			}
 		}
-		else
+		else if (make_second_haplosome)
 		{
-			// both strands are NULL, so we make a null haplosome; we do nothing but record it
+			// both strands are NULL and this is a diploid chromosome, so we record a null haplosome
 			if (species_.RecordingTreeSequence())
 				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
 			
@@ -8030,8 +8102,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		chromosome->StopMutationRunExperimentClock("addMultiRecombinant()");
 		
 		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
-		bool proposed_child_accepted = true;
-		
 		if (registered_modify_child_callbacks_.size())
 		{
 			// BCH 4/5/2022: When removing excess pseudo-parameters from callbacks, we lost a bit of
@@ -8040,7 +8110,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			// documented, and I doubt anybody was using it, and they can do the same without the
 			// modifyChild() callback, so I'm not viewing this loss of functionality as an obstacle
 			// to making this change.
-			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+			// BCH 1/10/2025: Note that we pass nullptr for the parents, and false for p_is_selfing and
+			// p_is_cloning.  We could use pedigree_parent1 and pedigree_parent2, and draw inferences from
+			// them about selfing/cloning, but that would not always be correct; it would just be a guess.
+			bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 			
 			if (!proposed_child_accepted)
 			{
@@ -8064,35 +8137,37 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 		}
 		
-		if (proposed_child_accepted)
+		if (individual)
 		{
 			nonWF_offspring_individuals_.emplace_back(individual);
 			result->push_object_element_NORR(individual);
 			
 #if defined(SLIMGUI)
-			gui_offspring_crossed_++;
-			
-			// This offspring came from parents in various subpops but ended up here, so it is, in effect,
-			// a migrant; we tally things, for SLiMgui display purposes, as if it were generated in the
-			// parental subpops and then moved.  This is gross, but runs only in SLiMgui, so whatever :->
-			// We do not set its migrant_ flag, though; that flag is only for takeMigrants() in nonWF.
-			// Note that we use pedigree_parent1 and pedigree_parent2 for this, rather than the parents
-			// of the strands; in the addMultiRecombinant() case there are potentially many strands with
-			// many different parents.  It is just too complex to try to keep track of just for SLiMgui.
-			// BCH 1/7/2025: It used to be that addRecombinant() did this by strand, but I've dumbed it
-			// down to match addMultiRecombinant(); nobody will ever notice.  Doing it by strand was
-			// approximate too, and maybe even less good in some scenarios.
-			if (pedigree_parent1)
 			{
-				pedigree_parent1->subpopulation_->gui_premigration_size_ += 0.5;
-				if (pedigree_parent1->subpopulation_ != this)
-					gui_migrants_[pedigree_parent1->subpopulation_->subpopulation_id_] += 0.5;
-			}
-			if (pedigree_parent2)
-			{
-				pedigree_parent2->subpopulation_->gui_premigration_size_ += 0.5;
-				if (pedigree_parent2->subpopulation_ != this)
-					gui_migrants_[pedigree_parent2->subpopulation_->subpopulation_id_] += 0.5;
+				gui_offspring_crossed_++;
+				
+				// This offspring came from parents in various subpops but ended up here, so it is, in effect,
+				// a migrant; we tally things, for SLiMgui display purposes, as if it were generated in the
+				// parental subpops and then moved.  This is gross, but runs only in SLiMgui, so whatever :->
+				// We do not set its migrant_ flag, though; that flag is only for takeMigrants() in nonWF.
+				// Note that we use pedigree_parent1 and pedigree_parent2 for this, rather than the parents
+				// of the strands; in the addMultiRecombinant() case there are potentially many strands with
+				// many different parents.  It is just too complex to try to keep track of just for SLiMgui.
+				// BCH 1/7/2025: It used to be that addRecombinant() did this by strand, but I've dumbed it
+				// down to match addMultiRecombinant(); nobody will ever notice.  Doing it by strand was
+				// approximate too, and maybe even less good in some scenarios.
+				if (pedigree_parent1)
+				{
+					pedigree_parent1->subpopulation_->gui_premigration_size_ += 0.5;
+					if (pedigree_parent1->subpopulation_ != this)
+						gui_migrants_[pedigree_parent1->subpopulation_->subpopulation_id_] += 0.5;
+				}
+				if (pedigree_parent2)
+				{
+					pedigree_parent2->subpopulation_->gui_premigration_size_ += 0.5;
+					if (pedigree_parent2->subpopulation_ != this)
+						gui_migrants_[pedigree_parent2->subpopulation_->subpopulation_id_] += 0.5;
+				}
 			}
 #endif
 		}

@@ -5111,10 +5111,20 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 		right = (*p_breakpoints)[i];
 
 		tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
+		polarity = !polarity;
+		
+		// Sometimes the user might add a breakpoint at 0, to flip the initial copy strand, as in the meiotic
+		// drive recipe.  If they do that, a left==right breakpoint might make it in to here.  That would be
+		// a bug in the caller.  This has never been seen in the wild, so I'll make it DEBUG only.  In non-
+		// DEBUG runs the tree sequence will fail to pass integrity checks, with TSK_ERR_BAD_EDGE_INTERVAL.
+#if DEBUG
+		if (left >= right)
+			EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) a left==right breakpoint was passed to RecordNewHaplosome()." << EidosTerminate();
+#endif
+		
 		int ret = tsk_edge_table_add_row(&tsinfo.tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 		if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 		
-		polarity = !polarity;
 		left = right;
 	}
 	
