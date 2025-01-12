@@ -6227,14 +6227,14 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 }
 
 // nonWF only:
-IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, const char *p_caller_name)
+IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, bool p_sex_enabled, const char *p_caller_name)
 {
 	IndividualSex offspring_sex;
 	
 	// First, figure out what sex the user has requested and bounds-check it
 	EidosValueType sex_value_type = p_sex_value->Type();
 	
-	if (sex_enabled_)
+	if (p_sex_enabled)
 	{
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
@@ -6424,12 +6424,12 @@ IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_ch
 	return offspring_sex;
 }
 
-IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value)
+IndividualSex Subpopulation::_SexForSexValue(EidosValue *p_sex_value, bool p_sex_enabled)
 {
 	EidosValueType sex_value_type = p_sex_value->Type();
 	IndividualSex sex;
 	
-	if (sex_enabled_)
+	if (p_sex_enabled)
 	{
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
@@ -6643,7 +6643,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
 		// Determine the sex of the offspring based on the sex parameter
-		IndividualSex child_sex = _SexForSexValue(sex_value);
+		IndividualSex child_sex = _SexForSexValue(sex_value, sex_enabled_);
 		
 		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
 		Individual *individual = (this->*(population_.GenerateIndividualCrossed_TEMPLATED))(parent1, parent2, child_sex);
@@ -6719,7 +6719,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
 		// Determine the sex of the offspring based on the sex parameter
-		IndividualSex child_sex = _SexForSexValue(sex_value);
+		IndividualSex child_sex = _SexForSexValue(sex_value, sex_enabled_);
 		
 		// Make the new individual; if it doesn't pass modifyChild(), nullptr will be returned
 		Individual *individual = GenerateIndividualEmpty(/* index */ -1,
@@ -6750,17 +6750,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	return EidosValue_SP(result);
 }
 
-//	*********************	– (object<Individual>)addMultiRecombinant(object$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL], [No<Individual>$ parent2 = NULL], [Nl$ randomizeStrands = NULL], [integer$ count = 1], [logical$ defer = F])
+//	*********************	– (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL], [No<Individual>$ parent2 = NULL], [Nl$ randomizeStrands = NULL], [integer$ count = 1], [logical$ defer = F])
 EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	static std::string strand1_string("strand1");
-	static std::string strand2_string("strand2");
-	static std::string breaks1_string("breaks1");
-	static std::string strand3_string("strand3");
-	static std::string strand4_string("strand4");
-	static std::string breaks2_string("breaks2");
-	
 	// This code is strongly patterned on the code for addRecombinant(), and should be maintained in parallel
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): method -addMultiRecombinant() is not available in WF models." << EidosTerminate();
@@ -6882,12 +6875,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			const std::string &inheritance_key = inheritance_element.first;
 			EidosValue * const inheritance_value = inheritance_element.second.get();
 			
-			if (inheritance_key == strand1_string)		strand1_value = inheritance_value;
-			else if (inheritance_key == strand2_string)	strand2_value = inheritance_value;
-			else if (inheritance_key == breaks1_string)	breaks1_value = inheritance_value;
-			else if (inheritance_key == strand3_string)	strand3_value = inheritance_value;
-			else if (inheritance_key == strand4_string)	strand4_value = inheritance_value;
-			else if (inheritance_key == breaks2_string)	breaks2_value = inheritance_value;
+			if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
+			else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
+			else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
+			else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
+			else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
+			else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): unrecognized inheritance dictionary key '" << inheritance_key << "'; keys must be one of 'strand1', 'strand2', 'breaks1', 'strand3', 'strand4', or 'breaks2'." << EidosTerminate();
 		}
@@ -7099,7 +7092,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		// chosen.  Otherwise, IndividualSex::kUnspecified will be returned, allowing a free choice below.
 		// We allow the user to play many games with addRecombinant(), but the sex-linked constraints of the
 		// chromosome type must be followed, because it is assumed in many places.
-		IndividualSex inheritance_child_sex = _ValidateHaplosomesAndChooseSex(inheritance_chromosome_type, haplosome1_null, haplosome2_null, sex_value, "addMultiRecombinant()");
+		IndividualSex inheritance_child_sex = _ValidateHaplosomesAndChooseSex(inheritance_chromosome_type, haplosome1_null, haplosome2_null, sex_value, sex_enabled_, "addMultiRecombinant()");
 		
 		if (constrained_child_sex == IndividualSex::kUnspecified)
 		{
@@ -7258,12 +7251,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 						const std::string &inheritance_key = inheritance_element.first;
 						EidosValue * const inheritance_value = inheritance_element.second.get();
 						
-						if (inheritance_key == strand1_string)		strand1_value = inheritance_value;
-						else if (inheritance_key == strand2_string)	strand2_value = inheritance_value;
-						else if (inheritance_key == breaks1_string)	breaks1_value = inheritance_value;
-						else if (inheritance_key == strand3_string)	strand3_value = inheritance_value;
-						else if (inheritance_key == strand4_string)	strand4_value = inheritance_value;
-						else if (inheritance_key == breaks2_string)	breaks2_value = inheritance_value;
+						if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
+						else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
+						else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
+						else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
+						else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
+						else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
 					}
 					
 					// Get the haplosomes for the supplied strands, or nullptr for NULL
@@ -7325,15 +7318,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			else if (is_cloning)
 			{
 				// Infer the inheritance dictionary info as addPatternForClone() would (same code path).
-#warning implement me!
-				//species_.InferInheritanceForClone(chromosome_type, pedigree_parent1, child_sex, &strand1, &strand2, breakvec1, &generate_breakvec1);
+				species_.InferInheritanceForClone(chromosome, pedigree_parent1, child_sex, &strand1, &strand3, "addMultiRecombinant()");
+				
+				// no breakpoints are involved; strand2 and strand4 are not involved
 			}
 			else // crossed and selfed cases
 			{
 				// Infer the inheritance dictionary info as addPatternForCross() would (same code path).
 				// Note that this randomizes the strand order for us, so we can ignore randomizeStrands.
-#warning implement me!
-				//species_.InferInheritanceForCross(chromosome_type, pedigree_parent1, pedigree_parent2, child_sex, &strand1, &strand2, breakvec1, &generate_breakvec1, &strand3, &strand4, breakvec2, &generate_breakvec2);
+				species_.InferInheritanceForCross(chromosome, pedigree_parent1, pedigree_parent2, child_sex, &strand1, &strand2, &strand3, &strand4, "addMultiRecombinant()");
+				
+				// when both parental strands are present, we want to generate breaks
+				if (strand1 && strand2)
+					generate_breakvec1 = true;
+				if (strand3 && strand4)
+					generate_breakvec2 = true;
 			}
 			
 			// Generate breakpoints.  If the user passed NULL for breaks1, but strand1 and strand2 are
@@ -7888,7 +7887,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// chosen.  Otherwise, IndividualSex::kUnspecified will be returned, allowing a free choice below.
 	// We allow the user to play many games with addRecombinant(), but the sex-linked constraints of the
 	// chromosome type must be followed, because it is assumed in many places.
-	IndividualSex constrained_child_sex = _ValidateHaplosomesAndChooseSex(chromosome_type, haplosome1_null, haplosome2_null, sex_value, "addRecombinant()");
+	IndividualSex constrained_child_sex = _ValidateHaplosomesAndChooseSex(chromosome_type, haplosome1_null, haplosome2_null, sex_value, sex_enabled_, "addRecombinant()");
 	
 	// Generate the number of children requested, using mutation() callbacks from the target subpopulation (this)
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
@@ -11264,8 +11263,8 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskObject, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("haplosome1Null", gStaticEidosValueNULL)->AddLogical_OSN("haplosome2Null", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMultiRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("pattern", nullptr)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OSN("randomizeStrands", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Haplosome_Class)->AddObject_SN("strand2", gSLiM_Haplosome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Haplosome_Class)->AddObject_SN("strand4", gSLiM_Haplosome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OSN("randomizeStrands", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMultiRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("pattern", gEidosDictionaryRetained_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OSN("randomizeStrands", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN(gStr_strand1, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand2, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks1)->AddObject_SN(gStr_strand3, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand4, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks2)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OSN("randomizeStrands", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));

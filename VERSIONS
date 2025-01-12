@@ -96,6 +96,7 @@ development head (in the master branch):
 		extend addRecombinant() and addMultiRecombinant() to allow NULL as a breaks vector with two strands, meaning "draw breakpoints for me", to avoid needing drawBreakpoints() in most cases
 			this new code path also allows gene conversion including heteroduplex mismatch repair and gBGC to work with addRecombinant() and addMultiRecombinant()
 			also change to allow a recombination rate to be set for haploid chromosomes; this is potentially useful with addRecombinant() etc.
+		add addPatternForClone(), addPatternForCross(), addPatternForNull(), and addPatternForRecombinant() methods to Species for use with addMultiRecombinant()
 
 
 version 4.3 (Eidos version 3.3):

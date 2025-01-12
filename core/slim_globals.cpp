@@ -56,6 +56,12 @@ EidosValue_String_SP gStaticEidosValue_StringC;
 EidosValue_String_SP gStaticEidosValue_StringG;
 EidosValue_String_SP gStaticEidosValue_StringT;
 
+const std::string gStr_strand1("strand1");
+const std::string gStr_strand2("strand2");
+const std::string gStr_breaks1("breaks1");
+const std::string gStr_strand3("strand3");
+const std::string gStr_strand4("strand4");
+const std::string gStr_breaks2("breaks2");
 
 void SLiM_WarmUp(void)
 {
@@ -1340,6 +1346,10 @@ const std::string &gStr_setSelectionCoeff = EidosRegisteredString("setSelectionC
 const std::string &gStr_setMutationType = EidosRegisteredString("setMutationType", gID_setMutationType);
 const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSelectionCoefficient", gID_drawSelectionCoefficient);
 const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);
+const std::string &gStr_addPatternForClone = EidosRegisteredString("addPatternForClone", gID_addPatternForClone);
+const std::string &gStr_addPatternForCross = EidosRegisteredString("addPatternForCross", gID_addPatternForCross);
+const std::string &gStr_addPatternForNull = EidosRegisteredString("addPatternForNull", gID_addPatternForNull);
+const std::string &gStr_addPatternForRecombinant = EidosRegisteredString("addPatternForRecombinant", gID_addPatternForRecombinant);
 const std::string &gStr_addSubpop = EidosRegisteredString("addSubpop", gID_addSubpop);
 const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit", gID_addSubpopSplit);
 const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);

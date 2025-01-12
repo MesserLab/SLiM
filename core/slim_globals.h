@@ -736,6 +736,14 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 //	Additional global std::string objects.  See script_globals.h for details.
 //
 
+// first are ones with no corresponding ID; these are just std::string globals, not registered
+extern const std::string gStr_strand1;
+extern const std::string gStr_strand2;
+extern const std::string gStr_breaks1;
+extern const std::string gStr_strand3;
+extern const std::string gStr_strand4;
+extern const std::string gStr_breaks2;
+
 void SLiM_ConfigureContext(void);
 
 extern const std::string &gStr_initializeAncestralNucleotides;
@@ -925,6 +933,10 @@ extern const std::string &gStr_setSelectionCoeff;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawSelectionCoefficient;
 extern const std::string &gStr_setDistribution;
+extern const std::string &gStr_addPatternForClone;
+extern const std::string &gStr_addPatternForCross;
+extern const std::string &gStr_addPatternForNull;
+extern const std::string &gStr_addPatternForRecombinant;
 extern const std::string &gStr_addSubpop;
 extern const std::string &gStr_addSubpopSplit;
 extern const std::string &gStr_chromosomesOfType;
@@ -1365,6 +1377,10 @@ enum _SLiMGlobalStringID : int {
 	gID_setMutationType,
 	gID_drawSelectionCoefficient,
 	gID_setDistribution,
+	gID_addPatternForClone,
+	gID_addPatternForCross,
+	gID_addPatternForNull,
+	gID_addPatternForRecombinant,
 	gID_addSubpop,
 	gID_chromosomesOfType,
 	gID_chromosomesWithIDs,

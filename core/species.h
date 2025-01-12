@@ -486,6 +486,10 @@ public:
 	void SimulationHasFinished(void);
 	void Species_CheckIntegrity(void);
 	
+	// Reproduction pattern inference
+	void InferInheritanceForClone(Chromosome *chromosome, Individual *parent, IndividualSex sex, Haplosome **strand1, Haplosome **strand3, const char *caller_name);
+	void InferInheritanceForCross(Chromosome *chromosome, Individual *parent1, Individual *parent2, IndividualSex sex, Haplosome **strand1, Haplosome **strand2, Haplosome **strand3, Haplosome **strand4, const char *caller_name);
+	
 	// Shared shuffle buffer to save
 	inline bool RandomizingCallbackOrder(void) { return shuffle_buf_is_enabled_; }
 	slim_popsize_t *BorrowShuffleBuffer(slim_popsize_t p_buffer_size);
@@ -658,6 +662,10 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	
+	EidosValue_SP ExecuteMethod_addPatternForClone(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addPatternForCross(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addPatternForNull(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addPatternForRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

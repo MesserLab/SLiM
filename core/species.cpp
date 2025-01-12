@@ -3167,6 +3167,257 @@ void Species::SimulationHasFinished(void)
 	}
 }
 
+void Species::InferInheritanceForClone(Chromosome *chromosome, Individual *parent, IndividualSex sex, Haplosome **strand1, Haplosome **strand3, const char *caller_name)
+{
+#if DEBUG
+	if (!chromosome || !parent || !strand1 || !strand3 || *caller_name)
+		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForClone): (internal error) parameter is nullptr." << EidosTerminate();
+#endif
+	
+	ChromosomeType chromosome_type = chromosome->Type();
+	unsigned int chromosome_index = chromosome->Index();
+	int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+	int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+	
+	// validate the offspring's sex; note that we allow kHF_HaploidFemaleInherited and
+	// kHM_HaploidMaleInherited to be inherited from the "wrong" sex, as does addCloned();
+	// those inheritance patterns are for biparental crosses specifically
+	IndividualSex parent_sex = parent->sex_;
+	
+	if (sex == IndividualSex::kUnspecified)
+		sex = parent_sex;
+	
+	if (sex != parent_sex)
+		if ((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+			(chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+			(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+			(chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+			(chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
+			(chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+			(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForClone): clonal inheritance inference for " << caller_name << " requires that sex match the sex of the parent for chromosome type '" << chromosome_type << "' (symbol '" << chromosome->Symbol() << "'), since the haplosome configuration of that chromosome type depends upon sex.  You can pass NULL for sex to match the parent automatically." << EidosTerminate();
+	
+	// all returned entries not set are NULL
+	*strand1 = nullptr;
+	*strand3 = nullptr;
+	
+	// for simplicity, we just test for a null haplosome and clone whatever is not null;
+	// if the parent is legal, the offspring will be legal too, given the sex check above
+	switch (chromosome_type)
+	{
+			// diploid types
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kX_XSexChromosome:
+		case ChromosomeType::kZ_ZSexChromosome:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		{
+			Haplosome *hap1 = parent->haplosomes_[first_haplosome_index];
+			Haplosome *hap2 = parent->haplosomes_[last_haplosome_index];
+			
+			if (!hap1->IsNull())	*strand1 = hap1;
+			if (!hap2->IsNull())	*strand3 = hap2;
+			break;
+		}
+			
+			// haploid types
+		case ChromosomeType::kH_HaploidAutosome:
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		case ChromosomeType::kML_HaploidMaleLine:
+		{
+			Haplosome *hap = parent->haplosomes_[first_haplosome_index];
+			
+			if (!hap->IsNull())		*strand1 = hap;
+			break;
+		}
+	}
+}
+
+void Species::InferInheritanceForCross(Chromosome *chromosome, Individual *parent1, Individual *parent2, IndividualSex sex, Haplosome **strand1, Haplosome **strand2, Haplosome **strand3, Haplosome **strand4, const char *caller_name)
+{
+#if DEBUG
+	if (!chromosome || !parent1 || !parent2 || !strand1 || !strand2 || !strand3 || !strand4 || *caller_name)
+		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): (internal error) parameter is nullptr." << EidosTerminate();
+#endif
+	
+	ChromosomeType chromosome_type = chromosome->Type();
+	unsigned int chromosome_index = chromosome->Index();
+	int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+	int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+	
+	// validate the offspring's sex; note that we allow kHF_HaploidFemaleInherited and
+	// kHM_HaploidMaleInherited to be inherited from the "wrong" sex, as does addCloned();
+	// those inheritance patterns are for biparental crosses specifically
+	IndividualSex parent1_sex = parent1->sex_;
+	IndividualSex parent2_sex = parent1->sex_;
+	
+	if (sex_enabled_ && ((parent1_sex != IndividualSex::kFemale) || (parent2_sex != IndividualSex::kMale)))
+		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): " << caller_name << " requires that parent1 be female and parent2 male, in a sexual model.  If you require more flexibility than this, turn off separate sexes and track the sex of individuals yourself, or use addPatternForRecombinant() instead." << EidosTerminate();
+	
+	if (sex == IndividualSex::kUnspecified)
+		if ((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+			(chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+			(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+			(chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+			(chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
+			(chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+			(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): crossed inheritance inference for " << caller_name << " requires that sex is specified explicitly as 'M' or 'F' for chromosome type '" << chromosome_type << "' (symbol '" << chromosome->Symbol() << "'), since the haplosome configuration of that chromosome type depends upon sex." << EidosTerminate();
+	
+	// all returned entries not set are NULL
+	*strand1 = nullptr;
+	*strand2 = nullptr;
+	*strand3 = nullptr;
+	*strand4 = nullptr;
+	
+	// figure out the inheritance patterns, which are complex!
+	switch (chromosome_type)
+	{
+			// diploid types
+		case ChromosomeType::kA_DiploidAutosome:
+		{
+			// we require all haplosomes non-null; if the user is playing games, they need to control them
+			Haplosome *hap1 = parent1->haplosomes_[first_haplosome_index];
+			Haplosome *hap2 = parent1->haplosomes_[last_haplosome_index];
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];
+			Haplosome *hap4 = parent2->haplosomes_[last_haplosome_index];
+			
+			if (hap1->IsNull() || hap2->IsNull() || hap3->IsNull() || hap4->IsNull())
+				EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): crossed inheritance inference for " << caller_name << " requires that all four parental strands are not null haplosomes for chromosome type 'A'), since the parental strands are supposed to be crossed.  Use addPatternForRecombinant() to control more complex inheritance patterns." << EidosTerminate();
+			
+			*strand1 = hap1;
+			*strand2 = hap2;
+			*strand3 = hap3;
+			*strand4 = hap4;
+			break;
+		}
+		case ChromosomeType::kH_HaploidAutosome:
+		{
+			// we require all haplosomes non-null; if the user is playing games, they need to control them
+			Haplosome *hap1 = parent1->haplosomes_[first_haplosome_index];
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];
+			
+			if (hap1->IsNull() || hap3->IsNull())
+				EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): crossed inheritance inference for " << caller_name << " requires that both parental strands are not null haplosomes for chromosome type 'H'), since the strands from the two parents are supposed to be crossed.  Use addPatternForRecombinant() to control more complex inheritance patterns." << EidosTerminate();
+			
+			*strand1 = hap1;
+			*strand2 = hap3;
+			break;
+		}
+		case ChromosomeType::kX_XSexChromosome:
+		{
+			// females are XX, males are X-
+			Haplosome *hap1 = parent1->haplosomes_[first_haplosome_index];
+			Haplosome *hap2 = parent1->haplosomes_[last_haplosome_index];
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];	// hap4 is null
+			
+			if (sex == IndividualSex::kMale)
+			{
+				// first offspring X is crossed from the female, second is null (a Y was inherited instead)
+				*strand1 = hap1;
+				*strand2 = hap2;
+			}
+			else
+			{
+				// first offspring X is crossed from the female, second is clonal from the male
+				*strand1 = hap1;
+				*strand2 = hap2;
+				*strand3 = hap3;
+			}
+			break;
+		}
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kML_HaploidMaleLine:
+		{
+			// females are -, males are Y
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];
+			
+			if (sex == IndividualSex::kMale)
+			{
+				// offspring Y is inherited from the male
+				*strand1 = hap3;
+			}
+			break;
+		}
+		case ChromosomeType::kZ_ZSexChromosome:
+		{
+			// females are -Z, males are ZZ
+			Haplosome *hap2 = parent1->haplosomes_[last_haplosome_index];	// hap1 is null
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];
+			Haplosome *hap4 = parent2->haplosomes_[last_haplosome_index];
+			
+			if (sex == IndividualSex::kMale)
+			{
+				// first offspring Z is clonal from the female, second is crossed from the male
+				*strand1 = hap2;
+				*strand3 = hap3;
+				*strand4 = hap4;
+			}
+			else
+			{
+				// first offspring Z is null (a W was inherited instead), second is crossed from the male
+				*strand3 = hap3;
+				*strand4 = hap4;
+			}
+			break;
+		}
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		{
+			// females are W, males are -
+			Haplosome *hap1 = parent1->haplosomes_[first_haplosome_index];
+			
+			if (sex == IndividualSex::kFemale)
+			{
+				// offspring W is inherited from the female
+				*strand1 = hap1;
+			}
+			break;
+		}
+		case ChromosomeType::kHF_HaploidFemaleInherited:
+		{
+			Haplosome *hap1 = parent1->haplosomes_[first_haplosome_index];
+			*strand1 = hap1;
+			break;
+		}
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		{
+			Haplosome *hap3 = parent2->haplosomes_[first_haplosome_index];
+			*strand1 = hap3;
+			break;
+		}
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+		{
+			// females are --, males are -Y
+			Haplosome *hap4 = parent2->haplosomes_[last_haplosome_index];
+			
+			if (sex == IndividualSex::kMale)
+			{
+				// offspring Y is inherited from the male, to the second offspring haplosome
+				*strand3 = hap4;
+			}
+			break;
+		}
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		{
+			EIDOS_TERMINATION << "ERROR (Population::GenerateIndividualCrossed): chromosome type 'H-' does not allow reproduction by biparental cross (only cloning); chromosome type 'H' provides greater flexibility for modeling haploids." << EidosTerminate();
+		}
+	}
+	
+	// this method always randomizes the initial copy strand; even if randomizeStrands=F is passed
+	// to addMultiRecombinant(), inferred crosses should still behave like regular crosses
+	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+	
+	if (*strand1 && *strand2 && Eidos_RandomBool(rng_state))
+		std::swap(*strand1, *strand2);
+	if (*strand3 && *strand4 && Eidos_RandomBool(rng_state))
+		std::swap(*strand3, *strand4);
+}
+
 void Species::Species_CheckIntegrity(void)
 {
 #if DEBUG

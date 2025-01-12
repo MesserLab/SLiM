@@ -410,8 +410,9 @@ public:
 	bool ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving);
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
-	IndividualSex _ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, const char *p_caller_name);
-	IndividualSex _SexForSexValue(EidosValue *p_sex_value);
+	
+	static IndividualSex _ValidateHaplosomesAndChooseSex(ChromosomeType p_chromosome_type, bool p_haplosome1_null, bool p_haplosome2_null, EidosValue *p_sex_value, bool p_sex_enabled, const char *p_caller_name);
+	static IndividualSex _SexForSexValue(EidosValue *p_sex_value, bool p_sex_enabled);
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForParentTables(void);

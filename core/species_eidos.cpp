@@ -1953,6 +1953,10 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			// WF only:
 		case gID_addSubpopSplit:					return ExecuteMethod_addSubpopSplit(p_method_id, p_arguments, p_interpreter);
 			
+		case gID_addPatternForClone:				return ExecuteMethod_addPatternForClone(p_method_id, p_arguments, p_interpreter);
+		case gID_addPatternForCross:				return ExecuteMethod_addPatternForCross(p_method_id, p_arguments, p_interpreter);
+		case gID_addPatternForNull:					return ExecuteMethod_addPatternForNull(p_method_id, p_arguments, p_interpreter);
+		case gID_addPatternForRecombinant:			return ExecuteMethod_addPatternForRecombinant(p_method_id, p_arguments, p_interpreter);
 		case gID_addSubpop:							return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesOfType:					return ExecuteMethod_chromosomesOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithIDs:				return ExecuteMethod_chromosomesWithIDs(p_method_id, p_arguments, p_interpreter);
@@ -1986,6 +1990,451 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID__debug:							return ExecuteMethod__debug(p_method_id, p_arguments, p_interpreter);
 		default:									return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (object<Dictionary>$)addPatternForClone(iso<Chromosome>$ chromosome, No<Dictionary>$ pattern, object<Individual>$ parent, [Ns$ sex = NULL])
+//
+EidosValue_SP Species::ExecuteMethod_addPatternForClone(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosome_value = p_arguments[0].get();
+	EidosValue *pattern_value = p_arguments[1].get();
+	EidosValue *parent_value = p_arguments[2].get();
+	EidosValue *sex_value = p_arguments[3].get();
+	
+	// Get the focal chromosome
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+	
+	if (chromosome_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): (internal error) chromosome lookup failed." << EidosTerminate();
+	
+	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	
+	// Get or construct the pattern dictionary; result_SP keeps a retain on it
+	EidosDictionaryRetained *pattern;
+	EidosValue_SP result_SP(nullptr);
+	bool pattern_uses_integer_keys;
+	
+	if (pattern_value->Type() == EidosValueType::kValueNULL)
+	{
+		pattern = new EidosDictionaryRetained();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
+		pattern->Release();
+		pattern_uses_integer_keys = true;
+	}
+	else
+	{
+		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		result_SP = p_arguments[1];
+		pattern_uses_integer_keys = pattern->KeysAreIntegers();
+	}
+	
+	// Get the offspring sex
+	IndividualSex sex = IndividualSex::kUnspecified;
+	
+	if (sex_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &sex_string = sex_value->StringData()[0];
+		
+		if (sex_string.compare("M") == 0)
+			sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			sex = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
+	}
+	
+	// make a new inheritance dictionary and add it to pattern
+	EidosDictionaryRetained *inheritance = new EidosDictionaryRetained();
+	EidosValue_SP inheritance_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inheritance, gEidosDictionaryRetained_Class));
+	inheritance->Release();
+	
+	if (pattern_uses_integer_keys)
+		pattern->SetKeyValue_IntegerKeys(chromosome->ID(), inheritance_SP);
+	else
+		pattern->SetKeyValue_StringKeys(chromosome->Symbol(), inheritance_SP);
+	
+	//
+	//	the above code is shared with the other addPatternFor...() methods; the remainder of the code is not
+	//
+	
+	// Get the parent for cloning and get info about it
+	Individual *parent = (Individual *)parent_value->ObjectData()[0];
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent->subpopulation_->species_ != this)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires that parent belong to the target species." << EidosTerminate();
+	
+	// get the inheritance pattern; there are at most two strands involved, and no recombination
+	Haplosome *strand1 = nullptr, *strand3 = nullptr;
+	
+	InferInheritanceForClone(chromosome, parent, sex, &strand1, &strand3, "addPatternForClone()");
+	
+	// set the inheritance pattern into the dictionary
+	if (strand1)	inheritance->SetKeyValue_StringKeys(gStr_strand1, strand1->CachedEidosValue());
+	if (strand3)	inheritance->SetKeyValue_StringKeys(gStr_strand3, strand3->CachedEidosValue());
+	
+	pattern->ContentsChanged("Dictionary()");
+	return result_SP;
+}
+
+//	*********************	– (object<Dictionary>$)addPatternForCross(iso<Chromosome>$ chromosome, No<Dictionary>$ pattern, object<Individual>$ parent1, object<Individual>$ parent2, [Ns$ sex = NULL])
+//
+EidosValue_SP Species::ExecuteMethod_addPatternForCross(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosome_value = p_arguments[0].get();
+	EidosValue *pattern_value = p_arguments[1].get();
+	EidosValue *parent1_value = p_arguments[2].get();
+	EidosValue *parent2_value = p_arguments[3].get();
+	EidosValue *sex_value = p_arguments[4].get();
+	
+	// Get the focal chromosome
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+	
+	if (chromosome_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForCross): (internal error) chromosome lookup failed." << EidosTerminate();
+	
+	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	
+	// Get or construct the pattern dictionary; result_SP keeps a retain on it
+	EidosDictionaryRetained *pattern;
+	EidosValue_SP result_SP(nullptr);
+	bool pattern_uses_integer_keys;
+	
+	if (pattern_value->Type() == EidosValueType::kValueNULL)
+	{
+		pattern = new EidosDictionaryRetained();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
+		pattern->Release();
+		pattern_uses_integer_keys = true;
+	}
+	else
+	{
+		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		result_SP = p_arguments[1];
+		pattern_uses_integer_keys = pattern->KeysAreIntegers();
+	}
+	
+	// Get the offspring sex
+	IndividualSex sex = IndividualSex::kUnspecified;
+	
+	if (sex_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &sex_string = sex_value->StringData()[0];
+		
+		if (sex_string.compare("M") == 0)
+			sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			sex = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForCross): addPatternForCross() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
+	}
+	
+	// make a new inheritance dictionary and add it to pattern
+	EidosDictionaryRetained *inheritance = new EidosDictionaryRetained();
+	EidosValue_SP inheritance_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inheritance, gEidosDictionaryRetained_Class));
+	inheritance->Release();
+	
+	if (pattern_uses_integer_keys)
+		pattern->SetKeyValue_IntegerKeys(chromosome->ID(), inheritance_SP);
+	else
+		pattern->SetKeyValue_StringKeys(chromosome->Symbol(), inheritance_SP);
+	
+	//
+	//	the above code is shared with the other addPatternFor...() methods; the remainder of the code is not
+	//
+	
+	// Get the parents for crossing and validate them
+	Individual *parent1 = (Individual *)parent1_value->ObjectData()[0];
+	Individual *parent2 = (Individual *)parent2_value->ObjectData()[0];
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((&parent1->subpopulation_->species_ != this) || (&parent2->subpopulation_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForCross): addPatternForCross() requires that parent1 and parent2 belong to the target species." << EidosTerminate();
+	
+	// get the inheritance pattern; there are at most two strands involved, and no recombination
+	Haplosome *strand1 = nullptr, *strand2 = nullptr, *strand3 = nullptr, *strand4 = nullptr;
+	
+	InferInheritanceForCross(chromosome, parent1, parent2, sex, &strand1, &strand2, &strand3, &strand4, "addPatternForCross()");
+	
+	// set the inheritance pattern into the dictionary
+	if (strand1)	inheritance->SetKeyValue_StringKeys(gStr_strand1, strand1->CachedEidosValue());
+	if (strand2)	inheritance->SetKeyValue_StringKeys(gStr_strand2, strand2->CachedEidosValue());
+	if (strand3)	inheritance->SetKeyValue_StringKeys(gStr_strand3, strand3->CachedEidosValue());
+	if (strand4)	inheritance->SetKeyValue_StringKeys(gStr_strand4, strand4->CachedEidosValue());
+	
+	pattern->ContentsChanged("Dictionary()");
+	return result_SP;
+}
+
+//	*********************	– (object<Dictionary>$)addPatternForNull(iso<Chromosome>$ chromosome, No<Dictionary>$ pattern, [Ns$ sex = NULL])
+//
+EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosome_value = p_arguments[0].get();
+	EidosValue *pattern_value = p_arguments[1].get();
+	EidosValue *sex_value = p_arguments[2].get();
+	
+	// Get the focal chromosome
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+	
+	if (chromosome_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): (internal error) chromosome lookup failed." << EidosTerminate();
+	
+	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	ChromosomeType chromosome_type = chromosome->Type();
+	
+	// Get or construct the pattern dictionary; result_SP keeps a retain on it
+	EidosDictionaryRetained *pattern;
+	EidosValue_SP result_SP(nullptr);
+	bool pattern_uses_integer_keys;
+	
+	if (pattern_value->Type() == EidosValueType::kValueNULL)
+	{
+		pattern = new EidosDictionaryRetained();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
+		pattern->Release();
+		pattern_uses_integer_keys = true;
+	}
+	else
+	{
+		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		result_SP = p_arguments[1];
+		pattern_uses_integer_keys = pattern->KeysAreIntegers();
+	}
+	
+	// Get the offspring sex
+	IndividualSex sex = IndividualSex::kUnspecified;
+	
+	if (sex_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &sex_string = sex_value->StringData()[0];
+		
+		if (sex_string.compare("M") == 0)
+			sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			sex = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
+	}
+	
+	// make a new inheritance dictionary and add it to pattern
+	EidosDictionaryRetained *inheritance = new EidosDictionaryRetained();
+	EidosValue_SP inheritance_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inheritance, gEidosDictionaryRetained_Class));
+	inheritance->Release();
+	
+	if (pattern_uses_integer_keys)
+		pattern->SetKeyValue_IntegerKeys(chromosome->ID(), inheritance_SP);
+	else
+		pattern->SetKeyValue_StringKeys(chromosome->Symbol(), inheritance_SP);
+	
+	//
+	//	the above code is shared with the other addPatternFor...() methods; the remainder of the code is not
+	//
+	
+	if ((chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+		(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+		(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+		(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+		(chromosome_type == ChromosomeType::kHNull_HaploidAutosomeWithNull))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosomes for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
+	
+	// check that the offspring sex is compatible with having all null haplosomes for this chromosome
+	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kFemale))
+		if ((chromosome_type == ChromosomeType::kW_WSexChromosome) ||
+			(chromosome_type == ChromosomeType::kFL_HaploidFemaleLine))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'M' for chromosome type '', since only males can have all null haplosomes for that chromosome type." << EidosTerminate();
+	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kMale))
+		if ((chromosome_type == ChromosomeType::kY_YSexChromosome) ||
+			(chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
+			(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'F' for chromosome type '', since only females can have all null haplosomes for that chromosome type." << EidosTerminate();
+	
+	// set the inheritance pattern into the dictionary; there no code code here because the offspring
+	// inherits nothing, so the inheritance dictionary should just be an empty dictionary, NULL for all
+	
+	pattern->ContentsChanged("Dictionary()");
+	return result_SP;
+}
+
+//	*********************	– (object<Dictionary>$)addPatternForRecombinant(iso<Chromosome>$ chromosome, No<Dictionary>$ pattern, No<Haplosome>$ strand1, No<Haplosome>$ strand2, Ni breaks1, No<Haplosome>$ strand3, No<Haplosome>$ strand4, Ni breaks2, [Ns$ sex = NULL], [logical$ randomizeStrands = T])
+//
+EidosValue_SP Species::ExecuteMethod_addPatternForRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *chromosome_value = p_arguments[0].get();
+	EidosValue *pattern_value = p_arguments[1].get();
+	EidosValue *strand1_value = p_arguments[2].get();
+	EidosValue *strand2_value = p_arguments[3].get();
+	EidosValue *breaks1_value = p_arguments[4].get();
+	EidosValue *strand3_value = p_arguments[5].get();
+	EidosValue *strand4_value = p_arguments[6].get();
+	EidosValue *breaks2_value = p_arguments[7].get();
+	EidosValue *sex_value = p_arguments[8].get();
+	EidosValue *randomizeStrands_value = p_arguments[9].get();
+	
+	// Get the focal chromosome
+	std::vector<slim_chromosome_index_t> chromosome_indices;
+	
+	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+	
+	if (chromosome_indices.size() != 1)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): (internal error) chromosome lookup failed." << EidosTerminate();
+	
+	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	ChromosomeType chromosome_type = chromosome->Type();
+	slim_chromosome_index_t chromosome_index = chromosome->Index();
+	
+	// Get or construct the pattern dictionary; result_SP keeps a retain on it
+	EidosDictionaryRetained *pattern;
+	EidosValue_SP result_SP(nullptr);
+	bool pattern_uses_integer_keys;
+	
+	if (pattern_value->Type() == EidosValueType::kValueNULL)
+	{
+		pattern = new EidosDictionaryRetained();
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
+		pattern->Release();
+		pattern_uses_integer_keys = true;
+	}
+	else
+	{
+		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		result_SP = p_arguments[1];
+		pattern_uses_integer_keys = pattern->KeysAreIntegers();
+	}
+	
+	// Get the offspring sex
+	IndividualSex sex = IndividualSex::kUnspecified;
+	
+	if (sex_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &sex_string = sex_value->StringData()[0];
+		
+		if (sex_string.compare("M") == 0)
+			sex = IndividualSex::kMale;
+		else if (sex_string.compare("F") == 0)
+			sex = IndividualSex::kFemale;
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
+	}
+	
+	// make a new inheritance dictionary and add it to pattern
+	EidosDictionaryRetained *inheritance = new EidosDictionaryRetained();
+	EidosValue_SP inheritance_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(inheritance, gEidosDictionaryRetained_Class));
+	inheritance->Release();
+	
+	if (pattern_uses_integer_keys)
+		pattern->SetKeyValue_IntegerKeys(chromosome->ID(), inheritance_SP);
+	else
+		pattern->SetKeyValue_StringKeys(chromosome->Symbol(), inheritance_SP);
+	
+	//
+	//	the above code is shared with the other addPatternFor...() methods; the remainder of the code is not
+	//
+	
+	// Get the strands for recombination and validate them
+	Haplosome *strand1 = nullptr, *strand2 = nullptr, *strand3 = nullptr, *strand4 = nullptr;
+	
+	if (strand1_value->Type() != EidosValueType::kValueNULL)
+		strand1 = (Haplosome *)strand1_value->ObjectData()[0];
+	if (strand2_value->Type() != EidosValueType::kValueNULL)
+		strand2 = (Haplosome *)strand2_value->ObjectData()[0];
+	if (strand3_value->Type() != EidosValueType::kValueNULL)
+		strand3 = (Haplosome *)strand3_value->ObjectData()[0];
+	if (strand4_value->Type() != EidosValueType::kValueNULL)
+		strand4 = (Haplosome *)strand4_value->ObjectData()[0];
+	
+	// SPECIES CONSISTENCY CHECK
+	if (strand1 && (&strand1->OwningIndividual()->subpopulation_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand1 belong to the target species." << EidosTerminate();
+	if (strand2 && (&strand2->OwningIndividual()->subpopulation_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand2 belong to the target species." << EidosTerminate();
+	if (strand3 && (&strand3->OwningIndividual()->subpopulation_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand3 belong to the target species." << EidosTerminate();
+	if (strand4 && (&strand4->OwningIndividual()->subpopulation_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand4 belong to the target species." << EidosTerminate();
+	
+	if (strand1 && strand1->chromosome_index_ != chromosome_index)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand1 belong to the specified chromosome." << EidosTerminate();
+	if (strand2 && strand2->chromosome_index_ != chromosome_index)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand2 belong to the specified chromosome." << EidosTerminate();
+	if (strand3 && strand3->chromosome_index_ != chromosome_index)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand3 belong to the specified chromosome." << EidosTerminate();
+	if (strand4 && strand4->chromosome_index_ != chromosome_index)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires that strand4 belong to the specified chromosome." << EidosTerminate();
+	
+	// validate the haplosome pattern given the chromosome type and sex
+	bool haplosome1_null = (!strand1 && !strand2);
+	bool haplosome2_null = (!strand3 && !strand4);
+	bool make_second_haplosome = false;
+	
+	if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) ||
+		(chromosome_type == ChromosomeType::kX_XSexChromosome) ||
+		(chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
+		(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
+		make_second_haplosome = true;
+	
+	if (!haplosome2_null && !make_second_haplosome)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addPatternForRecombinant): for chromosome type '" << chromosome_type <<"', addPatternForRecombinant() requires that the second offspring haplosome is configured to be a null haplosome (since chromosome type '" << chromosome_type << "' is intrinsically haploid)." << EidosTerminate();
+	
+	int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
+	
+	if (breaks1count != 0)
+	{
+		if (haplosome1_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addPatternForRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
+		else if (!strand2)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addPatternForRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
+	}
+	if (breaks2count != 0)
+	{
+		if (haplosome2_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addPatternForRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
+		else if (!strand4)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addPatternForRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+	}
+	
+	Subpopulation::_ValidateHaplosomesAndChooseSex(chromosome_type, haplosome1_null, haplosome2_null, sex_value, sex_enabled_, "addPatternForRecombinant()");
+	
+	// randomize strands if requested
+	eidos_logical_t randomizeStrands = randomizeStrands_value->LogicalData()[0];
+	
+	if (randomizeStrands)
+	{
+		Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+		
+		if (strand1 && strand2 && Eidos_RandomBool(rng_state))
+			std::swap(strand1, strand2);
+		if (strand3 && strand4 && Eidos_RandomBool(rng_state))
+			std::swap(strand3, strand4);
+	}
+	
+	// set the validated inheritance pattern into the dictionary
+	if (strand1)	inheritance->SetKeyValue_StringKeys(gStr_strand1, p_arguments[2]);
+	if (strand2)	inheritance->SetKeyValue_StringKeys(gStr_strand2, p_arguments[3]);
+	if (breaks1_value->Type() != EidosValueType::kValueNULL)
+		inheritance->SetKeyValue_StringKeys(gStr_breaks1, p_arguments[4]);
+	
+	if (strand3)	inheritance->SetKeyValue_StringKeys(gStr_strand3, p_arguments[5]);
+	if (strand4)	inheritance->SetKeyValue_StringKeys(gStr_strand4, p_arguments[6]);
+	if (breaks2_value->Type() != EidosValueType::kValueNULL)
+		inheritance->SetKeyValue_StringKeys(gStr_breaks2, p_arguments[7]);
+	
+	pattern->ContentsChanged("Dictionary()");
+	return result_SP;
 }
 
 //	*********************	– (object<Subpopulation>$)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio = 0.5], [l$ haploid = F])
@@ -3787,6 +4236,10 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForClone, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_S("parent", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForCross, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForNull, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForRecombinant, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_SN(gStr_strand1, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand2, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks1)->AddObject_SN(gStr_strand3, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand4, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks2)->AddString_OSN("sex", gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesOfType, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString_S("type"));
