@@ -3170,7 +3170,7 @@ void Species::SimulationHasFinished(void)
 void Species::InferInheritanceForClone(Chromosome *chromosome, Individual *parent, IndividualSex sex, Haplosome **strand1, Haplosome **strand3, const char *caller_name)
 {
 #if DEBUG
-	if (!chromosome || !parent || !strand1 || !strand3 || *caller_name)
+	if (!chromosome || !parent || !strand1 || !strand3 || !caller_name)
 		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForClone): (internal error) parameter is nullptr." << EidosTerminate();
 #endif
 	
@@ -3240,7 +3240,7 @@ void Species::InferInheritanceForClone(Chromosome *chromosome, Individual *paren
 void Species::InferInheritanceForCross(Chromosome *chromosome, Individual *parent1, Individual *parent2, IndividualSex sex, Haplosome **strand1, Haplosome **strand2, Haplosome **strand3, Haplosome **strand4, const char *caller_name)
 {
 #if DEBUG
-	if (!chromosome || !parent1 || !parent2 || !strand1 || !strand2 || !strand3 || !strand4 || *caller_name)
+	if (!chromosome || !parent1 || !parent2 || !strand1 || !strand2 || !strand3 || !strand4 || !caller_name)
 		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): (internal error) parameter is nullptr." << EidosTerminate();
 #endif
 	
@@ -3253,7 +3253,7 @@ void Species::InferInheritanceForCross(Chromosome *chromosome, Individual *paren
 	// kHM_HaploidMaleInherited to be inherited from the "wrong" sex, as does addCloned();
 	// those inheritance patterns are for biparental crosses specifically
 	IndividualSex parent1_sex = parent1->sex_;
-	IndividualSex parent2_sex = parent1->sex_;
+	IndividualSex parent2_sex = parent2->sex_;
 	
 	if (sex_enabled_ && ((parent1_sex != IndividualSex::kFemale) || (parent2_sex != IndividualSex::kMale)))
 		EIDOS_TERMINATION << "ERROR (Species::InferInheritanceForCross): " << caller_name << " requires that parent1 be female and parent2 male, in a sexual model.  If you require more flexibility than this, turn off separate sexes and track the sex of individuals yourself, or use addPatternForRecombinant() instead." << EidosTerminate();

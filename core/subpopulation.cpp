@@ -6791,9 +6791,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	
 	bool pattern_keysAreIntegers = pattern->KeysAreIntegers();
 	bool pattern_keysAreStrings = pattern->KeysAreStrings();
-	const EidosDictionaryHashTable_IntegerKeys *pattern_integerKeys = (pattern_keysAreIntegers ? pattern->DictionarySymbols_IntegerKeys() : nullptr);
-	const EidosDictionaryHashTable_StringKeys *pattern_stringKeys = (pattern_keysAreStrings ? pattern->DictionarySymbols_StringKeys() : nullptr);
 	int pattern_keyCount = pattern->KeyCount();
+	
+	// We need to be careful, because a new empty dictionary has no dictionary symbols; it hasn't decided yet
+	// whether it uses integer or string keys.  We can't make an iterator for a dictionary in that state.
+	bool pattern_empty = (pattern_keyCount == 0);
+	const EidosDictionaryHashTable_IntegerKeys *pattern_integerKeys = (!pattern_empty && pattern_keysAreIntegers ? pattern->DictionarySymbols_IntegerKeys() : nullptr);
+	const EidosDictionaryHashTable_StringKeys *pattern_stringKeys = (!pattern_empty && pattern_keysAreStrings ? pattern->DictionarySymbols_StringKeys() : nullptr);
 	
 	typedef decltype(std::begin(std::declval<const EidosDictionaryHashTable_IntegerKeys&>())) pattern_integer_keys_iter_type;
 	typedef decltype(std::begin(std::declval<const EidosDictionaryHashTable_StringKeys&>())) pattern_string_keys_iter_type;
@@ -6822,8 +6826,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	pattern_integer_keys_iter_type pattern_integer_key_iter;
 	pattern_string_keys_iter_type pattern_string_key_iter;
 	
-	if (pattern_keysAreIntegers)	pattern_integer_key_iter = pattern_integerKeys->begin();
-	else							pattern_string_key_iter = pattern_stringKeys->begin();
+	if (pattern_integerKeys)		pattern_integer_key_iter = pattern_integerKeys->begin();
+	else if (pattern_stringKeys)	pattern_string_key_iter = pattern_stringKeys->begin();
+	
+	// note that if pattern_keyCount == 0, neither iterator will be set up
 	
 	for (int pattern_keyIndex = 0; pattern_keyIndex < pattern_keyCount; ++pattern_keyIndex)
 	{
@@ -6977,7 +6983,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		{
 			// the default, NULL, raises an error unless the choice does not matter
 			if ((strand1 && strand2) || (strand3 && strand4))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); SLiM needs to know whether to randomize strands or not." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); it needs to know whether to randomize strands or not." << EidosTerminate();
 			
 			// doesn't matter, leave it as false
 		}
@@ -7200,6 +7206,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		// instructions, otherwise produce the default behavior based on the chromosome type assuming
 		// the given parents
 		const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
+		int currentHaplosomeIndex = 0;
 		
 		for (Chromosome *chromosome : chromosomes)
 		{
@@ -7213,13 +7220,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				if (found_iter != pattern_integerKeys->end())
 					inheritance = (EidosDictionaryUnretained *)(found_iter->second.get()->ObjectData()[0]);
 			}
-			else
+			else if (pattern_stringKeys)
 			{
 				auto found_iter = pattern_stringKeys->find(chromosome->Symbol());
 				
 				if (found_iter != pattern_stringKeys->end())
 					inheritance = (EidosDictionaryUnretained *)(found_iter->second.get()->ObjectData()[0]);
 			}
+			
+			// note that if pattern_keyCount == 0, neither hash will be set up; inheritance will remain nullptr
 			
 			if (!inheritance && !pedigree_parent1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant):  addMultiRecombinant() has insufficient information to handle a chromosome (id " << chromosome->ID() << ", symbol '" << chromosome->Symbol() << "'); no inheritance dictionary was specified for this chromosome, and inference of a default behavior is not possible since parent1 and parent2 are NULL." << EidosTerminate();
@@ -7362,9 +7371,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
 			}
 			
-			if (breakvec1.back() > chromosome->last_position_)
+			if (breakvec1.size() && (breakvec1.back() > chromosome->last_position_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks1 contained a value (" << breakvec1.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
-			if (breakvec2.back() > chromosome->last_position_)
+			if (breakvec2.size() && (breakvec2.back() > chromosome->last_position_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): breaks2 contained a value (" << breakvec2.back() << ") that lies beyond the end of the chromosome." << EidosTerminate();
 			
 			// We used to need to look for a leading 0 in the breaks vectors, and swap the corresponding strands,
@@ -7414,9 +7423,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			}
 			
 			// This has to happen after SetCurrentNewIndividual(), since it patches the node metadata
-			individual->AddHaplosomeAtIndex(haplosome1, 0);
+			individual->AddHaplosomeAtIndex(haplosome1, currentHaplosomeIndex);
 			if (make_second_haplosome)
-				individual->AddHaplosomeAtIndex(haplosome2, 1);
+				individual->AddHaplosomeAtIndex(haplosome2, currentHaplosomeIndex + 1);
 			
 			chromosome->StartMutationRunExperimentClock();
 			
@@ -7515,6 +7524,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			}
 			
 			chromosome->StopMutationRunExperimentClock("addMultiRecombinant()");
+			currentHaplosomeIndex += (make_second_haplosome ? 2 : 1);
 		}
 		
 		// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
@@ -7720,7 +7730,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// the default, NULL, raises an error unless the choice does not matter
 		if ((strand1 && strand2) || (strand3 && strand4))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); SLiM needs to know whether to randomize strands or not." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); it needs to know whether to randomize strands or not." << EidosTerminate();
 		
 		// doesn't matter, leave it as false
 	}
