@@ -140,6 +140,7 @@
         <file>recipes/Recipe 15.19 - Sperm storage with a survival() callback.txt</file>
         <file>recipes/Recipe 15.20 - Tracking separate sexes in script, nonWF style.txt</file>
         <file>recipes/Recipe 15.21 - Modeling haplodiploidy with addRecombinant().txt</file>
+        <file>recipes/Recipe 15.22 - Complex multi-chromosome inheritance with addMultiRecombinant().txt</file>
         <file>recipes/Recipe 16.1 - A simple 2D continuous-space model.txt</file>
         <file>recipes/Recipe 16.2 - Spatial competition.txt</file>
         <file>recipes/Recipe 16.3 - Boundaries and boundary conditions I (stopping boundaries).txt</file>

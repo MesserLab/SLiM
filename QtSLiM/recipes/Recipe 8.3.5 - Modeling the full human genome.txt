@@ -20,8 +20,7 @@ initialize() {
 	{
 		initializeChromosome(id, length, type, symbol);
 		initializeMutationRate(1e-7);
-		if (type != "Y")
-			initializeRecombinationRate(1e-8);
+		initializeRecombinationRate(1e-8);   // not used for the Y
 		initializeGenomicElement(g1, 0, length-1);
 	}
 }
