@@ -16,7 +16,6 @@ initialize() {
 reproduction(NULL, "F") {
 	gen1 = individual.haploidGenome1;
 	gen2 = individual.haploidGenome2;
-	breaks = sim.chromosomes.drawBreakpoints(individual);
 	
 	// decide whether we're generating a haploid male or a diploid female
 	if (rbinom(1, 1, P_OFFSPRING_MALE))
@@ -24,7 +23,7 @@ reproduction(NULL, "F") {
 		// didn't find a mate; make a haploid male from an unfertilized egg:
 		//		- one haplosome comes from recombination of the female's haplosomes
 		//		- the other haplosome is a null haplosome (a placeholder)
-		subpop.addRecombinant(gen1, gen2, breaks, NULL, NULL, NULL, "M",
+		subpop.addRecombinant(gen1, gen2, NULL, NULL, NULL, NULL, "M",
 			randomizeStrands=T);
 	}
 	else
@@ -33,7 +32,7 @@ reproduction(NULL, "F") {
 		//		- one haplosome comes from recombination of the female's haplosomes
 		//		- the other haplosome comes from the mate (a haploid male)
 		mate = subpop.sampleIndividuals(1, sex="M");
-		subpop.addRecombinant(gen1, gen2, breaks, mate.haploidGenome1, NULL, NULL, "F",
+		subpop.addRecombinant(gen1, gen2, NULL, mate.haploidGenome1, NULL, NULL, "F",
 			randomizeStrands=T);
 	}
 }

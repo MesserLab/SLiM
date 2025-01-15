@@ -40,9 +40,7 @@ reproduction(p1)
 		}
 		else if (individual.sex == "F")
 		{
-			breaks = sim.chromosomes.drawBreakpoints(individual);
-			e = p2.addRecombinant(g_1, g_2, breaks, NULL, NULL, NULL, "F",
-				randomizeStrands=T);
+			e = p2.addRecombinant(g_1, g_2, NULL, NULL, NULL, NULL, "F", randomizeStrands=T);
 		}
 	}
 }

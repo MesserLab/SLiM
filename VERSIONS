@@ -98,6 +98,7 @@ development head (in the master branch):
 			also change to allow a recombination rate to be set for haploid chromosomes; this is potentially useful with addRecombinant() etc.
 		add addPatternForClone(), addPatternForCross(), addPatternForNull(), and addPatternForRecombinant() methods to Species for use with addMultiRecombinant()
 		add recipe 15.22, "Complex multi-chromosome inheritance with addMultiRecombinant()", to illustrate addMultiRecombinant()
+		modified recipes 15.14 and 15.21 to illustrate that NULL can now be passed to addRecombinant() for breaks to get automatic breakpoint generation
 
 
 version 4.3 (Eidos version 3.3):
