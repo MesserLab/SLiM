@@ -312,11 +312,16 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			Haplosome *source_haplosome = source_individual_haplosomes[haplosome_index];
 			Haplosome *dest_haplosome = dest_individual_haplosomes[haplosome_index];
 			
-			dest_haplosome->copy_from_haplosome(*source_haplosome);
+			dest_haplosome->copy_from_haplosome(*source_haplosome);	// transmogrifies to null if needed
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
-				species_.RecordNewHaplosome(nullptr, dest_haplosome, source_haplosome, nullptr);
+			{
+				if (source_haplosome->IsNull())
+					species_.RecordNewHaplosome_NULL(dest_haplosome);
+				else
+					species_.RecordNewHaplosome(nullptr, dest_haplosome, source_haplosome, nullptr);
+			}
 		}
 	}
 	

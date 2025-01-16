@@ -3631,7 +3631,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 				haplosome1->haplosome_id_ = individual_pid * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -3641,7 +3641,7 @@ Individual *Subpopulation::GenerateIndividualCrossed(Individual *p_parent1, Indi
 				haplosome2->haplosome_id_ = individual_pid * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 		
 		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
@@ -3827,7 +3827,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 				haplosome1->haplosome_id_ = individual_pid * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -3837,7 +3837,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 				haplosome2->haplosome_id_ = individual_pid * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 		
 		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
@@ -4034,7 +4034,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 				haplosome1->haplosome_id_ = individual_pid * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -4044,7 +4044,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 				haplosome2->haplosome_id_ = individual_pid * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 		
 		// move forward 1 or 2 indices in haplosomes_, depending on whether a haplosome2 was created (even if it is null)
@@ -4274,7 +4274,12 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				haplosome1->haplosome_id_ = individual_pid * 2;
 			
 			if (p_record_in_treeseq)
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+			{
+				if (haplosome1->IsNull())
+					species_.RecordNewHaplosome_NULL(haplosome1);
+				else
+					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+			}
 		}
 		if (haplosome2)
 		{
@@ -4300,7 +4305,12 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				haplosome2->haplosome_id_ = individual_pid * 2 + 1;
 			
 			if (p_record_in_treeseq)
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+			{
+				if (haplosome2->IsNull())
+					species_.RecordNewHaplosome_NULL(haplosome2);
+				else
+					species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+			}
 		}
 		
 		chromosome->StopMutationRunExperimentClock("GenerateIndividualEmpty()");
@@ -4654,7 +4664,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -4662,7 +4672,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 	}
 	
@@ -4853,7 +4863,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -4861,7 +4871,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 	}
 	
@@ -5138,7 +5148,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome1->haplosome_id_ = p_pedigree_id * 2;
 			
 			if (f_treeseq && haplosome1->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome1);
 		}
 		if (haplosome2)
 		{
@@ -5146,7 +5156,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 				haplosome2->haplosome_id_ = p_pedigree_id * 2 + 1;
 			
 			if (f_treeseq && haplosome2->IsNull())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 		}
 	}
 	
@@ -7468,7 +7478,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			{
 				// both strands are NULL, so we make a null haplosome; we do nothing but record it
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome1);
 				
 #if DEBUG
 				if (!haplosome1_null)
@@ -7515,7 +7525,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 			{
 				// both strands are NULL and this is a diploid chromosome, so we record a null haplosome
 				if (species_.RecordingTreeSequence())
-					species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+					species_.RecordNewHaplosome_NULL(haplosome2);
 				
 #if DEBUG
 				if (!haplosome2_null)
@@ -8053,7 +8063,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		{
 			// both strands are NULL, so we make a null haplosome; we do nothing but record it
 			if (species_.RecordingTreeSequence())
-				species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome1);
 			
 #if DEBUG
 			if (!haplosome1_null)
@@ -8100,7 +8110,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		{
 			// both strands are NULL and this is a diploid chromosome, so we record a null haplosome
 			if (species_.RecordingTreeSequence())
-				species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+				species_.RecordNewHaplosome_NULL(haplosome2);
 			
 #if DEBUG
 			if (!haplosome2_null)

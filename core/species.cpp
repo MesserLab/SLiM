@@ -5312,22 +5312,30 @@ void Species::RetractNewIndividual()
 void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
 		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
+	// This method records a new non-null haplosome; see also RecordNewHaplosome_NULL().
+	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+	
+	if (!p_new_haplosome)
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) p_new_haplosome is nullptr." << EidosTerminate();
+	if (p_new_haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) p_new_haplosome is a null haplosome." << EidosTerminate();
 #endif
 	
-	slim_chromosome_index_t index = p_new_haplosome->chromosome_index_;
-	Chromosome &chromosome = *chromosomes_[index];
-	TreeSeqInfo &tsinfo = treeseq_[index];
+	slim_chromosome_index_t chromosome_index = p_new_haplosome->chromosome_index_;
+	Chromosome &chromosome = *chromosomes_[chromosome_index];
+	TreeSeqInfo &tsinfo = treeseq_[chromosome_index];
 	
-	// This records information about an individual in both the Node and Edge tables.
-	// BCH 12/6/2024: Note that recording the new node table entries is now done by SetCurrentNewIndividual().  That method
-	// determines the tskit node ids for the two haplosome positions of the individual, as tsk_node_id_base_ (+ 1).
+	// This records information about an individual in the edge table.  BCH 12/6/2024: Note that recording the
+	// new node table entries is now done by SetCurrentNewIndividual().  That method determines the tskit node
+	// ids for the two haplosome positions of the individual, as tsk_node_id_base_ (+ 1).
 	
-	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint in the vector, that is beyond
-	// the end of the chromosome.  This is for bookkeeping in the crossover-mutation code and should be ignored, as the code below does.
-	// The breakpoints vector may be nullptr (indicating no recombination), but if it exists it will be sorted in ascending order.
+	// Note that the breakpoints vector provided may (or may not) contain a breakpoint, as the final breakpoint
+	// in the vector, that is past the end of the chromosome.  This is for bookkeeping in the crossover-mutation
+	// code and should be ignored, as the code below does.  The breakpoints vector may be nullptr (indicating no
+	// recombination), but if it exists it will be sorted in ascending order.
 
 	// if there is no parent then no need to record edges
 	if (!p_initial_parental_haplosome && !p_second_parental_haplosome)
@@ -5335,8 +5343,9 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 	
 	assert(p_initial_parental_haplosome);	// this cannot be nullptr if p_second_parental_haplosome is non-null, so now it is guaranteed non-null
 	
-	// get the TSK IDs for all the haplosomes involved; they are the tsk_node_id_base_ of the owning individual,
-	// plus 0 or 1 depending on whether they are the first or second haplosome for their associated chromosome
+	// get the TSK IDs for all the haplosomes involved; they are the tsk_node_id_base_ of the owning
+	// individual, plus 0 or 1 depending on whether they are the first or second haplosome for their
+	// associated chromosome
 	tsk_id_t offspringTSKID, haplosome1TSKID, haplosome2TSKID;
 	
 	offspringTSKID = p_new_haplosome->OwningIndividual()->TskitNodeIdBase() + p_new_haplosome->chromosome_subposition_;
@@ -5383,13 +5392,30 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 	tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
 	int ret = tsk_edge_table_add_row(&tsinfo.tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
+}
+
+void Species::RecordNewHaplosome_NULL(Haplosome *p_new_haplosome)
+{
+	// This method records a new null haplosome (no edges to record); see also RecordNewHaplosome().
 	
 	// BCH 12/10/2024: With the new metadata scheme for haplosome, we also need to fix the is_null_metadata if
 	// the new haplosome is a null haplosome *and* it belongs to a chromosome type where that is notable.  In
 	// the present design, that can only be chromosome types "A" and "H"; the other chromosome types do not
 	// allow deviation from the default null-haplosome configuration.
-	if (p_new_haplosome->IsNull())
+	
+#if DEBUG
+	if (!recording_tree_)
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome_NULL): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
+	
+	if (!p_new_haplosome)
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) p_new_haplosome is nullptr." << EidosTerminate();
+	if (!p_new_haplosome->IsNull())
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewHaplosome): (internal error) p_new_haplosome is not a null haplosome." << EidosTerminate();
+#endif
+	
 	{
+		slim_chromosome_index_t chromosome_index = p_new_haplosome->chromosome_index_;
+		Chromosome &chromosome = *chromosomes_[chromosome_index];
 		ChromosomeType chromosome_type = chromosome.Type();
 		
 		if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome))
@@ -5397,7 +5423,7 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 			// it is null and that was unexpected; we need to flip the corresponding is_null_ bit
 			// each chromosome has two node table entries; entry 1 is for haplosome 1, entry 2 is
 			// for haplosome 2, so there is only one bit per chromosome in a given is_null_ vector
-			slim_chromosome_index_t chromosome_index = chromosome.Index();
+			tsk_id_t offspringTSKID = p_new_haplosome->OwningIndividual()->TskitNodeIdBase() + p_new_haplosome->chromosome_subposition_;
 			tsk_node_table_t &shared_node_table = treeseq_[0].tables_.nodes;
 			HaplosomeMetadataRec *metadata = (HaplosomeMetadataRec *)(shared_node_table.metadata + shared_node_table.metadata_offset[offspringTSKID]);
 			uint8_t *metadata_is_null = metadata->is_null_;
