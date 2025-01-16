@@ -4466,7 +4466,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	Chromosome *chromosome = p_child_haplosome->AssociatedChromosome();
 	double gBGC_coeff_scaled = (chromosome->mismatch_repair_bias_ + 1.0) / 2.0;
 	bool repairs_biased = (species_.IsNucleotideBased() && (gBGC_coeff_scaled != 0.5));
-	NucleotideArray *ancestral_sequence = (repairs_biased ? species_.TheChromosome().AncestralSequence() : nullptr);
+	NucleotideArray *ancestral_sequence = (repairs_biased ? chromosome->AncestralSequence() : nullptr);
 	int heteroduplex_tract_count = (int)(p_heteroduplex.size() / 2);
 	
 	if (heteroduplex_tract_count * 2 != (int)p_heteroduplex.size())
