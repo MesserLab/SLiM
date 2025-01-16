@@ -1180,7 +1180,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 }
 
 // draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
-MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
+MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, slim_position_t *p_breakpoints, int p_breakpoints_count, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const
 {
 	slim_position_t position = p_position.first;
 	GenomicElement &source_element = *(p_position.second);
@@ -1189,11 +1189,11 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Determine which parental haplosome the mutation will be atop (so we can get the genetic context for it)
 	bool on_first_haplosome = true;
 	
-	if (all_breakpoints)
+	if (p_breakpoints)
 	{
-		for (slim_position_t breakpoint : *all_breakpoints)
+		for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
 		{
-			if (breakpoint > position)
+			if (p_breakpoints[break_index] > position)
 				break;
 			
 			on_first_haplosome = !on_first_haplosome;

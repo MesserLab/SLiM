@@ -320,7 +320,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 				if (source_haplosome->IsNull())
 					species_.RecordNewHaplosome_NULL(dest_haplosome);
 				else
-					species_.RecordNewHaplosome(nullptr, dest_haplosome, source_haplosome, nullptr);
+					species_.RecordNewHaplosome(nullptr, 0, dest_haplosome, source_haplosome, nullptr);
 			}
 		}
 	}
@@ -2704,29 +2704,16 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 				bool breaks_changed = ApplyRecombinationCallbacks(parent_individual, parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 				num_breakpoints = (int)all_breakpoints.size();
 				
-				if (num_breakpoints)
+				// we only sort/unique if the breakpoints have changed, since they were sorted/uniqued before
+				if (breaks_changed && (num_breakpoints > 1))
 				{
-					// we only sort/unique if the breakpoints have changed, since they were sorted/uniqued before
-					if (breaks_changed && (all_breakpoints.size() > 1))
-					{
-						std::sort(all_breakpoints.begin(), all_breakpoints.end());
-						all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-					}
-					
-					// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-					all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
-				}
-				else
-				{
-					// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
-					// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+					std::sort(all_breakpoints.begin(), all_breakpoints.end());
+					all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 				}
 			}
 			else
 			{
 				// a non-zero number of breakpoints, without recombination callbacks
-				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
 			}
 		}
 		else if (f_callbacks && p_recombination_callbacks)
@@ -2738,40 +2725,34 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			ApplyRecombinationCallbacks(parent_individual, parent_haplosome_1, parent_haplosome_2, all_breakpoints, *p_recombination_callbacks);
 			num_breakpoints = (int)all_breakpoints.size();
 			
-			if (num_breakpoints)
+			if (num_breakpoints > 1)
 			{
-				if (all_breakpoints.size() > 1)
-				{
-					std::sort(all_breakpoints.begin(), all_breakpoints.end());
-					all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
-				}
-				
-				// no need to sort or unique this breakpoint, as it is past the end of any legitimate breakpoints
-				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
-			}
-			else
-			{
-				// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
-				// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
+				std::sort(all_breakpoints.begin(), all_breakpoints.end());
+				all_breakpoints.erase(unique(all_breakpoints.begin(), all_breakpoints.end()), all_breakpoints.end());
 			}
 		}
 		else
 		{
 			// no breakpoints or DSBs, no recombination() callbacks
-			
-			// Note that we do not add the (p_chromosome.last_position_mutrun_ + 10) breakpoint here, for speed in the
-			// cases where it is not needed; this needs to be patched up below in the cases where it *is* needed
 		}
 	}
 	
+	// we need a defined end breakpoint, so we add it now
+	all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
+	
 	// A leading zero in the breakpoints vector switches copy strands before copying begins.
-	// In HaplosomeRecombined() we explicitly remove that, to prevent it from being recorded
-	// in the tree sequence.  That's a bit trickier to do here, since we've deferred adding the
-	// past-the-end marker above in some cases.  It is not essential to do, I think, just a
-	// nicety that makes for a cleaner recorded tree sequence.  Also, a leading zero should
-	// be much less common in HaplosomeCrossed(), since the user is not playing games the way
-	// they do with HaplosomeRecombined().  So I'm going to skip it for now, which I think is
-	// basically harmless; but I'll revisit this later.  FIXME MULTICHROM
+	// We want to handle that up front, primarily because we don't want to record it in treeseq.
+	// We only need to do this once, since the breakpoints vector is sorted/uniqued here.
+	// For efficiency, we switch to a head pointer here; DO NOT USE all_breakpoints HEREAFTER!
+	slim_position_t *breakpoints_ptr = all_breakpoints.data();
+	int breakpoints_count = (int)all_breakpoints.size();
+	
+	if (*breakpoints_ptr == 0)	// guaranteed to exist since we added an element above
+	{
+		breakpoints_ptr++;
+		breakpoints_count--;
+		std::swap(parent_haplosome_1, parent_haplosome_2);
+	}
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_sequence = f_treeseq;
@@ -2781,7 +2762,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 	{
 #pragma omp critical (TreeSeqNewHaplosome)
 		{
-			species_.RecordNewHaplosome(&all_breakpoints, &p_child_haplosome, parent_haplosome_1, parent_haplosome_2);
+			species_.RecordNewHaplosome(breakpoints_ptr, breakpoints_count, &p_child_haplosome, parent_haplosome_1, parent_haplosome_2);
 		}
 	}
 	
@@ -2807,11 +2788,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 			int mutrun_count = p_child_haplosome.mutrun_count_;
 			int first_uncompleted_mutrun = 0;
-			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			
-			for (int break_index = 0; break_index < break_index_max; break_index++)
+			for (int break_index = 0; break_index < breakpoints_count; break_index++)
 			{
-				slim_position_t breakpoint = all_breakpoints[break_index];
+				slim_position_t breakpoint = breakpoints_ptr[break_index];
 				slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 				
 				// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
@@ -2871,11 +2851,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						break_index++;
 						
 						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-						if (break_index == break_index_max)
+						if (break_index == breakpoints_count)
 							break;
 						
 						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-						breakpoint = all_breakpoints[break_index];
+						breakpoint = breakpoints_ptr[break_index];
 						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						
 						// if the next breakpoint is outside this mutation run, then finish the run and break out
@@ -2949,7 +2929,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 					for (int k = 0; k < num_mutations; k++)
 					{
-						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome_1, parent_haplosome_2, &all_breakpoints, p_mutation_callbacks);
+						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome_1, parent_haplosome_2, breakpoints_ptr, breakpoints_count, p_mutation_callbacks);
 						
 						if (new_mutation != -1)
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -3120,14 +3100,8 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 			// mutations and crossovers; this is the most complex case
 			//
 			
-			// fix up the breakpoints vector; above we allow it to be completely empty, for maximal speed in the
-			// 0-mutation/0-breakpoint case, but here we need a defined end breakpoint, so we add it now if necessary
-			if (all_breakpoints.size() == 0)
-				all_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
-			
-			int break_index_max = static_cast<int>(all_breakpoints.size());	// can be != num_breakpoints+1 due to gene conversion and dup removal!
 			int break_index = 0;
-			slim_position_t breakpoint = all_breakpoints[break_index];
+			slim_position_t breakpoint = breakpoints_ptr[break_index];
 			slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 			
 			while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
@@ -3169,10 +3143,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						parent_haplosome = parent_haplosome_1;
 						
 						// go to next breakpoint; this advances the for loop
-						if (++break_index == break_index_max)
+						if (++break_index == breakpoints_count)
 							break;
 						
-						breakpoint = all_breakpoints[break_index];
+						breakpoint = breakpoints_ptr[break_index];
 						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						
 						continue;
@@ -3327,16 +3301,16 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								parent_iter++;
 							
 							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
-							if (++break_index == break_index_max)
+							if (++break_index == breakpoints_count)
 								break;
 							
 							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-							breakpoint = all_breakpoints[break_index];
+							breakpoint = breakpoints_ptr[break_index];
 							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						}
 						
 						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-						if (break_index == break_index_max)
+						if (break_index == breakpoints_count)
 							break;
 						
 						// We have completed this run
@@ -3374,11 +3348,11 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 								parent_iter++;
 							
 							// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
-							if (++break_index == break_index_max)
+							if (++break_index == breakpoints_count)
 								break;
 							
 							// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-							breakpoint = all_breakpoints[break_index];
+							breakpoint = breakpoints_ptr[break_index];
 							break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 							
 							// if the next breakpoint is outside this mutation run, then finish the run and break out
@@ -3392,7 +3366,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 						}
 						
 						// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-						if (break_index == break_index_max)
+						if (break_index == breakpoints_count)
 							break;
 						
 						// We have completed this run
@@ -3491,7 +3465,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #endif
 	
 	if (heteroduplex.size() > 0)
-		DoHeteroduplexRepair(heteroduplex, all_breakpoints, parent_haplosome_1, parent_haplosome_2, &p_child_haplosome);
+		DoHeteroduplexRepair(heteroduplex, breakpoints_ptr, breakpoints_count, parent_haplosome_1, parent_haplosome_2, &p_child_haplosome);
 }
 
 template void Population::HaplosomeCrossed<false, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
@@ -3546,7 +3520,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 	{
 #pragma omp critical (TreeSeqNewHaplosome)
 		{
-			species_.RecordNewHaplosome(nullptr, &p_child_haplosome, parent_haplosome, nullptr);
+			species_.RecordNewHaplosome(nullptr, 0, &p_child_haplosome, parent_haplosome, nullptr);
 		}
 	}
 	
@@ -3597,7 +3571,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 					for (int k = 0; k < num_mutations; k++)
 					{
-						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome, nullptr, nullptr, p_mutation_callbacks);
+						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], source_subpop->subpopulation_id_, community_.Tick(), parent_haplosome, nullptr, nullptr, 0, p_mutation_callbacks);
 						
 						if (new_mutation != -1)
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -3819,24 +3793,25 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 	// determine how many mutations we have
 	int num_mutations = p_chromosome.DrawMutationCount(parent_sex);
 	
+	// we need a defined end breakpoint, so we add it now; we don't want more than one, though,
+	// and in some cases the caller might already have this breakpoint added, so we need to
+	// check (that happens with multiple children in addRecombinant(), for example)
+	if ((p_breakpoints.size() == 0) || (p_breakpoints.back() <= p_chromosome.last_position_mutrun_))
+		p_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 10);
+	
 	// A leading zero in the breakpoints vector switches copy strands before copying begins.
 	// We want to handle that up front, primarily because we don't want to record it in treeseq.
-	// FIXME MULTICHROM erase() here can be very expensive; would be good to switch to using a start pointer
-	// and count, which would allow the first element to be removed in O(1) time by advancing the pointer
-	// I've put off doing that change because it echos across many calls and will make big diffs
-	// As a part of this work, RecordNewHaplosome() should get a derived version for the no-recombination case,
-	// especially the null haplosome case; recording those should be fast to avoid bogging down the model
-	while (p_breakpoints.front() == 0)
+	// We only need to do this once, since the breakpoints vector is sorted/uniqued here.
+	// For efficiency, we switch to a head pointer here; DO NOT USE p_breakpoints HEREAFTER!
+	slim_position_t *breakpoints_ptr = p_breakpoints.data();
+	int breakpoints_count = (int)p_breakpoints.size();
+	
+	if (*breakpoints_ptr == 0)	// guaranteed to exist since we added an element above
 	{
-		p_breakpoints.erase(p_breakpoints.begin());
+		breakpoints_ptr++;
+		breakpoints_count--;
 		std::swap(parent_haplosome_1, parent_haplosome_2);
 	}
-	
-	// we need a defined end breakpoint, so we add it now; we don't want more than one, though
-	// in some cases the caller might already have this breakpoint added, so we need to check
-	// (that happens with multiple children in addRecombinant(), for example)
-	if (p_breakpoints.back() <= p_chromosome.last_position_mutrun_)
-		p_breakpoints.emplace_back(p_chromosome.last_position_mutrun_ + 1);
 	
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_sequence = f_treeseq;
@@ -3846,7 +3821,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 	{
 #pragma omp critical (TreeSeqNewHaplosome)
 		{
-			species_.RecordNewHaplosome(&p_breakpoints, &p_child_haplosome, parent_haplosome_1, parent_haplosome_2);
+			species_.RecordNewHaplosome(breakpoints_ptr, breakpoints_count, &p_child_haplosome, parent_haplosome_1, parent_haplosome_2);
 		}
 	}
 	
@@ -3862,11 +3837,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 		slim_position_t mutrun_length = p_child_haplosome.mutrun_length_;
 		int mutrun_count = p_child_haplosome.mutrun_count_;
 		int first_uncompleted_mutrun = 0;
-		int break_index_max = static_cast<int>(p_breakpoints.size());
 		
-		for (int break_index = 0; break_index < break_index_max; break_index++)
+		for (int break_index = 0; break_index < breakpoints_count; break_index++)
 		{
-			slim_position_t breakpoint = p_breakpoints[break_index];
+			slim_position_t breakpoint = breakpoints_ptr[break_index];
 			slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 			
 			// Copy over mutation runs until we arrive at the run in which the breakpoint occurs
@@ -3926,11 +3900,11 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					break_index++;
 					
 					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-					if (break_index == break_index_max)
+					if (break_index == breakpoints_count)
 						break;
 					
 					// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-					breakpoint = p_breakpoints[break_index];
+					breakpoint = breakpoints_ptr[break_index];
 					break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 					
 					// if the next breakpoint is outside this mutation run, then finish the run and break out
@@ -3999,7 +3973,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 					for (int k = 0; k < num_mutations; k++)
 					{
-						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], dest_subpop->subpopulation_id_, community_.Tick(), parent_haplosome_1, parent_haplosome_2, &p_breakpoints, p_mutation_callbacks);
+						MutationIndex new_mutation = p_chromosome.DrawNewMutationExtended(mut_positions[k], dest_subpop->subpopulation_id_, community_.Tick(), parent_haplosome_1, parent_haplosome_2, breakpoints_ptr, breakpoints_count, p_mutation_callbacks);
 						
 						if (new_mutation != -1)
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -4065,9 +4039,8 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 		//
 		// mutations and crossovers; this is the most complex case
 		//
-		int break_index_max = static_cast<int>(p_breakpoints.size());
 		int break_index = 0;
-		slim_position_t breakpoint = p_breakpoints[break_index];
+		slim_position_t breakpoint = breakpoints_ptr[break_index];
 		slim_mutrun_index_t break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 		
 		while (true)	// loop over breakpoints until we have handled the last one, which comes at the end
@@ -4109,10 +4082,10 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					parent_haplosome = parent_haplosome_1;
 					
 					// go to next breakpoint; this advances the for loop
-					if (++break_index == break_index_max)
+					if (++break_index == breakpoints_count)
 						break;
 					
-					breakpoint = p_breakpoints[break_index];
+					breakpoint = breakpoints_ptr[break_index];
 					break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 					
 					continue;
@@ -4267,16 +4240,16 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							parent_iter++;
 						
 						// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
-						if (++break_index == break_index_max)
+						if (++break_index == breakpoints_count)
 							break;
 						
 						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-						breakpoint = p_breakpoints[break_index];
+						breakpoint = breakpoints_ptr[break_index];
 						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 					}
 					
 					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-					if (break_index == break_index_max)
+					if (break_index == breakpoints_count)
 						break;
 					
 					// We have completed this run
@@ -4314,11 +4287,11 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 							parent_iter++;
 						
 						// we have now handled the current breakpoint, so move on; if we just handled the last breakpoint, then we are done
-						if (++break_index == break_index_max)
+						if (++break_index == breakpoints_count)
 							break;
 						
 						// otherwise, figure out the new breakpoint, and continue looping on the current mutation run, which needs to be finished
-						breakpoint = p_breakpoints[break_index];
+						breakpoint = breakpoints_ptr[break_index];
 						break_mutrun_index = (slim_mutrun_index_t)(breakpoint / mutrun_length);
 						
 						// if the next breakpoint is outside this mutation run, then finish the run and break out
@@ -4332,7 +4305,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 					}
 					
 					// if we just handled the last breakpoint, which is guaranteed to be at or beyond lastPosition+1, then we are done
-					if (break_index == break_index_max)
+					if (break_index == breakpoints_count)
 						break;
 					
 					// We have completed this run
@@ -4435,7 +4408,7 @@ template void Population::HaplosomeRecombined<false, true>(Chromosome &p_chromos
 template void Population::HaplosomeRecombined<true, false>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 template void Population::HaplosomeRecombined<true, true>(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks);
 
-void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome)
+void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome)
 {
 #if DEBUG
 	if (!p_child_haplosome->individual_)
@@ -4488,8 +4461,10 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		// the breakpoints vector; it must remain the non-copy strand throughout.
 		bool copy_strand_is_1 = true;
 		
-		for (slim_position_t breakpoint : p_breakpoints)
+		for (int break_index = 0; break_index < p_breakpoints_count; ++break_index)
 		{
+			slim_position_t breakpoint = p_breakpoints[break_index];
+			
 			if (breakpoint <= tract_start)
 				copy_strand_is_1 = !copy_strand_is_1;
 			else if (breakpoint > tract_end)

@@ -238,7 +238,7 @@ public:
 	void (Population::*HaplosomeCloned_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) = nullptr;
 	void (Population::*HaplosomeRecombined_TEMPLATED)(Chromosome &p_chromosome, Haplosome &p_child_haplosome, Haplosome *parent_haplosome_1, Haplosome *parent_haplosome_2, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) = nullptr;
 	
-	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, std::vector<slim_position_t> &p_breakpoints, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);
+	void DoHeteroduplexRepair(std::vector<slim_position_t> &p_heteroduplex, slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_parent_haplosome_1, Haplosome *p_parent_haplosome_2, Haplosome *p_child_haplosome);
 	
 	// generate offspring within a reproduction() callback using templated Subpopulation methods; these pointers get
 	// set up at the beginning of each tick's reproduction() callback stage, and should not be used outside of it

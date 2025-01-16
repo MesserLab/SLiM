@@ -5309,7 +5309,7 @@ void Species::RetractNewIndividual()
 		tsk_table_collection_truncate(&tsinfo.tables_, &tsinfo.table_position_);
 }
 
-void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, 
+void Species::RecordNewHaplosome(slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_new_haplosome, 
 		const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome)
 {
 	// This method records a new non-null haplosome; see also RecordNewHaplosome_NULL().
@@ -5356,20 +5356,18 @@ void Species::RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Ha
 		haplosome2TSKID = p_second_parental_haplosome->OwningIndividual()->TskitNodeIdBase() + p_second_parental_haplosome->chromosome_subposition_;
 	
 	// fix possible excess past-the-end breakpoint
-	size_t breakpoint_count = (p_breakpoints ? p_breakpoints->size() : 0);
-	
-	if (breakpoint_count && (p_breakpoints->back() > chromosome.last_position_))
-		breakpoint_count--;
+	if (p_breakpoints_count && (p_breakpoints[p_breakpoints_count - 1] > chromosome.last_position_))
+		p_breakpoints_count--;
 	
 	// add an edge for each interval between breakpoints
 	double left = 0.0;
 	double right;
 	bool polarity = true;
 	
-	for (size_t i = 0; i < breakpoint_count; i++)
+	for (int i = 0; i < p_breakpoints_count; i++)
 	{
-		right = (*p_breakpoints)[i];
-
+		right = p_breakpoints[i];
+		
 		tsk_id_t parent = (tsk_id_t) (polarity ? haplosome1TSKID : haplosome2TSKID);
 		polarity = !polarity;
 		

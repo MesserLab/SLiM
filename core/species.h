@@ -588,7 +588,7 @@ public:
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
-	void RecordNewHaplosome(std::vector<slim_position_t> *p_breakpoints, Haplosome *p_new_haplosome, const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome);
+	void RecordNewHaplosome(slim_position_t *p_breakpoints, int p_breakpoints_count, Haplosome *p_new_haplosome, const Haplosome *p_initial_parental_haplosome, const Haplosome *p_second_parental_haplosome);
 	void RecordNewHaplosome_NULL(Haplosome *p_new_haplosome);
 	void RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);

@@ -4278,7 +4278,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				if (haplosome1->IsNull())
 					species_.RecordNewHaplosome_NULL(haplosome1);
 				else
-					species_.RecordNewHaplosome(nullptr, haplosome1, nullptr, nullptr);
+					species_.RecordNewHaplosome(nullptr, 0, haplosome1, nullptr, nullptr);
 			}
 		}
 		if (haplosome2)
@@ -4309,7 +4309,7 @@ Individual *Subpopulation::GenerateIndividualEmpty(slim_popsize_t p_individual_i
 				if (haplosome2->IsNull())
 					species_.RecordNewHaplosome_NULL(haplosome2);
 				else
-					species_.RecordNewHaplosome(nullptr, haplosome2, nullptr, nullptr);
+					species_.RecordNewHaplosome(nullptr, 0, haplosome2, nullptr, nullptr);
 			}
 		}
 		
@@ -7457,7 +7457,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
 						
 						if (heteroduplex1.size() > 0)
-							population_.DoHeteroduplexRepair(heteroduplex1, breakvec1, strand1, strand2, haplosome1);
+							population_.DoHeteroduplexRepair(heteroduplex1, breakvec1.data(), (int)breakvec1.size(), strand1, strand2, haplosome1);
 					}
 				}
 				else
@@ -7504,7 +7504,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
 						
 						if (heteroduplex2.size() > 0)
-							population_.DoHeteroduplexRepair(heteroduplex2, breakvec2, strand3, strand4, haplosome2);
+							population_.DoHeteroduplexRepair(heteroduplex2, breakvec2.data(), (int)breakvec2.size(), strand3, strand4, haplosome2);
 					}
 				}
 				else
@@ -8042,7 +8042,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
 					
 					if (heteroduplex1.size() > 0)
-						population_.DoHeteroduplexRepair(heteroduplex1, breakvec1, strand1, strand2, haplosome1);
+						population_.DoHeteroduplexRepair(heteroduplex1, breakvec1.data(), (int)breakvec1.size(), strand1, strand2, haplosome1);
 				}
 			}
 			else
@@ -8089,7 +8089,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
 					
 					if (heteroduplex2.size() > 0)
-						population_.DoHeteroduplexRepair(heteroduplex2, breakvec2, strand3, strand4, haplosome2);
+						population_.DoHeteroduplexRepair(heteroduplex2, breakvec2.data(), (int)breakvec2.size(), strand3, strand4, haplosome2);
 				}
 			}
 			else
