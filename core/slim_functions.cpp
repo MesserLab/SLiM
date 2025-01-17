@@ -1963,8 +1963,12 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	{
 		tsk_table_collection_free(&temp_tables);
 		
-		// With no metadata, return an empty dictionary
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gEidosDictionaryRetained_Class));
+		// With no metadata, return an empty dictionary.  BCH 1/17/2025: prior to SLiM 5, this erroneously returned object<Dictionary>(0)
+		EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+		
+		objectElement->Release();	// retained by result_SP
+		return result_SP;
 	}
 	
 	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
@@ -2015,6 +2019,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
+	objectElement->Release();	// retained by result_SP
 	objectElement->AddJSONFrom(metadata);
 	objectElement->ContentsChanged("treeSeqMetadata()");
 	return result_SP;

@@ -100,6 +100,7 @@ development head (in the master branch):
 		add recipe 15.22, "Complex multi-chromosome inheritance with addMultiRecombinant()", to illustrate addMultiRecombinant()
 		modified recipes 15.14 and 15.21 to illustrate that NULL can now be passed to addRecombinant() for breaks to get automatic breakpoint generation
 		cleaned up the confusion around Dictionary vs. DictionaryBase; methods/functions can now use Dictionary in their signature without problems
+		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)
 
 
 version 4.3 (Eidos version 3.3):
