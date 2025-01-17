@@ -57,7 +57,7 @@ const EidosClass *EidosTestElement::Class(void) const
 
 void EidosTestElement::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
@@ -276,7 +276,7 @@ const EidosClass *EidosTestElementNRR::Class(void) const
 
 void EidosTestElementNRR::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP EidosTestElementNRR::GetProperty(EidosGlobalStringID p_property_id)

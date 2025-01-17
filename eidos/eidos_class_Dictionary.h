@@ -93,7 +93,10 @@ struct EidosDictionaryState_IntegerKeys
 // It can be checked at "long-term boundaries" to ensure that only retain-released objects are kept long term.
 extern int64_t gEidos_DictionaryNonRetainReleaseReferenceCounter;
 
-// This class is known in Eidos as "DictionaryBase"
+// This class is known in Eidos as "Dictionary".  The subclass EidosDictionaryRetained is the class that is created
+// by the Dictionary() constructor, however, and that subclass masquerades as Dictionary in various ways, to try
+// to hide the dichotomy here, since the user should be able to treat all dictionaries the same; which classes are
+// under retain/release is an internal implementation detail, to the extent possible.
 class EidosDictionaryUnretained : public EidosObject
 {
 private:
@@ -229,7 +232,13 @@ private:
 public:
 	EidosDictionaryUnretained_Class(const EidosDictionaryUnretained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryUnretained_Class& operator=(const EidosDictionaryUnretained_Class&) = delete;	// no copying
+	
+	// This constructor is used by ourselves and subclasses
 	inline EidosDictionaryUnretained_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	// This constructor is used only by EidosDictionaryRetained_Class, to set its display name to "Dictionary"
+	inline EidosDictionaryUnretained_Class(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass) :
+		super(p_class_name, p_display_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
@@ -243,7 +252,16 @@ public:
 extern EidosClass *gEidosDictionaryRetained_Class;
 
 // A base class for EidosObject subclasses that are under retain/release.
-// This class is known in Eidos as "Dictionary"
+
+// There is a complication in Eidos here.  When you make a new object with the Dictionary() class, you
+// get one of these -- an EidosDictionaryRetained.  However, in other respects the class name "Dictionary"
+// in Eidos refers to the superclass, EidosDictionaryUnretained, which actually implements the Dictionary
+// APIs, and which many SLiM classes inherit from because they want Dictionary-subclass functionality but
+// do not want to be under retain/release.  Some SLiM classes that do want to be under retain/release
+// inherit from EidosDictionaryRetained, but still are shown as having a superclass of "Dictionary".  So,
+// the Dictionary() constructor actually provides a subclass, and the two classes are conflated in the
+// public Eidos APIs and docs.
+
 class EidosDictionaryRetained : public EidosDictionaryUnretained
 {
 private:
@@ -298,7 +316,14 @@ private:
 public:
 	EidosDictionaryRetained_Class(const EidosDictionaryRetained_Class &p_original) = delete;	// no copy-construct
 	EidosDictionaryRetained_Class& operator=(const EidosDictionaryRetained_Class&) = delete;	// no copying
-	inline EidosDictionaryRetained_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	// This constructor is used by subclasses of EidosDictionaryRetained_Class
+	inline EidosDictionaryRetained_Class(const std::string &p_class_name, EidosClass *p_superclass) :
+		super(p_class_name, p_superclass) { }
+	
+	// This constructor is only for us, and takes a display name in addition to the usual parameters
+	inline EidosDictionaryRetained_Class(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass) :
+		super(p_class_name, p_display_name, p_superclass) { }
 	
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 	

@@ -73,7 +73,7 @@ const EidosClass *Substitution::Class(void) const
 
 void Substitution::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
 }
 
 EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)

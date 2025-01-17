@@ -804,6 +804,8 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
 	
+	objectElement->Release();	// retained by result_SP now
+	
 #ifdef _OPENMP
 	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_ABS_FLOAT)));
 	objectElement->SetKeyValue_StringKeys("CEIL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_CEIL)));
@@ -969,7 +971,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	return gStaticEidosValueVOID;
 }
 
-//	(void)parallelSetTaskThreadCounts(object$ dict)
+//	(void)parallelSetTaskThreadCounts(No<Dictionary>$ dict)
 EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *source_value = p_arguments[0].get();
@@ -983,13 +985,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 	}
 	else
 	{
-		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
-		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
-		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-		
-		if (!source)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+		EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		if (source->KeysAreStrings())
 		{

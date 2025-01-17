@@ -1212,7 +1212,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 	}
 }
 
-//	*********************	- (void)addKeysAndValuesFrom(object$ source)
+//	*********************	- (void)addKeysAndValuesFrom(object<Dictionary>$ source)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1222,10 +1222,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 	// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 	// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
 	// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-	EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-	
-	if (!source)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom): addKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+	EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	AddKeysAndValuesFrom(source);
 	
@@ -1234,7 +1231,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)appendKeysAndValuesFrom(object source)
+//	*********************	- (void)appendKeysAndValuesFrom(object<Dictionary> source)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1245,13 +1242,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom(E
 	// Loop through elements in source and handle them sequentially
 	for (int value_index = 0; value_index < source_count; ++value_index)
 	{
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-		
-		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
-		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
-		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		if (!source)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom): appendKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+		EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 		
 		AppendKeysAndValuesFrom(source);
 	}
@@ -1462,14 +1453,14 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 	}
 }
 
-//	*********************	- (logical$)identicalContents(object$ x)
+//	*********************	- (logical$)identicalContents(object<Dictionary>$ x)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_identicalContents(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
 	EidosObject *x_object = x_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-	EidosDictionaryUnretained *x_dict = dynamic_cast<EidosDictionaryUnretained *>(x_object);
+	EidosDictionaryUnretained *x_dict = (EidosDictionaryUnretained *)x_object;
 	
 	if (!x_dict)
 		return gStaticEidosValue_LogicalF;
@@ -1663,13 +1654,13 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, gEidosDictionaryUnretained_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, gEidosDictionaryUnretained_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_compactIndices, kEidosValueMaskInt, gEidosDictionaryRetained_Class))->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getRowValues, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr)->AddLogical_OS("drop", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", gEidosDictionaryUnretained_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("slim"))));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
@@ -1811,6 +1802,8 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
 	
+	// note that we instantiate EidosDictionaryRetained here, even though Dictionary is EidosDictionaryUnretained
+	// user-created dictionaries are under retain/release, but the Dictionary class is EidosDictionaryUnretained
 	objectElement->ConstructFromEidos(p_arguments, p_interpreter, "Eidos_Instantiate_EidosDictionaryRetained", "Dictionary");
 	objectElement->ContentsChanged("Dictionary()");
 	

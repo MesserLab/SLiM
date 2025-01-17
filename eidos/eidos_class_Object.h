@@ -70,7 +70,7 @@ public:
 	bool IsKindOfClass(const EidosClass *p_class_object) const;
 	bool IsMemberOfClass(const EidosClass *p_class_object) const;
 	
-	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ClassName()
+	virtual void Print(std::ostream &p_ostream) const;		// standard printing; prints Class()->ClassNameForDisplay()
 	virtual nlohmann::json JSONRepresentation(void) const;	// undefined, raises; subclass that know how to serialize themselves can override
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id);
@@ -130,6 +130,10 @@ private:
 	// so that we can use pointer equality on class names for speed, notably in takeMigrants().
 	const std::string &class_name_;
 	
+	// This is the class name displayed to the user, which might be different from class_name.  In particular,
+	// DictionaryRetained has a class_name_for_display_ of "Dictionary" to hide the class hierarchy there.
+	const std::string &class_name_for_display_;
+	
 	// This is the EidosClass object representing our superclass
 	EidosClass *superclass_;
 	
@@ -155,12 +159,14 @@ public:
 	EidosClass& operator=(const EidosClass&) = delete;		// no copying
 	
 	EidosClass(const std::string &p_class_name, EidosClass *p_superclass);
+	EidosClass(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass);
 	virtual ~EidosClass(void);
 	
 	virtual bool UsesRetainRelease(void) const;
 	
 	inline const EidosClass *Class(void) const { return this; }
 	inline const std::string &ClassName(void) const { return class_name_; };
+	inline const std::string &ClassNameForDisplay(void) const { return class_name_for_display_; };
 	inline const EidosClass *Superclass(void) const { return superclass_; }
 	bool IsSubclassOfClass(const EidosClass *p_class_object) const;
 	

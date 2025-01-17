@@ -298,7 +298,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     {
         const std::string &element_type = class_object->ClassName();
         
-        if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+        if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryRetained"))		// internal classes are undocumented
         {
             checkDocumentationOfClass(class_object);
             addSuperclassItemForClass(class_object);
@@ -920,9 +920,9 @@ void QtSLiMHelpWindow::checkDocumentationOfClass(EidosClass *classObject)
 {
     const EidosClass *superclassObject = classObject->Superclass();
 	
-	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
-	if (classObject == gEidosDictionaryRetained_Class)
-		superclassObject = gEidosObject_Class;
+	// We're hiding DictionaryRetained, so DictionaryRetained subclasses pretend their superclass is Dictionary
+	if (superclassObject == gEidosDictionaryRetained_Class)
+		superclassObject = gEidosDictionaryUnretained_Class;
 	
     const QString className = QString::fromStdString(classObject->ClassName());
 	const QString classKey = "Class " + className;
@@ -1029,9 +1029,9 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
 {
     const EidosClass *superclassObject = classObject->Superclass();
 	
-	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object
-	if (classObject == gEidosDictionaryRetained_Class)
-		superclassObject = gEidosObject_Class;
+	// We're hiding DictionaryRetained, so DictionaryRetained subclasses pretend their superclass is Dictionary
+	if (superclassObject == gEidosDictionaryRetained_Class)
+		superclassObject = gEidosDictionaryUnretained_Class;
 	
     const QString className = QString::fromStdString(classObject->ClassName());
 	const QString classKey = "Class " + className;
@@ -1041,10 +1041,6 @@ void QtSLiMHelpWindow::addSuperclassItemForClass(EidosClass *classObject)
 	if (classDocumentation && (classDocumentation->doc_fragment == nullptr) && (classDocChildCount > 0))
 	{
         QString superclassName = superclassObject ? QString::fromStdString(superclassObject->ClassName()) : QString("none");
-        
-        // Hide DictionaryBase by pretending our superclass is Dictionary
-        if (superclassName == "DictionaryBase")
-            superclassName = "Dictionary";
         
         bool inDarkMode = QtSLiMInDarkMode();
         QtSLiMHelpItem *superclassItem = new QtSLiMHelpItem((QTreeWidgetItem *)nullptr);

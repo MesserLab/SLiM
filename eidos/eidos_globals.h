@@ -957,7 +957,7 @@ extern const std::string &gEidosStr__increment;
 extern const std::string &gEidosStr__cubicYolk;
 extern const std::string &gEidosStr__squareTest;
 
-extern const std::string &gEidosStr_DictionaryBase;
+extern const std::string &gEidosStr_Dictionary;
 extern const std::string &gEidosStr_allKeys;
 extern const std::string &gEidosStr_addKeysAndValuesFrom;
 extern const std::string &gEidosStr_appendKeysAndValuesFrom;
@@ -969,7 +969,7 @@ extern const std::string &gEidosStr_identicalContents;
 extern const std::string &gEidosStr_serialize;
 extern const std::string &gEidosStr_setValue;
 
-extern const std::string &gEidosStr_Dictionary;
+extern const std::string &gEidosStr_DictionaryRetained;
 
 extern const std::string &gEidosStr_DataFrame;
 extern const std::string &gEidosStr_colNames;
@@ -1088,7 +1088,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
 
-	gEidosID_DictionaryBase,
+	gEidosID_Dictionary,
 	gEidosID_allKeys,
 	gEidosID_addKeysAndValuesFrom,
 	gEidosID_appendKeysAndValuesFrom,
@@ -1100,7 +1100,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_serialize,
 	gEidosID_setValue,
 
-	gEidosID_Dictionary,
+	gEidosID_DictionaryRetained,
 
 	gEidosID_DataFrame,
 	gEidosID_colNames,

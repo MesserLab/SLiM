@@ -1544,7 +1544,7 @@ const EidosClass *SLiMEidosBlock::Class(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<";
+	p_ostream << Class()->ClassNameForDisplay() << "<";
 	
 	if (tick_range_is_sequence_)
 	{

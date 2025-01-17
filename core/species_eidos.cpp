@@ -1681,9 +1681,9 @@ void Species::Print(std::ostream &p_ostream) const
 {
 	// Show the avatar in multispecies models (or any explicit species model)
 	if (community_.is_explicit_species_)
-		p_ostream << Class()->ClassName() << "<" << species_id_ << ":" << avatar_ << ">";
+		p_ostream << Class()->ClassNameForDisplay() << "<" << species_id_ << ":" << avatar_ << ">";
 	else
-		p_ostream << Class()->ClassName() << "<" << species_id_ << ">";
+		p_ostream << Class()->ClassNameForDisplay() << "<" << species_id_ << ">";
 }
 
 EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
@@ -2013,21 +2013,22 @@ EidosValue_SP Species::ExecuteMethod_addPatternForClone(EidosGlobalStringID p_me
 	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
-	EidosDictionaryRetained *pattern;
+	EidosDictionaryUnretained *pattern;
 	EidosValue_SP result_SP(nullptr);
 	bool pattern_uses_integer_keys;
 	
 	if (pattern_value->Type() == EidosValueType::kValueNULL)
 	{
-		pattern = new EidosDictionaryRetained();
+		EidosDictionaryRetained *pattern_retained = new EidosDictionaryRetained();
+		pattern = pattern_retained;
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
-		pattern->Release();
+		pattern_retained->Release();	// retained by result_SP
 		pattern_uses_integer_keys = true;
 	}
 	else
 	{
-		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		pattern = (EidosDictionaryUnretained *)pattern_value->ObjectData()[0];
 		result_SP = p_arguments[1];
 		pattern_uses_integer_keys = pattern->KeysAreIntegers();
 	}
@@ -2103,21 +2104,22 @@ EidosValue_SP Species::ExecuteMethod_addPatternForCross(EidosGlobalStringID p_me
 	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
-	EidosDictionaryRetained *pattern;
+	EidosDictionaryUnretained *pattern;
 	EidosValue_SP result_SP(nullptr);
 	bool pattern_uses_integer_keys;
 	
 	if (pattern_value->Type() == EidosValueType::kValueNULL)
 	{
-		pattern = new EidosDictionaryRetained();
+		EidosDictionaryRetained *pattern_retained = new EidosDictionaryRetained();
+		pattern = pattern_retained;
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
-		pattern->Release();
+		pattern_retained->Release();	// retained by result_SP
 		pattern_uses_integer_keys = true;
 	}
 	else
 	{
-		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		pattern = (EidosDictionaryUnretained *)pattern_value->ObjectData()[0];
 		result_SP = p_arguments[1];
 		pattern_uses_integer_keys = pattern->KeysAreIntegers();
 	}
@@ -2195,21 +2197,22 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 	ChromosomeType chromosome_type = chromosome->Type();
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
-	EidosDictionaryRetained *pattern;
+	EidosDictionaryUnretained *pattern;
 	EidosValue_SP result_SP(nullptr);
 	bool pattern_uses_integer_keys;
 	
 	if (pattern_value->Type() == EidosValueType::kValueNULL)
 	{
-		pattern = new EidosDictionaryRetained();
+		EidosDictionaryRetained *pattern_retained = new EidosDictionaryRetained();
+		pattern = pattern_retained;
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
-		pattern->Release();
+		pattern_retained->Release();	// retained by result_SP
 		pattern_uses_integer_keys = true;
 	}
 	else
 	{
-		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		pattern = (EidosDictionaryUnretained *)pattern_value->ObjectData()[0];
 		result_SP = p_arguments[1];
 		pattern_uses_integer_keys = pattern->KeysAreIntegers();
 	}
@@ -2297,21 +2300,22 @@ EidosValue_SP Species::ExecuteMethod_addPatternForRecombinant(EidosGlobalStringI
 	slim_chromosome_index_t chromosome_index = chromosome->Index();
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
-	EidosDictionaryRetained *pattern;
+	EidosDictionaryUnretained *pattern;
 	EidosValue_SP result_SP(nullptr);
 	bool pattern_uses_integer_keys;
 	
 	if (pattern_value->Type() == EidosValueType::kValueNULL)
 	{
-		pattern = new EidosDictionaryRetained();
+		EidosDictionaryRetained *pattern_retained = new EidosDictionaryRetained();
+		pattern = pattern_retained;
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(pattern, gEidosDictionaryRetained_Class));
-		pattern->Release();
+		pattern_retained->Release();	// retained by result_SP
 		pattern_uses_integer_keys = true;
 	}
 	else
 	{
-		pattern = (EidosDictionaryRetained *)pattern_value->ObjectData()[0];
+		pattern = (EidosDictionaryUnretained *)pattern_value->ObjectData()[0];
 		result_SP = p_arguments[1];
 		pattern_uses_integer_keys = pattern->KeysAreIntegers();
 	}
@@ -3455,17 +3459,7 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	
 	if (subpopMap_value->Type() != EidosValueType::kValueNULL)
 	{
-		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
-		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
-		EidosObject *subpopMap_element = subpopMap_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-		
-		if (!subpopMap_element->IsKindOfClass(gEidosDictionaryUnretained_Class))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() requires that subpopMap be a Dictionary or a subclass of Dictionary." << EidosTerminate();
-		
-		EidosDictionaryUnretained *subpopMap_dict = dynamic_cast<EidosDictionaryUnretained *>(subpopMap_element);
-		
-		if (!subpopMap_dict)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): (internal) subpopMap object did not convert to EidosDictionaryUnretained." << EidosTerminate();
+		EidosDictionaryUnretained *subpopMap_dict = (EidosDictionaryUnretained *)subpopMap_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		if (!subpopMap_dict->KeysAreStrings())
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap must use strings for its keys; integer keys are not presently supported." << EidosTerminate();
@@ -4106,7 +4100,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No$ metadata = NULL])
+//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No<Dictionary>$ metadata = NULL])
 //
 EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4136,20 +4130,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	bool includeModel = includeModel_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (metadata_value->Type() == EidosValueType::kValueObject)
-	{
-		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
-		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
-		// The JSON serialization would raise anyway, I think, but this gives a better error message.
-		EidosObject *metadata_object = metadata_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-		
-		if (!metadata_object->IsKindOfClass(gEidosDictionaryUnretained_Class))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() requires that the metadata parameter be a Dictionary or a subclass of Dictionary." << EidosTerminate();
-		
-		metadata_dict = dynamic_cast<EidosDictionaryUnretained *>(metadata_object);
-		
-		if (!metadata_dict)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): (internal) metadata object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
-	}
+		metadata_dict = (EidosDictionaryUnretained *)metadata_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	WriteTreeSequence(path_string, simplify, includeModel, metadata_dict);
 	
@@ -4236,10 +4217,10 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForClone, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_S("parent", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForCross, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForNull, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForRecombinant, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryRetained_Class)->AddObject_SN(gStr_strand1, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand2, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks1)->AddObject_SN(gStr_strand3, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand4, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks2)->AddString_OSN("sex", gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForClone, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryUnretained_Class)->AddObject_S("parent", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForCross, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryUnretained_Class)->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForNull, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryUnretained_Class)->AddString_OSN("sex", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPatternForRecombinant, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class)->AddArg(kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, "pattern", gEidosDictionaryUnretained_Class)->AddObject_SN(gStr_strand1, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand2, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks1)->AddObject_SN(gStr_strand3, gSLiM_Haplosome_Class)->AddObject_SN(gStr_strand4, gSLiM_Haplosome_Class)->AddInt_N(gStr_breaks2)->AddString_OSN("sex", gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_chromosomesOfType, kEidosValueMaskObject, gSLiM_Chromosome_Class))->AddString_S("type"));
@@ -4254,7 +4235,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddObject_OSN("subpopMap", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddObject_OSN("subpopMap", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("tick", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessEffectCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -4270,7 +4251,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__debug, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

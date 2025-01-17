@@ -3460,7 +3460,7 @@ const EidosClass *InteractionType::Class(void) const
 
 void InteractionType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<i" << interaction_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<i" << interaction_type_id_ << ">";
 }
 
 EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)

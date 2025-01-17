@@ -148,7 +148,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClas
 	if (p_object_class && (stripped_mask & kEidosValueMaskObject))
 	{
 		out_string += "<";
-		out_string += p_object_class->ClassName();
+		out_string += p_object_class->ClassNameForDisplay();
 		out_string += ">";
 	}
 	
@@ -1900,7 +1900,7 @@ void EidosValue_Object::RaiseForClassMismatch(void) const
 
 const std::string &EidosValue_Object::ElementType(void) const
 {
-	return Class()->ClassName();
+	return Class()->ClassNameForDisplay();
 }
 
 EidosValue_SP EidosValue_Object::NewMatchingType(void) const

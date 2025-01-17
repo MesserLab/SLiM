@@ -456,9 +456,9 @@ const EidosClass *Individual::Class(void) const
 void Individual::Print(std::ostream &p_ostream) const
 {
 	if (killed_)
-		p_ostream << Class()->ClassName() << "<KILLED>";
+		p_ostream << Class()->ClassNameForDisplay() << "<KILLED>";
 	else
-		p_ostream << Class()->ClassName() << "<p" << subpopulation_->subpopulation_id_ << ":i" << index_ << ">";
+		p_ostream << Class()->ClassNameForDisplay() << "<p" << subpopulation_->subpopulation_id_ << ":i" << index_ << ">";
 }
 
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)

@@ -149,7 +149,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 							if ((argument_class == gEidosObject_Class) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 						}
 					}
 					break;
@@ -330,7 +330,7 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 							break;
 						
 						if (!argument_class->IsSubclassOfClass(signature_class))
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 					}
 				}
 				break;
@@ -437,7 +437,7 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -495,7 +495,7 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}

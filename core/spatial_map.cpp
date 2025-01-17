@@ -1059,7 +1059,7 @@ const EidosClass *SpatialMap::Class(void) const
 
 void SpatialMap::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<\'" << name_ << "\'>";
+	p_ostream << Class()->ClassNameForDisplay() << "<\'" << name_ << "\'>";
 }
 
 EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)

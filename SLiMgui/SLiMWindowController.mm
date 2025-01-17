@@ -3401,7 +3401,7 @@
 		
 		for (EidosClass *class_object : EidosClass::RegisteredClasses(false, true))
 		{
-			const std::string &element_type = class_object->ClassName();
+			const std::string &element_type = class_object->ClassNameForDisplay();
 			
 			if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
 				[sharedHelp checkDocumentationOfClass:class_object];

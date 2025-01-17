@@ -242,7 +242,7 @@ const EidosClass *GenomicElementType::Class(void) const
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<g" << genomic_element_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<g" << genomic_element_type_id_ << ">";
 }
 
 EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)

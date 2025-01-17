@@ -503,7 +503,7 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
             
             if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
             {
-                int obj_type_name_len = QString::fromStdString(arg_obj_class->ClassName()).length();
+                int obj_type_name_len = QString::fromStdString(arg_obj_class->ClassNameForDisplay()).length();
                 
                 typeLength += (obj_type_name_len + 2);  // "<" obj_type_name ">"
             }

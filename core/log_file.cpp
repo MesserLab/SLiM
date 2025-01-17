@@ -522,7 +522,7 @@ const EidosClass *LogFile::Class(void) const
 
 void LogFile::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<" << user_file_path_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<" << user_file_path_ << ">";
 }
 
 EidosValue_SP LogFile::GetProperty(EidosGlobalStringID p_property_id)
@@ -1113,8 +1113,8 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_willAutolog, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		
 		// overrides of Dictionary methods; these should not be declared again, to avoid a duplicate in the methods table
-		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
-		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
+		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, gEidosDictionaryUnretained_Class));
+		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, gEidosDictionaryUnretained_Class));
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value")));
 		

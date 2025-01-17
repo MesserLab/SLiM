@@ -1710,6 +1710,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1820,6 +1821,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -4770,7 +4772,8 @@ See
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()
@@ -4929,7 +4932,7 @@ See
 \f4\fs20 , which this column reflects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)addKeysAndValuesFrom(object$\'a0source)\
+\f3\fs18 \cf2 \'96\'a0(void)addKeysAndValuesFrom(object<Dictionary>$\'a0source)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 This 
@@ -8573,7 +8576,8 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -8623,7 +8627,7 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath\cf2 , [No$\'a0subpopMap\'a0=\'a0NULL]\cf0 )\
+\f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath\cf2 , [No<Dictionary>$\'a0subpopMap\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Read from a population initialization file, whether in text or binary format as previously specified to 
@@ -8703,7 +8707,8 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -9300,7 +9305,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every tick would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current tick or in a recent preceding tick.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No<Dictionary>$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

@@ -78,7 +78,7 @@ bool EidosObject::IsMemberOfClass(const EidosClass *p_class_object) const
 
 void EidosObject::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();
+	p_ostream << Class()->ClassNameForDisplay();
 }
 
 nlohmann::json EidosObject::JSONRepresentation(void) const
@@ -90,7 +90,7 @@ nlohmann::json EidosObject::JSONRepresentation(void) const
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassName() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassNameForDisplay() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -100,15 +100,15 @@ void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValu
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassName() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 	
 	bool readonly = signature->read_only_;
 	
 	// Check whether setting a read-only property was attempted; we can do this on behalf of all our subclasses
 	if (readonly)
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassNameForDisplay() << "): attempt to set a new value for read-only property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << "." << EidosTerminate(nullptr);
 	else
-		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassName() << "): (internal error) setting a new value for read-write property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty for " << Class()->ClassNameForDisplay() << "): (internal error) setting a new value for read-write property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
 }
 
 EidosValue_SP EidosObject::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -127,10 +127,10 @@ EidosValue_SP EidosObject::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 			
 			for (const EidosMethodSignature_CSP &method_sig : *methods)
 				if (method_sig->call_name_.compare(method_name) == 0)
-					EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassName() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassNameForDisplay() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
-			EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassName() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosObject::ExecuteInstanceMethod for " << Class()->ClassNameForDisplay() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
 		}
 	}
 }
@@ -143,7 +143,7 @@ EidosValue_SP EidosObject::ExecuteMethod_str(EidosGlobalStringID p_method_id, co
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
-	output_stream << Class()->ClassName() << ":" << std::endl;
+	output_stream << Class()->ClassNameForDisplay() << ":" << std::endl;
 	
 	const std::vector<EidosPropertySignature_CSP> *properties = Class()->Properties();
 	
@@ -251,7 +251,7 @@ EidosValue_SP EidosObject::ExecuteMethod_stringRepresentation(EidosGlobalStringI
 EidosValue_SP EidosObject::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused(p_function_name, p_arguments, p_interpreter)
-	EIDOS_TERMINATION << "ERROR (EidosObject::ContextDefinedFunctionDispatch for " << Class()->ClassName() << "): (internal error) unimplemented Context function dispatch." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::ContextDefinedFunctionDispatch for " << Class()->ClassNameForDisplay() << "): (internal error) unimplemented Context function dispatch." << EidosTerminate(nullptr);
 }
 
 std::ostream &operator<<(std::ostream &p_outstream, const EidosObject &p_element)
@@ -422,7 +422,17 @@ void EidosClass::CheckForDuplicateMethodsOrProperties(void)
 	}
 }
 
-EidosClass::EidosClass(const std::string &p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
+// this constructor sets the display name to be the same as the class name
+EidosClass::EidosClass(const std::string &p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), class_name_for_display_(p_class_name), superclass_(p_superclass)
+{
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::EidosClass(): not warmed up");
+	
+	// Every EidosClass instance gets added to a shared registry, so that Eidos can find them all
+	EidosClassRegistry().emplace_back(this);
+}
+
+// this constructor takes a separate display name; DictionaryRetained uses this to set its display name to Dictionary
+EidosClass::EidosClass(const std::string &p_class_name, const std::string &p_display_name, EidosClass *p_superclass) : class_name_(p_class_name), class_name_for_display_(p_display_name), superclass_(p_superclass)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::EidosClass(): not warmed up");
 	
@@ -589,7 +599,7 @@ EidosValue_SP EidosClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, Ei
 					EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ClassName() << "): (internal error) method " << method_name << " was not handled by subclass." << EidosTerminate(nullptr);
 			
 			// Otherwise, we have an unrecognized method, so throw
-			EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ClassName() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (EidosClass::ExecuteClassMethod for " << ClassNameForDisplay() << "): unrecognized method name " << method_name << "." << EidosTerminate(nullptr);
 		}
 	}
 }

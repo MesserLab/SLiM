@@ -400,7 +400,7 @@ const EidosClass *Haplosome::Class(void) const
 
 void Haplosome::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<";
+	p_ostream << Class()->ClassNameForDisplay() << "<";
 	
 	p_ostream << AssociatedChromosome()->Type();
 	

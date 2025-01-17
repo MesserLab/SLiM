@@ -1197,14 +1197,15 @@ void Eidos_WarmUp(void)
 		
 		// Create the global class objects for all Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
-		// and so that the global string names for the classes have already been set up by C++'s static initialization
-		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,			nullptr);
-		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_DictionaryBase,	gEidosObject_Class);
-		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_Dictionary,		gEidosDictionaryUnretained_Class);
-		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,		gEidosDictionaryRetained_Class);
-		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,			gEidosDictionaryRetained_Class);
-		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,		gEidosDictionaryRetained_Class);
-		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,	gEidosObject_Class);
+		// and so that the global string names for the classes have already been set up by C++'s static initialization.
+		// Note the special constructor for EidosDictionaryRetained_Class, with a custom display name for it.
+		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,				nullptr);
+		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_Dictionary,			gEidosObject_Class);
+		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_DictionaryRetained,	gEidosStr_Dictionary,	gEidosDictionaryUnretained_Class);
+		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,			gEidosDictionaryRetained_Class);
+		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,				gEidosDictionaryRetained_Class);
+		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,			gEidosDictionaryRetained_Class);
+		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,		gEidosObject_Class);
 		
 		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
 		// before that point, however, since properties and method signatures may use some of those global permanent values
@@ -3902,7 +3903,7 @@ const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gE
 const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", gEidosID__squareTest);
 
 // strings for Dictionary (i.e., for EidosDictionaryUnretained, but also inherited by EidosDictionaryRetained)
-const std::string &gEidosStr_DictionaryBase = EidosRegisteredString("DictionaryBase", gEidosID_DictionaryBase);
+const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
 const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);
 const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
 const std::string &gEidosStr_appendKeysAndValuesFrom = EidosRegisteredString("appendKeysAndValuesFrom", gEidosID_appendKeysAndValuesFrom);
@@ -3914,8 +3915,8 @@ const std::string &gEidosStr_identicalContents = EidosRegisteredString("identica
 const std::string &gEidosStr_serialize = EidosRegisteredString("serialize", gEidosID_serialize);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
 
-// strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
-const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
+// strings for DictionaryRetained (the retain/released subclass created by the Dictionary() constructor)
+const std::string &gEidosStr_DictionaryRetained = EidosRegisteredString("DictionaryRetained", gEidosID_DictionaryRetained);
 
 // strings for DataFrame
 const std::string &gEidosStr_DataFrame = EidosRegisteredString("DataFrame", gEidosID_DataFrame);

@@ -486,7 +486,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 				const EidosClass *class_column = ((EidosValue_Object *)(symbols_iter.second.get()))->Class();
 				
 				if (class_template != class_column)
-					EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_asMatrix): asMatrix() requires that every object element in the target DataFrame is the same class (" << class_template->ClassName() << " != " << class_column->ClassName() << ")." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_asMatrix): asMatrix() requires that every object element in the target DataFrame is the same class (" << class_template->ClassNameForDisplay() << " != " << class_column->ClassNameForDisplay() << ")." << EidosTerminate(nullptr);
 			}
 		}
 	}
@@ -521,7 +521,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 	return result_SP;
 }
 
-//	*********************	- (void)cbind(object source, ...)
+//	*********************	- (void)cbind(object<Dictionary> source, ...)
 //
 EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -540,10 +540,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_i
 		for (int arg_index = 0; arg_index < arg_count; ++arg_index)
 		{
 			EidosObject *source_obj = arg->ObjectElementAtIndex_NOCAST(arg_index, nullptr);
-			EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_obj);
-			
-			if (!source)
-				EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_cbind): cbind() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+			EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_obj;
 			
 			AddKeysAndValuesFrom(source, /* p_allow_replace */ false);
 		}
@@ -554,7 +551,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_i
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)rbind(object source, ...)
+//	*********************	- (void)rbind(object<Dictionary> source, ...)
 //
 EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -573,10 +570,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_i
 		for (int arg_index = 0; arg_index < arg_count; ++arg_index)
 		{
 			EidosObject *source_obj = arg->ObjectElementAtIndex_NOCAST(arg_index, nullptr);
-			EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_obj);
-			
-			if (!source)
-				EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_rbind): rbind() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+			EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_obj;
 			
 			AppendKeysAndValuesFrom(source, /* p_require_column_match */ true);
 		}
@@ -1302,8 +1296,8 @@ const std::vector<EidosMethodSignature_CSP> *EidosDataFrame_Class::Methods(void)
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_asMatrix, kEidosValueMaskAny)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_cbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_rbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_cbind, kEidosValueMaskVOID))->AddObject("source", gEidosDictionaryUnretained_Class)->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_rbind, kEidosValueMaskVOID))->AddObject("source", gEidosDictionaryUnretained_Class)->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subset, kEidosValueMaskAny))
 			->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional, "rows", nullptr, gStaticEidosValueNULL)
 			->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskOptional, "cols", nullptr, gStaticEidosValueNULL));

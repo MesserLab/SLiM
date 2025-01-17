@@ -132,7 +132,7 @@
 		{
 			const std::string &element_type = class_object->ClassName();
 			
-			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryRetained"))		// internal classes are undocumented
 				[self checkDocumentationOfClass:class_object];
 		}
 		
@@ -611,9 +611,9 @@
 {
 	const EidosClass *superclass = classObject->Superclass();
 	
-	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
-	if (classObject == gEidosDictionaryRetained_Class)
-		superclass = gEidosObject_Class;
+	// We're hiding DictionaryRetained, so DictionaryRetained subclasses pretend their superclass is Dictionary
+	if (superclass == gEidosDictionaryRetained_Class)
+		superclass = gEidosDictionaryUnretained_Class;
 	
 	const std::string &className = classObject->ClassName();
 	NSString *classString = [NSString stringWithUTF8String:className.c_str()];

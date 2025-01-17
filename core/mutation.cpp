@@ -360,7 +360,7 @@ const EidosClass *Mutation::Class(void) const
 
 void Mutation::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<" << mutation_id_ << ":" << selection_coeff_ << ">";
 }
 
 EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)

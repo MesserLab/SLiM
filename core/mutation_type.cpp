@@ -409,7 +409,7 @@ const EidosClass *MutationType::Class(void) const
 
 void MutationType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<m" << mutation_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<m" << mutation_type_id_ << ">";
 }
 
 EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)

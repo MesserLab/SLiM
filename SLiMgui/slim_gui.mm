@@ -60,7 +60,7 @@ const EidosClass *SLiMgui::Class(void) const
 
 void SLiMgui::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)
