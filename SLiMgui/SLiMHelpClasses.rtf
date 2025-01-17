@@ -1710,7 +1710,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1821,7 +1820,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -4772,8 +4770,7 @@ See
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()
@@ -8576,8 +8573,7 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -8707,8 +8703,7 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
+\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -10091,7 +10086,7 @@ The
 \f4\fs20  haplosomes but also a non-null 
 \f3\fs18 "Y"
 \f4\fs20  haplosome, for example), an error will be raised.  The constraints defined by each chromosome type, as described in 
-\f3\fs18 initializeChromosomeType()
+\f3\fs18 initializeChromosome()
 \f4\fs20 , must always be followed, even when using 
 \f3\fs18 addMultiRecombinant()
 \f4\fs20 .  If 
@@ -10498,7 +10493,7 @@ The
 \f4\fs20  haplosome and one null 
 \f3\fs18 "X"
 \f4\fs20  haplosome, it must therefore be male.  SLiM will examine the supplied strands to determine such constraints and enforce them.  The constraints defined by each chromosome type, as described in 
-\f3\fs18 initializeChromosomeType()
+\f3\fs18 initializeChromosome()
 \f4\fs20 , must always be followed, even when using 
 \f3\fs18 addRecombinant()
 \f4\fs20 .  If 
