@@ -107,6 +107,7 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 #endif
 	
 	// Make space for up to SLIM_MAX_CHROMOSOMES Chromosome objects, but don't make any for now
+	// This prevents the storage underlying chromosomes_ from being reallocated
 	chromosomes_.reserve(SLIM_MAX_CHROMOSOMES);
 }
 
@@ -317,6 +318,8 @@ void Species::MakeImplicitChromosome(ChromosomeType p_type)
 	
 	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", /* p_index */ 0, /* p_preferred_mutcount */ 0);
+	
+	// Add it to our registry; AddChromosome() takes its retain count
 	AddChromosome(chromosome);
 	has_implicit_chromosome_ = true;
 	has_currently_initializing_chromosome_ = true;
@@ -338,7 +341,10 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	std::string symbol = p_chromosome->Symbol();
 	ChromosomeType type = p_chromosome->Type();
 	
+	// this is the main registry, and owns the retain count on every chromosome; it takes the caller's retain here
 	chromosomes_.push_back(p_chromosome);
+	
+	// these are secondary indices that do not keep a retain on the chromosomes
 	chromosome_from_id_.emplace(id, p_chromosome);
 	chromosome_from_symbol_.emplace(symbol, p_chromosome);
 	

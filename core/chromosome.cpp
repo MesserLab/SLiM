@@ -2611,6 +2611,19 @@ void Chromosome::PrintMutationRunExperimentSummary(void)
 #pragma mark Eidos support
 #pragma mark -
 
+// These are private helper methods that error if we are still in initialize() callbacks
+// Most properties and all methods on Chromosome should be protected by these calls to prevent bugs
+void Chromosome::CheckPartialInitializationForProperty(EidosGlobalStringID p_property_id)
+{
+	if (community_.Tick() == 0)
+		EIDOS_TERMINATION << "ERROR (Chromosome::CheckPartialInitializationForProperty): Chromosome property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " cannot be accessed until initialize() callbacks are complete; the chromosome object is not yet fully initialized." << EidosTerminate();
+}
+void Chromosome::CheckPartialInitializationForMethod(EidosGlobalStringID p_method_id)
+{
+	if (community_.Tick() == 0)
+		EIDOS_TERMINATION << "ERROR (Chromosome::CheckPartialInitializationForProperty): Chromosome method " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot be called until initialize() callbacks are complete; the chromosome object is not yet fully initialized." << EidosTerminate();
+}
+
 const EidosClass *Chromosome::Class(void) const
 {
 	return gSLiM_Chromosome_Class;
@@ -2629,6 +2642,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_genomicElements:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElement_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
@@ -2651,6 +2666,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_species:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(&species_, gSLiM_Species_Class));
 		}
 		case gID_symbol:
@@ -2679,6 +2696,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_hotspotEndPositions:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositions is only defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
@@ -2687,6 +2706,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_hotspotEndPositionsM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsM is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2695,6 +2716,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_hotspotEndPositionsF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotEndPositionsF is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2704,6 +2727,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_hotspotMultipliers:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliers is only defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
@@ -2712,6 +2737,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_hotspotMultipliersM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersM is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2720,6 +2747,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_hotspotMultipliersF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property hotspotMultipliersF is only defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2729,6 +2758,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationEndPositions:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositions is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
@@ -2737,6 +2768,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationEndPositionsM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2745,6 +2778,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationEndPositionsF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationEndPositionsF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2754,6 +2789,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_mutationRates:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRates is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
@@ -2762,6 +2799,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationRatesM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2770,6 +2809,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_mutationRatesF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property mutationRatesF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2779,6 +2820,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_overallMutationRate:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRate is not defined in nucleotide-based models." << EidosTerminate();
 			if (!single_mutation_map_)
@@ -2787,6 +2830,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_overallMutationRateM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateM is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2795,6 +2840,8 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_overallMutationRateF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (species_.IsNucleotideBased())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallMutationRateF is not defined in nucleotide-based models." << EidosTerminate();
 			if (single_mutation_map_)
@@ -2804,18 +2851,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_overallRecombinationRate:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRate is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_H_userlevel_));
 		}
 		case gID_overallRecombinationRateM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_M_userlevel_));
 		}
 		case gID_overallRecombinationRateF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property overallRecombinationRateF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(overall_recombination_rate_F_userlevel_));
@@ -2823,18 +2876,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_recombinationEndPositions:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositions is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_H_));
 		}
 		case gID_recombinationEndPositionsM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_M_));
 		}
 		case gID_recombinationEndPositionsF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationEndPositionsF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(recombination_end_positions_F_));
@@ -2842,18 +2901,24 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 		case gID_recombinationRates:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRates is not defined since sex-specific recombination rate maps have been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_H_));
 		}
 		case gID_recombinationRatesM:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesM is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_M_));
 		}
 		case gID_recombinationRatesF:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (single_recombination_map_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property recombinationRatesF is not defined since sex-specific recombination rate maps have not been defined." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(recombination_rates_F_));
@@ -2861,29 +2926,43 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_colorSubstitution:
+		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(color_sub_));
+		}
 		case gID_geneConversionEnabled:
+		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			return using_DSB_model_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+		}
 		case gID_geneConversionGCBias:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionGCBias is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(mismatch_repair_bias_));
 		}
 		case gID_geneConversionNonCrossoverFraction:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionNonCrossoverFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(non_crossover_fraction_));
 		}
 		case gID_geneConversionMeanLength:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionMeanLength is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(gene_conversion_avg_length_));
 		}
 		case gID_geneConversionSimpleConversionFraction:
 		{
+			CheckPartialInitializationForProperty(p_property_id);
+			
 			if (!using_DSB_model_)
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property geneConversionSimpleConversionFraction is not defined since the DSB recombination model is not being used." << EidosTerminate();
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(simple_conversion_fraction_));
@@ -2961,6 +3040,8 @@ EidosValue_SP Chromosome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	// The ancestral sequence is actually kept by Species, so go get it
 	if (!species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_ancestralNucleotides): ancestralNucleotides() may only be called in nucleotide-based models." << EidosTerminate();
@@ -3002,6 +3083,8 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	EidosValue *parent_value = p_arguments[0].get();
 	EidosValue *n_value = p_arguments[1].get();
 	
@@ -3063,6 +3146,8 @@ GenomicElement *Chromosome::ElementForPosition(slim_position_t pos)
 EidosValue_SP Chromosome::ExecuteMethod_genomicElementForPosition(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	EidosValue *positions_value = p_arguments[0].get();
 	int positions_count = positions_value->Count();
 	EidosValue_Object_SP obj_result_SP = EidosValue_Object_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_GenomicElement_Class));
@@ -3086,6 +3171,8 @@ EidosValue_SP Chromosome::ExecuteMethod_genomicElementForPosition(EidosGlobalStr
 EidosValue_SP Chromosome::ExecuteMethod_hasGenomicElementForPosition(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	EidosValue *positions_value = p_arguments[0].get();
 	int positions_count = positions_value->Count();
 	EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
@@ -3106,6 +3193,8 @@ EidosValue_SP Chromosome::ExecuteMethod_hasGenomicElementForPosition(EidosGlobal
 EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	EidosValue *sequence_value = p_arguments[0].get();
 	
 	if (!species_.IsNucleotideBased())
@@ -3228,6 +3317,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 EidosValue_SP Chromosome::ExecuteMethod_setGeneConversion(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setGeneConversion): setGeneConversion() may not be called for a species with no genetics." << EidosTerminate();
 	
@@ -3267,6 +3358,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setGeneConversion(EidosGlobalStringID p_
 EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() may not be called for a species with no genetics." << EidosTerminate();
 	if (!species_.IsNucleotideBased())
@@ -3376,6 +3469,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() may not be called for a species with no genetics." << EidosTerminate();
 	if (species_.IsNucleotideBased())
@@ -3485,6 +3580,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	CheckPartialInitializationForMethod(p_method_id);
+	
 	if (!species_.HasGenetics())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() may not be called for a species with no genetics." << EidosTerminate();
 	

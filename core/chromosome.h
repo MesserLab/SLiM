@@ -183,6 +183,10 @@ private:
 	void EnterStasisForMutationRunExperiments(void);
 	void MaintainMutationRunExperiments(double p_last_gen_runtime);
 	
+	// Erroring during partial initialization
+	void CheckPartialInitializationForProperty(EidosGlobalStringID p_property_id);
+	void CheckPartialInitializationForMethod(EidosGlobalStringID p_method_id);
+	
 public:
 	
 	Community &community_;

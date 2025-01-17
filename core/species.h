@@ -223,9 +223,9 @@ private:
 #endif
 	
 	// Chromosome state
-	std::vector<Chromosome *> chromosomes_;				// OWNED; all our chromosomes, in the order in which they were defined
-	CHROMOSOME_ID_HASH chromosome_from_id_;				// get a chromosome from a chromosome id quickly
-	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// get a chromosome from a chromosome symbol quickly
+	std::vector<Chromosome *> chromosomes_;				// OWNED (retained); all our chromosomes, in the order in which they were defined
+	CHROMOSOME_ID_HASH chromosome_from_id_;				// NOT OWNED; get a chromosome from a chromosome id quickly
+	CHROMOSOME_SYMBOL_HASH chromosome_from_symbol_;		// NOT OWNED; get a chromosome from a chromosome symbol quickly
 	
 	std::vector<Chromosome *> chromosome_for_haplosome_index_;	// NOT OWNED; of length haplosome_count_per_individual_
 	std::vector<uint8_t> chromosome_subindex_for_haplosome_index_;	// 0 or 1, the first or second haplosome for the chromosome
@@ -453,7 +453,7 @@ public:
 	Chromosome *ChromosomeFromSymbol(const std::string &p_symbol);
 	void MakeImplicitChromosome(ChromosomeType p_type);
 	Chromosome *CurrentlyInitializingChromosome(void);								// the last chromosome defined (currently initializing)
-	void AddChromosome(Chromosome *p_chromosome);
+	void AddChromosome(Chromosome *p_chromosome);									// takes over a retain count from the caller
 	inline __attribute__((always_inline)) bool ChromosomesUseNullHaplosomes(void) { return chromosomes_use_null_haplosomes_; }
 	inline __attribute__((always_inline)) int HaplosomeCountPerIndividual(void) { return haplosome_count_per_individual_; }
 	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);

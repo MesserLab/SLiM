@@ -48,10 +48,12 @@ A utility function,
 \f3\i \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeChromosome(integer$\'a0id, integer$\'a0length, [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
+\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<Chromosome>$)initializeChromosome(integer$\'a0id, integer$\'a0length, [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calling this function, added in SLiM\'a05, initiates the configuration of a chromosome in the species being initialized.  That chromosome is then the \'93focal chromosome\'94 for subsequent genetic initialization functions \'96 specifically, for 
+\f2\fs20 \cf2 Calling this function, added in SLiM\'a05, initiates the configuration of a chromosome in the species being initialized.  The new 
+\f1\fs18 Chromosome
+\f2\fs20  object is returned, but it is still under construction and will error if used; see below for details.  That chromosome is then the \'93focal chromosome\'94 for subsequent genetic initialization functions \'96 specifically, for 
 \f1\fs18 initializeAncestralNucleotides()
 \f2\fs20 , 
 \f1\fs18 initializeGeneConversion()
@@ -240,6 +242,37 @@ The order in which
 \fs20 \nosupersub  and X
 \fs13\fsmilli6667 \sub 2
 \fs20 \nosupersub  are two different kinds of X chromosome.  Similarly, you could define both an X and a Z for a species, if you wish; each would segregate correctly according to the sex of the offspring.  In sexual models in SLiM the sex of an offspring is determined randomly or given by the user in script; it is not a function of the sex chromosomes present in the individual, although the sex chromosomes present in the individual will correlate with sex.  In other words, SLiM does not know and does not care what sex-determination system the species is using; the chromosomes follow the sex, rather than the sex following the chromosomes.  This should allow any sex-determination system to be modeled, even if it is unusual, non-genetic, etc.\
+As stated above, the new 
+\f1\fs18 Chromosome
+\f2\fs20  object is returned by this call, but it is still under construction so most of its methods and properties will error.  It will remain in this state until 
+\f1\fs18 initialize()
+\f2\fs20  callbacks have completed, and will then become active and usable.  Until that point, there are only a handful of uses that are guaranteed to be allowed: storing it in a variable; remembering it with 
+\f1\fs18 defineConstant()
+\f2\fs20 ; using the methods and properties of its superclasses, notably 
+\f1\fs18 Dictionary
+\f2\fs20 ; setting SLiMgui display-related properties such as 
+\f1\fs18 colorSubstitution
+\f2\fs20 ; getting and setting its 
+\f1\fs18 tag
+\f2\fs20  property; and accessing those of its properties that were passed to the 
+\f1\fs18 initializeChromosome()
+\f2\fs20  call, specifically 
+\f1\fs18 id
+\f2\fs20 , 
+\f1\fs18 symbol
+\f2\fs20 , 
+\f1\fs18 name
+\f2\fs20 , 
+\f1\fs18 type
+\f2\fs20 , 
+\f1\fs18 length
+\f2\fs20 , and 
+\f1\fs18 lastPosition
+\f2\fs20 .  Its other properties, and all 
+\f1\fs18 Chromosome
+\f2\fs20  methods, will raise an error while in this state.  This safeguard protects the new 
+\f1\fs18 Chromosome
+\f2\fs20  object from being used while still in an inconsistent state.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0

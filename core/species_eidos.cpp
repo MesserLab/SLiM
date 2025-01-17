@@ -188,7 +188,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome->ancestral_seq_buffer_->size()));
 }
 
-//	*********************	(void)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+//	*********************	(object<Chromosome>$)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -307,13 +307,15 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires mutationRuns to be between 1 and 10000, inclusive." << EidosTerminate();
 	}
 	
-	// Set up the new chromosome object
+	// Set up the new chromosome object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	Chromosome *chromosome = new Chromosome(*this, chromosome_type, id, symbol, /* p_index */ (uint8_t)num_chromosome_inits_, (int)mutrun_count);
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 	
 	chromosome->SetName(name);
 	chromosome->last_position_ = length - 1;
 	chromosome->extent_immutable_ = true;
 	
+	// Add it to our registry; AddChromosome() takes its retain count
 	AddChromosome(chromosome);
 	num_chromosome_inits_++;
 	has_currently_initializing_chromosome_ = true;
@@ -332,7 +334,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 		output_stream << ");" << std::endl;
 	}
 	
-	return gStaticEidosValueVOID;
+	return result_SP;
 }
 
 //	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)

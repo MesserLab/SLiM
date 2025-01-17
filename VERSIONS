@@ -37,7 +37,7 @@ development head (in the master branch):
 		x	parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
 		x	parameter name changes: addEmpty(), addRecombinant()
 		API additions:
-		x	(void)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+		x	(object<Chromosome>$)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
 		x	initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
 		x	Haplosome class:
 		x		property: chromosome => (object<Chromosome>$)
@@ -101,6 +101,7 @@ development head (in the master branch):
 		modified recipes 15.14 and 15.21 to illustrate that NULL can now be passed to addRecombinant() for breaks to get automatic breakpoint generation
 		cleaned up the confusion around Dictionary vs. DictionaryBase; methods/functions can now use Dictionary in their signature without problems
 		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)
+		shift to returning a Chromosome object from initializeChromosome() and allowing the user to retain it with defineConstant()
 
 
 version 4.3 (Eidos version 3.3):
