@@ -252,6 +252,7 @@
 	static double menloFontSize = 0.0;
 	static NSFont *menloFont = nil;
 	static NSMutableParagraphStyle *paragraphStyle = nil;
+	bool recachedFont = false;
 	
 	if (!menloFont || (menloFontSize != fontSize))
 	{
@@ -259,9 +260,10 @@
 			[menloFont release];
 		
 		menloFont = [[NSFont fontWithName:@"Menlo" size:fontSize] retain];
+		recachedFont = true;
 	}
 	
-	if (!paragraphStyle)
+	if (!paragraphStyle || recachedFont)
 	{
 		if (paragraphStyle)
 			[paragraphStyle release];

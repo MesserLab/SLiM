@@ -1356,10 +1356,28 @@
 		
 		// set the typing attributes; this code just makes an assumption about the correct typing attributes
 		// based on the class, probably I ought to add a new method on EidosTextView to get a typing attr dict...
+		NSDictionary *textAttributes;
+		
 		if ([self isKindOfClass:[EidosConsoleTextView class]])
-			[self setTypingAttributes:[NSDictionary eidosInputAttrsWithSize:[self displayFontSize]]];
+			textAttributes = [NSDictionary eidosInputAttrsWithSize:[self displayFontSize]];
 		else
-			[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize]];
+			textAttributes = [NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize];
+		
+		[self setTypingAttributes:textAttributes];
+		
+		// fix the tab stops
+		NSParagraphStyle *pstyle = [textAttributes objectForKey:NSParagraphStyleAttributeName];
+		
+		[ts beginEditing];
+		
+		[ts enumerateAttribute:NSParagraphStyleAttributeName inRange:NSMakeRange(0, ts.length) options:0 usingBlock:^(id value, NSRange range, BOOL *stop) {
+			if (value) {
+				[ts removeAttribute:NSParagraphStyleAttributeName range:range];
+				[ts addAttribute:NSParagraphStyleAttributeName value:pstyle range:range];
+			}
+		}];
+		
+		[ts endEditing];
 	}
 }
 
