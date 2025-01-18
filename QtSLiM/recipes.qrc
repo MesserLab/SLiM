@@ -125,8 +125,8 @@
         <file>recipes/Recipe 15.7 - Evolutionary rescue after environmental change.txt</file>
         <file>recipes/Recipe 15.8 - Pollen flow.txt</file>
         <file>recipes/Recipe 15.9 - Litter size and parental investment.txt</file>
-        <file>recipes/Recipe 15.10 - Forcing a specific pedigree in a nonWF model I.txt</file>
-        <file>recipes/Recipe 15.10 - Forcing a specific pedigree in a nonWF model II.txt</file>
+        <file>recipes/Recipe 15.10 - Recording a pedigree and following a pedigree in a nonWF model I.txt</file>
+        <file>recipes/Recipe 15.10 - Recording a pedigree and following a pedigree in a nonWF model II.txt</file>
         <file>recipes/Recipe 15.11 - Modeling clonal haploids in a nonWF model with addRecombinant().txt</file>
         <file>recipes/Recipe 15.12 - Modeling clonal haploid bacteria with horizontal gene transfer.txt</file>
         <file>recipes/Recipe 15.13 - Implementing a Wright-Fisher model with a nonWF model I.txt</file>
