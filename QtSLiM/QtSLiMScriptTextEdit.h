@@ -221,6 +221,7 @@ protected:
     void sharedInit(void);
     void initializeLineNumbers(void);
     virtual void resizeEvent(QResizeEvent *p_event) override;
+    virtual void paintEvent(QPaintEvent *event) override;
 
 protected slots:
     virtual void displayFontPrefChanged() override;

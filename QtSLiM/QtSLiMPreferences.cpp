@@ -41,6 +41,8 @@ static const char *QtSLiMDisplayFontSize = "QtSLiMDisplayFontSize";
 static const char *QtSLiMSyntaxHighlightScript = "QtSLiMSyntaxHighlightScript";
 static const char *QtSLiMSyntaxHighlightOutput = "QtSLiMSyntaxHighlightOutput";
 static const char *QtSLiMShowLineNumbers = "QtSLiMShowLineNumbers";
+static const char *QtSLiMShowPageGuide = "QtSLiMShowPageGuide";
+static const char *QtSLiMPageGuideColumn = "QtSLiMPageGuideColumn";
 static const char *QtSLiMHighlightCurrentLine = "QtSLiMHighlightCurrentLine";
 static const char *QtSLiMAutosaveOnRecycle = "QtSLiMAutosaveOnRecycle";
 static const char *QtSLiMShowSaveInUntitled = "QtSLiMShowSaveInUntitled";
@@ -192,6 +194,20 @@ bool QtSLiMPreferencesNotifier::highlightCurrentLinePref(void) const
     QSettings settings;
     
     return settings.value(QtSLiMHighlightCurrentLine, QVariant(true)).toBool();
+}
+
+bool QtSLiMPreferencesNotifier::showPageGuidePref(void) const
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMShowPageGuide, QVariant(false)).toBool();
+}
+
+int QtSLiMPreferencesNotifier::pageGuideColumnPref(void) const
+{
+    QSettings settings;
+    
+    return settings.value(QtSLiMPageGuideColumn, QVariant(80)).toInt();
 }
 
 bool QtSLiMPreferencesNotifier::autosaveOnRecyclePref(void) const
@@ -368,6 +384,25 @@ void QtSLiMPreferencesNotifier::highlightCurrentLineToggled()
     emit highlightCurrentLinePrefChanged();
 }
 
+void QtSLiMPreferencesNotifier::showPageGuideToggled()
+{
+    QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
+    QSettings settings;
+    
+    settings.setValue(QtSLiMShowPageGuide, QVariant(prefsUI.ui->showPageGuide->isChecked()));
+    
+    emit pageGuidePrefsChanged();
+}
+
+void QtSLiMPreferencesNotifier::pageGuideColumnChanged(int newColumn)
+{
+    QSettings settings;
+    
+    settings.setValue(QtSLiMPageGuideColumn, QVariant(newColumn));
+    
+    emit pageGuidePrefsChanged();
+}
+
 void QtSLiMPreferencesNotifier::autosaveOnRecycleToggled()
 {
     QtSLiMPreferences &prefsUI = QtSLiMPreferences::instance();
@@ -454,6 +489,11 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     ui->showLineNumbers->setChecked(notifier->showLineNumbersPref());
     ui->highlightCurrentLine->setChecked(notifier->highlightCurrentLinePref());
     
+    // the presence of this hidden widget fixes a padding bug; see https://forum.qt.io/topic/10757/unwanted-padding-around-qhboxlayout
+    ui->pageGuideNoPadWidget->hide();
+    ui->showPageGuide->setChecked(notifier->showPageGuidePref());
+    ui->pageGuideSpinBox->setValue(notifier->pageGuideColumnPref());
+    
     ui->autosaveOnRecycle->setChecked(notifier->autosaveOnRecyclePref());
     ui->showSaveIfUntitled->setChecked(notifier->showSaveIfUntitledPref());
     ui->showSaveIfUntitled->setEnabled(notifier->autosaveOnRecyclePref());
@@ -472,6 +512,8 @@ QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(
     
     connect(ui->showLineNumbers, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showLineNumbersToggled);
     connect(ui->highlightCurrentLine, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::highlightCurrentLineToggled);
+    connect(ui->showPageGuide, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showPageGuideToggled);
+    connect(ui->pageGuideSpinBox, QOverload<int>::of(&QSpinBox::valueChanged), notifier, &QtSLiMPreferencesNotifier::pageGuideColumnChanged);
     
     connect(ui->autosaveOnRecycle, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::autosaveOnRecycleToggled);
     connect(ui->showSaveIfUntitled, &QCheckBox::toggled, notifier, &QtSLiMPreferencesNotifier::showSaveIfUntitledToggled);

@@ -2548,6 +2548,11 @@ void QtSLiMScriptTextEdit::sharedInit(void)
     setCenterOnScroll(true);
     
     initializeLineNumbers();
+    
+    // set up to listen to changes to page guide prefs
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::pageGuidePrefsChanged, this, [this]() { viewport()->update(); });
 }
 
 void QtSLiMScriptTextEdit::initializeLineNumbers(void)
@@ -3390,6 +3395,58 @@ QString QtSLiMScriptTextEdit::exportAsHtml(void)
     
     return html;
 }
+
+void QtSLiMScriptTextEdit::paintEvent(QPaintEvent *event)
+{
+    // If the user wants a "page guide", show a slightly dimmed margin beyond a threshold column
+    // Note that Qt has already cleared to the white background of the QTextEdit
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool showPageGuide = prefs.showPageGuidePref();
+    
+    if (showPageGuide)
+    {
+        QFont displayFont = prefs.displayFontPref();
+        QFontMetricsF fm(displayFont);
+        double marginStart;
+        QString marginString(prefs.pageGuideColumnPref(), ' ');
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        marginStart = fm.width(marginString);                // deprecated in 5.11
+#else
+        marginStart = fm.horizontalAdvance(marginString);    // added in Qt 5.11
+#endif
+        
+        // adjust by the document margin, which is built into QTextDocument; this took a while to find!
+        // this is an inset of the QTextEdit's contents, on all four sides; it defaults to 4, which we do not change
+        QTextDocument *doc = document();
+        double docMargin = doc->documentMargin();
+        
+        marginStart += docMargin;
+        marginStart = round(marginStart);
+        
+        QRect bounds = rect();
+        
+        if (bounds.width() >= marginStart)
+        {
+            // Because QTextEdit's display lives inside a scrollable area, we use viewport()
+            QPainter painter(this->viewport());
+            
+            QRect margin = bounds.adjusted(marginStart, 0, 0, 0);
+            QRect marginEdge = margin;
+            
+            // draw a one-pixel darker line at the border
+            marginEdge.setWidth(1);
+            margin.adjust(1, 0, 0, 0);
+            
+            painter.fillRect(marginEdge, QtSLiMColorWithWhite(0.918, 1.0));
+            painter.fillRect(margin, QtSLiMColorWithWhite(0.980, 1.0));
+        }
+    }
+    
+    // call super to have it paint; this draws all the text and everything
+    QtSLiMTextEdit::paintEvent(event);
+}
+
 
 
 

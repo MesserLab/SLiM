@@ -42,6 +42,8 @@ public:
     bool scriptSyntaxHighlightPref(void) const;
     bool outputSyntaxHighlightPref(void) const;
     bool showLineNumbersPref(void) const;
+    bool showPageGuidePref(void) const;
+    int pageGuideColumnPref(void) const;
     bool highlightCurrentLinePref(void) const;
     bool autosaveOnRecyclePref(void) const;
     bool reloadOnSafeExternalEditsPref(void) const;
@@ -59,6 +61,7 @@ signals:
     void scriptSyntaxHighlightPrefChanged(void);
     void outputSyntaxHighlightPrefChanged(void);
     void showLineNumbersPrefChanged(void);
+    void pageGuidePrefsChanged(void);
     void highlightCurrentLinePrefChanged(void);
     void autosaveOnRecyclePrefChanged(void);
     void reloadOnSafeExternalEditsChanged(void);
@@ -81,6 +84,8 @@ private slots:
     void syntaxHighlightScriptToggled();
     void syntaxHighlightOutputToggled();
     void showLineNumbersToggled();
+    void showPageGuideToggled();
+    void pageGuideColumnChanged(int newColumn);
     void highlightCurrentLineToggled();
     void autosaveOnRecycleToggled();
     void reloadOnSafeExternalEditsToggled();
