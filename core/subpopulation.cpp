@@ -6874,8 +6874,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		if (!inheritance->KeysAreStrings())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() requires that the inheritance dictionaries within the pattern dictionary use strings for keys." << EidosTerminate();
 		
-		// OK, now we have an inheritance dictionary, and need to decode it
-		const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
+		// OK, now we have an inheritance dictionary, and need to decode it; zero entries means all keys are NULL
 		EidosValue *strand1_value = nullptr;
 		EidosValue *strand2_value = nullptr;
 		EidosValue *breaks1_value = nullptr;
@@ -6883,19 +6882,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 		EidosValue *strand4_value = nullptr;
 		EidosValue *breaks2_value = nullptr;
 		
-		for (auto const &inheritance_element : *inheritance_stringKeys)
+		if (inheritance->KeyCount() > 0)
 		{
-			const std::string &inheritance_key = inheritance_element.first;
-			EidosValue * const inheritance_value = inheritance_element.second.get();
+			const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
 			
-			if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
-			else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
-			else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
-			else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
-			else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
-			else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
-			else
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): unrecognized inheritance dictionary key '" << inheritance_key << "'; keys must be one of 'strand1', 'strand2', 'breaks1', 'strand3', 'strand4', or 'breaks2'." << EidosTerminate();
+			for (auto const &inheritance_element : *inheritance_stringKeys)
+			{
+				const std::string &inheritance_key = inheritance_element.first;
+				EidosValue * const inheritance_value = inheritance_element.second.get();
+				
+				if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
+				else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
+				else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
+				else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
+				else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
+				else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
+				else
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): unrecognized inheritance dictionary key '" << inheritance_key << "'; keys must be one of 'strand1', 'strand2', 'breaks1', 'strand3', 'strand4', or 'breaks2'." << EidosTerminate();
+			}
 		}
 		
 		// OK, now we've decoded the inheritance dictionary, and we need to validate it
@@ -7256,23 +7260,27 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				EidosValue *breaks2_value = nullptr;
 				
 				{
-					const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
 					EidosValue *strand1_value = nullptr;
 					EidosValue *strand2_value = nullptr;
 					EidosValue *strand3_value = nullptr;
 					EidosValue *strand4_value = nullptr;
 					
-					for (auto const &inheritance_element : *inheritance_stringKeys)
+					if (inheritance->KeyCount() > 0)
 					{
-						const std::string &inheritance_key = inheritance_element.first;
-						EidosValue * const inheritance_value = inheritance_element.second.get();
+						const EidosDictionaryHashTable_StringKeys *inheritance_stringKeys = inheritance->DictionarySymbols_StringKeys();
 						
-						if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
-						else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
-						else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
-						else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
-						else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
-						else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
+						for (auto const &inheritance_element : *inheritance_stringKeys)
+						{
+							const std::string &inheritance_key = inheritance_element.first;
+							EidosValue * const inheritance_value = inheritance_element.second.get();
+							
+							if (inheritance_key == gStr_strand1)		strand1_value = inheritance_value;
+							else if (inheritance_key == gStr_strand2)	strand2_value = inheritance_value;
+							else if (inheritance_key == gStr_breaks1)	breaks1_value = inheritance_value;
+							else if (inheritance_key == gStr_strand3)	strand3_value = inheritance_value;
+							else if (inheritance_key == gStr_strand4)	strand4_value = inheritance_value;
+							else if (inheritance_key == gStr_breaks2)	breaks2_value = inheritance_value;
+						}
 					}
 					
 					// Get the haplosomes for the supplied strands, or nullptr for NULL
