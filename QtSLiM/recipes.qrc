@@ -102,7 +102,6 @@
         <file>recipes/Recipe 14.3 - Reading initial simulation state from an MS output file I.txt</file>
         <file>recipes/Recipe 14.3 - Reading initial simulation state from an MS output file II.txt</file>
         <file>recipes/Recipe 14.4 - Modeling chromosomal inversions with a recombination() callback.txt</file>
-        <file>recipes/Recipe 14.5 - Modeling both X and Y Chromosomes with a Pseudo-Autosomal Region (PAR).txt</file>
         <file>recipes/Recipe 14.6 - Estimating model parameters with ABC.txt</file>
         <file>recipes/Recipe 14.7 - Tracking local ancestry along the chromosome.txt</file>
         <file>recipes/Recipe 14.8 - Live plotting with R using system().txt</file>
@@ -141,6 +140,7 @@
         <file>recipes/Recipe 15.20 - Tracking separate sexes in script, nonWF style.txt</file>
         <file>recipes/Recipe 15.21 - Modeling haplodiploidy with addRecombinant().txt</file>
         <file>recipes/Recipe 15.22 - Complex multi-chromosome inheritance with addMultiRecombinant().txt</file>
+        <file>recipes/Recipe 15.23 - Modeling pseudo-autosomal regions (PARs) with addMultiRecombinant().txt</file>
         <file>recipes/Recipe 16.1 - A simple 2D continuous-space model.txt</file>
         <file>recipes/Recipe 16.2 - Spatial competition.txt</file>
         <file>recipes/Recipe 16.3 - Boundaries and boundary conditions I (stopping boundaries).txt</file>

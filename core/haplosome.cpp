@@ -2872,6 +2872,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all mutations belong to the same species as the target haplosomes." << EidosTerminate();
 	}
 	
+	// Note that we allow the haplosomes and mutations to be associated with more than one chromosome here;
+	// you can pass a mix, and for each mutation you get its frequency in the haplosomes for its chromosome.
+	// If you pass NULL, all mutations are used, which can be confusing in the multi-chromosome case if you
+	// passed a vector of haplosomes that are all for a specific chromosome.  In that case, you shouldn't
+	// pass NULL for mutations, but rather use sim.subsetMutations() to get the mutations for your focal
+	// chromosome, probably.
+	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes");
 	
 	Population &population = species->population_;
@@ -2881,7 +2888,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 	
 	// Use the back-end code in Population to do the counting; TallyMutationReferencesAcrossHaplosomes()
 	// should have set the total haplosome count correctly for the given haplosome sample.  Note that a
-	// sample of mutations can be passed that belongs to a variety of different chrmosomes; in this case,
+	// sample of mutations can be passed that belongs to a variety of different chromosomes; in this case,
 	// each chromosome's total haplosome count should reflect the number of haplosomes in the sample
 	// that belong to that chromosome, so the frequencies should be correct in that sense.
 	if (p_method_id == gID_mutationFrequenciesInHaplosomes)

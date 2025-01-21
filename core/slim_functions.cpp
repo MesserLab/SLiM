@@ -219,13 +219,14 @@ const char *gSLiMSourceCode_calcHeterozygosity =
 R"V0G0N({
 	if (haplosomes.length() == 0)
 		stop("ERROR (calcHeterozygosity()): haplosomes must be non-empty.");
+	
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
+		species = haplosomes[0].individual.subpopulation.species;
+		if (any(haplosomes.individual.subpopulation.species != species))
 			stop("ERROR (calcHeterozygosity()): haplosomes must all belong to the same species.");
 		if (!isNULL(muts))
-			if (!all(muts.mutationType.species == species))
+			if (any(muts.mutationType.species != species))
 				stop("ERROR (calcHeterozygosity()): muts must all belong to the same species as haplosomes.");
 	}
 	else
@@ -233,15 +234,30 @@ R"V0G0N({
 		species = community.allSpecies;
 	}
 	
-	length = species.chromosomes.lastPosition + 1;
-
+	if (species.chromosomes.length() > 1)
+	{
+		chromosome = haplosomes[0].chromosome;
+		if (any(haplosomes.chromosome != chromosome))
+			stop("ERROR (calcHeterozygosity()): haplosomes must all be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcHeterozygosity()): muts must all be associated with the same chromosome as haplosomes.");
+	}
+	else
+	{
+		chromosome = species.chromosomes;
+	}
+	
+	length = chromosome.length;
+	
+	if (isNULL(muts))
+		muts = species.subsetMutations(chromosome=chromosome);
+	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
 			stop("ERROR (calcHeterozygosity()): start must be less than or equal to end.");
-		if (isNULL(muts))
-			muts = species.mutations;
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;

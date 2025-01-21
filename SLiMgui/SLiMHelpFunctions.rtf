@@ -1136,7 +1136,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1203,7 +1202,6 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2013,6 +2011,15 @@ The implementation of
 \f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
 \f1\fs18 muts
 \f2\fs20 .\
+In multi-chromosome models, all of the haplosomes and mutations passed in 
+\f1\fs18 haplosomes
+\f2\fs20  and 
+\f1\fs18 muts
+\f2\fs20  must all be associated with the same single chromosome.  If you wish to calculate heterozygosity across multiple chromosomes, you can simply write a 
+\f1\fs18 for
+\f2\fs20  loop that calculates it for each chromosome and combines the results; but it is not entirely clear how to weight the chromosomes to produce a single number, especially when sex chromosomes and other chromosomes of variable ploidy might be represented in 
+\f1\fs18 haplosomes
+\f2\fs20 , so it is not done automatically by this function.\
 The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 

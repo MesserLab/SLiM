@@ -1926,7 +1926,7 @@ Note that the mutations must be associated with the same chromosome as the targe
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(integer)mutationCountsInHaplosomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Return an 
 \f3\fs18 integer
@@ -1949,6 +1949,17 @@ Note that the mutations must be associated with the same chromosome as the targe
 \f4\fs20  property of 
 \f3\fs18 sim
 \f4\fs20 , in other words.\
+In multispecies models, you might often wish to obtain counts only for mutations associated with one particular chromosome.  In that case, you would probably want to pass a vector of the mutations associated with that specific chromosome, as obtained from the 
+\f3\fs18 subsetMutations()
+\f4\fs20  method of 
+\f3\fs18 Species
+\f4\fs20 , rather than passing 
+\f3\fs18 NULL
+\f4\fs20 .  (Passing 
+\f3\fs18 NULL
+\f4\fs20  in that scenario would give you counts of 
+\f3\fs18 0
+\f4\fs20  for all of the mutations associated with other chromosomes in the model.)\
 See the 
 \f3\fs18 +mutationFrequenciesInHaplosomes()
 \f4\fs20  method to obtain 
@@ -1961,11 +1972,11 @@ See the
 \f3\fs18 mutationCounts()
 \f4\fs20  and 
 \f3\fs18 mutationFrequencies()
-\f4\fs20 , which may be more efficient for getting counts/frequencies for whole subpopulations or for the whole species.\
+\f4\fs20 , which might be more efficient for getting counts/frequencies for whole subpopulations or for the whole species.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(float)mutationFrequenciesInHaplosomes([No<Mutation>\'a0mutations\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Return a 
 \f3\fs18 float
@@ -1988,6 +1999,17 @@ See the
 \f4\fs20  property of 
 \f3\fs18 sim
 \f4\fs20 , in other words.\
+In multispecies models, the frequency of each mutation is assessed within the subset of target haplosomes that are associated with the same chromosome.  In other words, if a mutation is associated with chromosome 1, and the target haplosomes are associated with both chromosomes 1 and 2, the frequency of the mutation will be calculated only within the haplosomes for chromosome 1 (as you would expect).  However, you might often wish to obtain frequencies only for mutations associated with one particular chromosome.  In that case, you would probably want to pass a vector of the mutations associated with that specific chromosome, as obtained from the 
+\f3\fs18 subsetMutations()
+\f4\fs20  method of 
+\f3\fs18 Species
+\f4\fs20 , rather than passing 
+\f3\fs18 NULL
+\f4\fs20 .  (Passing 
+\f3\fs18 NULL
+\f4\fs20  in that scenario would give you frequencies of 
+\f3\fs18 0
+\f4\fs20  for all of the mutations associated with other chromosomes in the model.)\
 See the 
 \f3\fs18 +mutationCountsInHaplosomes()
 \f4\fs20  method to obtain 
@@ -2000,7 +2022,7 @@ See the
 \f3\fs18 mutationCounts()
 \f4\fs20  and 
 \f3\fs18 mutationFrequencies()
-\f4\fs20 , which may be more efficient for getting counts/frequencies for whole subpopulations or for the whole species.\
+\f4\fs20 , which might be more efficient for getting counts/frequencies for whole subpopulations or for the whole species.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96

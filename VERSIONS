@@ -104,6 +104,9 @@ development head (in the master branch):
 		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)
 		shift to returning a Chromosome object from initializeChromosome() and allowing the user to retain it with defineConstant()
 		renamed recipe 15.10 to "Recording a pedigree and following a pedigree in a nonWF model" so it is clearer what it does
+		update calcHeterozygosity() for multi-chromosome support (but it assesses heterozygosity for only a single chromosome, for now)
+		new PAR (pseudo-autosomal region) recipe for section 15.23, replacing the old recipe in section 14.5 (which will be moved to SLiM-Extras for posterity)
+		new recipe 9.11 (Ne estimation) with a new multichrom-aware version of function estimateNe_Heterozygosity() that requires the chromosome to be supplied
 
 
 version 4.3 (Eidos version 3.3):

@@ -47,9 +47,19 @@ function (float)mutTypeFrequency(o<MutationType>$ mutType)
 	return NULL;
 }
 
-function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop)
+function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop,
+	[No<Chromosome>$ chromosome = NULL])
 {
-	pi = calcHeterozygosity(p1.haplosomes);
+	if (isNULL(chromosome))
+	{
+		if (size(sim.chromosomes) == 1)
+			chromosome = sim.chromosomes;
+		else
+			stop("ERROR: in a multi-chrom model, a chromosome must be supplied.");
+	}
+	
+	haplosomes = subpop.haplosomesForChromosomes(chromosome, includeNulls=F);
+	pi = calcHeterozygosity(haplosomes);
 	return pi / (4 * MU);
 }
 
