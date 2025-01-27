@@ -158,6 +158,8 @@ public:
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
+	int64_t chromosome_id_ = -1;								// -1 if not limited by this
+	std::string chromosome_symbol_;								// if non-empty, converted into chromosome_id_ after initialize() callbacks
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its tick range and type nodes

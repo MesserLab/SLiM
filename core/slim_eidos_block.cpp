@@ -589,12 +589,47 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
 					Match(EidosTokenType::kTokenLParen, "SLiM recombination() callback");
 					
-					// A (optional) subpopulation id is present; add it
+					// A (optional) subpopulation id (or NULL) is present; add it
 					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 					{
 						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 						
 						Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
+						
+						if (current_token_type_ == EidosTokenType::kTokenComma)
+						{
+							// A (optional) chromosome identifier (id or symbol, or NULL) is present; add it
+							Match(EidosTokenType::kTokenComma, "SLiM recombination() callback");
+							
+							if (current_token_type_ == EidosTokenType::kTokenString)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenString, "SLiM recombination() callback");
+							}
+							else if (current_token_type_ == EidosTokenType::kTokenNumber)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenNumber, "SLiM recombination() callback");
+							}
+							else if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenIdentifier, "SLiM reproduction() callback");
+							}
+							else
+							{
+								if (!parse_make_bad_nodes_)
+									EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; chromosome-id (integer or string) or NULL expected." << EidosTerminate(current_token_);
+								
+								// Make a placeholder bad node, to be error-tolerant
+								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+								EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+								callback_info_node->AddChild(bad_node);
+							}
+						}
 					}
 					
 					Match(EidosTokenType::kTokenRParen, "SLiM recombination() callback");
@@ -1159,14 +1194,31 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_recombination) == 0))
 				{
-					if ((n_callback_children != 0) && (n_callback_children != 1))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs 0 or 1 parameters." << EidosTerminate(callback_token);
+					if ((n_callback_children != 0) && (n_callback_children != 1) && (n_callback_children != 2))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs 0, 1, or 2 parameters." << EidosTerminate(callback_token);
 					
-					if (n_callback_children == 1)
+					if (n_callback_children >= 1)
 					{
 						EidosToken *subpop_id_token = callback_children[0]->token_;
 						
-						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						if (subpop_id_token->token_string_ == gEidosStr_NULL)
+							subpopulation_id_ = -1;		// not limited to one subpopulation
+						else
+							subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+					}
+					
+					if (n_callback_children >= 2)
+					{
+						EidosToken *chromosome_id_token = callback_children[1]->token_;
+						
+						if ((chromosome_id_token->token_type_ == EidosTokenType::kTokenIdentifier) && (chromosome_id_token->token_string_ == gEidosStr_NULL))
+							chromosome_id_ = -1;		// not limited by chromosome
+						else if (chromosome_id_token->token_type_ == EidosTokenType::kTokenNumber)
+							chromosome_id_ = EidosInterpreter::NonnegativeIntegerForString(chromosome_id_token->token_string_, chromosome_id_token);
+						else if (chromosome_id_token->token_type_ == EidosTokenType::kTokenString)
+							chromosome_symbol_ = chromosome_id_token->token_string_;	// will be translated into chromosome_id_ in RunInitializeCallbacks()
+						else
+							EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs a value for chromosome that is a non-negative integer, or NULL." << EidosTerminate(callback_token);
 					}
 					
 					type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
@@ -1479,6 +1531,10 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			p_out << "recombination(";
 			if (subpopulation_id_ != -1)
 				p_out << "p" << subpopulation_id_;
+			else if (chromosome_id_ != -1)
+				p_out << "NULL";
+			if (chromosome_id_ != -1)
+				p_out << ", \"" << chromosome_id_ << "\"";
 			p_out << ")";
 			break;
 		}

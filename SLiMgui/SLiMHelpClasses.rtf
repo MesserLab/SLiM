@@ -9056,16 +9056,16 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 
 \f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
 \f5 \'a0
-\f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL]\cf2 , [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
 \f3\fs18 string
 \f4\fs20  singleton 
 \f3\fs18 source
 \f4\fs20 , as an Eidos 
 \f3\fs18 recombination()
-\f4\fs20  callback in the current simulation\cf2  (specific to the target species)\cf0 , with optional subpopulation 
+\f4\fs20  callback in the current simulation (specific to the target species), with optional subpopulation 
 \f3\fs18 subpop
 \f4\fs20  (which may be an 
 \f3\fs18 integer
@@ -9075,7 +9075,19 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3\fs18 start
 \f4\fs20  and 
 \f3\fs18 end
-\f4\fs20  ticks all limiting its applicability.  The script block will be given identifier 
+\f4\fs20  ticks all limiting its applicability.  In multi-chromosome models, parameter 
+\f3\fs18 chromosome
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a chromosome to which the callback will apply (as either an 
+\f3\fs18 integer
+\f4\fs20  id, a 
+\f3\fs18 string
+\f4\fs20  symbol, or a 
+\f3\fs18 Chromosome
+\f4\fs20  object); otherwise, 
+\f3\fs18 NULL
+\f4\fs20  indicates that the callback applies to all chromosomes.  The script block will be given identifier 
 \f3\fs18 id
 \f4\fs20  (specified as an 
 \f3\fs18 integer
@@ -9089,10 +9101,9 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f3\fs18 SLiMEidosBlock
 \f4\fs20  objects, and is active immediately; it 
 \f1\i may
-\f4\i0  be eligible to execute in the current tick.  The new 
+\f4\i0  be eligible to execute in the current tick (see section 26.11 for details).  The new 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
-\f5 \
+\f4\fs20  will be defined as a global variable immediately by this method (see section 25.13), and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerReproductionCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
@@ -9272,7 +9283,9 @@ Register a block of Eidos source code, represented as the
 \f3\fs18 NULL
 \f4\fs20 , may specify a required value for the 
 \f3\fs18 id
-\f4\fs20  property of the mutations to be returned.  Parameter chromosome, if non-
+\f4\fs20  property of the mutations to be returned.  Parameter 
+\f3\fs18 chromosome
+\f4\fs20 , if non-
 \f3\fs18 NULL
 \f4\fs20 , may specify a chromosome with which the mutations returned must be associated (as either an 
 \f3\fs18 integer

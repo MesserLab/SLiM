@@ -2484,6 +2484,15 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 	{
 		if (recombination_callback->block_active_)
 		{
+			if (recombination_callback->chromosome_id_ != -1)
+			{
+				// check that this callback applies to the focal chromosome
+				int64_t focal_chromosome_id = p_haplosome1->AssociatedChromosome()->id_;
+				
+				if (recombination_callback->chromosome_id_ != focal_chromosome_id)
+					continue;
+			}
+			
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
@@ -5001,8 +5010,8 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1, -1);
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : mutationEffect_callbacks)

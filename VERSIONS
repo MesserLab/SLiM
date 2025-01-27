@@ -107,6 +107,8 @@ development head (in the master branch):
 		update calcHeterozygosity() for multi-chromosome support (but it assesses heterozygosity for only a single chromosome, for now)
 		new PAR (pseudo-autosomal region) recipe for section 15.23, replacing the old recipe in section 14.5 (which will be moved to SLiM-Extras for posterity)
 		new recipe 9.11 (Ne estimation) with a new multichrom-aware version of function estimateNe_Heterozygosity() that requires the chromosome to be supplied
+		recombination() callbacks can now be optionally declared with a chromosome specifier (id or symbol), to apply to just one chromosome
+			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome
 
 
 version 4.3 (Eidos version 3.3):
