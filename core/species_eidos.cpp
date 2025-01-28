@@ -3633,7 +3633,7 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 			
 			Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
 			
-			new_script_block->chromosome_id_ = chromosome->id_;
+			new_script_block->chromosome_id_ = chromosome->ID();
 		}
 	}
 	

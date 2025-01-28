@@ -2487,7 +2487,7 @@ bool Population::ApplyRecombinationCallbacks(Individual *p_parent, Haplosome *p_
 			if (recombination_callback->chromosome_id_ != -1)
 			{
 				// check that this callback applies to the focal chromosome
-				int64_t focal_chromosome_id = p_haplosome1->AssociatedChromosome()->id_;
+				int64_t focal_chromosome_id = p_haplosome1->AssociatedChromosome()->ID();
 				
 				if (recombination_callback->chromosome_id_ != focal_chromosome_id)
 					continue;
