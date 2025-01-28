@@ -2314,8 +2314,8 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 recombination(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1, p1) { stop(); } 10 early() { ; }", "needs a value for chromosome", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(NULL) { stop(); } 10 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { ; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return NULL; } 10 early() { ; }", "return value", __LINE__);

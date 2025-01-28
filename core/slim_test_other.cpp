@@ -2684,6 +2684,186 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomes.setGeneConversion(0.5, 1000, 0.0, 0.1); stop(); }", "must be 0.0 in non-nucleotide-based models", __LINE__);
 }
 
+#pragma mark Population Genetics tests
+
+void _RunPopGenFunctionTests(void)
+{
+/*
+	These tests are based on the following test script:
+	
+initialize() {
+	initializeMutationType("m1", 0.5, "n", 0.0, 0.001);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	chr = initializeChromosome(1, 5e5);
+	initializeMutationRate(1e-7);
+	initializeGenomicElement(g1, 0, 5e5-1);
+	initializeRecombinationRate(1e-8);
+	defineConstant("CHR1", chr);
+	
+	chr = initializeChromosome(2, 1e6);
+	initializeMutationRate(1e-7);
+	initializeGenomicElement(g1, 0, 1e6-1);
+	initializeRecombinationRate(1e-8);
+	defineConstant("CHR2", chr);
+}
+
+1 late() {
+	sim.addSubpop("p1", 50);
+	sim.addSubpop("p2", 50);
+	p1.setMigrationRates(p2, 0.01);
+	p2.setMigrationRates(p1, 0.01);
+}
+
+1:2000 late() {
+	// test calc...() functions; note that in tick 1 all haplosomes are empty by design
+	catn("Tick " + community.tick + " (" + size(sim.mutations) + " mutations segregating)");
+	
+	h0 = p1.haplosomes[integer(0)];
+	h_p1_ch1 = p1.haplosomesForChromosomes(1)[0];
+	h_p2_ch1 = p2.haplosomesForChromosomes(1)[0];
+	h_p1_ch2 = p1.haplosomesForChromosomes(2)[0];
+	h_p2_ch2 = p2.haplosomesForChromosomes(2)[0];
+	muts_ch1 = sim.subsetMutations(chromosome=1);
+	muts_ch2 = sim.subsetMutations(chromosome=2);
+	
+	//calcFST(h0, h0);																													// must be non-empty
+	//calcFST(p1.haplosomes, p2.haplosomes);																						// multichrom error
+	//calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch2);							// multichrom error
+	catn("   FST(1h) == " + calcFST(p1.haplosomesForChromosomes(1)[0], p2.haplosomesForChromosomes(1)[0]));	// valid even with 1 haplosome each
+	catn("   FST(CHR1) == " + calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1)));
+	catn("   FST(CHR2) == " + calcFST(p1.haplosomesForChromosomes(2), p2.haplosomesForChromosomes(2)));
+	catn("   FST(CHR1, muts_ch1) == " + calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch1));
+	
+	//calcHeterozygosity(h0);																											// must be non-empty
+	//calcHeterozygosity(sim.subpopulations.haplosomes);																		// multichrom error
+	//calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2);									// multichrom error
+	catn("   het(1h) == " + calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1)[0]));				// valid even with 1 haplosome
+	catn("   het(CHR1) == " + calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1)));
+	catn("   het(CHR2) == " + calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(2)));
+	catn("   het(CHR1, muts_ch1) == " + calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1));
+	
+	//calcVA(p1.individuals, 2);																										// errors (can't find m2)
+	//calcVA(p1.individuals[integer(0)], m1);																						// must contain at least 2 elements
+	//calcVA(p1.individuals[0], m1);																									// must contain at least 2 elements
+	catn("   VA(2i) == " + calcVA(p1.individuals[0:1], m1));																	// valid with 2 individuals
+	catn("   VA(p1) == " + calcVA(p1.individuals, m1));
+	catn("   VA(p2) == " + calcVA(p2.individuals, 1));
+	catn("   VA(all) == " + calcVA(sim.subpopulations.individuals, m1));
+	
+	//calcPairHeterozygosity(h_p1_ch1, h_p1_ch2);																				// multichrom error
+	catn("   pairHet(CHR1) == " + calcPairHeterozygosity(h_p1_ch1, h_p2_ch1));
+	catn("   pairHet(CHR2) == " + calcPairHeterozygosity(h_p1_ch2, h_p2_ch2));
+	
+	//calcWattersonsTheta(h0);																											// must be non-empty
+	catn("   WatTh(1h) == " + calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)[0]));			// valid even with 1 haplosome
+	//calcWattersonsTheta(p1.haplosomes);																							// multichrom error
+	//calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2);									// multichrom error
+	catn("   WatTh(CHR1) == " + calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)));
+	catn("   WatTh(CHR2) == " + calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(2)));
+	catn("   WatTh(CHR1, muts_ch1) == " + calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1));
+	
+	//calcInbreedingLoad(h0);																											// must be non-empty
+	catn("   inbL(h1) == " + calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1)[0]));			// valid even with 1 haplosome
+	//calcInbreedingLoad(sim.subpopulations.haplosomes);																		// multichrom error
+	//calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), 2);											// errors (can't find m2)
+	catn("   inbL(CHR1) == " + calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1)));
+	catn("   inbL(CHR1) == " + calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), 1));
+	catn("   inbL(CHR1) == " + calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), m1));
+	catn("   inbL(CHR2) == " + calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(2)));
+	
+	//calcPi(h0);																															// must be non-empty
+	//calcPi(sim.subpopulations.haplosomesForChromosomes(1)[0]);															// must contain at least 2 elements
+	catn("   pi(2h) == " + calcPi(sim.subpopulations.haplosomesForChromosomes(1)[0:1]));							// valid with 2 haplosomes
+	//calcPi(p1.haplosomes);																											// multichrom error
+	//calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2);													// multichrom error
+	catn("   pi(CHR1) == " + calcPi(sim.subpopulations.haplosomesForChromosomes(1)));
+	catn("   pi(CHR2) == " + calcPi(sim.subpopulations.haplosomesForChromosomes(2)));
+	catn("   pi(CHR1, muts_ch1) == " + calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1));
+	
+	//calcTajimasD(h0);																													// must be non-empty
+	//catn("   TajD(1h) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0]));					// must contain at least 4 elements
+	//catn("   TajD(2h) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:1]));				// must contain at least 4 elements
+	//catn("   TajD(3h) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:2]));				// must contain at least 4 elements
+	catn("   TajD(4h) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:3]));					// valid with 4 haplosomes
+	//calcTajimasD(p1.haplosomes);																									// multichrom error
+	//calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2);											// multichrom error
+	catn("   TajD(CHR1) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)));
+	catn("   TajD(CHR2) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2)));
+	catn("   TajD(CHR1, muts_ch1) == " + calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1));
+}
+
+	Note that this section only tests for correct bounds-checking and errors and such; we do not
+	check for numerical correctness.  Doing that is tricky and not yet implemented.  FIXME
+ */
+	
+	std::string base_script = "initialize() { initializeMutationType('m1', 0.5, 'n', 0.0, 0.001); initializeGenomicElementType('g1', m1, 1.0); chr = initializeChromosome(1, 5e5); initializeMutationRate(1e-7); initializeGenomicElement(g1, 0, 5e5-1); initializeRecombinationRate(1e-8); defineConstant('CHR1', chr); chr = initializeChromosome(2, 1e6); initializeMutationRate(1e-7); initializeGenomicElement(g1, 0, 1e6-1); initializeRecombinationRate(1e-8); defineConstant('CHR2', chr); } 1 late() { sim.addSubpop('p1', 50); sim.addSubpop('p2', 50); p1.setMigrationRates(p2, 0.01); p2.setMigrationRates(p1, 0.01); } 1:100 late() { h0 = p1.haplosomes[integer(0)]; h_p1_ch1 = p1.haplosomesForChromosomes(1)[0]; h_p2_ch1 = p2.haplosomesForChromosomes(1)[0]; h_p1_ch2 = p1.haplosomesForChromosomes(2)[0]; h_p2_ch2 = p2.haplosomesForChromosomes(2)[0]; muts_ch1 = sim.subsetMutations(chromosome=1); muts_ch2 = sim.subsetMutations(chromosome=2); ";
+	
+	SLiMAssertScriptRaise(base_script + "calcFST(h0, h0); }", "must both be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcFST(p1.haplosomes, p2.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1)[0], p2.haplosomesForChromosomes(1)[0]); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(2), p2.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcHeterozygosity(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcHeterozygosity(sim.subpopulations.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals, 2); }", "did not find a mutation type", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals[integer(0)], m1); }", "at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals[0], m1); }", "at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals[0:1], m1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcVA(p1.individuals, m1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcVA(p2.individuals, 1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcVA(sim.subpopulations.individuals, m1); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p1_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch2, h_p2_ch2); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcWattersonsTheta(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", __LINE__);
+	SLiMAssertScriptRaise(base_script + "calcWattersonsTheta(p1.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcInbreedingLoad(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", __LINE__);
+	SLiMAssertScriptRaise(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), 2); }", "did not find a mutation type", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), 1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1), m1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcPi(h0); }", "haplosomes must contain at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", "haplosomes must contain at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1)[0:1]); }", __LINE__);
+	SLiMAssertScriptRaise(base_script + "calcPi(p1.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(h0); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:1]); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:2]); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0:3]); }", __LINE__);
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(p1.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptRaise(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+}
 
 
 

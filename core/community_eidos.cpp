@@ -792,7 +792,7 @@ EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID 
 		MutationType *object = MutationTypeWithID(id);
 		
 		if (!object)
-			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_mutationTypesWithIDs): mutationTypesWithIDs() did not find a genomic element type with id " << id << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_mutationTypesWithIDs): mutationTypesWithIDs() did not find a mutation type with id " << id << "." << EidosTerminate();
 		
 		vec->set_object_element_no_check_NORR(object, id_index);
 	}

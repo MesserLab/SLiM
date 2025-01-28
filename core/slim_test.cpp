@@ -113,7 +113,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
-void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position)
+void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position, bool p_error_is_in_stop)
 {
 	{
 	Community *community = nullptr;
@@ -140,7 +140,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
-		if (raise_message.find("stop() called") == std::string::npos)
+		if (p_error_is_in_stop || (raise_message.find("stop() called") == std::string::npos))
 		{
 			if (raise_message.find(p_reason_snip) != std::string::npos)
 			{
@@ -387,6 +387,7 @@ int RunSLiMTests(void)
 	_RunTreeSeqTests(temp_path);
 	_RunNucleotideFunctionTests();
 	_RunNucleotideMethodTests();
+	_RunPopGenFunctionTests();
 	_RunSLiMTimingTests();
 	
 #ifdef _OPENMP

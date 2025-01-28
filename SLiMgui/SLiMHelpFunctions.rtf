@@ -1136,6 +1136,7 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1202,6 +1203,7 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -1978,6 +1980,19 @@ The code for
 \f2\fs20  are first averaged across all specified mutations prior to taking the ratio of the two.  This ratio of averages is less biased than the average of ratios, and and is generally considered to be best practice (see, e.g., Bhatia et al., 2013).  This means that the behavior of 
 \f1\fs18 calcFST()
 \f2\fs20  differs between SLiM 3 and SLiM 4.\
+As can be seen from its equation, the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  is undefined if 
+\f3\i H
+\fs13\fsmilli6667 \sub T
+\f2\i0\fs20 \nosupersub  is zero, which occurs if no mutations are present in the haplosomes provided (given the optionally specified window and set of mutations).  In that case, 
+\f1\fs18 calcFST()
+\f2\fs20  will return 
+\f1\fs18 NAN
+\f2\fs20 .  It is up to the caller to detect this with 
+\f1\fs18 isNAN()
+\f2\fs20  and handle it as necessary.\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
@@ -1998,7 +2013,7 @@ The implementation of
 \f1\fs18 \cf2 (float$)calcHeterozygosity(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the heterozygosity for a vector of haplosomes, based upon the frequencies of mutations in the haplosomes.  The result is the 
+\f2\fs20 \cf2 Calculates the heterozygosity for a vector of haplosomes (containing at least one element), based upon the frequencies of mutations in the haplosomes.  The result is the 
 \f3\i expected
 \f2\i0  heterozygosity, for the individuals to which the haplosomes belong, assuming that they are under Hardy-Weinberg equilibrium; this can be compared to the 
 \f3\i observed
@@ -2040,16 +2055,20 @@ The implementation of
 \f2\fs20  for further discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcInbreedingLoad(object<Haplosome>\'a0haplosomes, [No<MutationType>$\'a0mutType\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float$)calcInbreedingLoad(object<Haplosome>\'a0haplosomes, [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates inbreeding load (the haploid number of lethal equivalents, or 
 \f3\i B
-\f2\i0 ) for a vector of haplosomes passed in 
+\f2\i0 ) for a vector of haplosomes (containing at least one element) passed in 
 \f1\fs18 haplosomes
 \f2\fs20 .  The calculation can be limited to a focal mutation type passed in 
 \f1\fs18 mutType
-\f2\fs20 ; if 
+\f2\fs20  (which may be either an 
+\f1\fs18 integer
+\f2\fs20  representing the ID of the desired mutation type, or a 
+\f1\fs18 MutationType
+\f2\fs20  object specified directly); if 
 \f1\fs18 mutType
 \f2\fs20  is 
 \f1\fs18 NULL
@@ -2079,7 +2098,9 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i s
 \f2\i0  is the absolute value of the selection coefficient, and 
 \f3\i h
-\f2\i0  is its dominance coefficient.  Note that the implementation sets a maximum |
+\f2\i0  is its dominance coefficient.  Note that the implementation, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , sets a maximum |
 \f3\i s
 \f2\i0 | of 
 \f1\fs18 1.0
@@ -2150,7 +2171,7 @@ The implementation
 
 \f2\fs20 \cf2 Calculates 
 \f7\i \uc0\u960 
-\f2\i0  (a metric of genetic diversity based on pairwise sequence differences) for a vector of haplosomes, based upon the mutations in the haplosomes.  The mathematical formulation (as an estimator of the population parameter 
+\f2\i0  (a metric of genetic diversity based on pairwise sequence differences) for a vector of haplosomes (containing at least two elements), based upon the mutations in the haplosomes.  The mathematical formulation (as an estimator of the population parameter 
 \f7\i \uc0\u952 
 \f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).  This value is averaged by the number of sites.\
 Often 
@@ -2191,7 +2212,7 @@ The implementation of
 
 \f2\fs20 \cf2 Calculates Tajima\'92s 
 \f3\i D
-\f2\i0  (a test of neutrality based on the allele frequency spectrum) for a vector of haplosomes, based upon the mutations in the haplosomes.  The mathematical formulation is given in Tajima 1989 (equation 38) and remains unchanged (e.g., equations 2.30 in Durrett 2008, 8.4 in Hahn 2018, and 4.44 in Coop 2020).  Often 
+\f2\i0  (a test of neutrality based on the allele frequency spectrum) for a vector of haplosomes (containing at least four elements), based upon the mutations in the haplosomes.  The mathematical formulation is given in Tajima 1989 (equation 38) and remains unchanged (e.g., equations 2.30 in Durrett 2008, 8.4 in Hahn 2018, and 4.44 in Coop 2020).  Often 
 \f1\fs18 haplosomes
 \f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
@@ -2211,6 +2232,13 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f2\fs20 , provides the haplosome-wide Tajima\'92s 
 \f3\i D
 \f2\i0 .\
+If the genetic diversity contained within the haplosomes is insufficient for the calculation, 
+\f1\fs18 calcTajimasD()
+\f2\fs20  may return 
+\f1\fs18 NAN
+\f2\fs20 .  It is up to the caller to detect this with 
+\f1\fs18 isNAN()
+\f2\fs20  and handle it as necessary.\
 The implementation of 
 \f1\fs18 calcTajimasD()
 \f2\fs20 , viewable with 
@@ -2228,10 +2256,42 @@ The implementation of
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, io<MutationType>$\'a0mutType)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates 
+\f3\i V
+\f2\i0\fs13\fsmilli6667 \sub A
+\fs20 \nosupersub , the additive genetic variance, among a vector of individuals (containing at least two elements) passed in 
+\f1\fs18 individuals
+\f2\fs20 , in a particular mutation type 
+\f1\fs18 mutType
+\f2\fs20  that represents quantitative trait loci (QTLs) influencing a quantitative phenotypic trait.  The 
+\f1\fs18 mutType
+\f2\fs20  parameter may be either an 
+\f1\fs18 integer
+\f2\fs20  representing the ID of the desired mutation type, or a 
+\f1\fs18 MutationType
+\f2\fs20  object specified directly.\
+This function assumes that mutations of type 
+\f1\fs18 mutType
+\f2\fs20  encode their effect size upon the quantitative trait in their 
+\f1\fs18 selectionCoeff
+\f2\fs20  property, as is fairly standard in SLiM.  The implementation of 
+\f1\fs18 calcVA()
+\f2\fs20 , which is viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , is quite simple; if effect sizes are stored elsewhere (such as with 
+\f1\fs18 setValue()
+\f2\fs20 ), a new user-defined function following the pattern of 
+\f1\fs18 calcVA()
+\f2\fs20  can easily be written.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (float$)calcWattersonsTheta(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates Watterson\'92s theta (a metric of genetic diversity comparable to heterozygosity) for a vector of haplosomes, based upon the mutations in the haplosomes.  Often 
+\f2\fs20 \cf2 Calculates Watterson\'92s theta (a metric of genetic diversity comparable to heterozygosity) for a vector of haplosomes (containing at least one element), based upon the mutations in the haplosomes.  Often 
 \f1\fs18 haplosomes
 \f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
@@ -2258,38 +2318,6 @@ The implementation of
 \f2\fs20 .  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20  for further discussion.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, io<MutationType>$\'a0mutType)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f2\fs20 \cf2 Calculates 
-\f3\i V
-\f2\i0\fs13\fsmilli6667 \sub A
-\fs20 \nosupersub , the additive genetic variance, among a vector 
-\f1\fs18 individuals
-\f2\fs20 , in a particular mutation type 
-\f1\fs18 mutType
-\f2\fs20  that represents quantitative trait loci (QTLs) influencing a quantitative phenotypic trait.  The 
-\f1\fs18 mutType
-\f2\fs20  parameter may be either an 
-\f1\fs18 integer
-\f2\fs20  representing the ID of the desired mutation type, or a 
-\f1\fs18 MutationType
-\f2\fs20  object specified directly.\
-This function assumes that mutations of type 
-\f1\fs18 mutType
-\f2\fs20  encode their effect size upon the quantitative trait in their 
-\f1\fs18 selectionCoeff
-\f2\fs20  property, as is fairly standard in SLiM.  The implementation of 
-\f1\fs18 calcVA()
-\f2\fs20 , which is viewable with 
-\f1\fs18 functionSource()
-\f2\fs20 , is quite simple; if effect sizes are stored elsewhere (such as with 
-\f1\fs18 setValue()
-\f2\fs20 ), a new user-defined function following the pattern of 
-\f1\fs18 calcVA()
-\f2\fs20  can easily be written.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.4.  Other utilities

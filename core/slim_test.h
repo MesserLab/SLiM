@@ -29,7 +29,7 @@ int RunSLiMTests(void);
 
 // Helper functions for testing
 extern void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber = -1);
-extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true);
+extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true, bool p_error_is_in_stop = false);
 extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber = -1);
 
 
@@ -59,6 +59,7 @@ extern void _RunNonWFTests(void);
 extern void _RunTreeSeqTests(const std::string &temp_path);
 extern void _RunNucleotideFunctionTests(void);
 extern void _RunNucleotideMethodTests(void);
+extern void _RunPopGenFunctionTests(void);
 extern void _RunParallelSLiMTests();
 
 // Test function shared strings

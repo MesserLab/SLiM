@@ -72,7 +72,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("haplosome1", gSLiM_Haplosome_Class)->AddObject_S("haplosome2", gSLiM_Haplosome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPi", gSLiMSourceCode_calcPi, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcTajimasD", gSLiMSourceCode_calcTajimasD, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		
@@ -113,88 +113,110 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 const char *gSLiMSourceCode_calcFST = 
 R"V0G0N({
 	if ((haplosomes1.length() == 0) | (haplosomes2.length() == 0))
-		stop("ERROR (calcFST()): haplosomes1 and haplosomes2 must both be non-empty.");
+		stop("ERROR (calcFST): haplosomes1 and haplosomes2 must both be non-empty.");
+	
+	species = haplosomes1[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes1.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcFST()): all haplosomes must belong to the same species.");
-		if (!all(species == haplosomes2.individual.subpopulation.species))
-			stop("ERROR (calcFST()): all haplosomes must belong to the same species.");
+		if (any(c(haplosomes1, haplosomes2).individual.subpopulation.species != species))
+			stop("ERROR (calcFST): all haplosomes must belong to the same species.");
 		if (!isNULL(muts))
-			if (!all(species == muts.mutationType.species))
-				stop("ERROR (calcFST()): all mutations must belong to the same species as the haplosomes.");
+			if (any(muts.mutationType.species != species))
+				stop("ERROR (calcFST): all mutations must belong to the same species as the haplosomes.");
 	}
-	else
+	
+	chromosome = haplosomes1[0].chromosome;
+	if (species.chromosomes.length() > 1)
 	{
-		species = community.allSpecies;
+		if (any(c(haplosomes1, haplosomes2).chromosome != chromosome))
+			stop("ERROR (calcFST): all haplosomes must be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcFST): all mutations must be associated with the same chromosome as the haplosomes.");
 	}
+	
+	if (isNULL(muts))
+		muts = species.subsetMutations(chromosome=chromosome);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcFST()): start must be less than or equal to end.");
-		if (isNULL(muts))
-			muts = species.mutations;
+			stop("ERROR (calcFST): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcFST): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
-		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcFST()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcFST): start and end must both be NULL or both be non-NULL.");
 	}
 	
-	// do the calculation
+	// do the calculation; if the FST is undefined, return NULL
 	p1_p = haplosomes1.mutationFrequenciesInHaplosomes(muts);
 	p2_p = haplosomes2.mutationFrequenciesInHaplosomes(muts);
 	mean_p = (p1_p + p2_p) / 2.0;
 	H_t = 2.0 * mean_p * (1.0 - mean_p);
 	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
-	fst = 1.0 - mean(H_s) / mean(H_t);
+	mean_H_t = mean(H_t);
+	
+	if (isNULL(mean_H_t))	// occurs if muts is zero-length
+		return NAN;
+	if (mean_H_t == 0)		// occurs if muts is not zero-length but all frequencies are zero
+		return NAN;
+	
+	fst = 1.0 - mean(H_s) / mean_H_t;
 	return fst;
 })V0G0N";
 
 // (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
 R"V0G0N({
+	if (individuals.length() < 2)
+		stop("ERROR (calcVA): individuals must contain at least two elements.");
+	
+	// look up an integer mutation type id from the community
+	if (type(mutType) == "integer") {
+		mutTypes = community.allMutationTypes;
+		mutTypeForID = mutTypes[mutTypes.id == mutType];
+		assert(length(mutTypeForID) == 1, "calcVA() did not find a mutation type with id " + mutType);
+		mutType = mutTypeForID;
+	}
+	
+	// the mutation type dictates the focal species
 	species = mutType.species;
+	
+	// all individuals must belong to the focal species
 	if (community.allSpecies.length() > 1)
 		if (!all(individuals.subpopulation.species == species))
-			stop("ERROR (calcVA()): all individuals must belong to the same species as mutType.");
+			stop("ERROR (calcVA): all individuals must belong to the same species as mutType.");
 	
-	// look up an integer mutation type id
-	if (type(mutType) == "integer") {
-		mutType = species.mutationTypes[species.mutationTypes.id == mutType];
-		assert(length(mutType) == 1, "calcVA() mutation type lookup failed");
-	}
 	return var(individuals.sumOfMutationsOfType(mutType));
 })V0G0N";
 
 // (float$)calcPairHeterozygosity(object<Haplosome>$ haplosome1, object<Haplosome>$ haplosome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
 const char *gSLiMSourceCode_calcPairHeterozygosity = 
 R"V0G0N({
-	if (community.allSpecies.length() > 1)
-	{
-		species = unique(c(haplosome1.individual.subpopulation.species, haplosome2.individual.subpopulation.species), preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcPairHeterozygosity()): haplosome1 and haplosome2 must belong to the same species.");
-	}
-	else
-	{
-		species = community.allSpecies;
-	}
+	species = haplosome1.individual.subpopulation.species;
+	if (haplosome2.individual.subpopulation.species != species)
+		stop("ERROR (calcPairHeterozygosity): haplosome1 and haplosome2 must belong to the same species.");
+	
+	chromosome = haplosome1.chromosome;
+	if (haplosome2.chromosome != chromosome)
+		stop("ERROR (calcPairHeterozygosity): haplosome1 and haplosome2 must belong to the same chromosome.");
 	
 	muts1 = haplosome1.mutations;
 	muts2 = haplosome2.mutations;
-	length = species.chromosomes.lastPosition + 1;
-
+	length = chromosome.length;
+	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcPairHeterozygosity()): start must be less than or equal to end.");
+			stop("ERROR (calcPairHeterozygosity): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcPairHeterozygosity): start and end must be within the bounds of the focal chromosome");
 		m1pos = muts1.position;
 		m2pos = muts2.position;
 		muts1 = muts1[(m1pos >= start) & (m1pos <= end)];
@@ -203,14 +225,14 @@ R"V0G0N({
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcPairHeterozygosity()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcPairHeterozygosity): start and end must both be NULL or both be non-NULL.");
 	}
-
+	
 	// do the calculation
 	unshared = setSymmetricDifference(muts1, muts2);
 	if (!infiniteSites)
 		unshared = unique(unshared.position, preserveOrder=F);
-
+	
 	return size(unshared) / length;
 })V0G0N";
 
@@ -218,34 +240,26 @@ R"V0G0N({
 const char *gSLiMSourceCode_calcHeterozygosity = 
 R"V0G0N({
 	if (haplosomes.length() == 0)
-		stop("ERROR (calcHeterozygosity()): haplosomes must be non-empty.");
+		stop("ERROR (calcHeterozygosity): haplosomes must be non-empty.");
 	
+	species = haplosomes[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = haplosomes[0].individual.subpopulation.species;
 		if (any(haplosomes.individual.subpopulation.species != species))
-			stop("ERROR (calcHeterozygosity()): haplosomes must all belong to the same species.");
+			stop("ERROR (calcHeterozygosity): all haplosomes must belong to the same species.");
 		if (!isNULL(muts))
 			if (any(muts.mutationType.species != species))
-				stop("ERROR (calcHeterozygosity()): muts must all belong to the same species as haplosomes.");
-	}
-	else
-	{
-		species = community.allSpecies;
+				stop("ERROR (calcHeterozygosity): all mutations must belong to the same species as the haplosomes.");
 	}
 	
+	chromosome = haplosomes[0].chromosome;
 	if (species.chromosomes.length() > 1)
 	{
-		chromosome = haplosomes[0].chromosome;
 		if (any(haplosomes.chromosome != chromosome))
-			stop("ERROR (calcHeterozygosity()): haplosomes must all be associated with the same chromosome.");
+			stop("ERROR (calcHeterozygosity): all haplosomes must be associated with the same chromosome.");
 		if (!isNULL(muts))
 			if (any(muts.chromosome != chromosome))
-				stop("ERROR (calcHeterozygosity()): muts must all be associated with the same chromosome as haplosomes.");
-	}
-	else
-	{
-		chromosome = species.chromosomes;
+				stop("ERROR (calcHeterozygosity): all mutations must be associated with the same chromosome as the haplosomes.");
 	}
 	
 	length = chromosome.length;
@@ -257,14 +271,16 @@ R"V0G0N({
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcHeterozygosity()): start must be less than or equal to end.");
+			stop("ERROR (calcHeterozygosity): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcHeterozygosity): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcHeterozygosity()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcHeterozygosity): start and end must both be NULL or both be non-NULL.");
 	}
 
 	// do the calculation
@@ -277,38 +293,47 @@ R"V0G0N({
 const char *gSLiMSourceCode_calcWattersonsTheta = 
 R"V0G0N({
 	if (haplosomes.length() == 0)
-		stop("ERROR (calcWattersonsTheta()): haplosomes must be non-empty.");
+		stop("ERROR (calcWattersonsTheta): haplosomes must be non-empty.");
+	
+	species = haplosomes[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcWattersonsTheta()): haplosomes must all belong to the same species.");
+		if (any(haplosomes.individual.subpopulation.species != species))
+			stop("ERROR (calcWattersonsTheta): all haplosomes must belong to the same species.");
 		if (!isNULL(muts))
-			if (!all(muts.mutationType.species == species))
-				stop("ERROR (calcWattersonsTheta()): muts must all belong to the same species as haplosomes.");
-	}
-	else
-	{
-		species = community.allSpecies;
+			if (any(muts.mutationType.species != species))
+				stop("ERROR (calcWattersonsTheta): all mutations must belong to the same species as the haplosomes.");
 	}
 	
-	length = species.chromosomes.lastPosition + 1;
+	chromosome = haplosomes[0].chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (any(haplosomes.chromosome != chromosome))
+			stop("ERROR (calcWattersonsTheta): all haplosomes must be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcWattersonsTheta): all mutations must be associated with the same chromosome as the haplosomes.");
+	}
+	
+	length = chromosome.length;
 	
 	if (isNULL(muts))
-		muts = species.mutations;
+		muts = species.subsetMutations(chromosome=chromosome);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcWattersonsTheta()): start must be less than or equal to end.");
+			stop("ERROR (calcWattersonsTheta): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcWattersonsTheta): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcWattersonsTheta()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcWattersonsTheta): start and end must both be NULL or both be non-NULL.");
 	}
 
 	// narrow down to the mutations that are actually present in the haplosomes and aren't fixed
@@ -323,30 +348,42 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
-// (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [No<MutationType>$ mutType = NULL])
+// (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
+	// look up an integer mutation type id from the community
+	if (type(mutType) == "integer") {
+		mutTypes = community.allMutationTypes;
+		mutTypeForID = mutTypes[mutTypes.id == mutType];
+		assert(length(mutTypeForID) == 1, "calcInbreedingLoad() did not find a mutation type with id " + mutType);
+		mutType = mutTypeForID;
+	}
+	
 	if (haplosomes.length() == 0)
-		stop("ERROR (calcInbreedingLoad()): haplosomes must be non-empty.");
+		stop("ERROR (calcInbreedingLoad): haplosomes must be non-empty.");
+	
+	species = haplosomes[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcInbreedingLoad()): haplosomes must all belong to the same species.");
+		if (any(haplosomes.individual.subpopulation.species != species))
+			stop("ERROR (calcInbreedingLoad): all haplosomes must belong to the same species.");
 		if (!isNULL(mutType))
 			if (mutType.species != species)
-				stop("ERROR (calcInbreedingLoad()): mutType must belong to the same species as haplosomes.");
+				stop("ERROR (calcInbreedingLoad): mutType must belong to the same species as the haplosomes.");
 	}
-	else
+	
+	chromosome = haplosomes[0].chromosome;
+	if (species.chromosomes.length() > 1)
 	{
-		species = community.allSpecies;
+		if (any(haplosomes.chromosome != chromosome))
+			stop("ERROR (calcInbreedingLoad): all haplosomes must be associated with the same chromosome.");
 	}
 	
 	// get the focal mutations and narrow down to those that are deleterious
 	if (isNULL(mutType))
-		muts = species.mutations;
+		muts = species.subsetMutations(chromosome=chromosome);
 	else
-		muts = species.mutationsOfType(mutType);
+		muts = species.subsetMutations(mutType=mutType, chromosome=chromosome);
 	
 	muts = muts[muts.selectionCoeff < 0.0];
 	
@@ -377,39 +414,48 @@ R"V0G0N({
 // function (float$)calcPi(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcPi = 
 R"V0G0N({
-	if (haplosomes.length() == 0)
-		stop("ERROR (calcPi()): haplosomes must be non-empty.");
+	if (haplosomes.length() < 2)
+		stop("ERROR (calcPi): haplosomes must contain at least two elements.");
+	
+	species = haplosomes[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcPi()): haplosomes must all belong to the same species.");
+		if (any(haplosomes.individual.subpopulation.species != species))
+			stop("ERROR (calcPi): all haplosomes must belong to the same species.");
 		if (!isNULL(muts))
-			if (!all(muts.mutationType.species == species))
-				stop("ERROR (calcPi()): muts must all belong to the same species as haplosomes.");
-	}
-	else
-	{
-		species = community.allSpecies;
+			if (any(muts.mutationType.species != species))
+				stop("ERROR (calcPi): all mutations must belong to the same species as the haplosomes.");
 	}
 	
-	length = species.chromosomes.lastPosition + 1;
+	chromosome = haplosomes[0].chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (any(haplosomes.chromosome != chromosome))
+			stop("ERROR (calcPi): all haplosomes must be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcPi): all mutations must be associated with the same chromosome as the haplosomes.");
+	}
+	
+	length = chromosome.length;
 	
 	if (isNULL(muts))
-		muts = species.mutations;
+		muts = species.subsetMutations(chromosome=chromosome);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcPi()): start must be less than or equal to end.");
+			stop("ERROR (calcPi): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcPi): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcPi()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcPi): start and end must both be NULL or both be non-NULL.");
 	}
 	
 	// narrow down to the mutations that are actually present in the haplosomes and aren't fixed
@@ -419,14 +465,14 @@ R"V0G0N({
 	// do the calculation
 	// obtain counts of variant sequences for all segregating sites
 	varCount = haplosomes.mutationCountsInHaplosomes(muts);
-	// total count of sequences subtracted by count of variant sequences equals count of invariant sequences
+	// total count of sequences minus count of variant sequences equals count of invariant sequences
 	invarCount = haplosomes.size() - varCount;
-	// count of pairwise differences per site is the product of counts of both alleles (equation 1 in Korunes and Samuk 2021), this is then summed for all sites 
+	// count of pairwise differences per site is the product of counts of both alleles
+	// (equation 1 in Korunes and Samuk 2021); this is then summed for all sites 
 	diffs = sum(varCount * invarCount);
 	// pi is the ratio of pairwise differences to number of possible combinations of the given sequences
-	// the latter is calculated by a standard formula defined in combinationTwo function (not by default in SLiM)
-	pi = sum(varCount * invarCount) / ((haplosomes.size() * (haplosomes.size() - 1)) / 2);;
-	// pi is conventionally averaged per site and this is consistent with SLiM's calculation of Watterson's theta
+	pi = diffs / ((haplosomes.size() * (haplosomes.size() - 1)) / 2);
+	// pi is conventionally averaged per site (consistent with SLiM's calculation of Watterson's theta)
 	avg_pi = pi / length;
 	return avg_pi;
 })V0G0N";
@@ -434,39 +480,48 @@ R"V0G0N({
 //function (float$)calcTajimasD(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcTajimasD = 
 R"V0G0N({
-	if (haplosomes.length() == 0)
-		stop("ERROR (calcTajimasD()): haplosomes must be non-empty.");
+	if (haplosomes.length() < 4)
+		stop("ERROR (calcTajimasD): haplosomes must contain at least four elements.");
+	
+	species = haplosomes[0].individual.subpopulation.species;
 	if (community.allSpecies.length() > 1)
 	{
-		species = unique(haplosomes.individual.subpopulation.species, preserveOrder=F);
-		if (species.length() != 1)
-			stop("ERROR (calcTajimasD()): haplosomes must all belong to the same species.");
+		if (any(haplosomes.individual.subpopulation.species != species))
+			stop("ERROR (calcTajimasD): all haplosomes must belong to the same species.");
 		if (!isNULL(muts))
-			if (!all(muts.mutationType.species == species))
-				stop("ERROR (calcTajimasD()): muts must all belong to the same species as haplosomes.");
-	}
-	else
-	{
-		species = community.allSpecies;
+			if (any(muts.mutationType.species != species))
+				stop("ERROR (calcTajimasD): all mutations must belong to the same species as the haplosomes.");
 	}
 	
-	length = species.chromosomes.lastPosition + 1;
+	chromosome = haplosomes[0].chromosome;
+	if (species.chromosomes.length() > 1)
+	{
+		if (any(haplosomes.chromosome != chromosome))
+			stop("ERROR (calcTajimasD): all haplosomes must be associated with the same chromosome.");
+		if (!isNULL(muts))
+			if (any(muts.chromosome != chromosome))
+				stop("ERROR (calcTajimasD): all mutations must be associated with the same chromosome as the haplosomes.");
+	}
+	
+	length = chromosome.length;
 	
 	if (isNULL(muts))
-		muts = species.mutations;
+		muts = species.subsetMutations(chromosome=chromosome);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcTajimasD()): start must be less than or equal to end.");
+			stop("ERROR (calcTajimasD): start must be less than or equal to end.");
+		if ((start < 0) | (end >= length))
+			stop("ERROR (calcTajimasD): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcTajimasD()): start and end must both be NULL or both be non-NULL.");
+		stop("ERROR (calcTajimasD): start and end must both be NULL or both be non-NULL.");
 	}
 	
 	// narrow down to the mutations that are actually present in the haplosomes and aren't fixed
@@ -478,7 +533,8 @@ R"V0G0N({
 	// Sequence length is constant (i.e. no missing data or indels) so this can be applied equally over both metrics
 	diff = (calcPi(haplosomes, muts, start, end) - calcWattersonsTheta(haplosomes, muts, start, end)) * length;
 	// calculate standard deviation of covariance of pi and Watterson's theta
-	// note that first 3 variables defined below are sufficient for Watterson's theta calculation as well, though the function is used above for proper interval handling and clarity 
+	// note that first 3 variables defined below are sufficient for Watterson's theta calculation as well,
+	// although the calcWattersonsTheta() function is used above for proper interval handling and clarity 
 	k = size(muts);
 	n = haplosomes.size();
 	a_1 = sum(1 / 1:(n - 1));
