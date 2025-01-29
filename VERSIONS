@@ -8,6 +8,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 development head (in the master branch):
 	fix the wiring for calcPi() and calcTajimasD() to call the correct code; they were broken in SLiM 4.3
 	add a "page guide at column" pref to SLiMgui, for those trying to lay out code to a maximum width
+	fix a SLiMgui bug where an error panel would not be visible because it was obscured by a floating window above it, appearing to lock up the whole app
 	multi-chromosome transition:
 		API changes:
 		x	class Genome -> class Haplosome

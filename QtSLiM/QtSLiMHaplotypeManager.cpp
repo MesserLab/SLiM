@@ -67,7 +67,11 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
         messageBox.setText("Haplotype Plot");
         messageBox.setInformativeText("A single species must be chosen to create a haplotype plot; the plot will be based upon the selected species.");
         messageBox.setIcon(QMessageBox::Warning);
-        messageBox.setWindowModality(Qt::WindowModal);
+        
+        // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+        // seems necessary so floating windows can't be on top of the message box
+        messageBox.setWindowModality(Qt::ApplicationModal);
         messageBox.exec();
         return;
     }

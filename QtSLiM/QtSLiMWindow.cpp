@@ -1661,7 +1661,11 @@ bool QtSLiMWindow::offerAndExecuteAutofix(QTextCursor target, QString replacemen
     messageBox.setInformativeText(informativeText);
     messageBox.setDetailedText(terminationMessage.trimmed());
     messageBox.setIcon(QMessageBox::Warning);
-    messageBox.setWindowModality(Qt::WindowModal);
+    
+    // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+    // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+    // seems necessary so floating windows can't be on top of the message box
+    messageBox.setWindowModality(Qt::ApplicationModal);
     messageBox.setFixedWidth(700);      // seems to be ignored
     messageBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
     
@@ -2052,7 +2056,11 @@ void QtSLiMWindow::showTerminationMessage(QString terminationMessage, EidosError
     messageBox.setText("Simulation Runtime Error");
     messageBox.setInformativeText(fullMessage);
     messageBox.setIcon(QMessageBox::Warning);
-    messageBox.setWindowModality(Qt::WindowModal);
+    
+    // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+    // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+    // seems necessary so floating windows can't be on top of the message box
+    messageBox.setWindowModality(Qt::ApplicationModal);
     messageBox.setFixedWidth(700);      // seems to be ignored
     messageBox.exec();
     
@@ -4634,7 +4642,11 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
         messageBox.setText("Release build required");
         messageBox.setInformativeText("In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of SLiMgui.");
         messageBox.setIcon(QMessageBox::Warning);
-        messageBox.setWindowModality(Qt::WindowModal);
+        
+        // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+        // seems necessary so floating windows can't be on top of the message box
+        messageBox.setWindowModality(Qt::ApplicationModal);
         messageBox.exec();
 		
 		return;
@@ -4651,7 +4663,11 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
         messageBox.setText("Profiling disabled");
         messageBox.setInformativeText("Profiling has been disabled in this build of SLiMgui.  Please change the definition of SLIMPROFILING to 1 in the project's .pro files.");
         messageBox.setIcon(QMessageBox::Warning);
-        messageBox.setWindowModality(Qt::WindowModal);
+        
+        // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+        // seems necessary so floating windows can't be on top of the message box
+        messageBox.setWindowModality(Qt::ApplicationModal);
         messageBox.exec();
 		
 		return;

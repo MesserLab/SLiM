@@ -1488,6 +1488,10 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                 messageBox.setText(title);
                 messageBox.setInformativeText(about);
                 messageBox.setIcon(QMessageBox::Information);
+                
+                // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+                // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::WindowModal seems
+                // to be safe, I can't find a way to make this message box block the UI without doing it deliberately
                 messageBox.setWindowModality(Qt::WindowModal);
                 messageBox.exec();
             }
