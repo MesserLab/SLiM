@@ -5670,6 +5670,10 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         }
         catch (...)
         {
+            // If a raise occurred during parsing, error message junk has been generated
+            // that we need to clear out; we don't want it to be shown to the user
+            gEidosTermination.clear();
+            gEidosTermination.str("");
         }
     }
     
@@ -5840,6 +5844,10 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
         }
         catch (...)
         {
+            // If a raise occurred during parsing, error message junk has been generated
+            // that we need to clear out; we don't want it to be shown to the user
+            gEidosTermination.clear();
+            gEidosTermination.str("");
         }
     }
     
