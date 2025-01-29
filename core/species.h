@@ -382,6 +382,11 @@ private:
 	
 public:
 	
+	// Object pools for individuals and haplosomes, kept population-wide; these must be above their clients in the declaration order
+	// BCH 28 Jan. 2025: These are now kept by the Species, not the Population, so that they can be destructed after all clients have destructed
+	EidosObjectPool species_haplosome_pool_;	// a pool out of which haplosomes are allocated, for within-species locality
+	EidosObjectPool species_individual_pool_;	// a pool out of which individuals are allocated, for within-species locality
+	
 	SLiMModelType model_type_;
 	Community &community_;						// the community that this species belongs to
 	Population population_;						// the population, which contains sub-populations

@@ -119,9 +119,6 @@ Community::~Community(void)
 		delete interaction_type.second;
 	interaction_types_.clear();
 	
-	for (Species *species : all_species_)
-		delete species;
-	
 	delete simulation_globals_;
 	simulation_globals_ = nullptr;
 	
@@ -137,6 +134,10 @@ Community::~Community(void)
 	// All the script blocks that refer to the script are now gone
 	delete script_;
 	script_ = nullptr;
+	
+	// delete the Species last, after everything that might refer to Species state is gone
+	for (Species *species : all_species_)
+		delete species;
 }
 
 void Community::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)

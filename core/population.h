@@ -135,9 +135,9 @@ public:
 	Community &community_;
 	Species &species_;
 	
-	// Object pools for individuals and haplosomes, kept population-wide
-	EidosObjectPool species_haplosome_pool_;					// a pool out of which haplosomes are allocated, for within-species locality
-	EidosObjectPool species_individual_pool_;					// a pool out of which individuals are allocated, for within-species locality
+	// Object pools for individuals and haplosomes, kept species-wide
+	EidosObjectPool &species_haplosome_pool_;					// NOT OWNED; a pool out of which haplosomes are allocated, for within-species locality
+	EidosObjectPool &species_individual_pool_;					// NOT OWNED; a pool out of which individuals are allocated, for within-species locality
 	std::vector<Individual *> species_individuals_junkyard_;	// individuals get put here when we're done with them, for fast reuse
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES

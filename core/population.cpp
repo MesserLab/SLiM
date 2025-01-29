@@ -47,7 +47,7 @@
 
 
 // the initial capacities for the haplosome and individual pools here are just guesses at balancing low default memory usage, maximizing locality, and minimization of additional allocs
-Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_haplosome_pool_("EidosObjectPool(Haplosome)", sizeof(Haplosome), 16384), species_individual_pool_("EidosObjectPool(Individual)", sizeof(Individual), 8192)
+Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_haplosome_pool_(p_species.species_haplosome_pool_), species_individual_pool_(p_species.species_individual_pool_)
 {
 }
 

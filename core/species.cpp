@@ -94,6 +94,7 @@ static const char *SLIM_TREES_FILE_VERSION = "0.9";				// SLiM 4.4 onward, for m
 
 Species::Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(p_name), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_Species_Class))),
+	species_haplosome_pool_("EidosObjectPool(Haplosome)", sizeof(Haplosome), 16384), species_individual_pool_("EidosObjectPool(Individual)", sizeof(Individual), 8192),
     model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(p_name), species_id_(p_species_id)
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction
@@ -3780,8 +3781,8 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		all_haplosomes_not_in_use.insert(all_haplosomes_not_in_use.end(), chromosome->HaplosomesJunkyardNull().begin(), chromosome->HaplosomesJunkyardNull().end());
 	}
 	
-	haplosome_pool_usage = population_.species_haplosome_pool_.MemoryUsageForAllNodes();
-	individual_pool_usage = population_.species_individual_pool_.MemoryUsageForAllNodes();
+	haplosome_pool_usage = species_haplosome_pool_.MemoryUsageForAllNodes();
+	individual_pool_usage = species_individual_pool_.MemoryUsageForAllNodes();
 	
 	// Chromosome
 	{
