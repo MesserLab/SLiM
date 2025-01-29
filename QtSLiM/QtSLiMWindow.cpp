@@ -395,6 +395,14 @@ void QtSLiMWindow::init(void)
     // Instantiate the help panel up front so that it responds instantly; slows down our launch, but it seems better to me...
     QtSLiMHelpWindow::instance();
     
+	// Allocate a RNG temporarily, so it exists when we create the console controller and run self-tests
+    // This is just for the duration of this init() method; we will tear it down again below
+    if (!sim_RNG_initialized)
+    {
+        _Eidos_InitializeOneRNG(sim_RNG);
+        sim_RNG_initialized = true;
+    }
+    
     // Create our console window; we want one all the time, so that it keeps live symbols for code completion for us
     if (!consoleController)
     {
@@ -467,6 +475,13 @@ void QtSLiMWindow::init(void)
         
         beenHere = true;
     }
+    
+    // Tear down the temporary RNG that we created above
+    if (sim_RNG_initialized)
+	{
+		_Eidos_FreeOneRNG(sim_RNG);
+		sim_RNG_initialized = false;
+	}
 }
 
 void QtSLiMWindow::interpolateVerticalSplitter(void)
@@ -4405,6 +4420,9 @@ void QtSLiMWindow::willExecuteScript(void)
     if (gEidos_RNG_Initialized)
         qDebug() << "eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!";
 
+    if (!sim_RNG_initialized)
+        qDebug() << "sim_RNG is not yet set up!";
+    
 	std::swap(sim_RNG, gEidos_RNG_SINGLE);
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 

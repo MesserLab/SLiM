@@ -309,8 +309,10 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 #ifdef SLIMGUI
 	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
 	// we make a separate buffer for this purpose, with string copies, to donate to Community with &&
+	EidosContext *context = p_interpreter.Context();
+	
+	if (context)
 	{
-		EidosContext *context = p_interpreter.Context();
 		std::vector<std::string> slimgui_buffer;
 		
 		slimgui_buffer.reserve(contents_count);
@@ -318,10 +320,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 		for (int value_index = 0; value_index < contents_count; ++value_index)
 			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 		
-		if (context)
-			context->FileWriteNotification(file_path, std::move(slimgui_buffer), append);
-		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeFile): (internal error) no Context in Eidos_ExecuteFunction_writeFile()." << EidosTerminate(nullptr);
+		context->FileWriteNotification(file_path, std::move(slimgui_buffer), append);
 	}
 #endif
 	
@@ -373,8 +372,10 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 #ifdef SLIMGUI
 	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
 	// we make a separate buffer for this purpose, with string copies, to donate to Community with &&
+	EidosContext *context = p_interpreter.Context();
+	
+	if (context)
 	{
-		EidosContext *context = p_interpreter.Context();
 		std::string file_path(file_path_cstr);
 		std::vector<std::string> slimgui_buffer;
 		
@@ -383,10 +384,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		for (int value_index = 0; value_index < contents_count; ++value_index)
 			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex_NOCAST(value_index, nullptr));
 		
-		if (context)
-			context->FileWriteNotification(file_path, std::move(slimgui_buffer), false);
-		else
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) no Context in Eidos_ExecuteFunction_writeTempFile()." << EidosTerminate(nullptr);
+		context->FileWriteNotification(file_path, std::move(slimgui_buffer), false);
 	}
 #endif
 	
