@@ -114,6 +114,10 @@ development head (in the master branch):
 		fix built-in mutation/substitution output methods for multiple chromosomes:
 			Species method outputMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
 			Species method outputFixedMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
+		fix built-in MS input/output methods for multiple chromosomes:
+			Haplosome method outputMS(): check that all haplosomes belong to a single chromosome, output MS based on that
+			Subpopulation method outputMSSample(): add a [Niso<Chromosome>$ chromosome = NULL] parameter to identify the chromosome to sample with
+			Haplosome method readFromMS(): check that all haplosomes belong to a single chromosome, input MS based on that
 
 
 version 4.3 (Eidos version 3.3):

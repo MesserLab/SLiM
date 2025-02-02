@@ -2184,13 +2184,13 @@ Several helper functions are provided for working with sequences, such as
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Output the target haplosomes in MS format.  This low-level output method may be used to output any sample of 
+\f4\fs20 \cf2 Output the target haplosomes in MS format (see section 27.3.2 for output format details).  This low-level output method may be used to output any sample of 
 \f3\fs18 Haplosome
-\f4\fs20  objects (the Eidos function 
+\f4\fs20  objects associated with a single chromosome.  The Eidos function 
 \f3\fs18 sample()
 \f4\fs20  may be useful for constructing custom samples, as may the SLiM class 
 \f3\fs18 Individual
-\f4\fs20 ).  For output of a sample from a single 
+\f4\fs20 .  For output of a sample from a single 
 \f3\fs18 Subpopulation
 \f4\fs20 , the 
 \f3\fs18 outputMSSample()
@@ -2210,8 +2210,7 @@ Several helper functions are provided for working with sequences, such as
 \f3\fs18 append
 \f4\fs20  is 
 \f3\fs18 T
-\f5\fs20 .
-\f4   Positions in the output will span the interval [0,1].\
+\f4\fs20 .  Positions in the output will span the interval [0,1].\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 If 
@@ -2307,10 +2306,10 @@ The parameters
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Read new mutations from the MS format file at 
 \f3\fs18 filePath
-\f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the MS file.  To read into all of the haplosomes in a given subpopulation 
+\f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the MS file, and all target haplosomes must be associated with the same chromosome, and must not be null haplosomes.  The target haplosomes correspond, in order, to the call lines in the MS file.  To read into all of the non-null haplosomes in a given subpopulation 
 \f3\fs18 pN
 \f4\fs20  in a single-chromosome model, simply call 
-\f3\fs18 pN.haplosomes.readFromMS()
+\f3\fs18 pN.haplosomesNonNull.readFromMS()
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the MS file.  A vector containing all of the mutations created by 
 \f3\fs18 readFromMS()
 \f4\fs20  is returned.\
@@ -2321,7 +2320,6 @@ Each mutation is created at the position specified in the file, using the mutati
 \f4\fs20 , and the tick of origin is set to the current tick.  In a nucleotide-based model, if 
 \f3\fs18 mutationType
 \f4\fs20  is nucleotide-based, a random nucleotide different from the ancestral nucleotide at the position will be chosen with equal probability.\
-The target haplosomes correspond, in order, to the call lines in the MS file.  In sex-based models that simulate the X or Y chromosome, null haplosomes in the target vector will be skipped, and will not be used to correspond to any call line; however, care should be taken in this case that the lines in the MS file correspond to the target haplosomes in the manner desired.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -11184,7 +11182,7 @@ This method is equivalent to calling
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0filterMonomorphic\'a0=\'a0F]\kerning1\expnd0\expndtw0 , [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL]\cf0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -11233,7 +11231,21 @@ If
 \f3\fs18 filterMonomorphic = T
 \f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled haplosomes might not be included in the output, simply because they exist in every sampled haplosome.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 See 
+\cf2 \kerning1\expnd0\expndtw0 The 
+\f3\fs18 chromosome
+\f4\fs20  parameter identifies the chromosome for which the sample of haplosomes should be taken.  The default of 
+\f3\fs18 NULL
+\f4\fs20  may be used only in single-chromosome models where the choice of chromosome is unambiguous.  In multi-chromosome models, chromosome must be non-
+\f3\fs18 NULL
+\f4\fs20 ; it must specify the chromosome by id (
+\f3\fs18 integer
+\f4\fs20 ), by symbol (
+\f3\fs18 string
+\f4\fs20 ) or by the 
+\f3\fs18 Chromosome
+\f4\fs20  object itself.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 See 
 \f3\fs18 outputSample()
 \f4\fs20  and 
 \f3\fs18 outputVCFSample()

@@ -8262,18 +8262,21 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
 	std::vector<Haplosome *> candidates;
 	
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	
 	for (Individual *ind : subpop_individuals)
 	{
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;
 		
-		Haplosome *haplosome1 = ind->haplosomes_[0];
-		Haplosome *haplosome2 = ind->haplosomes_[1];
-		
-		if (!haplosome1->IsNull())
-			candidates.push_back(haplosome1);
-		if (!haplosome2->IsNull())
-			candidates.push_back(haplosome2);
+		for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; ++haplosome_index)
+		{
+			Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+			
+			if (!haplosome->IsNull())
+				candidates.push_back(haplosome);
+		}
 	}
 	
 	if (p_replace && (candidates.size() == 0))

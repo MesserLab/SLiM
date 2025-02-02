@@ -2937,19 +2937,19 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	// We require at least one haplosome because otherwise we can't determine the species
 	int sample_size = p_target->Count();
 	std::vector<Haplosome *> haplosomes;
-	Species *species = nullptr;
 	
 	if (sample_size <= 0)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): output of a zero-length haplosome vector is illegal; at least one haplosome is required for output." << EidosTerminate();
 	
+	Haplosome **target_haplosomes = (Haplosome **)p_target->ObjectData();
+	Species *species = &target_haplosomes[0]->individual_->subpopulation_->species_;
+	
 	for (int index = 0; index < sample_size; ++index)
 	{
-		Haplosome *haplosome = (Haplosome *)p_target->ObjectElementAtIndex_NOCAST(index, nullptr);
+		Haplosome *haplosome = target_haplosomes[index];
 		Species *haplosome_species = &haplosome->individual_->subpopulation_->species_;
 		
-		if (!species)
-			species = haplosome_species;
-		else if (species != haplosome_species)
+		if (species != haplosome_species)
 			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): all haplosomes for output must belong to the same species." << EidosTerminate();
 		
 		haplosomes.emplace_back(haplosome);
@@ -2958,7 +2958,25 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_outputX");
 
 	Community &community = species->community_;
-	Chromosome &chromosome = species->TheChromosome();
+	
+	// For MS output, we need to know the chromosome to normalize to positions to the interval [0, 1].
+	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
+	Chromosome *chromosome = nullptr;
+	
+	if (p_method_id == gID_outputMS)
+	{
+		slim_chromosome_index_t chromosome_index = haplosomes[0]->chromosome_index_;
+		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+		
+		chromosome = chromosomes[chromosome_index];
+		
+		if (chromosomes.size() > 1)
+		{
+			for (Haplosome *haplosome : haplosomes)
+				if (haplosome->chromosome_index_ != chromosome_index)
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): for outputMS(), all haplosomes for output must be associated with the same chromosome." << EidosTerminate();
+		}
+	}
 	
 	// Now handle stream/file output and dispatch to the actual print method
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
@@ -2983,9 +3001,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		if (p_method_id == gID_output)
 			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, -1);	// -1 represents unknown source subpopulation
 		else if (p_method_id == gID_outputMS)
-			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, chromosome, filter_monomorphic);
+			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
-			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
+			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), species->TheChromosome().AncestralSequence());
 	}
 	else
 	{
@@ -3007,10 +3025,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
-					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, chromosome, filter_monomorphic);
+					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
-					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
+					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), species->TheChromosome().AncestralSequence());
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();
@@ -3055,21 +3073,30 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	bool nucleotide_based = species.IsNucleotideBased();
 	int target_size = p_target->Count();
 	
+	if (target_size <= 0)
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires at least one target haplosome." << EidosTerminate();
+	
 	// SPECIES CONSISTENCY CHECK
-	if (target_size > 0)
-	{
-		Species *target_species = Community::SpeciesForHaplosomes(p_target);
-		
-		if (target_species != &species)
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
-	}
+	Species *target_species = Community::SpeciesForHaplosomes(p_target);
+	
+	if (target_species != &species)
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
 	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromMS");
 	
-	// FIXME MULTICHROM all haplosomes should be required to belong to the same chromosome, probably; so the species check
-	// above should turn into a chromosome check, maybe?  or maybe we do both, if the chromosome check uses
-	// chromosome_index_ index directly, which would assume the same species...?
-	Chromosome *chromosome = &species.TheChromosome();
+	// For MS input, we need to know the chromosome to calculate positions from the normalized interval [0, 1].
+	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
+	slim_chromosome_index_t chromosome_index = targets_data[0]->chromosome_index_;
+	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+	Chromosome *chromosome = chromosomes[chromosome_index];
+	
+	if (chromosomes.size() > 1)
+	{
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): for readFromMS(), all target haplosomes must be associated with the same chromosome." << EidosTerminate();
+	}
 	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
@@ -3189,7 +3216,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 		if (nucleotide_based && mutation_type_ptr->nucleotide_based_)
 		{
 			// select a nucleotide that is different from the ancestral state at this position
-			int8_t ancestral = (int8_t)species.TheChromosome().AncestralSequence()->NucleotideAtIndex(position);
+			int8_t ancestral = (int8_t)chromosome->AncestralSequence()->NucleotideAtIndex(position);
 			
 			nucleotide = (int8_t)Eidos_rng_uniform_int(rng, 3);	// 0, 1, 2
 			
@@ -3226,11 +3253,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 #ifndef _OPENMP
 	MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
-	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
 	
 	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 	{
 		Haplosome *haplosome = targets_data[haplosome_index];
+		
+		if (haplosome->IsNull())
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() does not allow null haplosomes in the target haplosome vector." << EidosTerminate();
+		
 		bool haplosome_started_empty = (haplosome->mutation_count() == 0);
 		slim_position_t mutrun_length = haplosome->mutrun_length_;
 		slim_mutrun_index_t current_run_index = -1;
