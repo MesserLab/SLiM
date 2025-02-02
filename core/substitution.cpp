@@ -49,7 +49,22 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 { 
-	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_;
+	
+	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
+	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+	
+	if (chromosomes.size() > 1)
+	{
+		Chromosome *chromosome = chromosomes[chromosome_index_];
+		
+		p_out << " " << chromosome->Symbol();
+	}
+	
+	// and then the remainder of the output line
+	p_out << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
 	
 	// output a nucleotide if available
 	if (mutation_type_ptr_->nucleotide_based_)

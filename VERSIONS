@@ -111,6 +111,9 @@ development head (in the master branch):
 			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome
 		fix up the calc...() functions for multiple chromosomes, and to be robust to the case of zero mutations (existing at all, or within the supplied haplosomes), and to improve error-checking and documentation
 		the default symbol for implicit chromosomes should be "A", "X", or "Y", so output formats don't change for legacy models
+		fix built-in mutation/substitution output methods for multiple chromosomes:
+			Species method outputMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
+			Species method outputFixedMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
 
 
 version 4.3 (Eidos version 3.3):

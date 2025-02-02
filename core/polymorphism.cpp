@@ -19,6 +19,7 @@
 
 
 #include "polymorphism.h"
+#include "species.h"
 
 #include <fstream>
 #include <map>
@@ -61,7 +62,22 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
-	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_;
+	
+	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
+	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
+	Species &species = mutation_ptr_->mutation_type_ptr_->species_;
+	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+	
+	if (chromosomes.size() > 1)
+	{
+		Chromosome *chromosome = chromosomes[mutation_ptr_->chromosome_index_];
+		
+		p_out << " " << chromosome->Symbol();
+	}
+	
+	// and then the remainder of the output line
+	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
