@@ -939,31 +939,55 @@ If the optional
 
 \f2\fs20 \cf2 Enable sex in the simulation.  Beginning in SLiM 5, this method should generally be passed 
 \f1\fs18 NULL
-\f2\fs20 , simply indicating that sex should be enabled: individuals will be male and female (rather than hermaphroditic), biparental crosses will be required to be between a female first parent and a male second parent, and selfing will not be allowed.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
-In this new configuration style, if a sexual simulation involving sex chromosomes is desired, the new 
+\f2\fs20 , simply indicating that sex should be enabled: individuals will then be male and female (rather than hermaphroditic), biparental crosses will be required to be between a female first parent and a male second parent, and selfing will not be allowed.  In this new configuration style, if a sexual simulation involving sex chromosomes is desired, the new 
 \f1\fs18 initializeChromosome()
-\f2\fs20  call should be used to configure the chromosome setup for the simulation (see the 
+\f2\fs20  call should be used to configure the chromosome setup for the simulation.\
+For backward compatibility, the old style of configuring a sexual simulation is still supported, however.  This implicitly defines a single chromosome, without a call to 
 \f1\fs18 initializeChromosome()
-\f2\fs20  documentation in section 25.1).\
-For backward compatibility, the old style of configuring a sexual simulation is still supported, however.  In this style, the argument 
+\f2\fs20 .  With this old configuration approach, the 
 \f1\fs18 chromosomeType
-\f2\fs20  gives the type of chromosome to be simulated; this should be 
+\f2\fs20  parameter to 
+\f1\fs18 initializeSex()
+\f2\fs20  gives the type of chromosome that should be simulated; this should be 
 \f1\fs18 "A"
 \f2\fs20 , 
 \f1\fs18 "X"
 \f2\fs20 , or 
 \f1\fs18 "Y"
-\f2\fs20 .  These correspond to the new chromosome types 
+\f2\fs20 , and this 
+\f1\fs18 chromosomeType
+\f2\fs20  value will be used as the symbol (
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "X"
+\f2\fs20 , or 
+\f1\fs18 "Y"
+\f2\fs20 ) for the implicit chromosome.  These legacy chromosome types correspond to the new chromosome types 
 \f1\fs18 "A"
 \f2\fs20 , 
 \f1\fs18 "X"
 \f2\fs20 , and 
 \f1\fs18 "-Y"
-\f2\fs20  (not 
+\f2\fs20  respectively (note that it is 
+\f3\i not
+\f2\i0  
 \f1\fs18 "Y"
-\f2\fs20 ), respectively, when using 
+\f2\fs20 ), when using 
 \f1\fs18 initializeChromosome()
-\f2\fs20 .  This old style of chromosome configuration is much less flexible, however, allowing fewer chromosome types, and only allowing a single chromosome to be set up.  This backward compatibility mode may be removed for SLiM in the future, and should be considered deprecated.\
+\f2\fs20 .  The implicit chromosome\'92s 
+\f1\fs18 id
+\f2\fs20  property is always 
+\f1\fs18 1
+\f2\fs20 .  This old style of chromosome configuration is much less flexible, however, allowing only these three chromosome types, and only allowing a single chromosome to be set up.  This backward compatibility mode may be removed for SLiM in the future, and should be considered deprecated; new models should call 
+\f1\fs18 initializeChromosome()
+\f2\fs20  explicitly instead.\
+There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.  If you require more flexibility with mating types and reproductive strategies than SLiM\'92s built-in support for sex provides, do not call 
+\f1\fs18 initializeSex()
+\f2\fs20 ; instead, track the sex or mating type of individuals yourself in script (with the 
+\f1\fs18 tag
+\f2\fs20  property of 
+\f1\fs18 Individual
+\f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b \cf2 The 
@@ -1136,7 +1160,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1203,7 +1226,6 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

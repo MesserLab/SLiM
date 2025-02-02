@@ -317,8 +317,22 @@ void Species::MakeImplicitChromosome(ChromosomeType p_type)
 	if (num_chromosome_inits_ != 0)
 		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) explicit chromosome already exists." << EidosTerminate();
 	
+	// Only these three chromosome types are supported for an implicitly defined chromosome.  The symbols used
+	// here match the symbols that were output for chromosome types in various built-in output methods prior to
+	// SLiM 5, for backward compatibility.
+	std::string chromosome_symbol;
+	
+	if (p_type == ChromosomeType::kA_DiploidAutosome)
+		chromosome_symbol = "A";
+	else if (p_type == ChromosomeType::kX_XSexChromosome)
+		chromosome_symbol = "X";
+	else if (p_type == ChromosomeType::kNullY_YSexChromosomeWithNull)
+		chromosome_symbol = "Y";
+	else
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitChromosome): (internal error) unsupported implicit chromosome type." << EidosTerminate();
+	
 	// Create an implicit Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
-	Chromosome *chromosome = new Chromosome(*this, p_type, 1, "1", /* p_index */ 0, /* p_preferred_mutcount */ 0);
+	Chromosome *chromosome = new Chromosome(*this, p_type, 1, chromosome_symbol, /* p_index */ 0, /* p_preferred_mutcount */ 0);
 	
 	// Add it to our registry; AddChromosome() takes its retain count
 	AddChromosome(chromosome);

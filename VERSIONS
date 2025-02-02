@@ -110,6 +110,7 @@ development head (in the master branch):
 		recombination() callbacks can now be optionally declared with a chromosome specifier (id or symbol), to apply to just one chromosome
 			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome
 		fix up the calc...() functions for multiple chromosomes, and to be robust to the case of zero mutations (existing at all, or within the supplied haplosomes), and to improve error-checking and documentation
+		the default symbol for implicit chromosomes should be "A", "X", or "Y", so output formats don't change for legacy models
 
 
 version 4.3 (Eidos version 3.3):
