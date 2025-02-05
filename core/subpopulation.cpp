@@ -11094,9 +11094,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	Chromosome *chromosome;
 	
+	if (chromosomes.size() == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): output cannot be generated from a species with no genetics." << EidosTerminate();
+	
 	if (chromosome_arg->Type() == EidosValueType::kValueNULL)
 	{
-		if (chromosomes.size() != 1)
+		if (chromosomes.size() > 1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): output requires a non-NULL value for chromosome in multi-chromosome models." << EidosTerminate();
 		
 		chromosome = chromosomes[0];

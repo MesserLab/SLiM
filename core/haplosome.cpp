@@ -3164,7 +3164,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	// Get the species of interest from the mutation type; we will check that all target haplosomes belong to it below
 	Species &species = mutation_type_ptr->species_;
 	Population &pop = species.population_;
-	slim_position_t last_position = species.TheChromosome().last_position_;
 	bool recording_mutations = species.RecordingTreeSequenceMutations();
 	bool nucleotide_based = species.IsNucleotideBased();
 	int target_size = p_target->Count();
@@ -3193,6 +3192,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
 				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): for readFromMS(), all target haplosomes must be associated with the same chromosome." << EidosTerminate();
 	}
+	
+	slim_position_t last_position = chromosome->last_position_;
 	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
@@ -3452,7 +3453,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;
-	slim_position_t last_position = species->TheChromosome().last_position_;
+	slim_position_t last_position = chromosome->last_position_;
 	bool recording_mutations = species->RecordingTreeSequenceMutations();
 	bool nucleotide_based = species->IsNucleotideBased();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
@@ -3918,7 +3919,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 						if (ref_nuc != info_ancestral_nuc)
 							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
 						
-						int8_t ancestral = (int8_t)species->TheChromosome().AncestralSequence()->NucleotideAtIndex(mut_position);
+						int8_t ancestral = (int8_t)chromosome->AncestralSequence()->NucleotideAtIndex(mut_position);
 						
 						if (ancestral != ref_nuc)
 							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readFromVCF()." << EidosTerminate();
