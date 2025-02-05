@@ -98,6 +98,53 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 	color_sub_ = "#3333FF";
 	if (!color_sub_.empty())
 		Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
+	
+	// depending on the type of chromosome, cache some properties for quick reference
+	// FIXME MULTICHROM: add more properties here, like:
+	//
+	//		DefaultsToZeroRecombination()
+	//		IsSexChromosome()
+	//		TypeString()	("A" for type kA_DiploidAutosome, etc.)
+	//		...lots more, scan the code...
+	switch (type_)
+	{
+		case ChromosomeType::kA_DiploidAutosome:				// type "A"
+			intrinsic_ploidy_ = 2;
+			break;
+		case ChromosomeType::kH_HaploidAutosome:				// type "H"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kX_XSexChromosome:					// type "X"
+			intrinsic_ploidy_ = 2;
+			break;
+		case ChromosomeType::kY_YSexChromosome:					// type "Y"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kZ_ZSexChromosome:					// type "Z"
+			intrinsic_ploidy_ = 2;
+			break;
+		case ChromosomeType::kW_WSexChromosome:					// type "W"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kHF_HaploidFemaleInherited:		// type "HF"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kFL_HaploidFemaleLine:				// type "FL"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kHM_HaploidMaleInherited:			// type "HM"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kML_HaploidMaleLine:				// type "ML"
+			intrinsic_ploidy_ = 1;
+			break;
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:	// type "H-"
+			intrinsic_ploidy_ = 2;
+			break;
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:		// type "-Y"
+			intrinsic_ploidy_ = 2;
+			break;
+	}
 }
 
 Chromosome::~Chromosome(void)

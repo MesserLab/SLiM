@@ -67,6 +67,9 @@ private:
 	slim_chromosome_index_t index_;
 	ChromosomeType type_;
 	
+	// cached properties of the chromosome that depend upon its type
+	int intrinsic_ploidy_;									// 1 or 2; the number of haplosomes kept for the chromosome
+	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
 	
@@ -289,15 +292,18 @@ public:
 	explicit Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, std::string p_symbol, slim_chromosome_index_t p_index, int p_preferred_mutcount);
 	~Chromosome(void);
 	
-	inline __attribute__((always_inline)) int64_t ID(void)	{ return id_; }
-	inline __attribute__((always_inline)) const std::string &Symbol(void)	{ return symbol_; }
-	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) { return index_; }
-	inline __attribute__((always_inline)) ChromosomeType Type(void) { return type_; }
-	inline __attribute__((always_inline)) const std::string &Name(void) { return name_; }
+	inline __attribute__((always_inline)) int64_t ID(void) const	{ return id_; }
+	inline __attribute__((always_inline)) const std::string &Symbol(void) const	{ return symbol_; }
+	inline __attribute__((always_inline)) slim_chromosome_index_t Index(void) const { return index_; }
+	inline __attribute__((always_inline)) ChromosomeType Type(void) const { return type_; }
+	inline __attribute__((always_inline)) const std::string &Name(void) const { return name_; }
 	inline __attribute__((always_inline)) void SetName(const std::string &p_name) { name_ = p_name; }
 	
+	inline __attribute__((always_inline)) int IntrinsicPloidy(void) const { return intrinsic_ploidy_; }
+	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
-	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void)						{ return ancestral_seq_buffer_; }
+	inline __attribute__((always_inline)) const std::vector<GenomicElement *> &GenomicElements(void) const			{ return genomic_elements_; }
+	inline __attribute__((always_inline)) NucleotideArray *AncestralSequence(void) const						{ return ancestral_seq_buffer_; }
 	
 	// initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 	void CreateNucleotideMutationRateMap(void);

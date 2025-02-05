@@ -2193,7 +2193,7 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
 	
 	if (chromosome_indices.size() != 1)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): (internal error) chromosome lookup failed." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): (internal error) chromosome lookup failed." << EidosTerminate();
 	
 	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
 	ChromosomeType chromosome_type = chromosome->Type();
@@ -2231,7 +2231,7 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 		else if (sex_string.compare("F") == 0)
 			sex = IndividualSex::kFemale;
 		else
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
 	}
 	
 	// make a new inheritance dictionary and add it to pattern
@@ -2253,18 +2253,18 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 		(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
 		(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
 		(chromosome_type == ChromosomeType::kHNull_HaploidAutosomeWithNull))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosomes for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosomes for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
 	
 	// check that the offspring sex is compatible with having all null haplosomes for this chromosome
 	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kFemale))
 		if ((chromosome_type == ChromosomeType::kW_WSexChromosome) ||
 			(chromosome_type == ChromosomeType::kFL_HaploidFemaleLine))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'M' for chromosome type '', since only males can have all null haplosomes for that chromosome type." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() requires sex to be 'M' for chromosome type '', since only males can have all null haplosomes for that chromosome type." << EidosTerminate();
 	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kMale))
 		if ((chromosome_type == ChromosomeType::kY_YSexChromosome) ||
 			(chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
 			(chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull))
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): addPatternForClone() requires sex to be 'F' for chromosome type '', since only females can have all null haplosomes for that chromosome type." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() requires sex to be 'F' for chromosome type '', since only females can have all null haplosomes for that chromosome type." << EidosTerminate();
 	
 	// set the inheritance pattern into the dictionary; there no code code here because the offspring
 	// inherits nothing, so the inheritance dictionary should just be an empty dictionary, NULL for all

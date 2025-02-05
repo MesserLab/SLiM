@@ -1298,7 +1298,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 }
 
 // print the sample represented by haplosomes, using SLiM's own format
-void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, slim_objectid_t p_source_subpop_id)
+void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, slim_objectid_t p_source_subpop_id)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
@@ -1343,7 +1343,7 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 		else
 			p_out << "p" << p_source_subpop_id << ":" << j;
 		
-		p_out << " " << haplosome.AssociatedChromosome()->Type();	// FIXME MULTICHROM maybe index not type?
+		p_out << " " << p_chromosome.Symbol();	// all haplosomes must be associated with p_chromosome
 		
 		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
@@ -1487,43 +1487,96 @@ void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *>
 	}
 }
 
+inline void EmitHaplosomeCall_Nuc_Simplify(std::ostream &p_out, Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position, int *allele_index_for_nuc)
+{
+	// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
+	int contained_mut_index = -1;
+	
+	for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
+	{
+		const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
+		
+		if (haplosome.contains_mutation(mutation))
+		{
+			if (contained_mut_index == -1)
+				contained_mut_index = muts_index;
+			else
+				EIDOS_TERMINATION << "ERROR (EmitHaplosomeCall_Nuc): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
+		}
+	}
+	
+	if (contained_mut_index == -1)
+		p_out << '0';
+	else
+		p_out << allele_index_for_nuc[nuc_based[contained_mut_index]->mutation_ptr_->nucleotide_];
+}
+
+inline void EmitHaplosomeCall_Nuc(std::ostream &p_out, Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position)
+{
+	// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
+	int contained_mut_index = -1;
+	
+	for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
+	{
+		const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
+		
+		if (haplosome.contains_mutation(mutation))
+		{
+			if (contained_mut_index == -1)
+				contained_mut_index = muts_index;
+			else
+				EIDOS_TERMINATION << "ERROR (EmitHaplosomeCall_Nuc): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
+		}
+	}
+	
+	if (contained_mut_index == -1)
+		p_out << '0';
+	else
+		p_out << (contained_mut_index + 1);
+}
+
 // print the sample represented by haplosomes, using "vcf" format
-void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
+// the haplosomes will all belong to a single chromosome, p_chromosome, and may include null haplosomes
+// depending on the intrinsic ploidy of p_chromosome the calls will be diploid or haploid; if diploid,
+// calls where one of a pair of haplosomes is null will be emitted as a haploid call; if all haplosomes
+// for a given individual are null, the call emitted will be "~".
+void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
+	slim_popsize_t haplosome_count = (slim_popsize_t)p_haplosomes.size();
+	slim_popsize_t individual_count;
 	
-	if (sample_size % 2 == 1)
-		EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_VCF): Haplosome vector must be an even length, since haplosomes are paired into individuals." << EidosTerminate();
+	// get information about the chromosome we're writing, which determines whether an "individual" in the VCF is one haplosome or two
+	ChromosomeType chromosome_type = p_chromosome.Type();
+	int intrinsic_ploidy = p_chromosome.IntrinsicPloidy();
 	
-	sample_size /= 2;
+	if (!groupAsIndividuals)
+		intrinsic_ploidy = 1;	// if groupAsIndividuals is false, we just act as though the chromosome is haploid
+	
+	if (intrinsic_ploidy == 2)
+	{
+		if (haplosome_count % 2 == 1)
+			EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_VCF): Haplosome vector must be an even length for chromosome type \"" << chromosome_type << "\", since haplosomes are paired into individuals." << EidosTerminate();
+		
+		individual_count = haplosome_count / 2;
+	}
+	else
+	{
+		individual_count = haplosome_count;
+	}
 	
 	// get the polymorphisms within the sample
 	PolymorphismMap polymorphisms;
 	
-	for (slim_popsize_t s = 0; s < sample_size; s++)
+	for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 	{
-		Haplosome &haplosome1 = *p_haplosomes[(size_t)s * 2];
-		Haplosome &haplosome2 = *p_haplosomes[(size_t)s * 2 + 1];
+		Haplosome &haplosome = *p_haplosomes[haplosome_index];
 		
-		if (!haplosome1.IsNull())
+		if (!haplosome.IsNull())
 		{
-			for (int run_index = 0; run_index < haplosome1.mutrun_count_; ++run_index)
+			for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 			{
-				const MutationRun *mutrun = haplosome1.mutruns_[run_index];
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
-			}
-		}
-		
-		if (!haplosome2.IsNull())
-		{
-			for (int run_index = 0; run_index < haplosome2.mutrun_count_; ++run_index)
-			{
-				const MutationRun *mutrun = haplosome2.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1553,19 +1606,21 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	// BCH 10 July 2019: output haplosome pedigree IDs, if available, for all of the haplosomes being output.
 	// It would be nice to be able to output individual pedigree IDs, but since we are working with a
 	// vector of haplosomes there is no guarantee that the pairs of haplosomes here come from the same individuals.
-	if (p_haplosomes.size() > 0)
+	if (haplosome_count > 0)
 	{
 		Haplosome *haplosome0 = p_haplosomes[0];
 		
 		if (haplosome0->individual_->subpopulation_->species_.PedigreesEnabledByUser())
 		{
 			p_out << "##slimHaplosomePedigreeIDs=";
-			for (slim_popsize_t index = 0; index < (slim_popsize_t)p_haplosomes.size(); index++)
+			
+			for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 			{
-				if (index > 0)
+				if (haplosome_index > 0)
 					p_out << ",";
-				p_out << p_haplosomes[index]->haplosome_id_;
+				p_out << p_haplosomes[haplosome_index]->haplosome_id_;
 			}
+			
 			p_out << std::endl;
 		}
 	}
@@ -1592,8 +1647,8 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	p_out << "##contig=<ID=1,URL=https://github.com/MesserLab/SLiM>" << std::endl;
 	p_out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	
-	for (slim_popsize_t s = 0; s < sample_size; s++)
-		p_out << "\ti" << s;
+	for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
+		p_out << "\ti" << individual_index;
 	p_out << std::endl;
 	
 	// We want to output polymorphisms sorted by position (starting in SLiM 3.3), to facilitate
@@ -1684,7 +1739,10 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 				if (total_prevalence[0] + total_prevalence[1] + total_prevalence[2] + total_prevalence[3] != 0)
 				{
 					// emit CHROM ("1"), POS, ID (".")
-					p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+					// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
+					// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
+					// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
+					p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 					
 					// emit REF ("A" etc.)
 					p_out << gSLiM_Nucleotides[ancestral_nuc_index];
@@ -1727,51 +1785,51 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					p_out << "\tGT";
 					
 					// emit the individual calls
-					for (slim_popsize_t s = 0; s < sample_size; s++)
+					if (intrinsic_ploidy == 1)
 					{
-						Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
-						Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
-						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
-						
-						if (g1_null && g2_null)
+						// intrinsically haploid chromosome; one haplosome per individual
+						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							// Both haplosomes are null; we should have eliminated the possibility of this with the check above
-							EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
-						}
-						
-						p_out << '\t';
-						
-						for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-						{
-							Haplosome &haplosome = (haplosome_index == 0) ? g1 : g2;
+							Haplosome &haplosome = *p_haplosomes[individual_index];
 							
-							if (!haplosome.IsNull())
-							{
-								// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
-								int contained_mut_index = -1;
-								
-								for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
-								{
-									const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
-									
-									if (haplosome.contains_mutation(mutation))
-									{
-										if (contained_mut_index == -1)
-											contained_mut_index = muts_index;
-										else
-											EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
-									}
-								}
-								
-								if (contained_mut_index == -1)
-									p_out << '0';
-								else
-									p_out << allele_index_for_nuc[nuc_based[contained_mut_index]->mutation_ptr_->nucleotide_];
+							// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
+							if (haplosome.IsNull()) {
+								p_out << "\t~";
+								continue;
 							}
 							
-							// If both haplosomes are non-null, emit a separator
-							if ((haplosome_index == 0) && !g1_null && !g2_null)
+							// haploid call
+							p_out << '\t';
+							
+							EmitHaplosomeCall_Nuc_Simplify(p_out, haplosome, nuc_based, mut_position, allele_index_for_nuc);
+						}
+					}
+					else
+					{
+						// intrinsically diploid chromosome; two haplosomes per individual
+						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
+						{
+							Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+							Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+							bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
+							
+							// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
+							if (haplosome1_null && haplosome2_null) {
+								p_out << "\t~";
+								continue;
+							}
+							
+							// diploid call unless hemizygous, producing a haploid call (and losing which haplosome was null)
+							p_out << '\t';
+							
+							if (!haplosome1_null)
+								EmitHaplosomeCall_Nuc_Simplify(p_out, haplosome1, nuc_based, mut_position, allele_index_for_nuc);
+							
+							if (!haplosome1_null && !haplosome2_null)	// emit a separator for a diploid call
 								p_out << '|';
+							
+							if (!haplosome2_null)
+								EmitHaplosomeCall_Nuc_Simplify(p_out, haplosome2, nuc_based, mut_position, allele_index_for_nuc);
 						}
 					}
 					
@@ -1781,7 +1839,10 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 			else
 			{
 				// emit CHROM ("1"), POS, ID (".")
-				p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
+				// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
+				// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
+				// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
+				p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 				
 				// emit REF ("A" etc.)
 				p_out << gSLiM_Nucleotides[ancestral_nuc_index];
@@ -1869,51 +1930,51 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 				p_out << "\tGT";
 				
 				// emit the individual calls
-				for (slim_popsize_t s = 0; s < sample_size; s++)
+				if (intrinsic_ploidy == 1)
 				{
-					Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
-					Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
-					bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
-					
-					if (g1_null && g2_null)
+					// intrinsically haploid chromosome; one haplosome per individual
+					for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 					{
-						// Both haplosomes are null; we should have eliminated the possibility of this with the check above
-						EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
-					}
-					
-					p_out << '\t';
-					
-					for (int haplosome_index = 0; haplosome_index <= 1; ++haplosome_index)
-					{
-						Haplosome &haplosome = (haplosome_index == 0) ? g1 : g2;
+						Haplosome &haplosome = *p_haplosomes[individual_index];
 						
-						if (!haplosome.IsNull())
-						{
-							// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
-							int contained_mut_index = -1;
-							
-							for (int muts_index = 0; muts_index < (int)nuc_based.size(); ++muts_index)
-							{
-								const Mutation *mutation = nuc_based[muts_index]->mutation_ptr_;
-								
-								if (haplosome.contains_mutation(mutation))
-								{
-									if (contained_mut_index == -1)
-										contained_mut_index = muts_index;
-									else
-										EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same haplosome; the nucleotide cannot be called." << EidosTerminate();
-								}
-							}
-							
-							if (contained_mut_index == -1)
-								p_out << '0';
-							else
-								p_out << (contained_mut_index + 1);
+						// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
+						if (haplosome.IsNull()) {
+							p_out << "\t~";
+							continue;
 						}
 						
-						// If both haplosomes are non-null, emit a separator
-						if ((haplosome_index == 0) && !g1_null && !g2_null)
+						// haploid call
+						p_out << '\t';
+						
+						EmitHaplosomeCall_Nuc(p_out, haplosome, nuc_based, mut_position);
+					}
+				}
+				else
+				{
+					// intrinsically diploid chromosome; two haplosomes per individual
+					for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
+					{
+						Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+						Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+						bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
+						
+						// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
+						if (haplosome1_null && haplosome2_null) {
+							p_out << "\t~";
+							continue;
+						}
+						
+						// diploid call unless hemizygous, producing a haploid call (and losing which haplosome was null)
+						p_out << '\t';
+						
+						if (!haplosome1.IsNull())
+							EmitHaplosomeCall_Nuc(p_out, haplosome1, nuc_based, mut_position);
+						
+						if (!haplosome1_null && !haplosome2_null)	// emit a separator for a diploid call
 							p_out << '|';
+						
+						if (!haplosome2.IsNull())
+							EmitHaplosomeCall_Nuc(p_out, haplosome2, nuc_based, mut_position);
 					}
 				}
 				
@@ -1936,7 +1997,10 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 				if (p_output_multiallelics || p_nucleotide_based || (allele_count == 1))
 				{
 					// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
-					p_out << "1\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
+					// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
+					// backward compatibility break; it used to be "1" by default, now it is "A" by default, but
+					// this is easy to fix by calling initializeChromosome() explicitly and supplying symbol="1"
+					p_out << p_chromosome.Symbol() << "\t" << (mut_position + 1) << "\t.\tA\tT";			// +1 because VCF uses 1-based positions
 					
 					// emit QUAL (1000), FILTER (PASS)
 					p_out << "\t1000\tPASS\t";
@@ -1959,37 +2023,55 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					p_out << "\tGT";
 					
 					// emit the individual calls
-					for (slim_popsize_t s = 0; s < sample_size; s++)
+					if (intrinsic_ploidy == 1)
 					{
-						Haplosome &g1 = *p_haplosomes[(size_t)s * 2];
-						Haplosome &g2 = *p_haplosomes[(size_t)s * 2 + 1];
-						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
-						
-						if (g1_null && g2_null)
+						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							// Both haplosomes are null; we should have eliminated the possibility of this with the check above
-							EIDOS_TERMINATION << "ERROR (Population::PrintHaplosomes_VCF): (internal error) no non-null haplosome to output for individual." << EidosTerminate();
-						}
-						else if (g1_null)
-						{
-							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-							p_out << (g2.contains_mutation(mutation) ? "\t1" : "\t0");
-						}
-						else if (g2_null)
-						{
-							// An unpaired X or Y; we emit this as haploid, I think that is the right call...
-							p_out << (g1.contains_mutation(mutation) ? "\t1" : "\t0");
-						}
-						else
-						{
-							// Both haplosomes are non-null; emit an x|y pair that indicates the data is phased
-							bool g1_has_mut = g1.contains_mutation(mutation);
-							bool g2_has_mut = g2.contains_mutation(mutation);
+							Haplosome &haplosome = *p_haplosomes[individual_index];
 							
-							if (g1_has_mut && g2_has_mut)	p_out << "\t1|1";
-							else if (g1_has_mut)			p_out << "\t1|0";
-							else if (g2_has_mut)			p_out << "\t0|1";
-							else							p_out << "\t0|0";
+							// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
+							if (haplosome.IsNull()) {
+								p_out << "\t~";
+								continue;
+							}
+							
+							// haploid call
+							p_out << (haplosome.contains_mutation(mutation) ? "\t1" : "\t0");
+						}
+					}
+					else
+					{
+						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
+						{
+							Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+							Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+							bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
+							
+							// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
+							if (haplosome1_null && haplosome2_null) {
+								p_out << "\t~";
+								continue;
+							}
+							else if (haplosome1_null)
+							{
+								// hemizygous; we emit this as haploid (losing which haplosome was null)
+								p_out << (haplosome2.contains_mutation(mutation) ? "\t1" : "\t0");
+							}
+							else if (haplosome2_null)
+							{
+								// hemizygous; we emit this as haploid (losing which haplosome was null)
+								p_out << (haplosome1.contains_mutation(mutation) ? "\t1" : "\t0");
+							}
+							else
+							{
+								bool haplosome1_has_mut = haplosome1.contains_mutation(mutation);
+								bool haplosome2_has_mut = haplosome2.contains_mutation(mutation);
+								
+								if (haplosome1_has_mut && haplosome2_has_mut)	p_out << "\t1|1";
+								else if (haplosome1_has_mut)					p_out << "\t1|0";
+								else if (haplosome2_has_mut)					p_out << "\t0|1";
+								else											p_out << "\t0|0";
+							}
 						}
 					}
 					
@@ -2069,7 +2151,7 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
@@ -2899,7 +2981,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 
 //	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
 //	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
-//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T])
 //
 EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -2910,6 +2992,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	EidosValue *filterMonomorphic_value = ((p_method_id == gID_outputMS) ? p_arguments[2].get() : nullptr);
 	EidosValue *simplifyNucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[3].get() : nullptr);
 	EidosValue *outputNonnucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[4].get() : nullptr);
+	EidosValue *groupAsIndividuals_value = ((p_method_id == gID_outputVCF) ? p_arguments[5].get() : nullptr);
 	
 	// default to outputting multiallelic positions (used by VCF output only)
 	bool output_multiallelics = true;
@@ -2926,6 +3009,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	
 	if (p_method_id == gID_outputVCF)
 		output_nonnucs = outputNonnucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	bool group_as_individuals = true;
+	
+	if (p_method_id == gID_outputVCF)
+		group_as_individuals = groupAsIndividuals_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// figure out if we're filtering out mutations that are monomorphic within the sample (MS output only)
 	bool filter_monomorphic = false;
@@ -2959,23 +3047,16 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 
 	Community &community = species->community_;
 	
-	// For MS output, we need to know the chromosome to normalize to positions to the interval [0, 1].
-	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
-	Chromosome *chromosome = nullptr;
+	// We infer the chromosome from the haplosomes, and in a multi-chrom species all the haplosomes must belong to it.
+	slim_chromosome_index_t chromosome_index = haplosomes[0]->chromosome_index_;
+	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+	Chromosome *chromosome = chromosomes[chromosome_index];
 	
-	if (p_method_id == gID_outputMS)
+	if (chromosomes.size() > 1)
 	{
-		slim_chromosome_index_t chromosome_index = haplosomes[0]->chromosome_index_;
-		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
-		
-		chromosome = chromosomes[chromosome_index];
-		
-		if (chromosomes.size() > 1)
-		{
-			for (Haplosome *haplosome : haplosomes)
-				if (haplosome->chromosome_index_ != chromosome_index)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): for outputMS(), all haplosomes for output must be associated with the same chromosome." << EidosTerminate();
-		}
+		for (Haplosome *haplosome : haplosomes)
+			if (haplosome->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): all haplosomes for output must be associated with the same chromosome." << EidosTerminate();
 	}
 	
 	// Now handle stream/file output and dispatch to the actual print method
@@ -2985,8 +3066,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		// For the output stream, we put out a descriptive SLiM-style header for all output types
-		// BCH 3/6/2022: Note the species cycle is NOT output; might be a mixed-species sample
-		output_stream << "#OUT: " << community.Tick() << " G";
+		// BCH 2/2/2025: added the cycle count here after the tick; it was already documented as being here!
+		// BCH 2/2/2025: added the chromosome symbol in the header; it is redundant for SLiM-format output,
+		// but useful for MS and VCF; I decided to put it in all three for consistency across formats
+		output_stream << "#OUT: " << community.Tick() << " " << species->Cycle() << " G";
 		
 		if (p_method_id == gID_output)
 			output_stream << "S";
@@ -2995,15 +3078,20 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		else if (p_method_id == gID_outputVCF)
 			output_stream << "V";
 		
-		output_stream << " " << sample_size << std::endl;
+		output_stream << " " << sample_size;
+		
+		if (chromosomes.size() > 1)
+			output_stream << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+		
+		output_stream << std::endl;
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_output)
-			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, -1);	// -1 represents unknown source subpopulation
+			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, *chromosome, -1);	// -1 represents unknown source subpopulation
 		else if (p_method_id == gID_outputMS)
 			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
-			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), species->TheChromosome().AncestralSequence());
+			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome->AncestralSequence());
 	}
 	else
 	{
@@ -3020,15 +3108,23 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 			{
 				case gID_output:
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-					// BCH 3/6/2022: Note the species cycle is NOT output; might be a mixed-species sample
-					outfile << "#OUT: " << community.Tick() << " GS " << sample_size << " " << outfile_path << std::endl;
-					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, -1);	// -1 represents unknown source subpopulation
+					// BCH 2/2/2025: added the cycle count here after the tick; it was already documented as being here!
+					// BCH 2/2/2025: added the chromosome symbol in the header; it is redundant for SLiM-format output,
+					// but useful for MS and VCF; I decided to put it in all three for consistency across formats
+					outfile << "#OUT: " << community.Tick() << " " << species->Cycle() << " GS " << sample_size;
+					
+					if (chromosomes.size() > 1)
+						outfile << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+					
+					outfile << " " << outfile_path << std::endl;
+					
+					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, *chromosome, -1);	// -1 represents unknown source subpopulation
 					break;
 				case gID_outputMS:
 					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
-					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), species->TheChromosome().AncestralSequence());
+					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome->AncestralSequence());
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();
@@ -3038,7 +3134,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		}
 		else
 		{
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): could not open "<< outfile_path << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): could not open " << outfile_path << "." << EidosTerminate();
 		}
 	}
 	
@@ -3334,10 +3430,25 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	// FIXME MULTICHROM we will need to loop over the chromosomes now, since VCF is a multi-chromosome format...
-	Chromosome *chromosome = &species->TheChromosome();
-	
 	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
+	
+	// All haplosomes must belong to the same chromosome, and in multichrom models the CHROM field must match its symbol
+	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+	bool model_is_multi_chromosome = (chromosomes.size() > 1);
+	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
+	int target_size = p_target->Count();
+	Haplosome *haplosome_0 = targets_data[0];
+	slim_chromosome_index_t chromosome_index = haplosome_0->chromosome_index_;
+	Chromosome *chromosome = chromosomes[chromosome_index];
+	std::string chromosome_symbol = chromosome->Symbol();
+	
+	if (species->Chromosomes().size() > 1)
+	{
+		// We have to check for consistency if there's more than one chromosome
+		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
+			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
+	}
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;
@@ -3359,7 +3470,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	std::string line, sub;
 	int parse_state = 0;
 	int sample_id_count = 0;
-	int target_size = p_target->Count();
 	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
 	bool info_GO_defined = false, info_TO_defined = false, info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
 	std::vector<std::pair<slim_position_t, std::string>> call_lines;
@@ -3425,6 +3535,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				std::istringstream iss(line);
 				
 				std::getline(iss, sub, '\t');	// CHROM
+				
+				if (model_is_multi_chromosome)
+				{
+					if (sub != chromosome_symbol)
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the symbol (\"" << chromosome_symbol << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome symbol to prevent bugs." << EidosTerminate();
+				}
+				
 				std::getline(iss, sub, '\t');	// POS
 				
 				int64_t pos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr) - 1;		// -1 because VCF uses 1-based positions
@@ -3450,7 +3567,6 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	std::vector<slim_mutrun_index_t> target_last_mutrun_modified;
 	std::vector<MutationRun *> target_last_mutrun;
 	bool all_target_haplosomes_started_empty = true;
-	Haplosome * const *targets_data = (Haplosome * const *)p_target->ObjectData();
 	
 	for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 	{
@@ -3483,7 +3599,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 		std::istringstream iss(call_line.second);
 		std::string ref_str, alt_str, info_str;
 		
-		std::getline(iss, sub, '\t');		// CHROM; don't care
+		std::getline(iss, sub, '\t');		// CHROM; don't care (already checked it above)
 		std::getline(iss, sub, '\t');		// POS; already fetched
 		std::getline(iss, sub, '\t');		// ID; don't care
 		std::getline(iss, ref_str, '\t');	// REF
@@ -3664,18 +3780,29 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			}
 			else if (sub.length() == 1)
 			{
-				// haploid, single-digit
 				char sub_ch = sub[0];
 				
-				if ((sub_ch >= '0') && (sub_ch <= '9'))
+				if (sub_ch == '~')
 				{
-					int genotype_call = (int)(sub_ch - '0');
-					
-					if ((genotype_call < 0) || (genotype_call > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
-					
-					genotype_calls.emplace_back(genotype_call);
+					// If the call is ~, a tilde, it indicates that no genetic information is present
+					// (this is the case for a female if we're reading Y-chromosome data, for example).
+					// We do not add anything to genotype_calls; it is as if this call does not exist.
+					// Note that this is not part of the VCF standard; it had to be invented for SLiM.
 					call_handled = true;
+				}
+				else
+				{
+					// haploid, single-digit
+					if ((sub_ch >= '0') && (sub_ch <= '9'))
+					{
+						int genotype_call = (int)(sub_ch - '0');
+						
+						if ((genotype_call < 0) || (genotype_call > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						
+						genotype_calls.emplace_back(genotype_call);
+						call_handled = true;
+					}
 				}
 			}
 			
@@ -3710,6 +3837,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
 		if ((int)genotype_calls.size() != target_size)
 			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): target haplosome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
+		
+		// We have one call for each non-null target haplosome, so the requirement for this function is met.
+		// Note that there is no checking that a ~ matches the position of a null haplosome in the target
+		// vector; we have no concept of "individuals", we just match haplosomes to calls for each line.
+		// The Individual version of readFromVCF() can be smarter, since it understands individuals.
 		
 		// instantiate the mutations involved in this call line; the REF allele represents no mutation, ALT alleles are each separate mutations
 		std::vector<MutationIndex> alt_allele_mut_indices;

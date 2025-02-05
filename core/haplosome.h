@@ -401,13 +401,13 @@ public:
 	void record_derived_states(Species *p_species) const;
 	
 	// print the sample represented by haplosomes, using SLiM's own format
-	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, slim_objectid_t p_source_subpop_id);
+	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, slim_objectid_t p_source_subpop_id);
 	
 	// print the sample represented by haplosomes, using "ms" format
 	static void PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
 	
 	// print the sample represented by haplosomes, using "vcf" format
-	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq);
+	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq);
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutrunBuffers(void);

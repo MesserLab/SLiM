@@ -10993,8 +10993,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 #undef SLiMClampCoordinate
 
 //	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F], [Niso<Chromosome> chromosome = NULL])
-//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome> chromosome = NULL])
+//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T], [Niso<Chromosome> chromosome = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -11006,9 +11006,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	EidosValue *filePath_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[4].get() : p_arguments[3].get());
 	EidosValue *append_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[5].get() : p_arguments[4].get());
 	EidosValue *filterMonomorphic_arg = ((p_method_id == gID_outputMSSample) ? p_arguments[5].get() : nullptr);
-	EidosValue *chromosome_arg = ((p_method_id == gID_outputMSSample) ? p_arguments[6].get() : nullptr);
 	EidosValue *simplifyNucleotides_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[6].get() : nullptr);
 	EidosValue *outputNonnucleotides_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[7].get() : nullptr);
+	EidosValue *groupAsIndividuals_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[8].get() : nullptr);
+	EidosValue *chromosome_arg;
+	
+	if (p_method_id == gID_outputMSSample)
+		chromosome_arg = p_arguments[6].get();
+	else if (p_method_id == gID_outputSample)
+		chromosome_arg = p_arguments[5].get();
+	else if (p_method_id == gID_outputVCFSample)
+		chromosome_arg = p_arguments[9].get();
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): (internal error) unrecognized method id." << EidosTerminate();
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -11061,36 +11071,46 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	if (p_method_id == gID_outputVCFSample)
 		output_nonnucs = outputNonnucleotides_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
+	bool group_as_individuals = true;
+	
+	if (p_method_id == gID_outputVCFSample)
+		group_as_individuals = groupAsIndividuals_arg->LogicalAtIndex_NOCAST(0, nullptr);
+	
 	bool filter_monomorphic = false;
 	
 	if (p_method_id == gID_outputMSSample)
 		filter_monomorphic = filterMonomorphic_arg->LogicalAtIndex_NOCAST(0, nullptr);
 	
-	// for MS output, in a multi-chromosome model we need to know which chromosome to sample with
-	Chromosome *chromosome = nullptr;
+	// BCH 2/3/2025: in a multi-chromosome model we need to know which chromosome to sample with; the decision
+	// is that the Subpopulation methods will probably be deprecated soon, and so porting them forward should
+	// take the easiest path forward.  In their place I will add a new suite of output methods on Individual.
+	// The Haplosome output methods will be for an arbitrary set of haplosomes, and will always be single-
+	// chromosome; the Individual output methods will be for an arbitrary set of individuals, and will be able
+	// to output one or all chromosomes as desired.  Then the Subpopulation methods are end-of-lifed because
+	// the only value add they give is that they take the sample for you, and there are easy and good ways to
+	// do that now yourself; so they would no longer be worth the API bloat, and would go away.  For consistency
+	// I'm requiring a single chromosome for outputVCFSample() too, even though it samples individuals and thus
+	// could support multiple chromosomes; best to consistently phase out the old and bring in the new.
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
+	Chromosome *chromosome;
 	
-	if (p_method_id == gID_outputMSSample)
+	if (chromosome_arg->Type() == EidosValueType::kValueNULL)
 	{
-		const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
+		if (chromosomes.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): output requires a non-NULL value for chromosome in multi-chromosome models." << EidosTerminate();
 		
-		if (chromosome_arg->Type() == EidosValueType::kValueNULL)
-		{
-			if (chromosomes.size() != 1)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): outputMSSample() requires a non-NULL value for chromosome in multi-chromosome models." << EidosTerminate();
-			
-			chromosome = chromosomes[0];
-		}
-		else
-		{
-			std::vector<slim_chromosome_index_t> chromosome_indices;
-			
-			species_.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_arg);
-			
-			if (chromosome_indices.size() != 1)
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): (internal error) chromosome lookup failed." << EidosTerminate();
-			
-			chromosome = chromosomes[chromosome_indices[0]];
-		}
+		chromosome = chromosomes[0];
+	}
+	else
+	{
+		std::vector<slim_chromosome_index_t> chromosome_indices;
+		
+		species_.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_arg);
+		
+		if (chromosome_indices.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputXSample): (internal error) chromosome lookup failed." << EidosTerminate();
+		
+		chromosome = chromosomes[chromosome_indices[0]];
 	}
 	
 	// Figure out the right output stream
@@ -11129,6 +11149,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		if (species_.SexEnabled())
 			out << " " << requested_sex;
 		
+		if (chromosomes.size() > 1)
+			output_stream << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+		
 		if (has_file)
 			out << " " << outfile_path;
 		
@@ -11137,11 +11160,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	// Call out to produce the actual sample
 	if (p_method_id == gID_outputSample)
-		population_.PrintSample_SLiM(out, *this, sample_size, replace, requested_sex);
+		population_.PrintSample_SLiM(out, *this, sample_size, replace, requested_sex, *chromosome);
 	else if (p_method_id == gID_outputMSSample)
 		population_.PrintSample_MS(out, *this, sample_size, replace, requested_sex, *chromosome, filter_monomorphic);
 	else if (p_method_id == gID_outputVCFSample)
-		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, output_multiallelics, simplify_nucs, output_nonnucs);
+		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, *chromosome, output_multiallelics, simplify_nucs, output_nonnucs, group_as_individuals);
 	
 	if (has_file)
 		outfile.close(); 
@@ -11331,8 +11354,8 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("name")->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT)->MarkDeprecated());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat))->AddArg(kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "map", gSLiM_SpatialMap_Class)->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN(gEidosStr_color, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

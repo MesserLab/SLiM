@@ -118,6 +118,14 @@ development head (in the master branch):
 			Haplosome method outputMS(): check that all haplosomes belong to a single chromosome, output MS based on that
 			Subpopulation method outputMSSample(): add a [Niso<Chromosome>$ chromosome = NULL] parameter to identify the chromosome to sample with
 			Haplosome method readFromMS(): check that all haplosomes belong to a single chromosome, input MS based on that
+		fix built-in SLiM-format partial input/output methods for multiple chromosomes:
+			Haplosome method output(): check that all haplosomes belong to a single chromosome; output the chromosome symbol in the header if multi-chrom
+			Subpopulation method outputSample(): check that all haplosomes belong to a single chromosome
+		fix built-in VCF input/output methods for multiple chromosomes:
+			Haplosome method outputVCF(): check that all haplosomes belong to a single chromosome; pairs haplosomes as appropriate
+			Subpopulation method outputVCFSample(): check that all haplosomes belong to a single chromosome; use chromosome symbols for the CHROM column
+			add [l$ groupAsIndividuals = T] parameter; if F, each haplosome is emitted as a haploid call rather than forming diploids, regardless of the chromosome's ploidy
+			Haplosome_Class::ExecuteMethod_readFromVCF(): require VCF data that is single-chromosome, as with output
 
 
 version 4.3 (Eidos version 3.3):

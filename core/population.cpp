@@ -8203,7 +8203,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id
-void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
+void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome) const
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): (internal error) called with child generation active!" << EidosTerminate();
@@ -8211,18 +8211,21 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
 	std::vector<Haplosome *> candidates;
 	
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	
 	for (Individual *ind : subpop_individuals)
 	{
 		if (p_subpop.sex_enabled_ && (p_requested_sex != IndividualSex::kUnspecified) && (ind->sex_ != p_requested_sex))
 			continue;
 		
-		Haplosome *haplosome1 = ind->haplosomes_[0];
-		Haplosome *haplosome2 = ind->haplosomes_[1];
-		
-		if (!haplosome1->IsNull())
-			candidates.push_back(haplosome1);
-		if (!haplosome2->IsNull())
-			candidates.push_back(haplosome2);
+		for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; ++haplosome_index)
+		{
+			Haplosome *haplosome = ind->haplosomes_[haplosome_index];
+			
+			if (!haplosome->IsNull())
+				candidates.push_back(haplosome);
+		}
 	}
 	
 	if (p_replace && (candidates.size() == 0))
@@ -8250,7 +8253,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_SLiM(p_out, sample, p_subpop.subpopulation_id_);
+	Haplosome::PrintHaplosomes_SLiM(p_out, sample, p_chromosome, p_subpop.subpopulation_id_);
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format
@@ -8308,7 +8311,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 }
 
 // print sample of p_sample_size *individuals* (NOT haplosomes or genomes) from subpopulation p_subpop_id
-void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const
+void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_group_as_individuals) const
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): (internal error) called with child generation active!." << EidosTerminate();
@@ -8333,13 +8336,18 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	std::vector<Haplosome *> sample; 
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
 		// select a random individual (not a random haplosome) by selecting a random candidate entry
 		int candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
+		Individual *ind = candidates[candidate_index];
 		
-		sample.emplace_back(candidates[candidate_index]->haplosomes_[0]);
-		sample.emplace_back(candidates[candidate_index]->haplosomes_[1]);
+		// take all of its haplosomes for the chosen chromosome, including null haplosomes (needed as placeholders)
+		for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; ++haplosome_index)
+			sample.emplace_back(ind->haplosomes_[haplosome_index]);
 		
 		// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
 		if (!p_replace)
@@ -8350,7 +8358,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_VCF(p_out, sample, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, species_.IsNucleotideBased(), species_.TheChromosome().AncestralSequence());
+	Haplosome::PrintHaplosomes_VCF(p_out, sample, p_chromosome, p_group_as_individuals, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, species_.IsNucleotideBased(), p_chromosome.AncestralSequence());
 }
 
 
