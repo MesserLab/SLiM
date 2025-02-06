@@ -8289,8 +8289,8 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
 	std::vector<Haplosome *> candidates;
 	
-	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
-	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.Index()];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.Index()];
 	
 	for (Individual *ind : subpop_individuals)
 	{
@@ -8343,8 +8343,8 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 	std::vector<Individual *> &subpop_individuals = p_subpop.parent_individuals_;
 	std::vector<Haplosome *> candidates;
 	
-	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
-	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.Index()];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.Index()];
 	
 	for (Individual *ind : subpop_individuals)
 	{
@@ -8414,8 +8414,8 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	std::vector<Haplosome *> sample; 
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.index_];
-	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.index_];
+	int first_haplosome_index = species_.FirstHaplosomeIndices()[p_chromosome.Index()];
+	int last_haplosome_index = species_.LastHaplosomeIndices()[p_chromosome.Index()];
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
