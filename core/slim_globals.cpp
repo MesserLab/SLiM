@@ -1113,7 +1113,9 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 {
 	// read in nucleotides, skipping over newline characters; we expect to read exactly the right number of nucleotides
+	// if we see two newline characters ('\n', specifically) in a row, we take that as termination
 	std::size_t index = 0;
+	bool just_saw_newline = false;
 	
 	do
 	{
@@ -1121,8 +1123,19 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 		
 		if (nuc_char != EOF)
 		{
-			if ((nuc_char == '\r') || (nuc_char == '\n') || (nuc_char == ' '))
+			// for \n, check for two in a row and terminate
+			if (nuc_char == '\n')
+			{
+				if (just_saw_newline)
+					break;
+				just_saw_newline = true;
+			}
+			
+			// for other whitespace, skip over it but don't reset just_saw_newline
+			if ((nuc_char == '\r') || (nuc_char == ' '))
 				continue;
+			
+			// any other character has to be a nucleotide; bounds-check and read it
 			if (index >= p_nuc_array.length_)
 				EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): excess nucleotide sequence; the sequence length does not match the model." << EidosTerminate();
 			
@@ -1135,18 +1148,20 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 			else EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): unexpected character '" << nuc_char << "' in nucleotide sequence." << EidosTerminate();
 			
 			p_nuc_array.SetNucleotideAtIndex(index, nuc_int);
+			just_saw_newline = false;
 			index++;
 		}
 		else
 		{
-			// we got an EOF; we should be exactly done
-			if (index == p_nuc_array.length_)
-				break;
-			
-			EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): premature end of nucleotide sequence; the sequence length does not match the model." << EidosTerminate();
+			// we got an EOF; terminate
+			break;
 		}
 	}
 	while (true);
+	
+	// we have reached the end, either with an EOF or two newlines; see if it makes sense
+	if (index != p_nuc_array.length_)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::operator>>): premature end of nucleotide sequence; the sequence length does not match the model." << EidosTerminate();
 	
 	return p_in;
 }

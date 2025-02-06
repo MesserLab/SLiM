@@ -3243,8 +3243,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		output_stream << "#OUT: " << community_.Tick() << " " << Cycle() << " A" << std::endl;
-		population_.PrintAll(output_stream, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids);
+		population_.PrintAll(output_stream, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, /* p_output_ind_tags */ false);
 	}
 	else
 	{
@@ -3264,18 +3263,11 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		{
 			if (use_binary)
 			{
-				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids);
+				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, /* p_output_ind_tags */ false);
 			}
 			else
 			{
-				// We no longer have input parameters to print; possibly this should print all the initialize...() functions called...
-				//				const std::vector<std::string> &input_parameters = p_species.InputParameters();
-				//				
-				//				for (int i = 0; i < input_parameters.size(); i++)
-				//					outfile << input_parameters[i] << endl;
-				
-				outfile << "#OUT: " << community_.Tick() << " " << Cycle() << " A " << outfile_path << std::endl;
-				population_.PrintAll(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids);
+				population_.PrintAll(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, /* p_output_ind_tags */ false);
 			}
 			
 			outfile.close(); 

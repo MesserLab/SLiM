@@ -7553,8 +7553,12 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 }
 
 // print all mutations and all haplosomes to a stream
-void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
+void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
 {
+	// FIXME MULTICHROM implement output of individual tags!
+	if (p_output_ind_tags)
+		EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
+	
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) called with child generation active!." << EidosTerminate();
 		
@@ -7567,6 +7571,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		Eidos_CheckRSSAgainstMax("Population::PrintAll", "(The memory usage was already out of bounds on entry.)");
 #endif
 	
+	// write the #OUT line
+	p_out << "#OUT: " << community_.Tick() << " " << species_.Cycle() << " A" << std::endl;
+	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
 	int spatial_output_count = (p_output_spatial_positions ? species_.SpatialDimensionality() : 0);
@@ -7574,20 +7581,26 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
 	int age_output_count = (p_output_ages && (model_type_ == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
-	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
-	// BEWARE: we no longer use the same version numbers used in PrintAllBinary().  It has moved to version 5, with a flags
-	// field indicating whether ages and nucleotides are present.  In text we can detect whether the nucleotides are
-	// present or not, so I did not increment the version number or add a flags field at this time.  If the format gets
-	// even more complicated in future, though, then the flags scheme used in binary should be adopted.  BCH 3/23/2019
-	// BCH 9/13/2020: So, in SLiM <3.5 we used version 3/4 to indicate the file version without/with ages.  For SLiM 3.5
-	// with pedigree ID output, I have incremented this but kept the same basic scheme: we now use version 5/6 for
-	// without/with ages *with* individual pedigree IDs (haplosome pedigree IDs can be derived from the individual IDs),
-	// and stick with version 3/4 for without/with ages *without* individual pedigree IDs, preserving backward compatibility.
-	// The version number field is therefore a four-way switch, 3/4/5/6; obviously this design leaves something to be desired.
-	if (age_output_count)
-		p_out << (p_output_pedigree_ids ? "Version: 6" : "Version: 4") << std::endl;
-	else
-		p_out << (p_output_pedigree_ids ? "Version: 5" : "Version: 3") << std::endl;
+	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different
+	// versions, etc.  Starting in SLiM 5, the version number is again synced with PrintAllBinary() (skipping
+	// over 7 directly to 8), and the crazy four-way version number scheme that encoded flags is gone. See
+	// PrintAllBinary() for the version history; but with version 8 we break backward compatibility anyway.
+	p_out << "Version: 8" << std::endl;
+	
+	// Starting with version 8 (SLiM 5.0), we write out some flags; this information used to be incorporated into
+	// the version number, which was gross.  Now we write out flags for all optional output that is enabled.
+	// Reading code can assume that if a flag is not present, that output is not present.
+	bool has_nucleotides = species_.IsNucleotideBased();
+	bool output_ancestral_nucs = has_nucleotides && p_output_ancestral_nucs;
+	
+	p_out << "Flags:";
+	if (spatial_output_count)		p_out << " SPACE=" << spatial_output_count;
+	if (age_output_count)			p_out << " AGES";
+	if (p_output_pedigree_ids)		p_out << " PEDIGREES";
+	if (has_nucleotides)			p_out << " NUC";
+	if (output_ancestral_nucs)		p_out << " ANC_SEQ";
+	if (p_output_ind_tags)			p_out << " IND_TAGS";
+	p_out << std::endl;
 	
 	// Output populations first
 	p_out << "Populations:" << std::endl;
@@ -7631,69 +7644,8 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 #endif
 	}
 	
-	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-	PolymorphismMap polymorphisms;
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	
-	// add all polymorphisms
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		for (Individual *ind : subpop->parent_individuals_)
-		{
-			Haplosome **haplosomes = ind->haplosomes_;
-			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
-			{
-				Haplosome *haplosome = haplosomes[haplosome_index];
-				
-				int mutrun_count = haplosome->mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				{
-					const MutationRun *mutrun = haplosome->mutruns_[run_index];
-					int mut_count = mutrun->size();
-					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-					
-					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-						AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
-				}
-				
-#if DO_MEMORY_CHECKS
-				if (eidos_do_memory_checks)
-				{
-					mem_check_counter++;
-					
-					if (mem_check_counter % mem_check_mod == 0)
-						Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
-				}
-#endif
-			}
-		}
-	}
-	
-	// print all polymorphisms
-	p_out << "Mutations:"  << std::endl;
-	
-	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
-	{
-		// NOTE this added mutation_id_, BCH 11 June 2016
-		// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
-		polymorphism_pair.second.Print_ID(p_out);
-		
-#if DO_MEMORY_CHECKS
-		if (eidos_do_memory_checks)
-		{
-			mem_check_counter++;
-			
-			if (mem_check_counter % mem_check_mod == 0)
-				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
-		}
-#endif
-	}
-	
-	// print all individuals
+	// print all individuals; this used to come after the Mutations: section, but now mutations are per-chromosome,
+	// whereas the list of individuals is invariant across all of the chromosomes printed, and so must come before
 	p_out << "Individuals:" << std::endl;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
@@ -7718,8 +7670,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			else
 				p_out << " H ";											// hermaphrodite
 			
-			p_out << "p" << subpop_id << ":" << (i * 2);				// haplosome identifier 1
-			p_out << " p" << subpop_id << ":" << (i * 2 + 1);			// haplosome identifier 2
+			// BCH 2/5/2025: Before version 8, we emitted haplosome identifiers here, like "p1:16" and
+			// "p1:17", but now that we have multiple chromosomes that really isn't helpful; removing
+			// them.  In the Haplosomes section we will now just identify the individual; that suffices.
 			
 			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
@@ -7751,6 +7704,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			
 			p_out << std::endl;
 			
+			// output individual tags if requested
+			// FIXME MULTICHROM implement this
+			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks)
 			{
@@ -7763,31 +7719,34 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		}
 	}
 	
-	// print all haplosomes
-	p_out << "Haplosomes:" << std::endl;
+	// Loop over chromosomes and output data for each
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
+	for (Chromosome *chromosome : chromosomes)
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t i = 0;
+		// write information about the chromosome; note that we write the chromosome symbol, but PrintAllBinary() does not
+		slim_chromosome_index_t chromosome_index = chromosome->Index();
 		
-		for (Individual *ind : subpop->parent_individuals_)
+		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " " << chromosome->Symbol()  << std::endl;
+		
+		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
+		PolymorphismMap polymorphisms;
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		// add all polymorphisms for this chromosome
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 		{
-			Haplosome **haplosomes = ind->haplosomes_;
+			Subpopulation *subpop = subpop_pair.second;
 			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome *haplosome = haplosomes[haplosome_index];
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				p_out << "p" << subpop_id << ":" << i << " " << haplosome->AssociatedChromosome()->Type();	// FIXME MULTICHROM maybe index not type?
-				
-				if (haplosome->IsNull())
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					p_out << " <null>";
-				}
-				else
-				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
 					int mutrun_count = haplosome->mutrun_count_;
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
@@ -7797,44 +7756,127 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
 						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+							AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+					}
+					
+#if DO_MEMORY_CHECKS
+					if (eidos_do_memory_checks)
+					{
+						mem_check_counter++;
+						
+						if (mem_check_counter % mem_check_mod == 0)
+							Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+					}
+#endif
+				}
+			}
+		}
+		
+		// print all polymorphisms
+		p_out << "Mutations:"  << std::endl;
+		
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+		{
+			// NOTE this added mutation_id_, BCH 11 June 2016
+			// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
+			polymorphism_pair.second.Print_ID(p_out);
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+			}
+#endif
+		}
+		
+		// print all haplosomes
+		p_out << "Haplosomes:" << std::endl;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_objectid_t subpop_id = subpop_pair.first;
+			slim_popsize_t individual_index = 0;
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				Haplosome **haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					// i used to be the haplosome index, now it is the individual index; we will have one or
+					// two lines with this individual index, depending on the intrinsic ploidy of the chromosome
+					// symbol is redundant but kinda nice for orientation
+					p_out << "p" << subpop_id << ":" << individual_index << " " << chromosome->Symbol();
+					
+					if (haplosome->IsNull())
+					{
+						p_out << " <null>";
+					}
+					else
+					{
+						int mutrun_count = haplosome->mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+							const MutationRun *mutrun = haplosome->mutruns_[run_index];
+							int mut_count = mutrun->size();
+							const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 							
-							if (polymorphism_id == -1)
-								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
-							
-							p_out << " " << polymorphism_id;
+							for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+							{
+								slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+								
+								if (polymorphism_id == -1)
+									EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
+								
+								p_out << " " << polymorphism_id;
+							}
 						}
 					}
-				}
-				
-				p_out << std::endl;
-				
-#if DO_MEMORY_CHECKS
-				if (eidos_do_memory_checks)
-				{
-					mem_check_counter++;
 					
-					if (mem_check_counter % mem_check_mod == 0)
-						Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing haplosomes.)");
-				}
+					p_out << std::endl;
+					
+#if DO_MEMORY_CHECKS
+					if (eidos_do_memory_checks)
+					{
+						mem_check_counter++;
+						
+						if (mem_check_counter % mem_check_mod == 0)
+							Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing haplosomes.)");
+					}
 #endif
+				}
+				
+				++individual_index;
 			}
-		++i;
 		}
-	}
-	
-	// print ancestral sequence
-	if (species_.IsNucleotideBased() && p_output_ancestral_nucs)
-	{
-		p_out << "Ancestral sequence:" << std::endl;
-		p_out << *(species_.TheChromosome().AncestralSequence());
+		
+		// print ancestral sequence
+		if (output_ancestral_nucs)
+		{
+			p_out << "Ancestral sequence:" << std::endl;
+			p_out << *(chromosome->AncestralSequence());
+			
+			// operator<< above ends with a newline; here we add another, which the read code
+			// can use to recognize that the nucleotide sequence has ended, even without an EOF
+			p_out << std::endl;
+		}
 	}
 }
 
 // print all mutations and all haplosomes to a stream in binary, for maximum reading speed
-void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
 {
+	// FIXME MULTICHROM implement output of individual tags!
+	if (p_output_ind_tags)
+		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
+	
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) called with child generation active!." << EidosTerminate();
 	
@@ -7850,6 +7892,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	
 	// We will output nucleotides for all mutations, and an ancestral sequence at the end, if we are nucleotide-based.
 	bool has_nucleotides = species_.IsNucleotideBased();
+	bool output_ancestral_nucs = has_nucleotides && p_output_ancestral_nucs;
 	
 	int32_t section_end_tag = 0xFFFF0000;
 	
@@ -7861,12 +7904,13 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 7;													// version 2 started with SLiM 2.1
-																					// version 3 started with SLiM 2.3
-																					// version 4 started with SLiM 3.0, only when individual age is output
-																					// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
-																					// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
-																					// version 7 started with SLiM 4.0, changing generation to ticks and adding cycle
+		int32_t version_tag = 8;		// version 2 started with SLiM 2.1
+										// version 3 started with SLiM 2.3
+										// version 4 started with SLiM 3.0, only when individual age is output
+										// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
+										// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
+										// version 7 started with SLiM 4.0, changing generation to ticks and adding cycle
+										// version 8 started with SLiM 5.0, adding multiple chromosomes
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -7879,13 +7923,16 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		p_out.write(reinterpret_cast<char *>(&double_test), sizeof double_test);
 		
-		// Write a "flags" field, new in SLiM 3.3
+		// Write a "flags" field, new in SLiM 3.3; the bit values here are all changed/new in version 8
 		{
 			int64_t flags = 0;
 			
-			if (age_output_count)		flags |= 0x01;
-			if (has_nucleotides)		flags |= 0x02;
-			if (pedigree_output_count)	flags |= 0x04;	// new in SLiM 3.5, version 6
+			if (spatial_output_count)		flags |= spatial_output_count;	// takes 0x0001 and 0x0002
+			if (age_output_count)			flags |= 0x0004;
+			if (pedigree_output_count)		flags |= 0x0008;
+			if (has_nucleotides)			flags |= 0x0010;
+			if (output_ancestral_nucs)		flags |= 0x0020;
+			if (p_output_ind_tags)			flags |= 0x0040;
 			
 			p_out.write(reinterpret_cast<char *>(&flags), sizeof flags);
 		}
@@ -7901,7 +7948,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);											// Added in version 2
 		int32_t slim_age_t_size = sizeof(slim_age_t);																// Added in version 6
 		int32_t slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);													// Added in version 6
-		int32_t slim_haplosomeid_t_size = sizeof(slim_haplosomeid_t);														// Added in version 6
+		int32_t slim_haplosomeid_t_size = sizeof(slim_haplosomeid_t);												// Added in version 6
+		int32_t slim_usertag_t_size = sizeof(slim_usertag_t);														// Added in version 8
 		
 		p_out.write(reinterpret_cast<char *>(&slim_tick_t_size), sizeof slim_tick_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
@@ -7913,7 +7961,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_polymorphismid_t_size), sizeof slim_polymorphismid_t_size);		// Added in version 2
 		p_out.write(reinterpret_cast<char *>(&slim_age_t_size), sizeof slim_age_t_size);							// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
-		p_out.write(reinterpret_cast<char *>(&slim_haplosomeid_t_size), sizeof slim_haplosomeid_t_size);					// Added in version 6
+		p_out.write(reinterpret_cast<char *>(&slim_haplosomeid_t_size), sizeof slim_haplosomeid_t_size);			// Added in version 6
+		p_out.write(reinterpret_cast<char *>(&slim_usertag_t_size), sizeof slim_usertag_t_size);					// Added in version 8
 		
 		// Write the tick and cycle
 		slim_tick_t tick = community_.Tick();																		// Changed from generation to tick in version 7
@@ -7921,9 +7970,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
 		p_out.write(reinterpret_cast<char *>(&cycle), sizeof cycle);
-		
-		// Write the number of spatial coordinates we will write per individual.  Added in version 3.
-		p_out.write(reinterpret_cast<char *>(&spatial_output_count), sizeof spatial_output_count);
 	}
 	
 	// Write a tag indicating the section has ended
@@ -7974,231 +8020,263 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Write a tag indicating the section has ended
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	
-	// Find all polymorphisms
-	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
-	PolymorphismMap polymorphisms;
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	
+	// Individuals section; this contains optional metadata about the individuals
+	// This section is new with version 8; its information used to be embedded in the Haplosomes section, in binary
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 	{
 		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
-		for (Individual *ind : subpop->parent_individuals_)
+		for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)	// go through all children
 		{
-			Haplosome **haplosomes = ind->haplosomes_;
+			Individual &individual = *(subpop->parent_individuals_[individual_index]);
 			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			// Output individual sex
+			p_out.write(reinterpret_cast<char *>(&individual.sex_), sizeof individual.sex_);
+			
+			// Output individual pedigree ID information.  Added in version 5.
+			if (pedigree_output_count)
 			{
-				Haplosome *haplosome = haplosomes[haplosome_index];
+				slim_pedigreeid_t pedigree_id = individual.PedigreeID();
 				
-				int mutrun_count = haplosome->mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				{
-					const MutationRun *mutrun = haplosome->mutruns_[run_index];
-					int mut_count = mutrun->size();
-					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-					
-					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-						AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
-				}
+				p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
 			}
+			
+			// Output individual spatial position information.  Added in version 3.
+			if (spatial_output_count)
+			{
+				if (spatial_output_count >= 1)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_x_), sizeof individual.spatial_x_);
+				if (spatial_output_count >= 2)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_y_), sizeof individual.spatial_y_);
+				if (spatial_output_count >= 3)
+					p_out.write(reinterpret_cast<char *>(&individual.spatial_z_), sizeof individual.spatial_z_);
+			}
+			
+			// Output individual age information before the mutation list.  Added in version 4.
+			if (age_output_count)
+			{
+				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
+			}
+			
+			// output individual tags if requested
+			// FIXME MULTICHROM implement this
 		}
-	}
-	
-	// Write out the size of the mutation map, so we can allocate a vector rather than utilizing std::map when reading
-	int32_t mutation_map_size = (int32_t)polymorphisms.size();
-	
-	p_out.write(reinterpret_cast<char *>(&mutation_map_size), sizeof mutation_map_size);
-	
-	// Mutations section
-	for (const PolymorphismPair &polymorphism_pair : polymorphisms)
-	{
-		const Polymorphism &polymorphism = polymorphism_pair.second;
-		const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
-		const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
-		
-		slim_polymorphismid_t polymorphism_id = polymorphism.polymorphism_id_;
-		int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
-		slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
-		slim_position_t position = mutation_ptr->position_;
-		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
-		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
-		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
-		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
-		slim_tick_t tick = mutation_ptr->origin_tick_;
-		slim_refcount_t prevalence = polymorphism.prevalence_;
-		int8_t nucleotide = mutation_ptr->nucleotide_;
-		
-		// Write a tag indicating we are starting a new mutation
-		int32_t mutation_start_tag = 0xFFFF0002;
-		
-		p_out.write(reinterpret_cast<char *>(&mutation_start_tag), sizeof mutation_start_tag);
-		
-		// Write the mutation data
-		p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
-		p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);							// Added in version 2
-		p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
-		p_out.write(reinterpret_cast<char *>(&position), sizeof position);
-		p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
-		p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
-		p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
-		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
-		p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
-		
-		if (has_nucleotides)
-			p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);							// added in version 5
-		
-		// now will come either a mutation start tag, or a section end tag
 	}
 	
 	// Write a tag indicating the section has ended
 	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	
-	// Haplosomes section
-	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
+	// BCH 2/5/2025: Now we write genetic data for each chromosome.  Each chromosome will get a section end tag.
+	// Here we write out the chromosome count, so the reading code knows how many chromosome sections to expect.
+	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
+	int32_t chromosome_count = (int)chromosomes.size();
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
+	p_out.write(reinterpret_cast<char *>(&chromosome_count), sizeof chromosome_count);
+	
+	for (Chromosome *chromosome : chromosomes)
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_objectid_t subpop_id = subpop_pair.first;
-		slim_popsize_t i = 0;
+		// write information about the chromosome; we don't write the symbol, since strings are annoying,
+		// so the chromosome symbol will not be validated on read, but I think that's fine
+		int32_t chromosome_index = chromosome->Index();
+		int32_t chromosome_type = (int32_t)chromosome->Type();
+		int64_t chromosome_id = chromosome->ID();
+		slim_position_t chromosome_lastpos = chromosome->last_position_;
 		
-		for (Individual *ind : subpop->parent_individuals_)
+		p_out.write(reinterpret_cast<char *>(&chromosome_index), sizeof chromosome_index);
+		p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
+		p_out.write(reinterpret_cast<char *>(&chromosome_id), sizeof chromosome_id);
+		p_out.write(reinterpret_cast<char *>(&chromosome_lastpos), sizeof chromosome_lastpos);
+		
+		// Find all polymorphisms
+		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
+		PolymorphismMap polymorphisms;
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
 		{
-			Haplosome **haplosomes = ind->haplosomes_;
+			Subpopulation *subpop = subpop_pair.second;
 			
-			for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Haplosome *haplosome = haplosomes[haplosome_index];
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				// Write out the haplosome header; start with the haplosome type to guarantee that the first 32 bits are != section_end_tag
-				int32_t chromosome_type = (int32_t)(haplosome->AssociatedChromosome()->Type());	// FIXME MULTICHROM maybe index not type?
-				
-				p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
-				p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);
-				p_out.write(reinterpret_cast<char *>(&i), sizeof i);
-				
-				// Output individual spatial position information before the mutation list.  Added in version 3.
-				if (spatial_output_count && ((i % 2) == 0))
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					int individual_index = i / 2;
-					Individual &individual = *(subpop->parent_individuals_[individual_index]);
+					Haplosome *haplosome = haplosomes[haplosome_index];
 					
-					if (spatial_output_count >= 1)
-						p_out.write(reinterpret_cast<char *>(&individual.spatial_x_), sizeof individual.spatial_x_);
-					if (spatial_output_count >= 2)
-						p_out.write(reinterpret_cast<char *>(&individual.spatial_y_), sizeof individual.spatial_y_);
-					if (spatial_output_count >= 3)
-						p_out.write(reinterpret_cast<char *>(&individual.spatial_z_), sizeof individual.spatial_z_);
-				}
-				
-				// Output individual pedigree ID information.  Added in version 5.
-				if (pedigree_output_count && ((i % 2) == 0))
-				{
-					int individual_index = i / 2;
-					Individual &individual = *(subpop->parent_individuals_[individual_index]);
-					slim_pedigreeid_t pedigree_id = individual.PedigreeID();
+					int mutrun_count = haplosome->mutrun_count_;
 					
-					p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
-				}
-				
-				// Output individual age information before the mutation list.  Added in version 4.
-				if (age_output_count && ((i % 2) == 0))
-				{
-					int individual_index = i / 2;
-					Individual &individual = *(subpop->parent_individuals_[individual_index]);
-					
-					p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
-				}
-				
-				// Write out the mutation list
-				if (haplosome->IsNull())
-				{
-					// null haplosomes get a 32-bit flag value written instead of a mutation count
-					int32_t null_haplosome_tag = 0xFFFF1000;
-					
-					p_out.write(reinterpret_cast<char *>(&null_haplosome_tag), sizeof null_haplosome_tag);
-				}
-				else
-				{
-					// write a 32-bit mutation count
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						int32_t total_mutations = haplosome->mutation_count();
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						int mut_count = mutrun->size();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
-						p_out.write(reinterpret_cast<char *>(&total_mutations), sizeof total_mutations);
+						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+							AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
 					}
+				}
+			}
+		}
+		
+		// Write out the size of the mutation map, so we can allocate a vector rather than utilizing std::map when reading
+		int32_t mutation_map_size = (int32_t)polymorphisms.size();
+		
+		p_out.write(reinterpret_cast<char *>(&mutation_map_size), sizeof mutation_map_size);
+		
+		// Mutations section
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+		{
+			const Polymorphism &polymorphism = polymorphism_pair.second;
+			const Mutation *mutation_ptr = polymorphism.mutation_ptr_;
+			const MutationType *mutation_type_ptr = mutation_ptr->mutation_type_ptr_;
+			
+			slim_polymorphismid_t polymorphism_id = polymorphism.polymorphism_id_;
+			int64_t mutation_id = mutation_ptr->mutation_id_;													// Added in version 2
+			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
+			slim_position_t position = mutation_ptr->position_;
+			slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
+			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
+			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
+			slim_tick_t tick = mutation_ptr->origin_tick_;
+			slim_refcount_t prevalence = polymorphism.prevalence_;
+			int8_t nucleotide = mutation_ptr->nucleotide_;
+			
+			// Write a tag indicating we are starting a new mutation
+			int32_t mutation_start_tag = 0xFFFF0002;
+			
+			p_out.write(reinterpret_cast<char *>(&mutation_start_tag), sizeof mutation_start_tag);
+			
+			// Write the mutation data
+			p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
+			p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);							// Added in version 2
+			p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
+			p_out.write(reinterpret_cast<char *>(&position), sizeof position);
+			p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
+			p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+			p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
+			p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
+			p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
+			
+			if (has_nucleotides)
+				p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);							// added in version 5
+			
+			// now will come either a mutation start tag, or a section end tag
+		}
+		
+		// Write a tag indicating the section has ended
+		p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+		
+		// Haplosomes section
+		bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)			// go through all subpopulations
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_objectid_t subpop_id = subpop_pair.first + 1;	// + 1 so it doesn't ever collide with the section end tag
+			
+			for (Individual *ind : subpop->parent_individuals_)
+			{
+				Haplosome **haplosomes = ind->haplosomes_;
+				
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
 					
-					if (use_16_bit)
+					// Write out the haplosome header; start with the subpop id + 1 to guarantee that the first 32 bits are != section_end_tag
+					p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);	// + 1
+					
+					// Write out the mutation list
+					if (haplosome->IsNull())
 					{
-						// Write out 16-bit mutation tags
-						int mutrun_count = haplosome->mutrun_count_;
+						// null haplosomes get a 32-bit flag value written instead of a mutation count
+						int32_t null_haplosome_tag = 0xFFFF1000;
 						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome->mutruns_[run_index];
-							int mut_count = mutrun->size();
-							const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-							
-							for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-							{
-								slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
-								
-								if (polymorphism_id == -1)
-									EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
-								
-								if (polymorphism_id <= UINT16_MAX - 1)
-								{
-									uint16_t id_16 = (uint16_t)polymorphism_id;
-									
-									p_out.write(reinterpret_cast<char *>(&id_16), sizeof id_16);
-								}
-								else
-								{
-									EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) mutation id out of 16-bit bounds." << EidosTerminate();
-								}
-							}
-						}
+						p_out.write(reinterpret_cast<char *>(&null_haplosome_tag), sizeof null_haplosome_tag);
 					}
 					else
 					{
-						// Write out 32-bit mutation tags
-						int mutrun_count = haplosome->mutrun_count_;
-						
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						// write a 32-bit mutation count
 						{
-							const MutationRun *mutrun = haplosome->mutruns_[run_index];
-							int mut_count = mutrun->size();
-							const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+							int32_t total_mutations = haplosome->mutation_count();
 							
-							for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+							p_out.write(reinterpret_cast<char *>(&total_mutations), sizeof total_mutations);
+						}
+						
+						if (use_16_bit)
+						{
+							// Write out 16-bit mutation tags
+							int mutrun_count = haplosome->mutrun_count_;
+							
+							for (int run_index = 0; run_index < mutrun_count; ++run_index)
 							{
-								slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+								const MutationRun *mutrun = haplosome->mutruns_[run_index];
+								int mut_count = mutrun->size();
+								const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 								
-								if (polymorphism_id == -1)
-									EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
-								
-								p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
+								for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+								{
+									slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+									
+									if (polymorphism_id == -1)
+										EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
+									
+									if (polymorphism_id <= UINT16_MAX - 1)
+									{
+										uint16_t id_16 = (uint16_t)polymorphism_id;
+										
+										p_out.write(reinterpret_cast<char *>(&id_16), sizeof id_16);
+									}
+									else
+									{
+										EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) mutation id out of 16-bit bounds." << EidosTerminate();
+									}
+								}
 							}
 						}
+						else
+						{
+							// Write out 32-bit mutation tags
+							int mutrun_count = haplosome->mutrun_count_;
+							
+							for (int run_index = 0; run_index < mutrun_count; ++run_index)
+							{
+								const MutationRun *mutrun = haplosome->mutruns_[run_index];
+								int mut_count = mutrun->size();
+								const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+								
+								for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+								{
+									slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+									
+									if (polymorphism_id == -1)
+										EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) polymorphism not found." << EidosTerminate();
+									
+									p_out.write(reinterpret_cast<char *>(&polymorphism_id), sizeof polymorphism_id);
+								}
+							}
+						}
+						
+						// now will come either an individual index, or a section end tag
 					}
-					
-					// now will come either a haplosome type (32 bits: 0, 1, or 2), or a section end tag
 				}
 			}
-		++i;
 		}
-	}
-	
-	// Write a tag indicating the section has ended
-	p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
-	
-	// Ancestral sequence section, for nucleotide-based models, when requested
-	if (has_nucleotides && p_output_ancestral_nucs)
-	{
-		species_.TheChromosome().AncestralSequence()->WriteCompressedNucleotides(p_out);
 		
+		// Write a tag indicating the haplosomes section has ended
 		p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+		
+		// Ancestral sequence section, for nucleotide-based models, when requested
+		if (output_ancestral_nucs)
+		{
+			chromosome->AncestralSequence()->WriteCompressedNucleotides(p_out);
+			
+			// Write a tag indicating the ancestral sequence section has ended
+			p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+		}
 	}
 }
 

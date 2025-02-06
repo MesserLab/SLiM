@@ -8731,7 +8731,7 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath\cf2 , [No<Dictionary>$\'a0subpopMap\'a0=\'a0NULL]\cf0 )\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Read from a population initialization file, whether in text or binary format as previously specified to 
 \f3\fs18 outputFull()
@@ -8746,8 +8746,8 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f4\fs20  and have element type 
 \f3\fs18 Subpopulation
 \f4\fs20 , 
-\f3\fs18 \cf0 Haplosome
-\f4\fs20 \cf2 , 
+\f3\fs18 Haplosome
+\f4\fs20 , 
 \f3\fs18 Mutation
 \f4\fs20 , 
 \f3\fs18 Individual
@@ -8755,15 +8755,8 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f3\fs18 Substitution
 \f4\fs20  will be removed as a side effect of this method if they contain any element that belongs to the target species, because those objects will no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
 \f3\fs18 Subpopulation
-\f4\fs20  objects loaded from the file.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
-\f3\fs18 mutationEffect()
-\f4\fs20  and 
-\f3\fs18 fitnessEffect()
-\f4\fs20  callbacks.  When reading files written by SLiM 2.3 or later, fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\f4\fs20  objects loaded from the file.  Note that fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
+\expnd0\expndtw0\kerning0
 In SLiM 2.3 and later when using the WF model, calling 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  from any context other than a 

@@ -780,11 +780,18 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #endif
 	std::string line, sub; 
 	std::ifstream infile(p_file);
+	int spatial_output_count = 0;
 	int age_output_count = 0;
 	bool has_individual_pedigree_IDs = false;
+	bool has_nucleotides = false;
+	bool output_ancestral_nucs = false;
+	bool has_individual_tags = false;
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
+	
+	// BCH 2/5/2025: I am removing code for reading file versions older than version 8 (SLiM 5.0); keeping
+	// the legacy reading code working has been a headache and I want a clean break for multichrom
 	
 	// Parse the first line, to get the tick and cycle
 	{
@@ -798,20 +805,17 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		int64_t tick_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		file_tick = SLiMCastToTickTypeOrRaise(tick_long);
 		
-		// Next is either the cycle, or "A"; we handle the addition of cycle in SLiM 4 without a version bump
-		iss >> sub;
+		iss >> sub;		// cycle; this used to be the "A" file type tag, so we try to emit a good error message
+		
 		if (sub == "A")
-		{
-			// If it is "A", we are reading a pre-4.0 file, and the tick and cycle are the same
-			file_cycle = file_tick;
-		}
-		else
-		{
-			int64_t cycle_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-			file_cycle = SLiMCastToTickTypeOrRaise(cycle_long);
-			
-			// "A" follows but we don't bother reading it
-		}
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): reading of population files older than version 8 (SLiM 5.0) is no longer supported." << EidosTerminate();
+		
+		int64_t cycle_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+		file_cycle = SLiMCastToTickTypeOrRaise(cycle_long);
+		
+		iss >> sub;		// should be "A"
+		if (sub != "A")
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): the file type identifier in the #OUT line should be 'A', but is '" << sub << "'." << EidosTerminate();
 	}
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
@@ -821,13 +825,13 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	SetCycle(file_cycle);
 	
 	// Read and ignore initial stuff until we hit the Populations section
-	int64_t file_version = 0;	// initially unknown; we will leave this as 0 for versions < 3, for now
+	int64_t file_version = 0;	// represents no version tag found
 	
 	while (!infile.eof())
 	{
 		GetInputLine(infile, line);
 		
-		// Starting in SLiM 3, we will handle a Version line if we see one in passing
+		// Starting in SLiM 3, we handle a Version line if we see one in passing, and it is required below
 		if (line.find("Version:") != std::string::npos)
 		{
 			std::istringstream iss(line);
@@ -836,23 +840,39 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			iss >> sub;		// version number
 			
 			file_version = (int64_t)EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			continue;
+		}
+		
+		// Starting in SLiM 5, we handle a Flags line if we see one in passing, but it is not required
+		if (line.find("Flags:") != std::string::npos)
+		{
+			std::istringstream iss(line);
 			
-			// version 5/6 are the same as 3/4 but have individual pedigree IDs; added in SLiM 3.5
-			if (file_version >= 5)
+			iss >> sub;		// Flags:
+			
+			while (iss >> sub)
 			{
-				has_individual_pedigree_IDs = true;
-				file_version -= 2;
+				if (sub == "SPACE=0")
+					spatial_output_count = 0;
+				else if (sub == "SPACE=1")
+					spatial_output_count = 1;
+				else if (sub == "SPACE=2")
+					spatial_output_count = 2;
+				else if (sub == "SPACE=3")
+					spatial_output_count = 3;
+				else if (sub == "AGES")
+					age_output_count = 1;
+				else if (sub == "PEDIGREES")
+					has_individual_pedigree_IDs = true;
+				else if (sub == "NUC")
+					has_nucleotides = true;
+				else if (sub == "ANC_SEQ")
+					output_ancestral_nucs = true;
+				else if (sub == "IND_TAGS")
+					has_individual_tags = true;
+				else
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized flag in Flags line: '" << sub << "'." << EidosTerminate();
 			}
-			
-			// version 4 is the same as version 3 but with an age value for each individual
-			if (file_version == 4)
-			{
-				age_output_count = 1;
-				file_version = 3;
-			}
-			
-			if ((file_version != 1) && (file_version != 2) && (file_version != 3))
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized version (" << file_version << "." << EidosTerminate();
 			
 			continue;
 		}
@@ -861,19 +881,41 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			break;
 	}
 	
+	// validate the file version
+	if (file_version <= 0)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): file version is missing or corrupted; reading of population files older than version 8 (SLiM 5.0) is no longer supported." << EidosTerminate();
+	if (file_version < 8)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): file version " << file_version << " detected; reading of population files older than version 8 (SLiM 5.0) is no longer supported." << EidosTerminate();
+	if (file_version != 8)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized version (" << file_version << "); the last version recognized by this version of SLiM is 8 (this file may have been generated by a more recent version of SLiM)." << EidosTerminate();
+	
+	// validate flags that were found (or not found)
+	if ((spatial_output_count != 0) && (spatial_output_count != SpatialDimensionality()))	// note that we allow spatial information to be missing
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a non-zero spatial dimensionality of " << spatial_output_count << " is flagged, but the spatial dimensionality of this model is " << SpatialDimensionality() << "; that is inconsistent." << EidosTerminate();
+	
 	if (age_output_count && (model_type_ == SLiMModelType::kModelTypeWF))
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): age information is present but the simulation is using a WF model." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): age information is present but the simulation is using a WF model; that is inconsistent." << EidosTerminate();
 	if (!age_output_count && (model_type_ == SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): age information is not present but the simulation is using a nonWF model; age information must be included." << EidosTerminate();
 	
-	// Now we are in the Populations section; read and instantiate each population until we hit the Mutations section
+	if (has_nucleotides && !IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): nucleotides are flagged as present in this file, but this is a non-nucleotide model; that is inconsistent." << EidosTerminate();
+	if (!has_nucleotides && IsNucleotideBased())
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): nucleotides are not flagged as present in this file, but this is a nucleotide model; that is inconsistent." << EidosTerminate();
+	if (output_ancestral_nucs && !has_nucleotides)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): an ancestral sequence is flagged as present, but nucleotides are not flagged as present; that is inconsistent." << EidosTerminate();
+	
+	if (has_individual_tags)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
+	
+	// Now we are in the Populations section; read and instantiate each population until we hit the Individuals section
 	while (!infile.eof())
 	{ 
 		GetInputLine(infile, line);
 		
 		if (line.length() == 0)
 			continue;
-		if (line.find("Mutations") != std::string::npos)
+		if (line.find("Individuals") != std::string::npos)
 			break;
 		
 		std::istringstream iss(line);
@@ -909,114 +951,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		community_.SymbolTable().InitializeConstantSymbolEntry(symbol_entry);
 	}
 	
-	// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
-	while (!infile.eof()) 
-	{
-		GetInputLine(infile, line);
-		
-		if (line.length() == 0)
-			continue;
-		if (line.find("Haplosomes") != std::string::npos)
-			break;
-		if (line.find("Individuals") != std::string::npos)	// SLiM 2.0 added this section
-			break;
-		
-		std::istringstream iss(line);
-		
-		iss >> sub;
-		int64_t polymorphismid_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-		slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
-		
-		// Added in version 2 output, starting in SLiM 2.1
-		iss >> sub;
-		slim_mutationid_t mutation_id;
-		
-		if (sub[0] == 'm')	// autodetect whether we are parsing version 1 or version 2 output
-		{
-			mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
-		}
-		else
-		{
-			mutation_id = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-			
-			iss >> sub;		// queue up sub for mutation_type_id
-		}
-		
-		slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'm', nullptr);
-		
-		iss >> sub;
-		int64_t position_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-		slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
-		
-		iss >> sub;
-		double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
-		
-		iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
-		double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
-		
-		iss >> sub;
-		slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
-		
-		iss >> sub;
-		int64_t tick_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-		slim_tick_t tick = SLiMCastToTickTypeOrRaise(tick_long);
-		
-		iss >> sub;		// prevalence, which we discard
-		
-		int8_t nucleotide = -1;
-		if (iss && (iss >> sub))
-		{
-			// fetch the nucleotide field if it is present
-			if (sub == "A") nucleotide = 0;
-			else if (sub == "C") nucleotide = 1;
-			else if (sub == "G") nucleotide = 2;
-			else if (sub == "T") nucleotide = 3;
-			else EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized value '"<< sub << "' in nucleotide field." << EidosTerminate();
-		}
-		
-		// look up the mutation type from its index
-		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
-		
-		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
-		
-		if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
-		
-		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
-		
-		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
-		if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
-		
-		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, TheChromosome().Index(), position, selection_coeff, subpop_index, tick, nucleotide);
-		
-		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
-		mutations.emplace(polymorphism_id, new_mut_index);
-		population_.MutationRegistryAdd(new_mut);
-		
-#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		if (population_.keeping_muttype_registries_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
-#endif
-		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-		if (selection_coeff != 0.0)
-		{
-			pure_neutral_ = false;
-			mutation_type_ptr->all_pure_neutral_DFE_ = false;
-		}
-	}
-	
-	population_.InvalidateMutationReferencesCache();
-	
-	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
-	if (has_individual_pedigree_IDs)
-		gSLiM_next_pedigree_id = 0;
+	// Now we are in the Individuals section; handle spatial positions, tags, etc. until we hit a Chromosome line
+	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
 	if (line.find("Individuals") != std::string::npos)
 	{
@@ -1026,7 +962,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			
 			if (line.length() == 0)
 				continue;
-			if (line.find("Haplosomes") != std::string::npos)
+			if (line.find("Chromosome") != std::string::npos)
 				break;
 			
 			std::istringstream iss(line);
@@ -1063,149 +999,332 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (PedigreesEnabled())
 				{
 					individual.SetPedigreeID(pedigree_id);
-					individual.haplosomes_[0]->SetHaplosomeID(pedigree_id * 2);
-					individual.haplosomes_[1]->SetHaplosomeID(pedigree_id * 2 + 1);
 					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+					
+					// we need to fix the haplosome ids for all of the individual's haplosomes
+					int haplosome_index = 0;
+					
+					for (Chromosome *chromosome : chromosomes)
+					{
+						individual.haplosomes_[haplosome_index++]->SetHaplosomeID(pedigree_id * 2);
+						
+						if (chromosome->IntrinsicPloidy() == 2)
+							individual.haplosomes_[haplosome_index++]->SetHaplosomeID(pedigree_id * 2 + 1);
+					}
 				}
 			}
 			
-			iss >> sub;			// individual sex identifier (F/M/H) – added in SLiM 2.1, so we need to be robust if it is missing
+			bool sex_mismatch = false;
+			iss >> sub;			// individual sex identifier (F/M/H)
 			
-			if ((sub == "F") || (sub == "M") || (sub == "H"))
-				iss >> sub;
+			if (sub == "F")
+			{
+				if (individual.sex_ != IndividualSex::kFemale)
+					sex_mismatch = true;
+			}
+			else if (sub == "M")
+			{
+				if (individual.sex_ != IndividualSex::kMale)
+					sex_mismatch = true;
+			}
+			else if (sub == "H")
+			{
+				if (individual.sex_ != IndividualSex::kHermaphrodite)
+					sex_mismatch = true;
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized individual sex '" << sub << "'." << EidosTerminate();
 			
-			;					// pX:Y – haplosome 1 identifier, which we do not presently need to parse [already fetched]
-			iss >> sub;			// pX:Y – haplosome 2 identifier, which we do not presently need to parse
+			if (sex_mismatch)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): the specified individual sex '" << sub << "' does not match the sex of the individual '" << individual.sex_ << "'." << EidosTerminate();
+			
+			// BCH 2/5/2025: Before version 8, we emitted haplosome identifiers here, like "p1:16" and
+			// "p1:17", but now that we have multiple chromosomes that really isn't helpful; removing
+			// them.  In the Haplosomes section we will now just identify the individual; that suffices.
 			
 			// Parse the optional fields at the end of each individual line.  This is a bit tricky.
 			// First we read all of the fields in, then we decide how to use them.
 			std::vector<std::string> opt_params;
-			int opt_param_count;
+			int expected_opt_param_count = spatial_output_count + age_output_count;
+			int opt_param_index = 0;
 			
 			while (iss >> sub)
 				opt_params.emplace_back(sub);
 			
-			opt_param_count = (int)opt_params.size();
+			if ((int)opt_params.size() != expected_opt_param_count)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): output file format does not contain the expected individual data, as specified by the Flags line." << EidosTerminate();
 			
-			if (opt_param_count == 0)
-			{
-				// no optional info present, which might be an error; should never occur unless someone has hand-constructed a bad input file
-				if (age_output_count)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): output file format does not contain age information, which is required." << EidosTerminate();
-			}
-			else if (opt_param_count == age_output_count)
-			{
-				// only age information is present
-				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);			// age
-			}
-			else if (opt_param_count == spatial_dimensionality_ + age_output_count)
+			if (spatial_output_count)
 			{
 				// age information is present, in addition to the correct number of spatial positions
-				if (spatial_dimensionality_ >= 1)
-					individual.spatial_x_ = EidosInterpreter::FloatForString(opt_params[0], nullptr);							// spatial position x
-				if (spatial_dimensionality_ >= 2)
-					individual.spatial_y_ = EidosInterpreter::FloatForString(opt_params[1], nullptr);							// spatial position y
-				if (spatial_dimensionality_ >= 3)
-					individual.spatial_z_ = EidosInterpreter::FloatForString(opt_params[2], nullptr);							// spatial position z
-				
-				if (age_output_count)
-					individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
+				if (spatial_output_count >= 1)
+					individual.spatial_x_ = EidosInterpreter::FloatForString(opt_params[opt_param_index++], nullptr);	// spatial position x
+				if (spatial_output_count >= 2)
+					individual.spatial_y_ = EidosInterpreter::FloatForString(opt_params[opt_param_index++], nullptr);	// spatial position y
+				if (spatial_output_count >= 3)
+					individual.spatial_z_ = EidosInterpreter::FloatForString(opt_params[opt_param_index++], nullptr);	// spatial position z
 			}
-			else
+			
+			if (age_output_count)
 			{
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): output file format does not match that expected by the simulation (spatial dimension or age information is incorrect or missing)." << EidosTerminate();
+				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[opt_param_index++], nullptr);	// age
+			}
+			
+			if (has_individual_tags)
+			{
+				// FIXME implement me!
 			}
 		}
 	}
 	
-	// FIXME MULTICHROM need to figure out the file format for multiple chromosomes
-	Chromosome &chromosome = TheChromosome();
-	
-	// Now we are in the Haplosomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-#ifndef _OPENMP
-	MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
-#endif
-	
-	while (!infile.eof())
+	// Now we loop over chromosomes; each starts with a Chromosome line and then contains subsections
+	for (Chromosome *chromosome : chromosomes)
 	{
+		// we should currently have a Chromosome line that matches the current chromosome
+		std::istringstream chrom_iss(line);
+		
+		chrom_iss >> sub;	// Chromosome:
+		
+		// chromosome index; chromosomes should be given in the same order as in the model
+		chrom_iss >> sub;
+		int64_t raw_chromosome_index = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+		
+		if (raw_chromosome_index >= (int)chromosomes.size())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome index " << raw_chromosome_index << " out of range." << EidosTerminate();
+		
+		slim_chromosome_index_t chromosome_index = (slim_chromosome_index_t)raw_chromosome_index;
+		
+		if (chromosome_index != chromosome->Index())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome index " << chromosome_index << " does not match expected index " << chromosome->Index() << "." << EidosTerminate();
+		
+		int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+		//int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+		
+		// chromosome type
+		chrom_iss >> sub;
+		ChromosomeType chromosome_type = ChromosomeTypeForString(sub);
+		
+		if (chromosome_type != chromosome->Type())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome type " << chromosome_type << " does not match expected index " << chromosome->Type() << "." << EidosTerminate();
+		
+		// chromosome id
+		chrom_iss >> sub;
+		int64_t chromosome_id = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+		
+		if (chromosome_id != chromosome->ID())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome id " << chromosome_id << " does not match expected id " << chromosome->ID() << "." << EidosTerminate();
+		
+		// chromosome last position
+		chrom_iss >> sub;
+		int64_t chromosome_lastpos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+		
+		if (chromosome_lastpos != chromosome->last_position_)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome last position " << chromosome_lastpos << " does not match expected last position " << chromosome->last_position_ << "." << EidosTerminate();
+		
+		// chromosome symbol
+		chrom_iss >> sub;
+		
+		if (sub != chromosome->Symbol())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome symbol " << sub << " does not match expected symbol " << chromosome->Symbol() << "." << EidosTerminate();
+		
 		GetInputLine(infile, line);
+		if (line.find("Mutations") == std::string::npos)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a Mutations section must follow each Chromosome line." << EidosTerminate();
 		
-		if (line.length() == 0)
-			continue;
-		if (line.find("Ancestral sequence") != std::string::npos)
-			break;
-		
-		std::istringstream iss(line);
-		
-		iss >> sub;
-		int pos = static_cast<int>(sub.find_first_of(':'));
-		std::string &&subpop_id_string = sub.substr(0, pos);
-		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
-		
-		Subpopulation *subpop = SubpopulationWithID(subpop_id);
-		
-		if (!subpop)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
-		
-		sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-		int64_t haplosome_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-		
-		if ((haplosome_index_long < 0) || (haplosome_index_long > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome index out of permitted range." << EidosTerminate();
-		slim_popsize_t haplosome_index = static_cast<slim_popsize_t>(haplosome_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE * 2
-		
-		int64_t individual_index = haplosome_index >> 1;
-		Individual *ind = subpop->parent_individuals_[individual_index];
-		Haplosome &haplosome = *(ind->haplosomes_[haplosome_index & 0x01]);
-		
-		// Now we might have [A|X|Y] (SLiM 2.0), or we might have the first mutation id - or we might have nothing at all
-		if (iss >> sub)
+		// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
+		while (!infile.eof()) 
 		{
-			// check whether this token is a haplosome type
-			if ((sub.compare(gStr_A) == 0) || (sub.compare(gStr_X) == 0) || (sub.compare(gStr_Y) == 0))
+			GetInputLine(infile, line);
+			
+			if (line.length() == 0)
+				continue;
+			if (line.find("Haplosomes") != std::string::npos)
+				break;
+			
+			std::istringstream iss(line);
+			
+			iss >> sub;
+			int64_t polymorphismid_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			slim_polymorphismid_t polymorphism_id = SLiMCastToPolymorphismidTypeOrRaise(polymorphismid_long);
+			
+			// Added in version 2 output, starting in SLiM 2.1
+			iss >> sub;
+			slim_mutationid_t mutation_id;
+			
+			if (sub[0] == 'm')	// autodetect whether we are parsing version 1 or version 2 output
 			{
-				// Let's do a little error-checking against what has already been instantiated for us...
-				if ((sub.compare(gStr_A) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kA_DiploidAutosome)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as A (autosome), but the instantiated haplosome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_X) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kX_XSexChromosome)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as X (X-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
-				if ((sub.compare(gStr_Y) == 0) && haplosome.AssociatedChromosome()->Type() != ChromosomeType::kNullY_YSexChromosomeWithNull)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as Y (Y-chromosome), but the instantiated haplosome does not match." << EidosTerminate();
+				mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
+			}
+			else
+			{
+				mutation_id = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				
-				if (iss >> sub)
-				{
-					// BCH 9/27/2021: We instantiate null haplosomes only in the case where we expect them: in sex-chromosome models,
-					// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any haplosome is now
-					// allowed to be null, at the user's discretion, so we transform the instantiated haplosome to a null haplosome
-					// if necessary.  AddSubpopulation() created the haplosomes above, before we knew which would be null.
-					if (sub == "<null>")
-					{
-						if (!haplosome.IsNull())
-						{
-							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.AssociatedChromosome()->Type() == ChromosomeType::kA_DiploidAutosome))
-							{
-								haplosome.MakeNull();
-								subpop->has_null_haplosomes_ = true;
-							}
-							else
-								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
-						}
-						
-						continue;	// this line is over
-					}
-					else
-					{
-						if (haplosome.IsNull())
-							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
-						
-						// drop through, and sub will be interpreted as a mutation id below
-					}
-				}
-				else
-					continue;
+				iss >> sub;		// queue up sub for mutation_type_id
 			}
 			
+			slim_objectid_t mutation_type_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'm', nullptr);
+			
+			iss >> sub;
+			int64_t position_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
+			
+			iss >> sub;
+			double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			
+			iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
+			double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			
+			iss >> sub;
+			slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
+			
+			iss >> sub;
+			int64_t tick_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			slim_tick_t tick = SLiMCastToTickTypeOrRaise(tick_long);
+			
+			iss >> sub;		// prevalence, which we discard
+			
+			int8_t nucleotide = -1;
+			if (iss && (iss >> sub))
+			{
+				// fetch the nucleotide field if it is present
+				if (sub == "A") nucleotide = 0;
+				else if (sub == "C") nucleotide = 1;
+				else if (sub == "G") nucleotide = 2;
+				else if (sub == "T") nucleotide = 3;
+				else EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized value '"<< sub << "' in nucleotide field." << EidosTerminate();
+			}
+			
+			// look up the mutation type from its index
+			MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
+			
+			if (!mutation_type_ptr) 
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
+			
+			if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			
+			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			
+			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
+			if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
+			
+			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			
+			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
+			mutations.emplace(polymorphism_id, new_mut_index);
+			population_.MutationRegistryAdd(new_mut);
+			
+#ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
+			if (population_.keeping_muttype_registries_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
+#endif
+			
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+			if (selection_coeff != 0.0)
+			{
+				pure_neutral_ = false;
+				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			}
+		}
+		
+		population_.InvalidateMutationReferencesCache();
+		
+		// Now we are in the Haplosomes section, which should take us to the end of the chromosome unless there is an Ancestral Sequence section
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+#ifndef _OPENMP
+		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
+		slim_popsize_t previous_individual_index = -1;	// detect the first/second haplosome for intrinsically diploid chromosomes
+		
+		while (!infile.eof())
+		{
+			GetInputLine(infile, line);
+			
+			if (line.length() == 0)
+				continue;
+			if (line.find("Ancestral sequence") != std::string::npos)
+				break;
+			if (line.find("Chromosome") != std::string::npos)
+				break;
+			
+			std::istringstream iss(line);
+			
+			iss >> sub;
+			int pos = static_cast<int>(sub.find_first_of(':'));
+			std::string &&subpop_id_string = sub.substr(0, pos);
+			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
+			
+			Subpopulation *subpop = SubpopulationWithID(subpop_id);
+			
+			if (!subpop)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
+			
+			sub.erase(0, pos + 1);	// remove the subpop_id and the colon
+			
+			// this used to be the haplosome index, now it is the individual index and we have to figure out the haplosome index
+			int64_t individual_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			
+			if ((individual_index_long < 0) || (individual_index_long > SLIM_MAX_SUBPOP_SIZE))
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): individual index out of permitted range." << EidosTerminate();
+			slim_popsize_t individual_index = static_cast<slim_popsize_t>(individual_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE
+			
+			// detect when this is the second haplosome line for a given individual, and validate that
+			// FIXME this code is brittle in various ways -- a second line might be needed but omitted, or a third line might be given
+			bool is_individual_index_repeat = (individual_index == previous_individual_index);
+			
+			if (is_individual_index_repeat && (chromosome->IntrinsicPloidy() != 2))
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a second haplosome was specified for a chromosome that is intrinsically haploid." << EidosTerminate();
+			
+			previous_individual_index = individual_index;
+			
+			// look up the individual and haplosome
+			Individual *ind = subpop->parent_individuals_[individual_index];
+			int haplosome_index = first_haplosome_index + is_individual_index_repeat;
+			Haplosome &haplosome = *(ind->haplosomes_[haplosome_index]);
+			
+			// Now we should have a chromosome symbol, which should match the one we read
+			iss >> sub;
+			
+			if (sub != chromosome->Symbol())
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified with chromosome symbol '" << sub << "', in the Chromosome section for symbol '" << chromosome->Symbol() << "'." << EidosTerminate();
+			
+			if (iss >> sub)
+			{
+				// BCH 2/5/2025: We instantiate null haplosomes only where expect them to be, based upon
+				// the chromosome type.  For chromosome types 'A' and 'H', null haplosomes can occur anywhere;
+				// when that happens, we transform the instantiated haplosome to a null haplosome if necessary.
+				// AddSubpopulation() created the haplosomes above, before we knew which would be null.
+				if (sub == "<null>")
+				{
+					if (!haplosome.IsNull())
+					{
+						if ((model_type_ == SLiMModelType::kModelTypeNonWF) && ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome)))
+						{
+							haplosome.MakeNull();
+							subpop->has_null_haplosomes_ = true;
+						}
+						else
+							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
+					}
+					
+					continue;	// this line is over
+				}
+				else
+				{
+					if (haplosome.IsNull())
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
+					
+					// drop through, and sub will be interpreted as a mutation id below
+				}
+			}
+			else
+				continue;	// no mutations
+				
 			slim_position_t mutrun_length_ = haplosome.mutrun_length_;
 			slim_mutrun_index_t current_mutrun_index = -1;
 			MutationRun *current_mutrun = nullptr;
@@ -1245,13 +1364,17 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			}
 			while (iss >> sub);
 		}
-	}
-	
-	// Now we are in the Ancestral sequence section, which should take us to the end of the file
-	// Conveniently, NucleotideArray supports operator>> to read nucleotides until the EOF
-	if (line.find("Ancestral sequence") != std::string::npos)
-	{
-		infile >> *(TheChromosome().AncestralSequence());
+		
+		// Now we are in the Ancestral sequence section, which should take us to the end of the chromosome
+		// (or file).  Conveniently, NucleotideArray supports operator>> to read nucleotides until the EOF.
+		// BCH 2/5/2025: that operator>> code now stops if it sees two newlines, also, which we rely on here
+		// to recognize the end of the sequence and then begin a new Chromosome section.
+		if (line.find("Ancestral sequence") != std::string::npos)
+		{
+			infile >> *(chromosome->AncestralSequence());
+		}
+		else if (output_ancestral_nucs)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): an ancestral sequence is flagged as present, but was not found." << EidosTerminate();
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
@@ -1266,47 +1389,12 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
 	// user's script a chance to evaluate the interactions.  This was always a problem, really; mutationEffect() callbacks might have needed
 	// some external state to be set up that would be on the population state.  But now it is a glaring problem, and forces us to revise
-	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
-	// weird, but probably nobody will ever even notice...
+	// our policy.  All we do now is unique mutation runs and retally mutrun/mutation counts.
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
 	population_.InvalidateMutationReferencesCache();	// force a retally
 	population_.TallyMutationReferencesAcrossPopulation(/* p_clock_for_mutrun_experiments */ false);
-	
-	if (file_version <= 2)
-	{
-		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next cycle
-		// used to be generation + 1; removing that 18 Feb 2016 BCH
-		
-		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
-		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
-		
-		for (auto muttype_iter : mutation_types_)
-			(muttype_iter.second)->subject_to_mutationEffect_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
-		
-		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
-		community_.executing_species_ = this;
-		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-		{
-			slim_objectid_t subpop_id = subpop_pair.first;
-			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id, -1);
-			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id, -1);
-			
-			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
-		}
-		
-		community_.executing_block_type_ = old_executing_block_type;
-		community_.executing_species_ = nullptr;
-		
-#ifdef SLIMGUI
-		// Let SLiMgui survey the population for mean fitness and such, if it is our target
-		population_.SurveyPopulation();
-#endif
-	}
 	
 	return file_tick;
 }
@@ -1318,10 +1406,14 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	std::size_t file_size = 0;
 	slim_tick_t file_tick, file_cycle;
-	int32_t spatial_output_count;
+	
+	// options in the flags field
+	int32_t spatial_output_count = 0;
 	int age_output_count = 0;
 	int pedigree_output_count = 0;
 	bool has_nucleotides = false;
+	bool has_ancestral_nucs = false;
+	bool has_ind_tags = false;
 	
 	// Read file into buf
 	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
@@ -1348,7 +1440,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	// Close the file; we will work only with our buffer from here on
 	// Note that we use memcpy() to read values from the buffer, since it takes care of alignment issues
-	// for us that otherwise both the UndefinedBehaviorSanitizer.  On platforms that don't care about
+	// for us that otherwise bother the UndefinedBehaviorSanitizer.  On platforms that don't care about
 	// alignment this should compile down to the same code; on platforms that do care, it avoids a crash.
 	infile.close();
 	
@@ -1371,35 +1463,27 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if (endianness_tag != 0x12345678)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): endianness mismatch." << EidosTerminate();
 		
-		// version 4 is the same as version 3 but with an age value for each individual
-		if (version_tag == 4)
-		{
-			age_output_count = 1;
-			version_tag = 3;
-		}
-		
-		if ((version_tag != 1) && (version_tag != 2) && (version_tag != 3) && (version_tag != 5) && (version_tag != 6) && (version_tag != 7))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unrecognized version (" << version_tag << ")." << EidosTerminate();
-		
 		file_version = version_tag;
+		
+		if (file_version <= 0)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): file version is missing or corrupted; reading of population files older than version 8 (SLiM 5.0) is no longer supported." << EidosTerminate();
+		if (file_version < 8)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): file version " << file_version << " detected; reading of population files older than version 8 (SLiM 5.0) is no longer supported." << EidosTerminate();
+		if (file_version != 8)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unrecognized version (" << file_version << "); the last version recognized by this version of SLiM is 8 (this file may have been generated by a more recent version of SLiM)." << EidosTerminate();
 	}
 	
 	// Header section
 	{
 		int32_t double_size;
 		double double_test;
-		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size;
 		int64_t flags = 0;
-		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(file_tick) + sizeof(section_end_tag);
+		int32_t slim_tick_t_size, slim_position_t_size, slim_objectid_t_size, slim_popsize_t_size, slim_refcount_t_size, slim_selcoeff_t_size, slim_mutationid_t_size, slim_polymorphismid_t_size, slim_age_t_size, slim_pedigreeid_t_size, slim_haplosomeid_t_size, slim_usertag_t_size;
+		int header_length = sizeof(double_size) + sizeof(double_test) + sizeof(flags) + sizeof(slim_tick_t_size) + sizeof(slim_position_t_size) + sizeof(slim_objectid_t_size) + sizeof(slim_popsize_t_size) + sizeof(slim_refcount_t_size) + sizeof(slim_selcoeff_t_size) + sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size) + sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t_size) + sizeof(slim_usertag_t_size) + sizeof(file_tick) + sizeof(file_cycle) + sizeof(section_end_tag);
 		
-		if (file_version >= 2)
-			header_length += sizeof(slim_mutationid_t_size) + sizeof(slim_polymorphismid_t_size);
-		if (file_version >= 6)
-			header_length += sizeof(slim_age_t_size) + sizeof(slim_pedigreeid_t_size) + sizeof(slim_haplosomeid_t);
-		if (file_version >= 5)
-			header_length += sizeof(flags);
-		if (file_version >= 7)
-			header_length += sizeof(file_cycle);
+		// this is how to add more header tags in future versions
+		//if (file_version >= 9)
+		//	header_length += sizeof(new_header_variable);
 		
 		if (p + header_length > buf_end)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
@@ -1410,17 +1494,15 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		memcpy(&double_test, p, sizeof(double_test));
 		p += sizeof(double_test);
 		
-		if (file_version >= 5)
-		{
-			memcpy(&flags, p, sizeof(flags));
-			p += sizeof(flags);
-			
-			if (flags & 0x01) age_output_count = 1;
-			if (flags & 0x02) has_nucleotides = true;
-			
-			if (file_version >= 6)
-				if (flags & 0x04) pedigree_output_count = 1;
-		}
+		memcpy(&flags, p, sizeof(flags));
+		p += sizeof(flags);
+		
+		if (flags & 0x0003) spatial_output_count = (flags & 0x03);
+		if (flags & 0x0004) age_output_count = 1;
+		if (flags & 0x0008) pedigree_output_count = 1;
+		if (flags & 0x0010) has_nucleotides = true;
+		if (flags & 0x0020) has_ancestral_nucs = true;
+		if (flags & 0x0040) has_ind_tags = true;
 		
 		memcpy(&slim_tick_t_size, p, sizeof(slim_tick_t_size));
 		p += sizeof(slim_tick_t_size);
@@ -1440,64 +1522,29 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		memcpy(&slim_selcoeff_t_size, p, sizeof(slim_selcoeff_t_size));
 		p += sizeof(slim_selcoeff_t_size);
 		
-		if (file_version >= 2)
-		{
-			memcpy(&slim_mutationid_t_size, p, sizeof(slim_mutationid_t_size));
-			p += sizeof(slim_mutationid_t_size);
-			
-			memcpy(&slim_polymorphismid_t_size, p, sizeof(slim_polymorphismid_t_size));
-			p += sizeof(slim_polymorphismid_t_size);
-		}
-		else
-		{
-			// Version 1 file; backfill correct values
-			slim_mutationid_t_size = sizeof(slim_mutationid_t);
-			slim_polymorphismid_t_size = sizeof(slim_polymorphismid_t);
-		}
+		memcpy(&slim_mutationid_t_size, p, sizeof(slim_mutationid_t_size));
+		p += sizeof(slim_mutationid_t_size);
 		
-		if (file_version >= 6)
-		{
-			memcpy(&slim_age_t_size, p, sizeof(slim_age_t_size));
-			p += sizeof(slim_age_t_size);
-			
-			memcpy(&slim_pedigreeid_t_size, p, sizeof(slim_pedigreeid_t_size));
-			p += sizeof(slim_pedigreeid_t_size);
-			
-			memcpy(&slim_haplosomeid_t_size, p, sizeof(slim_haplosomeid_t_size));
-			p += sizeof(slim_haplosomeid_t_size);
-		}
-		else
-		{
-			// Version <= 5 file; backfill correct values
-			slim_age_t_size = sizeof(slim_age_t);
-			slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);
-			slim_haplosomeid_t_size = sizeof(slim_haplosomeid_t);
-		}
+		memcpy(&slim_polymorphismid_t_size, p, sizeof(slim_polymorphismid_t_size));
+		p += sizeof(slim_polymorphismid_t_size);
+		
+		memcpy(&slim_age_t_size, p, sizeof(slim_age_t_size));
+		p += sizeof(slim_age_t_size);
+		
+		memcpy(&slim_pedigreeid_t_size, p, sizeof(slim_pedigreeid_t_size));
+		p += sizeof(slim_pedigreeid_t_size);
+		
+		memcpy(&slim_haplosomeid_t_size, p, sizeof(slim_haplosomeid_t_size));
+		p += sizeof(slim_haplosomeid_t_size);
+		
+		memcpy(&slim_usertag_t_size, p, sizeof(slim_usertag_t_size));
+		p += sizeof(slim_usertag_t_size);
 		
 		memcpy(&file_tick, p, sizeof(file_tick));
 		p += sizeof(file_tick);
 		
-		if (file_version >= 7)
-		{
-			memcpy(&file_cycle, p, sizeof(file_cycle));
-			p += sizeof(file_cycle);
-		}
-		else
-		{
-			// we are reading a pre-4.0 file, so the cycle is the same as the tick
-			file_cycle = file_tick;
-		}
-		
-		if (file_version >= 3)
-		{
-			memcpy(&spatial_output_count, p, sizeof(spatial_output_count));
-			p += sizeof(spatial_output_count);
-		}
-		else
-		{
-			// Version 1 or 2 file; backfill correct value
-			spatial_output_count = 0;
-		}
+		memcpy(&file_cycle, p, sizeof(file_cycle));
+		p += sizeof(file_cycle);
 		
 		memcpy(&section_end_tag, p, sizeof(section_end_tag));
 		p += sizeof(section_end_tag);
@@ -1506,10 +1553,27 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): sizeof(double) mismatch." << EidosTerminate();
 		if (double_test != 1234567890.0987654321)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): double format mismatch." << EidosTerminate();
+		
+		if ((spatial_output_count < 0) || (spatial_output_count > 3))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
+		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
+		
+		if (age_output_count && (model_type_ == SLiMModelType::kModelTypeWF))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): age information is present but the simulation is using a WF model." << EidosTerminate();
+		if (!age_output_count && (model_type_ == SLiMModelType::kModelTypeNonWF))
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): age information is not present but the simulation is using a nonWF model; age information must be included." << EidosTerminate();
+		
 		if (has_nucleotides && !nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): the output was generated by a nucleotide-based model, but the current model is not nucleotide-based." << EidosTerminate();
 		if (!has_nucleotides && nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): the output was generated by a non-nucleotide-based model, but the current model is nucleotide-based." << EidosTerminate();
+		if (has_ancestral_nucs && !has_nucleotides)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): an ancestral sequence is flagged as present, but the current model is not nucleotide-based." << EidosTerminate();
+		
+		if (has_ind_tags)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) has_ind_tags not yet implemented!." << EidosTerminate();
+		
 		if ((slim_tick_t_size != sizeof(slim_tick_t)) ||
 			(slim_position_t_size != sizeof(slim_position_t)) ||
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
@@ -1520,16 +1584,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			(slim_polymorphismid_t_size != sizeof(slim_polymorphismid_t)) ||
 			(slim_age_t_size != sizeof(slim_age_t)) ||
 			(slim_pedigreeid_t_size != sizeof(slim_pedigreeid_t)) ||
-			(slim_haplosomeid_t_size != sizeof(slim_haplosomeid_t)))
+			(slim_haplosomeid_t_size != sizeof(slim_haplosomeid_t)) ||
+			(slim_usertag_t_size != sizeof(slim_usertag_t)))
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): SLiM datatype size mismatch." << EidosTerminate();
-		if ((spatial_output_count < 0) || (spatial_output_count > 3))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): spatial output count out of range." << EidosTerminate();
-		if ((spatial_output_count > 0) && (spatial_output_count != spatial_dimensionality_))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): output spatial dimensionality does not match that of the simulation." << EidosTerminate();
-		if (age_output_count && (model_type_ == SLiMModelType::kModelTypeWF))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): age information is present but the simulation is using a WF model." << EidosTerminate();
-		if (!age_output_count && (model_type_ == SLiMModelType::kModelTypeNonWF))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): age information is not present but the simulation is using a nonWF model; age information must be included." << EidosTerminate();
+		
 		if (section_end_tag != (int32_t)0xFFFF0000)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after header." << EidosTerminate();
 	}
@@ -1599,397 +1657,437 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after subpopulations." << EidosTerminate();
 	}
 	
-	// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
-	int32_t mutation_map_size;
+	// Individuals section
+	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
-	if (p + sizeof(mutation_map_size) > buf_end)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
-	else
+	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
-		memcpy(&mutation_map_size, p, sizeof(mutation_map_size));
-		p += sizeof(mutation_map_size);
+		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+		
+		for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)	// go through all children
+		{
+			// If there isn't enough buffer left to read a full subpop record, we have an error
+			if (p + sizeof(IndividualSex) + pedigree_output_count * sizeof(slim_pedigreeid_t) + spatial_output_count * sizeof(double) + age_output_count * sizeof(slim_age_t) > buf_end)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in individuals section." << EidosTerminate();
+			
+			Individual &individual = *(subpop->parent_individuals_[individual_index]);
+			
+			memcpy(&individual.sex_, p, sizeof(individual.sex_));
+			p += sizeof(individual.sex_);
+			
+			if (pedigree_output_count)
+			{
+				if (PedigreesEnabled())
+				{
+					slim_pedigreeid_t pedigree_id;
+					
+					memcpy(&pedigree_id, p, sizeof(pedigree_id));
+					
+					individual.SetPedigreeID(pedigree_id);
+					gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+					
+					// we need to fix the haplosome ids for all of the individual's haplosomes
+					int haplosome_index = 0;
+					
+					for (Chromosome *chromosome : chromosomes)
+					{
+						individual.haplosomes_[haplosome_index++]->SetHaplosomeID(pedigree_id * 2);
+						
+						if (chromosome->IntrinsicPloidy() == 2)
+							individual.haplosomes_[haplosome_index++]->SetHaplosomeID(pedigree_id * 2 + 1);
+					}
+				}
+				
+				p += sizeof(slim_pedigreeid_t);
+			}
+			
+			if (spatial_output_count)
+			{
+				if (spatial_output_count >= 1)
+				{
+					memcpy(&individual.spatial_x_, p, sizeof(individual.spatial_x_));
+					p += sizeof(double);
+				}
+				if (spatial_output_count >= 2)
+				{
+					memcpy(&individual.spatial_y_, p, sizeof(individual.spatial_y_));
+					p += sizeof(double);
+				}
+				if (spatial_output_count >= 3)
+				{
+					memcpy(&individual.spatial_z_, p, sizeof(individual.spatial_z_));
+					p += sizeof(double);
+				}
+			}
+			
+			if (age_output_count)
+			{
+				memcpy(&individual.age_, p, sizeof(individual.age_));
+				p += sizeof(slim_age_t);
+			}
+		}
 	}
 	
-	// Mutations section
-	std::unique_ptr<MutationIndex[]> raii_mutations(new MutationIndex[mutation_map_size]);
-	MutationIndex *mutations = raii_mutations.get();
-	
-	if (!mutations)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
-	
-	while (true)
+	if (p + sizeof(section_end_tag) > buf_end)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after individuals." << EidosTerminate();
+	else
 	{
-		int32_t mutation_start_tag;
-		slim_polymorphismid_t polymorphism_id;
-		slim_mutationid_t mutation_id;					// Added in version 2
-		slim_objectid_t mutation_type_id;
-		slim_position_t position;
-		slim_selcoeff_t selection_coeff;
-		slim_selcoeff_t dominance_coeff;
-		slim_objectid_t subpop_index;
-		slim_tick_t tick;
-		slim_refcount_t prevalence;
-		int8_t nucleotide = -1;
+		memcpy(&section_end_tag, p, sizeof(section_end_tag));
+		p += sizeof(section_end_tag);
 		
-		// If there isn't enough buffer left to read a full mutation record, we assume we are done with this section
-		int record_size = sizeof(mutation_start_tag) + sizeof(polymorphism_id) + sizeof(mutation_type_id) + sizeof(position) + sizeof(selection_coeff) + sizeof(dominance_coeff) + sizeof(subpop_index) + sizeof(tick) + sizeof(prevalence);
+		if (section_end_tag != (int32_t)0xFFFF0000)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after individuals." << EidosTerminate();
+	}
+	
+	// Loop over the chromosomes.  Each chromosome gets a section end tag.  We begin with a chromosome count.
+	int32_t chromosome_count;
+	
+	if (p + sizeof(chromosome_count) > buf_end)
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF at chromosome count." << EidosTerminate();
+	else
+	{
+		memcpy(&chromosome_count, p, sizeof(chromosome_count));
+		p += sizeof(chromosome_count);
 		
-		if (file_version >= 2)
-			record_size += sizeof(mutation_id);
-		if (has_nucleotides)
-			record_size += sizeof(nucleotide);
+		if (chromosome_count != (int)chromosomes.size())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome count does not match the model state." << EidosTerminate();
+	}
+	
+	for (Chromosome *chromosome : chromosomes)
+	{
+		// Read and validate information about the chromosome
+		int32_t raw_chromosome_index;
+		int32_t raw_chromosome_type;
+		int64_t chromosome_id;
+		int64_t chromosome_lastpos;
+		int32_t mutation_map_size;
 		
-		if (p + record_size > buf_end)
-			break;
+		if (p + sizeof(raw_chromosome_index) + sizeof(raw_chromosome_type) + sizeof(chromosome_id) + sizeof(chromosome_lastpos) > buf_end)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in chromosome information." << EidosTerminate();
 		
-		// If the first int32_t is not a mutation start tag, then we are done with this section
-		memcpy(&mutation_start_tag, p, sizeof(mutation_start_tag));
-		if (mutation_start_tag != (int32_t)0xFFFF0002)
-			break;
+		memcpy(&raw_chromosome_index, p, sizeof(raw_chromosome_index));
+		p += sizeof(raw_chromosome_index);
+
+		if (raw_chromosome_index != chromosome->Index())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome index mismatch." << EidosTerminate();
 		
-		// Otherwise, we have a mutation record; read in the rest of it
-		p += sizeof(mutation_start_tag);
+		slim_chromosome_index_t chromosome_index = (slim_chromosome_index_t)raw_chromosome_index;
 		
-		memcpy(&polymorphism_id, p, sizeof(polymorphism_id));
-		p += sizeof(polymorphism_id);
+		int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
 		
-		if (file_version >= 2)
+		memcpy(&raw_chromosome_type, p, sizeof(raw_chromosome_type));
+		p += sizeof(raw_chromosome_type);
+		
+		ChromosomeType chromosome_type = (ChromosomeType)raw_chromosome_type;
+		
+		if (chromosome_type != chromosome->Type())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome type mismatch." << EidosTerminate();
+		
+		memcpy(&chromosome_id, p, sizeof(chromosome_id));
+		p += sizeof(chromosome_id);
+		
+		if (chromosome_id != chromosome->ID())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome id mismatch." << EidosTerminate();
+		
+		memcpy(&chromosome_lastpos, p, sizeof(chromosome_lastpos));
+		p += sizeof(chromosome_lastpos);
+		
+		if (chromosome_lastpos != chromosome->last_position_)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome last position mismatch." << EidosTerminate();
+		
+		// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
+		if (p + sizeof(mutation_map_size) > buf_end)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
+		else
 		{
+			memcpy(&mutation_map_size, p, sizeof(mutation_map_size));
+			p += sizeof(mutation_map_size);
+		}
+		
+		// Mutations section
+		std::unique_ptr<MutationIndex[]> raii_mutations(new MutationIndex[mutation_map_size]);
+		MutationIndex *mutations = raii_mutations.get();
+		
+		if (!mutations)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): could not allocate mutations buffer." << EidosTerminate();
+		
+		while (true)
+		{
+			int32_t mutation_start_tag;
+			slim_polymorphismid_t polymorphism_id;
+			slim_mutationid_t mutation_id;
+			slim_objectid_t mutation_type_id;
+			slim_position_t position;
+			slim_selcoeff_t selection_coeff;
+			slim_selcoeff_t dominance_coeff;
+			slim_objectid_t subpop_index;
+			slim_tick_t tick;
+			slim_refcount_t prevalence;
+			int8_t nucleotide = -1;
+			
+			// If there isn't enough buffer left to read a full mutation record, we assume we are done with this section
+			int record_size = sizeof(mutation_start_tag) + sizeof(polymorphism_id) + sizeof(mutation_id) + sizeof(mutation_type_id) + sizeof(position) + sizeof(selection_coeff) + sizeof(dominance_coeff) + sizeof(subpop_index) + sizeof(tick) + sizeof(prevalence);
+			
+			if (has_nucleotides)
+				record_size += sizeof(nucleotide);
+			
+			if (p + record_size > buf_end)
+				break;
+			
+			// If the first int32_t is not a mutation start tag, then we are done with this section
+			memcpy(&mutation_start_tag, p, sizeof(mutation_start_tag));
+			if (mutation_start_tag != (int32_t)0xFFFF0002)
+				break;
+			
+			// Otherwise, we have a mutation record; read in the rest of it
+			p += sizeof(mutation_start_tag);
+			
+			memcpy(&polymorphism_id, p, sizeof(polymorphism_id));
+			p += sizeof(polymorphism_id);
+			
 			memcpy(&mutation_id, p, sizeof(mutation_id));
 			p += sizeof(mutation_id);
-		}
-		else
-		{
-			mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
-		}
-		
-		memcpy(&mutation_type_id, p, sizeof(mutation_type_id));
-		p += sizeof(mutation_type_id);
-		
-		memcpy(&position, p, sizeof(position));
-		p += sizeof(position);
-		
-		memcpy(&selection_coeff, p, sizeof(selection_coeff));
-		p += sizeof(selection_coeff);
-		
-		memcpy(&dominance_coeff, p, sizeof(dominance_coeff));
-		p += sizeof(dominance_coeff);
-		
-		memcpy(&subpop_index, p, sizeof(subpop_index));
-		p += sizeof(subpop_index);
-		
-		memcpy(&tick, p, sizeof(tick));
-		p += sizeof(tick);
-		
-		memcpy(&prevalence, p, sizeof(prevalence));
-		(void)prevalence;	// we don't use the frequency when reading the pop data back in; let the static analyzer know that's OK
-		p += sizeof(prevalence);
-		
-		if (has_nucleotides)
-		{
-			memcpy(&nucleotide, p, sizeof(nucleotide));
-			p += sizeof(nucleotide);
-		}
-		
-		// look up the mutation type from its index
-		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
-		
-		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
-		
-		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
-		
-		// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
-		
-		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
-		if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m"<< mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
-		
-		// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
-		MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
-		
-		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, TheChromosome().Index(), position, selection_coeff, subpop_index, tick, nucleotide);
-		
-		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
-		mutations[polymorphism_id] = new_mut_index;
-		population_.MutationRegistryAdd(new_mut);
-		
+			
+			memcpy(&mutation_type_id, p, sizeof(mutation_type_id));
+			p += sizeof(mutation_type_id);
+			
+			memcpy(&position, p, sizeof(position));
+			p += sizeof(position);
+			
+			memcpy(&selection_coeff, p, sizeof(selection_coeff));
+			p += sizeof(selection_coeff);
+			
+			memcpy(&dominance_coeff, p, sizeof(dominance_coeff));
+			p += sizeof(dominance_coeff);
+			
+			memcpy(&subpop_index, p, sizeof(subpop_index));
+			p += sizeof(subpop_index);
+			
+			memcpy(&tick, p, sizeof(tick));
+			p += sizeof(tick);
+			
+			memcpy(&prevalence, p, sizeof(prevalence));
+			(void)prevalence;	// we don't use the frequency when reading the pop data back in; let the static analyzer know that's OK
+			p += sizeof(prevalence);
+			
+			if (has_nucleotides)
+			{
+				memcpy(&nucleotide, p, sizeof(nucleotide));
+				p += sizeof(nucleotide);
+			}
+			
+			// look up the mutation type from its index
+			MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
+			
+			if (!mutation_type_ptr) 
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
+			
+			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			
+			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			
+			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
+			if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
+			
+			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
+			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+			
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			
+			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
+			mutations[polymorphism_id] = new_mut_index;
+			population_.MutationRegistryAdd(new_mut);
+			
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-		if (population_.keeping_muttype_registries_)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
+			if (population_.keeping_muttype_registries_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) separate muttype registries set up during pop load." << EidosTerminate();
 #endif
-		
-		// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
-		if (selection_coeff != 0.0)
-		{
-			pure_neutral_ = false;
-			mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			
+			// all mutations seen here will be added to the simulation somewhere, so check and set pure_neutral_ and all_pure_neutral_DFE_
+			if (selection_coeff != 0.0)
+			{
+				pure_neutral_ = false;
+				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			}
 		}
-	}
-	
-	population_.InvalidateMutationReferencesCache();
-	
-	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
-	else
-	{
-		memcpy(&section_end_tag, p, sizeof(section_end_tag));
-		p += sizeof(section_end_tag);
 		
-		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
-	}
-	
-	// FIXME MULTICHROM need to figure out the file format for multiple chromosomes
-	Chromosome &chromosome = TheChromosome();
-	
-	// Haplosomes section
-	if (pedigree_output_count)
-		gSLiM_next_pedigree_id = 0;
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
-	std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
-	MutationIndex *haplosomebuf = raii_haplosomebuf.get();
+		population_.InvalidateMutationReferencesCache();
+		
+		if (p + sizeof(section_end_tag) > buf_end)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
+		else
+		{
+			memcpy(&section_end_tag, p, sizeof(section_end_tag));
+			p += sizeof(section_end_tag);
+			
+			if (section_end_tag != (int32_t)0xFFFF0000)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
+		}
+		
+		// Haplosomes section
+		if (pedigree_output_count)
+			gSLiM_next_pedigree_id = 0;
+		
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
+		std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
+		MutationIndex *haplosomebuf = raii_haplosomebuf.get();
 #ifndef _OPENMP
-	MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
 #endif
-	
-	while (true)
-	{
-		slim_objectid_t subpop_id;
-		slim_popsize_t haplosome_index;
-		int32_t haplosome_type;
-		int32_t total_mutations;
 		
-		// If there isn't enough buffer left to read a full haplosome record, we assume we are done with this section
-		if (p + sizeof(haplosome_type) + sizeof(subpop_id) + sizeof(haplosome_index) + sizeof(total_mutations) > buf_end)
-			break;
-		
-		// First check the first 32 bits to see if it is a section end tag
-		memcpy(&haplosome_type, p, sizeof(haplosome_type));
-		
-		if (haplosome_type == (int32_t)0xFFFF0000)
-			break;
-		
-		// If not, proceed with reading the haplosome entry
-		p += sizeof(haplosome_type);
-		
-		memcpy(&subpop_id, p, sizeof(subpop_id));
-		p += sizeof(subpop_id);
-		
-		memcpy(&haplosome_index, p, sizeof(haplosome_index));
-		p += sizeof(haplosome_index);
-		
-		// Look up the subpopulation
-		Subpopulation *subpop = SubpopulationWithID(subpop_id);
-		
-		if (!subpop)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
-		
-		// Read in individual spatial position information.  Added in version 3.
-		if (spatial_output_count && ((haplosome_index % 2) == 0))
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
-			// do another buffer length check
-			if (p + spatial_output_count * sizeof(double) + sizeof(total_mutations) > buf_end)
-				break;
+			Subpopulation *subpop = subpop_pair.second;
 			
-			int individual_index = haplosome_index / 2;
-			Individual &individual = *subpop->parent_individuals_[individual_index];
-			
-			if (spatial_output_count >= 1)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				memcpy(&individual.spatial_x_, p, sizeof(individual.spatial_x_));
-				p += sizeof(double);
-			}
-			if (spatial_output_count >= 2)
-			{
-				memcpy(&individual.spatial_y_, p, sizeof(individual.spatial_y_));
-				p += sizeof(double);
-			}
-			if (spatial_output_count >= 3)
-			{
-				memcpy(&individual.spatial_z_, p, sizeof(individual.spatial_z_));
-				p += sizeof(double);
-			}
-		}
-		
-		// Read in individual pedigree ID information.  Added in version 6.
-		if (pedigree_output_count  && ((haplosome_index % 2) == 0))
-		{
-			// do another buffer length check
-			if (p + sizeof(slim_pedigreeid_t) + sizeof(total_mutations) > buf_end)
-				break;
-			
-			if (PedigreesEnabled())
-			{
-				int individual_index = haplosome_index / 2;
-				Individual &individual = *subpop->parent_individuals_[individual_index];
-				slim_pedigreeid_t pedigree_id;
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				memcpy(&pedigree_id, p, sizeof(pedigree_id));
-				
-				individual.SetPedigreeID(pedigree_id);
-				individual.haplosomes_[0]->SetHaplosomeID(pedigree_id * 2);
-				individual.haplosomes_[1]->SetHaplosomeID(pedigree_id * 2 + 1);
-				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
-			}
-			
-			p += sizeof(slim_pedigreeid_t);
-		}
-		
-		// Read in individual age information.  Added in version 4.
-		if (age_output_count && ((haplosome_index % 2) == 0))
-		{
-			// do another buffer length check
-			if (p + sizeof(slim_age_t) + sizeof(total_mutations) > buf_end)
-				break;
-			
-			int individual_index = haplosome_index / 2;
-			Individual &individual = *subpop->parent_individuals_[individual_index];
-			
-			memcpy(&individual.age_, p, sizeof(individual.age_));
-			p += sizeof(slim_age_t);
-		}
-		
-		memcpy(&total_mutations, p, sizeof(total_mutations));
-		p += sizeof(total_mutations);
-		
-		// Look up the haplosome
-		if ((haplosome_index < 0) || (haplosome_index > SLIM_MAX_SUBPOP_SIZE * 2))
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome index out of permitted range." << EidosTerminate();
-		
-		int64_t individual_index = haplosome_index >> 1;
-		Individual *ind = subpop->parent_individuals_[individual_index];
-		Haplosome &haplosome = *(ind->haplosomes_[haplosome_index & 0x01]);
-		
-		// Error-check the haplosome type
-		if (haplosome_type != (int32_t)haplosome.AssociatedChromosome()->Type())
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome type does not match the instantiated haplosome." << EidosTerminate();
-		
-		// Check the null haplosome state
-		// BCH 9/27/2021: We instantiate null haplosomes only in the case where we expect them: in sex-chromosome models,
-		// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any haplosome is now
-		// allowed to be null, at the user's discretion, so we transform the instantiated haplosome to a null haplosome
-		// if necessary.  AddSubpopulation() created the haplosomes above, before we knew which would be null.
-		if (total_mutations == (int32_t)0xFFFF1000)
-		{
-			if (!haplosome.IsNull())
-			{
-				if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (haplosome.AssociatedChromosome()->Type() == ChromosomeType::kA_DiploidAutosome))
+				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					haplosome.MakeNull();
-					subpop->has_null_haplosomes_ = true;
-				}
-				else
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
-			}
-		}
-		else
-		{
-			if (haplosome.IsNull())
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
-			
-			// Read in the mutation list
-			int32_t mutcount = 0;
-			
-			if (use_16_bit)
-			{
-				// reading 16-bit mutation tags
-				uint16_t mutation_id;
-				
-				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
-				
-				for (; mutcount < total_mutations; ++mutcount)
-				{
-					memcpy(&mutation_id, p, sizeof(mutation_id));
-					p += sizeof(mutation_id);
+					Haplosome &haplosome = *haplosomes[haplosome_index];
+					slim_objectid_t subpop_id;
+					int32_t total_mutations;
 					
-					// Add mutation to haplosome
-					if (/*(mutation_id < 0) ||*/ (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+					// If there isn't enough buffer left to read a full haplosome record, we have an error
+					if (p + sizeof(subpop_id) + sizeof(total_mutations) > buf_end)
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in haplosome header." << EidosTerminate();
 					
-					haplosomebuf[mutcount] = mutations[mutation_id];
-				}
-			}
-			else
-			{
-				// reading 32-bit mutation tags
-				int32_t mutation_id;
-				
-				if (p + sizeof(mutation_id) * total_mutations > buf_end)
-					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
-				
-				for (; mutcount < total_mutations; ++mutcount)
-				{
-					memcpy(&mutation_id, p, sizeof(mutation_id));
-					p += sizeof(mutation_id);
+					memcpy(&subpop_id, p, sizeof(subpop_id));
+					p += sizeof(subpop_id);
 					
-					// Add mutation to haplosome
-					if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+					if (subpop_id != subpop_pair.first + 1)		// + 1 to avoid colliding with section_end_tag
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): subpop id mismatch." << EidosTerminate();
 					
-					haplosomebuf[mutcount] = mutations[mutation_id];
-				}
-			}
-			
-			slim_position_t mutrun_length_ = haplosome.mutrun_length_;
-			slim_mutrun_index_t current_mutrun_index = -1;
-			MutationRun *current_mutrun = nullptr;
-			
-			for (int mut_index = 0; mut_index < mutcount; ++mut_index)
-			{
-				MutationIndex mutation = haplosomebuf[mut_index];
-				slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
-				
-				if (mutrun_index != current_mutrun_index)
-				{
+					memcpy(&total_mutations, p, sizeof(total_mutations));
+					p += sizeof(total_mutations);
+					
+					// Check the null haplosome state
+					// BCH 2/5/2025: We instantiate null haplosomes only where expect them to be, based upon
+					// the chromosome type.  For chromosome types 'A' and 'H', null haplosomes can occur anywhere;
+					// when that happens, we transform the instantiated haplosome to a null haplosome if necessary.
+					// AddSubpopulation() created the haplosomes above, before we knew which would be null.
+					if (total_mutations == (int32_t)0xFFFF1000)
+					{
+						if (!haplosome.IsNull())
+						{
+							if ((model_type_ == SLiMModelType::kModelTypeNonWF) && ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome)))
+							{
+								haplosome.MakeNull();
+								subpop->has_null_haplosomes_ = true;
+							}
+							else
+								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as null, but the instantiated haplosome is non-null." << EidosTerminate();
+						}
+					}
+					else
+					{
+						if (haplosome.IsNull())
+							EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): haplosome is specified as non-null, but the instantiated haplosome is null." << EidosTerminate();
+						
+						// Read in the mutation list
+						int32_t mutcount = 0;
+						
+						if (use_16_bit)
+						{
+							// reading 16-bit mutation tags
+							uint16_t mutation_id;
+							
+							if (p + sizeof(mutation_id) * total_mutations > buf_end)
+								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
+							
+							for (; mutcount < total_mutations; ++mutcount)
+							{
+								memcpy(&mutation_id, p, sizeof(mutation_id));
+								p += sizeof(mutation_id);
+								
+								// Add mutation to haplosome
+								if (/*(mutation_id < 0) ||*/ (mutation_id >= mutation_map_size)) 
+									EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+								
+								haplosomebuf[mutcount] = mutations[mutation_id];
+							}
+						}
+						else
+						{
+							// reading 32-bit mutation tags
+							int32_t mutation_id;
+							
+							if (p + sizeof(mutation_id) * total_mutations > buf_end)
+								EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading haplosome." << EidosTerminate();
+							
+							for (; mutcount < total_mutations; ++mutcount)
+							{
+								memcpy(&mutation_id, p, sizeof(mutation_id));
+								p += sizeof(mutation_id);
+								
+								// Add mutation to haplosome
+								if ((mutation_id < 0) || (mutation_id >= mutation_map_size)) 
+									EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation " << mutation_id << " has not been defined." << EidosTerminate();
+								
+								haplosomebuf[mutcount] = mutations[mutation_id];
+							}
+						}
+						
+						slim_position_t mutrun_length_ = haplosome.mutrun_length_;
+						slim_mutrun_index_t current_mutrun_index = -1;
+						MutationRun *current_mutrun = nullptr;
+						
+						for (int mut_index = 0; mut_index < mutcount; ++mut_index)
+						{
+							MutationIndex mutation = haplosomebuf[mut_index];
+							slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
+							
+							if (mutrun_index != current_mutrun_index)
+							{
 #ifdef _OPENMP
-					// When parallel, the MutationRunContext depends upon the position in the haplosome
-					MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
+								// When parallel, the MutationRunContext depends upon the position in the haplosome
+								MutationRunContext &mutrun_context = chromosome.ChromosomeMutationRunContextForMutationRunIndex(mutrun_index);
 #endif
-					
-					current_mutrun_index = mutrun_index;
-					
-					// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
-					// we created them empty, nobody has modified them but us, and we process each haplosome separately.
-					// However, using WillModifyRun() would generally be fine since we hit this call only once
-					// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
-					current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
+								
+								current_mutrun_index = mutrun_index;
+								
+								// We use WillModifyRun_UNSHARED() because we know that these runs are unshared (unless empty);
+								// we created them empty, nobody has modified them but us, and we process each haplosome separately.
+								// However, using WillModifyRun() would generally be fine since we hit this call only once
+								// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
+								current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
+							}
+							
+							current_mutrun->emplace_back(mutation);
+						}
+					}
 				}
-				
-				current_mutrun->emplace_back(mutation);
 			}
 		}
-	}
-	
-	if (p + sizeof(section_end_tag) > buf_end)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after haplosomes." << EidosTerminate();
-	else
-	{
-		memcpy(&section_end_tag, p, sizeof(section_end_tag));
-		p += sizeof(section_end_tag);
-		(void)p;	// dead store above is deliberate
 		
-		if (section_end_tag != (int32_t)0xFFFF0000)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after haplosomes." << EidosTerminate();
-	}
-	
-	// Ancestral sequence section, for nucleotide-based models
-	if (has_nucleotides)
-	{
-		if (p + sizeof(int64_t) > buf_end)
-		{
-			// The ancestral sequence can be suppressed at save time, to decrease file size etc.  If it is missing,
-			// we do not consider that an error at present.  This is a little weird – it's more useful to suppress
-			// the ancestral sequence when writing text – but maybe the user really doesn't want it.  So do nothing.
-		}
+		if (p + sizeof(section_end_tag) > buf_end)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after haplosomes." << EidosTerminate();
 		else
 		{
-			TheChromosome().AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
+			memcpy(&section_end_tag, p, sizeof(section_end_tag));
+			p += sizeof(section_end_tag);
+			
+			if (section_end_tag != (int32_t)0xFFFF0000)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after haplosomes." << EidosTerminate();
+		}
+		
+		// Ancestral sequence section, for nucleotide-based models
+		// The ancestral sequence can be suppressed at save time, to decrease file size etc.  If it is missing,
+		// we do not consider that an error at present.  This is a little weird – it's more useful to suppress
+		// the ancestral sequence when writing text – but maybe the user really doesn't want it.  So do nothing.
+		if (has_ancestral_nucs)
+		{
+			if (p + sizeof(int64_t) > buf_end)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): ancestral sequence was expected but is missing." << EidosTerminate();
+			
+			chromosome->AncestralSequence()->ReadCompressedNucleotides(&p, buf_end);
 			
 			if (p + sizeof(section_end_tag) > buf_end)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
@@ -1997,7 +2095,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			{
 				memcpy(&section_end_tag, p, sizeof(section_end_tag));
 				p += sizeof(section_end_tag);
-				(void)p;	// dead store above is deliberate
 				
 				if (section_end_tag != (int32_t)0xFFFF0000)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after ancestral sequence." << EidosTerminate();

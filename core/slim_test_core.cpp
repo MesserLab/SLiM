@@ -571,7 +571,7 @@ void _RunSpeciesTests(const std::string &temp_path)
 	{
 		SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.txt'); }", __LINE__);												// legal, read from file path; depends on the outputFull() test above
 		SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.slimbinary'); }", __LINE__);										// legal, read from file path; depends on the outputFull() test above
-		SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest_POSITIONS.txt'); }", "spatial dimension or age information", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest_POSITIONS.txt'); }", "spatial dimensionality of this model", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest_POSITIONS.slimbinary'); }", "output spatial dimensionality does not match", __LINE__);
 		SLiMAssertScriptSuccess(gen1_setup_i1x + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest_POSITIONS.txt'); }", __LINE__);
 		SLiMAssertScriptSuccess(gen1_setup_i1x + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest_POSITIONS.slimbinary'); }", __LINE__);

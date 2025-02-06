@@ -126,6 +126,10 @@ development head (in the master branch):
 			Subpopulation method outputVCFSample(): check that all haplosomes belong to a single chromosome; use chromosome symbols for the CHROM column
 			add [l$ groupAsIndividuals = T] parameter; if F, each haplosome is emitted as a haploid call rather than forming diploids, regardless of the chromosome's ploidy
 			Haplosome_Class::ExecuteMethod_readFromVCF(): require VCF data that is single-chromosome, as with output
+		fix built-in SLiM-format full input/output methods for multiple chromosomes:
+			Species method outputFull(): allow multi-chromosome output with a new sectioned format, for both text and binary
+			Species method readFromPopulationFile(): support reading multi-chromosome output, for both text and binary
+			policy change: readFromPopulationFile() breaks backward compatibility with old file formats, for both text and binary; too much has changed
 
 
 version 4.3 (Eidos version 3.3):
