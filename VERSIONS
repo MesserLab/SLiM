@@ -130,6 +130,7 @@ development head (in the master branch):
 			Species method outputFull(): allow multi-chromosome output with a new sectioned format, for both text and binary
 			Species method readFromPopulationFile(): support reading multi-chromosome output, for both text and binary
 			policy change: readFromPopulationFile() breaks backward compatibility with old file formats, for both text and binary; too much has changed
+		change file format codes for class Haplosome from GS/GM/GV to HS/HM/HV, matching the rename from Genome to Haplosome
 
 
 version 4.3 (Eidos version 3.3):

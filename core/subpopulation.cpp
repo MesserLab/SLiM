@@ -11153,7 +11153,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 			out << " " << requested_sex;
 		
 		if (chromosomes.size() > 1)
-			output_stream << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+		{
+			output_stream << " " << chromosome->Type();						// chromosome type, with >1 chromosome
+			output_stream << " \"" << chromosome->Symbol() << "\"";			// chromosome symbol, with >1 chromosome
+		}
 		
 		if (has_file)
 			out << " " << outfile_path;

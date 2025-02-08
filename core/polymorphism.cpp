@@ -73,7 +73,7 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 	{
 		Chromosome *chromosome = chromosomes[mutation_ptr_->chromosome_index_];
 		
-		p_out << " " << chromosome->Symbol();
+		p_out << " \"" << chromosome->Symbol() << "\"";
 	}
 	
 	// and then the remainder of the output line

@@ -7666,9 +7666,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 				p_out << " " << individual.PedigreeID();
 			
 			if (subpop->sex_enabled_)
-				p_out << ((i < first_male_index) ? " F " : " M ");		// sex: SEX ONLY
+				p_out << ((i < first_male_index) ? " F" : " M");		// sex: SEX ONLY
 			else
-				p_out << " H ";											// hermaphrodite
+				p_out << " H";											// hermaphrodite
 			
 			// BCH 2/5/2025: Before version 8, we emitted haplosome identifiers here, like "p1:16" and
 			// "p1:17", but now that we have multiple chromosomes that really isn't helpful; removing
@@ -7727,7 +7727,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		// write information about the chromosome; note that we write the chromosome symbol, but PrintAllBinary() does not
 		slim_chromosome_index_t chromosome_index = chromosome->Index();
 		
-		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " " << chromosome->Symbol()  << std::endl;
+		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " \"" << chromosome->Symbol() << "\"" << std::endl;
 		
 		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species_.LastHaplosomeIndices()[chromosome_index];
@@ -7811,8 +7811,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 					
 					// i used to be the haplosome index, now it is the individual index; we will have one or
 					// two lines with this individual index, depending on the intrinsic ploidy of the chromosome
-					// symbol is redundant but kinda nice for orientation
-					p_out << "p" << subpop_id << ":" << individual_index << " " << chromosome->Symbol();
+					p_out << "p" << subpop_id << ":" << individual_index;
 					
 					if (haplosome->IsNull())
 					{

@@ -2428,7 +2428,7 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		
 		for (Chromosome *focal_chromosome : chromosomes)
 		{
-			fout << "<p><i>Chromosome " << focal_chromosome->Symbol() << ":</i></p>\n";
+			fout << "<p><i>Chromosome \"" << focal_chromosome->Symbol() << "\":</i></p>\n";
 			
 			{
 				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom

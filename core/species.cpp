@@ -1123,8 +1123,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		
 		// chromosome symbol
 		chrom_iss >> sub;
+		std::string quoted_symbol = '\"' + chromosome->Symbol() + '\"';
 		
-		if (sub != chromosome->Symbol())
+		if (sub != quoted_symbol)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome symbol " << sub << " does not match expected symbol " << chromosome->Symbol() << "." << EidosTerminate();
 		
 		GetInputLine(infile, line);
@@ -1286,12 +1287,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			Individual *ind = subpop->parent_individuals_[individual_index];
 			int haplosome_index = first_haplosome_index + is_individual_index_repeat;
 			Haplosome &haplosome = *(ind->haplosomes_[haplosome_index]);
-			
-			// Now we should have a chromosome symbol, which should match the one we read
-			iss >> sub;
-			
-			if (sub != chromosome->Symbol())
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): haplosome is specified with chromosome symbol '" << sub << "', in the Chromosome section for symbol '" << chromosome->Symbol() << "'." << EidosTerminate();
 			
 			if (iss >> sub)
 			{

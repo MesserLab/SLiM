@@ -1343,8 +1343,6 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 		else
 			p_out << "p" << p_source_subpop_id << ":" << j;
 		
-		p_out << " " << p_chromosome.Symbol();	// all haplosomes must be associated with p_chromosome
-		
 		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
 			const MutationRun *mutrun = haplosome.mutruns_[run_index];
@@ -3069,7 +3067,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		// BCH 2/2/2025: added the cycle count here after the tick; it was already documented as being here!
 		// BCH 2/2/2025: added the chromosome symbol in the header; it is redundant for SLiM-format output,
 		// but useful for MS and VCF; I decided to put it in all three for consistency across formats
-		output_stream << "#OUT: " << community.Tick() << " " << species->Cycle() << " G";
+		// BCH 2/7/2025: changed GS/GM/GV to HS/HM/HV, for the genome -> haplosome transition
+		output_stream << "#OUT: " << community.Tick() << " " << species->Cycle() << " H";
 		
 		if (p_method_id == gID_output)
 			output_stream << "S";
@@ -3081,7 +3080,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		output_stream << " " << sample_size;
 		
 		if (chromosomes.size() > 1)
-			output_stream << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+		{
+			output_stream << " " << chromosome->Type();						// chromosome type, with >1 chromosome
+			output_stream << " \"" << chromosome->Symbol() << "\"";			// chromosome symbol, with >1 chromosome
+		}
 		
 		output_stream << std::endl;
 		
@@ -3111,10 +3113,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					// BCH 2/2/2025: added the cycle count here after the tick; it was already documented as being here!
 					// BCH 2/2/2025: added the chromosome symbol in the header; it is redundant for SLiM-format output,
 					// but useful for MS and VCF; I decided to put it in all three for consistency across formats
-					outfile << "#OUT: " << community.Tick() << " " << species->Cycle() << " GS " << sample_size;
+					// BCH 2/7/2025: changed GS/GM/GV to HS/HM/HV, for the genome -> haplosome transition
+					outfile << "#OUT: " << community.Tick() << " " << species->Cycle() << " HS " << sample_size;
 					
 					if (chromosomes.size() > 1)
-						outfile << " " << chromosome->Symbol();			// chromosome symbol, with >1 chromosome
+					{
+						outfile << " " << chromosome->Type();						// chromosome type, with >1 chromosome
+						outfile << " \"" << chromosome->Symbol() << "\"";			// chromosome symbol, with >1 chromosome
+					}
 					
 					outfile << " " << outfile_path << std::endl;
 					
