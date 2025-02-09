@@ -7845,7 +7845,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 					
 					// i used to be the haplosome index, now it is the individual index; we will have one or
 					// two lines with this individual index, depending on the intrinsic ploidy of the chromosome
-					p_out << "p" << subpop_id << ":" << individual_index;
+					// since we changed from a haplosome index to an individual index, we now emit an "i",
+					// just follow the same convention as the Individuals section
+					p_out << "p" << subpop_id << ":i" << individual_index;
 					
 					if (haplosome->IsNull())
 					{
@@ -8393,7 +8395,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_SLiM(p_out, sample, p_chromosome, p_subpop.subpopulation_id_);
+	Haplosome::PrintHaplosomes_SLiM(p_out, sample, p_chromosome);
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format

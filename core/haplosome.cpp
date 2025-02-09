@@ -1298,7 +1298,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 }
 
 // print the sample represented by haplosomes, using SLiM's own format
-void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, slim_objectid_t p_source_subpop_id)
+void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
@@ -1334,14 +1334,29 @@ void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome 
 	// print the sample's haplosomes
 	p_out << "Haplosomes:" << std::endl;
 	
-	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all individuals
+	for (slim_popsize_t j = 0; j < sample_size; j++)														// go through all haplosomes
 	{
 		Haplosome &haplosome = *p_haplosomes[j];
+		Individual *individual = haplosome.individual_;
 		
-		if (p_source_subpop_id == -1)
-			p_out << "p*:" << j;
-		else
-			p_out << "p" << p_source_subpop_id << ":" << j;
+		if (!individual)
+			EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_SLiM): (internal error) missing individual for haplosome." << EidosTerminate();
+		
+		slim_popsize_t index = individual->index_;
+		
+		if (index == -1)
+			EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_SLiM): haplosomes being output must be visible in a subpopulation (i.e., may not belong to new juveniles)." << EidosTerminate();
+		
+		Subpopulation *subpop = individual->subpopulation_;
+		
+		if (!subpop)
+			EIDOS_TERMINATION << "ERROR (Haplosome::PrintHaplosomes_SLiM): (internal error) missing subpopulation for individual." << EidosTerminate();
+		
+		// BCH 2/9/2025: For SLiM 5, we now print the subpopulation id and the
+		// individual index for the haplosome, telling the user where each
+		// haplosome came from; probably not useful, but more useful than before
+		p_out << 'p' << subpop->subpopulation_id_;
+		p_out << ":i" << index;
 		
 		for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
 		{
@@ -3089,7 +3104,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_output)
-			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, *chromosome, -1);	// -1 represents unknown source subpopulation
+			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, *chromosome);
 		else if (p_method_id == gID_outputMS)
 			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
@@ -3124,7 +3139,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					
 					outfile << " " << outfile_path << std::endl;
 					
-					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, *chromosome, -1);	// -1 represents unknown source subpopulation
+					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, *chromosome);
 					break;
 				case gID_outputMS:
 					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);

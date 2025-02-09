@@ -965,7 +965,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			std::istringstream iss(line);
 			
 			iss >> sub;		// pX:iY – individual identifier
-			int pos = static_cast<int>(sub.find_first_of(':'));
+			std::size_t pos = static_cast<int>(sub.find_first_of(':'));
+			
+			if (pos == std::string::npos)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): colon missing in individual specifier." << EidosTerminate();
+			
 			std::string &&subpop_id_string = sub.substr(0, pos);
 			
 			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
@@ -1369,23 +1373,30 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			std::istringstream iss(line);
 			
 			iss >> sub;
-			int pos = static_cast<int>(sub.find_first_of(':'));
+			std::size_t pos = static_cast<int>(sub.find_first_of(':'));
+			
+			if (pos == std::string::npos)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): colon missing in individual specifier." << EidosTerminate();
+			
 			std::string &&subpop_id_string = sub.substr(0, pos);
+			
 			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
+			std::string &&individual_index_string = sub.substr(pos + 1, std::string::npos);
+			
+			if (individual_index_string[0] != 'i')
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): reference to individual is malformed." << EidosTerminate();
+			
+			// this used to be the haplosome index, now it is the individual index and we have to figure out the haplosome index
+			int64_t individual_index_long = EidosInterpreter::NonnegativeIntegerForString(individual_index_string.c_str() + 1, nullptr);
 			
 			Subpopulation *subpop = SubpopulationWithID(subpop_id);
 			
 			if (!subpop)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
-			sub.erase(0, pos + 1);	// remove the subpop_id and the colon
-			
-			// this used to be the haplosome index, now it is the individual index and we have to figure out the haplosome index
-			int64_t individual_index_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-			
-			if ((individual_index_long < 0) || (individual_index_long > SLIM_MAX_SUBPOP_SIZE))
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): individual index out of permitted range." << EidosTerminate();
-			slim_popsize_t individual_index = static_cast<slim_popsize_t>(individual_index_long);	// range-check is above since we need to check against SLIM_MAX_SUBPOP_SIZE
+			if (individual_index_long > subpop->parent_subpop_size_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced individual i" << individual_index_long << " is out of range." << EidosTerminate();
+			slim_popsize_t individual_index = static_cast<slim_popsize_t>(individual_index_long);
 			
 			// detect when this is the second haplosome line for a given individual, and validate that
 			// FIXME this code is brittle in various ways -- a second line might be needed but omitted, or a third line might be given
@@ -1400,6 +1411,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			Individual *ind = subpop->parent_individuals_[individual_index];
 			int haplosome_index = first_haplosome_index + is_individual_index_repeat;
 			Haplosome &haplosome = *(ind->haplosomes_[haplosome_index]);
+			
+			std::cout << "for chromosome index " << (unsigned int)chromosome_index << " individual identifier " << sub << " parsed to subpop id " << subpop_id << " and individual index " << individual_index << ", is_individual_index_repeat == " << is_individual_index_repeat << ", haplosome_index " << haplosome_index << std::endl;
+			
+			if (haplosome.chromosome_index_ != chromosome->index_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) haplosome does not belong to the focal chromosome." << EidosTerminate();
 			
 			if (iss >> sub)
 			{
@@ -1467,6 +1483,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 					// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
 					current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
+				
+				std::cout << "   adding mutation with identifier " << sub << ", mutation ID " << mutation << ", existing count " << current_mutrun->size() << std::endl;
 				
 				current_mutrun->emplace_back(mutation);
 			}
