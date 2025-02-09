@@ -773,11 +773,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTextFile(): SLiM global state read");
 	
 	slim_tick_t file_tick, file_cycle;
-#if EIDOS_ROBIN_HOOD_HASHING
-	robin_hood::unordered_flat_map<slim_polymorphismid_t,MutationIndex> mutations;
-#elif STD_UNORDERED_MAP_HASHING
-	std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
-#endif
 	std::string line, sub; 
 	std::ifstream infile(p_file);
 	int spatial_output_count = 0;
@@ -1250,6 +1245,12 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): a Mutations section must follow each Chromosome line." << EidosTerminate();
 		
 		// Now we are in the Mutations section; read and instantiate all mutations and add them to our map and to the registry
+#if EIDOS_ROBIN_HOOD_HASHING
+		robin_hood::unordered_flat_map<slim_polymorphismid_t,MutationIndex> mutations;
+#elif STD_UNORDERED_MAP_HASHING
+		std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
+#endif
+		
 		while (!infile.eof()) 
 		{
 			GetInputLine(infile, line);
