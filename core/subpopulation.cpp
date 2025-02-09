@@ -882,21 +882,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						if ((haplosome1->mutrun_count_ != mutrun_count) || (haplosome1->mutrun_length_ != mutrun_length))
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome1 of individual has the wrong mutrun count/length." << EidosTerminate();
 						
-						// check that every mutation in the haplosome belongs to the right chromosome
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome1->mutruns_[run_index];
-							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-							
-							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
-							{
-								Mutation *mut = (mut_block_ptr + *mutrun_iter);
-								
-								if (mut->chromosome_index_ != haplosome1->chromosome_index_)
-									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome with chromosome_index_ " << (unsigned int)haplosome1->chromosome_index_ << "." << EidosTerminate();
-							}
-						}
+						// do not check haplosomes in the child generation; they are conceptually cleared to
+						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES is set
 					}
 					
 					if (((haplosome1->mutrun_count_ == 0) && ((haplosome1->mutrun_length_ != 0) || (haplosome1->mutruns_ != nullptr))) ||
@@ -1003,21 +990,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						if ((haplosome2->mutrun_count_ != mutrun_count) || (haplosome2->mutrun_length_ != mutrun_length))
 							EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) haplosome2 of individual has the wrong mutrun count/length." << EidosTerminate();
 						
-						// check that every mutation in the haplosome belongs to the right chromosome
-						for (int run_index = 0; run_index < mutrun_count; ++run_index)
-						{
-							const MutationRun *mutrun = haplosome2->mutruns_[run_index];
-							const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
-							const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
-							
-							for (; mutrun_iter != mutrun_end_iter; ++mutrun_iter)
-							{
-								Mutation *mut = (mut_block_ptr + *mutrun_iter);
-								
-								if (mut->chromosome_index_ != haplosome2->chromosome_index_)
-									EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutation with chromosome_index_ " << (unsigned int)mut->chromosome_index_ << " is present in haplosome with chromosome_index_ " << (unsigned int)haplosome2->chromosome_index_ << "." << EidosTerminate();
-							}
-						}
+						// do not check haplosomes in the child generation; they are conceptually cleared to
+						// nullptr (but can actually even contain garbage, unless SLIM_CLEAR_HAPLOSOMES is set
 					}
 					
 					if (((haplosome2->mutrun_count_ == 0) && ((haplosome2->mutrun_length_ != 0) || (haplosome2->mutruns_ != nullptr))) ||
