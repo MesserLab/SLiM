@@ -1413,8 +1413,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			int haplosome_index = first_haplosome_index + is_individual_index_repeat;
 			Haplosome &haplosome = *(ind->haplosomes_[haplosome_index]);
 			
-			std::cout << "for chromosome index " << (unsigned int)chromosome_index << " individual identifier " << sub << " parsed to subpop id " << subpop_id << " and individual index " << individual_index << ", is_individual_index_repeat == " << is_individual_index_repeat << ", haplosome_index " << haplosome_index << std::endl;
-			
 			if (haplosome.chromosome_index_ != chromosome->index_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) haplosome does not belong to the focal chromosome." << EidosTerminate();
 			
@@ -1484,8 +1482,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 					// per mutrun per haplosome anyway, as long as the mutations are sorted by position.
 					current_mutrun = haplosome.WillModifyRun_UNSHARED(current_mutrun_index, mutrun_context);
 				}
-				
-				std::cout << "   adding mutation with identifier " << sub << ", mutation ID " << mutation << ", existing count " << current_mutrun->size() << std::endl;
 				
 				current_mutrun->emplace_back(mutation);
 			}
