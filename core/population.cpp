@@ -7555,10 +7555,6 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 // print all mutations and all haplosomes to a stream
 void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
 {
-	// FIXME MULTICHROM implement output of individual tags!
-	if (p_output_ind_tags)
-		EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
-	
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) called with child generation active!." << EidosTerminate();
 		
@@ -7658,6 +7654,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
 		{
 			Individual &individual = *(subpop->parent_individuals_[i]);
+			static char double_buf[40];
 			
 			p_out << "p" << subpop_id << ":i" << i;						// individual identifier
 			
@@ -7678,8 +7675,6 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			if (spatial_output_count)
 			{
 				THREAD_SAFETY_IN_ACTIVE_PARALLEL("Population::PrintAll(): usage of statics");
-				
-				static char double_buf[40];
 				
 				if (spatial_output_count >= 1)
 				{
@@ -7702,10 +7697,49 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			if (age_output_count)
 				p_out << " " << individual.age_;
 			
-			p_out << std::endl;
-			
 			// output individual tags if requested
-			// FIXME MULTICHROM implement this
+			if (p_output_ind_tags)
+			{
+				if (individual.tag_value_ == SLIM_TAG_UNSET_VALUE)
+					p_out << " ?";
+				else
+					p_out << ' ' << individual.tag_value_;
+				
+				if (individual.tagF_value_ == SLIM_TAGF_UNSET_VALUE)
+					p_out << " ?";
+				else
+				{
+					snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.tagF_value_);		// necessary precision for non-lossiness
+					p_out << " " << double_buf;
+				}
+				
+				if (individual.tagL0_set_)
+					p_out << ' ' << (individual.tagL0_value_ ? 'T' : 'F');
+				else
+					p_out << " ?";
+				
+				if (individual.tagL1_set_)
+					p_out << ' ' << (individual.tagL1_value_ ? 'T' : 'F');
+				else
+					p_out << " ?";
+				
+				if (individual.tagL2_set_)
+					p_out << ' ' << (individual.tagL2_value_ ? 'T' : 'F');
+				else
+					p_out << " ?";
+				
+				if (individual.tagL3_set_)
+					p_out << ' ' << (individual.tagL3_value_ ? 'T' : 'F');
+				else
+					p_out << " ?";
+				
+				if (individual.tagL4_set_)
+					p_out << ' ' << (individual.tagL4_value_ ? 'T' : 'F');
+				else
+					p_out << " ?";
+			}
+			
+			p_out << std::endl;
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks)
@@ -7872,10 +7906,6 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 // print all mutations and all haplosomes to a stream in binary, for maximum reading speed
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
 {
-	// FIXME MULTICHROM implement output of individual tags!
-	if (p_output_ind_tags)
-		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
-	
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) called with child generation active!." << EidosTerminate();
 	
@@ -8059,7 +8089,40 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			}
 			
 			// output individual tags if requested
-			// FIXME MULTICHROM implement this
+			if (p_output_ind_tags)
+			{
+				char T_value = 1, F_value = 0, UNDEF_value = 2;
+				
+				// for these two, we just write out undefined-tag values directly; they will read back in
+				p_out.write(reinterpret_cast<char *>(&individual.tag_value_), sizeof individual.tag_value_);
+				p_out.write(reinterpret_cast<char *>(&individual.tagF_value_), sizeof individual.tagF_value_);
+				
+				// for the logical tags, we write out an undefined-tag value of 2
+				if (individual.tagL0_set_)
+					p_out.write(individual.tagL0_value_ ? &T_value : &F_value, sizeof T_value);
+				else
+					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+				
+				if (individual.tagL1_set_)
+					p_out.write(individual.tagL1_value_ ? &T_value : &F_value, sizeof T_value);
+				else
+					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+				
+				if (individual.tagL2_set_)
+					p_out.write(individual.tagL2_value_ ? &T_value : &F_value, sizeof T_value);
+				else
+					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+				
+				if (individual.tagL3_set_)
+					p_out.write(individual.tagL3_value_ ? &T_value : &F_value, sizeof T_value);
+				else
+					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+				
+				if (individual.tagL4_set_)
+					p_out.write(individual.tagL4_value_ ? &T_value : &F_value, sizeof T_value);
+				else
+					p_out.write(&UNDEF_value, sizeof UNDEF_value);
+			}
 		}
 	}
 	

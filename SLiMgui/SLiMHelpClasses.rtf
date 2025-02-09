@@ -8590,7 +8590,7 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0pedigreeIDs\'a0=\'a0F]\cf0 )
+, [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -8684,11 +8684,32 @@ Beginning with SLiM 3.3, the
 \f3\fs18 readFromPopulationFile()
 \f4\fs20 , subsequently).  This option is turned off (
 \f3\fs18 F
-\f4\fs20 ) by default, to preserve backward compatibility; if it is turned on (
-\f3\fs18 T
-\f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
+\f4\fs20 ) by default, for brevity.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
+Beginning with SLiM 5.0, the 
+\f3\fs18 individualTags
+\f4\fs20  parameter may be used to request that tag values for all individuals be written out (and read in by 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20 , subsequently).  This option is turned off (
+\f3\fs18 F
+\f4\fs20 ) by default, for brevity; if it turned on (
+\f3\fs18 T
+\f4\fs20 ), the values of all tags for all individuals (specifically, the 
+\f3\fs18 tag
+\f4\fs20 , 
+\f3\fs18 tagF
+\f4\fs20 , 
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20  properties) will be written, as described further in section 27.1.1.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()

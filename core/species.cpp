@@ -785,7 +785,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	bool has_individual_pedigree_IDs = false;
 	bool has_nucleotides = false;
 	bool output_ancestral_nucs = false;
-	bool has_individual_tags = false;
+	int individual_tags_count = false;
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
@@ -869,7 +869,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				else if (sub == "ANC_SEQ")
 					output_ancestral_nucs = true;
 				else if (sub == "IND_TAGS")
-					has_individual_tags = true;
+					individual_tags_count = 7;
 				else
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized flag in Flags line: '" << sub << "'." << EidosTerminate();
 			}
@@ -904,9 +904,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): nucleotides are not flagged as present in this file, but this is a nucleotide model; that is inconsistent." << EidosTerminate();
 	if (output_ancestral_nucs && !has_nucleotides)
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): an ancestral sequence is flagged as present, but nucleotides are not flagged as present; that is inconsistent." << EidosTerminate();
-	
-	if (has_individual_tags)
-		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) p_output_ind_tags not yet implemented!." << EidosTerminate();
 	
 	// Now we are in the Populations section; read and instantiate each population until we hit the Individuals section
 	while (!infile.eof())
@@ -1045,7 +1042,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			// Parse the optional fields at the end of each individual line.  This is a bit tricky.
 			// First we read all of the fields in, then we decide how to use them.
 			std::vector<std::string> opt_params;
-			int expected_opt_param_count = spatial_output_count + age_output_count;
+			int expected_opt_param_count = spatial_output_count + age_output_count + individual_tags_count;
 			int opt_param_index = 0;
 			
 			while (iss >> sub)
@@ -1070,9 +1067,125 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[opt_param_index++], nullptr);	// age
 			}
 			
-			if (has_individual_tags)
+			if (individual_tags_count)
 			{
-				// FIXME implement me!
+				{
+					std::string &tag_string = opt_params[opt_param_index++];
+					
+					if (tag_string == "?")
+						individual.tag_value_ = SLIM_TAG_UNSET_VALUE;
+					else
+					{
+						const char *c_str = tag_string.c_str();
+						char *last_used_char = nullptr;
+						errno = 0;
+						
+						int64_t converted_value = strtoll(c_str, &last_used_char, 10);
+						
+						if (errno || (last_used_char == c_str))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_InitializePopulationFromTextFile): tag value could not be represented as an integer (strtoll conversion error)." << EidosTerminate();
+						
+						individual.tag_value_ = converted_value;
+					}
+				}
+				{
+					std::string &tagF_string = opt_params[opt_param_index++];
+					
+					if (tagF_string == "?")
+						individual.tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+					else
+						individual.tagF_value_ = EidosInterpreter::FloatForString(tagF_string, nullptr);
+				}
+				{
+					std::string &tagL0_string = opt_params[opt_param_index++];
+					
+					if (tagL0_string == "?")
+						individual.tagL0_set_ = false;
+					else if (tagL0_string == "F")
+					{
+						individual.tagL0_value_ = 0;
+						individual.tagL0_set_ = true;
+					}
+					else if (tagL0_string == "T")
+					{
+						individual.tagL0_value_ = 1;
+						individual.tagL0_set_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL0 value for individual." << EidosTerminate();
+				}
+				{
+					std::string &tagL1_string = opt_params[opt_param_index++];
+					
+					if (tagL1_string == "?")
+						individual.tagL1_set_ = false;
+					else if (tagL1_string == "F")
+					{
+						individual.tagL1_value_ = 0;
+						individual.tagL1_set_ = true;
+					}
+					else if (tagL1_string == "T")
+					{
+						individual.tagL1_value_ = 1;
+						individual.tagL1_set_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL1 value for individual." << EidosTerminate();
+				}
+				{
+					std::string &tagL2_string = opt_params[opt_param_index++];
+					
+					if (tagL2_string == "?")
+						individual.tagL2_set_ = false;
+					else if (tagL2_string == "F")
+					{
+						individual.tagL2_value_ = 0;
+						individual.tagL2_set_ = true;
+					}
+					else if (tagL2_string == "T")
+					{
+						individual.tagL2_value_ = 1;
+						individual.tagL2_set_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL2 value for individual." << EidosTerminate();
+				}
+				{
+					std::string &tagL3_string = opt_params[opt_param_index++];
+					
+					if (tagL3_string == "?")
+						individual.tagL3_set_ = false;
+					else if (tagL3_string == "F")
+					{
+						individual.tagL3_value_ = 0;
+						individual.tagL3_set_ = true;
+					}
+					else if (tagL3_string == "T")
+					{
+						individual.tagL3_value_ = 1;
+						individual.tagL3_set_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL3 value for individual." << EidosTerminate();
+				}
+				{
+					std::string &tagL4_string = opt_params[opt_param_index++];
+					
+					if (tagL4_string == "?")
+						individual.tagL4_set_ = false;
+					else if (tagL4_string == "F")
+					{
+						individual.tagL4_value_ = 0;
+						individual.tagL4_set_ = true;
+					}
+					else if (tagL4_string == "T")
+					{
+						individual.tagL4_value_ = 1;
+						individual.tagL4_set_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL4 value for individual." << EidosTerminate();
+				}
 			}
 		}
 	}
@@ -1566,9 +1679,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if (has_ancestral_nucs && !has_nucleotides)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): an ancestral sequence is flagged as present, but the current model is not nucleotide-based." << EidosTerminate();
 		
-		if (has_ind_tags)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): (internal error) has_ind_tags not yet implemented!." << EidosTerminate();
-		
 		if ((slim_tick_t_size != sizeof(slim_tick_t)) ||
 			(slim_position_t_size != sizeof(slim_position_t)) ||
 			(slim_objectid_t_size != sizeof(slim_objectid_t)) ||
@@ -1663,7 +1773,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)	// go through all children
 		{
 			// If there isn't enough buffer left to read a full subpop record, we have an error
-			if (p + sizeof(IndividualSex) + pedigree_output_count * sizeof(slim_pedigreeid_t) + spatial_output_count * sizeof(double) + age_output_count * sizeof(slim_age_t) > buf_end)
+			if (p + sizeof(IndividualSex) + pedigree_output_count * sizeof(slim_pedigreeid_t) + spatial_output_count * sizeof(double) + age_output_count * sizeof(slim_age_t) + (has_ind_tags ? sizeof(slim_usertag_t) + sizeof(double) + 5*sizeof(char) : 0) > buf_end)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in individuals section." << EidosTerminate();
 			
 			Individual &individual = *(subpop->parent_individuals_[individual_index]);
@@ -1720,6 +1830,61 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			{
 				memcpy(&individual.age_, p, sizeof(individual.age_));
 				p += sizeof(slim_age_t);
+			}
+			
+			if (has_ind_tags)
+			{
+				memcpy(&individual.tag_value_, p, sizeof(individual.tag_value_));
+				p += sizeof(tag_value_);
+				
+				memcpy(&individual.tagF_value_, p, sizeof(individual.tagF_value_));
+				p += sizeof(individual.tagF_value_);
+				
+				{
+					char tagL0_value;
+					memcpy(&tagL0_value, p, sizeof(tagL0_value));
+					p += sizeof(char);
+					
+					if (tagL0_value == 0) { individual.tagL0_set_ = 1; individual.tagL0_value_ = 0; }
+					else if (tagL0_value == 1) { individual.tagL0_set_ = 1; individual.tagL0_value_ = 1; }
+					else { individual.tagL0_set_ = 0; }
+				}
+				{
+					char tagL1_value;
+					memcpy(&tagL1_value, p, sizeof(tagL1_value));
+					p += sizeof(char);
+					
+					if (tagL1_value == 0) { individual.tagL1_set_ = 1; individual.tagL1_value_ = 0; }
+					else if (tagL1_value == 1) { individual.tagL1_set_ = 1; individual.tagL1_value_ = 1; }
+					else { individual.tagL1_set_ = 0; }
+				}
+				{
+					char tagL2_value;
+					memcpy(&tagL2_value, p, sizeof(tagL2_value));
+					p += sizeof(char);
+					
+					if (tagL2_value == 0) { individual.tagL2_set_ = 1; individual.tagL2_value_ = 0; }
+					else if (tagL2_value == 1) { individual.tagL2_set_ = 1; individual.tagL2_value_ = 1; }
+					else { individual.tagL2_set_ = 0; }
+				}
+				{
+					char tagL3_value;
+					memcpy(&tagL3_value, p, sizeof(tagL3_value));
+					p += sizeof(char);
+					
+					if (tagL3_value == 0) { individual.tagL3_set_ = 1; individual.tagL3_value_ = 0; }
+					else if (tagL3_value == 1) { individual.tagL3_set_ = 1; individual.tagL3_value_ = 1; }
+					else { individual.tagL3_set_ = 0; }
+				}
+				{
+					char tagL4_value;
+					memcpy(&tagL4_value, p, sizeof(tagL4_value));
+					p += sizeof(char);
+					
+					if (tagL4_value == 0) { individual.tagL4_set_ = 1; individual.tagL4_value_ = 0; }
+					else if (tagL4_value == 1) { individual.tagL4_set_ = 1; individual.tagL4_value_ = 1; }
+					else { individual.tagL4_set_ = 0; }
+				}
 			}
 		}
 	}
