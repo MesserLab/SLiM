@@ -8395,7 +8395,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_SLiM(p_out, sample, p_chromosome);
+	Haplosome::PrintHaplosomes_SLiM(p_out, sample);
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format

@@ -1413,7 +1413,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			int haplosome_index = first_haplosome_index + is_individual_index_repeat;
 			Haplosome &haplosome = *(ind->haplosomes_[haplosome_index]);
 			
-			if (haplosome.chromosome_index_ != chromosome->index_)
+			if (haplosome.chromosome_index_ != chromosome->Index())
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): (internal error) haplosome does not belong to the focal chromosome." << EidosTerminate();
 			
 			if (iss >> sub)

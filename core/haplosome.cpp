@@ -1298,7 +1298,7 @@ EidosValue_SP Haplosome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID 
 }
 
 // print the sample represented by haplosomes, using SLiM's own format
-void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome)
+void Haplosome::PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes)
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_popsize_t sample_size = (slim_popsize_t)p_haplosomes.size();
@@ -3104,7 +3104,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		
 		// Call out to print the actual sample
 		if (p_method_id == gID_output)
-			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes, *chromosome);
+			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes);
 		else if (p_method_id == gID_outputMS)
 			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
@@ -3139,7 +3139,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					
 					outfile << " " << outfile_path << std::endl;
 					
-					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes, *chromosome);
+					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes);
 					break;
 				case gID_outputMS:
 					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
