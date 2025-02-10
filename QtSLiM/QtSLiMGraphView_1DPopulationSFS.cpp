@@ -21,6 +21,8 @@
 
 #include "QtSLiMWindow.h"
 
+#include <string>
+
 
 QtSLiMGraphView_1DPopulationSFS::QtSLiMGraphView_1DPopulationSFS(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {

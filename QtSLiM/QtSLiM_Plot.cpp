@@ -30,6 +30,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <limits>
 
 
 #pragma mark -

@@ -27,6 +27,10 @@
 
 #include "QtSLiM_Plot.h"
 
+#include <limits>
+#include <algorithm>
+#include <vector>
+
 
 QtSLiMGraphView_CustomPlot::QtSLiMGraphView_CustomPlot(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {

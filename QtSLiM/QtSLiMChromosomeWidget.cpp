@@ -35,6 +35,7 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <string>
 
 
 static const int numberOfTicksPlusOne = 4;

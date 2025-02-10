@@ -24,6 +24,7 @@
 #include <fstream>
 #include <map>
 #include <utility>
+#include <vector>
 
 
 Polymorphism::Polymorphism(slim_polymorphismid_t p_polymorphism_id, const Mutation *p_mutation_ptr, slim_refcount_t p_prevalence) :

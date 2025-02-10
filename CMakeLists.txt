@@ -138,6 +138,7 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
     set(GNULIB_NAMESPACE_SOURCES "${PROJECT_SOURCE_DIR}/core/chromosome.cpp" 
         "${PROJECT_SOURCE_DIR}/core/haplosome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/individual.cpp" 
         "${PROJECT_SOURCE_DIR}/core/population.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"

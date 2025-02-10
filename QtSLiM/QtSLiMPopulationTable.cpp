@@ -25,6 +25,9 @@
 
 #include <QDebug>
 
+#include <utility>
+#include <vector>
+
 
 QtSLiMPopulationTableModel::QtSLiMPopulationTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)
 {
