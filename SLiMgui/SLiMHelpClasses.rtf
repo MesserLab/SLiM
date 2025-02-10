@@ -1591,7 +1591,7 @@ individual => (object<Individual>$)\
 \f3\fs18 mutationStackPolicy
 \f4\fs20  property of 
 \f3\fs18 MutationType
-\f4\fs20 , section 25.11.1).  All target haplosomes and all mutations in 
+\f4\fs20 ).  All target haplosomes and all mutations in 
 \f3\fs18 mutations
 \f4\fs20  must be associated with the same 
 \f3\fs18 Chromosome
@@ -1639,7 +1639,7 @@ Note that in nonWF models that use tree-sequence recording, mutations cannot be 
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create (see section 25.10.1).  The selection coefficients of the mutations are drawn from their mutation types; 
+\f4\fs20  to \'93tag\'94 the mutations that you create.  The selection coefficients of the mutations are drawn from their mutation types; 
 \f3\fs18 addNewMutation()
 \f4\fs20  may be used instead if you wish to specify selection coefficients.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
@@ -1750,7 +1750,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f3\fs18 integer
 \f4\fs20 , it is intentionally not checked for validity; you may use arbitrary values of 
 \f3\fs18 originSubpop
-\f4\fs20  to \'93tag\'94 the mutations that you create (see section 25.10.1).  The 
+\f4\fs20  to \'93tag\'94 the mutations that you create.  The 
 \f3\fs18 addNewDrawnMutation()
 \f4\fs20  method may be used instead if you wish selection coefficients to be drawn from the mutation types of the mutations.  All of the target haplosomes must be associated with the same 
 \f3\fs18 Chromosome
@@ -2184,7 +2184,7 @@ Several helper functions are provided for working with sequences, such as
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Output the target haplosomes in MS format (see section 27.3.2 for output format details).  This low-level output method may be used to output any sample of 
+\f4\fs20 \cf2 Output the target haplosomes in MS format.  This low-level output method may be used to output any sample of 
 \f3\fs18 Haplosome
 \f4\fs20  objects associated with a single chromosome.  The Eidos function 
 \f3\fs18 sample()
@@ -3571,6 +3571,125 @@ For chromosomes that can be diploid (types
 \f4\fs20 , and 
 \f3\fs18 haploidGenome2NonNull
 \f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Output the state of the target vector of individuals.  If the optional parameter 
+\f3\fs18 filePath
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
+\f3\fs18 filePath
+\f4\fs20 , overwriting that file if 
+\f3\fs18 append
+\f4\fs20  if 
+\f3\fs18 F
+\f4\fs20 , or appending to the end of it if 
+\f3\fs18 append
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 .  This method is quite similar to the 
+\f3\fs18 Species
+\f4\fs20  method 
+\f3\fs18 outputFull()
+\f4\fs20 , but (1)\'a0it can produce output for any vector of individuals, not always for the entire population; (2)\'a0it does not support output in a binary format; (3)\'a0it can produce output regarding the genetics for all chromosomes or for just one focal chromosome; and (4)\'a0there is no corresponding read method, as r
+\f3\fs18 eadFromPopulationFile()
+\f4\fs20  can read the data saved by 
+\f3\fs18 outputFull()
+\f4\fs20 .\
+The 
+\f3\fs18 chromosome
+\f4\fs20  parameter specifies a focal chromosome for which the genetics of the target individuals will be output.  If 
+\f3\fs18 chromosome
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , all chromosomes will be output; otherwise, 
+\f3\fs18 chromosome
+\f4\fs20  may specify the focal chromosome with an 
+\f3\fs18 integer
+\f4\fs20  chromosome id, a 
+\f3\fs18 string
+\f4\fs20  chromosome symbol, or a 
+\f3\fs18 Chromosome
+\f4\fs20  object.\
+The 
+\f3\fs18 spatialPositions
+\f4\fs20  parameter may be used to control the output of the spatial positions of individuals in species for which continuous space has been enabled using the 
+\f3\fs18 dimensionality
+\f4\fs20  option of 
+\f3\fs18 initializeSLiMOptions()
+\f4\fs20 .  If 
+\f3\fs18 spatialPositions
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , the output will not contain spatial positions.  If 
+\f3\fs18 spatialPositions
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , spatial position information will be output if it is available.  If the species does not have continuous space enabled, the 
+\f3\fs18 spatialPositions
+\f4\fs20  parameter will be ignored.\
+The 
+\f3\fs18 ages
+\f4\fs20  parameter may be used to control the output of the ages of individuals in nonWF simulations.  If 
+\f3\fs18 ages
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , the output will not contain ages.  If 
+\f3\fs18 ages
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
+The 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  parameter may be used to control the output of the ancestral nucleotide sequence in nucleotide-based models.  If 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , the output will not contain ancestral nucleotide information.  This option is provided because the ancestral sequence may be quite large, for models with a long chromosome.  If the model is not nucleotide-based (as enabled with the 
+\f3\fs18 nucleotideBased
+\f4\fs20  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f4\fs20 ), the 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will always include the nucleotides associated with any nucleotide-based mutations; the 
+\f3\fs18 ancestralNucleotides
+\f4\fs20  flag governs only the ancestral sequence.\
+The 
+\f3\fs18 pedigreeIDs
+\f4\fs20  parameter may be used to request that pedigree IDs be written out.  This option is turned off (
+\f3\fs18 F
+\f4\fs20 ) by default, for brevity.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 .\
+Finally, the 
+\f3\fs18 individualTags
+\f4\fs20  parameter may be used to request that tag values for all individuals be written out (and read in by 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20 , subsequently).  This option is turned off (
+\f3\fs18 F
+\f4\fs20 ) by default, for brevity; if it turned on (
+\f3\fs18 T
+\f4\fs20 ), the values of all tags for all individuals (specifically, the 
+\f3\fs18 tag
+\f4\fs20 , 
+\f3\fs18 tagF
+\f4\fs20 , 
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20  properties) will be written.\
+Output is generally done in a 
+\f3\fs18 late()
+\f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
@@ -8709,7 +8828,7 @@ Beginning with SLiM 5.0, the
 \f3\fs18 tagL3
 \f4\fs20 , and 
 \f3\fs18 tagL4
-\f4\fs20  properties) will be written, as described further in section 27.1.1.\
+\f4\fs20  properties) will be written.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()

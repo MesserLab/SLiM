@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <fstream>
 
 
 #pragma mark -
@@ -678,6 +679,10 @@ void Individual::PrintIndividuals(std::ostream &p_out, Individual **p_individual
 	
 	for (Chromosome *chromosome : chromosomes)
 	{
+		// if we have a focal chromosome, skip all the other chromosomes
+		if (p_focal_chromosome && (chromosome != p_focal_chromosome))
+			continue;
+		
 		// write information about the chromosome; note that we write the chromosome symbol, but PrintAllBinary() does not
 		slim_chromosome_index_t chromosome_index = chromosome->Index();
 		
@@ -2971,10 +2976,12 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("individualTags", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
@@ -2986,9 +2993,109 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
+		case gID_outputIndividuals:		return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
 		default:						return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	– (void)outputIndividuals([Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = F], [logical$ pedigreeIDs = F], [logical$ individualTags = F])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *append_value = p_arguments[1].get();
+	EidosValue *chromosome_value = p_arguments[2].get();
+	EidosValue *spatialPositions_value = p_arguments[3].get();
+	EidosValue *ages_value = p_arguments[4].get();
+	EidosValue *ancestralNucleotides_value = p_arguments[5].get();
+	EidosValue *pedigreeIDs_value = p_arguments[6].get();
+	EidosValue *individualTags_value = p_arguments[7].get();
+	
+	// here we need to require at least one target individual,
+	// do a species consistency check and get the species/community,
+	// and get the vector of individuals that we will pass in
+	// (from the raw data of the EidosValue, no need to copy; but add const)
+	int individuals_count = p_target->Count();
+	
+	if (individuals_count == 0)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() cannot be called on a zero-length target vector; at least one individual is required." << EidosTerminate();
+	
+	Individual **individuals_buffer = (Individual **)p_target->ObjectData();
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() requires that all individuals belong to the same species." << EidosTerminate();
+	
+	Community &community = species->community_;
+	
+	// TIMING RESTRICTION
+	if (!community.warned_early_output_)
+	{
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
+		{
+			if (!gEidosSuppressWarnings)
+			{
+				p_interpreter.ErrorOutputStream() << "#WARNING (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				community.warned_early_output_ = true;
+			}
+		}
+	}
+	
+	Chromosome *chromosome = nullptr;
+	
+	if (chromosome_value->Type() != EidosValueType::kValueNULL)
+	{
+		std::vector<slim_chromosome_index_t> chromosome_indices;
+		
+		species->GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
+		
+		if (chromosome_indices.size() != 1)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): (internal error) chromosome lookup failed." << EidosTerminate();
+		
+		chromosome = species->Chromosomes()[chromosome_indices[0]];
+	}
+	
+	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_ages = ages_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_individual_tags = individualTags_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	if (output_pedigree_ids && !species->PedigreesEnabledByUser())
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
+	
+	if (filePath_value->Type() == EidosValueType::kValueNULL)
+	{
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		Individual::PrintIndividuals(output_stream, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, chromosome);
+	}
+	else
+	{
+		std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex_NOCAST(0, nullptr));
+		bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
+		std::ofstream outfile;
+		
+		outfile.open(outfile_path.c_str(), append ? (std::ios_base::app | std::ios_base::out) : std::ios_base::out);
+		
+		if (outfile.is_open())
+		{
+			Individual::PrintIndividuals(outfile, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, chromosome);
+			
+			outfile.close(); 
+		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() could not open " << outfile_path << "." << EidosTerminate();
+		}
+	}
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (void)setSpatialPosition(float position)
