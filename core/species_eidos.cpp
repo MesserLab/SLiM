@@ -3245,7 +3245,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		population_.PrintAll(output_stream, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags);
+		Individual::PrintIndividuals(output_stream, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, /* p_focal_chromosome */ nullptr);
 	}
 	else
 	{
@@ -3269,7 +3269,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 			}
 			else
 			{
-				population_.PrintAll(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags);
+				Individual::PrintIndividuals(outfile, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, /* p_focal_chromosome */ nullptr);
 			}
 			
 			outfile.close(); 

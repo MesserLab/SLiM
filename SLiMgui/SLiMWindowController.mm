@@ -3097,8 +3097,8 @@
 		Species *displaySpecies = [self focalDisplaySpecies];
 		slim_tick_t species_cycle = displaySpecies->Cycle();
 		
-		// dump the population
-		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false, false);	// output spatial positions and ages if available, but not ancestral sequence or tags
+		// dump the population: output spatial positions and ages if available, but not ancestral sequence or tags
+		Individual::PrintIndividuals(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, false, /* p_focal_chromosome */ nullptr);
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
@@ -3290,7 +3290,7 @@
 			// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
 			Species *displaySpecies = [self focalDisplaySpecies];
 			
-			displaySpecies->population_.PrintAll(outstring, true, true, true, false, true);	// include spatial positions, ages, ancestral sequence, and tags, if available
+			Individual::PrintIndividuals(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, true, false, true, /* p_focal_chromosome */ nullptr);	// include spatial positions, ages, ancestral sequence, and tags, if available
 			
 			std::string &&population_dump = outstring.str();
 			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];

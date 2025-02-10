@@ -295,6 +295,9 @@ public:
 		}
 	}
 	
+	// Individual-level output methods; used by outputIndividuals() and outputIndividualsVCF()
+	static void PrintIndividuals(std::ostream &p_out, Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome);
+	
 	//
 	// Eidos support
 	//

@@ -24,6 +24,7 @@
 #include "community.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
+#include "polymorphism.h"
 
 #include <string>
 #include <algorithm>
@@ -432,6 +433,388 @@ int Individual::SharedParentCountWithIndividual(Individual &p_ind)
 	slim_pedigreeid_t Y_P2 = indY.pedigree_p2_;
 	
 	return _SharedParentCount(X_P1, X_P2, Y_P1, Y_P2);
+}
+
+// print a vector of individuals, with all mutations and all haplosomes, to a stream
+// this takes a focal chromosome; if nullptr, data from all chromosomes is printed
+void Individual::PrintIndividuals(std::ostream &p_out, Individual **p_individuals, int64_t p_individuals_count, Species &species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome)
+{
+	Population &population = species.population_;
+	Community &community = species.community_;
+	
+	if (population.child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals): (internal error) called with child generation active!." << EidosTerminate();
+	
+#if DO_MEMORY_CHECKS
+	// This method can burn a huge amount of memory and get us killed, if we have a maximum memory usage.  It's nice to
+	// try to check for that and terminate with a proper error message, to help the user diagnose the problem.
+	int mem_check_counter = 0, mem_check_mod = 100;
+	
+	if (eidos_do_memory_checks)
+		Eidos_CheckRSSAgainstMax("Individual::PrintIndividuals", "(The memory usage was already out of bounds on entry.)");
+#endif
+	
+	// this method now handles outputFull() as well as outputIndividuals()
+	bool output_full_population = (p_individuals == nullptr);
+	
+	if (output_full_population)
+	{
+		// We need to set up an individuals vector that contains all individuals, so we can share code below
+		int64_t total_population_size = 0;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+			
+			total_population_size += subpop_size;
+		}
+		
+		p_individuals = (Individual **)malloc(total_population_size * sizeof(Individual *));
+		p_individuals_count = total_population_size;
+		
+		Individual **ind_buffer_ptr = p_individuals;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+			
+			for (slim_popsize_t i = 0; i < subpop_size; i++)				// go through all children
+				*(ind_buffer_ptr++) = subpop->parent_individuals_[i];
+		}
+	}
+	
+	// write the #OUT line
+	p_out << "#OUT: " << community.Tick() << " " << species.Cycle() << (output_full_population ? " A" : " IS") << std::endl;
+	
+	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
+	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
+	int spatial_output_count = (p_output_spatial_positions ? species.SpatialDimensionality() : 0);
+	
+	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
+	int age_output_count = (p_output_ages && (species.model_type_ == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
+	
+	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different
+	// versions, etc.  Starting in SLiM 5, the version number is again synced with PrintAllBinary() (skipping
+	// over 7 directly to 8), and the crazy four-way version number scheme that encoded flags is gone. See
+	// PrintAllBinary() for the version history; but with version 8 we break backward compatibility anyway.
+	p_out << "Version: 8" << std::endl;
+	
+	// Starting with version 8 (SLiM 5.0), we write out some flags; this information used to be incorporated into
+	// the version number, which was gross.  Now we write out flags for all optional output that is enabled.
+	// Reading code can assume that if a flag is not present, that output is not present.
+	bool has_nucleotides = species.IsNucleotideBased();
+	bool output_ancestral_nucs = has_nucleotides && p_output_ancestral_nucs;
+	
+	p_out << "Flags:";
+	if (spatial_output_count)		p_out << " SPACE=" << spatial_output_count;
+	if (age_output_count)			p_out << " AGES";
+	if (p_output_pedigree_ids)		p_out << " PEDIGREES";
+	if (has_nucleotides)			p_out << " NUC";
+	if (output_ancestral_nucs)		p_out << " ANC_SEQ";
+	if (p_output_ind_tags)			p_out << " IND_TAGS";
+	p_out << std::endl;
+	
+	// Output populations first, for outputFull() only
+	if (output_full_population)
+	{
+		p_out << "Populations:" << std::endl;
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_size = subpop->parent_subpop_size_;
+			double subpop_sex_ratio;
+			
+			if (species.model_type_ == SLiMModelType::kModelTypeWF)
+			{
+				subpop_sex_ratio = subpop->parent_sex_ratio_;
+			}
+			else
+			{
+				// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
+				if (subpop->parent_subpop_size_ == 0)
+					subpop_sex_ratio = 0.0;
+				else
+					subpop_sex_ratio = 1.0 - (subpop->parent_first_male_index_ / (double)subpop->parent_subpop_size_);
+			}
+			
+			p_out << "p" << subpop_pair.first << " " << subpop_size;
+			
+			// SEX ONLY
+			if (subpop->sex_enabled_)
+				p_out << " S " << subpop_sex_ratio;
+			else
+				p_out << " H";
+			
+			p_out << std::endl;
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while outputting population list.)");
+			}
+#endif
+		}
+	}
+	
+	// print all individuals; this used to come after the Mutations: section, but now mutations are per-chromosome,
+	// whereas the list of individuals is invariant across all of the chromosomes printed, and so must come before
+	p_out << "Individuals:" << std::endl;
+	
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Individual::PrintIndividuals(): usage of statics");
+	static char double_buf[40];
+	
+	for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
+	{
+		Individual &individual = *(p_individuals[individual_index]);
+		Subpopulation *subpop = individual.subpopulation_;
+		slim_popsize_t index_in_subpop = individual.index_;
+		
+		if (!subpop || (index_in_subpop == -1))
+		{
+			if (output_full_population)
+				free(p_individuals);
+			
+			EIDOS_TERMINATION << "ERROR (Individual::PrintIndividuals): target individuals must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
+		}
+		
+		p_out << "p" << subpop->subpopulation_id_ << ":i" << index_in_subpop;						// individual identifier
+		
+		// BCH 9/13/2020: adding individual pedigree IDs, for SLiM 3.5, format version 5/6
+		if (p_output_pedigree_ids)
+			p_out << " " << individual.PedigreeID();
+		
+		p_out << ' ' << individual.sex_;
+		
+		// BCH 2/5/2025: Before version 8, we emitted haplosome identifiers here, like "p1:16" and
+		// "p1:17", but now that we have multiple chromosomes that really isn't helpful; removing
+		// them.  In the Haplosomes section we will now just identify the individual; that suffices.
+		
+		// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
+		if (spatial_output_count)
+		{
+			if (spatial_output_count >= 1)
+			{
+				snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_x_);		// necessary precision for non-lossiness
+				p_out << " " << double_buf;
+			}
+			if (spatial_output_count >= 2)
+			{
+				snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_y_);		// necessary precision for non-lossiness
+				p_out << " " << double_buf;
+			}
+			if (spatial_output_count >= 3)
+			{
+				snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_z_);		// necessary precision for non-lossiness
+				p_out << " " << double_buf;
+			}
+		}
+		
+		// output ages if requested
+		if (age_output_count)
+			p_out << " " << individual.age_;
+		
+		// output individual tags if requested
+		if (p_output_ind_tags)
+		{
+			if (individual.tag_value_ == SLIM_TAG_UNSET_VALUE)
+				p_out << " ?";
+			else
+				p_out << ' ' << individual.tag_value_;
+			
+			if (individual.tagF_value_ == SLIM_TAGF_UNSET_VALUE)
+				p_out << " ?";
+			else
+			{
+				snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.tagF_value_);		// necessary precision for non-lossiness
+				p_out << " " << double_buf;
+			}
+			
+			if (individual.tagL0_set_)
+				p_out << ' ' << (individual.tagL0_value_ ? 'T' : 'F');
+			else
+				p_out << " ?";
+			
+			if (individual.tagL1_set_)
+				p_out << ' ' << (individual.tagL1_value_ ? 'T' : 'F');
+			else
+				p_out << " ?";
+			
+			if (individual.tagL2_set_)
+				p_out << ' ' << (individual.tagL2_value_ ? 'T' : 'F');
+			else
+				p_out << " ?";
+			
+			if (individual.tagL3_set_)
+				p_out << ' ' << (individual.tagL3_value_ ? 'T' : 'F');
+			else
+				p_out << " ?";
+			
+			if (individual.tagL4_set_)
+				p_out << ' ' << (individual.tagL4_value_ ? 'T' : 'F');
+			else
+				p_out << " ?";
+		}
+		
+		p_out << std::endl;
+		
+#if DO_MEMORY_CHECKS
+		if (eidos_do_memory_checks)
+		{
+			mem_check_counter++;
+			
+			if (mem_check_counter % mem_check_mod == 0)
+				Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing individuals.)");
+		}
+#endif
+	}
+	
+	// Loop over chromosomes and output data for each
+	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+	
+	for (Chromosome *chromosome : chromosomes)
+	{
+		// write information about the chromosome; note that we write the chromosome symbol, but PrintAllBinary() does not
+		slim_chromosome_index_t chromosome_index = chromosome->Index();
+		
+		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " \"" << chromosome->Symbol() << "\"" << std::endl;
+		
+		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome_index];
+		PolymorphismMap polymorphisms;
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		// add all polymorphisms for this chromosome
+		for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
+		{
+			Individual *ind = p_individuals[individual_index];
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				int mutrun_count = haplosome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					const MutationRun *mutrun = haplosome->mutruns_[run_index];
+					int mut_count = mutrun->size();
+					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+					
+					for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+						AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+				}
+				
+#if DO_MEMORY_CHECKS
+				if (eidos_do_memory_checks)
+				{
+					mem_check_counter++;
+					
+					if (mem_check_counter % mem_check_mod == 0)
+						Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while assembling polymorphisms.)");
+				}
+#endif
+			}
+		}
+		
+		// print all polymorphisms
+		p_out << "Mutations:"  << std::endl;
+		
+		for (const PolymorphismPair &polymorphism_pair : polymorphisms)
+		{
+			// NOTE this added mutation_id_, BCH 11 June 2016
+			// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
+			polymorphism_pair.second.Print_ID(p_out);
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing polymorphisms.)");
+			}
+#endif
+		}
+		
+		// print all haplosomes
+		p_out << "Haplosomes:" << std::endl;
+		
+		for (int64_t individual_index = 0; individual_index < p_individuals_count; ++individual_index)
+		{
+			Individual *ind = p_individuals[individual_index];
+			Haplosome **haplosomes = ind->haplosomes_;
+			
+			for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+			{
+				Haplosome *haplosome = haplosomes[haplosome_index];
+				
+				// i used to be the haplosome index, now it is the individual index; we will have one or
+				// two lines with this individual index, depending on the intrinsic ploidy of the chromosome
+				// since we changed from a haplosome index to an individual index, we now emit an "i",
+				// just follow the same convention as the Individuals section
+				p_out << "p" << ind->subpopulation_->subpopulation_id_ << ":i" << ind->index_;
+				
+				if (haplosome->IsNull())
+				{
+					p_out << " <null>";
+				}
+				else
+				{
+					int mutrun_count = haplosome->mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						const MutationRun *mutrun = haplosome->mutruns_[run_index];
+						int mut_count = mutrun->size();
+						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+						
+						for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+						{
+							slim_polymorphismid_t polymorphism_id = FindMutationInPolymorphismMap(polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+							
+							if (polymorphism_id == -1)
+								EIDOS_TERMINATION << "ERROR (Population::PrintAll): (internal error) polymorphism not found." << EidosTerminate();
+							
+							p_out << " " << polymorphism_id;
+						}
+					}
+				}
+				
+				p_out << std::endl;
+				
+#if DO_MEMORY_CHECKS
+				if (eidos_do_memory_checks)
+				{
+					mem_check_counter++;
+					
+					if (mem_check_counter % mem_check_mod == 0)
+						Eidos_CheckRSSAgainstMax("Population::PrintAll", "(Out of memory while printing haplosomes.)");
+				}
+#endif
+			}
+		}
+		
+		// print ancestral sequence
+		if (output_ancestral_nucs)
+		{
+			p_out << "Ancestral sequence:" << std::endl;
+			p_out << *(chromosome->AncestralSequence());
+			
+			// operator<< above ends with a newline; here we add another, which the read code
+			// can use to recognize that the nucleotide sequence has ended, even without an EOF
+			p_out << std::endl;
+		}
+	}
+	
+	// if we malloced a buffer of individuals above, free it now
+	if (output_full_population)
+		free(p_individuals);
 }
 
 
