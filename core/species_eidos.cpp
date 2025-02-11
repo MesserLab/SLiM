@@ -2004,15 +2004,8 @@ EidosValue_SP Species::ExecuteMethod_addPatternForClone(EidosGlobalStringID p_me
 	EidosValue *parent_value = p_arguments[2].get();
 	EidosValue *sex_value = p_arguments[3].get();
 	
-	// Get the focal chromosome
-	std::vector<slim_chromosome_index_t> chromosome_indices;
-	
-	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-	
-	if (chromosome_indices.size() != 1)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForClone): (internal error) chromosome lookup failed." << EidosTerminate();
-	
-	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	// Get the focal chromosome; NULL is not allowed by signature
+	Chromosome *chromosome = GetChromosomeFromEidosValue(chromosome_value);
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
 	EidosDictionaryUnretained *pattern;
@@ -2095,15 +2088,8 @@ EidosValue_SP Species::ExecuteMethod_addPatternForCross(EidosGlobalStringID p_me
 	EidosValue *parent2_value = p_arguments[3].get();
 	EidosValue *sex_value = p_arguments[4].get();
 	
-	// Get the focal chromosome
-	std::vector<slim_chromosome_index_t> chromosome_indices;
-	
-	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-	
-	if (chromosome_indices.size() != 1)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForCross): (internal error) chromosome lookup failed." << EidosTerminate();
-	
-	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	// Get the focal chromosome; NULL is not allowed by signature
+	Chromosome *chromosome = GetChromosomeFromEidosValue(chromosome_value);
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
 	EidosDictionaryUnretained *pattern;
@@ -2187,15 +2173,8 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 	EidosValue *pattern_value = p_arguments[1].get();
 	EidosValue *sex_value = p_arguments[2].get();
 	
-	// Get the focal chromosome
-	std::vector<slim_chromosome_index_t> chromosome_indices;
-	
-	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-	
-	if (chromosome_indices.size() != 1)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): (internal error) chromosome lookup failed." << EidosTerminate();
-	
-	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	// Get the focal chromosome; NULL is not allowed by signature
+	Chromosome *chromosome = GetChromosomeFromEidosValue(chromosome_value);
 	ChromosomeType chromosome_type = chromosome->Type();
 	
 	// Get or construct the pattern dictionary; result_SP keeps a retain on it
@@ -2289,15 +2268,8 @@ EidosValue_SP Species::ExecuteMethod_addPatternForRecombinant(EidosGlobalStringI
 	EidosValue *sex_value = p_arguments[8].get();
 	EidosValue *randomizeStrands_value = p_arguments[9].get();
 	
-	// Get the focal chromosome
-	std::vector<slim_chromosome_index_t> chromosome_indices;
-	
-	GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-	
-	if (chromosome_indices.size() != 1)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): (internal error) chromosome lookup failed." << EidosTerminate();
-	
-	Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
+	// Get the focal chromosome; NULL is not allowed by signature
+	Chromosome *chromosome = GetChromosomeFromEidosValue(chromosome_value);
 	ChromosomeType chromosome_type = chromosome->Type();
 	slim_chromosome_index_t chromosome_index = chromosome->Index();
 	
@@ -3615,20 +3587,10 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 	if (p_method_id == gID_registerRecombinationCallback)
 	{
 		EidosValue *chromosome_value = p_arguments[5].get();
+		Chromosome *chromosome = GetChromosomeFromEidosValue(chromosome_value);	// returns nullptr for NULL
 		
-		if (chromosome_value->Type() != EidosValueType::kValueNULL)
-		{
-			std::vector<slim_chromosome_index_t> chromosome_indices;
-			
-			GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-			
-			if (chromosome_indices.size() != 1)
-				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): (internal error) chromosome lookup failed." << EidosTerminate();
-			
-			Chromosome *chromosome = chromosomes_[chromosome_indices[0]];
-			
+		if (chromosome)
 			new_script_block->chromosome_id_ = chromosome->ID();
-		}
 	}
 	
 	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
@@ -3854,16 +3816,9 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	Chromosome *chromosome = nullptr;
 	slim_chromosome_index_t chromosome_index = 0;
 	
-	if (has_chromosome)
+	if (has_chromosome)		// NULL case handled above
 	{
-		std::vector<slim_chromosome_index_t> chromosome_indices;
-		
-		GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-		
-		if (chromosome_indices.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): (internal error) chromosome lookup failed." << EidosTerminate();
-		
-		chromosome = chromosomes_[chromosome_indices[0]];
+		chromosome = GetChromosomeFromEidosValue(chromosome_value);
 		chromosome_index = chromosome->Index();
 	}
 	

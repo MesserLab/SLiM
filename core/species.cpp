@@ -422,6 +422,54 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	}
 }
 
+Chromosome *Species::GetChromosomeFromEidosValue(EidosValue *chromosome_value)
+{
+	EidosValueType chromosome_value_type = chromosome_value->Type();
+	int chromosome_value_count = chromosome_value->Count();
+	
+	// NULL means "no chromosome chosen"; caller must be prepared for nullptr
+	if (chromosome_value_type == EidosValueType::kValueNULL)
+		return nullptr;
+	
+	if (chromosome_value_count != 1)
+		EIDOS_TERMINATION << "ERROR (Species::GetChromosomeFromEidosValue): (internal error) the chromosome parameter must be singleton." << EidosTerminate();
+	
+	switch (chromosome_value_type)
+	{
+		case EidosValueType::kValueInt:
+		{
+			int64_t id = chromosome_value->IntAtIndex_NOCAST(0, nullptr);
+			Chromosome *chromosome = ChromosomeFromID(id);
+			
+			if (!chromosome)
+				EIDOS_TERMINATION << "ERROR (Species::GetChromosomeFromEidosValue): could not find a chromosome with the given id (" << id << ") in the target species." << EidosTerminate();
+			
+			return chromosome;
+		}
+		case EidosValueType::kValueString:
+		{
+			const std::string &symbol = chromosome_value->StringAtIndex_NOCAST(0, nullptr);
+			Chromosome *chromosome = ChromosomeFromSymbol(symbol);
+			
+			if (!chromosome)
+				EIDOS_TERMINATION << "ERROR (Species::GetChromosomeFromEidosValue): could not find a chromosome with the given symbol (" << symbol << ") in the target species." << EidosTerminate();
+			
+			return chromosome;
+		}
+		case EidosValueType::kValueObject:
+		{
+			Chromosome *chromosome = (Chromosome *)chromosome_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+			
+			if (&chromosome->species_ != this)
+				EIDOS_TERMINATION << "ERROR (Species::GetChromosomeFromEidosValue): the chromosome passed does not belong to the target species." << EidosTerminate();
+			
+			return chromosome;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetChromosomeFromEidosValue): (internal error) unexpected type for parameter chromosome." << EidosTerminate();
+	}
+}
+
 void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value)
 {
 	EidosValueType chromosomes_value_type = chromosomes_value->Type();
@@ -429,6 +477,7 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 	
 	switch (chromosomes_value_type)
 	{
+		// NULL means "all chromosomes", unlike for GetChromosomeFromEidosValue()
 		case EidosValueType::kValueNULL:
 		{
 			for (Chromosome *chromosome : Chromosomes())
@@ -482,7 +531,8 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 			}
 			break;
 		}
-		default: break;
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetChromosomeIndicesFromEidosValue): (internal error) unexpected type for parameter chromosome." << EidosTerminate();
 	}
 }
 

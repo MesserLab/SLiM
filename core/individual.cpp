@@ -3047,19 +3047,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 		}
 	}
 	
-	Chromosome *chromosome = nullptr;
-	
-	if (chromosome_value->Type() != EidosValueType::kValueNULL)
-	{
-		std::vector<slim_chromosome_index_t> chromosome_indices;
-		
-		species->GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_value);
-		
-		if (chromosome_indices.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): (internal error) chromosome lookup failed." << EidosTerminate();
-		
-		chromosome = species->Chromosomes()[chromosome_indices[0]];
-	}
+	Chromosome *chromosome = species->GetChromosomeFromEidosValue(chromosome_value);	// NULL returns nullptr
 	
 	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_ages = ages_value->LogicalAtIndex_NOCAST(0, nullptr);

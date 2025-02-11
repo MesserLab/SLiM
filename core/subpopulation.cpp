@@ -11031,9 +11031,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 
 #undef SLiMClampCoordinate
 
-//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F], [Niso<Chromosome> chromosome = NULL])
-//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome> chromosome = NULL])
-//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T], [Niso<Chromosome> chromosome = NULL])
+//	*********************	– (void)outputMSSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F], [Niso<Chromosome>$ chromosome = NULL])
+//	*********************	– (void)outputSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL])
+//	*********************	– (void)outputVCFSample(integer$ sampleSize, [logical$ replace = T], [string$ requestedSex = "*"], [logical$ outputMultiallelics = T], [Ns$ filePath = NULL], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T], [Niso<Chromosome>$ chromosome = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -11145,14 +11145,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	}
 	else
 	{
-		std::vector<slim_chromosome_index_t> chromosome_indices;
-		
-		species_.GetChromosomeIndicesFromEidosValue(chromosome_indices, chromosome_arg);
-		
-		if (chromosome_indices.size() != 1)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputXSample): (internal error) chromosome lookup failed." << EidosTerminate();
-		
-		chromosome = chromosomes[chromosome_indices[0]];
+		// NULL case handled above
+		chromosome = species_.GetChromosomeFromEidosValue(chromosome_arg);
 	}
 	
 	// Figure out the right output stream
