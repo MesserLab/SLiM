@@ -364,7 +364,7 @@ public:
 	void PurgeRemovedSubpopulations(void);
 
 	// print all mutations and all haplosomes to a stream
-	// note that text output is now at Individual::PrintIndividuals()
+	// note that text output is now at Individual::PrintIndividuals_SLiM()
 	void PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const;
 	
 	// print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using SLiM's own format

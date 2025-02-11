@@ -339,7 +339,7 @@ public:
 	}
 #endif
 	
-	inline __attribute__((always_inline)) bool contains_mutation(const Mutation *p_mut)
+	inline __attribute__((always_inline)) bool contains_mutation(const Mutation *p_mut) const
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
@@ -407,7 +407,8 @@ public:
 	static void PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
 	
 	// print the sample represented by haplosomes, using "vcf" format
-	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq);
+	static void PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs);
+	static void _PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, int64_t p_haplosomes_count, const Chromosome &p_chromosome, bool p_groupAsIndividuals, bool p_simplify_nucs, bool p_output_nonnucs, bool p_output_multiallelics);
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForMutrunBuffers(void);

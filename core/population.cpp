@@ -7553,7 +7553,7 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 }
 
 // print all mutations and all haplosomes to a stream in binary, for maximum reading speed
-// this is a binary version of Individual::PrintIndividuals(), which is quite parallel
+// this is a binary version of Individual::PrintIndividuals_SLiM(), which is quite parallel
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
 {
 	if (child_generation_valid_)
@@ -8148,7 +8148,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_VCF(p_out, sample, p_chromosome, p_group_as_individuals, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, species_.IsNucleotideBased(), p_chromosome.AncestralSequence());
+	Haplosome::PrintHaplosomes_VCF(p_out, sample, p_chromosome, p_group_as_individuals, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs);
 }
 
 

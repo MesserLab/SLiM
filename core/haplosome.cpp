@@ -1500,7 +1500,7 @@ void Haplosome::PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *>
 	}
 }
 
-inline void EmitHaplosomeCall_Nuc_Simplify(std::ostream &p_out, Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position, int *allele_index_for_nuc)
+inline void EmitHaplosomeCall_Nuc_Simplify(std::ostream &p_out, const Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position, int *allele_index_for_nuc)
 {
 	// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
 	int contained_mut_index = -1;
@@ -1524,7 +1524,7 @@ inline void EmitHaplosomeCall_Nuc_Simplify(std::ostream &p_out, Haplosome &haplo
 		p_out << allele_index_for_nuc[nuc_based[contained_mut_index]->mutation_ptr_->nucleotide_];
 }
 
-inline void EmitHaplosomeCall_Nuc(std::ostream &p_out, Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position)
+inline void EmitHaplosomeCall_Nuc(std::ostream &p_out, const Haplosome &haplosome, std::vector<Polymorphism *> &nuc_based, slim_position_t mut_position)
 {
 	// Find and emit the nuc-based mut contained by this haplosome, if any.  If more than one nuc-based mut is contained, it is an error.
 	int contained_mut_index = -1;
@@ -1553,9 +1553,11 @@ inline void EmitHaplosomeCall_Nuc(std::ostream &p_out, Haplosome &haplosome, std
 // depending on the intrinsic ploidy of p_chromosome the calls will be diploid or haploid; if diploid,
 // calls where one of a pair of haplosomes is null will be emitted as a haploid call; if all haplosomes
 // for a given individual are null, the call emitted will be "~".
-void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, bool p_nucleotide_based, NucleotideArray *p_ancestral_seq)
+void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_groupAsIndividuals, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs)
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	Species &species = p_chromosome.species_;
+	bool nucleotide_based = species.IsNucleotideBased();
+	bool pedigrees_enabled = species.PedigreesEnabledByUser();
 	slim_popsize_t haplosome_count = (slim_popsize_t)p_haplosomes.size();
 	slim_popsize_t individual_count;
 	
@@ -1563,7 +1565,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	ChromosomeType chromosome_type = p_chromosome.Type();
 	int intrinsic_ploidy = p_chromosome.IntrinsicPloidy();
 	
-	if (!groupAsIndividuals)
+	if (!p_groupAsIndividuals)
 		intrinsic_ploidy = 1;	// if groupAsIndividuals is false, we just act as though the chromosome is haploid
 	
 	if (intrinsic_ploidy == 2)
@@ -1576,27 +1578,6 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	else
 	{
 		individual_count = haplosome_count;
-	}
-	
-	// get the polymorphisms within the sample
-	PolymorphismMap polymorphisms;
-	
-	for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
-	{
-		Haplosome &haplosome = *p_haplosomes[haplosome_index];
-		
-		if (!haplosome.IsNull())
-		{
-			for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
-			{
-				const MutationRun *mutrun = haplosome.mutruns_[run_index];
-				int mut_count = mutrun->size();
-				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
-				
-				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
-					AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
-			}
-		}
 	}
 	
 	// print the VCF header
@@ -1619,23 +1600,18 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	// BCH 10 July 2019: output haplosome pedigree IDs, if available, for all of the haplosomes being output.
 	// It would be nice to be able to output individual pedigree IDs, but since we are working with a
 	// vector of haplosomes there is no guarantee that the pairs of haplosomes here come from the same individuals.
-	if (haplosome_count > 0)
+	if (pedigrees_enabled && (haplosome_count > 0))
 	{
-		Haplosome *haplosome0 = p_haplosomes[0];
+		p_out << "##slimHaplosomePedigreeIDs=";
 		
-		if (haplosome0->individual_->subpopulation_->species_.PedigreesEnabledByUser())
+		for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
 		{
-			p_out << "##slimHaplosomePedigreeIDs=";
-			
-			for (slim_popsize_t haplosome_index = 0; haplosome_index < haplosome_count; haplosome_index++)
-			{
-				if (haplosome_index > 0)
-					p_out << ",";
-				p_out << p_haplosomes[haplosome_index]->haplosome_id_;
-			}
-			
-			p_out << std::endl;
+			if (haplosome_index > 0)
+				p_out << ",";
+			p_out << p_haplosomes[haplosome_index]->haplosome_id_;
 		}
+		
+		p_out << std::endl;
 	}
 	
 	// BCH 6 March 2019: Note that all of the INFO fields that provide per-mutation information have been
@@ -1650,11 +1626,11 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;
 	p_out << "##INFO=<ID=AC,Number=.,Type=Integer,Description=\"Allele Count\">" << std::endl;
 	p_out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">" << std::endl;
-	if (p_output_multiallelics && !p_nucleotide_based)
+	if (p_output_multiallelics && !nucleotide_based)
 		p_out << "##INFO=<ID=MULTIALLELIC,Number=0,Type=Flag,Description=\"Multiallelic\">" << std::endl;
-	if (p_nucleotide_based)
+	if (nucleotide_based)
 		p_out << "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">" << std::endl;
-	if (p_output_nonnucs && p_nucleotide_based)
+	if (p_output_nonnucs && nucleotide_based)
 		p_out << "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">" << std::endl;
 	p_out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
 	p_out << "##contig=<ID=1,URL=https://github.com/MesserLab/SLiM>" << std::endl;
@@ -1663,6 +1639,58 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 	for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 		p_out << "\ti" << individual_index;
 	p_out << std::endl;
+	
+	Haplosome::_PrintVCF(p_out, (const Haplosome **)p_haplosomes.data(), haplosome_count, p_chromosome, p_groupAsIndividuals, p_simplify_nucs, p_output_nonnucs, p_output_multiallelics);
+}
+
+void Haplosome::_PrintVCF(std::ostream &p_out, const Haplosome **p_haplosomes, int64_t p_haplosomes_count, const Chromosome &p_chromosome, bool p_groupAsIndividuals, bool p_simplify_nucs, bool p_output_nonnucs, bool p_output_multiallelics)
+{
+	ChromosomeType chromosome_type = p_chromosome.Type();
+	int intrinsic_ploidy = p_chromosome.IntrinsicPloidy();
+	Species &species = p_chromosome.species_;
+	bool nucleotide_based = species.IsNucleotideBased();
+	NucleotideArray *ancestral_seq = p_chromosome.AncestralSequence();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int64_t individual_count;
+	
+	// if groupAsIndividuals is false, we just act as though the chromosome is haploid
+	// this option is not available for Individual::PrintIndividuals_VCF() since it doesn't
+	// make sense for individual-based output, only single-chromosome haplosome-based output
+	if (!p_groupAsIndividuals)
+		intrinsic_ploidy = 1;
+	
+	if (intrinsic_ploidy == 2)
+	{
+		if (p_haplosomes_count % 2 == 1)
+			EIDOS_TERMINATION << "ERROR (Haplosome::_PrintVCF): Haplosome vector must be an even length for chromosome type \"" << chromosome_type << "\", since haplosomes are paired into individuals." << EidosTerminate();
+		
+		individual_count = p_haplosomes_count / 2;
+	}
+	else
+	{
+		individual_count = p_haplosomes_count;
+	}
+	
+	// get the polymorphisms within the sample
+	PolymorphismMap polymorphisms;
+	
+	for (slim_popsize_t haplosome_index = 0; haplosome_index < p_haplosomes_count; haplosome_index++)
+	{
+		const Haplosome &haplosome = *p_haplosomes[haplosome_index];
+		
+		if (!haplosome.IsNull())
+		{
+			for (int run_index = 0; run_index < haplosome.mutrun_count_; ++run_index)
+			{
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
+				int mut_count = mutrun->size();
+				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
+				
+				for (int mut_index = 0; mut_index < mut_count; ++mut_index)
+					AddMutationToPolymorphismMap(&polymorphisms, mut_block_ptr + mut_ptr[mut_index]);
+			}
+		}
+	}
 	
 	// We want to output polymorphisms sorted by position (starting in SLiM 3.3), to facilitate
 	// calling all of the nucleotide mutations at a given position with a single call line.
@@ -1713,12 +1741,12 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 		}
 		
 		// Emit the nucleotide-based mutations at this position as a single call line
-		if (p_nucleotide_based && (nuc_based.size() > 0))
+		if (nucleotide_based && (nuc_based.size() > 0))
 		{
 			// Get the ancestral nucleotide at this position; this will be index 0
 			// Indices 1..n will be used for the corresponding mutations in nonnuc_based
 			// Note that this means it is 
-			int ancestral_nuc_index = p_ancestral_seq->NucleotideAtIndex(mut_position);		// 0..3 for ACGT
+			int ancestral_nuc_index = ancestral_seq->NucleotideAtIndex(mut_position);		// 0..3 for ACGT
 			
 			// Emit a single call line for all of the nucleotide-based mutations
 			
@@ -1803,7 +1831,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 						// intrinsically haploid chromosome; one haplosome per individual
 						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							Haplosome &haplosome = *p_haplosomes[individual_index];
+							const Haplosome &haplosome = *p_haplosomes[individual_index];
 							
 							// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
 							if (haplosome.IsNull()) {
@@ -1822,8 +1850,8 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 						// intrinsically diploid chromosome; two haplosomes per individual
 						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
-							Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+							const Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+							const Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
 							bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
 							
 							// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
@@ -1948,7 +1976,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					// intrinsically haploid chromosome; one haplosome per individual
 					for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 					{
-						Haplosome &haplosome = *p_haplosomes[individual_index];
+						const Haplosome &haplosome = *p_haplosomes[individual_index];
 						
 						// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
 						if (haplosome.IsNull()) {
@@ -1967,8 +1995,8 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					// intrinsically diploid chromosome; two haplosomes per individual
 					for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 					{
-						Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
-						Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+						const Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+						const Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
 						bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
 						
 						// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
@@ -1997,7 +2025,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 		
 		// Emit the non-nucleotide-based mutations at this position as individual call lines, each as an A->T mutation
 		// We do this if outputNonnucleotides==T, or if we are non-nucleotide-based (in which case outputNonnucleotides is ignored)
-		if (p_output_nonnucs || !p_nucleotide_based)
+		if (p_output_nonnucs || !nucleotide_based)
 		{
 			for (Polymorphism *polymorphism : nonnuc_based)
 			{
@@ -2007,7 +2035,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 				int allele_count = (int)nonnuc_based.size();
 				
 				// Output this mutation if (1) we are outputting multiallelics in a non-nuc-based model, or (2) we are a nuc-based model (regardless of allele count), or (3) it is not multiallelic
-				if (p_output_multiallelics || p_nucleotide_based || (allele_count == 1))
+				if (p_output_multiallelics || nucleotide_based || (allele_count == 1))
 				{
 					// emit CHROM ("1"), POS, ID ("."), REF ("A"), and ALT ("T")
 					// BCH 2/3/2025: we now emit the chromosome's symbol in the CHROM field, introducing a minor
@@ -2028,9 +2056,9 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					p_out << "AC=" << polymorphism->prevalence_ << ";";
 					p_out << "DP=1000";
 					
-					if (!p_nucleotide_based && (allele_count > 1))	// output MULTIALLELIC flags only in non-nuc-based models
+					if (!nucleotide_based && (allele_count > 1))	// output MULTIALLELIC flags only in non-nuc-based models
 						p_out << ";MULTIALLELIC";
-					if (p_nucleotide_based && p_output_nonnucs)
+					if (nucleotide_based && p_output_nonnucs)
 						p_out << ";NONNUC";
 					
 					p_out << "\tGT";
@@ -2040,7 +2068,7 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					{
 						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							Haplosome &haplosome = *p_haplosomes[individual_index];
+							const Haplosome &haplosome = *p_haplosomes[individual_index];
 							
 							// BCH 2/4/2025: If the haplosome is null, we now emit a "~" character
 							if (haplosome.IsNull()) {
@@ -2056,8 +2084,8 @@ void Haplosome::PrintHaplosomes_VCF(std::ostream &p_out, std::vector<Haplosome *
 					{
 						for (slim_popsize_t individual_index = 0; individual_index < individual_count; individual_index++)
 						{
-							Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
-							Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
+							const Haplosome &haplosome1 = *p_haplosomes[(size_t)individual_index * 2];
+							const Haplosome &haplosome2 = *p_haplosomes[(size_t)individual_index * 2 + 1];
 							bool haplosome1_null = haplosome1.IsNull(), haplosome2_null = haplosome2.IsNull();
 							
 							// BCH 2/4/2025: If both haplosomes are null, we now emit a "~" character
@@ -3108,7 +3136,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		else if (p_method_id == gID_outputMS)
 			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
 		else if (p_method_id == gID_outputVCF)
-			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome->AncestralSequence());
+			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
 	}
 	else
 	{
@@ -3145,7 +3173,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
 					break;
 				case gID_outputVCF:
-					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome->AncestralSequence());
+					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();

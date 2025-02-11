@@ -133,6 +133,7 @@ development head (in the master branch):
 		change file format codes for class Haplosome from GS/GM/GV to HS/HM/HV, matching the rename from Genome to Haplosome
 		add support for writing/reading Individual tag values in outputFull(), readFromPopulationFile()
 		add Individual output method +outputIndividuals(), for writing out a sample of individuals in SLiM format with optional metadata
+		add Individual output method +outputIndividualsVCF(), for writing out a sample of individuals in VCF format with optional metadata
 
 
 version 4.3 (Eidos version 3.3):

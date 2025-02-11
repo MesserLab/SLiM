@@ -262,10 +262,10 @@ public:
 	int SharedParentCountWithIndividual(Individual &p_ind);
 	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);
 	
-	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID()			{ return pedigree_id_; }
-	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)		{ pedigree_id_ = p_new_id; }	// should basically never be called
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID()		{ return pedigree_p1_; }
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID()		{ return pedigree_p2_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID() const				{ return pedigree_id_; }
+	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)	{ pedigree_id_ = p_new_id; }	// should basically never be called
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID() const		{ return pedigree_p1_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID() const		{ return pedigree_p2_; }
 	inline __attribute__((always_inline)) void SetParentPedigreeID(slim_pedigreeid_t p1_new_id, slim_pedigreeid_t p2_new_id)		{ pedigree_p1_ = p1_new_id; pedigree_p2_ = p2_new_id; }	// also?
 	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
 	
@@ -296,7 +296,8 @@ public:
 	}
 	
 	// Individual-level output methods; used by outputIndividuals() and outputIndividualsVCF()
-	static void PrintIndividuals(std::ostream &p_out, Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome);
+	static void PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome);
+	static void PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, Chromosome *p_focal_chromosome);
 	
 	//
 	// Eidos support
@@ -387,6 +388,7 @@ public:
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
 	EidosValue_SP ExecuteMethod_outputIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_outputIndividualsVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 

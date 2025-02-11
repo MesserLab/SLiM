@@ -5882,7 +5882,7 @@ void QtSLiMWindow::dumpPopulationClicked(void)
             slim_tick_t species_cycle = displaySpecies->Cycle();
             
             // dump the population: output spatial positions and ages if available, but not ancestral sequence or tags
-			Individual::PrintIndividuals(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, false, /* p_focal_chromosome */ nullptr);
+			Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, false, /* p_focal_chromosome */ nullptr);
             
             // dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
             SLIM_OUTSTREAM << std::endl;

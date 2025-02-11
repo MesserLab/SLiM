@@ -3576,7 +3576,7 @@ For chromosomes that can be diploid (types
 \f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Output the state of the target vector of individuals.  If the optional parameter 
+\f4\fs20 \cf2 Output the state of the target vector of individuals in SLiM's own format.  If the optional parameter 
 \f3\fs18 filePath
 \f4\fs20  is 
 \f3\fs18 NULL
@@ -3641,7 +3641,9 @@ The
 \f3\fs18 ages
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20 , ages will be output for nonWF models.  In WF simulations, the ages parameter will be ignored.\
+\f4\fs20 , ages will be output for nonWF models.  In WF simulations, the 
+\f3\fs18 ages
+\f4\fs20  parameter will be ignored.\
 The 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  parameter may be used to control the output of the ancestral nucleotide sequence in nucleotide-based models.  If 
@@ -3654,7 +3656,9 @@ The
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 ), the 
 \f3\fs18 ancestralNucleotides
-\f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will always include the nucleotides associated with any nucleotide-based mutations; the 
+\f4\fs20  parameter will be ignored.  Note that in nucleotide-based models the output format will 
+\f1\i always
+\f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
 The 
@@ -3687,6 +3691,65 @@ Finally, the
 \f4\fs20 , and 
 \f3\fs18 tagL4
 \f4\fs20  properties) will be written.\
+Output is generally done in a 
+\f3\fs18 late()
+\f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)outputIndividualsVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Output the state of the target vector of individuals in VCF format.  If the optional parameter 
+\f3\fs18 filePath
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), output will be sent to Eidos\'92s output stream.  Otherwise, output will be sent to the filesystem path specified by 
+\f3\fs18 filePath
+\f4\fs20 , overwriting that file if 
+\f3\fs18 append
+\f4\fs20  if 
+\f3\fs18 F
+\f4\fs20 , or appending to the end of it if 
+\f3\fs18 append
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 .  This method is quite similar to the 
+\f3\fs18 Subpopulation
+\f4\fs20  method 
+\f3\fs18 outputVCFSample()
+\f4\fs20 , but (1)\'a0it can produce output for any vector of individuals, rather than sampling from a single population; (2)\'a0it can produce output regarding the genetics for all chromosomes or for just one focal chromosome, whereas 
+\f3\fs18 outputVCFSample()
+\f4\fs20  can only output data for a single chromosome; and (3)\'a0because it can output genetic information for more than one chromosome, the 
+\f3\fs18 groupAsIndividuals
+\f4\fs20  option provided by 
+\f3\fs18 outputVCFSample()
+\f4\fs20  is not available for 
+\f3\fs18 outputIndividualsVCF()
+\f4\fs20 ; each VCF sample has to correspond directly to one individual.\
+The 
+\f3\fs18 chromosome
+\f4\fs20  parameter specifies a focal chromosome for which the genetics of the target individuals will be output.  If 
+\f3\fs18 chromosome
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , all chromosomes will be output (distinguished in the VCF output by the chromosome symbol output in the 
+\f3\fs18 CHROM
+\f4\fs20  column); otherwise, 
+\f3\fs18 chromosome
+\f4\fs20  may specify the focal chromosome with an 
+\f3\fs18 integer
+\f4\fs20  chromosome id, a 
+\f3\fs18 string
+\f4\fs20  chromosome symbol, or a 
+\f3\fs18 Chromosome
+\f4\fs20  object.\
+The parameters 
+\f3\fs18 outputMultiallelics
+\f4\fs20 , 
+\f3\fs18 simplifyNucleotides
+\f4\fs20 , and 
+\f3\fs18 outputNonnucleotides
+\f4\fs20  affect the format of the output produced.\
 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
