@@ -20,13 +20,13 @@ jobs:
         include:
           # Ubuntu with the oldest supported GCC
           # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
-          - {os: ubuntu-22.04, gcc: 8, python: 3.8}
-          - {os: ubuntu-24.04, gcc: 12, python: 3.9}
+          - {os: ubuntu-22.04, gcc: 9, python: 3.9}
+          - {os: ubuntu-24.04, gcc: 12, python: 3.12}
           # macOS, oldest supported version
           # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
           - {os: macos-13, python: 3.9}
           # macOS, newest supported version
-          - {os: macos-15, python: 3.9}
+          - {os: macos-15, python: 3.12}
       
     runs-on: ${{ matrix.os }}
     steps:
@@ -98,8 +98,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {sys: mingw64, env: x86_64, python: 3.8}
-          - {sys: ucrt64, env: ucrt-x86_64, python: 3.8}
+          - {sys: mingw64, env: x86_64, python: 3.9}
+          - {sys: ucrt64, env: ucrt-x86_64, python: 3.9}
     defaults:
       run:
         shell: msys2 {0}
@@ -186,7 +186,7 @@ jobs:
         include:
           # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
           # Ubuntu 22.04 with the oldest supported Qt5 and GCC.
-          - {os: ubuntu-22.04, qt: 5.9.5, gcc: 8}
+          - {os: ubuntu-22.04, qt: 5.9.5, gcc: 9}
           # Ubuntu 22.04 with last official LTS Qt5 and GCC.
           - {os: ubuntu-22.04, qt: 5.15.2, gcc: 11}
           # Ubuntu 24.04 with the most recent Qt5 and GCC.
