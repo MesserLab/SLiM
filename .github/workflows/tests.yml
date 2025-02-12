@@ -8,7 +8,7 @@ on:
     - cron: '0 5 * * 1'
 jobs:
   canceller:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Cancel previous runs
         uses: styfle/cancel-workflow-action@0.12.1
@@ -20,8 +20,9 @@ jobs:
         include:
           # Ubuntu with the oldest supported GCC
           # (used to be 4.8, but with 20.04 it is 7, sadly).
-          - {os: ubuntu-20.04, gcc: 7, python: 3.8}
-          - {os: ubuntu-20.04, gcc: 11, python: 3.9}
+          # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
+          - {os: ubuntu-22.04, gcc: 7, python: 3.8}
+          - {os: ubuntu-24.04, gcc: 11, python: 3.9}
           # macOS, oldest supported version
           # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
           - {os: macos-13, python: 3.9}
@@ -184,21 +185,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Ubuntu 20.04 with the oldest supported Qt5 and GCC.
-          - {os: ubuntu-20.04, qt: 5.9.5, gcc: 7}
-          # Ubuntu 20.04 with the most recent Qt5 and GCC.
-          - {os: ubuntu-20.04, qt: 5.15.2, gcc: 11}
+          # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
+          # Ubuntu 22.04 with the oldest supported Qt5 and GCC.
+          - {os: ubuntu-22.04, qt: 5.9.5, gcc: 7}
           # Ubuntu 22.04 with the most recent Qt5 and GCC.
-          - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
-          # Ubuntu 22.04 with the most recent Qt6 and GCC; this is the min for Qt6
-          - {os: ubuntu-22.04, qt: 6.7.2, gcc: 12}
+          - {os: ubuntu-22.04, qt: 5.15.2, gcc: 11}
+          # Ubuntu 24.04 with the most recent Qt5 and GCC.
+          - {os: ubuntu-22.04, qt: 5.15.19, gcc: 12}
+          # Ubuntu 24.04 with the most recent Qt6 and GCC.
+          - {os: ubuntu-22.04, qt: 6.8.2, gcc: 12}
           # old macOS with oldest supported Qt5; macos-12 was removed by GitHub,
           # so we can't CI with Qt 5.9.5 any more, oh well
           #- {os: macos-12, qt: 5.9.5}
           # old macOS with most recent Qt5
           - {os: macos-13, qt: 5.15.2}
           # new macOS with most recent Qt6
-          - {os: macos-15, qt: 6.7.2}
+          - {os: macos-15, qt: 6.8.2}
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR
