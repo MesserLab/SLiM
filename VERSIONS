@@ -134,6 +134,7 @@ development head (in the master branch):
 		add support for writing/reading Individual tag values in outputFull(), readFromPopulationFile()
 		add Individual output method +outputIndividuals(), for writing out a sample of individuals in SLiM format with optional metadata
 		add Individual output method +outputIndividualsVCF(), for writing out a sample of individuals in VCF format with optional metadata
+		add recipe 8.3.6, output from multi-chromosome models
 
 
 version 4.3 (Eidos version 3.3):
