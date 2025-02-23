@@ -136,6 +136,7 @@ development head (in the master branch):
 		add Individual output method +outputIndividualsVCF(), for writing out a sample of individuals in VCF format with optional metadata
 		add recipe 8.3.6, output from multi-chromosome models
 		add Individual method readIndividualsFromVCF(), allowing reading of multi-chromosome data from VCF into a vector of individuals
+		fix a bug in the neutral-sim tracking logic in readFromVCF() that I don't think anybody ever actually hit (reading a non-neutral mutation for a neutral mutation type)
 
 
 version 4.3 (Eidos version 3.3):

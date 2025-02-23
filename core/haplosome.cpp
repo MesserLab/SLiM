@@ -2878,13 +2878,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 				Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), position, selection_coeff, origin_subpop_id, origin_tick, (int8_t)nucleotide);
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+				// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
 				if (selection_coeff != 0.0)
 				{
 					species->pure_neutral_ = false;
-					
-					// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
-					if (p_method_id == gID_addNewMutation)
-						mutation_type_ptr->all_pure_neutral_DFE_ = false;
+					mutation_type_ptr->all_pure_neutral_DFE_ = false;
 				}
 				
 				// add to the registry, return value, haplosome, etc.
@@ -3379,9 +3377,8 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 		{
 			species.pure_neutral_ = false;
 			
-			// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
-			if (p_method_id == gID_addNewMutation)
-				mutation_type_ptr->all_pure_neutral_DFE_ = false;
+			// the selection coefficient was drawn from the mutation type's DFE, so there is no need to set all_pure_neutral_DFE_
+			//mutation_type_ptr->all_pure_neutral_DFE_ = false;
 		}
 		
 		// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
@@ -4019,13 +4016,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			}
 			
 			// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+			// The selection coefficient might have been supplied by the user (i.e., not be from the mutation type's DFE), so we set all_pure_neutral_DFE_ also
 			if (selection_coeff != 0.0)
 			{
 				species->pure_neutral_ = false;
-				
-				// Fix all_pure_neutral_DFE_ if the selcoeff was not drawn from the muttype's DFE
-				if (p_method_id == gID_addNewMutation)
-					mutation_type_ptr->all_pure_neutral_DFE_ = false;
+				mutation_type_ptr->all_pure_neutral_DFE_ = false;
 			}
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
