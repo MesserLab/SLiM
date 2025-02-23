@@ -2188,8 +2188,8 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_mutationFrequenciesInHaplosomes, kEidosValueMaskFloat))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("string"))));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readHaplosomesFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readHaplosomesFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT));
@@ -2214,8 +2214,8 @@ EidosValue_SP Haplosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_i
 		case gID_output:
 		case gID_outputMS:
 		case gID_outputVCF:						return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_readFromMS:					return ExecuteMethod_readFromMS(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_readFromVCF:					return ExecuteMethod_readFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readHaplosomesFromMS:			return ExecuteMethod_readHaplosomesFromMS(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readHaplosomesFromVCF:			return ExecuteMethod_readHaplosomesFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_removeMutations:				return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_interpreter);
 		default:								return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
@@ -3188,12 +3188,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	+ (o<Mutation>)readFromMS(s$ filePath = NULL, io<MutationType> mutationType)
+//	*********************	+ (o<Mutation>)readHaplosomesFromMS(s$ filePath = NULL, io<MutationType> mutationType)
 //
-EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
@@ -3203,10 +3203,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	MutationType *mutation_type_ptr = nullptr;
 	
 	if (mutationType_value->Type() != EidosValueType::kValueNULL)
-		mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, nullptr, "ExecuteMethod_readFromMS()");	// this dictates the focal species
+		mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, nullptr, "ExecuteMethod_readHaplosomesFromMS()");	// this dictates the focal species
 	
 	if (!mutation_type_ptr)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): mutation type not found." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): mutation type not found." << EidosTerminate();
 	
 	// Get the species of interest from the mutation type; we will check that all target haplosomes belong to it below
 	Species &species = mutation_type_ptr->species_;
@@ -3216,15 +3216,15 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	int target_size = p_target->Count();
 	
 	if (target_size <= 0)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires at least one target haplosome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readHaplosomesFromMS() requires at least one target haplosome." << EidosTerminate();
 	
 	// SPECIES CONSISTENCY CHECK
 	Species *target_species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (target_species != &species)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readHaplosomesFromMS() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromMS");
+	species.population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromMS");
 	
 	// For MS input, we need to know the chromosome to calculate positions from the normalized interval [0, 1].
 	// We infer it from the haplosomes, and in a multi-chromosome species all the haplosomes must belong to it.
@@ -3237,7 +3237,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	{
 		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): for readFromMS(), all target haplosomes must be associated with the same chromosome." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): for readHaplosomesFromMS(), all target haplosomes must be associated with the same chromosome." << EidosTerminate();
 	}
 	
 	slim_position_t last_position = chromosome->last_position_;
@@ -3246,7 +3246,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	std::ifstream infile(file_path);
 	
 	if (!infile)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): could not read file at path " << file_path << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): could not read file at path " << file_path << "." << EidosTerminate();
 	
 	std::string line, sub;
 	int parse_state = 0;
@@ -3270,20 +3270,20 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 				
 				iss >> sub;
 				if (sub != "segsites:")
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): expecting 'segsites:', found '" << sub << "'." << EidosTerminate();
 				
 				if (!(iss >> sub))
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): missing segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): missing segsites value." << EidosTerminate();
 				
 				int64_t segsites_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 				
 				if ((segsites_long <= 0) || (segsites_long > 1000000))
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readMS() requires segsites in (0,1000000]." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readMS() requires segsites in (0,1000000]." << EidosTerminate();
 				
 				segsites = (int)segsites_long;
 				
 				if (iss >> sub)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): malformed segsites line; additional content after segsites value." << EidosTerminate();
 				
 				parse_state = 1;
 				break;
@@ -3295,17 +3295,17 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 				
 				iss >> sub;
 				if (sub != "positions:")
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): expecting 'positions:', found '" << sub << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): expecting 'positions:', found '" << sub << "'." << EidosTerminate();
 				
 				for (int pos_index = 0; pos_index < segsites; ++pos_index)
 				{
 					if (!(iss >> sub))
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): missing positions value." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): missing positions value." << EidosTerminate();
 					
 					double pos_double = EidosInterpreter::FloatForString(sub, nullptr);
 					
 					if ((pos_double < 0.0) || (pos_double > 1.0))
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
 					
 					// BCH 26 Jan. 2020: There is a little subtlety here.  This equation, round(pos * L), provides
 					// the exact inverse of what outputMS() / outputMSSample() do, so it should exactly recover
@@ -3313,13 +3313,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 					// in half as much "mutational density" at positions 0 and L as at other positions, if the
 					// positions are uniformly distributed in [0,1] rather than originating in SLiM.  In that case,
 					// min(floor(pos*(L+1)), L) would be better.  Maybe this choice ought to be an optional logical
-					// parameter to readFromMS(), but nobody has complained yet, so I'm ignoring it for now; if
+					// parameter to readHaplosomesFromMS(), but nobody has complained yet, so I'm ignoring it for now; if
 					// you expect to get exact discrete base positions you shouldn't be using MS format anyway...
 					positions.emplace_back((slim_position_t)round(pos_double * last_position));
 				}
 				
 				if (iss >> sub)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): malformed positions line; additional content after last expected position." << EidosTerminate();
 				
 				parse_state = 2;
 				break;
@@ -3328,22 +3328,22 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 			{
 				// Expecting "001010011001101111010..." of length segsites
 				if (line.find_first_not_of("01") != std::string::npos)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): call lines must be composed entirely of 0 and 1." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): call lines must be composed entirely of 0 and 1." << EidosTerminate();
 				if ((int)line.length() != segsites)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): call lines must be equal in length to the segsites value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): call lines must be equal in length to the segsites value." << EidosTerminate();
 				
 				calls.emplace_back(line);
 				break;
 			}
 			default:
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): (internal error) unhandled case." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
 	infile.close();
 	
 	if ((int)calls.size() != target_size)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): target haplosome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): target haplosome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
@@ -3402,7 +3402,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 		Haplosome *haplosome = targets_data[haplosome_index];
 		
 		if (haplosome->IsNull())
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromMS): readFromMS() does not allow null haplosomes in the target haplosome vector." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readHaplosomesFromMS() does not allow null haplosomes in the target haplosome vector." << EidosTerminate();
 		
 		bool haplosome_started_empty = (haplosome->mutation_count() == 0);
 		slim_position_t mutrun_length = haplosome->mutrun_length_;
@@ -3458,27 +3458,27 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 	return EidosValue_Object_SP(vec);
 }
 
-//	*********************	+ (o<Mutation>)readFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
+//	*********************	+ (o<Mutation>)readHaplosomesFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
 //
-EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
 	// BEWARE: This method shares a great deal of code with Individual_Class::ExecuteMethod_readIndividualsFromVCF().  Maintain in parallel.
-	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
 	
 	// SPECIES CONSISTENCY CHECK
 	if (p_target->Count() == 0)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires a target Haplosome vector of length 1 or more, so that the species of the target can be determined." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): " << "readHaplosomesFromVCF() requires a target Haplosome vector of length 1 or more, so that the species of the target can be determined." << EidosTerminate();
 	
 	Species *species = Community::SpeciesForHaplosomes(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): " << "readHaplosomesFromVCF() requires that all target haplosomes belong to the same species." << EidosTerminate();
 	
-	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF");
 	
 	// All haplosomes must belong to the same chromosome, and in multichrom models the CHROM field must match its symbol
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
@@ -3495,7 +3495,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 		// We have to check for consistency if there's more than one chromosome
 		for (int haplosome_index = 0; haplosome_index < target_size; ++haplosome_index)
 			if (targets_data[haplosome_index]->chromosome_index_ != chromosome_index)
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): " << "readHaplosomesFromVCF() requires that all target haplosomes are associated with the same chromosome." << EidosTerminate();
 	}
 	
 	Community &community = species->community_;
@@ -3507,13 +3507,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 	MutationType *default_mutation_type_ptr = nullptr;
 	
 	if (mutationType_value->Type() != EidosValueType::kValueNULL)
-		default_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, species, "readFromVCF()");			// SPECIES CONSISTENCY CHECK
+		default_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, species, "readHaplosomesFromVCF()");			// SPECIES CONSISTENCY CHECK
 	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
 	
 	if (!infile)
-		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
 	
 	std::string line, sub;
 	int parse_state = 0;
@@ -3555,9 +3555,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					for (const char *header_field : header_fields)
 					{
 						if (!(iss >> sub))
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
 						if (sub != header_field)
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
 					}
 					
 					// the remaining columns are sample IDs; we don't care what they are, we just count them
@@ -3569,7 +3569,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
 				}
 				break;
 			}
@@ -3587,7 +3587,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				if (model_is_multi_chromosome)
 				{
 					if (sub != chromosome_symbol)
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the symbol (\"" << chromosome_symbol << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome symbol to prevent bugs." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the symbol (\"" << chromosome_symbol << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome symbol to prevent bugs." << EidosTerminate();
 				}
 				
 				std::getline(iss, sub, '\t');	// POS
@@ -3595,13 +3595,13 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				int64_t pos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr) - 1;		// -1 because VCF uses 1-based positions
 				
 				if ((pos < 0) || (pos > last_position))
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
 				
 				call_lines.emplace_back(pos, line);
 				break;
 			}
 			default:
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): (internal error) unhandled case." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
@@ -3664,7 +3664,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 		else if (ref_str == "C")	ref_nuc = 1;
 		else if (ref_str == "G")	ref_nuc = 2;
 		else if (ref_str == "T")	ref_nuc = 3;
-		else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
+		else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
 		
 		// parse/validate the ALT nucleotides
 		std::vector<std::string> alt_substrs = Eidos_string_split(alt_str, ",");
@@ -3676,7 +3676,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			else if (alt_substr == "C")		alt_nucs.emplace_back(1);
 			else if (alt_substr == "G")		alt_nucs.emplace_back(2);
 			else if (alt_substr == "T")		alt_nucs.emplace_back(3);
-			else							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
+			else							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
 		}
 		
 		std::size_t alt_allele_count = alt_nucs.size();
@@ -3707,7 +3707,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					{
 						if (!community.warned_readFromVCF_mutIDs_unused_)
 						{
-							p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_readFromVCF): readFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
+							p_interpreter.ErrorOutputStream() << "#WARNING (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): readHaplosomesFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readHaplosomesFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
 							community.warned_readFromVCF_mutIDs_unused_ = true;
 						}
 					}
@@ -3767,7 +3767,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 				else if (aa_str == "C")		info_ancestral_nuc = 1;
 				else if (aa_str == "G")		info_ancestral_nuc = 2;
 				else if (aa_str == "T")		info_ancestral_nuc = 3;
-				else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
+				else						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
 			}
 			else if (info_NONNUC_defined && (info_substr == "NONNUC"))				// Non-nucleotide-based
 			{
@@ -3775,17 +3775,17 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			}
 			
 			if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
 			if ((info_selcoeffs.size() != 0) && (info_selcoeffs.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
 			if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
 			if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
 			if ((info_tickorigin.size() != 0) && (info_tickorigin.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for GO or TO field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for GO or TO field." << EidosTerminate();
 			if ((info_muttype.size() != 0) && (info_muttype.size() != alt_allele_count))
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
 		}
 		
 		// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
@@ -3794,7 +3794,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 		for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
 		{
 			if (iss.eof())
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
 			
 			std::getline(iss, sub, '\t');
 			
@@ -3819,7 +3819,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					int genotype_call2 = (int)(sub_ch2 - '0');
 					
 					if ((genotype_call1 < 0) || (genotype_call1 > (int)alt_allele_count) || (genotype_call2 < 0) || (genotype_call2 > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.emplace_back(genotype_call1);
 					genotype_calls.emplace_back(genotype_call2);
@@ -3846,7 +3846,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 						int genotype_call = (int)(sub_ch - '0');
 						
 						if ((genotype_call < 0) || (genotype_call > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 						
 						genotype_calls.emplace_back(genotype_call);
 						call_handled = true;
@@ -3866,7 +3866,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					genotype_substrs.emplace_back(sub);					// haploid, presumably
 				
 				if ((genotype_substrs.size() < 1) || (genotype_substrs.size() > 2))
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
 				
 				// extract the calls' integer values, validate them, and keep them; we don't care which call was in which sample, we just preserve their order
 				for (std::string &genotype_substr : genotype_substrs)
@@ -3874,7 +3874,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					std::size_t genotype_call = EidosInterpreter::NonnegativeIntegerForString(genotype_substr, nullptr);
 					
 					if (/*(genotype_call < 0) ||*/ (genotype_call > alt_allele_count))	// 0 is REF, 1..n are ALT alleles
-						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
 					
 					genotype_calls.emplace_back((int)genotype_call);
 				}
@@ -3882,14 +3882,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 		}
 		
 		if (!iss.eof())
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
 		if ((int)genotype_calls.size() != target_size)
-			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): target haplosome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): target haplosome vector has size " << target_size << " but " << genotype_calls.size() << " calls were found in one call line." << EidosTerminate();
 		
 		// We have one call for each non-null target haplosome, so the requirement for this function is met.
 		// Note that there is no checking that a ~ matches the position of a null haplosome in the target
 		// vector; we have no concept of "individuals", we just match haplosomes to calls for each line.
-		// The Individual version of readFromVCF() can be smarter, since it understands individuals.
+		// The Individual version of readHaplosomesFromVCF() can be smarter, since it understands individuals.
 		
 		// instantiate the mutations involved in this call line; the REF allele represents no mutation, ALT alleles are each separate mutations
 		std::vector<MutationIndex> alt_allele_mut_indices;
@@ -3906,17 +3906,17 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
                 mutation_type_ptr = species->MutationTypeWithID(mutation_type_id);
 				
 				if (!mutation_type_ptr)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
 			}
 			
 			if (!mutation_type_ptr)
-				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 			
 			// check the dominance coefficient of DOM against that of the mutation type
 			if (info_domcoeffs.size() > 0)
 			{
 				if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
 			}
 			
 			// get the selection coefficient from S, or draw one
@@ -3954,7 +3954,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					{
 						// This call line is marked NONNUC, so there is no associated nucleotide; check against the mutation type
 						if (mutation_type_ptr->nucleotide_based_)
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
 						
 						nucleotide = -1;
 					}
@@ -3962,14 +3962,14 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 					{
 						// This call line is not marked NONNUC, so it represents nucleotide-based alleles
 						if (!mutation_type_ptr->nucleotide_based_)
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
 						if (ref_nuc != info_ancestral_nuc)
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
 						
 						int8_t ancestral = (int8_t)chromosome->AncestralSequence()->NucleotideAtIndex(mut_position);
 						
 						if (ancestral != ref_nuc)
-							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readFromVCF()." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readHaplosomesFromVCF()." << EidosTerminate();
 						
 						nucleotide = alt_allele_nuc;
 					}
@@ -3993,7 +3993,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_m
 			{
 				// We are a non-nucleotide-based model, so NONNUC should not be defined; we do not understand nucleotides and will ignore them
 				if (info_NONNUC_defined)
-					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
 				
 				nucleotide = -1;
 			}
@@ -4125,7 +4125,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID
 	
 	Chromosome *chromosome = species->Chromosomes()[chromosome_index];
 	
-	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readFromVCF");
+	species->population_.CheckForDeferralInHaplosomes(p_target, "Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF");
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;

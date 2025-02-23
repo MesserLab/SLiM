@@ -3089,7 +3089,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("individualTags", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readIndividualsFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		
@@ -3104,7 +3104,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	switch (p_method_id)
 	{
 		case gID_outputIndividuals:			return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_outputIndividualsVCF:		return ExecuteMethod_outputIndividualsVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
 		default:							return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
@@ -3198,9 +3198,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)outputIndividualsVCF([Ns$ filePath = NULL], [logical$ append = F], [Niso<Chromosome>$ chromosome = NULL], [logical$ outputMultiallelics = T], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
+//	*********************	– (void)outputIndividualsToVCF([Ns$ filePath = NULL], [logical$ append = F], [Niso<Chromosome>$ chromosome = NULL], [logical$ outputMultiallelics = T], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T])
 //
-EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
@@ -3217,7 +3217,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsVCF(EidosGlobalSt
 	int individuals_count = p_target->Count();
 	
 	if (individuals_count == 0)
-		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividualsVCF): outputIndividualsVCF() cannot be called on a zero-length target vector; at least one individual is required." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividualsToVCF): outputIndividualsToVCF() cannot be called on a zero-length target vector; at least one individual is required." << EidosTerminate();
 	
 	const Individual **individuals_buffer = (const Individual **)p_target->ObjectData();
 	
@@ -3225,7 +3225,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsVCF(EidosGlobalSt
 	Species *species = Community::SpeciesForIndividuals(p_target);
 	
 	if (!species)
-		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividualsVCF): outputIndividualsVCF() requires that all individuals belong to the same species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividualsToVCF): outputIndividualsToVCF() requires that all individuals belong to the same species." << EidosTerminate();
 	
 	Community &community = species->community_;
 	
@@ -3237,7 +3237,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsVCF(EidosGlobalSt
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Individual_Class::ExecuteMethod_outputIndividualsVCF): outputIndividualsVCF() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Individual_Class::ExecuteMethod_outputIndividualsToVCF): outputIndividualsToVCF() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community.warned_early_output_ = true;
 			}
 		}
@@ -3289,7 +3289,7 @@ _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haploso
 	if (call == 0)
 		return;
 	
-	slim_position_t mutrun_length = haplosome->mutrun_length_;
+	slim_position_t mutrun_length = haplosome->MutrunLength();
 	MutationIndex mut_index = alt_allele_mut_indices[call - 1];
 	slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 	
@@ -3321,7 +3321,7 @@ _AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haploso
 EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	// BEWARE: This method shares a great deal of code with Haplosome_Class::ExecuteMethod_readFromVCF().  Maintain in parallel.
+	// BEWARE: This method shares a great deal of code with Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF().  Maintain in parallel.
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Individual_Class::ExecuteMethod_readIndividualsFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
@@ -3489,7 +3489,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 		std::sort(call_lines.begin(), call_lines.end(), [ ](const std::pair<slim_position_t, std::string> &l1, const std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
 		
 		// cache target haplosomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
-		// NOTE that unlike readFromVCF(), we do not exclude null haplosomes here!
+		// NOTE that unlike readHaplosomesFromVCF(), we do not exclude null haplosomes here!
 		std::vector<Haplosome *> haplosomes;
 		std::vector<slim_mutrun_index_t> haplosomes_last_mutrun_modified;
 		std::vector<MutationRun *> haplosomes_last_mutrun;
@@ -3831,7 +3831,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			}
 			
 			// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
-			// NOTE: unlike readFromVCF(), we place the mutations directly into the haplosomes, rather than using a genotype_calls vector
+			// NOTE: unlike readHaplosomesFromVCF(), we place the mutations directly into the haplosomes, rather than using a genotype_calls vector
 			int haplosomes_index = 0;
 			
 			for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)

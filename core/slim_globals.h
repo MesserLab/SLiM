@@ -921,13 +921,13 @@ extern const std::string &gStr_relatedness;
 extern const std::string &gStr_sharedParentCount;
 extern const std::string &gStr_mutationsOfType;
 extern const std::string &gStr_outputIndividuals;
-extern const std::string &gStr_outputIndividualsVCF;
+extern const std::string &gStr_outputIndividualsToVCF;
 extern const std::string &gStr_readIndividualsFromVCF;
 extern const std::string &gStr_setSpatialPosition;
 extern const std::string &gStr_sumOfMutationsOfType;
 extern const std::string &gStr_uniqueMutationsOfType;
-extern const std::string &gStr_readFromMS;
-extern const std::string &gStr_readFromVCF;
+extern const std::string &gStr_readHaplosomesFromMS;
+extern const std::string &gStr_readHaplosomesFromVCF;
 extern const std::string &gStr_removeMutations;
 extern const std::string &gStr_setGenomicElementType;
 extern const std::string &gStr_setMutationFractions;
@@ -1368,13 +1368,13 @@ enum _SLiMGlobalStringID : int {
 	gID_sharedParentCount,
 	gID_mutationsOfType,
 	gID_outputIndividuals,
-	gID_outputIndividualsVCF,
+	gID_outputIndividualsToVCF,
 	gID_readIndividualsFromVCF,
 	gID_setSpatialPosition,
 	gID_sumOfMutationsOfType,
 	gID_uniqueMutationsOfType,
-	gID_readFromMS,
-	gID_readFromVCF,
+	gID_readHaplosomesFromMS,
+	gID_readHaplosomesFromVCF,
 	gID_removeMutations,
 	gID_setGenomicElementType,
 	gID_setMutationFractions,

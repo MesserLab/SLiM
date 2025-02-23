@@ -657,9 +657,9 @@ For purposes related to interpreting the nucleotide sequence as a coding sequenc
 \f3\fs18 initializeAncestralSequence()
 \f4\fs20  function; see that documentation for details.  The length of the ancestral sequence is returned.\
 It is unusual to replace the ancestral sequence in a running simulation, since the nucleotide states of segregating and fixed mutations will depend upon the original ancestral sequence.  It can be useful when loading a new population state with 
-\f3\fs18 readFromMS()
+\f3\fs18 readHaplosomesFromMS()
 \f4\fs20  or 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20 , such as when resetting the simulation state to an earlier state in a conditional simulation; however, that is more commonly done using 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  with a SLiM or 
@@ -2342,7 +2342,7 @@ See
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 +\'a0(\cf0 \kerning1\expnd0\expndtw0 object\cf2 \expnd0\expndtw0\kerning0
-<Mutation>)readFromMS(string$\'a0filePath, io<MutationType>$\'a0mutationType)\
+<Mutation>)readHaplosomesFromMS(string$\'a0filePath, io<MutationType>$\'a0mutationType)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Read new mutations from the MS format file at 
@@ -2350,9 +2350,11 @@ See
 \f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the MS file, and all target haplosomes must be associated with the same chromosome, and must not be null haplosomes.  The target haplosomes correspond, in order, to the call lines in the MS file.  To read into all of the non-null haplosomes in a given subpopulation 
 \f3\fs18 pN
 \f4\fs20  in a single-chromosome model, simply call 
-\f3\fs18 pN.haplosomesNonNull.readFromMS()
+\f3\fs18 pN.haplosomesNonNull.\expnd0\expndtw0\kerning0
+readHaplosomesFromMS\kerning1\expnd0\expndtw0 ()
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the MS file.  A vector containing all of the mutations created by 
-\f3\fs18 readFromMS()
+\f3\fs18 \expnd0\expndtw0\kerning0
+readHaplosomesFromMS\kerning1\expnd0\expndtw0 ()
 \f4\fs20  is returned.\
 Each mutation is created at the position specified in the file, using the mutation type given by 
 \f3\fs18 mutationType
@@ -2365,7 +2367,7 @@ Each mutation is created at the position specified in the file, using the mutati
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 +\'a0(\cf0 \kerning1\expnd0\expndtw0 object\cf2 \expnd0\expndtw0\kerning0
-<Mutation>)readFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
+<Mutation>)readHaplosomesFromVCF(string$\'a0filePath, [Nio<MutationType>$\'a0mutationType\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Read new mutations from the VCF format file at 
@@ -2373,9 +2375,9 @@ Each mutation is created at the position specified in the file, using the mutati
 \f4\fs20  and add them to the target haplosomes.  The number of target haplosomes must match the number of haplosomes represented in the VCF file (i.e., two times the number of diploid samples plus one times the number of haploid samples).  To read into all of the haplosomes in a given subpopulation 
 \f3\fs18 pN
 \f4\fs20  in a single-chromosome model, simply call 
-\f3\fs18 pN.haplosomes.readFromVCF()
+\f3\fs18 pN.haplosomes.readHaplosomesFromVCF()
 \f4\fs20 , assuming the subpopulation\'92s size matches that of the VCF file taking ploidy into account.  A vector containing all of the mutations created by 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  is returned.\
 This method and the 
 \f3\fs18 readIndividualsFromVCF()
@@ -2395,23 +2397,23 @@ SLiM\'92s VCF parsing is quite primitive.  The header is parsed only inasmuch as
 \f4\fs20 \cf2 The 
 \f3\fs18 CHROM
 \f4\fs20  field is largely ignored, but 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  does check that its value is identical across all call lines, to prevent the genetic data for more than one chromosome from being glommed together nonsensically; the input VCF file must contain data for just a single chromosome.  In single-chromosome models the 
 \f3\fs18 CHROM
 \f4\fs20  field is not otherwise checked or validated.  In multi-chromosome models, 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  imposes some additional restrictions.  First, all haplosomes in the target vector must be associated with the same single focal chromosome.  Second, the 
 \f3\fs18 CHROM
 \f4\fs20  field for every call line in the VCF file must match the 
 \f3\fs18 symbol
 \f4\fs20  property of that focal chromosome; the VCF file must indicate that it specifically matches the focal chromosome associated with the target haplosomes.  These restrictions boil down to the fact that 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  only reads data for a single chromosome.  If you wish to read multi-chromosome VCF data into a multi-chromosome SLiM model, the 
 \f3\fs18 readIndividualsFromVCF()
 \f4\fs20  method provided by the 
 \f3\fs18 Individual
 \f4\fs20  class supports that functionality (because it can work at the level of individuals, rather than haplosomes, making it possible to match calls to the corresponding haplosomes in a reasonable way).  Alternatively, you can call 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  multiple times to read data for different chromosomes one by one.\
 The 
 \f3\fs18 ID
@@ -2499,7 +2501,7 @@ The
 If multiple alleles using the same nucleotide at the same position are specified in the VCF file, a separate mutation will be created for each, mirroring SLiM\'92s behavior with independent mutational lineages when writing VCF.  The 
 \f3\fs18 MULTIALLELIC
 \f4\fs20  flag is ignored by 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20 ; call lines for mutations at the same base position in the same haplosome will result in stacked mutations whether or not 
 \f3\fs18 MULTIALLELIC
 \f4\fs20  is present.\
@@ -2531,7 +2533,7 @@ A call of
 \f4\fs20  matches two non-null target haplosomes (but does not add the called mutation to either), whereas a call of 
 \f3\fs18 ~
 \f4\fs20  is simply skipped, without matching to any haplosome in the target vector, mirroring the fact that 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  skips over null haplosomes in the target haplosome vector.  (When reading Y-chromosome data, a female\'92s null Y haplosome could be omitted from the target haplosome vector, or it could be present since it would be skipped anyway \'96 as stated above, all null haplosomes are skipped.)  Note that these semantics using 
 \f3\fs18 ~
 \f4\fs20  are non-standard; the VCF standard does not seem to say anything about how sex chromosomes should be represented (or anything about other types of chromosomes that might be absent from some individuals), so the usage of 
@@ -3708,7 +3710,7 @@ Output is generally done in a
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)outputIndividualsVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T])\
+\f3\fs18 \cf2 +\'a0(void)outputIndividualsToVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Output the state of the target vector of individuals in VCF format.  If the optional parameter 
@@ -3736,7 +3738,7 @@ Output is generally done in a
 \f4\fs20  option provided by 
 \f3\fs18 outputVCFSample()
 \f4\fs20  is not available for 
-\f3\fs18 outputIndividualsVCF()
+\f3\fs18 outputIndividualsToVCF()
 \f4\fs20 ; each VCF sample has to correspond directly to one individual.\
 The 
 \f3\fs18 chromosome
@@ -3780,7 +3782,7 @@ Output is generally done in a
 \f3\fs18 readIndividualsFromVCF()
 \f4\fs20  is returned (not necessarily in the order of the corresponding VCF call lines).\
 This method and the 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20  provide two alternative ways of reading VCF data, focused on the perspective of either individuals (this method) or haplosomes (the 
@@ -3790,20 +3792,20 @@ This method and the
 \f4\fs20  method draws a correspondence between VCF calls and haplosomes.  For example, if a VCF call line contained a series of calls like \'93
 \f3\fs18 1|1 0|1 1 0 1|0
 \f4\fs20 \'94 this method would see that as calls for five individuals, three of which are diploid for the chromosome being called, and two of which are haploid.  That would make sense if, for example, the chromosome being called is an X chromosome; the diploid individuals would be females, the haploid individuals would be males.  The vector of target individuals would need to contain two females, then two males, and then a female, so that the structure of the calls matched the haplosome structure of the individuals, or an error would result.  The 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20 , on the other hand, would see that same series of calls as corresponding to eight haplosomes, and would assign each call to the corresponding non-null target haplosome, without regard to whether the VCF\'92s grouping into diploid and haploid calls corresponded to any coherent structure of individuals in the SLiM model.  Each approach has advantages and disadvantages.  This method provides much more error-checking and safety when your intention is to read individual-level data from VCF; it can check that the ploidy in the VCF data matches the ploidy of each target individual, and that diploid calls like 
 \f3\fs18 1|1
 \f4\fs20  get assigned to the two haplosomes of a single individual correctly.  The 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20  does not perform such checks, and can push VCF data into any arbitrary set of haplosomes, so it provides more power and flexibility, but less error-checking and less intelligence.\
 Because this method works at the level of individuals, it can read VCF data associated with multiple chromosomes into a multi-chromosome SLiM model and place mutations into the correct haplosomes of each individual based upon the 
 \f3\fs18 CHROM
 \f4\fs20  column of the VCF file (which 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  cannot do).  For this to work, the values in the 
 \f3\fs18 CHROM
 \f4\fs20  column of the call lines must correspond exactly to chromosome symbols in the SLiM model, as provided to 
@@ -3814,14 +3816,14 @@ Because this method works at the level of individuals, it can read VCF data asso
 \f3\fs18 readIndividualsFromVCF()
 \f4\fs20  for each chromosome, providing each call with a separate VCF file that contains only the mutations associated with one chromosome; in that case, each call would return only the mutations added to the chromosome associated with that call, which might be more convenient if post-processing of the returned mutations is necessary.\
 As in 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20 , a call of 
 \f3\fs18 ~
 \f4\fs20  represents the fact that an individual has no genetic information for the chromosome being called; for example, a call line for a mutation on a Y chromosome should have haploid calls for male individuals (they have or do not have the called mutation), and calls of 
 \f3\fs18 ~
 \f4\fs20  for female individuals (they have no Y haplosome at all).  This convention was invented for SLiM, since the VCF standard does not seem to say anything about how sex chromosomes should be represented (or anything about other types of chromosomes that might be absent from some individuals).\
 The 
-\f3\fs18 readFromVCF()
+\f3\fs18 readHaplosomesFromVCF()
 \f4\fs20  method\'92s documentation provides many important details on how SLiM treats various VCF fields during input; those details will not be repeated here, for brevity.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

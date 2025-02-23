@@ -1948,7 +1948,7 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     }
     
     //
-    //  Shift from genome to haplosome, probably for SLiM 5.0
+    //  Shift from genome to haplosome for SLiM 5.0
     //
     
     if (terminationMessage.contains("could not find an Eidos class named 'Genome'") &&
@@ -1969,7 +1969,7 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     
     if (terminationMessage.contains("method mutationCountsInGenomes() is not defined on object element type Haplosome") &&
             (selectionString == "mutationCountsInGenomes"))
-        return offerAndExecuteAutofix(selection, "mutationCountsInHaplosomes", "The `mutationCountsInGenomes` method of Haplosome has been renamed to `mutationCountsInHaplosomes`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "mutationCountsInHaplosomes", "The `mutationCountsInGenomes()` method of Haplosome has been renamed to `mutationCountsInHaplosomes()`.", terminationMessage);
     
     if (terminationMessage.contains("method mutationFrequenciesInGenomes() is not defined on object element type Haplosome") &&
             (selectionString == "mutationFrequenciesInGenomes"))
@@ -2029,6 +2029,15 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("undefined identifier haplosome2") &&
             (selectionString == "haplosome2"))
         return offerAndExecuteAutofix(selection, "individual.haploidGenome2", "The `haplosome2` pseudo-parameter has been removed; it is now accessed as `individual.haploidGenome2`.", terminationMessage);
+    
+    // Other SLiM 5.0 autofixes
+    if (terminationMessage.contains("method readFromVCF() is not defined on object element type Haplosome") &&
+            (selectionString == "readFromVCF"))
+        return offerAndExecuteAutofix(selection, "readHaplosomesFromVCF", "The `readFromVCF()` method of Haplosome has been renamed to `readHaplosomesFromVCF()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method readFromMS() is not defined on object element type Haplosome") &&
+            (selectionString == "readFromMS"))
+        return offerAndExecuteAutofix(selection, "readHaplosomesFromMS", "The `readFromMS()` method of Haplosome has been renamed to `readHaplosomesFromMS()`.", terminationMessage);
     
     return false;
 }
