@@ -1350,6 +1350,7 @@ const std::string &gStr_sharedParentCount = EidosRegisteredString("sharedParentC
 const std::string &gStr_mutationsOfType = EidosRegisteredString("mutationsOfType", gID_mutationsOfType);
 const std::string &gStr_outputIndividuals = EidosRegisteredString("outputIndividuals", gID_outputIndividuals);
 const std::string &gStr_outputIndividualsVCF = EidosRegisteredString("outputIndividualsVCF", gID_outputIndividualsVCF);
+const std::string &gStr_readIndividualsFromVCF = EidosRegisteredString("readIndividualsFromVCF", gID_readIndividualsFromVCF);
 const std::string &gStr_setSpatialPosition = EidosRegisteredString("setSpatialPosition", gID_setSpatialPosition);
 const std::string &gStr_sumOfMutationsOfType = EidosRegisteredString("sumOfMutationsOfType", gID_sumOfMutationsOfType);
 const std::string &gStr_uniqueMutationsOfType = EidosRegisteredString("uniqueMutationsOfType", gID_uniqueMutationsOfType);

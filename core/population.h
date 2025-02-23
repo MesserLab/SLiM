@@ -354,7 +354,7 @@ public:
 	inline bool HasDeferredHaplosomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
 	void CheckForDeferralInHaplosomesVector(Haplosome **p_haplosomes, size_t p_elements_size, const std::string &p_caller);
 	void CheckForDeferralInHaplosomes(EidosValue_Object *p_haplosomes, const std::string &p_caller);
-	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller);
+	void CheckForDeferralInIndividualsVector(Individual * const *p_individuals, size_t p_elements_size, const std::string &p_caller);
 	
 	// FIXME MULTICHROM deferred reproduction is disabled for now
 	//void DoDeferredReproduction(void);

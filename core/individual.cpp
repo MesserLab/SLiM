@@ -3090,6 +3090,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("individualTags", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readIndividualsFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -3102,10 +3103,11 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
-		case gID_outputIndividuals:		return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_outputIndividualsVCF:	return ExecuteMethod_outputIndividualsVCF(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_setSpatialPosition:	return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
-		default:						return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputIndividuals:			return ExecuteMethod_outputIndividuals(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputIndividualsVCF:		return ExecuteMethod_outputIndividualsVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
+		default:							return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 
@@ -3276,6 +3278,793 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsVCF(EidosGlobalSt
 		}
 	}
 	return gStaticEidosValueVOID;
+}
+
+// this is to avoid copy-pasting the same addition code repeatedly; it is gross, but should get inlined
+inline __attribute__((always_inline)) static void
+_AddCallToHaplosome(int call, Haplosome *haplosome, slim_mutrun_index_t &haplosome_last_mutrun_modified, MutationRun *&haplosome_last_mutrun,
+					std::vector<MutationIndex> &alt_allele_mut_indices, slim_position_t mut_position, Species *species, MutationRunContext *mutrun_context,
+					bool all_target_haplosomes_started_empty, bool recording_mutations)
+{
+	if (call == 0)
+		return;
+	
+	slim_position_t mutrun_length = haplosome->mutrun_length_;
+	MutationIndex mut_index = alt_allele_mut_indices[call - 1];
+	slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
+	
+	if (mut_mutrun_index != haplosome_last_mutrun_modified)
+	{
+#ifdef _OPENMP
+		// When parallel, the MutationRunContext depends upon the position in the haplosome
+		mutrun_context = &species->ChromosomeMutationRunContextForMutationRunIndex(mut_mutrun_index);
+#endif
+		
+		// We use WillModifyRun() because these are existing haplosomes we didn't create, and their runs may be shared; we have
+		// no way to tell.  We avoid making excessive mutation run copies by calling this only once per mutrun per haplosome.
+		haplosome_last_mutrun = haplosome->WillModifyRun(mut_mutrun_index, *mutrun_context);
+		haplosome_last_mutrun_modified = mut_mutrun_index;
+	}
+	
+	// If the haplosome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
+	if (all_target_haplosomes_started_empty)
+		haplosome_last_mutrun->emplace_back(mut_index);
+	else
+		haplosome_last_mutrun->insert_sorted_mutation(mut_index);
+	
+	if (recording_mutations)
+		species->RecordNewDerivedState(haplosome, mut_position, *haplosome->derived_mutation_ids_at_position(mut_position));
+}
+
+//	*********************	+ (o<Mutation>)readIndividualsFromVCF(s$ filePath = NULL, [Nio<MutationType> mutationType = NULL])
+//
+EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_interpreter)
+	// BEWARE: This method shares a great deal of code with Haplosome_Class::ExecuteMethod_readFromVCF().  Maintain in parallel.
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Individual_Class::ExecuteMethod_readIndividualsFromVCF(): SLiM global state read");
+	
+	EidosValue *filePath_value = p_arguments[0].get();
+	EidosValue *mutationType_value = p_arguments[1].get();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (p_target->Count() == 0)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): " << "readIndividualsFromVCF() requires a target Individual vector of length 1 or more, so that the species of the target can be determined." << EidosTerminate();
+	
+	Species *species = Community::SpeciesForIndividuals(p_target);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): " << "readIndividualsFromVCF() requires that all target individuals belong to the same species." << EidosTerminate();
+	
+	Individual * const *individuals_data = (Individual * const *)p_target->ObjectData();
+	int individuals_size = p_target->Count();
+	
+	species->population_.CheckForDeferralInIndividualsVector(individuals_data, individuals_size, "Individual_Class::ExecuteMethod_readIndividualsFromVCF");
+	
+	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+	bool model_is_multi_chromosome = (chromosomes.size() > 1);
+	
+	Community &community = species->community_;
+	Population &pop = species->population_;
+	bool recording_mutations = species->RecordingTreeSequenceMutations();
+	bool nucleotide_based = species->IsNucleotideBased();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex_NOCAST(0, nullptr)));
+	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
+	MutationType *default_mutation_type_ptr = nullptr;
+	
+	if (mutationType_value->Type() != EidosValueType::kValueNULL)
+		default_mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationType_value, 0, &community, species, "readIndividualsFromVCF()");			// SPECIES CONSISTENCY CHECK
+	
+	// Parse the whole input file and retain the information from it
+	std::ifstream infile(file_path);
+	
+	if (!infile)
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
+	
+	std::string line, sub;
+	int parse_state = 0;
+	int sample_id_count = 0;
+	bool info_MID_defined = false, info_S_defined = false, info_DOM_defined = false, info_PO_defined = false;
+	bool info_GO_defined = false, info_TO_defined = false, info_MT_defined = false, /*info_AA_defined = false,*/ info_NONNUC_defined = false;
+	
+	// This data structure keeps call lines that we read for each chromosome.  They could arrive from the file
+	// in any order; with this we store them by chromosome, and then indexed by their mutation position.
+	std::vector<std::vector<std::pair<slim_position_t, std::string>>> call_lines_per_chromosome;
+	
+	call_lines_per_chromosome.resize(chromosomes.size());	// make an empty call_lines vector for each chromosome
+	
+	while (!infile.eof())
+	{
+		getline(infile, line);
+		
+		switch (parse_state)
+		{
+			case 0:
+			{
+				// In header, parsing ## lines, until we get to the #CHROM line; the point of this is that we only want to interpret
+				// INFO fields like MID, S, etc. as having their SLiM-specific meaning if their SLiM-specific definition is present
+				if (line.compare(0, 2, "##") == 0)
+				{
+					if (line == "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">")	info_MID_defined = true;
+					if (line == "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">")		info_S_defined = true;
+					if (line == "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">")				info_DOM_defined = true;
+					if (line == "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">")	info_PO_defined = true;
+					if (line == "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">")	info_GO_defined = true;
+					if (line == "##INFO=<ID=TO,Number=.,Type=Integer,Description=\"Tick of Origin\">")			info_TO_defined = true;		// SLiM 4 emits TO (tick) instead of GO (generation)
+					if (line == "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">")			info_MT_defined = true;
+					/*if (line == "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">")			info_AA_defined = true;*/		// this one is standard, so we don't require this definition
+					if (line == "##INFO=<ID=NONNUC,Number=0,Type=Flag,Description=\"Non-nucleotide-based\">")	info_NONNUC_defined = true;
+				}
+				else if (line.compare(0, 1, "#") == 0)
+				{
+					static const char *header_fields[9] = {"CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"};
+					std::istringstream iss(line);
+					
+					iss.get();	// eat the initial #
+					
+					// verify that the expected standard columns are present
+					for (const char *header_field : header_fields)
+					{
+						if (!(iss >> sub))
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
+						if (sub != header_field)
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
+					}
+					
+					// the remaining columns are sample IDs; we don't care what they are, we just count them
+					while (iss >> sub)
+						sample_id_count++;
+					
+					if (sample_id_count != individuals_size)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): there are " << sample_id_count << " samples in the VCF file, but " << individuals_size << " target individuals; the number of target individuals must match the number of VCF samples." << EidosTerminate();
+					
+					// now the remainder of the file should be call lines
+					parse_state = 1;
+				}
+				else
+				{
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): unexpected line in VCF header: '" << line << "'." << EidosTerminate();
+				}
+				break;
+			}
+			case 1:
+			{
+				// In call lines, fields are separated by tabs, and could theoretically contain spaces; here we just read a whole line,
+				// extract the position field for the mutation, and save the line indexed by its mutation's position for later handling
+				if (line.length() == 0)
+					break;
+				
+				std::istringstream iss(line);
+				
+				std::getline(iss, sub, '\t');	// CHROM
+				
+				Chromosome *chromosome_for_call = species->ChromosomeFromSymbol(sub);
+				
+				// FIXME: In single-chromosome models we should at least check that the CHROM field is the same across all call lines, to make sure we're not reading multichrom data nonsensically
+				if (model_is_multi_chromosome && !chromosome_for_call)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match any chromosome symbol for the focal species with which the target individuals are associated.  In multi-chromosome models, the CHROM field is required to match a chromosome symbol to prevent bugs." << EidosTerminate();
+				
+				if (!chromosome_for_call)
+					chromosome_for_call = chromosomes[0];
+				
+				slim_chromosome_index_t chromosome_index = chromosome_for_call->Index();
+				slim_position_t last_position = chromosome_for_call->last_position_;
+				
+				std::getline(iss, sub, '\t');	// POS
+				
+				int64_t pos = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr) - 1;		// -1 because VCF uses 1-based positions
+				
+				if ((pos < 0) || (pos > last_position))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file POS value " << pos << " out of range." << EidosTerminate();
+				
+				std::vector<std::pair<slim_position_t, std::string>> &call_lines = call_lines_per_chromosome[chromosome_index];
+				
+				call_lines.emplace_back(pos, line);
+				break;
+			}
+			default:
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): (internal error) unhandled case." << EidosTerminate();
+		}
+	}
+	
+	infile.close();
+	
+	// We will keep track of all mutations added, to all chromosomes, and return them as a vector
+	std::vector<MutationIndex> mutation_indices;
+	
+	// Loop over the call lines for each chromosome, and handle chromosomes one by one
+	// FIXME: from here downwards could probably be parallelized
+	for (size_t chromosome_index = 0; chromosome_index < chromosomes.size(); ++chromosome_index)
+	{
+		std::vector<std::pair<slim_position_t, std::string>> &call_lines = call_lines_per_chromosome[chromosome_index];
+		
+		if (call_lines.size() == 0)
+			continue;
+		
+		Chromosome *chromosome = species->Chromosomes()[chromosome_index];
+		int first_haplosome_index = species->FirstHaplosomeIndices()[chromosome_index];
+		int last_haplosome_index = species->LastHaplosomeIndices()[chromosome_index];
+		int intrinsic_ploidy = (last_haplosome_index - first_haplosome_index) + 1;
+		// sort call_lines by position, so that we can add them to empty haplosomes efficiently
+		std::sort(call_lines.begin(), call_lines.end(), [ ](const std::pair<slim_position_t, std::string> &l1, const std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
+		
+		// cache target haplosomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
+		// NOTE that unlike readFromVCF(), we do not exclude null haplosomes here!
+		std::vector<Haplosome *> haplosomes;
+		std::vector<slim_mutrun_index_t> haplosomes_last_mutrun_modified;
+		std::vector<MutationRun *> haplosomes_last_mutrun;
+		bool all_target_haplosomes_started_empty = true;
+		
+		for (int individuals_index = 0; individuals_index < individuals_size; ++individuals_index)
+		{
+			Individual *ind = individuals_data[individuals_index];
+			
+			{
+				Haplosome *haplosome = ind->haplosomes_[first_haplosome_index];
+				
+				if (haplosome->IsNull())
+				{
+					haplosomes.emplace_back(nullptr);
+					haplosomes_last_mutrun_modified.emplace_back(-1);
+					haplosomes_last_mutrun.emplace_back(nullptr);
+				}
+				else
+				{
+					if (haplosome->mutation_count() != 0)
+						all_target_haplosomes_started_empty = false;
+					
+					haplosomes.emplace_back(haplosome);
+					haplosomes_last_mutrun_modified.emplace_back(-1);
+					haplosomes_last_mutrun.emplace_back(nullptr);
+				}
+			}
+			
+			if (intrinsic_ploidy == 2)
+			{
+				Haplosome *haplosome = ind->haplosomes_[last_haplosome_index];
+				
+				if (haplosome->IsNull())
+				{
+					haplosomes.emplace_back(nullptr);
+					haplosomes_last_mutrun_modified.emplace_back(-1);
+					haplosomes_last_mutrun.emplace_back(nullptr);
+				}
+				else
+				{
+					if (haplosome->mutation_count() != 0)
+						all_target_haplosomes_started_empty = false;
+					
+					haplosomes.emplace_back(haplosome);
+					haplosomes_last_mutrun_modified.emplace_back(-1);
+					haplosomes_last_mutrun.emplace_back(nullptr);
+				}
+			}
+		}
+		
+		// parse all the call lines, instantiate their mutations, and add the mutations to the target haplosomes
+#ifndef _OPENMP
+		MutationRunContext &mutrun_context = chromosome->ChromosomeMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
+		
+		for (std::pair<slim_position_t, std::string> &call_line : call_lines)
+		{
+			slim_position_t mut_position = call_line.first;
+			std::istringstream iss(call_line.second);
+			std::string ref_str, alt_str, info_str;
+			
+			std::getline(iss, sub, '\t');		// CHROM; don't care (already checked it above)
+			std::getline(iss, sub, '\t');		// POS; already fetched
+			std::getline(iss, sub, '\t');		// ID; don't care
+			std::getline(iss, ref_str, '\t');	// REF
+			std::getline(iss, alt_str, '\t');	// ALT
+			std::getline(iss, sub, '\t');		// QUAL; don't care
+			std::getline(iss, sub, '\t');		// FILTER; don't care
+			std::getline(iss, info_str, '\t');	// INFO
+			std::getline(iss, sub, '\t');		// FORMAT; don't care (GT must be first, according to the standard; we don't check)
+			
+			// parse/validate the REF nucleotide
+			int8_t ref_nuc;
+			
+			if (ref_str == "A")			ref_nuc = 0;
+			else if (ref_str == "C")	ref_nuc = 1;
+			else if (ref_str == "G")	ref_nuc = 2;
+			else if (ref_str == "T")	ref_nuc = 3;
+			else						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file REF value must be A/C/G/T." << EidosTerminate();
+			
+			// parse/validate the ALT nucleotides
+			std::vector<std::string> alt_substrs = Eidos_string_split(alt_str, ",");
+			std::vector<int8_t> alt_nucs;
+			
+			for (std::string &alt_substr : alt_substrs)
+			{
+				if (alt_substr == "A")			alt_nucs.emplace_back(0);
+				else if (alt_substr == "C")		alt_nucs.emplace_back(1);
+				else if (alt_substr == "G")		alt_nucs.emplace_back(2);
+				else if (alt_substr == "T")		alt_nucs.emplace_back(3);
+				else							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file ALT value must be A/C/G/T." << EidosTerminate();
+			}
+			
+			size_t alt_allele_count = alt_nucs.size();
+			
+			// parse/validate the INFO fields that we recognize
+			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
+			std::vector<slim_mutationid_t> info_mutids;
+			std::vector<double> info_selcoeffs;
+			std::vector<double> info_domcoeffs;
+			std::vector<slim_objectid_t> info_poporigin;
+			std::vector<slim_tick_t> info_tickorigin;
+			std::vector<slim_objectid_t> info_muttype;
+			int8_t info_ancestral_nuc = -1;
+			bool info_is_nonnuc = false;
+			
+			for (std::string &info_substr : info_substrs)
+			{
+				if (info_MID_defined && (info_substr.compare(0, 4, "MID=") == 0))		// Mutation ID
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_mutids.emplace_back((slim_mutationid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+					
+					if (info_mutids.size() && has_initial_mutations)
+					{
+						if (!gEidosSuppressWarnings)
+						{
+							if (!community.warned_readFromVCF_mutIDs_unused_)
+							{
+								p_interpreter.ErrorOutputStream() << "#WARNING (Individual_Class::ExecuteMethod_readIndividualsFromVCF): readIndividualsFromVCF(): the VCF file specifies mutation IDs with the MID field, but some mutation IDs have already been used so uniqueness cannot be guaranteed.  Use of mutation IDs is therefore disabled; mutations will not receive the mutation ID requested in the file.  To fix this warning, remove the MID field from the VCF file before reading.  To get readIndividualsFromVCF() to use the specified mutation IDs, load the VCF file into a model that has never simulated a mutation, and has therefore not used any mutation IDs." << std::endl;
+								community.warned_readFromVCF_mutIDs_unused_ = true;
+							}
+						}
+						
+						// disable use of MID for this read
+						info_MID_defined = false;
+						info_mutids.clear();
+					}
+				}
+				else if (info_S_defined && (info_substr.compare(0, 2, "S=") == 0))		// Selection Coefficient
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(2), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_selcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+				}
+				else if (info_DOM_defined && (info_substr.compare(0, 4, "DOM=") == 0))	// Dominance Coefficient
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(4), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_domcoeffs.emplace_back(EidosInterpreter::FloatForString(value_substr, nullptr));
+				}
+				else if (info_PO_defined && (info_substr.compare(0, 3, "PO=") == 0))	// Population of Origin
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_poporigin.emplace_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+				}
+				else if (info_TO_defined && (info_substr.compare(0, 3, "TO=") == 0))	// Tick of Origin
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_tickorigin.emplace_back((slim_tick_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+				}
+				else if (info_GO_defined && (info_substr.compare(0, 3, "GO=") == 0))	// Generation of Origin - emitted by SLiM 3, treated as TO here
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_tickorigin.emplace_back((slim_tick_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+				}
+				else if (info_MT_defined && (info_substr.compare(0, 3, "MT=") == 0))	// Mutation Type
+				{
+					std::vector<std::string> value_substrs = Eidos_string_split(info_substr.substr(3), ",");
+					
+					for (std::string &value_substr : value_substrs)
+						info_muttype.emplace_back((slim_objectid_t)EidosInterpreter::NonnegativeIntegerForString(value_substr, nullptr));
+				}
+				else if (/* info_AA_defined && */ (info_substr.compare(0, 3, "AA=") == 0))	// Ancestral Allele; definition not required since it is a standard field
+				{
+					std::string aa_str = info_substr.substr(3);
+					
+					if (aa_str == "A")			info_ancestral_nuc = 0;
+					else if (aa_str == "C")		info_ancestral_nuc = 1;
+					else if (aa_str == "G")		info_ancestral_nuc = 2;
+					else if (aa_str == "T")		info_ancestral_nuc = 3;
+					else						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file AA value must be A/C/G/T." << EidosTerminate();
+				}
+				else if (info_NONNUC_defined && (info_substr == "NONNUC"))				// Non-nucleotide-based
+				{
+					info_is_nonnuc = true;
+				}
+				
+				if ((info_mutids.size() != 0) && (info_mutids.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for MID field." << EidosTerminate();
+				if ((info_selcoeffs.size() != 0) && (info_selcoeffs.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for S field." << EidosTerminate();
+				if ((info_domcoeffs.size() != 0) && (info_domcoeffs.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for DOM field." << EidosTerminate();
+				if ((info_poporigin.size() != 0) && (info_poporigin.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for PO field." << EidosTerminate();
+				if ((info_tickorigin.size() != 0) && (info_tickorigin.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for GO or TO field." << EidosTerminate();
+				if ((info_muttype.size() != 0) && (info_muttype.size() != alt_allele_count))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file unexpected value count for MT field." << EidosTerminate();
+			}
+			
+			// instantiate the mutations involved in this call line; the REF allele represents no mutation, ALT alleles are each separate mutations
+			std::vector<MutationIndex> alt_allele_mut_indices;
+			
+			for (std::size_t alt_allele_index = 0; alt_allele_index < alt_allele_count; ++alt_allele_index)
+			{
+				// figure out the mutation type; if specified with MT, look it up, otherwise use the default supplied
+				MutationType *mutation_type_ptr = default_mutation_type_ptr;
+				
+				if (info_muttype.size() > 0)
+				{
+					slim_objectid_t mutation_type_id = info_muttype[alt_allele_index];
+					
+					mutation_type_ptr = species->MutationTypeWithID(mutation_type_id);
+					
+					if (!mutation_type_ptr)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field references a mutation type m" << mutation_type_id << " that is not defined." << EidosTerminate();
+				}
+				
+				if (!mutation_type_ptr)
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
+				
+				// check the dominance coefficient of DOM against that of the mutation type
+				if (info_domcoeffs.size() > 0)
+				{
+					if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
+				}
+				
+				// get the selection coefficient from S, or draw one
+				double selection_coeff;
+				
+				if (info_selcoeffs.size() > 0)
+					selection_coeff = info_selcoeffs[alt_allele_index];
+				else
+					selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+				
+				// get the subpop index from PO, or set to -1; no bounds checking on this
+				slim_objectid_t subpop_index = -1;
+				
+				if (info_poporigin.size() > 0)
+					subpop_index = info_poporigin[alt_allele_index];
+				
+				// get the origin tick from gO, or set to the current tick; no bounds checking on this
+				slim_tick_t origin_tick;
+				
+				if (info_tickorigin.size() > 0)
+					origin_tick = info_tickorigin[alt_allele_index];
+				else
+					origin_tick = community.Tick();
+				
+				// figure out the nucleotide and do nucleotide-related checks
+				int8_t alt_allele_nuc = alt_nucs[alt_allele_index];		// must be defined, in all cases, but might be ignored
+				int8_t nucleotide;
+				
+				if (nucleotide_based)
+				{
+					if (info_NONNUC_defined)
+					{
+						// We are reading a SLiM-generated VCF file that uses NONNUC to designate non-nucleotide-based mutations
+						if (info_is_nonnuc)
+						{
+							// This call line is marked NONNUC, so there is no associated nucleotide; check against the mutation type
+							if (mutation_type_ptr->nucleotide_based_)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a mutation marked NONNUC cannot use a nucleotide-based mutation type." << EidosTerminate();
+							
+							nucleotide = -1;
+						}
+						else
+						{
+							// This call line is not marked NONNUC, so it represents nucleotide-based alleles
+							if (!mutation_type_ptr->nucleotide_based_)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a nucleotide-based mutation cannot use a non-nucleotide-based mutation type." << EidosTerminate();
+							if (ref_nuc != info_ancestral_nuc)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the REF nucleotide does not match the AA nucleotide." << EidosTerminate();
+							
+							int8_t ancestral = (int8_t)chromosome->AncestralSequence()->NucleotideAtIndex(mut_position);
+							
+							if (ancestral != ref_nuc)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the REF/AA nucleotide does not match the ancestral nucleotide at the same position; a matching ancestral nucleotide sequence must be set prior to calling readIndividualsFromVCF()." << EidosTerminate();
+							
+							nucleotide = alt_allele_nuc;
+						}
+					}
+					else
+					{
+						// We are reading a generic VCF file that does not use NONNUC, so we follow the mutation type's lead; if it is nucleotide-based, we use the nucleotide specified
+						if (mutation_type_ptr->nucleotide_based_)
+						{
+							// The mutation type is nucleotide-based, so use the nucleotide specified; in this case we ignore REF and AA, however
+							nucleotide = alt_allele_nuc;
+						}
+						else
+						{
+							// The mutation type is non-nucleotide-based, so we ignore the nucleotide supplied, as well as REF/AA
+							nucleotide = -1;
+						}
+					}
+				}
+				else
+				{
+					// We are a non-nucleotide-based model, so NONNUC should not be defined; we do not understand nucleotides and will ignore them
+					if (info_NONNUC_defined)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): cannot read a VCF file generated by a nucleotide-based model into a non-nucleotide-based model." << EidosTerminate();
+					
+					nucleotide = -1;
+				}
+				
+				// instantiate the mutation with the values decided upon
+				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
+				Mutation *new_mut;
+				
+				if (info_mutids.size() > 0)
+				{
+					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
+					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
+					
+					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+				}
+				else
+				{
+					// no mutation ID supplied, so use whatever is next
+					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+				}
+				
+				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
+				if (selection_coeff != 0.0)
+				{
+					species->pure_neutral_ = false;
+					mutation_type_ptr->all_pure_neutral_DFE_ = false;
+				}
+				
+				// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
+				pop.MutationRegistryAdd(new_mut);
+				alt_allele_mut_indices.emplace_back(new_mut_index);
+				mutation_indices.emplace_back(new_mut_index);
+			}
+			
+			// read the genotype data for each sample id, which might be diploid or haploid, and might have data beyond GT
+			// NOTE: unlike readFromVCF(), we place the mutations directly into the haplosomes, rather than using a genotype_calls vector
+			int haplosomes_index = 0;
+			
+			for (int sample_index = 0; sample_index < sample_id_count; ++sample_index)
+			{
+				if (iss.eof())
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file call line ended unexpectedly before the last sample." << EidosTerminate();
+				
+				std::getline(iss, sub, '\t');
+				
+				// extract just the GT field if others are present
+				std::size_t colon_pos = sub.find_first_of(':');
+				
+				if (colon_pos != std::string::npos)
+					sub = sub.substr(0, colon_pos);
+				
+				// separate haploid calls that are joined by | or /; this is the hotspot of the whole method, so we try to be efficient here
+				bool call_handled = false;
+				int genotype_call1 = -1;
+				int genotype_call2 = -1;
+				
+				if ((sub.length() == 3) && ((sub[1] == '|') || (sub[1] == '/')))
+				{
+					// diploid, both single-digit
+					char sub_ch1 = sub[0];
+					char sub_ch2 = sub[2];
+					
+					if ((sub_ch1 >= '0') && (sub_ch1 <= '9') && (sub_ch2 >= '0') && (sub_ch2 <= '9'))
+					{
+						genotype_call1 = (int)(sub_ch1 - '0');
+						genotype_call2 = (int)(sub_ch2 - '0');
+						
+						call_handled = true;
+					}
+				}
+				else if (sub.length() == 1)
+				{
+					char sub_ch = sub[0];
+					
+					if (sub_ch == '~')
+					{
+						// If the call is ~, a tilde, it indicates that no genetic information is present
+						// (this is the case for a female if we're reading Y-chromosome data, for example).
+						// We leave genotype_call1 and genotype_call2 as -1, indicating no call for either.
+						// Note that this is not part of the VCF standard; it had to be invented for SLiM.
+						call_handled = true;
+					}
+					else
+					{
+						// haploid, single-digit; note we always place this in genotype_call1
+						if ((sub_ch >= '0') && (sub_ch <= '9'))
+						{
+							genotype_call1 = (int)(sub_ch - '0');
+							
+							call_handled = true;
+						}
+					}
+				}
+				
+				if (!call_handled)
+				{
+					std::vector<std::string> genotype_substrs;
+					
+					if (sub.find('|') != std::string::npos)
+						genotype_substrs = Eidos_string_split(sub, "|");	// phased
+					else if (sub.find('/') != std::string::npos)
+						genotype_substrs = Eidos_string_split(sub, "/");	// unphased; we don't worry about that
+					else
+						genotype_substrs.emplace_back(sub);					// haploid, presumably
+					
+					if (genotype_substrs.size() == 2)
+					{
+						// diploid
+						genotype_call1 = (int)EidosInterpreter::NonnegativeIntegerForString(genotype_substrs[0], nullptr);
+						genotype_call2 = (int)EidosInterpreter::NonnegativeIntegerForString(genotype_substrs[1], nullptr);
+					}
+					else if (genotype_substrs.size() == 1)
+					{
+						// haploid; note we always place this in genotype_call1
+						genotype_call1 = (int)EidosInterpreter::NonnegativeIntegerForString(genotype_substrs[0], nullptr);
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file genotype calls must be diploid or haploid; " << genotype_substrs.size() << " calls found in one sample." << EidosTerminate();
+				}
+				
+				if ((genotype_call1 > (int)alt_allele_count) || (genotype_call2 > (int)alt_allele_count))	// 0 is REF, 1..n are ALT alleles
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file call out of range (does not correspond to a REF or ALT allele in the call line)." << EidosTerminate();
+				
+				if ((genotype_call2 != -1) && (intrinsic_ploidy == 1))
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a diploid call was seen ('" << sub << "') but the focal chromosome for the call (with symbol '" << chromosome->Symbol() << "') is intrinsically haploid." << EidosTerminate();
+				
+				// add the mutations to the appropriate haplosomes and record the new derived states
+				// this uses the cached haplosome state we set up above, for efficient addition:
+				//
+				//std::vector<Haplosome *> haplosomes;
+				//std::vector<slim_mutrun_index_t> haplosomes_last_mutrun_modified;
+				//std::vector<MutationRun *> haplosome_last_mutrun;
+				//
+				// remember that haplosomes has nullptr for any null haplosomes, to catch bugs!
+				
+				if (genotype_call1 == -1)
+				{
+					if (genotype_call2 == -1)
+					{
+						// Neither call is present; this occurs with the ~ call, which in not VCF standard
+						// We check that both haplosomes are null; a non-null haplosome should be called
+						// as not having any mutation with 0, not ~.
+						
+						// FIXME MULTICHROM: We should, however, allow a ~ call for chromosome type 'A'
+						// or 'H', and transmogrify any existing non-null haplosome to null, as long as
+						// it is empty.  We do not want to allow that for other chromosome types, since
+						// it would require changing the sex.
+						if (intrinsic_ploidy == 2)
+						{
+							Haplosome *haplosome1 = haplosomes[haplosomes_index];
+							Haplosome *haplosome2 = haplosomes[haplosomes_index + 1];
+							
+							if (haplosome1 || haplosome2)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							
+							// we don't need to do anything; no mutations to add
+							haplosomes_index += 2;
+						}
+						else
+						{
+							Haplosome *haplosome1 = haplosomes[haplosomes_index];
+							
+							if (haplosome1)
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							
+							// we don't need to do anything; no mutations to add
+							haplosomes_index++;
+						}
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): (internal error) call for position 2 with no call for position 1; that should not occur in the present design." << EidosTerminate();
+				}
+				else
+				{
+					if (genotype_call2 == -1)
+					{
+						// Haploid call; this could be for an intrinsically haploid chromosome, or
+						// could be indicating that one haplosome of an intrinsically diploid
+						// chromosome is null.  For now, we require the null haplosome state to
+						// already be set up.
+						if (intrinsic_ploidy == 2)
+						{
+							if (haplosomes[haplosomes_index])
+							{
+								// FIXME MULTICHROM: Here, for chromosome type "A" we ought to transmogrify the
+								// second haplosome into a null haplosome rather than throwing an error
+								if (haplosomes[haplosomes_index + 1])
+									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has two non-null haplosomes for the focal chromosome; that is not legal." << EidosTerminate();
+								
+								// add the called mutation to the haplosome at haplosomes_index
+								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
+													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													all_target_haplosomes_started_empty, recording_mutations);
+							}
+							else if (haplosomes[haplosomes_index + 1])
+							{
+								// add the called mutation to the haplosome at haplosomes_index + 1
+								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index + 1], haplosomes_last_mutrun_modified[haplosomes_index + 1], haplosomes_last_mutrun[haplosomes_index + 1],
+													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													all_target_haplosomes_started_empty, recording_mutations);
+							}
+							else
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has no non-null haplosome for the focal chromosome." << EidosTerminate();
+							
+							haplosomes_index += 2;
+						}
+						else	// intrinsic_ploidy == 1
+						{
+							if (haplosomes[haplosomes_index])
+							{
+								// add the called mutation to the haplosome at haplosomes_index
+								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
+													alt_allele_mut_indices, mut_position, species, &mutrun_context,
+													all_target_haplosomes_started_empty, recording_mutations);
+							}
+							else
+								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has no non-null haplosome for the focal chromosome." << EidosTerminate();
+							
+							haplosomes_index++;
+						}
+					}
+					else
+					{
+						// Diploid call; must be for an intrinsically diploid chromosome, with no
+						// null haplosomes present in the individual.
+						if (intrinsic_ploidy == 1)
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a diploid call is present for an intrinsically haploid focal chromosome." << EidosTerminate();
+						
+						// add the first called mutation to the haplosome at haplosomes_index
+						if (haplosomes[haplosomes_index])
+						{
+							_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
+												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												all_target_haplosomes_started_empty, recording_mutations);
+						}
+						else
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a diploid call is present for an individual that has a null haplosome for the focal chromosome." << EidosTerminate();
+						
+						haplosomes_index++;
+						
+						// add the second called mutation to the haplosome at haplosomes_index
+						if (haplosomes[haplosomes_index])
+						{
+							_AddCallToHaplosome(genotype_call2, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
+												alt_allele_mut_indices, mut_position, species, &mutrun_context,
+												all_target_haplosomes_started_empty, recording_mutations);
+						}
+						else
+							EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a diploid call is present for an individual that has a null haplosome for the focal chromosome." << EidosTerminate();
+						
+						haplosomes_index++;
+					}
+				}
+			}
+			
+			if (!iss.eof())
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file call line has unexpected entries following the last sample." << EidosTerminate();
+		}
+	}
+	
+	// Return the instantiated mutations
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	int mutation_count = (int)mutation_indices.size();
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Mutation_Class))->resize_no_initialize_RR(mutation_count);
+	
+	for (int mut_index = 0; mut_index < mutation_count; ++mut_index)
+		vec->set_object_element_no_check_no_previous_RR(mut_block_ptr + mutation_indices[mut_index], mut_index);
+	
+	return EidosValue_Object_SP(vec);
 }
 
 //	*********************	– (void)setSpatialPosition(float position)

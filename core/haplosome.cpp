@@ -3466,6 +3466,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_me
 EidosValue_SP Haplosome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
+	// BEWARE: This method shares a great deal of code with Individual_Class::ExecuteMethod_readIndividualsFromVCF().  Maintain in parallel.
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Haplosome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();

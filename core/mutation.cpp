@@ -774,7 +774,7 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 	// We take just the mutation type pointer; if the user wants a new selection coefficient, they can do that themselves
 	mutation_type_ptr_ = mutation_type_ptr;
 	
-	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral; I think this is unnecessary but being safe...
+	// If we are non-neutral, make sure the mutation type knows it is now also non-neutral
 	if (selection_coeff_ != 0.0)
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;
 	

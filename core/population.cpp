@@ -544,7 +544,7 @@ void Population::CheckForDeferralInHaplosomes(EidosValue_Object *p_haplosomes, c
 	}
 }
 
-void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller)
+void Population::CheckForDeferralInIndividualsVector(Individual * const *p_individuals, size_t p_elements_size, const std::string &p_caller)
 {
 	if (HasDeferredHaplosomes())
 	{
