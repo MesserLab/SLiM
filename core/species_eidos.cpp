@@ -1832,26 +1832,8 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
 			for (Chromosome *chromosome : chromosomes_)
-			{
-				switch (chromosome->Type())
-				{
-					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kY_YSexChromosome:
-					case ChromosomeType::kZ_ZSexChromosome:
-					case ChromosomeType::kW_WSexChromosome:
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-						vec->push_object_element_RR(chromosome);
-						break;
-					case ChromosomeType::kA_DiploidAutosome:
-					case ChromosomeType::kH_HaploidAutosome:
-					case ChromosomeType::kHF_HaploidFemaleInherited:
-					case ChromosomeType::kFL_HaploidFemaleLine:
-					case ChromosomeType::kHM_HaploidMaleInherited:
-					case ChromosomeType::kML_HaploidMaleLine:
-					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-						break;
-				}
-			}
+				if (chromosome->IsSexChromosome())
+					vec->push_object_element_RR(chromosome);
 			
 			return result_SP;
 		}

@@ -511,27 +511,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			ChromosomeType chromosome_type = chromosome->Type();
 			
 			// check haplosome indices
-			int haplosome_count = 0;
-			
-			switch (chromosome_type)
-			{
-				case ChromosomeType::kA_DiploidAutosome:
-				case ChromosomeType::kX_XSexChromosome:
-				case ChromosomeType::kZ_ZSexChromosome:
-				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-				case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					haplosome_count = 2;
-					break;
-				case ChromosomeType::kH_HaploidAutosome:
-				case ChromosomeType::kY_YSexChromosome:
-				case ChromosomeType::kW_WSexChromosome:
-				case ChromosomeType::kHF_HaploidFemaleInherited:
-				case ChromosomeType::kFL_HaploidFemaleLine:
-				case ChromosomeType::kHM_HaploidMaleInherited:
-				case ChromosomeType::kML_HaploidMaleLine:
-					haplosome_count = 1;
-					break;
-			}
+			int haplosome_count = chromosome->IntrinsicPloidy();
 			
 			// check haplosome 1 for this chromosome
 			{
@@ -841,27 +821,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				ChromosomeType chromosome_type = chromosome->Type();
 				
 				// check haplosome indices
-				int haplosome_count = 0;
-				
-				switch (chromosome_type)
-				{
-					case ChromosomeType::kA_DiploidAutosome:
-					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kZ_ZSexChromosome:
-					case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					case ChromosomeType::kNullY_YSexChromosomeWithNull:
-						haplosome_count = 2;
-						break;
-					case ChromosomeType::kH_HaploidAutosome:
-					case ChromosomeType::kY_YSexChromosome:
-					case ChromosomeType::kW_WSexChromosome:
-					case ChromosomeType::kHF_HaploidFemaleInherited:
-					case ChromosomeType::kFL_HaploidFemaleLine:
-					case ChromosomeType::kHM_HaploidMaleInherited:
-					case ChromosomeType::kML_HaploidMaleLine:
-						haplosome_count = 1;
-						break;
-				}
+				int haplosome_count = chromosome->IntrinsicPloidy();
 				
 				// check haplosome 1 for this chromosome
 				{
@@ -3997,65 +3957,46 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 		
 		// Determine what kind of haplosomes to make for this chromosome
 		// We just faithfully clone the existing haplosomes of the parent, regardless of type
-		ChromosomeType chromosomeType = chromosome->Type();
 		Haplosome *haplosome1 = nullptr, *haplosome2 = nullptr;
 		
-		switch (chromosomeType)
+		if (chromosome->IntrinsicPloidy() == 2)
 		{
-				// these chromosome types keep two haplosomes per individual
-			case ChromosomeType::kA_DiploidAutosome:
-			case ChromosomeType::kX_XSexChromosome:
-			case ChromosomeType::kZ_ZSexChromosome:
-			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
+			Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
+			
+			if (parental_haplosome1->IsNull())
 			{
-				Haplosome *parental_haplosome1 = p_parent->haplosomes_[currentHaplosomeIndex];
-				
-				if (parental_haplosome1->IsNull())
-				{
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				}
-				else
-				{
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
-				}
-
-				Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
-				
-				if (parental_haplosome2->IsNull())
-				{
-					haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
-				}
-				else
-				{
-					haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
-					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
-				}
-				break;
+				haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
 			}
-				
-				// these chromosome types keep one haplosome per individual
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-			case ChromosomeType::kML_HaploidMaleLine:
+			else
 			{
-				Haplosome *parental_haplosome = p_parent->haplosomes_[currentHaplosomeIndex];
-				
-				if (parental_haplosome->IsNull())
-				{
-					haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
-				}
-				else
-				{
-					haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
-					population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
-				}
-				break;
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome1, mutation_callbacks);
+			}
+			
+			Haplosome *parental_haplosome2 = p_parent->haplosomes_[currentHaplosomeIndex+1];
+			
+			if (parental_haplosome2->IsNull())
+			{
+				haplosome2 = chromosome->NewHaplosome_NULL(individual, 1);
+			}
+			else
+			{
+				haplosome2 = chromosome->NewHaplosome_NONNULL(individual, 1);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome2, parental_haplosome2, mutation_callbacks);
+			}
+		}
+		else
+		{
+			Haplosome *parental_haplosome = p_parent->haplosomes_[currentHaplosomeIndex];
+			
+			if (parental_haplosome->IsNull())
+			{
+				haplosome1 = chromosome->NewHaplosome_NULL(individual, 0);
+			}
+			else
+			{
+				haplosome1 = chromosome->NewHaplosome_NONNULL(individual, 0);
+				population_.HaplosomeCloned<f_treeseq, f_callbacks>(*chromosome, *haplosome1, parental_haplosome, mutation_callbacks);
 			}
 		}
 		

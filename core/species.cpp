@@ -354,7 +354,6 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 {
 	int64_t id = p_chromosome->ID();
 	std::string symbol = p_chromosome->Symbol();
-	ChromosomeType type = p_chromosome->Type();
 	
 	// this is the main registry, and owns the retain count on every chromosome; it takes the caller's retain here
 	chromosomes_.push_back(p_chromosome);
@@ -364,62 +363,30 @@ void Species::AddChromosome(Chromosome *p_chromosome)
 	chromosome_from_symbol_.emplace(symbol, p_chromosome);
 	
 	// keep track of our haplosome configuration
-	switch (type)
+	if (p_chromosome->IntrinsicPloidy() == 2)
 	{
-			// these chromosome types keep two haplosomes per individual
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kX_XSexChromosome:
-		case ChromosomeType::kZ_ZSexChromosome:
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			chromosome_for_haplosome_index_.push_back(p_chromosome);
-			chromosome_for_haplosome_index_.push_back(p_chromosome);
-			chromosome_subindex_for_haplosome_index_.push_back(0);
-			chromosome_subindex_for_haplosome_index_.push_back(1);
-			first_haplosome_index_.push_back(haplosome_count_per_individual_);
-			last_haplosome_index_.push_back(haplosome_count_per_individual_ + 1);
-			haplosome_count_per_individual_ += 2;
-			break;
-			
-			// these chromosome types keep one haplosome per individual
-		case ChromosomeType::kH_HaploidAutosome:
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		case ChromosomeType::kHM_HaploidMaleInherited:
-		case ChromosomeType::kML_HaploidMaleLine:
-			chromosome_for_haplosome_index_.push_back(p_chromosome);
-			chromosome_subindex_for_haplosome_index_.push_back(0);
-			first_haplosome_index_.push_back(haplosome_count_per_individual_);
-			last_haplosome_index_.push_back(haplosome_count_per_individual_);
-			haplosome_count_per_individual_ += 1;
-			break;
+		chromosome_for_haplosome_index_.push_back(p_chromosome);
+		chromosome_for_haplosome_index_.push_back(p_chromosome);
+		chromosome_subindex_for_haplosome_index_.push_back(0);
+		chromosome_subindex_for_haplosome_index_.push_back(1);
+		first_haplosome_index_.push_back(haplosome_count_per_individual_);
+		last_haplosome_index_.push_back(haplosome_count_per_individual_ + 1);
+		haplosome_count_per_individual_ += 2;
+	}
+	else // p_chromosome->IntrinsicPloidy() == 1
+	{
+		chromosome_for_haplosome_index_.push_back(p_chromosome);
+		chromosome_subindex_for_haplosome_index_.push_back(0);
+		first_haplosome_index_.push_back(haplosome_count_per_individual_);
+		last_haplosome_index_.push_back(haplosome_count_per_individual_);
+		haplosome_count_per_individual_ += 1;
 	}
 	
 	// keep track of whether we contain null haplosomes or not (for optimizations)
-	switch (type)
-	{
-			// these chromosome types do not (normally) employ null haplosomes
-			// if addRecombinant(), addMultiRecombinant(), etc. places a null haplosome, it will fix this flag
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kH_HaploidAutosome:
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		case ChromosomeType::kHM_HaploidMaleInherited:
-			break;
-			
-			// these chromosome types employ null haplosomes
-		case ChromosomeType::kX_XSexChromosome:
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kZ_ZSexChromosome:
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		case ChromosomeType::kML_HaploidMaleLine:
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			chromosomes_use_null_haplosomes_ = true;
-			break;
-	}
+	// if addRecombinant(), addMultiRecombinant(), etc. places a null haplosome in 'A' or 'H', it will set
+	// the has_null_haplosomes_ flag, which tracks this at a finer level of detail than the chromosome type
+	if (p_chromosome->AlwaysUsesNullHaplosomes())
+		chromosomes_use_null_haplosomes_ = true;
 }
 
 Chromosome *Species::GetChromosomeFromEidosValue(EidosValue *chromosome_value)
@@ -3574,37 +3541,19 @@ void Species::InferInheritanceForClone(Chromosome *chromosome, Individual *paren
 	
 	// for simplicity, we just test for a null haplosome and clone whatever is not null;
 	// if the parent is legal, the offspring will be legal too, given the sex check above
-	switch (chromosome_type)
+	if (chromosome->IntrinsicPloidy() == 2)
 	{
-			// diploid types
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kX_XSexChromosome:
-		case ChromosomeType::kZ_ZSexChromosome:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		{
-			Haplosome *hap1 = parent->haplosomes_[first_haplosome_index];
-			Haplosome *hap2 = parent->haplosomes_[last_haplosome_index];
-			
-			if (!hap1->IsNull())	*strand1 = hap1;
-			if (!hap2->IsNull())	*strand3 = hap2;
-			break;
-		}
-			
-			// haploid types
-		case ChromosomeType::kH_HaploidAutosome:
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		case ChromosomeType::kHM_HaploidMaleInherited:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		case ChromosomeType::kML_HaploidMaleLine:
-		{
-			Haplosome *hap = parent->haplosomes_[first_haplosome_index];
-			
-			if (!hap->IsNull())		*strand1 = hap;
-			break;
-		}
+		Haplosome *hap1 = parent->haplosomes_[first_haplosome_index];
+		Haplosome *hap2 = parent->haplosomes_[last_haplosome_index];
+		
+		if (!hap1->IsNull())	*strand1 = hap1;
+		if (!hap2->IsNull())	*strand3 = hap2;
+	}
+	else	// chromosome->IntrinsicPloidy() == 1
+	{		
+		Haplosome *hap = parent->haplosomes_[first_haplosome_index];
+		
+		if (!hap->IsNull())		*strand1 = hap;
 	}
 }
 
@@ -3828,27 +3777,7 @@ void Species::Species_CheckIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome type '" << chromosome_type << "' not allowed in non-sexual models." << EidosTerminate();
 		
 		// check haplosome indices
-		int haplosome_count = 0;
-		
-		switch (chromosome_type)
-		{
-			case ChromosomeType::kA_DiploidAutosome:
-			case ChromosomeType::kX_XSexChromosome:
-			case ChromosomeType::kZ_ZSexChromosome:
-			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				haplosome_count = 2;
-				break;
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-			case ChromosomeType::kML_HaploidMaleLine:
-				haplosome_count = 1;
-				break;
-		}
+		int haplosome_count = chromosome->IntrinsicPloidy();
 		
 		if (first_haplosome_index_[chromosome_index] != haplosome_index)
 			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) first_haplosome_index_ mismatch." << EidosTerminate();
@@ -3858,24 +3787,8 @@ void Species::Species_CheckIntegrity(void)
 		haplosome_index += haplosome_count;
 		
 		// check null haplosome optimization
-		switch (chromosome_type)
-		{
-			case ChromosomeType::kX_XSexChromosome:
-			case ChromosomeType::kY_YSexChromosome:
-			case ChromosomeType::kZ_ZSexChromosome:
-			case ChromosomeType::kW_WSexChromosome:
-			case ChromosomeType::kFL_HaploidFemaleLine:
-			case ChromosomeType::kML_HaploidMaleLine:
-			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				null_haplosomes_used = true;
-				break;
-			case ChromosomeType::kA_DiploidAutosome:
-			case ChromosomeType::kH_HaploidAutosome:
-			case ChromosomeType::kHF_HaploidFemaleInherited:
-			case ChromosomeType::kHM_HaploidMaleInherited:
-				break;
-		}
+		if (chromosome->AlwaysUsesNullHaplosomes())
+			null_haplosomes_used = true;
 	}
 	
 	if (haplosome_index != haplosome_count_per_individual_)

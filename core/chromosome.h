@@ -69,6 +69,10 @@ private:
 	
 	// cached properties of the chromosome that depend upon its type
 	int intrinsic_ploidy_;									// 1 or 2; the number of haplosomes kept for the chromosome
+	bool always_uses_null_haplosomes_;						// true for types that *always* involve null haplosomes
+	bool is_sex_chromosome_;								// true for types X, Y, Z, W, and -Y
+	bool defaults_to_zero_recombination_;					// false only for types A, X, and Z, which are truly diploid
+	std::string type_string_;								// a string like "A", "X", etc. for the type
 	
 	// This vector contains all the genomic elements for this chromosome.  It is in sorted order once initialization is complete.
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
@@ -300,6 +304,10 @@ public:
 	inline __attribute__((always_inline)) void SetName(const std::string &p_name) { name_ = p_name; }
 	
 	inline __attribute__((always_inline)) int IntrinsicPloidy(void) const { return intrinsic_ploidy_; }
+	inline __attribute__((always_inline)) bool AlwaysUsesNullHaplosomes(void) const { return always_uses_null_haplosomes_; }
+	inline __attribute__((always_inline)) bool IsSexChromosome(void) const { return is_sex_chromosome_; }
+	inline __attribute__((always_inline)) bool DefaultsToZeroRecombination(void) const { return defaults_to_zero_recombination_; }
+	inline __attribute__((always_inline)) const std::string &TypeString(void) const { return type_string_; }
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
 	inline __attribute__((always_inline)) const std::vector<GenomicElement *> &GenomicElements(void) const			{ return genomic_elements_; }
@@ -315,8 +323,6 @@ public:
 	inline bool UsingSingleRecombinationMap(void) const { return single_recombination_map_; }
 	inline bool UsingSingleMutationMap(void) const { return single_mutation_map_; }
 	inline size_t GenomicElementCount(void) const { return genomic_elements_.size(); }
-	
-	bool DefaultsToZeroRecombination(void) const;
 	
 	// draw the number of mutations that occur, based on the overall mutation rate
 	int DrawMutationCount(IndividualSex p_sex) const;

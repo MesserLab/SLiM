@@ -100,49 +100,91 @@ Chromosome::Chromosome(Species &p_species, ChromosomeType p_type, int64_t p_id, 
 		Eidos_GetColorComponents(color_sub_, &color_sub_red_, &color_sub_green_, &color_sub_blue_);
 	
 	// depending on the type of chromosome, cache some properties for quick reference
-	// FIXME MULTICHROM: add more properties here, like:
-	//
-	//		DefaultsToZeroRecombination()
-	//		IsSexChromosome()
-	//		TypeString()	("A" for type kA_DiploidAutosome, etc.)
-	//		...lots more, scan the code...
 	switch (type_)
 	{
 		case ChromosomeType::kA_DiploidAutosome:				// type "A"
 			intrinsic_ploidy_ = 2;
+			always_uses_null_haplosomes_ = false;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = false;
+			type_string_ = gStr_A;
 			break;
 		case ChromosomeType::kH_HaploidAutosome:				// type "H"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = false;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_H;
 			break;
 		case ChromosomeType::kX_XSexChromosome:					// type "X"
 			intrinsic_ploidy_ = 2;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = true;
+			defaults_to_zero_recombination_ = false;
+			type_string_ = gStr_X;
 			break;
 		case ChromosomeType::kY_YSexChromosome:					// type "Y"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = true;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_Y;
 			break;
 		case ChromosomeType::kZ_ZSexChromosome:					// type "Z"
 			intrinsic_ploidy_ = 2;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = true;
+			defaults_to_zero_recombination_ = false;
+			type_string_ = gStr_Z;
 			break;
 		case ChromosomeType::kW_WSexChromosome:					// type "W"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = true;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_W;
 			break;
 		case ChromosomeType::kHF_HaploidFemaleInherited:		// type "HF"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = false;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_HF;
 			break;
 		case ChromosomeType::kFL_HaploidFemaleLine:				// type "FL"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_FL;
 			break;
 		case ChromosomeType::kHM_HaploidMaleInherited:			// type "HM"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = false;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_HM;
 			break;
 		case ChromosomeType::kML_HaploidMaleLine:				// type "ML"
 			intrinsic_ploidy_ = 1;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_ML;
 			break;
 		case ChromosomeType::kHNull_HaploidAutosomeWithNull:	// type "H-"
 			intrinsic_ploidy_ = 2;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = false;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr_H_;		// "H-"
 			break;
 		case ChromosomeType::kNullY_YSexChromosomeWithNull:		// type "-Y"
 			intrinsic_ploidy_ = 2;
+			always_uses_null_haplosomes_ = true;
+			is_sex_chromosome_ = true;
+			defaults_to_zero_recombination_ = true;
+			type_string_ = gStr__Y;		// "-Y"
 			break;
 	}
 }
@@ -666,33 +708,6 @@ void Chromosome::ChooseMutationRunLayout(void)
 	// Consistency check
 	if (((mutrun_length_ < 1) && species_.HasGenetics()) || (mutrun_count_ * mutrun_length_ <= last_position_) || (last_position_mutrun_ < last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
-}
-
-bool Chromosome::DefaultsToZeroRecombination(void) const
-{
-	switch (type_)
-	{
-			// these chromosome types allow recombination
-		case ChromosomeType::kA_DiploidAutosome:
-		case ChromosomeType::kX_XSexChromosome:
-		case ChromosomeType::kZ_ZSexChromosome:
-			return false;
-			
-			// this type allows recombination, but defaults to zero
-		case ChromosomeType::kH_HaploidAutosome:
-			return true;
-			
-			// these types do not, because they are haploid
-		case ChromosomeType::kY_YSexChromosome:
-		case ChromosomeType::kW_WSexChromosome:
-		case ChromosomeType::kHF_HaploidFemaleInherited:
-		case ChromosomeType::kFL_HaploidFemaleLine:
-		case ChromosomeType::kHM_HaploidMaleInherited:
-		case ChromosomeType::kML_HaploidMaleLine:
-		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-		case ChromosomeType::kNullY_YSexChromosomeWithNull:
-			return true;
-	}
 }
 
 // initialize one recombination map, used internally by InitializeDraws() to avoid code duplication
@@ -2723,22 +2738,7 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gEidosID_type:
 		{
-			switch (type_)
-			{
-				case ChromosomeType::kA_DiploidAutosome:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_A));
-				case ChromosomeType::kH_HaploidAutosome:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_H));
-				case ChromosomeType::kX_XSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_X));
-				case ChromosomeType::kY_YSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Y));
-				case ChromosomeType::kZ_ZSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_Z));
-				case ChromosomeType::kW_WSexChromosome:					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_W));
-				case ChromosomeType::kHF_HaploidFemaleInherited:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_HF));
-				case ChromosomeType::kFL_HaploidFemaleLine:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_FL));
-				case ChromosomeType::kHM_HaploidMaleInherited:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_HM));
-				case ChromosomeType::kML_HaploidMaleLine:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_ML));
-				case ChromosomeType::kHNull_HaploidAutosomeWithNull:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr_H_));		// "H-"
-				case ChromosomeType::kNullY_YSexChromosomeWithNull:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(gStr__Y));		// "-Y"
-			}
-			EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): (internal error) unrecognized value for type_." << EidosTerminate();
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(type_string_));
 		}
 			
 		case gID_hotspotEndPositions:
