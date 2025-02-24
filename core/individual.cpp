@@ -3343,6 +3343,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 	
 	const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
 	bool model_is_multi_chromosome = (chromosomes.size() > 1);
+	std::string chromosome_symbol;		// used in single-chromosome models to check consistency
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;
@@ -3440,12 +3441,23 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				
 				Chromosome *chromosome_for_call = species->ChromosomeFromSymbol(sub);
 				
-				// FIXME: In single-chromosome models we should at least check that the CHROM field is the same across all call lines, to make sure we're not reading multichrom data nonsensically
-				if (model_is_multi_chromosome && !chromosome_for_call)
+				if (model_is_multi_chromosome)
+				{
+					// in multi-chromosome models the CHROM value must match match a chromosome in the model
+					if (!chromosome_for_call)
 						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match any chromosome symbol for the focal species with which the target individuals are associated.  In multi-chromosome models, the CHROM field is required to match a chromosome symbol to prevent bugs." << EidosTerminate();
-				
-				if (!chromosome_for_call)
-					chromosome_for_call = chromosomes[0];
+				}
+				else
+				{
+					// in single-chromosome models the CHROM value must be consistent across the whole file, but need not match
+					if (chromosome_symbol.length() == 0)
+						chromosome_symbol = sub;	// first call line's CHROM symbol gets remembered
+					else if (sub != chromosome_symbol)
+						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_symbol << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
+					
+					if (!chromosome_for_call)
+						chromosome_for_call = chromosomes[0];
+				}
 				
 				slim_chromosome_index_t chromosome_index = chromosome_for_call->Index();
 				slim_position_t last_position = chromosome_for_call->last_position_;

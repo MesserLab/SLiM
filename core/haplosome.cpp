@@ -3586,8 +3586,17 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF(EidosGlobalSt
 				
 				if (model_is_multi_chromosome)
 				{
+					// in multi-chromosome models the CHROM value must match the associated chromosome of the haplosomes
 					if (sub != chromosome_symbol)
 						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the symbol (\"" << chromosome_symbol << "\") for the focal chromosome with which the target haplosomes are associated.  In multi-chromosome models, the CHROM field is required to match the chromosome symbol to prevent bugs." << EidosTerminate();
+				}
+				else
+				{
+					// in single-chromosome models the CHROM value must be consistent across the whole file, but need not match
+					if (call_lines.size() == 0)
+						chromosome_symbol = sub;	// first call line's CHROM symbol gets remembered
+					else if (sub != chromosome_symbol)
+						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromVCF): the CHROM field's value (\"" << sub << "\") in a call line does not match the initial CHROM field's value (\"" << chromosome_symbol << "\").  In single-chromosome models, the CHROM field is required to have a single consistent value across all call lines to prevent bugs." << EidosTerminate();
 				}
 				
 				std::getline(iss, sub, '\t');	// POS
