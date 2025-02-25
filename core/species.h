@@ -70,6 +70,7 @@ enum class SLiMFileFormat
 	kFormatSLiMBinary,				// as saved by outputFull(filePath, binary=T)
 	kFormatTskitBinary_HDF5,		// old file format, no longer supported
 	kFormatTskitBinary_kastore,		// as saved by treeSeqOutput(path)
+	kFormatDirectory,				// a directory, presumed to contain .trees files for multiple chromosomes
 };
 
 
@@ -96,12 +97,6 @@ typedef struct __attribute__((__packed__)) {
 	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
 	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
 } MutationMetadataRec;
-typedef struct __attribute__((__packed__)) {
-	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
-	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
-	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
-	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
-} MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
 	// BCH 12/10/2024: This metadata record is becoming a bit complicated, for multichromosome SLiM, and is now actually variable-length.
@@ -135,44 +130,13 @@ typedef struct __attribute__((__packed__)) {
 	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
 } IndividualMetadataRec;
-typedef struct __attribute__((__packed__)) {
-	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
-	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
-	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
-	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
-	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
- } IndividualMetadataRec_PREPARENT;	// used to read .trees file versions 0.6 and earlier, before parent pedigree ids were added
 
 #define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this cycle
-
-// *** Subpopulation metadata is now JSON
-typedef struct __attribute__((__packed__)) {
-	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the id of this subpopulation
-	double selfing_fraction_;				// 8 bytes (double): selfing fraction (unused in non-sexual models), unused in nonWF models
-	double female_clone_fraction_;			// 8 bytes (double): cloning fraction (females / hermaphrodites), unused in nonWF models
-	double male_clone_fraction_;			// 8 bytes (double): cloning fraction (males / hermaphrodites), unused in nonWF models
-	double sex_ratio_;						// 8 bytes (double): sex ratio (M:M+F), unused in nonWF models
-	double bounds_x0_;						// 8 bytes (double): spatial bounds, unused in non-spatial models
-	double bounds_x1_;						// 8 bytes (double): spatial bounds, unused in non-spatial models
-	double bounds_y0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
-	double bounds_y1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D models
-	double bounds_z0_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
-	double bounds_z1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
-	uint32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
-	// followed by migration_rec_count_ instances of SubpopulationMigrationMetadataRec
-} SubpopulationMetadataRec_PREJSON;
-
-typedef struct __attribute__((__packed__)) {
-	slim_objectid_t source_subpop_id_;		// 4 bytes (int32_t): the id of the source subpopulation, unused in nonWF models
-	double migration_rate_;					// 8 bytes (double): the migration rate from source_subpop_id_, unused in nonWF models
-} SubpopulationMigrationMetadataRec_PREJSON;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
 static_assert(sizeof(HaplosomeMetadataRec) == 9, "HaplosomeMetadataRec is not 9 bytes!");	// but its size is dynamic at runtime
 static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
-static_assert(sizeof(SubpopulationMetadataRec_PREJSON) == 88, "SubpopulationMetadataRec_PREJSON is not 88 bytes!");
-static_assert(sizeof(SubpopulationMigrationMetadataRec_PREJSON) == 12, "SubpopulationMigrationMetadataRec_PREJSON is not 12 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
@@ -376,10 +340,6 @@ private:
 	std::vector<TreeSeqInfo> treeseq_;				// OWNED; all our tree-sequence state, in the order the chromosomes were defined
 													// index 0's table collection contains the shared tables; see CopySharedTablesIn()
 	
-	// FIXME MULTICHROM this define is temporary, used to disable chunks of treeseq code that I don't want to deal with porting yet
-#warning need to re-enable treeseq reading from disk
-#define INTERIM_TREESEQ_DISABLE	0
-	
 public:
 	
 	// Object pools for individuals and haplosomes, kept population-wide; these must be above their clients in the declaration order
@@ -442,13 +402,6 @@ public:
 	~Species(void);																						// destructor
 	
 	// Chromosome configuration and access
-#warning remove TheChromosome() step by step
-	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)
-	{
-		if (chromosomes_.size() == 0)
-			EIDOS_TERMINATION << "ERROR (Species::TheChromosome): (internal error) there is no chromosome; check for no genetics first." << EidosTerminate();
-		return *(chromosomes_[0]);
-	}
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &Chromosomes(void)	{ return chromosomes_; }
 	inline __attribute__((always_inline)) const std::vector<Chromosome *> &ChromosomesForHaplosomeIndices(void) { return chromosome_for_haplosome_index_; }
 	inline __attribute__((always_inline)) const std::vector<uint8_t> &ChromosomeSubindicesForHaplosomeIndices(void) { return chromosome_subindex_for_haplosome_index_; }
@@ -605,7 +558,7 @@ public:
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict, slim_chromosome_index_t p_chromosome_index);
-	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
+	void ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
@@ -619,22 +572,20 @@ public:
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	
-	void __RewriteOldIndividualsMetadata(int p_file_version);
-	void __RewriteOrCheckPopulationMetadata(void);
-	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_file_version);
-	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
-	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
-	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap);
-	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);
-	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, int p_file_version);
+	void __CheckPopulationMetadata(TreeSeqInfo &p_treeseq);
+	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq, int p_file_version);
+	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, TreeSeqInfo &p_treeseq);
+	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq, SLiMModelType p_file_model_type);
+	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq);
+	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
+	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, int p_file_version);
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
-	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
-	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
-	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, haplosomes, and mutations
-#if INTERIM_TREESEQ_DISABLE
-	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
-#endif	// INTERIM_TREESEQ_DISABLE
+	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq);
+	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq);
+	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap, Chromosome &p_chromosome);	// initialize the population from an tskit binary file
+	slim_tick_t _InitializePopulationFromTskitDirectory(const char *p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory
 	
 	size_t MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables);
 	void TSXC_Enable(void);

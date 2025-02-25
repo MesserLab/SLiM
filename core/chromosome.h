@@ -779,7 +779,8 @@ inline __attribute__((always_inline)) void Chromosome::FreeHaplosome(Haplosome *
 	
 	// somebody needs to reset the tag value of reused haplosomes; it might as well be us
 	// this used to be done by Individual::Individual(), which got passed the individual's haplosomes
-#warning this should only get cleared, in bulk, based on a flag, like individual tag values; big waste of time; see s_any_haplosome_tag_set_, we are already doing this in SwapChildAndParentHaplosomes() for WF
+	// FIXME: this should only get cleared, in bulk, based on a flag, like individual tag values; big waste of time;
+	// FIXME: see s_any_haplosome_tag_set_, we are already doing this in SwapChildAndParentHaplosomes() for WF
 	p_haplosome->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
 	if (p_haplosome->IsNull())
