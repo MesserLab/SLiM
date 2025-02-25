@@ -60,6 +60,8 @@
 #include <stdlib.h>
 #include "json.hpp"
 #include <sys/utsname.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 //TREE SEQUENCE
 //INCLUDE MSPRIME.H FOR THE CROSSCHECK CODE; NEEDS TO BE MOVED TO TSKIT
@@ -5158,8 +5160,15 @@ void Species::SimplifyAllTreeSequences(void)
 			}
 			
 #if DEBUG
+			// BCH 2/25/2025: We need to swap in the shared tables around the integrity check
+			if (chromosome_index > 0)
+				CopySharedTablesIn(chromosome_tables);
+			
 			ret = tsk_table_collection_check_integrity(&chromosome_tables, 0);
 			if (ret < 0) handle_error("SimplifyAllTreeSequences() tsk_table_collection_check_integrity after node remapping", ret);
+			
+			if (chromosome_index > 0)
+				DisconnectCopiedSharedTables(chromosome_tables);
 #endif
 		}
 		
@@ -5239,6 +5248,7 @@ void Species::SimplifyAllTreeSequences(void)
 			}
 			
 #if DEBUG
+			// BCH 2/25/2025: We don't need to swap in the shared tables, because this call is only on main_tables
 			ret = tsk_table_collection_check_integrity(&main_tables, 0);
 			if (ret < 0) handle_error("SimplifyAllTreeSequences() tsk_table_collection_check_integrity after individual remapping", ret);
 #endif
@@ -5262,7 +5272,16 @@ void Species::SimplifyAllTreeSequences(void)
 	if (running_coalescence_checks_)
 	{
 		for (TreeSeqInfo &tsinfo : treeseq_)
+		{
+			// BCH 2/25/2025: Copy shared tables in across the coalescence check
+			if (tsinfo.chromosome_index_ != 0)
+				CopySharedTablesIn(tsinfo.tables_);
+			
 			CheckCoalescenceAfterSimplification(tsinfo);
+			
+			if (tsinfo.chromosome_index_ != 0)
+				DisconnectCopiedSharedTables(tsinfo.tables_);
+		}
 	}
 }
 
@@ -5272,6 +5291,8 @@ void Species::CheckCoalescenceAfterSimplification(TreeSeqInfo &tsinfo)
 	if (!recording_tree_ || !running_coalescence_checks_)
 		EIDOS_TERMINATION << "ERROR (Species::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
 #endif
+	
+	// Note that this method assumes that tsinfo has had the shared tables copied in!
 	
 	// Copy the table collection, which will (if it is not the main table collection) have empty tables for
 	// the shared node, individual, and population tables.  We copy *first*, because we don't want to make
@@ -5811,8 +5832,12 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
 	
 #if DEBUG
-	if (time < tsinfo.tables_.nodes.time[haplosomeTSKID]) 
-		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tsinfo.tables_.nodes.time[haplosomeTSKID] << std::endl;
+	// The nodes table is not shared across all TreeSeqInfo records here, so this debug check needs to use
+	// the table collection for treeseq_[0].  Be careful when painting outside the lines!
+	TreeSeqInfo &tsinfo0 = treeseq_[0];
+	
+	if (time < tsinfo0.tables_.nodes.time[haplosomeTSKID]) 
+		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tsinfo0.tables_.nodes.time[haplosomeTSKID] << std::endl;
 #endif
 }
 
@@ -6946,6 +6971,165 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	// In that case, we will expect the is_null_bits for the nodes table metadata to be in bits 0 and 1, because the file is saved as a single-chromosome file.
 }
 
+void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_path)
+{
+	// Eidos_CreateDirectory() errors if the path already exists, but for WriteTreeSequence(),
+	// we want to replace an existing directory (but not a file); it would be too annoying
+	// if we didn't, for successive runs of the same model.  The archive is, in effect, one
+	// file.  However, we want to be very careful in doing this, since it is dangerous!
+	int resolved_user_path_length = (int)resolved_user_path.length();
+	bool resolved_user_path_ends_in_slash = (resolved_user_path_length > 0) && (resolved_user_path[resolved_user_path_length-1] == '/');
+	
+	struct stat file_info;
+	bool path_exists = (stat(resolved_user_path.c_str(), &file_info) == 0);
+	
+	if (path_exists)
+	{
+		bool is_directory = !!(file_info.st_mode & S_IFDIR);
+		
+		if (is_directory)
+		{
+			// remove() requires that the directory be empty, so we need to remove all files inside it.
+			// For safety, we first pass over all files and verify that they are not directories, and
+			// that their filenames all end in .trees.  If there is any other cruft inside the directory,
+			// we will refuse to delete it.
+			DIR *dp = opendir(resolved_user_path.c_str());
+			
+			if (dp != NULL)
+			{
+				while (true)
+				{
+					errno = 0;
+					struct dirent *ep = readdir(dp);
+					int error = errno;
+					
+					if (!ep)
+					{
+						if (error)
+						{
+							(void)closedir(dp);
+							EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be read." << EidosTerminate();
+						}
+						break;
+					}
+					
+					std::string interior_filename_base = ep->d_name;
+					
+					if ((interior_filename_base == ".") || (interior_filename_base == ".."))
+						continue;
+					
+					std::string interior_filename = resolved_user_path + (resolved_user_path_ends_in_slash ? "" : "/") + interior_filename_base;		// NOLINT(*-inefficient-string-concatenation) : this is fine
+					
+					bool file_exists = (stat(interior_filename.c_str(), &file_info) == 0);
+					
+					if (!file_exists)
+					{
+						(void)closedir(dp);
+						EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be read." << EidosTerminate();
+					}
+					
+					is_directory = !!(file_info.st_mode & S_IFDIR);
+					
+					if (is_directory)
+					{
+						(void)closedir(dp);
+						EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and contains a subdirectory within it (" << interior_filename_base << "); overwriting the path is not safe." << EidosTerminate();
+					}
+					if (!Eidos_string_hasSuffix(interior_filename, ".trees") && (interior_filename_base != ".DS_Store"))
+					{
+						(void)closedir(dp);
+						EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and contains a file within it (" << interior_filename_base << ") that is not a .trees file; overwriting the path is not safe." << EidosTerminate();
+					}
+				}
+				
+				(void)closedir(dp);
+				
+				// OK, everything in the directory seems eligible for removal; let's try
+				dp = opendir(resolved_user_path.c_str());
+				
+				if (dp != NULL)
+				{
+					while (true)
+					{
+						errno = 0;
+						struct dirent *ep = readdir(dp);
+						int error = errno;
+						
+						if (!ep)
+						{
+							if (error)
+							{
+								(void)closedir(dp);
+								EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be read." << EidosTerminate();
+							}
+							break;
+						}
+						
+						std::string interior_filename_base = ep->d_name;
+						
+						if ((interior_filename_base == ".") || (interior_filename_base == ".."))
+							continue;
+						
+						std::string interior_filename = resolved_user_path + (resolved_user_path_ends_in_slash ? "" : "/") + interior_filename_base;		// NOLINT(*-inefficient-string-concatenation) : this is fine
+						
+						bool file_exists = (stat(interior_filename.c_str(), &file_info) == 0);
+						
+						if (!file_exists)
+						{
+							(void)closedir(dp);
+							EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be read." << EidosTerminate();
+						}
+						
+						is_directory = !!(file_info.st_mode & S_IFDIR);
+						
+						if (is_directory)
+						{
+							(void)closedir(dp);
+							EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and contains a subdirectory within it (" << interior_filename_base << "); overwriting the path is not safe." << EidosTerminate();
+						}
+						if (!Eidos_string_hasSuffix(interior_filename, ".trees") && (interior_filename_base != ".DS_Store"))
+						{
+							(void)closedir(dp);
+							EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and contains a file within it (" << interior_filename_base << ") that is not a .trees file; overwriting the path is not safe." << EidosTerminate();
+						}
+						
+						bool success = (remove(interior_filename.c_str()) == 0);
+						
+						if (!success)
+						{
+							(void)closedir(dp);
+							EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and contains a file within it (" << interior_filename_base << ") that could not be removed." << EidosTerminate();
+						}
+					}
+					
+					(void)closedir(dp);
+				}
+				else
+					EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be overwritten." << EidosTerminate();
+			}
+			else
+				EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be overwritten." << EidosTerminate();
+			
+			bool success = (remove(resolved_user_path.c_str()) == 0);
+			
+			if (!success)
+				EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path and could not be removed." << EidosTerminate();
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a file already exists at that path." << EidosTerminate();
+	}
+	
+	// If we made it to here, there should no longer be a directory at resolved_user_path
+	std::string error_string;
+	bool success = Eidos_CreateDirectory(resolved_user_path, &error_string);
+	
+	// Fatal error if we can't create the directory
+	if (error_string.length())
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because of error: " << error_string << "." << EidosTerminate();
+	else if (!success)
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", for unknown reasons." << EidosTerminate();
+}
+
 void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
 {
 	int ret = 0;
@@ -6963,14 +7147,9 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	
 	if (is_multichrom)
 	{
-		std::string error_string;
-		bool success = Eidos_CreateDirectory(resolved_user_path, &error_string);
-		
-		// Fatal error if we can't create the directory
-		if (error_string.length())
-			EIDOS_TERMINATION << error_string << EidosTerminate();
-		else if (!success)
-			EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", for unknown reasons." << EidosTerminate();
+		// For a multichromosome archive, we need to create the directory to hold it.  This call
+		// will raise if there are any problems in doing so.
+		_CreateDirectoryForMultichromArchive(resolved_user_path);
 	}
 	
 	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information
@@ -7272,8 +7451,15 @@ void Species::CheckTreeSeqIntegrity(void)
 	// SLiM's parallel data structures (done in CrosscheckTreeSeqIntegrity()), just on their own.
 	for (TreeSeqInfo &tsinfo : treeseq_)
 	{
+		// BCH 2/25/2025: We need to share tables in, for chromosomes after the first
+		if (tsinfo.chromosome_index_ > 0)
+			CopySharedTablesIn(tsinfo.tables_);
+		
 		int ret = tsk_table_collection_check_integrity(&tsinfo.tables_, TSK_NO_CHECK_POPULATION_REFS);
 		if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
+		
+		if (tsinfo.chromosome_index_ > 0)
+			DisconnectCopiedSharedTables(tsinfo.tables_);
 	}
 }
 
