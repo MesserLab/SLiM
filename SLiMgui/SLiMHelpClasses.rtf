@@ -9008,17 +9008,19 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath\cf2 , [No<Dictionary>$\'a0subpopMap\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Read from a population initialization file, whether in text or binary format as previously specified to 
+\f4\fs20 \cf2 Read from a population file, whether in text or binary format as previously specified to 
 \f3\fs18 outputFull()
-\f4\fs20 , and return the tick counter value represented by the file\'92s contents (i.e., the tick at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in tick 1, immediately after simulation initialization), it may be called in any 
+\f4\fs20 , and return the tick counter value represented by the file\'92s contents (i.e., the tick at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in tick 
+\f3\fs18 1
+\f4\fs20 , immediately after simulation initialization), it may be called in any 
 \f3\fs18 early()
 \f4\fs20  or 
 \f3\fs18 late()
-\f4\fs20  Eidos event; the current state of all populations in the target species will be wiped and replaced by the state in the file at 
+\f4\fs20  event; the current state of all populations in the target species will be wiped and replaced by the state in the file at 
 \f3\fs18 filePath
 \f4\fs20 .  All Eidos variables that are of type 
 \f3\fs18 object
-\f4\fs20  and have element type 
+\f4\fs20  and have element class 
 \f3\fs18 Subpopulation
 \f4\fs20 , 
 \f3\fs18 Haplosome
@@ -9028,7 +9030,11 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f3\fs18 Individual
 \f4\fs20 , or 
 \f3\fs18 Substitution
-\f4\fs20  will be removed as a side effect of this method if they contain any element that belongs to the target species, because those objects will no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
+\f4\fs20  will be removed as a side effect of this method if they contain any element that belongs to the target species, because those objects will no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols (
+\f3\fs18 p1
+\f4\fs20 , 
+\f3\fs18 p2
+\f4\fs20 , etc.) will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.  Note that fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
 \expnd0\expndtw0\kerning0
@@ -9050,30 +9056,28 @@ In SLiM 3.0 when using the nonWF model, calling
 \f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the tick cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 2.1, this method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
+\kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
 \f3\fs18 community.tick
 \f4\fs20  and 
 \f3\fs18 sim.cycle
-\f4\fs20  to whatever values you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
+\f4\fs20  to whatever values you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; if you wish to ensure reproducibility from a given time point, 
 \f3\fs18 setSeed()
-\f4\fs20  can be used to establish a new seed value.  Any changes made to structure of the species (mutation types, genomic element types, etc.) will not be wiped and re-established by 
+\f4\fs20  can be used to establish a new seed value.\
+Any changes made to the structure of the species (mutation types, genomic element types, etc.) will not be wiped and re-established by 
 \f3\fs18 readFromPopulationFile()
-\f4\fs20 ; this method loads only the population\'92s state, not the species configuration, so care should be taken to ensure that the species structure meshes coherently with the loaded data.  Indeed, state such as the selfing and cloning rates of subpopulations, values set into 
-\f3\fs18 tag
-\f4\fs20  properties, and values set onto objects with 
+\f4\fs20 ; this method loads only the population\'92s state, not the species configuration, so care should be taken to ensure that the species structure meshes coherently with the loaded data.  Indeed, state such as the selfing and cloning rates of subpopulations, and values set onto objects with 
 \f3\fs18 setValue()
-\f4\fs20  will also be lost, since it is not saved out by 
+\f4\fs20 , will also be lost, since it is not saved out by 
 \f3\fs18 outputFull()
 \f4\fs20 .  Only information saved by 
 \f3\fs18 outputFull()
-\f4\fs20  will be restored; all other state associated with the species \'96 subpopulations, individuals, haplosomes, mutations, and substitutions \'96 will be lost, and should be re-established by the model if it is still needed.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space (see 
+\f4\fs20  will be restored; all other state associated with the mutations, haplosomes, individuals, and subpopulations in the simulation will be lost, and should be re-established by the model if it is still needed.  Note that some state is saved by 
 \f3\fs18 outputFull()
-\f4\fs20  for details).  If spatial positions are present in the output file but the species has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the species has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\f4\fs20  only optionally, such as the 
+\f3\fs18 tag
+\f4\fs20  values of individuals; if a given option is enabled and the corresponding information is saved, then that information will be restored, otherwise it will not be.\
+As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space.  If spatial positions are present in the output file but the species has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the species has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
+\expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
@@ -9085,10 +9089,9 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f4\i0  if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This method can also be used to read tree-sequence (
+This method can also be used to read tree-sequence information, in the form of single-chromosome 
 \f3\fs18 .trees
-\f4\fs20 ) files saved by 
+\f4\fs20  files and multi-chromosome trees archives, as saved by 
 \f3\fs18 treeSeqOutput()
 \f4\fs20  or generated by the Python 
 \f3\fs18 pyslim
@@ -9151,7 +9154,7 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f4\fs20 , to find out the number of subpopulations in a tree-sequence file and their IDs.\
 When loading a tree sequence, a crosscheck of the loaded data will be performed to ensure that the tree sequence was well-formed and was loaded correctly.  When running a Release build of SLiM, however, this crosscheck will only occur the first time that 
 \f3\fs18 readFromPopulationFile()
-\f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted or read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
+\f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted, or might be read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL])\
@@ -9692,15 +9695,46 @@ This method may only be called if tree sequence recording has been turned on wit
 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Outputs the current tree sequence recording tables to the path specified by path.  This method may only be called if tree sequence recording has been turned on with 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Outputs the current tree sequence recording tables to the path specified by 
+\f3\fs18 path
+\f4\fs20 .  This method may only be called if tree sequence recording has been turned on with 
 \f3\fs18 initializeTreeSeq()
 \f4\fs20 .  If 
 \f3\fs18 simplify
 \f4\fs20  is 
 \f3\fs18 T
-\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all haplosomes since the last simplification will be marked as samples in the resulting tree sequence.)  A binary tree sequence file will be written to the specified path; a filename extension of 
+\f4\fs20  (the default), simplification will be done immediately prior to output; this is almost always desirable, unless a model wishes to avoid simplification entirely.  (Note that if simplification is not done, then all haplosomes since the last simplification will be marked as samples in the resulting tree sequence.)\
+In a model of a single chromosome, a binary tree sequence file will be written to the specified path; a filename extension of 
 \f3\fs18 .trees
-\f4\fs20  is suggested for this type of file.\
+\f4\fs20  is suggested for this type of file, and such a file is often referred to as a \'93
+\f3\fs18 .trees
+\f4\fs20  file\'94.  In a multi-chromosome model, a directory will instead be created at the specified path, and a separate 
+\f3\fs18 .trees
+\f4\fs20  file will be created within that directory for each chromosome in the model, mirroring the fact that SLiM keeps a separate tree sequence for each chromosome in a multi-chromosome model.  These 
+\f3\fs18 .trees
+\f4\fs20  files will be given filenames based upon the 
+\f3\fs18 symbol
+\f4\fs20  property of each chromosome, as provided to 
+\f3\fs18 initializeChromosome()
+\f4\fs20 ; for example, the tree sequence for a chromosome with symbol 
+\f3\fs18 "X"
+\f4\fs20  will be saved as 
+\f3\fs18 chromosome_X.trees
+\f4\fs20  within the specified directory.  For the name of the directory itself, a suffix of 
+\f3\fs18 _trees
+\f4\fs20  is suggested, rather than 
+\f3\fs18 .trees
+\f4\fs20 , since the use of dot-extensions in directory names is not common; for example, 
+\f3\fs18 "model_Q_seed_17_trees"
+\f4\fs20  would be a path you might pass to 
+\f3\fs18 treeSeqOutput()
+\f4\fs20  as a directory name in a multi-chromosome model.  Such a directory, containing separate 
+\f3\fs18 .trees
+\f4\fs20  files for each chromosome, is called a \'93trees archive\'94.  Both 
+\f3\fs18 .trees
+\f4\fs20  files and trees archives can be read by 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20 , as discussed in its documentation.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Normally, the full SLiM script used to generate the tree sequence is written out to the provenance entry of the tree sequence file, to the 

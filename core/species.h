@@ -578,15 +578,20 @@ public:
 	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, TreeSeqInfo &p_treeseq);
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq);
+	void __CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
+	void __ConfigureSubpopulationsFromTables_SECONDARY(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
 	void __TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, TreeSeqInfo &p_treeseq, int p_file_version);
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, TreeSeqInfo &p_treeseq);
 	void __AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Haplosome *> p_nodeToHaplosomeMap, tsk_treeseq_t *p_ts, TreeSeqInfo &p_treeseq);
 	void __CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq);
+	void _ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome);
 	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+	void _InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq);	// given tree-seq tables, makes individuals, haplosomes, and mutations
+	void _PostInstantiationCleanup(EidosInterpreter *p_interpreter);
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap, Chromosome &p_chromosome);	// initialize the population from an tskit binary file
-	slim_tick_t _InitializePopulationFromTskitDirectory(const char *p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory
+	slim_tick_t _InitializePopulationFromTskitDirectory(std::string p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from a multi-chromosome directory
 	
 	size_t MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables);
 	void TSXC_Enable(void);

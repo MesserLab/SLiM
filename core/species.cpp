@@ -224,48 +224,52 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		for (Chromosome *chromosome : chromosomes_)
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			bool haplosome_1_is_null_or_unused = false, haplosome_2_is_null_or_unused = false;
+			bool haplosome_1_is_null = false, haplosome_2_is_null = false;
 			
 			switch (chromosome->Type())
 			{
 				case ChromosomeType::kA_DiploidAutosome:
-					haplosome_1_is_null_or_unused = false;								// always present (by default)
-					haplosome_2_is_null_or_unused = false;								// always present (by default)
+					haplosome_1_is_null = false;								// always present (by default)
+					haplosome_2_is_null = false;								// always present (by default)
 					break;
 					
 				case ChromosomeType::kH_HaploidAutosome:
 				case ChromosomeType::kHF_HaploidFemaleInherited:
 				case ChromosomeType::kHM_HaploidMaleInherited:
+					haplosome_1_is_null = false;								// always present (by default)
+					haplosome_2_is_null = false;								// always unused (not null)
+					break;
+					
 				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					haplosome_1_is_null_or_unused = false;								// always present (by default)
-					haplosome_2_is_null_or_unused = true;								// always null or unused
+					haplosome_1_is_null = false;								// always present
+					haplosome_2_is_null = true;									// always null
 					break;
 					
 				case ChromosomeType::kX_XSexChromosome:
-					haplosome_1_is_null_or_unused = false;								// always present
-					haplosome_2_is_null_or_unused = (sex == IndividualSex::kMale);		// null in males
+					haplosome_1_is_null = false;								// always present
+					haplosome_2_is_null = (sex == IndividualSex::kMale);		// null in males
 					break;
 					
 				case ChromosomeType::kY_YSexChromosome:
 				case ChromosomeType::kML_HaploidMaleLine:
-					haplosome_1_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_null_or_unused = true;								// always unused
+					haplosome_1_is_null = (sex == IndividualSex::kFemale);		// null in females
+					haplosome_2_is_null = false;								// always unused (not null)
 					break;
 					
 				case ChromosomeType::kZ_ZSexChromosome:
-					haplosome_1_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
-					haplosome_2_is_null_or_unused = false;								// always present
+					haplosome_1_is_null = (sex == IndividualSex::kFemale);		// null in females
+					haplosome_2_is_null = false;								// always present
 					break;
 					
 				case ChromosomeType::kW_WSexChromosome:
 				case ChromosomeType::kFL_HaploidFemaleLine:
-					haplosome_1_is_null_or_unused = (sex == IndividualSex::kMale);		// null in males
-					haplosome_2_is_null_or_unused = true;								// always unused
+					haplosome_1_is_null = (sex == IndividualSex::kMale);		// null in males
+					haplosome_2_is_null = false;								// always unused (not null)
 					break;
 					
 				case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					haplosome_1_is_null_or_unused = true;								// always unused
-					haplosome_2_is_null_or_unused = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_1_is_null = true;									// always null
+					haplosome_2_is_null = (sex == IndividualSex::kFemale);		// null in females
 					break;
 			}
 			
@@ -273,10 +277,10 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 			int byte_index = chromosome_index / 8;
 			int bit_shift = chromosome_index % 8;
 			
-			if (haplosome_1_is_null_or_unused)
+			if (haplosome_1_is_null)
 				focal_metadata_1->is_null_[byte_index] |= (0x01 << bit_shift);
 			
-			if (haplosome_2_is_null_or_unused)
+			if (haplosome_2_is_null)
 				focal_metadata_2->is_null_[byte_index] |= (0x01 << bit_shift);
 		}
 		
@@ -290,6 +294,11 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		}
 		break;
 	}
+	
+//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_null_[0]);
+//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_null_[0]);
+//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_null_[0]);
+//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_null_[0]);
 }
 
 Chromosome *Species::ChromosomeFromID(int64_t p_id)
@@ -783,7 +792,7 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 	else if (file_format == SLiMFileFormat::kFormatDirectory)
 	{
 		// Here we assume that a directory is a multi-chromosome .trees archive; we will check downstream
-		new_tick = _InitializePopulationFromTskitDirectory(file_cstr, p_interpreter, p_subpop_remap);
+		new_tick = _InitializePopulationFromTskitDirectory(p_file_string, p_interpreter, p_subpop_remap);
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_HDF5)
 		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): msprime HDF5 binary files are not supported; that file format has been superseded by kastore." << EidosTerminate();
@@ -6771,6 +6780,8 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		std::string metadata_str(p_tables.metadata, p_tables.metadata_length);
 		auto metadata = nlohmann::json::parse(metadata_str);
 		
+		//std::cout << metadata.dump(4) << std::endl;
+		
 		if (!metadata["SLiM"].contains("file_version"))
 			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the required metadata key 'file_version' is missing; this file cannot be read." << EidosTerminate();
 		
@@ -7283,7 +7294,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model);
 		
 		// Add top-level metadata and metadata schema
-		WriteTreeSequenceMetadata(&output_tables, p_metadata_dict, /* p_chromosome_index */ 0);
+		WriteTreeSequenceMetadata(&output_tables, p_metadata_dict, chromosome->Index());
 		
 		// Set the simulation time unit, in case that is useful to someone.  This is set up in initializeTreeSeq().
 		ret = tsk_table_collection_set_time_units(&output_tables, community_.treeseq_time_unit_.c_str(), community_.treeseq_time_unit_.length());
@@ -8599,6 +8610,11 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
 					individual->migrant_ = true;
 				
+				individual->age_ = subpop_info.age_[tabulation_index];
+				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
+				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
+				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
+				
 				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[first_haplosome_index]);
 				individual->haplosomes_[first_haplosome_index]->haplosome_id_ = pedigree_id * 2;
 				
@@ -8607,11 +8623,6 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosomes_[last_haplosome_index]);
 					individual->haplosomes_[last_haplosome_index]->haplosome_id_ = pedigree_id * 2 + 1;
 				}
-				
-				individual->age_ = subpop_info.age_[tabulation_index];
-				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
-				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
-				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
 				
 				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 				// here we crosscheck the node information against the realized values in the haplosomes of the individual
@@ -8681,6 +8692,169 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 	
 	if (duplicate != pedigree_id_check.end())
 		EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): the individual pedigree ID value " << *duplicate << " was used more than once; individual pedigree IDs must be unique." << EidosTerminate();
+}
+
+void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, __attribute__((unused)) EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Haplosome *> &p_nodeToHaplosomeMap, TreeSeqInfo &p_treeseq)
+{
+	// NOTE: This version of __CreateSubpopulationsFromTabulation() validates subpopulations already created,
+	// ensuring that they match those made by __CreateSubpopulationsFromTabulation() for the first chromosome
+	// read.  BEWARE: These methods should be maintained in parallel!
+	
+	tsk_table_collection_t &tables = p_treeseq.tables_;
+	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
+	Chromosome *chromosome = Chromosomes()[chromosome_index];
+	ChromosomeType chromosomeType = chromosome->Type();
+	int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
+	int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
+	
+	// We do not check pedigree ids in this secondary pass; __CreateSubpopulationsFromTabulation() set them up.
+	
+	for (auto subpop_info_iter : p_subpopInfoMap)
+	{
+		slim_objectid_t subpop_id = subpop_info_iter.first;
+		ts_subpop_info &subpop_info = subpop_info_iter.second;
+		slim_popsize_t subpop_size = sex_enabled_ ? (subpop_info.countMH_ + subpop_info.countF_) : subpop_info.countMH_;
+		
+		// Get the existing subpopulation and check that its size and sex ratio match expectations.
+		Subpopulation *new_subpop = SubpopulationWithID(subpop_id);
+		
+		if (new_subpop->parent_subpop_size_ != subpop_size)
+			EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): subpopulation size mismatch between chromosomes read." << EidosTerminate();
+		
+		if (sex_enabled_ && (new_subpop->parent_first_male_index_ != subpop_info.countF_))
+			EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): sex ratio mismatch between chromosomes read." << EidosTerminate();
+		
+		// connect up the individuals and haplosomes in the new subpop with the tree-seq table entries
+		int sex_count = sex_enabled_ ? 2 : 1;
+		
+		for (int sex_index = 0; sex_index < sex_count; ++sex_index)
+		{
+			IndividualSex generating_sex = (sex_enabled_ ? (sex_index == 0 ? IndividualSex::kFemale : IndividualSex::kMale) : IndividualSex::kHermaphrodite);
+			slim_popsize_t tabulation_size = (sex_enabled_ ? (sex_index == 0 ? subpop_info.countF_ : subpop_info.countMH_) : subpop_info.countMH_);
+			slim_popsize_t start_index = (generating_sex == IndividualSex::kMale) ? new_subpop->parent_first_male_index_ : 0;
+			slim_popsize_t last_index = (generating_sex == IndividualSex::kFemale) ? (new_subpop->parent_first_male_index_ - 1) : (new_subpop->parent_subpop_size_ - 1);
+			slim_popsize_t sex_size = last_index - start_index + 1;
+			
+			if (tabulation_size != sex_size)
+				EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) mismatch between tabulation size and subpop size." << EidosTerminate();
+			
+			slim_popsize_t tabulation_index = -1;
+			
+			for (slim_popsize_t ind_index = start_index; ind_index <= last_index; ++ind_index)
+			{
+				// scan for the next tabulation entry of the expected sex
+				do {
+					tabulation_index++;
+					
+					if (tabulation_index >= subpop_size)
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) ran out of tabulated individuals." << EidosTerminate();
+				} while (subpop_info.sex_[tabulation_index] != generating_sex);
+				
+				Individual *individual = new_subpop->parent_individuals_[ind_index];
+				
+				if (individual->sex_ != generating_sex)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) unexpected individual sex." << EidosTerminate();
+				
+				tsk_id_t node_id_0 = subpop_info.nodes_[(size_t)tabulation_index * 2];
+				tsk_id_t node_id_1 = subpop_info.nodes_[(size_t)tabulation_index * 2 + 1];
+				
+				if (node_id_0 + 1 != node_id_1)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): (internal error) node ids for individual are not adjacent." << EidosTerminate();
+				
+				if (individual->TskitNodeIdBase() != node_id_0)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): tskit node id mismatch between chromosomes read." << EidosTerminate();
+				
+				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
+				
+				if (individual->PedigreeID() != pedigree_id)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): pedigree id mismatch between chromosomes read." << EidosTerminate();
+				if ((individual->Parent1PedigreeID() != subpop_info.pedigreeP1_[tabulation_index]) ||
+					(individual->Parent2PedigreeID() != subpop_info.pedigreeP2_[tabulation_index]))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): parent pedigree id mismatch between chromosomes read." << EidosTerminate();
+				
+				uint32_t flags = subpop_info.flags_[tabulation_index];
+				if ((flags & SLIM_INDIVIDUAL_METADATA_MIGRATED) && !individual->migrant_)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual migrant flag mismatch between chromosomes read." << EidosTerminate();
+				
+				if (individual->age_ != subpop_info.age_[tabulation_index])
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual age mismatch between chromosomes read." << EidosTerminate();
+				if ((individual->spatial_x_ != subpop_info.spatial_x_[tabulation_index]) ||
+					(individual->spatial_y_ != subpop_info.spatial_y_[tabulation_index]) ||
+					(individual->spatial_z_ != subpop_info.spatial_z_[tabulation_index]))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): individual spatial position mismatch between chromosomes read." << EidosTerminate();
+				
+				// the haplosomes we're setting up are different from the haplosomes previously set up,
+				// so unlike the above code, we actually do work here, not just checkbacks
+				p_nodeToHaplosomeMap.emplace(node_id_0, individual->haplosomes_[first_haplosome_index]);
+				individual->haplosomes_[first_haplosome_index]->haplosome_id_ = pedigree_id * 2;
+				
+				if (last_haplosome_index != first_haplosome_index)
+				{
+					p_nodeToHaplosomeMap.emplace(node_id_1, individual->haplosomes_[last_haplosome_index]);
+					individual->haplosomes_[last_haplosome_index]->haplosome_id_ = pedigree_id * 2 + 1;
+				}
+				
+				// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
+				// here we crosscheck the node information against the realized values in the haplosomes of the individual
+				tsk_node_table_t &node_table = tables.nodes;
+				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
+				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
+				
+				// FIXME MULTICHROM: would be good to check the exact expected metadata length, based on the chromosome count
+				// That is complicated slightly by the idea that one can have an msprime-generated single-chromosome file in a multi-chrom archive
+				if ((node0_metadata_length < sizeof(HaplosomeMetadataRec)) || (node1_metadata_length < sizeof(HaplosomeMetadataRec)))
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+				
+				HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
+				Haplosome *haplosome0 = individual->haplosomes_[first_haplosome_index];
+				
+				if (node0_metadata->haplosome_id_ != haplosome0->haplosome_id_)
+					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
+				
+				// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
+				int byte_index = chromosome_index / 8;
+				int bit_shift = chromosome_index % 8;
+				
+				bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+				
+				if (node0_is_null != haplosome0->IsNull())
+				{
+					if (node0_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+						((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
+					{
+						haplosome0->MakeNull();
+						new_subpop->has_null_haplosomes_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
+				}
+				
+				// We do not check the second haplosome's state if the chromosome type is intrinsically haploid
+				if (last_haplosome_index != first_haplosome_index)
+				{
+					HaplosomeMetadataRec *node1_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_1]);
+					Haplosome *haplosome1 = individual->haplosomes_[last_haplosome_index];
+					
+					if (node1_metadata->haplosome_id_ != haplosome1->haplosome_id_)
+						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
+					
+					bool node1_is_null = !!((node1_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+					
+					if (node1_is_null != haplosome1->IsNull())
+					{
+						if (node1_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+							((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
+						{
+							haplosome1->MakeNull();
+							new_subpop->has_null_haplosomes_ = true;
+						}
+						else
+							EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome null mismatch; this file cannot be read." << EidosTerminate();
+					}
+				}
+			}
+		}
+	}
 }
 
 void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq)
@@ -8906,6 +9080,161 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	}
 }
 
+void Species::__ConfigureSubpopulationsFromTables_SECONDARY(__attribute__((unused)) EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq)
+{
+	// NOTE: This version of __ConfigureSubpopulationsFromTables() validates the configuration already set up,
+	// ensuring that it matches those made by __ConfigureSubpopulationsFromTables() for the first chromosome
+	// read.  BEWARE: These methods should be maintained in parallel!
+	
+	tsk_table_collection_t &tables = p_treeseq.tables_;
+	tsk_population_table_t &pop_table = tables.populations;
+	tsk_size_t pop_count = pop_table.num_rows;
+	
+	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
+	{
+		// validate and parse metadata; get metadata values or fall back to default values
+		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+		slim_objectid_t subpop_id = CheckSLiMPopulationMetadata(metadata_char, metadata_length);
+		
+		// -1 indicates that the metadata does not represent an extant SLiM subpopulation, so we
+		// skip it entirely; this logic mirrors that in __PrepareSubpopulationsFromTables(), which has
+		// already created a ts_subpop_info record for every SLiM-compliant subpopulation
+		if (subpop_id == -1)
+			continue;
+		
+		// otherwise, the metadata is valid and we proceed; this design means we parse the JSON twice, but whatever
+		std::string metadata_string(metadata_char, metadata_length);
+		nlohmann::json subpop_metadata = nlohmann::json::parse(metadata_string);
+
+		// Now we get to new work not done by __PrepareSubpopulationsFromTables()
+		double metadata_selfing_fraction = 0.0;
+		double metadata_female_clone_fraction = 0.0;
+		double metadata_male_clone_fraction = 0.0;
+		double metadata_sex_ratio = 0.5;
+		double metadata_bounds_x0 = 0.0;
+		double metadata_bounds_x1 = 1.0;
+		double metadata_bounds_y0 = 0.0;
+		double metadata_bounds_y1 = 1.0;
+		double metadata_bounds_z0 = 0.0;
+		double metadata_bounds_z1 = 1.0;
+		
+		if (subpop_metadata.contains("bounds_x0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_x0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_x0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_x0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_x1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_x1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_x1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_x1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_y0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_y0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_y0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_y0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_y1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_y1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_y1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_y1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_z0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_z0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_z0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_z0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_z1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_z1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'bounds_z1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_z1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("female_cloning_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["female_cloning_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'female_cloning_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_female_clone_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("male_cloning_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["male_cloning_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'male_cloning_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_male_clone_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("selfing_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["selfing_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'selfing_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_selfing_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("sex_ratio"))
+		{
+			nlohmann::json value = subpop_metadata["sex_ratio"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'sex_ratio' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_sex_ratio = value.get<double>();
+		}
+		
+		std::string metadata_name = SLiMEidosScript::IDStringWithPrefix('p', subpop_id);
+		
+		if (subpop_metadata.contains("name"))
+		{
+			nlohmann::json value = subpop_metadata["name"];
+			if (!value.is_string())
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): population metadata key 'name' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_name = value.get<std::string>();
+		}
+		
+		// we skip the description; it does not get validated across chromosomes
+		
+		// migration does not get validated across chromosomes either, too annoying and marginal
+		
+		// validate the subpopulation from the metadata values and other information we have decoded
+		Subpopulation *subpop = SubpopulationWithID(subpop_id);
+		
+		if (!subpop)
+			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): a subpopulation (id " << subpop_id << ") was not defined by the first .trees file read, but was referenced by a later .trees file; subpopulation structure must match exactly across chromosomes." << EidosTerminate();
+		
+		if (subpop->name_ != metadata_name)
+			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): subpopulation name mismatch between chromosomes read." << EidosTerminate();
+		
+		if (model_type_ == SLiMModelType::kModelTypeWF)
+		{
+			if (subpop->selfing_fraction_ != metadata_selfing_fraction)
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): selfing fraction mismatch between chromosomes read." << EidosTerminate();
+			if (subpop->female_clone_fraction_ != metadata_female_clone_fraction)
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): female cloning fraction mismatch between chromosomes read." << EidosTerminate();
+			if (subpop->male_clone_fraction_ != metadata_male_clone_fraction)
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): male cloning fraction mismatch between chromosomes read." << EidosTerminate();
+			if (subpop->child_sex_ratio_ != metadata_sex_ratio)
+				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): sex ratio mismatch between chromosomes read." << EidosTerminate();
+		}
+		
+		if ((subpop->bounds_x0_ != metadata_bounds_x0) ||
+			(subpop->bounds_x1_ != metadata_bounds_x1) ||
+			(subpop->bounds_y0_ != metadata_bounds_y0) ||
+			(subpop->bounds_y1_ != metadata_bounds_y1) ||
+			(subpop->bounds_z0_ != metadata_bounds_z0) ||
+			(subpop->bounds_z1_ != metadata_bounds_z1))
+			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables_SECONDARY): spatial bounds mismatch between chromosomes read." << EidosTerminate();
+	}
+}
+
 typedef struct ts_mut_info {
 	slim_position_t position;
 	MutationMetadataRec metadata;
@@ -9112,7 +9441,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if (gSLiM_next_mutation_id <= mutation_id)
 			gSLiM_next_mutation_id = mutation_id + 1;
 		
-		// a mutation might not be refered by any extant haplosome; it might be present in an ancestral node,
+		// a mutation might not be referenced by any extant haplosome; it might be present in an ancestral node,
 		// but have been lost in all descendants, in which case we do not need to instantiate it
 		if (mut_info.ref_count == 0)
 			continue;
@@ -9339,16 +9668,186 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInf
 		EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): the haplosome pedigree ID value " << *duplicate << " was used more than once; haplosome pedigree IDs must be unique." << EidosTerminate();
 }
 
+void Species::_ReadAncestralSequence(const char *p_file, Chromosome &p_chromosome)
+{
+	if (nucleotide_based_)
+	{
+		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
+		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
+		kastore_t store;
+		
+		int ret = kastore_open(&store, p_file, "r", 0);
+		if (ret != 0) {
+			kastore_close(&store);
+			handle_error("kastore_open", ret);
+		}
+		
+		ret = kastore_gets_uint8(&store, "reference_sequence/data", (uint8_t **)&buffer, &buffer_length);
+		
+		// SLiM 3.6 and earlier wrote out int8_t data, but now tskit writes uint8_t data; to be tolerant of the old type, if
+		// we get a type mismatch, try again with int8_t.  Note that buffer points into kastore's data and need not be freed.
+		if (ret == KAS_ERR_TYPE_MISMATCH)
+			ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
+		
+		if (ret != 0)
+			buffer = NULL;
+		
+		if (!buffer)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
+		if (buffer_length != p_chromosome.AncestralSequence()->size())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
+		
+		p_chromosome.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
+		
+		// buffer is owned by kastore and is freed by closing the store
+		kastore_close(&store);
+	}
+}
+
+static int table_memcmp(const void *__s1, const void *__s2, size_t __n)
+{
+	// this is a helper function for comparing tskit table columns, because I'm not sure
+	// whether all of the defined table columns are necessarily allocated or not...
+	
+	// first, return unequal if one pointer is nullptr and the other is not
+	if ((__s1 && !__s2) || (!__s1 && __s2))
+		return 1;
+	
+	// if both are nullptr, return equal
+	if (!__s1 && !__s2)
+		return 0;
+	
+	// finally, fall back to memcmp() with two valid pointers
+	return memcmp(__s1, __s2, __n);
+}
+
+// FIXME MULTICHROM: Note that tskit has tsk_node_table_equals(), tsk_individual_table_equals(), and
+// tsk_population_table_equals().  However, those functions don't provide a *reason* for the difference,
+// which I think it important to report back to the user, so I'm keeping my versions for the time being.
+// See https://github.com/tskit-dev/tskit/issues/3089#issuecomment-2687232143
+static void _CompareNodeTables(tsk_node_table_t &nodes0, tsk_node_table_t &nodes1);
+static void _CompareIndividualTables(tsk_individual_table_t &individuals0, tsk_individual_table_t &individuals1);
+static void _ComparePopulationTables(tsk_population_table_t &population0, tsk_population_table_t &population1);
+
+void _CompareNodeTables(tsk_node_table_t &nodes0, tsk_node_table_t &nodes1)
+{
+	// This delves into the internals of tskit rather heinously...
+	if (nodes0.num_rows != nodes1.num_rows)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (number of rows differs)." << EidosTerminate();
+	
+	if (nodes0.metadata_length != nodes1.metadata_length)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (metadata length differs)." << EidosTerminate();
+	
+	if (nodes0.metadata_schema_length != nodes1.metadata_schema_length)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (metadata schema length differs)." << EidosTerminate();
+	
+	tsk_size_t num_rows = nodes0.num_rows;
+	
+	if (table_memcmp(nodes0.flags, nodes1.flags, num_rows * sizeof(tsk_flags_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (flags column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.time, nodes1.time, num_rows * sizeof(double)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (time column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.population, nodes1.population, num_rows * sizeof(tsk_id_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (population column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.individual, nodes1.individual, num_rows * sizeof(tsk_id_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (individual column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.metadata, nodes1.metadata, nodes0.metadata_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (metadata column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.metadata_offset, nodes1.metadata_offset, num_rows * sizeof(tsk_size_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (metadata_offset column differs)." << EidosTerminate();
+	
+	if (table_memcmp(nodes0.metadata_schema, nodes1.metadata_schema, nodes0.metadata_schema_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareNodeTables): node table mismatch between loaded chromosomes (metadata_schema column differs)." << EidosTerminate();
+}
+
+void _CompareIndividualTables(tsk_individual_table_t &individuals0, tsk_individual_table_t &individuals1)
+{
+	// This delves into the internals of tskit rather heinously...
+	if (individuals0.num_rows != individuals1.num_rows)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (number of rows differs)." << EidosTerminate();
+	
+	if (individuals0.location_length != individuals1.location_length)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (location length differs)." << EidosTerminate();
+	
+	if (individuals0.parents_length != individuals1.parents_length)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (parents length differs)." << EidosTerminate();
+	
+	if (individuals0.metadata_length != individuals1.metadata_length)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (metadata length differs)." << EidosTerminate();
+	
+	if (individuals0.metadata_schema_length != individuals1.metadata_schema_length)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (metadata schema length differs)." << EidosTerminate();
+	
+	tsk_size_t num_rows = individuals0.num_rows;
+	
+	if (table_memcmp(individuals0.flags, individuals1.flags, num_rows * sizeof(tsk_flags_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (flags column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.location, individuals1.location, individuals0.location_length * sizeof(double)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (location column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.location_offset, individuals1.location_offset, num_rows * sizeof(tsk_size_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (location_offset column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.parents, individuals1.parents, individuals0.parents_length * sizeof(tsk_id_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (parents column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.parents_offset, individuals1.parents_offset, num_rows * sizeof(tsk_size_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (parents_offset column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.metadata, individuals1.metadata, individuals0.metadata_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (metadata column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.metadata_offset, individuals1.metadata_offset, num_rows * sizeof(tsk_size_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (metadata_offset column differs)." << EidosTerminate();
+	
+	if (table_memcmp(individuals0.metadata_schema, individuals1.metadata_schema, individuals0.metadata_schema_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_CompareIndividualTables): individual table mismatch between loaded chromosomes (metadata_schema column differs)." << EidosTerminate();
+}
+
+void _ComparePopulationTables(tsk_population_table_t &population0, tsk_population_table_t &population1)
+{
+	// This delves into the internals of tskit rather heinously...
+	if (population0.num_rows != population1.num_rows)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (number of rows differs)." << EidosTerminate();
+	
+	if (population0.metadata_length != population1.metadata_length)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata length differs)." << EidosTerminate();
+	
+	if (population0.metadata_schema_length != population1.metadata_schema_length)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata schema length differs)." << EidosTerminate();
+	
+	tsk_size_t num_rows = population0.num_rows;
+	
+	if (table_memcmp(population0.metadata, population1.metadata, population0.metadata_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata column differs)." << EidosTerminate();
+	
+	if (table_memcmp(population0.metadata_offset, population1.metadata_offset, num_rows * sizeof(tsk_size_t)) != 0)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata_offset column differs)." << EidosTerminate();
+	
+	if (table_memcmp(population0.metadata_schema, population1.metadata_schema, population0.metadata_schema_length) != 0)
+		EIDOS_TERMINATION << "ERROR (_ComparePopulationTables): population table mismatch between loaded chromosomes (metadata_schema column differs)." << EidosTerminate();
+}
+
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
 {
+	// NOTE: This method handles the first (or only) chromosome being read in.  A parallel method,
+	// _InstantiateSLiMObjectsFromTables_SECONDARY(), handles the second and onward.  The code is
+	// quite similar, and should be maintained in parallel!
 	tsk_table_collection_t &tables = p_treeseq.tables_;
 	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
 	Chromosome *chromosome = Chromosomes()[chromosome_index];
 	
-	// set the tick and cycle from the provenance data
+	// check the sequence length against the chromosome length
 	if (tables.sequence_length != chromosome->last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population (" << tables.sequence_length << ") does not match the configured chromosome length (" << (chromosome->last_position_ + 1) << ")." << EidosTerminate();
 	
+	// set the tick and cycle from the provenance data
 	community_.SetTick(p_metadata_tick);
 	SetCycle(p_metadata_cycle);
 	
@@ -9408,9 +9907,113 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
 	free(ts);
 	
+	// Reset our last coalescence state; we don't know whether we're coalesced now or not
+	p_treeseq.last_coalescence_state_ = false;
+}
+
+void Species::_InstantiateSLiMObjectsFromTables_SECONDARY(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map, TreeSeqInfo &p_treeseq)
+{
+	// NOTE: _InstantiateSLiMObjectsFromTables() handles the first (or only) chromosome being read in.  This
+	// method handles the second and onward.  The code is quite similar, and should be maintained in parallel!
+	
+	// NOTE: At this stage we have our own nodes/individuals/population tables!  We will remove them at the end.
+	tsk_table_collection_t &tables = p_treeseq.tables_;
+	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
+	Chromosome *chromosome = Chromosomes()[chromosome_index];
+	
+	// check the sequence length against the chromosome length
+	if (tables.sequence_length != chromosome->last_position_ + 1)
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables_SECONDARY): chromosome length in loaded population (" << tables.sequence_length << ") does not match the configured chromosome length (" << (chromosome->last_position_ + 1) << ")." << EidosTerminate();
+	
+	// check the tick and cycle; this should already have been validated externally
+	if ((community_.Tick() != p_metadata_tick) || (Cycle() != p_metadata_cycle))
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables_SECONDARY): (internal error) tick or cycle mismatch." << EidosTerminate();
+	
+	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
+	// BCH 4/4/2019: switched to using tree_seq_tick_ to avoid a parent/child timestamp conflict
+	// This makes sense; as far as tree-seq recording is concerned, tree_seq_tick_ is the time counter
+	slim_tick_t time_adjustment = community_.tree_seq_tick_;
+	
+	for (size_t node_index = 0; node_index < tables.nodes.num_rows; ++node_index)
+		tables.nodes.time[node_index] -= time_adjustment;
+	
+	for (size_t mut_index = 0; mut_index < tables.mutations.num_rows; ++mut_index)
+		tables.mutations.time[mut_index] -= time_adjustment;
+	
+	// check/rewrite the incoming tree-seq information in various ways
+	__CheckPopulationMetadata(p_treeseq);
+	__RemapSubpopulationIDs(p_subpop_map, p_treeseq, p_file_version);
+	
+	// allocate and set up the tree_sequence object
+	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
+	// that are not presently alive, so we have to tread carefully; the actually alive individuals are flagged with 
+	// SLIM_TSK_INDIVIDUAL_ALIVE in the individuals table (there may also be remembered and retained individuals in there too)
+	tsk_treeseq_t *ts;
+	int ret = 0;
+	
+	ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
+	if (!ts)
+		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	ret = tsk_treeseq_init(ts, &tables, TSK_TS_INIT_BUILD_INDEXES);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_init()", ret);
+	
+	std::unordered_map<tsk_id_t, Haplosome *> nodeToHaplosomeMap;
+	
+	{
+		std::unordered_map<slim_objectid_t, ts_subpop_info> subpopInfoMap;
+		
+		__PrepareSubpopulationsFromTables(subpopInfoMap, p_treeseq);
+		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts, p_treeseq, p_file_model_type);
+		__CreateSubpopulationsFromTabulation_SECONDARY(subpopInfoMap, p_interpreter, nodeToHaplosomeMap, p_treeseq);
+		__ConfigureSubpopulationsFromTables_SECONDARY(p_interpreter, p_treeseq);
+	}
+	
+	std::unordered_map<slim_mutationid_t, MutationIndex> mutIndexMap;
+	
+	{
+		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
+		
+		__TabulateMutationsFromTables(mutInfoMap, p_treeseq, p_file_version);
+		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToHaplosomeMap, ts);
+		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap, p_treeseq);
+	}
+	
+	__AddMutationsFromTreeSequenceToHaplosomes(mutIndexMap, nodeToHaplosomeMap, ts, p_treeseq);
+	
+	ret = tsk_treeseq_free(ts);
+	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
+	free(ts);
+	
+	// At this point we have loaded in and processed tables that are normally shared, and that
+	// *should* be identical to the tables that we share with the main table collection.  We
+	// may have made some changes above, such as remapping subpopulation IDs and whatnot, but
+	// those changes should be deterministic, so those tables should still be identical to the
+	// main table collection.  We will compare, to validate.
+	_CompareNodeTables(treeseq_[0].tables_.nodes, p_treeseq.tables_.nodes);
+	_CompareIndividualTables(treeseq_[0].tables_.individuals, p_treeseq.tables_.individuals);
+	_ComparePopulationTables(treeseq_[0].tables_.populations, p_treeseq.tables_.populations);
+	
+	// Now we can remove our table copies to free up the memory usage immediately.
+	tsk_node_table_free(&p_treeseq.tables_.nodes);
+	tsk_individual_table_free(&p_treeseq.tables_.individuals);
+	tsk_population_table_free(&p_treeseq.tables_.populations);
+	
+	// Reset our last coalescence state; we don't know whether we're coalesced now or not
+	p_treeseq.last_coalescence_state_ = false;
+}
+
+void Species::_PostInstantiationCleanup(EidosInterpreter *p_interpreter)
+{
+	// We have read in one or a set of chromosomes, instantiated corresponding SLiM objects, and now need to
+	// clean up after ourselves.  The shared tables in the table collection should now be disconnected; only
+	// the main table collection is now complete, and our final cleanup will operate on that.
+	TreeSeqInfo &treeSeqInfo = treeseq_[0];
+	tsk_table_collection_t &tables = treeSeqInfo.tables_;
+	
 	// Ensure that the next pedigree ID used will not cause a collision with any existing nodes in the node table,
 	// and that there are no duplicate node pedigree IDs in the input file (whether in use or not).
-	__CheckNodePedigreeIDs(p_interpreter, p_treeseq);
+	__CheckNodePedigreeIDs(p_interpreter, treeSeqInfo);
 	
 	// Set up the remembered haplosomes by looking though the list of nodes and their individuals
 	if (remembered_nodes_.size() != 0)
@@ -9484,13 +10087,17 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	// here, but if that is not true, no harm done really except that it might be a while before we simplify again)
 	simplify_elapsed_ = 0;
 	
-	// Reset our last coalescence state; we don't know whether we're coalesced now or not
-	p_treeseq.last_coalescence_state_ = false;
+	// I'm not sure why we record the table position here; it is used only by RetractNewIndividual().
+	RecordTablePosition();
+	
+	tables_initialized_ = true;
 }
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map, Chromosome &p_chromosome)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
+	
+	// BEWARE: _InitializePopulationFromTskitDirectory() has a modified version of this code.  Maintain in parallel!
 	
 	// note that we now allow this to be called without tree-seq on, just to load haplosomes/mutations from the .trees file
 	int ret;
@@ -9508,8 +10115,8 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 		recording_mutations_ = true;
 	}
 	
-	// make a new TreeSeqInfo record in treeseq_ and set it up; this might be just one of several that we will load
-	treeseq_.resize(treeseq_.size() + 1);
+	// make a new TreeSeqInfo record in treeseq_ and set it up
+	treeseq_.resize(1);
 	
 	TreeSeqInfo &treeSeqInfo = treeseq_.back();
 	
@@ -9519,16 +10126,12 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	ret = tsk_table_collection_load(&treeSeqInfo.tables_, p_file, TSK_LOAD_SKIP_REFERENCE_SEQUENCE);	// we load the ref seq ourselves; see below
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
 	
-	tables_initialized_ = true;
-	
 	// BCH 4/25/2019: if indexes are present on tables_ we want to drop them; they are synced up
 	// with the edge table, but we plan to modify the edge table so they will become invalid anyway, and
 	// then they may cause a crash because of their unsynced-ness; see tskit issue #179
 	ret = tsk_table_collection_drop_index(&treeSeqInfo.tables_, 0);
 	if (ret != 0) handle_error("tsk_table_collection_drop_index", ret);
 
-	RecordTablePosition();
-	
 	// read in the tree sequence metadata first so we have file version information and check for SLiM compliance and such
 	slim_tick_t metadata_tick;
 	slim_tick_t metadata_cycle;
@@ -9542,41 +10145,14 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	
 	// in nucleotide-based models, read the ancestral sequence; we do this ourselves, directly from kastore, to avoid having
 	// tskit make a full ASCII copy of the reference sequences from kastore into tables_; see tsk_table_collection_load() above
-	if (nucleotide_based_)
-	{
-		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
-		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
-		kastore_t store;
-
-		ret = kastore_open(&store, p_file, "r", 0);
-		if (ret != 0) {
-			kastore_close(&store);
-			handle_error("kastore_open", ret);
-		}
-		
-		ret = kastore_gets_uint8(&store, "reference_sequence/data", (uint8_t **)&buffer, &buffer_length);
-		
-		// SLiM 3.6 and earlier wrote out int8_t data, but now tskit writes uint8_t data; to be tolerant of the old type, if
-		// we get a type mismatch, try again with int8_t.  Note that buffer points into kastore's data and need not be freed.
-		if (ret == KAS_ERR_TYPE_MISMATCH)
-			ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
-		
-		if (ret != 0)
-			buffer = NULL;
-		
-		if (!buffer)
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
-		if (buffer_length != p_chromosome.AncestralSequence()->size())
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
-		
-		p_chromosome.AncestralSequence()->ReadNucleotidesFromBuffer(buffer);
-		
-		// buffer is owned by kastore and is freed by closing the store
-		kastore_close(&store);
-	}
-
+	_ReadAncestralSequence(p_file, p_chromosome);
+	
 	// make the corresponding SLiM objects
 	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map, treeSeqInfo);
+	
+	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks
+	// this incorporates all of the post-load work that spans the whole set of chromosomes in the model
+	_PostInstantiationCleanup(p_interpreter);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!was_recording_tree)
@@ -9589,9 +10165,164 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	return metadata_tick;
 }
 
-slim_tick_t Species::_InitializePopulationFromTskitDirectory(const char *p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap)
+slim_tick_t Species::_InitializePopulationFromTskitDirectory(std::string p_directory, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap)
 {
-	EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): reading in multi-chromosome .trees archives is not yet supported; stay tuned." << EidosTerminate();
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitDirectory(): SLiM global state read");
+	
+	// First, get the .trees files in the directory
+	int directory_length = (int)p_directory.length();
+	bool directory_ends_in_slash = (directory_length > 0) && (p_directory[directory_length-1] == '/');
+	struct stat file_info;
+	DIR *dp = opendir(p_directory.c_str());
+	std::vector<std::string> trees_paths;
+	
+	if (dp != NULL)
+	{
+		while (true)
+		{
+			errno = 0;
+			struct dirent *ep = readdir(dp);
+			int error = errno;
+			
+			if (!ep)
+			{
+				if (error)
+				{
+					(void)closedir(dp);
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the directory at path " << p_directory << " could not be read." << EidosTerminate();
+				}
+				break;
+			}
+			
+			std::string interior_filename_base = ep->d_name;
+			
+			if ((interior_filename_base == ".") || (interior_filename_base == ".."))
+				continue;
+			
+			std::string interior_filename = p_directory + (directory_ends_in_slash ? "" : "/") + interior_filename_base;		// NOLINT(*-inefficient-string-concatenation) : this is fine
+			
+			bool file_exists = (stat(interior_filename.c_str(), &file_info) == 0);
+			
+			if (!file_exists)
+			{
+				(void)closedir(dp);
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the directory at path " << p_directory << " could not be read." << EidosTerminate();
+			}
+			
+			bool is_directory = !!(file_info.st_mode & S_IFDIR);
+			
+			if (!is_directory && Eidos_string_hasSuffix(interior_filename, ".trees"))
+				trees_paths.push_back(interior_filename);
+		}
+		
+		(void)closedir(dp);
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the directory at path " << p_directory << " could not be read." << EidosTerminate();
+	
+	// Second, confirm that the count is correct and the symbols match
+	const std::vector<Chromosome *> &chromosomes = Chromosomes();
+	
+	if (trees_paths.size() != chromosomes.size())
+		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the directory at path " << p_directory << " contains " << trees_paths.size() << " .trees files, but the focal species defines " << Chromosomes().size() << " chromosomes." << EidosTerminate();
+	
+	for (Chromosome *chromosome : chromosomes)
+	{
+		const std::string &symbol = chromosome->Symbol();
+		std::string expected_filename = std::string("chromosome_") + symbol + ".trees";
+		std::string expected_path = p_directory + (directory_ends_in_slash ? "" : "/") + expected_filename;
+		
+		if (std::find(trees_paths.begin(), trees_paths.end(), expected_path) == trees_paths.end())
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the directory at path " << p_directory << " contains " << trees_paths.size() << " does not contain a chromosome file named " << expected_filename << ", which is expected based upon the chromosomes defined in the focal species." << EidosTerminate();
+	}
+	
+	// OK, we appear to have a well-formed multichrom archive that we can load.  Now we will load the data for
+	// each chromosome.  The code here follows the pattern of _InitializePopulationFromTskitBinaryFile(), but
+	// has been modified accordingly.  See that method for comments.  BEWARE: Maintain in parallel!
+	slim_tick_t metadata_tick = 0;
+	slim_tick_t metadata_cycle = 0;
+	SLiMModelType file_model_type = SLiMModelType::kModelTypeWF;
+	int file_version = 0;
+	
+	if (recording_tree_)
+		FreeTreeSequence();
+	
+	bool was_recording_tree = recording_tree_;
+	
+	if (!was_recording_tree)
+	{
+		recording_tree_ = true;
+		recording_mutations_ = true;
+	}
+	
+	for (Chromosome *chromosome : chromosomes)
+	{
+		bool is_first_chromosome = (chromosome == chromosomes[0]);
+		const std::string &symbol = chromosome->Symbol();
+		std::string expected_filename = std::string("chromosome_") + symbol + ".trees";
+		std::string expected_path = p_directory + (directory_ends_in_slash ? "" : "/") + expected_filename;
+		
+		treeseq_.resize(treeseq_.size() + 1);
+		TreeSeqInfo &treeSeqInfo = treeseq_.back();
+		treeSeqInfo.chromosome_index_ = chromosome->Index();
+		treeSeqInfo.last_coalescence_state_ = false;
+		
+		int ret = tsk_table_collection_load(&treeSeqInfo.tables_, expected_path.c_str(), TSK_LOAD_SKIP_REFERENCE_SEQUENCE);
+		if (ret != 0) handle_error("tsk_table_collection_load", ret);
+		
+		ret = tsk_table_collection_drop_index(&treeSeqInfo.tables_, 0);
+		if (ret != 0) handle_error("tsk_table_collection_drop_index", ret);
+		
+		slim_tick_t this_metadata_tick;
+		slim_tick_t this_metadata_cycle;
+		SLiMModelType this_file_model_type;
+		int this_file_version;
+		
+		ReadTreeSequenceMetadata(treeSeqInfo, &this_metadata_tick, &this_metadata_cycle, &this_file_model_type, &this_file_version);
+		
+		if (is_first_chromosome)
+		{
+			metadata_tick = this_metadata_tick;
+			metadata_cycle = this_metadata_cycle;
+			file_model_type = this_file_model_type;
+			file_version = this_file_version;
+		}
+		else
+		{
+			if (this_metadata_tick != metadata_tick)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the .trees files for chromosomes were saved in different ticks (" << metadata_tick << " versus " << this_metadata_tick << ").  This must be consistent across all files." << EidosTerminate();
+			if (this_metadata_cycle != metadata_cycle)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the .trees files for chromosomes were saved in different ticks (" << metadata_cycle << " versus " << this_metadata_cycle << ").  This must be consistent across all files." << EidosTerminate();
+			if (this_file_model_type != file_model_type)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the .trees files for chromosomes were saved from different model types (WF versus nonWF).  This must be consistent across all files." << EidosTerminate();
+			if (this_file_version != file_version)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTskitDirectory): the .trees files for chromosomes have different file versions (" << file_version << " versus " << this_file_version << ").  This must be consistent across all files." << EidosTerminate();
+		}
+		
+		DerivedStatesFromAscii(&treeSeqInfo.tables_);
+		_ReadAncestralSequence(expected_path.c_str(), *chromosome);
+		
+		// The first chromosome uses _InstantiateSLiMObjectsFromTables() and creates the subpopulations, etc.,
+		// as needed.  The remaining chromosomes use _InstantiateSLiMObjectsFromTables_SECONDARY(), which
+		// checks against the population structure that was created; it should always match exactly.
+		if (is_first_chromosome)
+			_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+		else
+			_InstantiateSLiMObjectsFromTables_SECONDARY(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_remap, treeSeqInfo);
+	}
+	
+	// cleanup such as handling remembered haplosomes and the individuals table, mutation tallying, and integrity checks
+	// this incorporates all of the post-load work that spans the whole set of chromosomes in the model
+	_PostInstantiationCleanup(p_interpreter);
+	
+	if (!was_recording_tree)
+	{
+		FreeTreeSequence();
+		recording_tree_ = false;
+		recording_mutations_ = false;
+	}
+	
+	return metadata_tick;
 }
 
 size_t Species::MemoryUsageForTreeSeqInfo(TreeSeqInfo &p_tsinfo, bool p_count_shared_tables)

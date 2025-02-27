@@ -202,7 +202,7 @@ The
 \f2\fs20  documentation.\
 The 
 \f1\fs18 mutationRuns
-\f2\fs20  parameter specifies how many mutation runs the chromosome should use.  Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations (see section 21.4).  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally optimal.  The optimal number of mutation runs will depend on the model\'92s details, and may also depend upon the machine and even the compiler used to build SLiM.  If the 
+\f2\fs20  parameter specifies how many mutation runs the chromosome should use.  Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally optimal.  The optimal number of mutation runs will depend on the model\'92s details, and may also depend upon the machine and even the compiler used to build SLiM.  If the 
 \f1\fs18 mutationRuns
 \f2\fs20  parameter is not 
 \f1\fs18 0
@@ -685,7 +685,7 @@ The global symbol for the new interaction type is immediately available; the ret
 
 \f2\fs20 \cf2 Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
 \f1\fs18 initializeRecombinationRate()
-\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring haplosome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy (see section 1.5.3) will be followed.\
+\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring haplosome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 There are two ways to call this function.  If the optional 
@@ -1297,8 +1297,10 @@ The
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function. Note that tree-sequence recording internally uses SLiM\'92s \'93pedigree tracking\'94 feature to uniquely identify individuals and haplosomes; however, if you want to use pedigree tracking in your script you must still enable it yourself with 
+\f2\fs20 \cf2 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.  Note that tree-sequence recording internally uses SLiM\'92s \'93pedigree tracking\'94 feature to uniquely identify individuals and haplosomes; however, if you want to use pedigree tracking in your script you must still enable it yourself with 
 \f1\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f2\fs20 .  A separate tree sequence will be recorded for each chromosome in the simulation, as configured with 
+\f1\fs18 initializeChromosome()
 \f2\fs20 .\
 The 
 \f1\fs18 recordMutations
