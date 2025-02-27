@@ -771,6 +771,8 @@ extern const std::string &gStr_hotspotEndPositionsF;
 extern const std::string &gStr_hotspotMultipliers;
 extern const std::string &gStr_hotspotMultipliersM;
 extern const std::string &gStr_hotspotMultipliersF;
+extern const std::string &gStr_intrinsicPloidy;
+extern const std::string &gStr_isSexChromosome;
 extern const std::string &gStr_mutationEndPositions;
 extern const std::string &gStr_mutationEndPositionsM;
 extern const std::string &gStr_mutationEndPositionsF;
@@ -1218,6 +1220,8 @@ enum _SLiMGlobalStringID : int {
 	gID_hotspotMultipliers,
 	gID_hotspotMultipliersM,
 	gID_hotspotMultipliersF,
+	gID_intrinsicPloidy,
+	gID_isSexChromosome,
 	gID_mutationEndPositions,
 	gID_mutationEndPositionsM,
 	gID_mutationEndPositionsF,

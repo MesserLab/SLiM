@@ -2718,6 +2718,14 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(id_));
 		}
+		case gID_isSexChromosome:
+		{
+			return is_sex_chromosome_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF;
+		}
+		case gID_intrinsicPloidy:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(intrinsic_ploidy_));
+		}
 		case gID_lastPosition:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
@@ -3754,6 +3762,8 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,										true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isSexChromosome,						true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_intrinsicPloidy,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lastPosition,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_length,							true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hotspotEndPositions,					true,	kEidosValueMaskInt)));

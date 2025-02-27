@@ -160,6 +160,46 @@ hotspotEndPositions => (integer)\
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 intrinsicPloidy => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The intrinsic ploidy of the chromosome, meaning the number of haplosome objects that are allocated in each individual, associated with the chromosome (even if some of those haplosomes are null haplosomes acting as placeholders).  This is a consequence of the chromosome\'92s type.  Chromosome types 
+\f3\fs18 "A"
+\f4\fs20 , 
+\f3\fs18 "X"
+\f4\fs20 , and 
+\f3\fs18 "Z"
+\f4\fs20  are intrinsically diploid (and thus this property would have the value 
+\f3\fs18 2
+\f4\fs20 ), as are the backwards-compatibility chromosome types 
+\f3\fs18 "H-"
+\f4\fs20  and 
+\f3\fs18 "-Y"
+\f4\fs20 .  All other chromosome types are intrinsically haploid (and thus this property would have the value 
+\f3\fs18 1
+\f4\fs20 ).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 isSexChromosome => (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Indicates whether the chromosome is a sex chromosome (T) or not (F).  This is a consequence of the chromosome\'92s type.  Chromosome types 
+\f3\fs18 "X"
+\f4\fs20 , 
+\f3\fs18 "Y"
+\f4\fs20 , 
+\f3\fs18 "Z"
+\f4\fs20 , and 
+\f3\fs18 "W"
+\f4\fs20  are considered sex chromosomes, as is the backwards-compatibility type 
+\f3\fs18 "-Y"
+\f4\fs20 ; all other chromosome types are not.  See also the 
+\f3\fs18 sexChromosomes
+\f4\fs20  property of 
+\f3\fs18 Species
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 lastPosition => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1710,6 +1750,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1820,6 +1861,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -2462,9 +2504,8 @@ The
 \f4\fs20  subfield (or a generation of origin 
 \f3\fs18 GO
 \f4\fs20  field, which was the SLiM convention before SLiM 4), the current tick will be used.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs18 \cf2 REF
+\f3\fs18 REF
 \f4\fs20  and 
 \f3\fs18 ALT
 \f4\fs20  must always be comprised of simple nucleotides (
@@ -7965,7 +8006,11 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 "-Y"
 \f4\fs20 .  See also the 
 \f3\fs18 chromosomes
-\f4\fs20  property.\
+\f4\fs20  property, and the 
+\f3\fs18 isSexChromosome
+\f4\fs20  property of 
+\f3\fs18 Chromosome
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 sexEnabled => (logical$)\
