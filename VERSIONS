@@ -108,7 +108,7 @@ development head (in the master branch):
 		new PAR (pseudo-autosomal region) recipe for section 15.23, replacing the old recipe in section 14.5 (which will be moved to SLiM-Extras for posterity)
 		new recipe 9.11 (Ne estimation) with a new multichrom-aware version of function estimateNe_Heterozygosity() that requires the chromosome to be supplied
 		recombination() callbacks can now be optionally declared with a chromosome specifier (id or symbol), to apply to just one chromosome
-			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome
+			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome (breaking backward API compatibility)
 		fix up the calc...() functions for multiple chromosomes, and to be robust to the case of zero mutations (existing at all, or within the supplied haplosomes), and to improve error-checking and documentation
 		the default symbol for implicit chromosomes should be "A", "X", or "Y", so output formats don't change for legacy models
 		fix built-in mutation/substitution output methods for multiple chromosomes:
