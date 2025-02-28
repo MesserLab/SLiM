@@ -87,7 +87,7 @@
         <file>recipes/Recipe 12.5 - Tracking separate sexes in script.txt</file>
         <file>recipes/Recipe 13.1 - Polygenic selection.txt</file>
         <file>recipes/Recipe 13.2 - A simple model of variable QTL effect sizes.txt</file>
-        <file>recipes/Recipe 13.3 - A model of discrete QTL effects with a structured chromosome.txt</file>
+        <file>recipes/Recipe 13.3 - A model of discrete QTL effects across multiple chromosomes.txt</file>
         <file>recipes/Recipe 13.4 - A quantitative genetics model with heritability.txt</file>
         <file>recipes/Recipe 13.5 - A QTL-based model with two quantitative phenotypic traits and pleiotropy.txt</file>
         <file>recipes/Recipe 13.6 - A variety of fitness functions I (stabilizing selection).txt</file>

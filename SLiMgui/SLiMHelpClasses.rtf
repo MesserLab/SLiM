@@ -1564,13 +1564,27 @@ haplosomePedigreeID => (integer$)\
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 haplosomePedigreeID
-\f4\fs20  is a unique non-negative identifier for each haplosome in a simulation, never re-used throughout the duration of the simulation run.  Furthermore, the 
+\f4\fs20  is a \'93semi-unique\'94 non-negative identifier for each haplosome in a simulation, never re-used throughout the duration of the simulation run.  The 
 \f3\fs18 haplosomePedigreeID
 \f4\fs20  of a given haplosome will be equal to either 
 \f3\fs18 (2*pedigreeID)
 \f4\fs20  or 
 \f3\fs18 (2*pedigreeID + 1)
-\f4\fs20  of the individual that the haplosome belongs to (the former for the first haplosome of the individual, the latter for the second haplosome of the individual if one exists); this invariant relationship is guaranteed.  If pedigree tracking is not enabled, this property is unavailable.\
+\f4\fs20  of the individual that the haplosome belongs to (the former for a first haplosome of the individual, the latter for a second haplosome of the individual if one exists); this invariant relationship is guaranteed.\
+This value is \'93semi-unique\'94 in the sense that it is shared by 
+\f1\i all
+\f4\i0  of the first haplosomes of an individual, or by 
+\f1\i all
+\f4\i0  of the second haplosomes of an individual.  In a single-chromosome model, a given individual will have just one first haplosome, and perhaps (depending on the chromosome type) one second haplosome, and so the value of 
+\f3\fs18 haplosomePedigreeID
+\f4\fs20  for each of those haplosomes will be truly unique.  In a multi-chromosome model, however, an individual has a first haplosome for each chromosome, and perhaps (depending on the chromosome types) a second haplosome for each chromosome.  In that case, the value of 
+\f3\fs18 haplosomePedigreeID
+\f4\fs20  is unique in the sense that it is different for each individual, but it is 
+\f1\i not
+\f4\i0  unique in the sense that it will be shared by other haplosomes within the same individual \'96 shared by all the first haplosomes, or shared by all the second haplosomes.  This \'93semi-uniqueness\'94 is intentional; it allows 
+\f3\fs18 haplosomePedigreeID
+\f4\fs20  to be used as a \'93key\'94 that associates the haplosomes of an individual across disparate datasets, such as across the different tree sequences for each chromosome that are produced by tree-sequence recording in a multi-chromosome model.  See sections 1.5.1 and 8.3 for further discussion of multi-chromosome models.\
+If pedigree tracking is not enabled, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -1750,7 +1764,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1861,7 +1874,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -2504,8 +2516,9 @@ The
 \f4\fs20  subfield (or a generation of origin 
 \f3\fs18 GO
 \f4\fs20  field, which was the SLiM convention before SLiM 4), the current tick will be used.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs18 REF
+\f3\fs18 \cf2 REF
 \f4\fs20  and 
 \f3\fs18 ALT
 \f4\fs20  must always be comprised of simple nucleotides (
