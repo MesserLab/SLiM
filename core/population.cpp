@@ -5991,7 +5991,7 @@ void Population::AssessMutationRuns(void)
 				}
 			}
 			
-			std::cout << "   ========== Chromosome index " << (int)(chromosome->Index()) << ", id " << chromosome->ID() << ", symbol " << chromosome->Symbol() << " (length " << (chromosome->last_position_ + 1) << ")" << std::endl;
+			std::cout << "   ========== Chromosome index " << (unsigned int)(chromosome->Index()) << ", id " << chromosome->ID() << ", symbol " << chromosome->Symbol() << " (length " << (chromosome->last_position_ + 1) << ")" << std::endl;
 			std::cout << "   Mutation count in chromosome: " << registry_count_in_chromosome << std::endl;
 			std::cout << "   Haplosome count: " << total_haplosome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
 			

@@ -558,6 +558,7 @@ public:
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict, slim_chromosome_index_t p_chromosome_index);
+	void _MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int original_index);
 	void ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
 	void _CreateDirectoryForMultichromArchive(std::string resolved_user_path);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);

@@ -1241,7 +1241,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		slim_chromosome_index_t chromosome_index = (slim_chromosome_index_t)raw_chromosome_index;
 		
 		if (chromosome_index != chromosome->Index())
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome index " << chromosome_index << " does not match expected index " << chromosome->Index() << "." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): chromosome index " << chromosome_index << " does not match expected index " << (unsigned int)(chromosome->Index()) << "." << EidosTerminate();
 		
 		int first_haplosome_index = FirstHaplosomeIndices()[chromosome_index];
 		//int last_haplosome_index = LastHaplosomeIndices()[chromosome_index];
@@ -6754,6 +6754,68 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 #endif
 }
 
+void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int original_chromosome_index)
+{
+	// This shifts is_null metadata bits in the node table from an original index (the chromosome index
+	// being loaded from a file) to a final index of 0 (destined for a single-chromosome model).  This
+	// is done by allocating a whole new metadata buffer, because in the general case the size of the
+	// metadata records might actually be changing -- if the file has more than one byte of is_null
+	// information per record.  So we will make new metadata and replace the old.  The new metadata
+	// buffer uses one byte of is_null data, always, since we're loading into a single-chromosome model.
+	// Note that this means the metadata schema might change too!
+	tsk_table_collection_t &tables = p_treeseq.tables_;
+	tsk_node_table_t &node_table = tables.nodes;
+	HaplosomeMetadataRec *new_metadata_buffer = (HaplosomeMetadataRec *)calloc(node_table.num_rows, sizeof(HaplosomeMetadataRec));
+	
+	// these are for accessing the is_null bit in the original metadata
+	int byte_index = original_chromosome_index / 8;
+	int bit_shift = original_chromosome_index % 8;
+	
+	for (tsk_size_t row = 0; row < node_table.num_rows; ++row)
+	{
+		size_t node_metadata_length = node_table.metadata_offset[row + 1] - node_table.metadata_offset[row];
+		
+		// FIXME MULTICHROM: would be good to check that the length is sufficient for the bits of original_index
+		if (node_metadata_length < sizeof(HaplosomeMetadataRec))
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+		
+		HaplosomeMetadataRec *node_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[row]);
+		HaplosomeMetadataRec *new_metadata = new_metadata_buffer + row;
+		
+		new_metadata->haplosome_id_ = node_metadata->haplosome_id_;
+		
+		if ((node_metadata->is_null_[byte_index] >> bit_shift) & 0x01)
+			new_metadata->is_null_[0] = 0x01;
+	}
+	
+	// Now change the offsets to the new offsets; we do not allocate a new buffer,
+	// because we just need the same number of rows that we already have.
+	for (tsk_size_t row = 0; row <= node_table.num_rows; ++row)
+		node_table.metadata_offset[row] = row * sizeof(HaplosomeMetadataRec);
+	
+	tsk_safe_free(node_table.metadata);
+	
+	node_table.metadata = (char *)new_metadata_buffer;
+	node_table.metadata_length = node_table.num_rows * sizeof(HaplosomeMetadataRec);
+	node_table.max_metadata_length = node_table.metadata_length;
+	
+	// need to fix the schema, because the number of bytes may have changed
+	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
+	size_t pos = tsk_node_metadata_schema.find("%d");
+	std::string count_string = std::to_string(haplosome_metadata_isnull_bytes_);
+	
+	if (pos == std::string::npos)
+		EIDOS_TERMINATION << "ERROR (Species::_MungeIsNullNodeMetadataToIndex0): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
+	
+	tsk_node_metadata_schema.replace(pos, 2, count_string);		// replace %d in the format string with the byte count
+	
+	int ret = tsk_node_table_set_metadata_schema(&node_table,
+												 tsk_node_metadata_schema.c_str(),
+												 (tsk_size_t)tsk_node_metadata_schema.length());
+	if (ret != 0)
+		handle_error("tsk_node_table_set_metadata_schema", ret);
+}
+
 void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version)
 {
 	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); this
@@ -6962,10 +7024,6 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	}
 	
 	// check the "this_chromosome" metadata information against the chromosome that p_treeseq says we're reading
-	// in the model; note that, as a special nod to assembling a set of externally-generated (i.e., msprime)
-	// simulations into a multi-chromosome set, we allow the index to be 0 in "this_chromosome", if and only if
-	// the "chromosomes" key is not present; the file then represents a single chromosome that doesn't know that
-	// it's part of a larger set.
 	slim_chromosome_index_t chromosome_index = p_treeseq.chromosome_index_;
 	Chromosome *chromosome = Chromosomes()[chromosome_index];
 	
@@ -6975,11 +7033,42 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome type provided in the 'this_chromosome' key (" << this_chromosome_type << ") does not match the type (" << chromosome->TypeString() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	if (this_chromosome_symbol != chromosome->Symbol())
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome symbol provided in the 'this_chromosome' key (" << this_chromosome_symbol << ") does not match the symbol (" << chromosome->Symbol() << ") of the corresponding chromosome in the model." << EidosTerminate();
-	if ((this_chromosome_index != chromosome->Index()) && ((this_chromosome_index != 0) || chomosomes_key_present))
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome index provided in the 'this_chromosome' key (" << this_chromosome_index << ") does not match the index (" << chromosome->Index() << ") of the corresponding chromosome in the model." << EidosTerminate();
 	
-	// FIXME MULTICHROM: in the case where this_chromosome_index is 0 and doesn't match the true chromosome index, we need to track that fact somehow.
-	// In that case, we will expect the is_null_bits for the nodes table metadata to be in bits 0 and 1, because the file is saved as a single-chromosome file.
+	// Check the chromosome index; when loading a multi-chromosome set, we normally require indices to match
+	// - one exception is that you can load a chromosome from any index into a single-chromosome model
+	// - another exception is that, as a special nod to assembling a set of externally-generated (i.e., msprime)
+	//   simulations into a multi-chromosome set, we allow the index to be 0 in "this_chromosome", if and only if
+	//   the "chromosomes" key is not present; the file then represents a single chromosome that doesn't know
+	//   that it's part of a larger set.
+	// In both of these exceptional cases, we need to make sure that we look up bits in the is_null flags of node
+	// metadata using the chromosome index stated in the file being loaded, NOT the chromosome index that the
+	// data is being loaded into!  In the first case, we can simply munge the node table metadata right now, to
+	// have the is_null bits in the position for index 0.  In the second case, it is much trickier because we
+	// have a shared node table, and we need to fix the is_null bits in the shared table as well.
+	if (this_chromosome_index != chromosome->Index())
+	{
+		if (Chromosomes().size() == 1)
+		{
+			// We are loading into a single-chromosome model.  We need to munge the incoming is_null 
+			// metadata to move is_null flags from the file's index down to index 0.
+			_MungeIsNullNodeMetadataToIndex0(p_treeseq, this_chromosome_index);
+		}
+		else if ((this_chromosome_index == 0) && !chomosomes_key_present)
+		{
+			// We are loading a file that has is_null information at index 0, into a different index
+			// in a multi-chromosome model.  This is allowed when chomosomes_key_present is false,
+			// because this is the pattern we get from loading an msprime simulation in without
+			// setting up all the multi-chrom metadata completely.  Doing this requires that we do more
+			// complex munging, which is not yet supported.  In particular, we will need to modify the
+			// shared node table, not just the node table being loaded; and we will need to in some way
+			// manage the equality check between the shared node table and our node table, which would
+			// fail since they will not match (due to the presence of other chromosomes).
+			// FIXME MULTICHROM: I need a test case before I can do this; waiting for one from Peter.
+			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): (internal error) loading into a different chromosome index is not yet supported." << EidosTerminate();
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): the chromosome index provided in the 'this_chromosome' key (" << this_chromosome_index << ") does not match the index (" << (unsigned int)(chromosome->Index()) << ") of the corresponding chromosome in the model." << EidosTerminate();
+	}
 }
 
 void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_path)
