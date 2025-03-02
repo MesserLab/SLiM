@@ -172,11 +172,12 @@ typedef enum SLiMLaunchAction
 				case 13:chapterName = @"Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
 				case 14:chapterName = @"Advanced WF models";												break;
 				case 15:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
-				case 16:chapterName = @"Continuous-space models, interactions, and spatial maps";			break;
-				case 17:chapterName = @"Tree-sequence recording: tracking population history";				break;
-				case 18:chapterName = @"Modeling explicit nucleotides";										break;
-				case 19:chapterName = @"Multispecies modeling";												break;
-				case 22:chapterName = @"Parallel SLiM: Running SLiM multithreaded";							break;
+				case 16:chapterName = @"Advanced nonWF techniques for managing reproduction";				break;
+				case 17:chapterName = @"Continuous-space models, interactions, and spatial maps";			break;
+				case 18:chapterName = @"Tree-sequence recording: tracking population history";				break;
+				case 19:chapterName = @"Modeling explicit nucleotides";										break;
+				case 20:chapterName = @"Multispecies modeling";												break;
+				case 23:chapterName = @"Parallel SLiM: Running SLiM multithreaded";							break;
 				default: break;
 			}
 			

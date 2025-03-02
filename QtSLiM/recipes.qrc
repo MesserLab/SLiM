@@ -141,74 +141,74 @@
         <file>recipes/Recipe 15.21 - Modeling haplodiploidy with addRecombinant().txt</file>
         <file>recipes/Recipe 15.22 - Complex multi-chromosome inheritance with addMultiRecombinant().txt</file>
         <file>recipes/Recipe 15.23 - Modeling pseudo-autosomal regions (PARs) with addMultiRecombinant().txt</file>
-        <file>recipes/Recipe 16.1 - A simple 2D continuous-space model.txt</file>
-        <file>recipes/Recipe 16.2 - Spatial competition.txt</file>
-        <file>recipes/Recipe 16.3 - Boundaries and boundary conditions I (stopping boundaries).txt</file>
-        <file>recipes/Recipe 16.3 - Boundaries and boundary conditions II (reflecting boundaries).txt</file>
-        <file>recipes/Recipe 16.3 - Boundaries and boundary conditions III (absorbing boundaries).txt</file>
-        <file>recipes/Recipe 16.3 - Boundaries and boundary conditions IV (reprising boundaries).txt</file>
-        <file>recipes/Recipe 16.3 - Boundaries and boundary conditions V (dispersal kernels).txt</file>
-        <file>recipes/Recipe 16.4 - Mate choice with a spatial kernel.txt</file>
-        <file>recipes/Recipe 16.5 - Mate choice with a nearest-neighbor search.txt</file>
-        <file>recipes/Recipe 16.6 - Divergence due to phenotypic competition with an interaction() callback.txt</file>
-        <file>recipes/Recipe 16.7 - Modeling phenotype as a spatial dimension.txt</file>
-        <file>recipes/Recipe 16.8 - Sympatric speciation facilitated by assortative mating.txt</file>
-        <file>recipes/Recipe 16.9 - Speciation due to spatial variation in selection.txt</file>
-        <file>recipes/Recipe 16.10 - A simple biogeographic landscape model.txt</file>
-        <file>recipes/Recipe 16.11 - Local adaptation on a heterogeneous landscape map.txt</file>
-        <file>recipes/Recipe 16.12 - Periodic spatial boundaries.txt</file>
-        <file>recipes/Recipe 16.13 - Density-dependent fecundity with summarizeIndividuals().txt</file>
-        <file>recipes/Recipe 16.14 - Directed dispersal with the SpatialMap class.txt</file>
-        <file>recipes/Recipe 16.15 - Spatial competition and spatial mate choice in a nonWF model.txt</file>
-        <file>recipes/Recipe 16.16 - A spatial model with carrying-capacity density.txt</file>
-        <file>recipes/Recipe 16.17 - A spatial epidemiological S-I-R model.txt</file>
-        <file>recipes/Recipe 16.18 - A sexual, age-structured spatial model.txt</file>
-        <file>recipes/Recipe 17.1 - A minimal tree-seq model.txt</file>
-        <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
-        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
-        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
-        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) I.txt</file>
-        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) II.py</file>
-        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
-        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
-        <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model I.txt</file>
-        <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model II.txt</file>
-        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit I.txt</file>
-        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit II.py</file>
-        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
-        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
-        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
-        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history I.py</file>
-        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history II.txt</file>
-        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation I.txt</file>
-        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation II.py</file>
-        <file>recipes/Recipe 17.11 - Optimizing tree-sequence simplification.txt</file>
-        <file>recipes/Recipe 18.1 - A simple neutral nucleotide-based model.txt</file>
-        <file>recipes/Recipe 18.2 - Reading an ancestral nucleotide sequence from a FASTA file.txt</file>
-        <file>recipes/Recipe 18.3 - Sequence output from nucleotide-based models.txt</file>
-        <file>recipes/Recipe 18.4 - Back-mutations, independent mutational lineages, and VCF output.txt</file>
-        <file>recipes/Recipe 18.5 - Modeling elevated CpG mutation rates and equilibrium nucleotide frequencies.txt</file>
-        <file>recipes/Recipe 18.6 - A nucleotide-based model with introduced non-nucleotide-based mutations.txt</file>
-        <file>recipes/Recipe 18.7 - Using standard SLiM fitness effects with nucleotides (modeling synonymous sites).txt</file>
-        <file>recipes/Recipe 18.8 - Defining sequence-based fitness effects at the nucleotide level.txt</file>
-        <file>recipes/Recipe 18.9 - Defining sequence-based fitness effects at the amino acid level.txt</file>
-        <file>recipes/Recipe 18.10 - Varying the mutation rate along the chromosome in a nucleotide-based model.txt</file>
-        <file>recipes/Recipe 18.11 - Modeling GC-biased gene conversion (gBGC).txt</file>
-        <file>recipes/Recipe 18.12 - Reading VCF files to create nucleotide-based SNPs.txt</file>
-        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models I.txt</file>
-        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models II.py</file>
-        <file>recipes/Recipe 18.13 - Tree-sequence recording and nucleotide-based models III.py</file>
-        <file>recipes/Recipe 18.14 - Modeling identity by state (IBS) (uniquing mutations with a mutation() callback).txt</file>
-        <file>recipes/Recipe 18.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
-        <file>recipes/Recipe 19.1 - A simple multispecies model.txt</file>
-        <file>recipes/Recipe 19.2 - A two-species model.txt</file>
-        <file>recipes/Recipe 19.3 - A deterministic host-parasitoid model.txt</file>
-        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model I.txt</file>
-        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model II.txt</file>
-        <file>recipes/Recipe 19.5 - A continuous-space host-parasitoid model.txt</file>
-        <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
-        <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
-        <file>recipes/Recipe 19.8 - Within-host reproduction in a host-pathogen model.txt</file>
+        <file>recipes/Recipe 17.1 - A simple 2D continuous-space model.txt</file>
+        <file>recipes/Recipe 17.2 - Spatial competition.txt</file>
+        <file>recipes/Recipe 17.3 - Boundaries and boundary conditions I (stopping boundaries).txt</file>
+        <file>recipes/Recipe 17.3 - Boundaries and boundary conditions II (reflecting boundaries).txt</file>
+        <file>recipes/Recipe 17.3 - Boundaries and boundary conditions III (absorbing boundaries).txt</file>
+        <file>recipes/Recipe 17.3 - Boundaries and boundary conditions IV (reprising boundaries).txt</file>
+        <file>recipes/Recipe 17.3 - Boundaries and boundary conditions V (dispersal kernels).txt</file>
+        <file>recipes/Recipe 17.4 - Mate choice with a spatial kernel.txt</file>
+        <file>recipes/Recipe 17.5 - Mate choice with a nearest-neighbor search.txt</file>
+        <file>recipes/Recipe 17.6 - Divergence due to phenotypic competition with an interaction() callback.txt</file>
+        <file>recipes/Recipe 17.7 - Modeling phenotype as a spatial dimension.txt</file>
+        <file>recipes/Recipe 17.8 - Sympatric speciation facilitated by assortative mating.txt</file>
+        <file>recipes/Recipe 17.9 - Speciation due to spatial variation in selection.txt</file>
+        <file>recipes/Recipe 17.10 - A simple biogeographic landscape model.txt</file>
+        <file>recipes/Recipe 17.11 - Local adaptation on a heterogeneous landscape map.txt</file>
+        <file>recipes/Recipe 17.12 - Periodic spatial boundaries.txt</file>
+        <file>recipes/Recipe 17.13 - Density-dependent fecundity with summarizeIndividuals().txt</file>
+        <file>recipes/Recipe 17.14 - Directed dispersal with the SpatialMap class.txt</file>
+        <file>recipes/Recipe 17.15 - Spatial competition and spatial mate choice in a nonWF model.txt</file>
+        <file>recipes/Recipe 17.16 - A spatial model with carrying-capacity density.txt</file>
+        <file>recipes/Recipe 17.17 - A spatial epidemiological S-I-R model.txt</file>
+        <file>recipes/Recipe 17.18 - A sexual, age-structured spatial model.txt</file>
+        <file>recipes/Recipe 18.1 - A minimal tree-seq model.txt</file>
+        <file>recipes/Recipe 18.2 - Overlaying neutral mutations.py</file>
+        <file>recipes/Recipe 18.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
+        <file>recipes/Recipe 18.3 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
+        <file>recipes/Recipe 18.4 - Detecting the dip in diversity (analyzing tree heights in Python) I.txt</file>
+        <file>recipes/Recipe 18.4 - Detecting the dip in diversity (analyzing tree heights in Python) II.py</file>
+        <file>recipes/Recipe 18.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
+        <file>recipes/Recipe 18.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
+        <file>recipes/Recipe 18.6 - Measuring the coalescence time of a model I.txt</file>
+        <file>recipes/Recipe 18.6 - Measuring the coalescence time of a model II.txt</file>
+        <file>recipes/Recipe 18.7 - Analyzing selection coefficients in Python with tskit I.txt</file>
+        <file>recipes/Recipe 18.7 - Analyzing selection coefficients in Python with tskit II.py</file>
+        <file>recipes/Recipe 18.8 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 18.8 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 18.8 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
+        <file>recipes/Recipe 18.9 - Starting a sexual nonWF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 18.9 - Starting a sexual nonWF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 18.10 - Adding a neutral burn-in after simulation with recapitation I.txt</file>
+        <file>recipes/Recipe 18.10 - Adding a neutral burn-in after simulation with recapitation II.py</file>
+        <file>recipes/Recipe 18.11 - Optimizing tree-sequence simplification.txt</file>
+        <file>recipes/Recipe 19.1 - A simple neutral nucleotide-based model.txt</file>
+        <file>recipes/Recipe 19.2 - Reading an ancestral nucleotide sequence from a FASTA file.txt</file>
+        <file>recipes/Recipe 19.3 - Sequence output from nucleotide-based models.txt</file>
+        <file>recipes/Recipe 19.4 - Back-mutations, independent mutational lineages, and VCF output.txt</file>
+        <file>recipes/Recipe 19.5 - Modeling elevated CpG mutation rates and equilibrium nucleotide frequencies.txt</file>
+        <file>recipes/Recipe 19.6 - A nucleotide-based model with introduced non-nucleotide-based mutations.txt</file>
+        <file>recipes/Recipe 19.7 - Using standard SLiM fitness effects with nucleotides (modeling synonymous sites).txt</file>
+        <file>recipes/Recipe 19.8 - Defining sequence-based fitness effects at the nucleotide level.txt</file>
+        <file>recipes/Recipe 19.9 - Defining sequence-based fitness effects at the amino acid level.txt</file>
+        <file>recipes/Recipe 19.10 - Varying the mutation rate along the chromosome in a nucleotide-based model.txt</file>
+        <file>recipes/Recipe 19.11 - Modeling GC-biased gene conversion (gBGC).txt</file>
+        <file>recipes/Recipe 19.12 - Reading VCF files to create nucleotide-based SNPs.txt</file>
+        <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models I.txt</file>
+        <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models II.py</file>
+        <file>recipes/Recipe 19.13 - Tree-sequence recording and nucleotide-based models III.py</file>
+        <file>recipes/Recipe 19.14 - Modeling identity by state (IBS) (uniquing mutations with a mutation() callback).txt</file>
+        <file>recipes/Recipe 19.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
+        <file>recipes/Recipe 20.1 - A simple multispecies model.txt</file>
+        <file>recipes/Recipe 20.2 - A two-species model.txt</file>
+        <file>recipes/Recipe 20.3 - A deterministic host-parasitoid model.txt</file>
+        <file>recipes/Recipe 20.4 - An individual-based host-parasitoid model I.txt</file>
+        <file>recipes/Recipe 20.4 - An individual-based host-parasitoid model II.txt</file>
+        <file>recipes/Recipe 20.5 - A continuous-space host-parasitoid model.txt</file>
+        <file>recipes/Recipe 20.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
+        <file>recipes/Recipe 20.7 - A coevolutionary host-parasite matching-allele model.txt</file>
+        <file>recipes/Recipe 20.8 - Within-host reproduction in a host-pathogen model.txt</file>
         <file>recipes/Recipe 8.3.6 - Output from multiple-chromosome models.txt</file>
     </qresource>
 </RCC>
