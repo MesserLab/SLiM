@@ -4500,7 +4500,7 @@ You must explicitly call
 \f3\fs18 evaluate()
 \f4\fs20  at an appropriate time in the tick cycle before the interaction is used, but after any relevant changes have been made to the population.  SLiM will invalidate any existing interactions after any portion of the tick cycle in which new individuals have been born or existing individuals have died.  In a WF model, this occurs just before 
 \f3\fs18 late()
-\f4\fs20  events execute (see the WF tick cycle diagram in chapter 23), so 
+\f4\fs20  events execute (see the WF tick cycle diagram), so 
 \f3\fs18 late()
 \f4\fs20  events are often the appropriate place to put 
 \f3\fs18 evaluate()
@@ -4512,7 +4512,7 @@ You must explicitly call
 \f3\fs18 early()
 \f4\fs20  events and then individuals die just before 
 \f3\fs18 late()
-\f4\fs20  events (see the nonWF tick cycle diagram in chapter 24), so interactions will be invalidated twice during each tick cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
+\f4\fs20  events (see the nonWF tick cycle diagram), so interactions will be invalidated twice during each tick cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
 \f3\fs18 first()
 \f4\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f3\fs18 early()
@@ -7268,7 +7268,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
 If 
 \f3\fs18 valueRange
 \f4\fs20  and 
@@ -11513,7 +11513,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes for an illustration of its use.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
