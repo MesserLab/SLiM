@@ -105,16 +105,15 @@
         <file>recipes/Recipe 14.6 - Estimating model parameters with ABC.txt</file>
         <file>recipes/Recipe 14.7 - Tracking local ancestry along the chromosome.txt</file>
         <file>recipes/Recipe 14.8 - Live plotting with R using system().txt</file>
-        <file>recipes/Recipe 14.9 - Modeling haploid organisms.txt</file>
-        <file>recipes/Recipe 14.10 - Using mutation rate variation to model varying functional density.txt</file>
-        <file>recipes/Recipe 14.11 - Modeling microsatellites.txt</file>
-        <file>recipes/Recipe 14.12 - Modeling transposable elements.txt</file>
-        <file>recipes/Recipe 14.13 - Modeling opposite ends of a chromosome I.txt</file>
-        <file>recipes/Recipe 14.13 - Modeling opposite ends of a chromosome II.txt</file>
-        <file>recipes/Recipe 14.14 - Visualizing ancestry and admixture with mutation() callbacks.txt</file>
-        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback I.txt</file>
-        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback II.txt</file>
-        <file>recipes/Recipe 14.16 - Modeling biallelic loci in script.txt</file>
+        <file>recipes/Recipe 14.9 - Using mutation rate variation to model varying functional density.txt</file>
+        <file>recipes/Recipe 14.10 - Modeling microsatellites.txt</file>
+        <file>recipes/Recipe 14.11 - Modeling transposable elements.txt</file>
+        <file>recipes/Recipe 14.12 - Modeling opposite ends of a chromosome I.txt</file>
+        <file>recipes/Recipe 14.12 - Modeling opposite ends of a chromosome II.txt</file>
+        <file>recipes/Recipe 14.13 - Visualizing ancestry and admixture with mutation() callbacks.txt</file>
+        <file>recipes/Recipe 14.14 - Modeling biallelic loci with a mutation() callback I.txt</file>
+        <file>recipes/Recipe 14.14 - Modeling biallelic loci with a mutation() callback II.txt</file>
+        <file>recipes/Recipe 14.15 - Modeling biallelic loci in script.txt</file>
         <file>recipes/Recipe 15.1 - A minimal nonWF model.txt</file>
         <file>recipes/Recipe 15.2 - Age structure (a life table model).txt</file>
         <file>recipes/Recipe 15.3 - Monogamous mating and variation in litter size.txt</file>
