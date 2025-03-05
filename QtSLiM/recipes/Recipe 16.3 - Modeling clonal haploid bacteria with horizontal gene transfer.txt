@@ -8,15 +8,17 @@ initialize() {
 	initializeMutationType("m1", 1.0, "f", 0.0);   // neutral (unused)
 	initializeMutationType("m2", 1.0, "f", 0.1);   // beneficial
 	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, L, type="H");
 	initializeGenomicElement(g1, 0, L-1);
-	initializeMutationRate(0);                     // no mutations
+	initializeMutationRate(0);                     // no mutation
 	initializeRecombinationRate(0);                // no recombination
 }
 reproduction() {
 	if (runif(1) < H)
 	{
 		// horizontal gene transfer from a randomly chosen individual
-		HGTsource = p1.sampleIndividuals(1, exclude=individual).haploidGenome1;
+		HGTsource = p1.sampleIndividuals(1, exclude=individual).haplosomes;
 		
 		// draw two distinct locations; redraw if we get a duplicate
 		do breaks = rdunif(2, max=L-1);
@@ -26,22 +28,21 @@ reproduction() {
 		if (breaks[0] > breaks[1])
 			breaks = c(0, breaks[1], breaks[0]);
 		
-		subpop.addRecombinant(individual.haploidGenome1, HGTsource, breaks, NULL, NULL, NULL, randomizeStrands=F);
+		subpop.addRecombinant(individual.haplosomes, HGTsource, breaks, NULL, NULL, NULL, randomizeStrands=F);
 	}
 	else
 	{
 		// no horizontal gene transfer; clonal replication
-		subpop.addRecombinant(individual.haploidGenome1, NULL, NULL, NULL, NULL, NULL);
+		subpop.addCloned(individual);
 	}
 }
 1 early() {
 	// start from two bacteria with different beneficial mutations
-	sim.addSubpop("p1", 2, haploid=T);
+	sim.addSubpop("p1", 2);
 	
-	// add beneficial mutations to each bacterium, but at different loci
-	g = p1.individuals.haploidGenome1;
-	g[0].addNewDrawnMutation(m2, asInteger(L * 0.25));
-	g[1].addNewDrawnMutation(m2, asInteger(L * 0.75));
+	h = p1.individuals.haplosomes;
+	h[0].addNewDrawnMutation(m2, asInteger(L * 0.25));
+	h[1].addNewDrawnMutation(m2, asInteger(L * 0.75));
 }
 early() {
 	// density-dependent population regulation

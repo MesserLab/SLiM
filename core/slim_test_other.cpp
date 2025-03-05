@@ -1177,7 +1177,7 @@ void _RunContinuousSpaceTests(void)
 		 initializeSLiMOptions(dimensionality="xy", periodicity="xy");
 		 
 		 // sex enabled/disabled
-		 initializeSex("A");
+		 initializeSex();
 	 }
 	 1 early() {
 		 sim.addSubpop("p1", 500);
