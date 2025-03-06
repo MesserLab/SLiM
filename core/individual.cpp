@@ -260,7 +260,7 @@ static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_ped
 
 double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-								IndividualSex A_sex, IndividualSex B_sex, ChromosomeType modeledChromosomeType)
+								IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type)
 {
 	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
 	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
@@ -273,10 +273,8 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
 	// seems appropriate still.
 	
-	// FIXME MULTICHROM needs to be extended to other chromosome types
-	
 #if DEBUG
-	if ((modeledChromosomeType != ChromosomeType::kA_DiploidAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
+	if ((p_chromosome_type != ChromosomeType::kA_DiploidAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
 	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
@@ -287,56 +285,159 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
 #endif
 	
-	if (modeledChromosomeType == ChromosomeType::kX_XSexChromosome)
+	switch (p_chromosome_type)
 	{
-		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
-		A_G4 = A_G3;
-		
-		if (A_sex == IndividualSex::kMale)
+		case ChromosomeType::kA_DiploidAutosome:
+		case ChromosomeType::kH_HaploidAutosome:
 		{
-			// If A is male, its second parent (male) gave it a Y, not an X
+			// No intervention needed (we assume that inheritance was normal, without null haplosomes)
+			// For "H", recombination is possible if there are two parents, so this is the same as "A"
+			break;
+		}
+		case ChromosomeType::kHNull_HaploidAutosomeWithNull:
+		{
+			// For "H-", the second parent should always match the first (by cloning), but we make sure of it
+			B_P1 = A_P1;
+			B_P2 = A_P2;
+			B_G1 = A_G1;
+			B_G2 = A_G2;
+			B_G3 = A_G3;
+			B_G4 = A_G4;
+			break;
+		}
+		case ChromosomeType::kX_XSexChromosome:
+		{
+			// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
+			A_G4 = A_G3;
+			
+			if (A_sex == IndividualSex::kMale)
+			{
+				// If A is male, its second parent (male) gave it a Y, not an X
+				A_P2 = A_P1;
+				A_G3 = A_G1;
+				A_G4 = A_G2;
+			}
+			
+			// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
+			B_G4 = B_G3;
+			
+			if (B_sex == IndividualSex::kMale)
+			{
+				// If B is male, its second parent (male) gave it a Y, not an X
+				B_P2 = B_P1;
+				B_G3 = B_G1;
+				B_G4 = B_G2;
+			}
+			
+			break;
+		}
+		case ChromosomeType::kY_YSexChromosome:
+		case ChromosomeType::kNullY_YSexChromosomeWithNull:
+		case ChromosomeType::kML_HaploidMaleLine:
+		{
+			// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
+			if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
+			{
+				if (A == B)
+					return 1.0;
+				return 0.0;
+			}
+			
+			// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
+			A_G3 = A_G4;
+			A_P1 = A_P2;
+			A_G1 = A_G3;
+			A_G2 = A_G4;
+			
+			B_G3 = B_G4;
+			B_P1 = B_P2;
+			B_G1 = B_G3;
+			B_G2 = B_G4;
+			break;
+		}
+		case ChromosomeType::kHM_HaploidMaleInherited:
+		{
+			// inherited from the male parent, so only the male (second) parents count
+			A_G3 = A_G4;
+			A_P1 = A_P2;
+			A_G1 = A_G3;
+			A_G2 = A_G4;
+			
+			B_G3 = B_G4;
+			B_P1 = B_P2;
+			B_G1 = B_G3;
+			B_G2 = B_G4;
+			break;
+		}
+		case ChromosomeType::kZ_ZSexChromosome:
+		{
+			// Whichever sex A is, its first parent (A_P1) is female and so its female parent (A_G1) gave A_P1 a W, not a Z
+			A_G1 = A_G2;
+			
+			if (A_sex == IndividualSex::kFemale)
+			{
+				// If A is female, its first parent (female) gave it a W, not a Z
+				A_P1 = A_P2;
+				A_G1 = A_G3;
+				A_G2 = A_G4;
+			}
+			
+			// Whichever sex B is, its first parent (B_P1) is female and so its female parent (B_G1) gave B_P1 a W, not a Z
+			B_G1 = B_G2;
+			
+			if (B_sex == IndividualSex::kFemale)
+			{
+				// If B is female, its first parent (female) gave it a W, not a Z
+				B_P1 = B_P2;
+				B_G1 = B_G3;
+				B_G2 = B_G4;
+			}
+			
+			break;
+		}
+		case ChromosomeType::kW_WSexChromosome:
+		case ChromosomeType::kFL_HaploidFemaleLine:
+		{
+			// When modeling the W, males have no relatedness to anybody else except themselves, defined as 1.0 for consistency
+			if ((A_sex == IndividualSex::kMale) || (B_sex == IndividualSex::kMale))
+			{
+				if (A == B)
+					return 1.0;
+				return 0.0;
+			}
+			
+			// The male parents (A_P2 and B_P2) and their parents, and male grandparents (A_G2 and B_G2), do not contribute
+			A_G2 = A_G1;
 			A_P2 = A_P1;
 			A_G3 = A_G1;
 			A_G4 = A_G2;
-		}
-		
-		// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
-		B_G4 = B_G3;
-		
-		if (B_sex == IndividualSex::kMale)
-		{
-			// If B is male, its second parent (male) gave it a Y, not an X
+			
+			B_G2 = B_G1;
 			B_P2 = B_P1;
 			B_G3 = B_G1;
 			B_G4 = B_G2;
+			break;
 		}
-	}
-	else if (modeledChromosomeType == ChromosomeType::kNullY_YSexChromosomeWithNull)
-	{
-		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
-		if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
+		case ChromosomeType::kHF_HaploidFemaleInherited:
 		{
-			if (A == B)
-				return 1.0;
-			return 0.0;
+			// inherited from the female parent, so only the female (first) parents count
+			A_G2 = A_G1;
+			A_P2 = A_P1;
+			A_G3 = A_G1;
+			A_G4 = A_G2;
+			
+			B_G2 = B_G1;
+			B_P2 = B_P1;
+			B_G3 = B_G1;
+			B_G4 = B_G2;
+			break;
 		}
-		
-		// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
-		A_G3 = A_G4;
-		A_P1 = A_P2;
-		A_G1 = A_G3;
-		A_G2 = A_G4;
-		
-		B_G3 = B_G4;
-		B_P1 = B_P2;
-		B_G1 = B_G3;
-		B_G2 = B_G4;
 	}
 	
 	return ::_Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
 }
 
-double Individual::RelatednessToIndividual(Individual &p_ind)
+double Individual::RelatednessToIndividual(Individual &p_ind, ChromosomeType p_chromosome_type)
 {
 	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
 	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given cycle, information should either be
@@ -378,12 +479,7 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
 	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
 	
-	// FIXME MULTICHROM firstChromosomeType is a temporary hack
-	ChromosomeType firstChromosomeType = subpopulation_->species_.Chromosomes()[0]->Type();
-	
-	ChromosomeType chrtype = firstChromosomeType;
-	
-	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
+	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, p_chromosome_type);
 }
 
 int Individual::_SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2)
@@ -2560,22 +2656,36 @@ EidosValue_SP Individual::ExecuteMethod_haplosomesForChromosomes(EidosGlobalStri
 	return EidosValue_SP(vec);
 }
 	
-//	*********************	- (float)relatedness(o<Individual> individuals)
+//	*********************	- (float)relatedness(object<Individual> individuals, [Niso<Chromosome>$ chromosome = NULL])
 //
 EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individuals_value = p_arguments[0].get();
+	EidosValue *chromosome_value = p_arguments[1].get();
 	int individuals_count = individuals_value->Count();
 	
+	if (individuals_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
 	// SPECIES CONSISTENCY CHECK
-	if (individuals_count > 0)
+	Species *species = Community::SpeciesForIndividuals(individuals_value);
+	
+	if (species != &subpopulation_->species_)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_relatedness): relatedness() requires that all individuals belong to the same species as the target individual." << EidosTerminate();
+	
+	Chromosome *chromosome = species->GetChromosomeFromEidosValue(chromosome_value);
+	
+	if (!chromosome)
 	{
-		Species *species = Community::SpeciesForIndividuals(individuals_value);
-		
-		if (species != &subpopulation_->species_)
-			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_relatedness): relatedness() requires that all individuals belong to the same species as the target individual." << EidosTerminate();
+		if (species->Chromosomes().size() == 1)
+			chromosome = species->Chromosomes()[0];
+		else if (species->Chromosomes().size() > 1)
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_relatedness): relatedness() requires the chromosome to be specified in multi-chromosome models." << EidosTerminate();
 	}
+	
+	// in a no-genetics model, the chromosome parameter must be NULL, so chromosome will be nullptr, and we assume type "A"
+	ChromosomeType chromosome_type = (chromosome ? chromosome->Type() : ChromosomeType::kA_DiploidAutosome);
 	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
 	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(individuals_count);
@@ -2590,7 +2700,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 		for (int value_index = 0; value_index < individuals_count; ++value_index)
 		{
 			Individual *ind = individuals_data[value_index];
-			double relatedness = RelatednessToIndividual(*ind);
+			double relatedness = RelatednessToIndividual(*ind, chromosome_type);
 			
 			float_result->set_float_no_check(relatedness, value_index);
 		}
@@ -3082,7 +3192,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));

@@ -139,6 +139,7 @@ development head (in the master branch):
 		fix a bug in the neutral-sim tracking logic in readFromVCF() that I don't think anybody ever actually hit (reading a non-neutral mutation for a neutral mutation type)
 		rename the Haplosome method readFromVCF() to readHaplosomesFromVCF(), and readFromMS() to readHaplosomesFromMS(), for naming consistency; add SLiMgui autofix; revise recipe 18.12 for this rename
 		split chapter 15 (nonWF models) into two chapters, involving a great deal of renumbering, reorganizing, and rewriting
+		add a [Niso<Chromosome]$ chromosome] parameter to relatedness(), to allow relatedness to be assessed for any model chromosome; extended to all chromosome types
 
 
 version 4.3 (Eidos version 3.3):

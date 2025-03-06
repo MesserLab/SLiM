@@ -3881,12 +3881,7 @@ The
 \f4\fs20  method\'92s documentation provides many important details on how SLiM treats various VCF fields during input; those details will not be repeated here, for brevity.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96
-\f5 \'a0
-\f3 (float)relatedness(object<Individual>
-\f5 \'a0
-\f3 individuals)
-\f5 \
+\f3\fs18 \cf2 \'96\'a0(float)relatedness(object<Individual>\'a0individuals, [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
@@ -3905,7 +3900,19 @@ The
 \f3\fs18 0.0
 \f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.\
+\f4\fs20 , this method will use the pedigree information described in section 26.7.1 to construct a relatedness estimate.  The relatedness is calculated based upon the type of the chromosome specified by 
+\f3\fs18 chromosome
+\f4\fs20  (as an 
+\f3\fs18 integer
+\f4\fs20  id, a 
+\f3\fs18 string
+\f4\fs20  symbol, or a 
+\f3\fs18 Chromosome
+\f4\fs20  object); if 
+\f3\fs18 chromosome
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , it is assumed to be the single chromosome present in the model, or if more than one chromosome is present, an error results and the chromosome must be explicitly given.\
 More specifically, this method uses all available pedigree information from the grandparental and parental pedigree records of 
 \f3\fs18 A
 \f4\fs20  and 
@@ -3914,7 +3921,7 @@ More specifically, this method uses all available pedigree information from the 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20 .  Siblings have a relatedness of 
+\f4\fs20 .  When considering a diploid autosome, siblings have a relatedness of 
 \f3\fs18 0.5
 \f4\fs20 , as do parents to their children and vice versa; cousins have a relatedness of 
 \f3\fs18 0.125
