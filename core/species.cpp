@@ -9810,9 +9810,9 @@ static int table_memcmp(const void *__s1, const void *__s2, size_t __n)
 	return memcmp(__s1, __s2, __n);
 }
 
-// FIXME MULTICHROM: Note that tskit has tsk_node_table_equals(), tsk_individual_table_equals(), and
-// tsk_population_table_equals().  However, those functions don't provide a *reason* for the difference,
-// which I think it important to report back to the user, so I'm keeping my versions for the time being.
+// Note that tskit has tsk_node_table_equals(), tsk_individual_table_equals(), and tsk_population_table_equals().
+// However, those functions don't provide a *reason* for the difference, which I think it important to report
+// back to the user, so I'm keeping my versions.  The tskit folks don't intend to change this.
 // See https://github.com/tskit-dev/tskit/issues/3089#issuecomment-2687232143
 static void _CompareNodeTables(tsk_node_table_t &nodes0, tsk_node_table_t &nodes1);
 static void _CompareIndividualTables(tsk_individual_table_t &individuals0, tsk_individual_table_t &individuals1);
