@@ -4735,8 +4735,18 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or failed (
 \f1\fs18 F
-\f3\fs20 ).
-\f2 \
+\f3\fs20 ).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This function might also be able to delete a directory at 
+\f1\fs18 filePath
+\f3\fs20 , but only if it is empty (apart from the 
+\f1\fs18 .
+\f3\fs20  and 
+\f1\fs18 ..
+\f3\fs20  directory entries that exist on Un*x filesystems).  If other files (including invisible files) exist in the directory, 
+\f1\fs18 deleteFile()
+\f3\fs20  will probably fail as a safety measure, in which case the contained files must be deleted individually first.  This is vague because the actual policy regarding deletion of directories will depend upon the operating system, since Eidos achieves the deletion by calling an operating-system function.
+\f2 \cf0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
