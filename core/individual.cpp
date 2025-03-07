@@ -4079,14 +4079,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 										if (haplosome1->mutation_count())
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 										haplosome1->MakeNull();
-										haplosome1->individual_->subpopulation_->has_null_haplosomes_ = true;
+										haplosome1->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
 									}
 									if (haplosome2)
 									{
 										if (haplosome2->mutation_count())
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 										haplosome2->MakeNull();
-										haplosome2->individual_->subpopulation_->has_null_haplosomes_ = true;
+										haplosome2->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
 									}
 								}
 								else
@@ -4107,7 +4107,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 									if (haplosome1->mutation_count())
 										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
 									haplosome1->MakeNull();
-									haplosome1->individual_->subpopulation_->has_null_haplosomes_ = true;
+									haplosome1->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
 								}
 								else
 									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
@@ -4149,7 +4149,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 										if (implied_null_haplosome->mutation_count())
 											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call implies that an individual's second haplosome for a diploid chromosome is null, but that haplosome already contains mutations, and thus cannot be made into a null haplosome; use a diploid call, if neither haplosome is intended to be a null haplosome." << EidosTerminate();
 										implied_null_haplosome->MakeNull();
-										implied_null_haplosome->individual_->subpopulation_->has_null_haplosomes_ = true;
+										implied_null_haplosome->OwningIndividual()->subpopulation_->has_null_haplosomes_ = true;
 									}
 									else
 										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has two non-null haplosomes for the focal chromosome (which is not of type 'A'); that is not legal." << EidosTerminate();
