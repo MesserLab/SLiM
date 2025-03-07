@@ -1101,6 +1101,7 @@ void QtSLiMChromosomeWidget::drawOverview(Species *displaySpecies, QPainter &pai
 void QtSLiMChromosomeWidget::drawFullGenome(Species *displaySpecies, QPainter &painter)
 {
     // this is similar to drawOverview(), but shows the detail view and can use GL
+    // we end up here in no-genetics models, because there is no selected chromosome (no chromosomes at all)
     QRect contentRect = getContentRect();
     bool inDarkMode = QtSLiMInDarkMode();
     const std::vector<Chromosome *> &chromosomes = displaySpecies->Chromosomes();
@@ -1114,6 +1115,27 @@ void QtSLiMChromosomeWidget::drawFullGenome(Species *displaySpecies, QPainter &p
         
         painter.fillRect(interiorRect, QtSLiMColorWithWhite(inDarkMode ? 0.118 : 0.9, 1.0));
         QtSLiMFrameRect(contentRect, QtSLiMColorWithWhite(inDarkMode ? 0.067 : 0.77, 1.0), painter);
+        
+        // draw the "no genetics" label at the bottom; we now do this instead of drawTicksInContentRect()
+        static QFont *tickFont = nullptr;
+        
+        if (!tickFont)
+        {
+            tickFont = new QFont();
+#ifdef __linux__
+            tickFont->setPointSize(7);
+#else
+            tickFont->setPointSize(9);
+#endif
+        }
+        painter.setFont(*tickFont);
+        
+        QString tickLabel("no genetics");
+        int tickLabelX = static_cast<int>(floor(contentRect.left() + contentRect.width() / 2.0));
+        int tickLabelY = contentRect.bottom() + (2 + 13);
+        int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom | Qt::AlignHCenter);
+        
+        painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
         return;
     }
     
@@ -1198,17 +1220,7 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
     
     if (displayedRange.length == 0)
 	{
-		// Handle the "no genetics" case separately
-		if (!isOverview_)
-		{
-            QString tickLabel("no genetics");
-            int tickLabelX = static_cast<int>(floor(contentRect.left() + contentRect.width() / 2.0));
-            int tickLabelY = contentRect.bottom() + (2 + 13);
-            int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom | Qt::AlignHCenter);
-            
-            painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
-		}
-		
+		// The "no genetics" case is now handled in drawFullGenome()
         painter.restore();
 		return;
 	}
