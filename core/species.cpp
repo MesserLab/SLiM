@@ -6774,9 +6774,10 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 	for (tsk_size_t row = 0; row < node_table.num_rows; ++row)
 	{
 		size_t node_metadata_length = node_table.metadata_offset[row + 1] - node_table.metadata_offset[row];
+		size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
 		
-		// FIXME MULTICHROM: would be good to check that the length is sufficient for the bits of original_index
-		if (node_metadata_length < sizeof(HaplosomeMetadataRec))
+		// check that the length is sufficient for the bits of original_index
+		if (node_metadata_length < expected_min_metadata_length)
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 		
 		HaplosomeMetadataRec *node_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[row]);
@@ -8515,9 +8516,13 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		size_t node0_metadata_length = node_table.metadata_offset[node0 + 1] - node_table.metadata_offset[node0];
 		size_t node1_metadata_length = node_table.metadata_offset[node1 + 1] - node_table.metadata_offset[node1];
 		
-		// FIXME MULTICHROM: would be good to check the exact expected metadata length, based on the chromosome count
-		// That is complicated slightly by the idea that one can have an msprime-generated single-chromosome file in a multi-chrom archive
-		if ((node0_metadata_length < sizeof(HaplosomeMetadataRec)) || (node1_metadata_length < sizeof(HaplosomeMetadataRec)))
+		int byte_index = chromosome_index / 8;
+		int bit_shift = chromosome_index % 8;
+		size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
+		
+		// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+		// that it is exactly the length we expect here, just that it works for our local purposes
+		if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 		
 		HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node0]);
@@ -8582,9 +8587,6 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		}
 		
 		// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-		int byte_index = chromosome_index / 8;
-		int bit_shift = chromosome_index % 8;
-		
 		bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
 		
 		if (node0_is_null != expected_is_null_0)
@@ -8719,9 +8721,13 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
 				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
 				
-				// FIXME MULTICHROM: would be good to check the exact expected metadata length, based on the chromosome count
-				// That is complicated slightly by the idea that one can have an msprime-generated single-chromosome file in a multi-chrom archive
-				if ((node0_metadata_length < sizeof(HaplosomeMetadataRec)) || (node1_metadata_length < sizeof(HaplosomeMetadataRec)))
+				int byte_index = chromosome_index / 8;
+				int bit_shift = chromosome_index % 8;
+				size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
+				
+				// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+				// that it is exactly the length we expect here, just that it works for our local purposes
+				if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 				
 				HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
@@ -8731,9 +8737,6 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 				
 				// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-				int byte_index = chromosome_index / 8;
-				int bit_shift = chromosome_index % 8;
-				
 				bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
 				
 				if (node0_is_null != haplosome0->IsNull())
@@ -8889,9 +8892,13 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				size_t node0_metadata_length = node_table.metadata_offset[node_id_0 + 1] - node_table.metadata_offset[node_id_0];
 				size_t node1_metadata_length = node_table.metadata_offset[node_id_1 + 1] - node_table.metadata_offset[node_id_1];
 				
-				// FIXME MULTICHROM: would be good to check the exact expected metadata length, based on the chromosome count
-				// That is complicated slightly by the idea that one can have an msprime-generated single-chromosome file in a multi-chrom archive
-				if ((node0_metadata_length < sizeof(HaplosomeMetadataRec)) || (node1_metadata_length < sizeof(HaplosomeMetadataRec)))
+				int byte_index = chromosome_index / 8;
+				int bit_shift = chromosome_index % 8;
+				size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
+				
+				// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+				// that it is exactly the length we expect here, just that it works for our local purposes
+				if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): unexpected node metadata length; this file cannot be read." << EidosTerminate();
 				
 				HaplosomeMetadataRec *node0_metadata = (HaplosomeMetadataRec *)(node_table.metadata + node_table.metadata_offset[node_id_0]);
@@ -8901,9 +8908,6 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 				
 				// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-				int byte_index = chromosome_index / 8;
-				int bit_shift = chromosome_index % 8;
-				
 				bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
 				
 				if (node0_is_null != haplosome0->IsNull())
