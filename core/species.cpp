@@ -9430,9 +9430,7 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 		}
 		else
 		{
-			// this sample is not extant; no corresponding haplosome
-			// this case is also hit if a mutation is assigned to a node that has no corresponding haplosome
-			// (due to intrinsic ploidy); FIXME MULTICHROM: would be nice to detect that case and error, somehow
+			// this sample is presumably not extant; no corresponding haplosome, so record nullptr
 			indexToHaplosomeMap.emplace_back(nullptr);
 		}
 	}
@@ -9625,9 +9623,7 @@ void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim
 		}
 		else
 		{
-			// this sample is not extant; no corresponding haplosome, so record nullptr
-			// this case is also hit if a mutation is assigned to a node that has no corresponding haplosome
-			// (due to intrinsic ploidy); FIXME MULTICHROM: would be nice to detect that case and error, somehow
+			// this sample is presumably not extant; no corresponding haplosome, so record nullptr
 			indexToHaplosomeMap.emplace_back(nullptr);
 		}
 	}
@@ -9694,6 +9690,13 @@ void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim
 							mutrun->emplace_back(mut_index);
 					}
 				}
+			}
+			else
+			{
+				// This sample has no corresponding haplosome.  This is generally because the individual it
+				// belongs to it is not extant, I think.  It could maybe also be due to some kind of erroneous
+				// bookkeeping.  I'm not sure exactly what that would look like, or how we'd differentiate the
+				// error case from the ordinary case.  Punting on this until such time as it manifests in a bug.
 			}
 		}
 	}
