@@ -8532,7 +8532,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): haplosome id mismatch; this file cannot be read." << EidosTerminate();
 		
 		// check that the null-haplosome flags make sense with the chromosome type
-		bool expected_is_null_0, expected_is_null_1;
+		bool expected_is_null_0 = false, expected_is_null_1 = false;
 		
 		switch (chromosomeType)
 		{

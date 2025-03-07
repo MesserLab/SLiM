@@ -140,7 +140,7 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Haplosome *(hapbuffer_[2]);			// an internal buffer used to avoid allocation and memory nonlocality for simple models
+	Haplosome *((hapbuffer_[2]));		// an internal buffer used to avoid allocation and memory nonlocality for simple models
 	Haplosome **haplosomes_;			// OWNED haplosomes; can point to hapbuffer_ or to an external malloced block
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
