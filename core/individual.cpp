@@ -3607,6 +3607,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 		int first_haplosome_index = species->FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species->LastHaplosomeIndices()[chromosome_index];
 		int intrinsic_ploidy = (last_haplosome_index - first_haplosome_index) + 1;
+		ChromosomeType chromosome_type = chromosome->Type();
 		// sort call_lines by position, so that we can add them to empty haplosomes efficiently
 		std::sort(call_lines.begin(), call_lines.end(), [ ](const std::pair<slim_position_t, std::string> &l1, const std::pair<slim_position_t, std::string> &l2) {return l1.first < l2.first;});
 		
@@ -4060,18 +4061,37 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						// Neither call is present; this occurs with the ~ call, which in not VCF standard
 						// We check that both haplosomes are null; a non-null haplosome should be called
 						// as not having any mutation with 0, not ~.
-						
-						// FIXME MULTICHROM: We should, however, allow a ~ call for chromosome type 'A'
-						// or 'H', and transmogrify any existing non-null haplosome to null, as long as
-						// it is empty.  We do not want to allow that for other chromosome types, since
-						// it would require changing the sex.
+						//
+						// We do, however, allow a ~ call for chromosome type 'A' or 'H', and transmogrify
+						// any existing non-null haplosome to null, as long as it is empty.  We do not want
+						// to allow that for other chromosome types, since it would require changing the sex.
 						if (intrinsic_ploidy == 2)
 						{
 							Haplosome *haplosome1 = haplosomes[haplosomes_index];
 							Haplosome *haplosome2 = haplosomes[haplosomes_index + 1];
 							
 							if (haplosome1 || haplosome2)
-								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							{
+								if (chromosome_type == ChromosomeType::kA_DiploidAutosome)
+								{
+									if (haplosome1)
+									{
+										if (haplosome1->mutation_count())
+											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
+										haplosome1->MakeNull();
+										haplosome1->individual_->subpopulation_->has_null_haplosomes_ = true;
+									}
+									if (haplosome2)
+									{
+										if (haplosome2->mutation_count())
+											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
+										haplosome2->MakeNull();
+										haplosome2->individual_->subpopulation_->has_null_haplosomes_ = true;
+									}
+								}
+								else
+									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							}
 							
 							// we don't need to do anything; no mutations to add
 							haplosomes_index += 2;
@@ -4081,7 +4101,17 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 							Haplosome *haplosome1 = haplosomes[haplosomes_index];
 							
 							if (haplosome1)
-								EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							{
+								if (chromosome_type == ChromosomeType::kH_HaploidAutosome)
+								{
+									if (haplosome1->mutation_count())
+										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for a haplosome that already contains mutations, and thus cannot be made into a null haplosome; use a call of 0, not ~, if the haplosome is not intended to be a null haplosome." << EidosTerminate();
+									haplosome1->MakeNull();
+									haplosome1->individual_->subpopulation_->has_null_haplosomes_ = true;
+								}
+								else
+									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a call of '~' was used for an individual that has a non-null haplosome; that is not legal." << EidosTerminate();
+							}
 							
 							// we don't need to do anything; no mutations to add
 							haplosomes_index++;
@@ -4102,10 +4132,28 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						{
 							if (haplosomes[haplosomes_index])
 							{
-								// FIXME MULTICHROM: Here, for chromosome type "A" we ought to transmogrify the
-								// second haplosome into a null haplosome rather than throwing an error
+								// Here, for chromosome type "A" we transmogrify the second haplosome into a
+								// null haplosome as long as it is empty, rather than throwing an error.
+								// The choice to do this to the *second* haplosome is kind of arbitrary; all
+								// we know is that we've got a haploid call for a diploid chromosome.  Since
+								// there is no indication in the call syntax, we assume the second haplosome
+								// is the one intended to be null.  We could extend the syntax of VCF again
+								// here, like 1|~ versus ~|1 indicating the position of the null, but that
+								// feels like overkill at this time.  BCH 3/6/2025.
 								if (haplosomes[haplosomes_index + 1])
-									EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has two non-null haplosomes for the focal chromosome; that is not legal." << EidosTerminate();
+								{
+									if (chromosome_type == ChromosomeType::kA_DiploidAutosome)
+									{
+										Haplosome *implied_null_haplosome = haplosomes[haplosomes_index + 1];
+										
+										if (implied_null_haplosome->mutation_count())
+											EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call implies that an individual's second haplosome for a diploid chromosome is null, but that haplosome already contains mutations, and thus cannot be made into a null haplosome; use a diploid call, if neither haplosome is intended to be a null haplosome." << EidosTerminate();
+										implied_null_haplosome->MakeNull();
+										implied_null_haplosome->individual_->subpopulation_->has_null_haplosomes_ = true;
+									}
+									else
+										EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): a haploid call is present for an individual that has two non-null haplosomes for the focal chromosome (which is not of type 'A'); that is not legal." << EidosTerminate();
+								}
 								
 								// add the called mutation to the haplosome at haplosomes_index
 								_AddCallToHaplosome(genotype_call1, haplosomes[haplosomes_index], haplosomes_last_mutrun_modified[haplosomes_index], haplosomes_last_mutrun[haplosomes_index],
