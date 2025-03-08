@@ -2039,6 +2039,10 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             (selectionString == "readFromMS"))
         return offerAndExecuteAutofix(selection, "readHaplosomesFromMS", "The `readFromMS()` method of Haplosome has been renamed to `readHaplosomesFromMS()`.", terminationMessage);
     
+    if (terminationMessage.contains("property haploidDominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "haploidDominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "hemizygousDominanceCoeff", "The `haploidDominanceCoeff` property of MutationType has been renamed to `hemizygousDominanceCoeff`.", terminationMessage);
+    
     return false;
 }
 

@@ -7749,7 +7749,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// the default, NULL, raises an error unless the choice does not matter
 		if ((strand1 && strand2) || (strand3 && strand4))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); it needs to know whether to randomize strands or not." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that T or F be supplied for randomizeStrands if recombination is involved in offspring generation (as it is here); it needs to know whether to randomize strands or not. (The default used to be F, but that was bug-prone since the correct value in most models is T; so now you need to think and make an explicit choice.)" << EidosTerminate();
 		
 		// doesn't matter, leave it as false
 	}
