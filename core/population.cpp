@@ -513,6 +513,9 @@ void Population::PurgeRemovedSubpopulations(void)
 	}
 }
 
+#if DEFER_BROKEN
+// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+// and needs to be remade anew once things have settled down.
 void Population::CheckForDeferralInHaplosomesVector(Haplosome **p_haplosomes, size_t p_elements_size, const std::string &p_caller)
 {
 	if (HasDeferredHaplosomes())
@@ -565,11 +568,13 @@ void Population::CheckForDeferralInIndividualsVector(Individual * const *p_indiv
 		}
 	}
 }
+#endif
 
 // nonWF only:
-// FIXME MULTICHROM deferred reproduction is disabled for now
+#if DEFER_BROKEN
+// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+// and needs to be remade anew once things have settled down.
 // This method uses the old reproduction methods, which have been removed from the code base; it needs a complete rework
-#if 0
 void Population::DoDeferredReproduction(void)
 {
 	size_t deferred_count_nonrecombinant = deferred_reproduction_nonrecombinant_.size();
@@ -621,6 +626,7 @@ void Population::DoDeferredReproduction(void)
 		}
 		else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kClonal)
 		{
+#warning the use of haplosomes_[0] and haplosomes_[1] here needs to be updated for multichrom
 			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_1_, *deferred_rec.parent1_->haplosomes_[0], deferred_rec.child_sex_, nullptr);
 			
 			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_haplosome_2_, *deferred_rec.parent1_->haplosomes_[1], deferred_rec.child_sex_, nullptr);

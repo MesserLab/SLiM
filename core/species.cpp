@@ -3360,8 +3360,11 @@ void Species::nonWF_MergeOffspring(void)
 		subpop_pair.second->MergeReproductionOffspring();
 	
 	// then generate any deferred haplosomes; note that the deferred offspring got merged in above already
-	// FIXME MULTICHROM deferred reproduction is disabled for now
-	//population_.DoDeferredReproduction();
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
+	population_.DoDeferredReproduction();
+#endif
 	
 	// clear the "migrant" property on all individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)

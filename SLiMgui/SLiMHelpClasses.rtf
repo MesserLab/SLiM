@@ -10231,7 +10231,11 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
+\f4\fs20  requests that the generation of the haplosomes of the produced offspring be deferred until the end of the reproduction phase.  SLiM may or may not honor this request; if not, the offspring will be generated synchronously just as if 
+\f3\fs18 defer
+\f4\fs20  were 
+\f3\fs18 F
+\f4\fs20 .  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
@@ -10370,7 +10374,11 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
+\f4\fs20  requests that the generation of the haplosomes of the produced offspring be deferred until the end of the reproduction phase.  SLiM may or may not honor this request; if not, the offspring will be generated synchronously just as if 
+\f3\fs18 defer
+\f4\fs20  were 
+\f3\fs18 F
+\f4\fs20 .  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  or 
 \f3\fs18 recombination()
@@ -11182,7 +11190,11 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
+\f4\fs20  requests that the generation of the haplosomes of the produced offspring be deferred until the end of the reproduction phase.  SLiM may or may not honor this request; if not, the offspring will be generated synchronously just as if 
+\f3\fs18 defer
+\f4\fs20  were 
+\f3\fs18 F
+\f4\fs20 .  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when haplosome generation is deferred the mutations of the haplosomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
 \f3\fs18 modifyChild()
@@ -11256,7 +11268,11 @@ Beginning in SLiM 4.1, passing
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
-\f4\fs20  will defer the generation of the haplosomes of the produced offspring until the end of the reproduction phase.  Haplosome generation can only be deferred if there are no active 
+\f4\fs20  requests that the generation of the haplosomes of the produced offspring be deferred until the end of the reproduction phase.  SLiM may or may not honor this request; if not, the offspring will be generated synchronously just as if 
+\f3\fs18 defer
+\f4\fs20  were 
+\f3\fs18 F
+\f4\fs20 .  Haplosome generation can only be deferred if there are no active 
 \f3\fs18 mutation()
 \f4\fs20  or 
 \f3\fs18 recombination()

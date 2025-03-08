@@ -145,8 +145,12 @@ public:
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
 #endif
 	
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
 	std::vector<SLiM_DeferredReproduction_NonRecombinant> deferred_reproduction_nonrecombinant_;
 	std::vector<SLiM_DeferredReproduction_Recombinant> deferred_reproduction_recombinant_;
+#endif
 	
 	std::vector<Substitution*> substitutions_;				// OWNED POINTERS: Substitution objects for all fixed mutations
 	std::unordered_multimap<slim_position_t, Substitution*> treeseq_substitutions_map_;	// TREE SEQUENCE RECORDING; keeps all fixed mutations, hashed by position
@@ -351,13 +355,21 @@ public:
 	void ResolveSurvivalPhaseMovement(void);
 	
 	// checks for deferred haplosomes in queue right now; allows optimization when none are present
+#if DEFER_BROKEN
 	inline bool HasDeferredHaplosomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
 	void CheckForDeferralInHaplosomesVector(Haplosome **p_haplosomes, size_t p_elements_size, const std::string &p_caller);
 	void CheckForDeferralInHaplosomes(EidosValue_Object *p_haplosomes, const std::string &p_caller);
 	void CheckForDeferralInIndividualsVector(Individual * const *p_individuals, size_t p_elements_size, const std::string &p_caller);
+#else
+	inline bool HasDeferredHaplosomes(void) { return false; }
+	inline void CheckForDeferralInHaplosomesVector(__attribute__ ((unused)) Haplosome **p_haplosomes, __attribute__ ((unused)) size_t p_elements_size, __attribute__ ((unused)) const std::string &p_caller) {}
+	inline void CheckForDeferralInHaplosomes(__attribute__ ((unused)) EidosValue_Object *p_haplosomes, __attribute__ ((unused)) const std::string &p_caller) {}
+	inline void CheckForDeferralInIndividualsVector(__attribute__ ((unused)) Individual * const *p_individuals, __attribute__ ((unused)) size_t p_elements_size, __attribute__ ((unused)) const std::string &p_caller) {}
+#endif
 	
-	// FIXME MULTICHROM deferred reproduction is disabled for now
-	//void DoDeferredReproduction(void);
+#if DEFER_BROKEN
+	void DoDeferredReproduction(void);
+#endif
 	
 	//********** methods for all models
 	

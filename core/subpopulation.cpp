@@ -6505,9 +6505,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		return EidosValue_SP(result);
 	
 	// Generate the number of children requested
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
 	EidosValue *defer_value = p_arguments[2].get();
 	bool defer = defer_value->LogicalData()[0];
-	// FIXME MULTICHROM defer is no longer enabled
 	
 	if (defer)
 	{
@@ -6518,6 +6520,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		if (parent_mutation_callbacks)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
 	}
+#endif
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
@@ -6608,9 +6611,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		return EidosValue_SP(result);
 	
 	// Generate the number of children requested
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
 	EidosValue *defer_value = p_arguments[4].get();
 	bool defer = defer_value->LogicalData()[0];
-	// FIXME MULTICHROM defer is no longer enabled
 	
 	if (defer)
 	{
@@ -6627,6 +6632,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		if (parent1_recombination_callbacks || parent2_recombination_callbacks || parent1_mutation_callbacks || parent2_mutation_callbacks)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
 	}
+#endif
 	
 	EidosValue *sex_value = p_arguments[2].get();
 	
@@ -6767,10 +6773,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	EidosValue *parent2_value = p_arguments[3].get();
 	EidosValue *randomizeStrands_value = p_arguments[4].get();
 	EidosValue *count_value = p_arguments[5].get();
-	EidosValue *defer_value = p_arguments[6].get();
-	
 	int64_t child_count = count_value->IntData()[0];
+	
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
+	EidosValue *defer_value = p_arguments[6].get();
 	bool defer = defer_value->LogicalData()[0];
+#endif
 	
 	// Prepare for processing the pattern dictionary.  Iterating through pattern is a bit tricky because it
 	// could use either integer or string keys, and we want to share all the code that follows after a value
@@ -7154,8 +7164,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	if (!mutation_callbacks->size())
 		mutation_callbacks = nullptr;
 	
+#if DEFER_BROKEN
 	if (defer && mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+#endif
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
@@ -7432,12 +7444,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand1_parent->sex_ != strand2_parent->sex_))
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 					
+#if DEFER_BROKEN
 					if (defer)
 					{
-						// FIXME MULTICHROM defer is no longer enabled
 						population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, haplosome1);
 					}
 					else
+#endif
 					{
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
 						
@@ -7447,13 +7460,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				}
 				else
 				{
+#if DEFER_BROKEN
 					if (defer)
 					{
 						// clone one haplosome, using a second strand of nullptr
-						// FIXME MULTICHROM defer is no longer enabled
 						population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, haplosome1);
 					}
 					else
+#endif
 					{
 						(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome1, strand1, mutation_callbacks);
 					}
@@ -7479,12 +7493,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 					if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand3_parent->sex_ != strand4_parent->sex_))
 						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 					
+#if DEFER_BROKEN
 					if (defer)
 					{
-						// FIXME MULTICHROM defer is no longer enabled
 						population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, haplosome2);
 					}
 					else
+#endif
 					{
 						(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
 						
@@ -7494,13 +7509,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 				}
 				else
 				{
+#if DEFER_BROKEN
 					if (defer)
 					{
 						// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-						// FIXME MULTICHROM defer is no longer enabled
 						population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, haplosome2);
 					}
 					else
+#endif
 					{
 						(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome2, strand3, mutation_callbacks);
 					}
@@ -7632,10 +7648,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	EidosValue *parent2_value = p_arguments[8].get();
 	EidosValue *randomizeStrands_value = p_arguments[9].get();
 	EidosValue *count_value = p_arguments[10].get();
-	EidosValue *defer_value = p_arguments[11].get();
-	
 	int64_t child_count = count_value->IntData()[0];
+	
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
+	EidosValue *defer_value = p_arguments[11].get();
 	bool defer = defer_value->LogicalData()[0];
+#endif
 	
 	// Check the count and short-circuit if it is zero
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
@@ -7901,8 +7921,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!mutation_callbacks->size())
 		mutation_callbacks = nullptr;
 	
+#if DEFER_BROKEN
 	if (defer && mutation_callbacks)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+#endif
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{
@@ -8017,12 +8039,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand1_parent->sex_ != strand2_parent->sex_))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 				
+#if DEFER_BROKEN
 				if (defer)
 				{
-					// FIXME MULTICHROM defer is no longer enabled
 					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, haplosome1);
 				}
 				else
+#endif
 				{
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome1, strand1, strand2, breakvec1, mutation_callbacks);
 					
@@ -8032,13 +8055,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 			else
 			{
+#if DEFER_BROKEN
 				if (defer)
 				{
 					// clone one haplosome, using a second strand of nullptr
-					// FIXME MULTICHROM defer is no longer enabled
 					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, haplosome1);
 				}
 				else
+#endif
 				{
 					(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome1, strand1, mutation_callbacks);
 				}
@@ -8064,12 +8088,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				if (sex_enabled_ && !chromosome->UsingSingleMutationMap() && (strand3_parent->sex_ != strand4_parent->sex_))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 come from individuals of different sex, and sex-specific mutation rate maps are in use, so it is not clear which mutation rate map to use." << EidosTerminate();
 				
+#if DEFER_BROKEN
 				if (defer)
 				{
-					// FIXME MULTICHROM defer is no longer enabled
 					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, haplosome2);
 				}
 				else
+#endif
 				{
 					(population_.*(population_.HaplosomeRecombined_TEMPLATED))(*chromosome, *haplosome2, strand3, strand4, breakvec2, mutation_callbacks);
 					
@@ -8079,13 +8104,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 			else
 			{
+#if DEFER_BROKEN
 				if (defer)
 				{
 					// clone one haplosome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
-					// FIXME MULTICHROM defer is no longer enabled
 					population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, haplosome2);
 				}
 				else
+#endif
 				{
 					(population_.*(population_.HaplosomeCloned_TEMPLATED))(*chromosome, *haplosome2, strand3, mutation_callbacks);
 				}
@@ -8224,9 +8250,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		return EidosValue_SP(result);
 	
 	// Generate the number of children requested
+#if DEFER_BROKEN
+	// The "defer" flag is simply disregarded at the moment; its design has rotted away,
+	// and needs to be remade anew once things have settled down.
 	EidosValue *defer_value = p_arguments[2].get();
 	bool defer = defer_value->LogicalData()[0];
-	// FIXME MULTICHROM defer is no longer enabled
 	
 	if (defer)
 	{
@@ -8239,6 +8267,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		if (parent_recombination_callbacks || parent_mutation_callbacks)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
 	}
+#endif
 	
 	for (int64_t child_index = 0; child_index < child_count; ++child_index)
 	{

@@ -140,6 +140,7 @@ development head (in the master branch):
 		rename the Haplosome method readFromVCF() to readHaplosomesFromVCF(), and readFromMS() to readHaplosomesFromMS(), for naming consistency; add SLiMgui autofix; revise recipe 18.12 for this rename
 		split chapter 15 (nonWF models) into two chapters, involving a great deal of renumbering, reorganizing, and rewriting
 		add a [Niso<Chromosome]$ chromosome] parameter to relatedness(), to allow relatedness to be assessed for any model chromosome; extended to all chromosome types
+		disable defer=T for all nonWF reproduction methods; it now does the same thing as defer=F (and is documented as having that possibility)
 
 
 version 4.3 (Eidos version 3.3):
