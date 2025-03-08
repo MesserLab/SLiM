@@ -274,7 +274,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	else
 		symbol = std::to_string(id);
 	
-	if ((symbol.length() == 0) || (symbol.length() > 3))
+	if ((symbol.length() == 0) || (symbol.length() > 5))
 	{
 		if (symbol_value->Type() == EidosValueType::kValueString)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires symbol to be a string with a length of 1-3 characters." << EidosTerminate();
