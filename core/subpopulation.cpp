@@ -4683,10 +4683,12 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 			// TREE SEQUENCE RECORDING
 			if (f_treeseq)
 				species_.RetractNewIndividual();
+			
+			return false;
 		}
 	}
 	
-	return individual;
+	return true;
 }
 
 template bool Subpopulation::MungeIndividualCrossed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
@@ -4882,10 +4884,12 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 			// TREE SEQUENCE RECORDING
 			if (f_treeseq)
 				species_.RetractNewIndividual();
+			
+			return false;
 		}
 	}
 	
-	return individual;
+	return true;
 }
 
 template bool Subpopulation::MungeIndividualSelfed<false, false, false, false, false>(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
