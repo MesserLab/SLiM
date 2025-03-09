@@ -1354,6 +1354,7 @@ const std::string &gStr_outputIndividuals = EidosRegisteredString("outputIndivid
 const std::string &gStr_outputIndividualsToVCF = EidosRegisteredString("outputIndividualsToVCF", gID_outputIndividualsToVCF);
 const std::string &gStr_readIndividualsFromVCF = EidosRegisteredString("readIndividualsFromVCF", gID_readIndividualsFromVCF);
 const std::string &gStr_setSpatialPosition = EidosRegisteredString("setSpatialPosition", gID_setSpatialPosition);
+const std::string &gStr_substitutionsOfType = EidosRegisteredString("substitutionsOfType", gID_substitutionsOfType);
 const std::string &gStr_sumOfMutationsOfType = EidosRegisteredString("sumOfMutationsOfType", gID_sumOfMutationsOfType);
 const std::string &gStr_uniqueMutationsOfType = EidosRegisteredString("uniqueMutationsOfType", gID_uniqueMutationsOfType);
 const std::string &gStr_readHaplosomesFromMS = EidosRegisteredString("readHaplosomesFromMS", gID_readHaplosomesFromMS);

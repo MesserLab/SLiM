@@ -1974,6 +1974,7 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_simulationFinished:				return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_interpreter);
 		case gID_skipTick:							return ExecuteMethod_skipTick(p_method_id, p_arguments, p_interpreter);
 		case gID_subsetMutations:					return ExecuteMethod_subsetMutations(p_method_id, p_arguments, p_interpreter);
+		case gID_substitutionsOfType:				return ExecuteMethod_substitutionsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqCoalesced:					return ExecuteMethod_treeSeqCoalesced(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqSimplify:					return ExecuteMethod_treeSeqSimplify(p_method_id, p_arguments, p_interpreter);
 		case gID_treeSeqRememberIndividuals:		return ExecuteMethod_treeSeqRememberIndividuals(p_method_id, p_arguments, p_interpreter);
@@ -3974,6 +3975,32 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 		return EidosValue_SP(vec);
 }
 
+//	*********************	- (object<Substitution>)substitutionsOfType(io<MutationType>$ mutType)
+//
+EidosValue_SP Species::ExecuteMethod_substitutionsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *mutType_value = p_arguments[0].get();
+	
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "mutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	
+	EidosValue_Object *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Substitution_Class));
+	EidosValue_SP result_SP = EidosValue_SP(vec);
+	
+	std::vector<Substitution*> &substitutions = population_.substitutions_;
+	int substitution_count = (int)substitutions.size();
+
+	for (int sub_index = 0; sub_index < substitution_count; ++sub_index)
+	{
+		Substitution *sub = substitutions[sub_index];
+		
+		if (sub->mutation_type_ptr_ == mutation_type_ptr)
+			vec->push_object_element_RR(sub);
+	}
+	
+	return result_SP;
+}
+
 // TREE SEQUENCE RECORDING
 //	*********************	- (logical$)treeSeqCoalesced(void)
 //
@@ -4209,6 +4236,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_substitutionsOfType, kEidosValueMaskObject, gSLiM_Substitution_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));

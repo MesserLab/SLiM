@@ -2102,8 +2102,10 @@ See the
 \f4\fs20  objects, use 
 \f3\fs18 -sumOfMutationsOfType()
 \f5\fs20 .
-\f4   This method is provided for speed; it is much faster than the corresponding Eidos code.
-\f5 \
+\f4   This method is provided for speed; it is much faster than the corresponding Eidos code.\cf2   See also 
+\f3\fs18 substitutionsOfType()
+\f4\fs20 .
+\f5 \cf0 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -9732,6 +9734,18 @@ This method is shorthand for getting the
 \f4\fs20  to select only mutations with the desired properties; besides being much simpler than the equivalent Eidos code, it is also much faster.  Note that if you only need to select on mutation type, the 
 \f3\fs18 mutationsOfType()
 \f4\fs20  method will be even faster.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Substitution>)substitutionsOfType(io<MutationType>$\'a0mutType)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns an 
+\f3\fs18 object
+\f4\fs20  vector of all the substitutions that are of the type specified by 
+\f3\fs18 mutType
+\f4\fs20 , out of all of the substitutions that are currently present in the species.  This method is provided for speed; it is much faster than the corresponding Eidos code.  See also 
+\f3\fs18 mutationsOfType()
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
