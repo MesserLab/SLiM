@@ -143,6 +143,7 @@ development head (in the master branch):
 		disable defer=T for all nonWF reproduction methods; it now does the same thing as defer=F (and is documented as having that possibility)
 		add a chromosome property back onto Species, accessible only in single-chromosome models; this makes porting models forward a little easier
 		add a substitutionsOfType() method to Species, parallel to mutationsOfType()
+		fix #473, that tree-seq scripts with a subtle timing error in the addition of a new mutation would not generate a good error message from SLiM
 
 
 version 4.3 (Eidos version 3.3):

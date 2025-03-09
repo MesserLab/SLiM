@@ -5830,27 +5830,27 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 		mutation_metadata.emplace_back(metadata_rec);
 	}
 	
+	// check for time consistency, using the shared node table in treeseq_[0]; this used to be a DEBUG check, but
+	// it turns out that it happens in real models, so it should be checked in release builds also; it occurs
+	// when a new mutation is added to a subpop that just split off a new subpop, due to tree_seq_tick_offset_;
+	// see https://github.com/MesserLab/SLiM/issues/473 for a model that reproduces the problem, and now raises.
+	double time = -(double) (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
+	TreeSeqInfo &tsinfo0 = treeseq_[0];
+	
+	if (time < tsinfo0.tables_.nodes.time[haplosomeTSKID])
+		EIDOS_TERMINATION << "ERROR (Species::RecordNewDerivedState): a mutation is being added with an invalid timestamp, greater than the time of the tree sequence node to which it belongs.  This can happen if you use addSubpopSplit() to split a new subpop from an old subpop, and then try to add a new mutation to the old subpop in the same tick.  That would imply that descendants of the old subpop ought to possess the new mutation -- but they don't, because the new subpop was already split off.  It therefore creates an inconsistency in the tree sequence.  Either add the new mutation prior to the split, or wait until the next tick to add the new mutation at a time that is clearly post-split.  (Details: invalid derived state recorded in tick " << community_.Tick() << ", haplosome " << haplosomeTSKID << ", id " << p_haplosome->haplosome_id_ << ", with time " << time << " >= " << tsinfo0.tables_.nodes.time[haplosomeTSKID] << ")." << EidosTerminate();
+	
 	// add the mutation table row with the final derived state and metadata
 	char *derived_muts_bytes = (char *)(derived_mutation_ids.data());
 	size_t derived_state_length = derived_mutation_ids.size() * sizeof(slim_mutationid_t);
 	char *mutation_metadata_bytes = (char *)(mutation_metadata.data());
 	size_t mutation_metadata_length = mutation_metadata.size() * sizeof(MutationMetadataRec);
-
-	double time = -(double) (community_.tree_seq_tick_ + community_.tree_seq_tick_offset_);	// see Population::AddSubpopulationSplit() regarding tree_seq_tick_offset_
+	
 	int ret = tsk_mutation_table_add_row(&tsinfo.tables_.mutations, site_id, haplosomeTSKID, TSK_NULL, 
 					time,
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
 					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
-	
-#if DEBUG
-	// The nodes table is not shared across all TreeSeqInfo records here, so this debug check needs to use
-	// the table collection for treeseq_[0].  Be careful when painting outside the lines!
-	TreeSeqInfo &tsinfo0 = treeseq_[0];
-	
-	if (time < tsinfo0.tables_.nodes.time[haplosomeTSKID]) 
-		std::cout << "Species::RecordNewDerivedState(): invalid derived state recorded in tick " << community_.Tick() << " haplosome " << haplosomeTSKID << " id " << p_haplosome->haplosome_id_ << " with time " << time << " >= " << tsinfo0.tables_.nodes.time[haplosomeTSKID] << std::endl;
-#endif
 }
 
 void Species::CheckAutoSimplification(void)
