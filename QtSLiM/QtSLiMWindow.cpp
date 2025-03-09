@@ -1453,12 +1453,21 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
 {
     if (state == Qt::ApplicationState::ApplicationActive)
     {
+        // Apparently we have a re-entrancy problem on Linux (see https://github.com/MesserLab/SLiM/issues/476),
+        // so now we use this flag to prevent that from happening.  It should be set true around all QMessageBox
+        // displays below.
+        if (currentlyWarningAboutDiskFile)
+            return;
+        
         // the motivation for listening to these state changes is to check for externally-edited
         // documents; that can only happen for files that have been saved to disk
         if (!isUntitled && !isRecipe && !isTransient && !isZombieWindow_ && currentFile.length() && lastSavedDate.isValid())
         {
             if (QFile::exists(currentFile))
             {
+                // apparently the file now exists; reset that warning flag
+                warnedAboutNotExistingOnDisk = false;
+                
                 QFileInfo fileInfo(currentFile);
                 QString filename = fileInfo.fileName();         // last path component, for showing to the user
                 QDateTime modDate = fileInfo.lastModified();
@@ -1469,9 +1478,23 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                     QFile file(currentFile);
                     
                     if (!file.open(QFile::ReadOnly | QFile::Text)) {
+                        // avoid showing the same warning twice, unless we see that the problem is fixed
+                        if (warnedAboutUnreadabilityOnDisk)
+                            return;
+                        warnedAboutUnreadabilityOnDisk = true;
+                        
+                        // if the file is not readable at all, we want to warn if it comes back with unexpected contents
+                        warnedAboutExternalEditing = false;
+                        lastExternalChangeString.clear();
+                        
+                        currentlyWarningAboutDiskFile = true;
                         QMessageBox::warning(this, "SLiMgui", QString("File %1 appears to have been modified externally (on disk), but cannot be read; you may wish to check permissions.").arg(filename));
+                        currentlyWarningAboutDiskFile = false;
                         return;
                     }
+                    
+                    // apparently the file is now readable; reset that warning flag
+                    warnedAboutUnreadabilityOnDisk = false;
                     
                     QTextStream in(&file);
                     QString contents = in.readAll();
@@ -1481,10 +1504,25 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                         // the mod date was tweaked, but the file contents are the same; silently update our mod date
                         //qDebug() << "no mod: date changed but identical contents";
                         lastSavedDate = modDate;
+                        
+                        // we might have warned before, and now returned to our previous state;
+                        // in that case, we should forget that we warned about it before
+                        warnedAboutExternalEditing = false;
+                        lastExternalChangeString.clear();
+                        
                         return;
                     }
                     
+                    // If we already warned the user about these file contents, return without
+                    // warning again; we don't want to warn again unless the contents change again
+                    if (warnedAboutExternalEditing && (contents == lastExternalChangeString))
+                        return;
+                    
                     //qDebug() << "EXTERNAL MOD!";
+                    
+                    // We are going to warn about the external change below; set our state accordingly
+                    warnedAboutExternalEditing = true;
+                    lastExternalChangeString = contents;
                     
                     // The file has changed externally; we need to ask the user what to do
                     QMessageBox::StandardButton ret = QMessageBox::No;
@@ -1495,7 +1533,9 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                         // is quite dangerous so we require user confirmation with a default of No.
                         QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\nThere are unsaved changes in SLiMgui; if you reload, those changes will be lost!").arg(filename);
                         
+                        currentlyWarningAboutDiskFile = true;
                         ret = QMessageBox::critical(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+                        currentlyWarningAboutDiskFile = false;
                     }
                     else
                     {
@@ -1511,12 +1551,20 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
                         {
                             QString prompt = QString("File %1 has been modified externally (on disk); do you wish to reload it?\n\n(There are no unsaved changes in SLiMgui that would be lost.  In the Preferences panel you can choose to automatically reload, in this case.)").arg(filename);
                             
+                            currentlyWarningAboutDiskFile = true;
                             ret = QMessageBox::question(this, "SLiMgui", prompt, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+                            currentlyWarningAboutDiskFile = false;
                         }
                     }
                     
                     if (ret == QMessageBox::Yes)
+                    {
                         loadFile(currentFile);
+                        
+                        // since we reloaded our file, we want to warn again if it happens again
+                        warnedAboutExternalEditing = false;
+                        lastExternalChangeString.clear();
+                    }
                 }
                 else
                 {
@@ -1525,7 +1573,18 @@ void QtSLiMWindow::appStateChanged(Qt::ApplicationState state)
             }
             else
             {
+                // avoid showing the same warning twice, unless we see that the problem is fixed
+                if (warnedAboutNotExistingOnDisk)
+                    return;
+                warnedAboutNotExistingOnDisk = true;
+                
+                // if the file doesn't exist on disk at all, we want to warn if it comes back with unexpected contents
+                warnedAboutExternalEditing = false;
+                lastExternalChangeString.clear();
+                
+                currentlyWarningAboutDiskFile = true;
                 QMessageBox::warning(this, "SLiMgui", QString("File %1 no longer exists on disk; you may wish to re-save or close.").arg(QDir::toNativeSeparators(currentFile)));
+                currentlyWarningAboutDiskFile = false;
                 return;
             }
         }

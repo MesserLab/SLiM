@@ -81,6 +81,14 @@ private:
     bool scriptChangeObserved = false;          // has a change to the script been observed since last saved?
     bool isScriptModified(void);                // uses scriptChangeObserved / lastSavedString to determine modified status
     
+    // tracking our interaction with the user about the file on disk, mod dates, external editing, etc.
+    // the goal here is to avoid warning more than once; see https://github.com/MesserLab/SLiM/issues/476
+    bool warnedAboutUnreadabilityOnDisk = false;    // avoid repeating this unless it gets fixed
+    bool warnedAboutNotExistingOnDisk = false;      // avoid repeating this unless it gets fixed
+    bool warnedAboutExternalEditing = false;        // avoid repeating this unless it gets fixed or changes
+    QString lastExternalChangeString;               // the string we last observed on disk and warned about
+    bool currentlyWarningAboutDiskFile = false;     // a flag to avoid re-entrancy for this window
+    
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	bool sim_RNG_initialized = false;
     Eidos_RNG_State sim_RNG;                // QtSLiM never runs multithreaded, so we do not need the _PERTHREAD variant here
