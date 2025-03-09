@@ -7130,15 +7130,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *pedigree_parent1 = nullptr;
 	Individual *pedigree_parent2 = nullptr;
-	bool is_selfing = false, is_cloning = false;
+	//bool is_selfing = false;		// the inheritance patterm is the same for selfing as for crossing, so we don't need this
+	bool is_cloning = false;
 	
 	if (parent1_value->Type() != EidosValueType::kValueNULL)
 		pedigree_parent1 = (Individual *)parent1_value->ObjectData()[0];
 	if (parent2_value->Type() != EidosValueType::kValueNULL)
 		pedigree_parent2 = (Individual *)parent2_value->ObjectData()[0];
 	
-	if (pedigree_parent1 == pedigree_parent2)
-		is_selfing = true;
+	//if (pedigree_parent1 == pedigree_parent2)
+	//	is_selfing = true;
 	
 	if (pedigree_parent1 && !pedigree_parent2)
 	{

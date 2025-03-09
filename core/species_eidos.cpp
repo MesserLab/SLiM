@@ -2283,17 +2283,17 @@ EidosValue_SP Species::ExecuteMethod_addPatternForRecombinant(EidosGlobalStringI
 		pattern_uses_integer_keys = pattern->KeysAreIntegers();
 	}
 	
-	// Get the offspring sex
-	IndividualSex sex = IndividualSex::kUnspecified;
+	// Get the offspring sex -- actually we just need to check it here, and then sex_value is passed to _ValidateHaplosomesAndChooseSex() below
+	//IndividualSex sex = IndividualSex::kUnspecified;
 	
 	if (sex_value->Type() == EidosValueType::kValueString)
 	{
 		const std::string &sex_string = sex_value->StringData()[0];
 		
 		if (sex_string.compare("M") == 0)
-			sex = IndividualSex::kMale;
+			; //sex = IndividualSex::kMale;
 		else if (sex_string.compare("F") == 0)
-			sex = IndividualSex::kFemale;
+			; //sex = IndividualSex::kFemale;
 		else
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForRecombinant): addPatternForRecombinant() requires sex to be 'M' or 'F', or NULL." << EidosTerminate();
 	}
