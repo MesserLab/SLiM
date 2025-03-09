@@ -2001,11 +2001,11 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
 
     if (terminationMessage.contains("property chromosome is not defined for object element type Species") &&
             (selectionString == "chromosome"))
-        return offerAndExecuteAutofix(selection, "chromosomes", "The `chromosome` property of Species has been renamed to `chromosomes`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "chromosomes", "The `chromosome` property of Species has been renamed to `chromosomes`.", terminationMessage);     // actually, this property was left in, for now
 
     if (terminationMessage.contains("property chromosomeType is not defined for object element type Species") &&
             (selectionString == "chromosomeType"))
-        return offerAndExecuteAutofix(selection, "chromosomes.type", "The `chromosomeType` property of Species has been removed; it is now accessed as `chromosomes.type`.", terminationMessage);
+        return offerAndExecuteAutofix(selection, "chromosome.type", "The `chromosomeType` property of Species has been removed; it is now accessed as `chromosome.type`.", terminationMessage);
 
     if (terminationMessage.contains("undefined identifier genome") &&
             (selectionString == "genome"))

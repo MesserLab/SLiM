@@ -797,7 +797,6 @@ extern const std::string &gStr_geneConversionGCBias;
 extern const std::string &gStr_geneConversionNonCrossoverFraction;
 extern const std::string &gStr_geneConversionMeanLength;
 extern const std::string &gStr_geneConversionSimpleConversionFraction;
-extern const std::string &gStr_chromosome;
 extern const std::string &gStr_isNullHaplosome;
 extern const std::string &gStr_mutations;
 extern const std::string &gStr_uniqueMutations;
@@ -835,6 +834,7 @@ extern const std::string &gStr_allMutationTypes;
 extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_allSubpopulations;
+extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomes;
 extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
@@ -1246,7 +1246,6 @@ enum _SLiMGlobalStringID : int {
 	gID_geneConversionNonCrossoverFraction,
 	gID_geneConversionMeanLength,
 	gID_geneConversionSimpleConversionFraction,
-	gID_chromosome,
 	gID_isNullHaplosome,
 	gID_mutations,
 	gID_uniqueMutations,
@@ -1284,6 +1283,7 @@ enum _SLiMGlobalStringID : int {
 	gID_allScriptBlocks,
 	gID_allSpecies,
 	gID_allSubpopulations,
+	gID_chromosome,
 	gID_chromosomes,
 	gID_genomicElementTypes,
 	gID_lifetimeReproductiveOutput,

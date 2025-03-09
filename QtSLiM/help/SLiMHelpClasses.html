@@ -880,6 +880,8 @@
 <p class="p2"><i>5.16.1<span class="Apple-converted-space">  </span></i><span class="s1"><i>Species</i></span><i> properties</i></p>
 <p class="p5">avatar =&gt; (string$)</p>
 <p class="p6">The avatar string used to represent this species in SLiMgui.<span class="Apple-converted-space">  </span>Outside of SLiMgui, this property still exists, but is not used by SLiM.<span class="Apple-converted-space">  </span>Avatars are typically one-character strings, often using an emoji that symbolizes the species.<span class="Apple-converted-space">  </span>This property is read-only; its value should be set with the <span class="s1">avatar</span> parameter of <span class="s1">initializeSpecies()</span>.</p>
+<p class="p5">chromosome =&gt; (object&lt;Chromosome&gt;$)</p>
+<p class="p6">The <span class="s1">Chromosome</span> object used by the species.<span class="Apple-converted-space">  </span>This property may only be accessed in a single-chromosome model; if there are multiple chromosomes (or none), the <span class="s1">chromosomes</span> property must be used instead.</p>
 <p class="p5">chromosomes =&gt; (object&lt;Chromosome&gt;)</p>
 <p class="p6">The <span class="s1">Chromosome</span> objects used by the species, in the order in which they were defined.<span class="Apple-converted-space">  </span>See also the <span class="s1">sexChromosomes</span> property.</p>
 <p class="p5">color =&gt; (string$)</p>
