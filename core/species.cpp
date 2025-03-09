@@ -6442,107 +6442,118 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// In the future, we might need to *add* to the metadata *and also* the schema,
 	// leaving other keys that might already be there.
 	// But that's being a headache, so we're skipping it.
-	nlohmann::json metadata;
 	
-	// Add user-defined metadata under the SLiM key, if it was supplied by the user
-	// See https://github.com/MesserLab/SLiM/issues/122
-	if (p_metadata_dict)
-	{
-		nlohmann::json user_metadata = p_metadata_dict->JSONRepresentation();
+	// BCH 3/9/2025: This is now wrapped in try/catch because the JSON library might raise, especially if it dislikes
+	// the model string we try to put in metadata for p_include_model; see https://github.com/MesserLab/SLiM/issues/488
+	std::string new_metadata_str;
+	
+	try {
+		nlohmann::json metadata;
 		
-		metadata["SLiM"]["user_metadata"] = user_metadata;
-		
-		//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
-	}
-	
-	// We could support per-chromosome top-level metadata, too, that would only be saved out
-	// to that chromosome's file, but let's wait to see whether somebody asks for it...
-	
-	if (model_type_ == SLiMModelType::kModelTypeWF) {
-		metadata["SLiM"]["model_type"] = "WF";
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
-			metadata["SLiM"]["stage"] = "first";
-		} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
-			metadata["SLiM"]["stage"] = "early";
-		} else {
-			assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
-			metadata["SLiM"]["stage"] = "late";
-		}
-	} else {
-		assert(model_type_ == SLiMModelType::kModelTypeNonWF);
-		metadata["SLiM"]["model_type"] = "nonWF";
-		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
-			metadata["SLiM"]["stage"] = "first";
-		} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
-			metadata["SLiM"]["stage"] = "early";
-		} else {
-			assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
-			metadata["SLiM"]["stage"] = "late";
-		}
-	}
-	metadata["SLiM"]["cycle"] = Cycle();
-	metadata["SLiM"]["tick"] = community_.Tick();
-	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
-	
-	metadata["SLiM"]["name"] = name_;
-	if (description_.length())
-		metadata["SLiM"]["description"] = description_;
-	
-	if (spatial_dimensionality_ == 0) {
-		metadata["SLiM"]["spatial_dimensionality"] = "";
-	} else if (spatial_dimensionality_ == 1) {
-		metadata["SLiM"]["spatial_dimensionality"] = "x";
-	} else if (spatial_dimensionality_ == 2) {
-		metadata["SLiM"]["spatial_dimensionality"] = "xy";
-	} else {
-		metadata["SLiM"]["spatial_dimensionality"] = "xyz";
-	}
-	if (periodic_x_ & periodic_y_ & periodic_z_) {
-		metadata["SLiM"]["spatial_periodicity"] = "xyz";
-	} else if (periodic_x_ & periodic_y_) {
-		metadata["SLiM"]["spatial_periodicity"] = "xy";
-	} else if (periodic_x_ & periodic_z_) {
-		metadata["SLiM"]["spatial_periodicity"] = "xz";
-	} else if (periodic_y_ & periodic_z_) {
-		metadata["SLiM"]["spatial_periodicity"] = "yz";
-	} else if (periodic_x_) {
-		metadata["SLiM"]["spatial_periodicity"] = "x";
-	} else if (periodic_y_) {
-		metadata["SLiM"]["spatial_periodicity"] = "y";
-	} else if (periodic_z_) {
-		metadata["SLiM"]["spatial_periodicity"] = "z";
-	} else {
-		metadata["SLiM"]["spatial_periodicity"] = "";
-	}
-	metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
-	metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
-	
-	metadata["SLiM"]["chromosomes"] = nlohmann::json::array();
-	for (Chromosome *chromosome : chromosomes_)
-	{
-		nlohmann::json chromosome_info;
-		
-		chromosome_info["index"] = chromosome->Index();
-		chromosome_info["id"] = chromosome->ID();
-		chromosome_info["symbol"] = chromosome->Symbol();
-		if (chromosome->Name().length() > 0)
-			chromosome_info["name"] = chromosome->Name();
-		chromosome_info["type"] = StringForChromosomeType(chromosome->Type());
-		
-		metadata["SLiM"]["chromosomes"].push_back(chromosome_info);
-		
-		if (p_chromosome_index == chromosome->Index())		// true for the chromosome being written
+		// Add user-defined metadata under the SLiM key, if it was supplied by the user
+		// See https://github.com/MesserLab/SLiM/issues/122
+		if (p_metadata_dict)
 		{
-			// write out all the same information again in a key called "this_chromosome"; this way the
-			// user can trivially get the info for the chromosome represented by the file; note that a
-			// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome,
-			// but a no-genetics model can't write a tree sequence anyway, so that is moot.
-			metadata["SLiM"]["this_chromosome"] = chromosome_info;
+			nlohmann::json user_metadata = p_metadata_dict->JSONRepresentation();
+			
+			metadata["SLiM"]["user_metadata"] = user_metadata;
+			
+			//std::cout << "JSON metadata: " << std::endl << user_metadata.dump(4) << std::endl;
 		}
+		
+		// We could support per-chromosome top-level metadata, too, that would only be saved out
+		// to that chromosome's file, but let's wait to see whether somebody asks for it...
+		
+		if (model_type_ == SLiMModelType::kModelTypeWF) {
+			metadata["SLiM"]["model_type"] = "WF";
+			if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
+				metadata["SLiM"]["stage"] = "first";
+			} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
+				metadata["SLiM"]["stage"] = "early";
+			} else {
+				assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
+				metadata["SLiM"]["stage"] = "late";
+			}
+		} else {
+			assert(model_type_ == SLiMModelType::kModelTypeNonWF);
+			metadata["SLiM"]["model_type"] = "nonWF";
+			if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
+				metadata["SLiM"]["stage"] = "first";
+			} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
+				metadata["SLiM"]["stage"] = "early";
+			} else {
+				assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
+				metadata["SLiM"]["stage"] = "late";
+			}
+		}
+		metadata["SLiM"]["cycle"] = Cycle();
+		metadata["SLiM"]["tick"] = community_.Tick();
+		metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
+		
+		metadata["SLiM"]["name"] = name_;
+		if (description_.length())
+			metadata["SLiM"]["description"] = description_;
+		
+		if (spatial_dimensionality_ == 0) {
+			metadata["SLiM"]["spatial_dimensionality"] = "";
+		} else if (spatial_dimensionality_ == 1) {
+			metadata["SLiM"]["spatial_dimensionality"] = "x";
+		} else if (spatial_dimensionality_ == 2) {
+			metadata["SLiM"]["spatial_dimensionality"] = "xy";
+		} else {
+			metadata["SLiM"]["spatial_dimensionality"] = "xyz";
+		}
+		if (periodic_x_ & periodic_y_ & periodic_z_) {
+			metadata["SLiM"]["spatial_periodicity"] = "xyz";
+		} else if (periodic_x_ & periodic_y_) {
+			metadata["SLiM"]["spatial_periodicity"] = "xy";
+		} else if (periodic_x_ & periodic_z_) {
+			metadata["SLiM"]["spatial_periodicity"] = "xz";
+		} else if (periodic_y_ & periodic_z_) {
+			metadata["SLiM"]["spatial_periodicity"] = "yz";
+		} else if (periodic_x_) {
+			metadata["SLiM"]["spatial_periodicity"] = "x";
+		} else if (periodic_y_) {
+			metadata["SLiM"]["spatial_periodicity"] = "y";
+		} else if (periodic_z_) {
+			metadata["SLiM"]["spatial_periodicity"] = "z";
+		} else {
+			metadata["SLiM"]["spatial_periodicity"] = "";
+		}
+		metadata["SLiM"]["separate_sexes"] = sex_enabled_ ? true : false;
+		metadata["SLiM"]["nucleotide_based"] = nucleotide_based_ ? true : false;
+		
+		metadata["SLiM"]["chromosomes"] = nlohmann::json::array();
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			nlohmann::json chromosome_info;
+			
+			chromosome_info["index"] = chromosome->Index();
+			chromosome_info["id"] = chromosome->ID();
+			chromosome_info["symbol"] = chromosome->Symbol();
+			if (chromosome->Name().length() > 0)
+				chromosome_info["name"] = chromosome->Name();
+			chromosome_info["type"] = StringForChromosomeType(chromosome->Type());
+			
+			metadata["SLiM"]["chromosomes"].push_back(chromosome_info);
+			
+			if (p_chromosome_index == chromosome->Index())		// true for the chromosome being written
+			{
+				// write out all the same information again in a key called "this_chromosome"; this way the
+				// user can trivially get the info for the chromosome represented by the file; note that a
+				// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome,
+				// but a no-genetics model can't write a tree sequence anyway, so that is moot.
+				metadata["SLiM"]["this_chromosome"] = chromosome_info;
+			}
+		}
+		
+		new_metadata_str = metadata.dump();
+	} catch (const std::exception &e) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an error: '" << e.what() << "'." << EidosTerminate();
+	} catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): a JSON string could not be generated for tree-sequence metadata due to an unknown error." << EidosTerminate();
 	}
 	
-	std::string new_metadata_str = metadata.dump();
-
 	ret = tsk_table_collection_set_metadata(
 			p_tables, new_metadata_str.c_str(), (tsk_size_t)new_metadata_str.length());
 	if (ret != 0)
@@ -6617,134 +6628,127 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	// But, we still want to record how the tree sequence was produced in
 	// provenance, so the code remains much the same.
 	
-#if 0
-	// Old provenance writing code, making a JSON string by hand; this is file_version 0.1
-	char *provenance_str;
-	provenance_str = (char *)malloc(1024);
-	sprintf(provenance_str, "{\"program\": \"SLiM\", \"version\": \"%s\", \"file_version\": \"%s\", \"model_type\": \"%s\", \"generation\": %d, \"remembered_node_count\": %ld}",
-			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_nodes_.size());
-	
-	time(&timer);
-	tm_info = localtime(&timer);
-	strftime(buffer, timestamp_size, "%Y-%m-%dT%H:%M:%S", tm_info);
-	
-	ret = tsk_provenance_table_add_row(&p_tables->provenances, buffer, strlen(buffer), provenance_str, strlen(provenance_str));
-	free(provenance_str);
-	if (ret < 0) handle_error("tsk_provenance_table_add_row", ret);
-#else
 	// New provenance writing code, using the JSON for Modern C++ library (json.hpp); this is file_version 0.2 (and up)
-	nlohmann::json j;
-	
-	j["schema_version"] = "1.0.0";
-	
-	struct utsname name;
-	ret = uname(&name);
-	
-	if (ret == -1)
-		EIDOS_TERMINATION << "ERROR (Species::WriteProvenanceTable): (internal error) uname() failed." << EidosTerminate();
-	
-	j["environment"]["os"]["version"] = std::string(name.version);
-	j["environment"]["os"]["node"] = std::string(name.nodename);
-	j["environment"]["os"]["release"] = std::string(name.release);
-	j["environment"]["os"]["system"] = std::string(name.sysname);
-	j["environment"]["os"]["machine"] = std::string(name.machine);
-	
-	j["software"]["name"] = "SLiM";		// note this key was named "program" in provenance version 0.1
-	j["software"]["version"] = SLIM_VERSION_STRING;
-	
-	j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// see declaration of SLIM_TREES_FILE_VERSION for comments on prior versions
-	j["slim"]["cycle"] = Cycle();
-	j["slim"]["tick"] = community_.Tick();
-	j["slim"]["name"] = name_;
-	if (description_.length())
-		j["slim"]["description"] = description_;
-	//j["slim"]["remembered_node_count"] = (long)remembered_nodes_.size();	// no longer writing this key!
-	
-	// compute the SHA-256 hash of the script string
-	const std::string &scriptString = community_.ScriptString();
-	const char *script_chars = scriptString.c_str();
-	uint8_t script_hash[32];
-	char script_hash_string[65];
-	
-	Eidos_calc_sha_256(script_hash, script_chars, strlen(script_chars));
-	Eidos_hash_to_string(script_hash_string, script_hash);
-	
-	std::string scriptHashString(script_hash_string);
-	
-	//std::cout << "script hash: " << scriptHashString << std::endl;
-	
-	j["parameters"]["command"] = community_.cli_params_;
-
-	// note high overlap with WriteTreeSequenceMetadata
-	if (model_type_ == SLiMModelType::kModelTypeWF) {
-		j["parameters"]["model_type"] = "WF";
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
-			j["parameters"]["stage"] = "first";
-		} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
-			j["parameters"]["stage"] = "early";
-		} else {
-			assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
-			j["parameters"]["stage"] = "late";
-		}
-	} else {
-		assert(model_type_ == SLiMModelType::kModelTypeNonWF);
-		j["parameters"]["model_type"] = "nonWF";
-		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
-			j["parameters"]["stage"] = "first";
-		} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
-			j["parameters"]["stage"] = "early";
-		} else {
-			assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
-			j["parameters"]["stage"] = "late";
-		}
-	}
-	if (spatial_dimensionality_ == 0) {
-		j["parameters"]["spatial_dimensionality"] = "";
-	} else if (spatial_dimensionality_ == 1) {
-		j["parameters"]["spatial_dimensionality"] = "x";
-	} else if (spatial_dimensionality_ == 2) {
-		j["parameters"]["spatial_dimensionality"] = "xy";
-	} else {
-		j["parameters"]["spatial_dimensionality"] = "xyz";
-	}
-	if (periodic_x_ & periodic_y_ & periodic_z_) {
-		j["parameters"]["spatial_periodicity"] = "xyz";
-	} else if (periodic_x_ & periodic_y_) {
-		j["parameters"]["spatial_periodicity"] = "xy";
-	} else if (periodic_x_ & periodic_z_) {
-		j["parameters"]["spatial_periodicity"] = "xz";
-	} else if (periodic_y_ & periodic_z_) {
-		j["parameters"]["spatial_periodicity"] = "yz";
-	} else if (periodic_x_) {
-		j["parameters"]["spatial_periodicity"] = "x";
-	} else if (periodic_y_) {
-		j["parameters"]["spatial_periodicity"] = "y";
-	} else if (periodic_z_) {
-		j["parameters"]["spatial_periodicity"] = "z";
-	} else {
-		j["parameters"]["spatial_periodicity"] = "";
-	}
-	j["parameters"]["separate_sexes"] = sex_enabled_ ? true : false;
-	j["parameters"]["nucleotide_based"] = nucleotide_based_ ? true : false;
-
-	if (p_include_model)
-		j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
-	j["parameters"]["model_hash"] = scriptHashString;			// added model_hash in file_version 0.4
-	j["parameters"]["seed"] = community_.original_seed_;
-	
-	j["metadata"]["individuals"]["flags"]["16"]["name"] = "SLIM_TSK_INDIVIDUAL_ALIVE";
-	j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
-	j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
-	j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
-	j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
-	j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
-	
+	// BCH 3/9/2025: This is now wrapped in try/catch because the JSON library might raise, especially if it dislikes
+	// the model string we try to put in metadata for p_include_model; see https://github.com/MesserLab/SLiM/issues/488
 	std::string provenance_str;
 	
-	if (p_use_newlines)
-		provenance_str = j.dump(4);
-	else
-		provenance_str = j.dump();
+	try {
+		nlohmann::json j;
+		
+		j["schema_version"] = "1.0.0";
+		
+		struct utsname name;
+		ret = uname(&name);
+		
+		if (ret == -1)
+			EIDOS_TERMINATION << "ERROR (Species::WriteProvenanceTable): (internal error) uname() failed." << EidosTerminate();
+		
+		j["environment"]["os"]["version"] = std::string(name.version);
+		j["environment"]["os"]["node"] = std::string(name.nodename);
+		j["environment"]["os"]["release"] = std::string(name.release);
+		j["environment"]["os"]["system"] = std::string(name.sysname);
+		j["environment"]["os"]["machine"] = std::string(name.machine);
+		
+		j["software"]["name"] = "SLiM";		// note this key was named "program" in provenance version 0.1
+		j["software"]["version"] = SLIM_VERSION_STRING;
+		
+		j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// see declaration of SLIM_TREES_FILE_VERSION for comments on prior versions
+		j["slim"]["cycle"] = Cycle();
+		j["slim"]["tick"] = community_.Tick();
+		j["slim"]["name"] = name_;
+		if (description_.length())
+			j["slim"]["description"] = description_;
+		//j["slim"]["remembered_node_count"] = (long)remembered_nodes_.size();	// no longer writing this key!
+		
+		// compute the SHA-256 hash of the script string
+		const std::string &scriptString = community_.ScriptString();
+		const char *script_chars = scriptString.c_str();
+		uint8_t script_hash[32];
+		char script_hash_string[65];
+		
+		Eidos_calc_sha_256(script_hash, script_chars, strlen(script_chars));
+		Eidos_hash_to_string(script_hash_string, script_hash);
+		
+		std::string scriptHashString(script_hash_string);
+		
+		//std::cout << "script hash: " << scriptHashString << std::endl;
+		
+		j["parameters"]["command"] = community_.cli_params_;
+		
+		// note high overlap with WriteTreeSequenceMetadata
+		if (model_type_ == SLiMModelType::kModelTypeWF) {
+			j["parameters"]["model_type"] = "WF";
+			if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
+				j["parameters"]["stage"] = "first";
+			} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
+				j["parameters"]["stage"] = "early";
+			} else {
+				assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
+				j["parameters"]["stage"] = "late";
+			}
+		} else {
+			assert(model_type_ == SLiMModelType::kModelTypeNonWF);
+			j["parameters"]["model_type"] = "nonWF";
+			if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
+				j["parameters"]["stage"] = "first";
+			} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
+				j["parameters"]["stage"] = "early";
+			} else {
+				assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
+				j["parameters"]["stage"] = "late";
+			}
+		}
+		if (spatial_dimensionality_ == 0) {
+			j["parameters"]["spatial_dimensionality"] = "";
+		} else if (spatial_dimensionality_ == 1) {
+			j["parameters"]["spatial_dimensionality"] = "x";
+		} else if (spatial_dimensionality_ == 2) {
+			j["parameters"]["spatial_dimensionality"] = "xy";
+		} else {
+			j["parameters"]["spatial_dimensionality"] = "xyz";
+		}
+		if (periodic_x_ & periodic_y_ & periodic_z_) {
+			j["parameters"]["spatial_periodicity"] = "xyz";
+		} else if (periodic_x_ & periodic_y_) {
+			j["parameters"]["spatial_periodicity"] = "xy";
+		} else if (periodic_x_ & periodic_z_) {
+			j["parameters"]["spatial_periodicity"] = "xz";
+		} else if (periodic_y_ & periodic_z_) {
+			j["parameters"]["spatial_periodicity"] = "yz";
+		} else if (periodic_x_) {
+			j["parameters"]["spatial_periodicity"] = "x";
+		} else if (periodic_y_) {
+			j["parameters"]["spatial_periodicity"] = "y";
+		} else if (periodic_z_) {
+			j["parameters"]["spatial_periodicity"] = "z";
+		} else {
+			j["parameters"]["spatial_periodicity"] = "";
+		}
+		j["parameters"]["separate_sexes"] = sex_enabled_ ? true : false;
+		j["parameters"]["nucleotide_based"] = nucleotide_based_ ? true : false;
+		
+		if (p_include_model)
+			j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
+		j["parameters"]["model_hash"] = scriptHashString;			// added model_hash in file_version 0.4
+		j["parameters"]["seed"] = community_.original_seed_;
+		
+		j["metadata"]["individuals"]["flags"]["16"]["name"] = "SLIM_TSK_INDIVIDUAL_ALIVE";
+		j["metadata"]["individuals"]["flags"]["16"]["description"] = "the individual was alive at the time the file was written";
+		j["metadata"]["individuals"]["flags"]["17"]["name"] = "SLIM_TSK_INDIVIDUAL_REMEMBERED";
+		j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
+		j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
+		j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
+		
+		if (p_use_newlines)
+			provenance_str = j.dump(4);
+		else
+			provenance_str = j.dump();
+	} catch (const std::exception &e) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteProvenanceTable): a JSON string could not be generated for tree-sequence provenance due to an error: '" << e.what() << "'." << EidosTerminate();
+	} catch (...) {
+		EIDOS_TERMINATION << "ERROR (Species::WriteProvenanceTable): a JSON string could not be generated for tree-sequence provenance due to an unknown error." << EidosTerminate();
+	}
 	
 	//std::cout << "Provenance output: \n" << provenance_str << std::endl;
 	
@@ -6754,7 +6758,6 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	
 	ret = tsk_provenance_table_add_row(&p_tables->provenances, buffer, (tsk_size_t)strlen(buffer), provenance_str.c_str(), (tsk_size_t)provenance_str.length());
 	if (ret < 0) handle_error("tsk_provenance_table_add_row", ret);
-#endif
 }
 
 void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int original_chromosome_index)
