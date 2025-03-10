@@ -443,6 +443,29 @@ void Eidos_PrepareForProfiling(void);
 
 // *******************************************************************************************************************
 //
+//	CLI progress reporting
+//
+#pragma mark -
+#pragma mark CLI progress reporting
+#pragma mark -
+
+// This is a nice open-source project showing how to do a progress bar: https://github.com/htailor/cpp_progress_bar
+// I didn't end up directly using it -- the approach is pretty simple and obvious, and I wanted something much
+// simpler really -- but I found a couple of useful snippets for formatting the stream output and stuff.  So,
+// thanks to Hemant Tailor for the nice project!  I'll give credit here in case someone else finds it useful.
+
+extern std::ostream *gEidos_progress_outstream;		// the stream that progress lines are being written to
+extern int gEidos_progress_length;					// the length of the last progress line written (for erasing)
+
+void Eidos_StartProgress(std::ostream *p_progress_stream);							// tell Eidos you want to start writing
+inline bool Eidos_ShowingProgress(void) { return !!(gEidos_progress_outstream); }	// are we showing progress?
+void Eidos_WriteProgress(const std::string &p_progress_line);						// write a line out
+void Eidos_EraseProgress(void);														// erase the last line written
+inline int Eidos_ProgressLength(void) { return gEidos_progress_length; }			// the length of the visible progress line
+
+
+// *******************************************************************************************************************
+//
 //	Termination handling
 //
 #pragma mark -
@@ -464,6 +487,9 @@ void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_
 extern bool gEidosTerminateThrows;
 extern std::ostringstream gEidosTermination;
 
+// BCH 3/9/2025: before starting error output, it would be nice to call Eidos_EraseProgress() to erase a
+// progress line, so the output doesn't get garbled; but that would complicate the flow a fair bit, and
+// probably it isn't really necessary since error output will almost always overwrite the progress completely.
 #define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
 
 // This little class is used as a stream manipulator that causes termination with EXIT_FAILURE, optionally

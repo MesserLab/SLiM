@@ -25,7 +25,10 @@
 
 
 #include <iostream>
+#include <iomanip>
+#include <ios>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <cstdio>
@@ -34,6 +37,7 @@
 #include <unistd.h>
 #include <ctime>
 #include <chrono>
+#include <algorithm>
 #include <sys/stat.h>
 
 #include "community.h"
@@ -104,9 +108,10 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] ";
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-p[rogress]]";
 #ifdef _OPENMP
 	// Some flags are visible only for a parallel build
+	// FIXME: these might not fit on the same line as other things
 	SLIM_OUTSTREAM << "[-maxThreads <n>] [-perTaskThreads \"x\"] ";
 #endif
 #if (SLIMPROFILING == 1)
@@ -129,6 +134,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -t[ime]            : print SLiM's total execution time (in user clock time)" << std::endl;
 		SLIM_OUTSTREAM << "   -m[em]             : print SLiM's peak memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -M[emhist]         : print a histogram of SLiM's memory usage" << std::endl;
+		SLIM_OUTSTREAM << "   -p[rogress]        : show a progress bar in the terminal as SLiM runs" << std::endl;
 		SLIM_OUTSTREAM << "   -x                 : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>    : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
 #ifdef _OPENMP
@@ -186,6 +192,7 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false, tree_seq_force = false;
+	bool show_progress = false;
 	std::vector<std::string> defined_constants;
 	
 #ifdef _OPENMP
@@ -310,6 +317,14 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		{
 			keep_mem = true;		// implied by this
 			keep_mem_hist = true;
+			
+			continue;
+		}
+		
+		// -progress or -p: show a progress bar as the model runs
+		if (strcmp(arg, "--progress") == 0 || strcmp(arg, "-progress") == 0 || strcmp(arg, "-p") == 0)
+		{
+			show_progress = true;
 			
 			continue;
 		}
@@ -653,6 +668,22 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		int mem_check_counter = 0, mem_check_mod = 10;
 #endif
 		
+		// decide whether or not we're showing progress; we show it only if we have a tty (i.e. a terminal window)
+		// it'd be nice if we could show progress in a terminal window even when our output has been redirected, but
+		// I don't know how we'd do that -- how do we write to the terminal if stdout and stderr are redirected??
+		if (show_progress)
+		{
+			if (isatty(fileno(stdout)))
+				Eidos_StartProgress(&std::cout);
+			else if (isatty(fileno(stderr)))
+				Eidos_StartProgress(&std::cerr);
+			else
+			{
+				std::cerr << "### Not showing progress, since neither stdout nor stderr is a tty." << std::endl << std::endl;
+				show_progress = false;
+			}
+		}
+		
 		// Run the simulation to its natural end
 #if (SLIMPROFILING == 1)
 		bool profiling_started = false;
@@ -704,6 +735,38 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 			
 			if (!tick_result)
 				break;
+			
+			if (show_progress)
+			{
+				slim_tick_t current_tick = community->Tick();
+				slim_tick_t last_tick = community->EstimatedLastTick();
+				slim_tick_t progress_step;
+				
+				if (last_tick <= 1000)
+					progress_step = 1;
+				else if (last_tick <= 10000)
+					progress_step = 10;
+				else
+					progress_step = 100;	// the maximum value, just so our updates are reasonably frequent
+				
+				// We write out a line, as long as we are past initialize(), on any of three conditions:
+				// it's tick 1, it is a multiple of progress_step ticks, or the progress line got erased
+				if ((current_tick >= 1) && ((current_tick == 1) || (current_tick % progress_step == 0) || (Eidos_ProgressLength() == 0)))
+				{
+					double progress_fraction = (current_tick - 1) / (double)(last_tick - 1);
+					const int bar_length = 30;
+					int filled_count = std::max(0, std::min((int)round(bar_length * progress_fraction), bar_length));
+					int empty_count = bar_length - filled_count;
+					std::string filled_str = std::string(filled_count, '#');
+					std::string empty_str = std::string(empty_count, ' ');
+					std::ostringstream out_line;
+					
+					// decided not to use std::setw(3) to put the percentage in a fixed-width field
+					out_line << " [" << filled_str << empty_str << "] : " << std::setprecision(0) << std::fixed << (progress_fraction * 100) << "% (tick " << current_tick << " of " << community->EstimatedLastTick() << ")";
+					
+					Eidos_WriteProgress(out_line.str());
+				}
+			}
 			
 			if (keep_mem_hist)
 			{

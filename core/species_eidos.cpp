@@ -3110,6 +3110,11 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		if (!outfile.is_open())
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputFixedMutations): outputFixedMutations() could not open "<< outfile_path << "." << EidosTerminate();
 	}
+	else
+	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+	}
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 	
@@ -3205,6 +3210,9 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		if (use_binary)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputFull): outputFull() cannot output in binary format to the standard output stream; specify a file for output." << EidosTerminate();
 		
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		Individual::PrintIndividuals_SLiM(output_stream, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, /* p_focal_chromosome */ nullptr);
@@ -3283,6 +3291,11 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 		
 		if (!outfile.is_open())
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputMutations): outputMutations() could not open "<< outfile_path << "." << EidosTerminate();
+	}
+	else
+	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
 	}
 	
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
@@ -4131,6 +4144,9 @@ EidosValue_SP Species::ExecuteMethod__debug(EidosGlobalStringID p_method_id, con
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// This method is a debugging hook to make it easier to do things on demand during a debugging session.
 	// It is not user-visible (e.g., with the methods() method) since it starts with an underscore.
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	//std::unordered_map<slim_objectid_t, std::string> used_subpop_ids_;
 	//std::unordered_set<std::string> used_subpop_names_;

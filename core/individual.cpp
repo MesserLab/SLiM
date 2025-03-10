@@ -3281,6 +3281,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		Individual::PrintIndividuals_SLiM(output_stream, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, chromosome);
@@ -3361,6 +3364,9 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividualsToVCF(EidosGlobal
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		// write the #OUT line, for file output only

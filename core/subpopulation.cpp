@@ -11140,6 +11140,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		if (!outfile.is_open())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() could not open "<< outfile_path << "." << EidosTerminate();
 	}
+	else
+	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+	}
 	
 	std::ostream &out = *(has_file ? dynamic_cast<std::ostream *>(&outfile) : dynamic_cast<std::ostream *>(&output_stream));
 	

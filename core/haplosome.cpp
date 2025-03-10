@@ -3101,6 +3101,9 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 	// Now handle stream/file output and dispatch to the actual print method
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
 	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		// If filePath is NULL, output to our output stream
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		

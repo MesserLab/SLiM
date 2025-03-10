@@ -902,9 +902,12 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// BEWARE: See also the -usage() method, which must be maintained in parallel with this
-	std::ostream &out = p_interpreter.ExecutionOutputStream();
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	// Save flags/precision and set to precision 1
+	std::ostream &out = p_interpreter.ExecutionOutputStream();
 	std::ios_base::fmtflags oldflags = out.flags();
 	std::streamsize oldprecision = out.precision();
 	out << std::fixed << std::setprecision(1);

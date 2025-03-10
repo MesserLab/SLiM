@@ -141,6 +141,9 @@ EidosValue_SP EidosObject::ExecuteMethod_str(EidosGlobalStringID p_method_id, co
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << Class()->ClassNameForDisplay() << ":" << std::endl;
@@ -610,6 +613,9 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
 	EidosValue_String *propertyName_value = (EidosValue_String *)p_arguments[0].get();
@@ -640,6 +646,9 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();

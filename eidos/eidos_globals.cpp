@@ -1459,6 +1459,53 @@ std::string gEidosContextLicense;
 std::string gEidosContextCitation;
 
 
+// *******************************************************************************************************************
+//
+//	CLI progress reporting
+//
+#pragma mark -
+#pragma mark CLI progress reporting
+#pragma mark -
+
+std::ostream *gEidos_progress_outstream = nullptr;
+int gEidos_progress_length = 0;
+
+void Eidos_StartProgress(std::ostream *p_progress_stream)
+{
+	if (!gEidos_progress_outstream)
+		gEidos_progress_outstream = p_progress_stream;
+}
+
+void Eidos_WriteProgress(const std::string &p_progress_line)
+{
+	if (gEidos_progress_outstream)
+	{
+		// If we have a progress line up already, erase it in case the new line is shorter
+		Eidos_EraseProgress();
+		
+		// Then show the new line and move to the start of it, so it will get overwritten
+		*gEidos_progress_outstream << p_progress_line << "\r" << std::flush;
+		gEidos_progress_length = (int)p_progress_line.length();
+	}
+}
+
+void Eidos_EraseProgress(void)
+{
+	// Try to erase a progress line we have up.  This will not work well with all styles of output in the
+	// running model.  If the user writes a partial output line without a newline, our progress line
+	// may get tacked on to the end of that, and then not get erased correctly later.  It's hard to
+	// coordinate the progress bar with other output.  We're not going to worry about such issues too
+	// much; the user can always turn off the progress bar, it's an optional feature.
+	if (gEidos_progress_outstream && (gEidos_progress_length > 0))
+	{
+		std::string erase_str = std::string(gEidos_progress_length, ' ');
+		
+		*gEidos_progress_outstream << erase_str << "\r" << std::flush;
+		gEidos_progress_length = 0;
+	}
+}
+
+
 #pragma mark -
 #pragma mark Termination handling
 #pragma mark -
@@ -1483,6 +1530,9 @@ bool gEidosTerminated;
 // For a shortened backtrace: NSLog(@"%@", [NSThread.callStackSymbols subarrayWithRange:NSMakeRange(0, MIN(5UL, NSThread.callStackSymbols.count))]);
 void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 {
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	fprintf(p_out, "stack trace:\n");
 	
 	// storage array for stack trace address data

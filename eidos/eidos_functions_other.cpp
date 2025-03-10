@@ -74,6 +74,9 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 	{
 		EidosValue *message_value = p_arguments[1].get();
 		
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		if (message_value->Type() != EidosValueType::kValueNULL)
 		{
 			std::string &&stop_string = message_value->StringAtIndex_NOCAST(0, nullptr);
@@ -122,6 +125,9 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const std::
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	output_stream << "To cite Eidos in publications please use:" << std::endl << std::endl;
 	output_stream << "Haller, B.C. (2016). Eidos: A Simple Scripting Language." << std::endl;
@@ -544,6 +550,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		else
 			time_spent = std::chrono::duration<double>(end_ts - begin_ts).count();
 		
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		p_interpreter.ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
 	}
 	
@@ -614,6 +623,9 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
 	
@@ -658,6 +670,9 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	std::string match_string = functionName_value->StringAtIndex_NOCAST(0, nullptr);
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
@@ -719,6 +734,9 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const std::v
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << "Eidos is free software: you can redistribute it and/or" << std::endl;
@@ -752,6 +770,9 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	bool showSymbolTables = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	std::ostream &outstream = p_interpreter.ExecutionOutputStream();
 	EidosSymbolTable &current_symbol_table = p_interpreter.SymbolTable();
@@ -1374,6 +1395,9 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 	
 	EidosValue *message_value = p_arguments[0].get();
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	if (message_value->Type() != EidosValueType::kValueNULL)
 	{
 		std::string &&stop_string = p_arguments[0]->StringAtIndex_NOCAST(0, nullptr);
@@ -1687,6 +1711,9 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	
 	if (print)
 	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;

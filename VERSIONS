@@ -146,6 +146,7 @@ development head (in the master branch):
 		fix #473, that tree-seq scripts with a subtle timing error in the addition of a new mutation would not generate a good error message from SLiM
 		fix #488, non-UTF-8 encoding causes poor error
 		fix #476, external editing causes SLiMgui to get confused
+		fix #479, CLI progress bar would be a nice option; this is now -p[rogress]
 
 
 version 4.3 (Eidos version 3.3):
