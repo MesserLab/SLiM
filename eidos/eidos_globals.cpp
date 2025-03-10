@@ -109,6 +109,9 @@ int gEidosFloatOutputPrecision = 6;
 int gEidosDebugIndent = 0;
 #endif
 
+// start our wall clock duration timer at launch; this is for Eidos_WallTimeSeconds().
+std::chrono::steady_clock::time_point gEidos_WallTimeBegin = std::chrono::steady_clock::now();
+
 
 #pragma mark -
 #pragma mark Profiling support
@@ -1929,7 +1932,7 @@ void CheckLongTermBoundary()
 
 
 #pragma mark -
-#pragma mark Memory usage monitoring
+#pragma mark Memory usage and runtime monitoring
 #pragma mark -
 
 //
@@ -2226,6 +2229,45 @@ void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &
 			eidos_do_memory_checks = false;
 		}
 	}
+}
+
+double Eidos_WallTimeSeconds(void)
+{
+	std::chrono::steady_clock::time_point end_wall = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::duration wall_duration = end_wall - gEidos_WallTimeBegin;
+	double wall_time_secs = std::chrono::duration<double>(wall_duration).count();
+	
+	return wall_time_secs;
+}
+
+void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time)
+{
+	double user_time, sys_time;
+	
+#if defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+	/* BSD, Linux, and OSX -------------------------------------- */
+	struct rusage rusage;
+	getrusage( RUSAGE_SELF, &rusage );
+	
+	user_time = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.0;
+	sys_time = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.0;	
+#elif defined(_WIN32)
+	/* Windows might be the same?  Let's find out! -------------- */
+	struct rusage rusage;
+	getrusage( RUSAGE_SELF, &rusage );
+	
+	user_time = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.0;
+	sys_time = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.0;	
+#else
+	/* Unknown OS ----------------------------------------------- */
+	user_time = 0.0;			/* Unsupported. */
+	sys_time = 0.0;				/* Unsupported. */
+#endif
+	
+	if (p_user_time)
+		*p_user_time = user_time;
+	if (p_sys_time)
+		*p_sys_time = sys_time;
 }
 
 

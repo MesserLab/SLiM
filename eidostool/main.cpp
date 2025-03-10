@@ -170,7 +170,6 @@ int main(int argc, const char * argv[])
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	std::clock_t begin_cpu = std::clock();
-	std::chrono::steady_clock::time_point begin_wall = std::chrono::steady_clock::now();
 	
 	// keep memory usage information, if asked to
 	size_t initial_mem_usage = 0;
@@ -254,15 +253,20 @@ int main(int argc, const char * argv[])
 	Eidos_FlushFiles();
 	
 	// end timing and print elapsed time
-	std::clock_t end_cpu = std::clock();
-	std::chrono::steady_clock::time_point end_wall = std::chrono::steady_clock::now();
-	double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
-	double wall_time_secs = std::chrono::duration<double>(end_wall - begin_wall).count();
-	
 	if (keep_time)
 	{
+		std::clock_t end_cpu = std::clock();
+		double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
+		double user_time, sys_time;
+		
+		Eidos_GetUserSysTime(&user_time, &sys_time);
+		
 		std::cout << "// ********** CPU time used: " << cpu_time_secs << std::endl;
-		std::cout << "// ********** Wall time used: " << wall_time_secs << std::endl;
+		if (user_time > 0.0)
+			std::cout << "// ********** User CPU time: " << user_time << std::endl;
+		if (sys_time > 0.0)
+			std::cout << "// ********** System CPU time: " << sys_time << std::endl;
+		std::cout << "// ********** Wall time used: " << Eidos_WallTimeSeconds() << std::endl;
 	}
 	
 	// print memory usage stats

@@ -143,8 +143,6 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const std::
 }
 
 //	(float$)clock([string$ type = "cpu"])
-static std::chrono::steady_clock::time_point timebase = std::chrono::steady_clock::now();	// start at launch
-
 EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -163,9 +161,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 	else if (type_name == "mono")
 	{
 		// monotonic clock time; this is best for measured user-perceived elapsed times
-		std::chrono::steady_clock::time_point ts = std::chrono::steady_clock::now();
-		std::chrono::steady_clock::duration clock_duration = ts - timebase;
-		double seconds = std::chrono::duration<double>(clock_duration).count();
+		double seconds = Eidos_WallTimeSeconds();
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(seconds));
 	}

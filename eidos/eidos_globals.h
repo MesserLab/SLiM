@@ -244,10 +244,10 @@ void CheckLongTermBoundary();
 
 // *******************************************************************************************************************
 //
-//	Memory usage monitoring
+//	Memory usage and runtime monitoring
 //
 #pragma mark -
-#pragma mark Memory usage monitoring
+#pragma mark Memory usage and runtime monitoring
 #pragma mark -
 
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
@@ -262,6 +262,12 @@ size_t Eidos_GetMaxRSS(void);
 // p_message1 should be the name of the calling function/method; p_message2 can be any clarifying message.
 // It is a good idea to check eidos_do_memory_checks before calling this, to save calling overhead.
 void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &p_message2);
+
+// This provides the elapsed wall clock time, in seconds, since process startup.
+double Eidos_WallTimeSeconds(void);
+
+// This provides total process time usage in terms of user CPU time and system CPU time, not wall clock time.
+void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time);
 
 
 // *******************************************************************************************************************

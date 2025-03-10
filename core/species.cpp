@@ -6636,7 +6636,9 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	try {
 		nlohmann::json j;
 		
-		j["schema_version"] = "1.0.0";
+		// BCH 3/10/2024: Moving from schema version 1.0.0 to 1.1.0, which I believe shipped in tskit 0.5.9.
+		// This adds the optional `resources` key.  See https://github.com/MesserLab/SLiM/issues/478.
+		j["schema_version"] = "1.1.0";
 		
 		struct utsname name;
 		ret = uname(&name);
@@ -6739,6 +6741,23 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 		j["metadata"]["individuals"]["flags"]["17"]["description"] = "the individual was requested by the user to be permanently remembered";
 		j["metadata"]["individuals"]["flags"]["18"]["name"] = "SLIM_TSK_INDIVIDUAL_RETAINED";
 		j["metadata"]["individuals"]["flags"]["18"]["description"] = "the individual was requested by the user to be retained only if its nodes continue to exist in the tree sequence";
+		
+		// We save this information out only for runs at the command line.  This data might not be available on
+		// all platforms; when it is unavailable, the key will be omitted.  We always have elapsed wall time.
+#ifndef SLIMGUI
+		double user_time, sys_time;
+		size_t peak_RSS = Eidos_GetPeakRSS();
+		
+		Eidos_GetUserSysTime(&user_time, &sys_time);
+		
+		j["resources"]["elapsed_time"] = Eidos_WallTimeSeconds();
+		if (user_time > 0.0)
+			j["resources"]["user_time"] = user_time;
+		if (sys_time > 0.0)
+			j["resources"]["sys_time"] = sys_time;
+		if (peak_RSS > 0)
+			j["resources"]["max_memory"] = peak_RSS;
+#endif
 		
 		if (p_use_newlines)
 			provenance_str = j.dump(4);

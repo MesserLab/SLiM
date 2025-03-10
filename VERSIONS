@@ -147,6 +147,7 @@ development head (in the master branch):
 		fix #488, non-UTF-8 encoding causes poor error
 		fix #476, external editing causes SLiMgui to get confused
 		fix #479, CLI progress bar would be a nice option; this is now -p[rogress]
+		fix #478, record resource usage information in the tree sequence provenance; now we also print user/sys CPU usage for -t[ime], since we now have the information
 
 
 version 4.3 (Eidos version 3.3):
