@@ -2252,12 +2252,21 @@ void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time)
 	user_time = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.0;
 	sys_time = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.0;	
 #elif defined(_WIN32)
-	/* Windows might be the same?  Let's find out! -------------- */
-	struct rusage rusage;
-	getrusage( RUSAGE_SELF, &rusage );
+	/* Windows does not have getrusage() ------------------------ */
+	FILETIME creation_time, exit_time, kernel_time, user_time;
+	GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time);
 	
-	user_time = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.0;
-	sys_time = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.0;	
+	// Windows programming is weird.  Thanks to https://stackoverflow.com/a/12845669/2752221.
+	ULARGE_INTEGER kernel_ularge;
+	ULARGE_INTEGER user_ularge;
+	
+	kernel_ularge.LowPart = kernel_time.dwLowDateTime;
+	kernel_ularge.HighPart = kernel_time.dwHighDateTime;
+	user_ularge.LowPart = user_time.dwLowDateTime;
+	user_ularge.HighPart = user_time.dwHighDateTime;
+	
+	user_time = user_ularge / 10000000.0;
+	sys_time = kernel_ularge / 10000000.0;
 #else
 	/* Unknown OS ----------------------------------------------- */
 	user_time = 0.0;			/* Unsupported. */
