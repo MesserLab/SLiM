@@ -2265,8 +2265,8 @@ void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time)
 	user_ularge.LowPart = proc_user_time.dwLowDateTime;
 	user_ularge.HighPart = proc_user_time.dwHighDateTime;
 	
-	user_time = user_ularge / 10000000.0;
-	sys_time = kernel_ularge / 10000000.0;
+	user_time = user_ularge.QuadPart / 10000000.0;
+	sys_time = kernel_ularge.QuadPart / 10000000.0;
 #else
 	/* Unknown OS ----------------------------------------------- */
 	user_time = 0.0;			/* Unsupported. */
