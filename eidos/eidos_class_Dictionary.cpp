@@ -1553,26 +1553,32 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	EidosValue *key_value = p_arguments[0].get();
 	const EidosValue_SP &value = p_arguments[1];
 	
-	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+	// This method used to not call SetKeyValue(), in order to set the same value across multiple
+	// targets.  That made me nervous, and was hard to reconcile with DataFrame, so I removed it.
+	
+	if (key_value->Type() == EidosValueType::kValueString)
 	{
-		EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
+		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
-		// This method used to not call SetKeyValue(), in order to set the same value across multiple
-		// targets.  That made me nervous, and was hard to reconcile with DataFrame, so I removed it.
-		if (key_value->Type() == EidosValueType::kValueString)
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
-			const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
+			EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
 			
 			element->SetKeyValue_StringKeys(key, value);
+			element->ContentsChanged("setValue()");
 		}
-		else
+	}
+	else
+	{
+		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+		
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
-			int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+			EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
 			
 			element->SetKeyValue_IntegerKeys(key, value);
+			element->ContentsChanged("setValue()");
 		}
-		
-		element->ContentsChanged("setValue()");
 	}
 	
 	return gStaticEidosValueVOID;
@@ -1664,10 +1670,103 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("slim"))));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
 		
+		methods->emplace_back(((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_setValuesVectorized, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("values")));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
+}
+
+EidosValue_SP EidosDictionaryUnretained_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+	switch (p_method_id)
+	{
+		case gEidosID_setValuesVectorized:	return ExecuteMethod_setValuesVectorized(p_method_id, p_target, p_arguments, p_interpreter);
+		default:							return EidosClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	+ (void)setValuesVectorized(is$ key, * values)
+//
+EidosValue_SP EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *key_value = p_arguments[0].get();
+	const EidosValue *values = p_arguments[1].get();
+	int values_count = values->Count();
+	EidosDictionaryUnretained * const *targets = (EidosDictionaryUnretained * const *)(p_target->ObjectData());
+	int target_size = p_target->Count();
+	
+	if (target_size != values_count)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized): setValuesVectorized() requires that the size of the target vector equals the size of the values parameter, so that the 1:1 vectorized operation can be performed." << EidosTerminate();
+	
+	if (key_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
+		
+		if ((values->Type() == EidosValueType::kValueObject) && !((EidosValue_Object *)values)->UsesRetainRelease())
+		{
+			// If we're setting object values that aren't under retain-release, calling ContentsChanged() is probably important
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_StringKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+		else
+		{
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
+			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
+			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
+			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
+			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
+			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_StringKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				//target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+	}
+	else
+	{
+		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+		
+		if ((values->Type() == EidosValueType::kValueObject) && !((EidosValue_Object *)values)->UsesRetainRelease())
+		{
+			// If we're setting object values that aren't under retain-release, calling ContentsChanged() is probably important
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_IntegerKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+		else
+		{
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
+			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
+			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
+			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
+			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
+			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_IntegerKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				//target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+	}
+	
+	return gStaticEidosValueVOID;
 }
 
 

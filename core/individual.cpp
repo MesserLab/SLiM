@@ -3217,7 +3217,15 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 		case gID_outputIndividualsToVCF:	return ExecuteMethod_outputIndividualsToVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readIndividualsFromVCF:	return ExecuteMethod_readIndividualsFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_setSpatialPosition:		return ExecuteMethod_setSpatialPosition(p_method_id, p_target, p_arguments, p_interpreter);
-		default:							return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		default:
+		{
+			// In a sense, we here "subclass" EidosDictionaryUnretained_Class to override setValuesVectorized(); we set a flag remembering that
+			// an individual's dictionary has been modified, and then we call "super" for the usual behavior.
+			if (p_method_id == gEidosID_setValuesVectorized)
+				Individual::s_any_individual_dictionary_set_ = true;
+			
+			return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		}
 	}
 }
 

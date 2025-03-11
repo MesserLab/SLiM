@@ -1118,12 +1118,30 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value")));
 		
+		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosClassMethodSignature(gEidosStr_setValuesVectorized, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value")));
+		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
 }
 
+EidosValue_SP LogFile_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+	switch (p_method_id)
+	{
+		case gEidosID_setValuesVectorized:	return ExecuteMethod_setValuesVectorized(p_method_id, p_target, p_arguments, p_interpreter);
+		default:							return EidosDictionaryRetained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	+ (void)setValuesVectorized(is$ key, * values)
+//
+EidosValue_SP LogFile_Class::ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setValuesVectorized): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
+}
 
 
 

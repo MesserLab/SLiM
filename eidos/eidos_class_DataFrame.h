@@ -42,7 +42,7 @@ protected:
 	// We keep a user-defined order for our keys, overriding Dictionary's sorted key order
 	std::vector<std::string> sorted_keys_;
 	
-	virtual void Raise_UsesStringKeys() const override;
+	virtual void Raise_UsesStringKeys() const override __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 public:
 	EidosDataFrame(const EidosDataFrame &p_original) = delete;		// no copy-construct

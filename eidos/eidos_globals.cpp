@@ -1926,6 +1926,9 @@ void CheckLongTermBoundary()
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter != 0)
 		violation = true;
 	
+	// See EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized() for a very obscure
+	// and very unlikely code path that would cause this error to occur... erroneously.  :->
+	
 	if (violation)
 		EIDOS_TERMINATION << "ERROR (CheckLongTermBoundary): A long-term reference has been kept to an Eidos object that is not under retain-release memory management.  For example, a SLiM Individual or Subpopulation may have been placed in a global dictionary.  This is illegal; only objects that are under retain-release memory management can be kept long-term." << EidosTerminate(nullptr);
 }
@@ -4015,6 +4018,7 @@ const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidos
 const std::string &gEidosStr_identicalContents = EidosRegisteredString("identicalContents", gEidosID_identicalContents);
 const std::string &gEidosStr_serialize = EidosRegisteredString("serialize", gEidosID_serialize);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
+const std::string &gEidosStr_setValuesVectorized = EidosRegisteredString("setValuesVectorized", gEidosID_setValuesVectorized);
 
 // strings for DictionaryRetained (the retain/released subclass created by the Dictionary() constructor)
 const std::string &gEidosStr_DictionaryRetained = EidosRegisteredString("DictionaryRetained", gEidosID_DictionaryRetained);

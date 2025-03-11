@@ -1000,6 +1000,7 @@ extern const std::string &gEidosStr_getValue;
 extern const std::string &gEidosStr_identicalContents;
 extern const std::string &gEidosStr_serialize;
 extern const std::string &gEidosStr_setValue;
+extern const std::string &gEidosStr_setValuesVectorized;
 
 extern const std::string &gEidosStr_DictionaryRetained;
 
@@ -1131,6 +1132,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_identicalContents,
 	gEidosID_serialize,
 	gEidosID_setValue,
+	gEidosID_setValuesVectorized,
 
 	gEidosID_DictionaryRetained,
 

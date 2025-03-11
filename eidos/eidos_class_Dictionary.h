@@ -106,8 +106,8 @@ protected:
 	void *state_ptr_ = nullptr;	// pointer to EidosDictionaryState_StringKeys or EidosDictionaryState_IntegerKeys
 	
 	// Raise exceptions saying "keys are expected to be string, but are not string" etc.
-	virtual void Raise_UsesStringKeys(void) const;
-	virtual void Raise_UsesIntegerKeys(void) const;
+	virtual void Raise_UsesStringKeys(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
+	virtual void Raise_UsesIntegerKeys(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 	// Assert that our keys are of a given type; if not, an exception is raised; if it is undecided, neither method raises
 	inline void AssertKeysAreStrings(void) const { if (!KeysAreStrings()) Raise_UsesIntegerKeys(); }
@@ -242,6 +242,9 @@ public:
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
 

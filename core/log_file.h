@@ -64,7 +64,7 @@ private:
 	typedef EidosDictionaryRetained super;
 
 protected:
-	virtual void Raise_UsesStringKeys() const override;
+	virtual void Raise_UsesStringKeys() const override __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 #ifdef SLIMGUI
 public:
@@ -186,6 +186,10 @@ public:
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
+	
+	// Overrides of Dictionary methods, since we have a special Dictionary behavior
+	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 
 

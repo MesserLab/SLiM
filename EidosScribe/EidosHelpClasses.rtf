@@ -1118,6 +1118,42 @@ If
 \f4\fs20 , 
 \f3\fs18 Image
 \f4\fs20 ) are under retain-release, so this restriction does not affect pure Eidos code.  See the SLiM manual (section \'93SLiM scoping rules\'94) for further discussion of this topic.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 +\'a0(void)setValuesVectorized(is$\'a0key, *\'a0values)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This class method sets a singleton value from 
+\f3\fs18 values
+\f4\fs20  into each target dictionary, using the same dictionary entry identifier 
+\f3\fs18 key
+\f4\fs20  for each.  The number of elements in 
+\f3\fs18 values
+\f4\fs20  must be equal to the number of target dictionaries, so that the 0th element of 
+\f3\fs18 values
+\f4\fs20  is set as the value for the 0th target object, the 1st element of 
+\f3\fs18 values
+\f4\fs20  is set as the value for the 1st target object, and so forth.\
+This is a vectorized version of 
+\f3\fs18 setValue()
+\f4\fs20 ; 
+\f3\fs18 dicts.setValuesVectorized("key", values)
+\f4\fs20  is equivalent to 
+\f3\fs18 for (dict in dicts, value in values) dict.setValue("key", value)
+\f4\fs20 , but is faster since the 
+\f3\fs18 for
+\f4\fs20  loop is vectorized internally.  The speedup is not enormous, however; the larger reason for the existence of this method is convenience.\
+The values are set into the target dictionaries in exactly the same way as the 
+\f3\fs18 setValue()
+\f4\fs20  method would do; see that method for details about 
+\f3\fs18 string
+\f4\fs20  versus 
+\f3\fs18 integer
+\f4\fs20  keys, scoping restrictions for values of type 
+\f3\fs18 object
+\f4\fs20 , and so forth.  Note that it is not possible to remove values from the target dictionaries, however, since it is not possible to pass 
+\f3\fs18 NULL
+\f4\fs20  as a value here.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.4  Class Image\
