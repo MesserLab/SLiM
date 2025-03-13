@@ -4983,9 +4983,9 @@ void Species::_SimplifyTreeSequence(TreeSeqInfo &tsinfo, const std::vector<tsk_i
 		// BCH 12/10/2024: This should still work, with our own node table filtering code.  As Jerome explains, "simplify
 		// will still keep the *edges* that are unary, and that's all that matters. The downstream filtering code you
 		// have just looks to see what nodes have references, and filters out those that are not used in any edges."
-		if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
-		// FIXME Peter comments "I think this is supposed to be TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS; see #487."
-		// That isn't related to multichrom at all, though, so I'm going to leave it for later, with #487.
+		// BCH 3/13/2025: changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS,
+		// since it is the correct flag; see discussion in https://github.com/MesserLab/SLiM/issues/487
+		if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS;
 		
 		// BCH 12/9/2024: These flags are added for multichromosome support; we want to simplify all the tree sequences
 		// (perhaps in parallel), without touching the node table at all, and then we clean up the node table afterwards.
@@ -7718,8 +7718,11 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				
 				// crosscheck is not going to be parallelized, so we use different flags for simplify here than in
 				// Species::_SimplifyTreeSequence(); in particular, we let it filter nodes and individuals for us
+				// BCH 3/13/2025: changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS,
+				// since it is the correct flag; see discussion in https://github.com/MesserLab/SLiM/issues/487
 				flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
-				if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
+				if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS;
+				
 				ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 				if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 				
