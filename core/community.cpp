@@ -176,7 +176,6 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	
 	// Set up top-level error-reporting info
 	gEidosErrorContext.currentScript = script_;
-	gEidosErrorContext.executingRuntimeScript = false;
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -433,12 +432,8 @@ void Community::InitializeFromFile(std::istream &p_infile)
 		}
 	}
 	
-	// Reset error position indicators used by SLiMgui
-	ClearErrorPosition();
-	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 }
 
 void Community::FinishInitialization(void)
@@ -452,17 +447,12 @@ void Community::FinishInitialization(void)
 	{
 		// Set up top-level error-reporting info
 		gEidosErrorContext.currentScript = script_;
-		gEidosErrorContext.executingRuntimeScript = false;
 		
 		// Do the tick range evaluation work
 		EvaluateScriptBlockTickRanges();
 		
-		// Reset error position indicators used by SLiMgui
-		ClearErrorPosition();
-		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 	}
 }
 
@@ -2026,18 +2016,12 @@ bool Community::RunOneTick(void)
 		catch (...)
 		{
 			simulation_valid_ = false;
-			
-			// In the event of a raise, we clear gEidosCurrentScript, which is not normally part of the error-
-			// reporting state, but is used only to inform EidosTerminate() about the current script at the point
-			// when a raise occurs.  We don't want raises after RunOneTick() returns to be attributed to us,
-			// so we clear the script pointer.  We do NOT clear any of the error-reporting state, since it will
-			// be used by higher levels to select the error in the GUI.
-			gEidosErrorContext.currentScript = nullptr;
 			return false;
 		}
 	}
 	
-	gEidosErrorContext.currentScript = nullptr;
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 #endif
 	
 	return false;
@@ -2055,7 +2039,6 @@ bool Community::_RunOneTick(void)
 	
 	// Define the current script around each cycle execution, for error reporting
 	gEidosErrorContext.currentScript = script_;
-	gEidosErrorContext.executingRuntimeScript = false;
 	
 	// Activate all species at the beginning of the tick, according their modulo/phase
 	if (tick_ == 0)
@@ -2228,8 +2211,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 #endif
 	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -2787,8 +2769,7 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		
 		return result;
 	}
@@ -3189,8 +3170,7 @@ bool Community::_RunOneTickNonWF(void)
 		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		
 		return result;
 	}

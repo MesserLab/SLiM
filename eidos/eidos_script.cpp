@@ -74,8 +74,19 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 #pragma mark EidosScript
 #pragma mark -
 
-EidosScript::EidosScript(std::string p_script_string, int32_t p_user_script_line_offset) :
-	script_string_(std::move(p_script_string)), user_script_line_offset_(p_user_script_line_offset)
+// This constructor is for a script that is unmoored from the user script, like a lambda.  There is no way
+// to correlate error positions in it back to the user script, no way to set debug points in it, etc.
+EidosScript::EidosScript(std::string p_script_string) : script_string_(std::move(p_script_string))
+{
+}
+
+// This constructor locates the script within in the context of the user's script, allowing things like debug
+// points and error tracking to be correlated between this derived script and the original user script.  For
+// the user script itself, the user script pointer should be nullptr and the offsets should be zero; the fact
+// that they are not -1 implies that they are valid offsets, and the fact the user script pointer is nullptr
+// says "I *am* the user script".
+EidosScript::EidosScript(std::string p_script_string, EidosScript *p_user_script, int32_t p_user_script_line_offset, int32_t p_user_script_char_offset, int32_t p_user_script_UTF16_offset) :
+	script_string_(std::move(p_script_string)), user_script_(p_user_script), user_script_line_offset_(p_user_script_line_offset), user_script_offset_(p_user_script_char_offset), user_script_offset_UTF16_(p_user_script_UTF16_offset)
 {
 }
 

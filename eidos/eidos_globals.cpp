@@ -47,14 +47,12 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <memory>
 #include <limits>
 #include <cmath>
 #include <utility>
 #include <iomanip>
 #include <sys/param.h>
 #include <regex>
-#include <signal.h>
 
 // added for Eidos_mkstemps() and Eidos_TemporaryDirectoryExists()
 #include <sys/stat.h>
@@ -112,6 +110,84 @@ int gEidosDebugIndent = 0;
 // start our wall clock duration timer at launch; this is for Eidos_WallTimeSeconds().
 std::chrono::steady_clock::time_point gEidos_WallTimeBegin = std::chrono::steady_clock::now();
 
+
+#pragma mark -
+#pragma mark Error tracking
+#pragma mark -
+
+void TranslateErrorContextToUserScript(__attribute__ ((unused)) const char *p_caller)
+{
+	// This attempts to translate an error position from the current script out to the user script, so
+	// the position of the error can be highlighted in the GUI.  If the current script is not derived
+	// from the user script, this will fail, and we might try again in a more outer/enclosing script
+	// level, later on in the unwinding of the stack due to the raise.
+	
+	// Note that gEidosErrorContext.currentScript is normally non-nullptr, but in the Eidos console,
+	// lines are executed with gEidosErrorContext.currentScript being nullptr.  There is no "script",
+	// there is only the code that was entered at the prompt, I guess.  Historical reasons, really.
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	// Debugging code for error-tracking
+	std::cout << "=== TranslateErrorContextToUserScript() called from " << p_caller << ":" << std::endl;
+	std::cout << "    gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 << std::endl;
+	std::cout << "    gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 << std::endl;
+	std::cout << "    gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << std::endl;
+	
+	if (gEidosErrorContext.currentScript)
+	{
+		EidosScript *currentScript = gEidosErrorContext.currentScript;
+		EidosScript *userScript = currentScript->UserScript();
+		EidosScript *errorScript = (userScript ? userScript : currentScript);
+		
+		std::cout << "    currentScript->UserScriptUTF16Offset() == " << currentScript->UserScriptUTF16Offset() << std::endl;
+		std::cout << "    currentScript->UserScriptCharOffset() == " << currentScript->UserScriptCharOffset() << std::endl;
+		std::cout << "    currentScript->String() == " << currentScript->String().substr(0, 20) << "..." << std::endl;
+		std::cout << "    currentScript->UserScript() == " << userScript << std::endl;
+		
+		if (errorScript)
+		{
+			const std::string &errorScriptString = errorScript->String();
+			int32_t error_start_utf = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16;
+			int32_t error_end_utf = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16;
+			int32_t offset_to_user_script = (userScript ? currentScript->UserScriptUTF16Offset() : 0);
+			
+			if (offset_to_user_script == -1)
+				offset_to_user_script = 0;
+			
+			int32_t user_error_pos = error_start_utf + offset_to_user_script;
+			int32_t user_error_length = (error_end_utf - error_start_utf) + 1;
+			std::string errorSubstring = errorScriptString.substr(user_error_pos, user_error_length);
+			
+			std::cout << "    errorScript substring == " << errorSubstring << std::endl;
+		}
+	}
+#endif
+	
+	// If the error is in a script derived from the user's script, translate the error up to the user's script.
+	// Doing this here ensures that it takes effect for all the different downstream code paths, of which there
+	// are many.  Note that there are two cases here.  If we have error info that indicates that we're running
+	// in a derived script with a known offset in the user script, then we translate the error position up to
+	// the user script.  If not, we're running in an unmoored script and the error position refers only to that
+	// script; in that case, we leave the error information untouched, and user_script here is nullptr.
+	if (gEidosErrorContext.currentScript)
+	{
+		EidosScript *user_script = gEidosErrorContext.currentScript->UserScript();
+		int32_t utf_offset = gEidosErrorContext.currentScript->UserScriptUTF16Offset();
+		int32_t char_offset = gEidosErrorContext.currentScript->UserScriptCharOffset();
+		
+		if ((utf_offset != -1) && (char_offset != -1) && (user_script != nullptr) && (user_script != gEidosErrorContext.currentScript))
+		{
+			// shift the error position to the user script coordinates
+			gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 += utf_offset;
+			gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 += utf_offset;
+			
+			gEidosErrorContext.errorPosition.characterStartOfError += char_offset;
+			gEidosErrorContext.errorPosition.characterEndOfError += char_offset;
+			
+			gEidosErrorContext.currentScript = user_script;
+		}
+	}
+}
 
 #pragma mark -
 #pragma mark Profiling support
@@ -1319,7 +1395,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression)
 {
 	EidosValue_SP value;
-	EidosScript script(p_value_expression, -1);
+	EidosScript script(p_value_expression);
 	
 	// Note this can raise; the caller should be prepared for that
 	script.SetFinalSemicolonOptional(true);
@@ -1347,7 +1423,7 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 	{
 		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid Eidos expression.
 		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
-		EidosScript script(constant, -1);
+		EidosScript script(constant);
 		bool malformed = false;
 		
 		try
@@ -1513,10 +1589,9 @@ void Eidos_EraseProgress(void)
 #pragma mark Termination handling
 #pragma mark -
 
-// the part of the input file that caused an error; used to highlight the token or text that caused the error
-EidosErrorContext gEidosErrorContext = {{-1, -1, -1, -1}, nullptr, false};
-
-int gEidosErrorLine = -1, gEidosErrorLineCharacter = -1;
+// The part of the input file that caused an error; used to highlight the token or text that caused the error.
+// The initial state set here is not legal; the currentScript member will need to be set before any error.
+EidosErrorContext gEidosErrorContext = {{-1, -1, -1, -1}, nullptr};
 
 // Warnings
 bool gEidosSuppressWarnings = false;
@@ -1691,57 +1766,16 @@ void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 	fflush(p_out);
 }
 
-void Eidos_ScriptErrorPosition(const EidosErrorContext &p_error_context)
-{
-	EidosScript *currentScript = p_error_context.currentScript;
-	int errorStart = p_error_context.errorPosition.characterStartOfError;
-	int errorEnd = p_error_context.errorPosition.characterEndOfError;
-	
-	gEidosErrorLine = -1;
-	gEidosErrorLineCharacter = -1;
-	
-	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
-	{
-		// figure out the script line and position
-		const std::string &script_string = currentScript->String();
-		int length = (int)script_string.length();
-		
-		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
-		{
-			int lineStart = (errorStart < length) ? errorStart : length - 1;
-			int lineEnd = (errorEnd < length) ? errorEnd : length - 1;
-			int lineNumber;
-			
-			for (; lineStart > 0; --lineStart)
-				if ((script_string[lineStart - 1] == '\n') || (script_string[lineStart - 1] == '\r'))
-					break;
-			for (; lineEnd < length - 1; ++lineEnd)
-				if ((script_string[lineEnd + 1] == '\n') || (script_string[lineEnd + 1] == '\r'))
-					break;
-			
-			// Figure out the line number in the script where the error starts
-			lineNumber = 1;
-			
-			for (int i = 0; i < lineStart; ++i)
-				if (script_string[i] == '\n')
-					lineNumber++;
-			
-			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = errorStart - lineStart;
-		}
-	}
-}
-
 void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_context)
 {
-	EidosScript *currentScript = p_error_context.currentScript;
+	EidosScript *errorScript = p_error_context.currentScript;
 	int errorStart = p_error_context.errorPosition.characterStartOfError;
 	int errorEnd = p_error_context.errorPosition.characterEndOfError;
 	
-	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
+	if (errorScript && (errorStart >= 0) && (errorEnd >= errorStart))
 	{
 		// figure out the script line, print it, show the error position
-		const std::string &script_string = currentScript->String();
+		const std::string &script_string = errorScript->String();
 		int length = (int)script_string.length();
 		
 		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
@@ -1764,13 +1798,13 @@ void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_
 				if (script_string[i] == '\n')
 					lineNumber++;
 			
-			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = errorStart - lineStart;
+			int errorLine = lineNumber;
+			int errorLineCharacter = errorStart - lineStart;
 			
-			p_out << std::endl << "Error on script line " << gEidosErrorLine << ", character " << gEidosErrorLineCharacter;
+			p_out << std::endl << "Error on script line " << errorLine << ", character " << errorLineCharacter;
 			
-			if (p_error_context.executingRuntimeScript)
-				p_out << " (inside runtime script block)";
+			if (errorScript->UserScriptCharOffset() == -1)
+				p_out << " (not inside the main user script)";
 			
 			p_out << ":" << std::endl << std::endl;
 			
@@ -1836,6 +1870,15 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_bac
 
 void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 {
+	// At the time that an EidosTerminate error is first raised, we try to translate it from the current script
+	// (which might be an event, a callback, a lambda...) into the user script's context.  This might fail,
+	// because the error might have occurred inside a script that is not derived from the user script; the
+	// code for the error position simply doesn't exist in the user script (perhaps it's a string, or it was
+	// created programmatically).  When we move outward from one script context to another, we will try again
+	// to translate the error context outward to the user script.  The first time we succeed, that defines the
+	// position at which the error will be shown in the GUI.
+	TranslateErrorContextToUserScript("operator<<(EidosTerminate)");
+	
 	p_out << std::endl;
 	
 	p_out.flush();

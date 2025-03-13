@@ -282,7 +282,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
     scriptString.replace(QChar::LineSeparator, "\n");
     
     std::string script_string(scriptString.toStdString());
-	EidosScript script(script_string, -1);
+	EidosScript script(script_string);
 	std::string output;
 	
 	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in

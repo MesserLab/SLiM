@@ -195,7 +195,7 @@ int main(int argc, const char * argv[])
 		
 		buffer << std::cin.rdbuf();
 		
-		script = new EidosScript(buffer.str(), 0);
+		script = new EidosScript(buffer.str(), nullptr, 0, 0, 0);
 	}
 	else
 	{
@@ -231,12 +231,11 @@ int main(int argc, const char * argv[])
 		
 		buffer << infile.rdbuf();
 		
-		script = new EidosScript(buffer.str(), 0);
+		script = new EidosScript(buffer.str(), nullptr, 0, 0, 0);
 	}
 	
 	// set up top-level error-reporting info
 	gEidosErrorContext.currentScript = script;
-	gEidosErrorContext.executingRuntimeScript = false;
 	
 	script->Tokenize();
 	script->ParseInterpreterBlockToAST(true);

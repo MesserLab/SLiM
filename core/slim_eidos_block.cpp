@@ -80,7 +80,7 @@ static inline bool SLiM_TokenIsCallbackIdentifier(EidosToken *token)
 #pragma mark SLiMEidosScript
 #pragma mark -
 
-SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string, 0)
+SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string, nullptr, 0, 0, 0)
 {
 }
 
@@ -919,7 +919,7 @@ SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_nod
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
+	root_node_(p_root_node)
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
@@ -1294,10 +1294,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), tick_range_evaluated_(true), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), tick_range_evaluated_(true), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec)
 {
 	// this constructor is used by the various registerX() methods that register a new script block; they all take a start and end tick,
 	// with no option to supply a vector of ticks instead, which is why there is no constructor here taking a vector of ticks
@@ -1306,7 +1306,9 @@ SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script
 	self_symbol_.second->MarkAsConstant();
 	script_block_symbol_.second->MarkAsConstant();
 	
-	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
+	// since this constructor is for script blocks that are not derived from the user script, we use the corresponding EidosScript constructor
+	script_ = new EidosScript(p_script_string);
+	
 	// the caller should now call TokenizeAndParse() to complete initialization
 }
 

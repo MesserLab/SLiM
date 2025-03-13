@@ -2929,8 +2929,7 @@
 	
 	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
-	NSString *currentScriptString = [scriptTextView string];
-	const char *cstr = [currentScriptString UTF8String];
+	const char *cstr = [[scriptTextView string] UTF8String];
 	NSString *errorDiagnostic = nil;
 	
 	if (!cstr)
@@ -3022,8 +3021,7 @@
 		if ([self checkScriptSuppressSuccessResponse:YES])
 		{
 			// We know the script is syntactically correct, so we can tokenize and parse it without worries
-			NSString *currentScriptString = [scriptTextView string];
-			const char *cstr = [currentScriptString UTF8String];
+			const char *cstr = [[scriptTextView string] UTF8String];
 			SLiMEidosScript script(cstr);	// SLiMEidosScript does not override Tokenize(), but it could...
 			
 			script.Tokenize(false, true);	// get whitespace and comment tokens
@@ -3231,9 +3229,7 @@
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSModalResponseOK)
 		{
-			NSString *currentScriptString = [scriptTextView string];
-			
-			[currentScriptString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
+			[[scriptTextView string] writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			
 			[sp autorelease];
 		}

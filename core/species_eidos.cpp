@@ -3525,7 +3525,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessEffectCallback(EidosGlobalSt
 	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage6CalculateFitness : SLiMCycleStage::kNonWFStage3CalculateFitness);
 	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_tick, end_tick, this, nullptr);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	
@@ -3582,7 +3582,7 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 	
 	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage2GenerateOffspring : SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_tick, end_tick, this, nullptr);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	
@@ -3635,7 +3635,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationCallback(EidosGlobalStringI
 	
 	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage2GenerateOffspring : SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosMutationCallback, start_tick, end_tick, this, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosMutationCallback, start_tick, end_tick, this, nullptr);
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
@@ -3679,7 +3679,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationEffectCallback(EidosGlobalS
 	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage6CalculateFitness : SLiMCycleStage::kNonWFStage3CalculateFitness);
 	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_tick, end_tick, this, nullptr);
 	
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
@@ -3737,7 +3737,7 @@ EidosValue_SP Species::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	community_.CheckScheduling(start_tick, SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, block_type, start_tick, end_tick, this, nullptr);
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	new_script_block->sex_specificity_ = sex_specificity;

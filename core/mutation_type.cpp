@@ -287,9 +287,9 @@ double MutationType::DrawSelectionCoefficient(void) const
 			if (!cached_dfe_script_)
 			{
 				std::string script_string = dfe_strings_[0];
-				cached_dfe_script_ = new EidosScript(script_string, -1);
+				cached_dfe_script_ = new EidosScript(script_string);
 				
-				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
+				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
 				
 				try
 				{
@@ -299,7 +299,10 @@ double MutationType::DrawSelectionCoefficient(void) const
 				catch (...)
 				{
 					if (gEidosTerminateThrows)
+					{
 						gEidosErrorContext = error_context_save;
+						TranslateErrorContextToUserScript("DrawSelectionCoefficient()");
+					}
 					
 					delete cached_dfe_script_;
 					cached_dfe_script_ = nullptr;
@@ -313,7 +316,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			}
 			
 			// Execute inside try/catch so we can handle errors well
-			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
 			
 			try
 			{
@@ -341,7 +344,15 @@ double MutationType::DrawSelectionCoefficient(void) const
 				// don't throw, this catch block will never be hit; exit() will already have been called
 				// and the error will have been reported from the context of the lambda script string.)
 				if (gEidosTerminateThrows)
-					gEidosErrorContext = error_context_save;
+				{
+					// In some cases, such as if the error occurred in a derived user-defined function, we can
+					// actually get a user script error context at this point, and don't need to intervene.
+					if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+					{
+						gEidosErrorContext = error_context_save;
+						TranslateErrorContextToUserScript("DrawSelectionCoefficient()");
+					}
+				}
 				
 #ifdef DEBUG_LOCKS_ENABLED
 				DrawSelectionCoefficient_InterpreterLock.end_critical();

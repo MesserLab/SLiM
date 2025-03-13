@@ -210,11 +210,12 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         textCursor().setBlockFormat(marginBlockFormat);
         insertPlainText(errorString);
         
-        if (!gEidosErrorContext.executingRuntimeScript &&
-                (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
-                (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
+		// If we have an error, it is in the user script, and it has a valid position,
+		// then we can try to highlight it in the input
+        if ((!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0)) &&
+            (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+            (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
 		{
-			// An error occurred, so let's try to highlight it in the input
             int promptEnd = lastPromptCursor.position();
 			int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + promptEnd;
 			int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + promptEnd;

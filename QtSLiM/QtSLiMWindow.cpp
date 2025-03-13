@@ -1217,9 +1217,9 @@ bool QtSLiMWindow::isScriptModified(void)
     if (scriptChangeObserved)
         return true;
     
-    QString currentScript = ui->scriptTextEdit->toPlainText();
+    QString curScriptString = ui->scriptTextEdit->toPlainText();
     
-    if (lastSavedString != currentScript)
+    if (lastSavedString != curScriptString)
     {
         scriptChangeObserved = true;    // sticky until saved
         return true;
@@ -2155,7 +2155,7 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         // Get the error position and clear the global
         EidosErrorContext errorContext = gEidosErrorContext;
         
-        gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+        ClearErrorContext();
         
         // Send the signal, which connects up to QtSLiMWindow::showTerminationMessage() through a Qt::QueuedConnection
         emit terminationWithMessage(message, errorContext);
@@ -2275,7 +2275,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
         {
             Species *species = (block->species_spec_ ? block->species_spec_ : (block->ticks_spec_ ? block->ticks_spec_ : nullptr));
             
-            if (species && (block->user_script_line_offset_ != -1) && block->root_node_ && block->root_node_->token_)
+            if (species && !block->script_ && block->root_node_ && block->root_node_->token_)
             {
                 EidosToken *block_root_token = block->root_node_->token_;
                 int startPos = block_root_token->token_UTF16_start_;
@@ -2831,7 +2831,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             gEidosTermination.clear();
             gEidosTermination.str("");
             gEidosTermination << "ERROR (Eidos_FlushFiles): A compressed file buffer failed to write out to disk.  Please check file paths, filesystem writeability and permissions, available disk space, and other possible causes of file I/O problems.\n";
-            gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+            ClearErrorContext();
         }
     }
 	
@@ -5441,8 +5441,8 @@ void QtSLiMWindow::debugOutputClicked(void)
 void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
 {
     QPlainTextEdit *scriptTE = ui->scriptTextEdit;
-    QString currentScriptString = scriptTE->toPlainText();
-    QByteArray utf8bytes = currentScriptString.toUtf8();
+    QString jumpScriptString = scriptTE->toPlainText();
+    QByteArray utf8bytes = jumpScriptString.toUtf8();
 	const char *cstr = utf8bytes.constData();
     bool failedParse = true;
     
@@ -5664,7 +5664,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
                 int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
                 int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
-                QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
+                QString decl = jumpScriptString.mid(decl_start, code_start - decl_start);
                 
                 // Remove everything including and after the first newline
                 if (decl.indexOf(QChar::LineFeed) != -1)
@@ -5788,8 +5788,8 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
     // this does a subset of the parsing logic of QtSLiMWindow::jumpToPopupButtonRunMenu()
     // it is used to get the label text for the script block label, to the right of the Jump button
     QPlainTextEdit *scriptTE = ui->scriptTextEdit;
-    QString currentScriptString = scriptTE->toPlainText();
-    QByteArray utf8bytes = currentScriptString.toUtf8();
+    QString curScriptString = scriptTE->toPlainText();
+    QByteArray utf8bytes = curScriptString.toUtf8();
     const char *cstr = utf8bytes.constData();
     
     QTextCursor selection_cursor(scriptTE->textCursor());
@@ -5851,7 +5851,7 @@ void QtSLiMWindow::setScriptBlockLabelTextFromSelection(void)
                 if ((selStart >= decl_start) && (selStart <= code_end) && (selEnd <= code_end + 2))     // +2 allows a selection through the end brace and one more character (typically a newline)
                 {
                     int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
-                    QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
+                    QString decl = curScriptString.mid(decl_start, code_start - decl_start);
                     
                     // Remove everything including and after the first newline
                     if (decl.indexOf(QChar::LineFeed) != -1)

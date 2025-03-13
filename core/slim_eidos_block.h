@@ -165,7 +165,6 @@ public:
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its tick range and type nodes
 	const EidosASTNode *compound_statement_node_ = nullptr;		// NOT OWNED: the node for the compound statement that constitutes the body of the block
 	const EidosToken *identifier_token_ = nullptr;
-	int32_t user_script_line_offset_;							// the initial position (lines) in the user's script; -1 if it is not in the user's script
 	
 	slim_usertag_t block_active_ = -1;							// the "active" property of the block: 0 if inactive, all other values are active
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
@@ -218,7 +217,7 @@ public:
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
 	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file; species gets set later
-	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.

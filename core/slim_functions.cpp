@@ -1828,9 +1828,9 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 		if (!script)
 		{
-			script = new EidosScript(operation_string, -1);
+			script = new EidosScript(operation_string);
 			
-			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 			
 			try
 			{
@@ -1840,7 +1840,10 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			catch (...)
 			{
 				if (gEidosTerminateThrows)
+				{
 					gEidosErrorContext = error_context_save;
+					TranslateErrorContextToUserScript("SLiM_ExecuteFunction_summarizeIndividuals()");
+				}
 				
 				delete script;
 				
@@ -1852,7 +1855,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		}
 		
 		// Execute inside try/catch so we can handle errors well
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		EidosValue_Object individuals_vec(gSLiM_Individual_Class);
 		individuals_vec.StackAllocated();
@@ -1917,7 +1920,15 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			// don't throw, this catch block will never be hit; exit() will already have been called
 			// and the error will have been reported from the context of the lambda script string.)
 			if (gEidosTerminateThrows)
-				gEidosErrorContext = error_context_save;
+			{
+				// In some cases, such as if the error occurred in a derived user-defined function, we can
+				// actually get a user script error context at this point, and don't need to intervene.
+				if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+				{
+					gEidosErrorContext = error_context_save;
+					TranslateErrorContextToUserScript("SLiM_ExecuteFunction_summarizeIndividuals()");
+				}
+			}
 			
 			if (!lambda_value_singleton)
 				delete script;

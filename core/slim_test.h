@@ -32,6 +32,8 @@ extern void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_li
 extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true, bool p_error_is_in_stop = false);
 extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber = -1);
 
+extern void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber);
+
 
 // Conceptually, all the slim_test_X.cpp stuff is a single source file, and all the details below are private.
 // It is split into multiple files to improve compile performance; the single source file took almost a minute to compile
@@ -49,6 +51,7 @@ extern void _RunMutationTests(void);
 extern void _RunHaplosomeTests(const std::string &temp_path);
 extern void _RunSubpopulationTests(void);
 extern void _RunIndividualTests(void);
+extern void _RunErrorPositionTests(void);
 extern void _RunRelatednessTests(void);
 extern void _RunInteractionTypeTests(void);
 extern void _RunSubstitutionTests(void);

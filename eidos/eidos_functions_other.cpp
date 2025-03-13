@@ -420,9 +420,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr), -1);
+		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr));
 		
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		try
 		{
@@ -442,7 +442,10 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
+			{
 				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("ExecuteLambdaInternal()");
+			}
 			
 			delete script;
 			
@@ -487,7 +490,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	std::clock_t begin_clock = 0, end_clock = 0;
 	std::chrono::steady_clock::time_point begin_ts, end_ts;
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 	
 	try
 	{
@@ -526,7 +529,15 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("ExecuteLambdaInternal()");
+			}
+		}
 		
 		if (!lambdaSource_value_singleton)
 			delete script;
@@ -1241,9 +1252,9 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr));
 		
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		try
 		{
@@ -1253,7 +1264,10 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
+			{
 				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_sapply()");
+			}
 			
 			delete script;
 			
@@ -1267,7 +1281,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// Execute inside try/catch so we can handle errors well
 	std::vector<EidosValue_SP> results;
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 	
 	try
 	{
@@ -1353,7 +1367,15 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_sapply()");
+			}
+		}
 		
 		if (!lambda_value_singleton)
 			delete script;

@@ -187,7 +187,6 @@ public:
     void flashDebugButton(void);
     void stopDebugButtonFlash(void);
     
-    void selectErrorRange(EidosErrorContext &errorContext);
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);

@@ -55,7 +55,7 @@ static int gEidosTestFailureCount = 0;
 void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosValue_SP &p_correct_result)
 {
 	{
-	EidosScript script(p_script_string, -1);
+	EidosScript script(p_script_string);
 	EidosValue_SP result;
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	
@@ -70,8 +70,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during Tokenize(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -82,8 +81,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during ParseToAST(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -98,9 +96,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	{
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during EvaluateInterpreterBlock(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
-		
+		ClearErrorContext();
 		return;
 	}
 	
@@ -139,8 +135,7 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 		//std::cerr << p_script_string << " == " << p_correct_result->Type() << "(" << *p_correct_result << ") : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	}
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (EidosAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
@@ -204,7 +199,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 {
 	{
 	std::string reason_snip(p_reason_snip);
-	EidosScript script(p_script_string, -1);
+	EidosScript script(p_script_string);
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 	
@@ -231,8 +226,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		if (raise_message.find(reason_snip) != std::string::npos)
 		{
 			if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
-				(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
-				!gEidosErrorContext.currentScript)
+				(gEidosErrorContext.errorPosition.characterEndOfError == -1))
 			{
 				gEidosTestFailureCount++;
 				
@@ -273,8 +267,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		}
 	}
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (EidosAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;

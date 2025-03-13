@@ -170,7 +170,7 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 	{
 		// This script block is constructed at runtime and has its own script, so we need to redirect error tracking
 		EidosErrorContext error_context_save = gEidosErrorContext;
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_script_for_block, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_script_for_block};
 		
 		// Same code as below, just bracketed by the error context save/restore
 		result_SP = FastEvaluateNode(root_node_);
@@ -1338,16 +1338,15 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	for (size_t arg_index = 0; arg_index < p_arguments.size(); ++arg_index)
 		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], p_arguments[arg_index]);
 	
-	// Errors in functions should be reported for the function's script, not for the calling script,
-	// if possible.  In the GUI this does not work well, however; there, errors should be
-	// reported as occurring in the call to the function.  Here we save off the current
-	// error context and set up the error context for reporting errors inside the function,
-	// in case that is possible; see how exceptions are handled below.
+	// Save off the current error context for restoration later, if no error occurs.
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	
-	// Execute inside try/catch so we can handle errors well
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_function_signature.body_script_, true};
+	// Set up to indicate that we're now going to be executing from our own private script object.  That
+	// private script object might or might not be derived from the user script, so errors that occur
+	// within it might or might not be reportable as positions in the user script; see below.
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_function_signature.body_script_};
 	
+	// Execute inside try/catch so we can handle errors well
 	try
 	{
 		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_);
@@ -1359,12 +1358,23 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	}
 	catch (...)
 	{
-		// If exceptions throw, then we want to set up the error information to highlight the
-		// function call that failed, since we can't highlight the actual error.  (If exceptions
-		// don't throw, this catch block will never be hit; exit() will already have been called
-		// and the error will have been reported from the context of the function's script.)
-		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		// If we're executing a script that does not have a position in the user's script, then the best
+		// we can do is to report the call to the function as the error position.  If the script knows
+		// its position in the user's script, then we don't need to make that correction.  We only make
+		// this correction for gEidosTerminateThrows==true because that is the case when errors are
+		// shown in the GUI.  When at the command line, showing an error position inside an unmoored
+		// script is perfectly fine, and preferable to obscuring that position.  (We could show *both*
+		// pieces of information, in fact, but that is a project for another day.)
+		if (gEidosTerminateThrows && (p_function_signature.body_script_->UserScriptCharOffset() == -1))
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("DispatchUserDefinedFunction()");
+			}
+		}
 		
 		throw;
 	}
@@ -6077,15 +6087,66 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 			// overhead so it shouldn't matter.  It will smooth out all of the related issues with error reporting, etc.,
 			// since we won't be dependent upon somebody else's script object.  Errors in tokenization/parsing should never
 			// occur, since the code for the function body already passed through that process once.
+			
 			// BCH 2/8/2021: Note that we now base this EidosScript on body_node->token_->token_line_ for purposes of debug
 			// point detection, so Eidos knows that this script is a substring of the original user script.
-			EidosScript *script = new EidosScript(body_node->token_->token_string_, body_node->token_->token_line_);
+			
+			// BCH 3/12/2025: For error-tracking, we now need to locate this function declaration within the user's script.
+			// Finding the user's script here is a bit gross, though!  We get it from the error position, which generally
+			// ought to be set up now with the user script whenever we hit a function declaration.  Maybe in a place like a
+			// lambda it would not be set up, which is OK; then we are unmoored from the user's script, and use nullptr.
+			// It feels weird to use the error info here to find the user script, but maybe it is OK; the error info is the
+			// thing that says "you are interpreting in this script, which is located right here in this other script", and
+			// that's exactly what we need to know.  If using it here proves problematic, the alternative seems to me to be
+			// for EidosInterpreter to have a pointer to the user script within which it is interpreting; but that would
+			// be a big change, and it wouldn't use the information anywhere but here.
+			EidosScript *userScript = nullptr;
+			
+			if (gEidosErrorContext.currentScript)
+			{
+				EidosScript *error_userScript = gEidosErrorContext.currentScript->UserScript();
+				int32_t error_offset = gEidosErrorContext.currentScript->UserScriptUTF16Offset();
+				
+				if (error_userScript)
+				{
+					// the current script is derived from the user script
+					userScript = error_userScript;
+				}
+				else if (error_offset == 0)
+				{
+					// the current script *is* the user script
+					userScript = gEidosErrorContext.currentScript;
+				}
+			}
+			
+			EidosScript *script;
+			
+			if (userScript)
+			{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				std::cout << "=== User-defined function definition found user script " << userScript << "; using that with char offset " << body_node->token_->token_start_ << ", UTF offset " << body_node->token_->token_UTF16_start_ << std::endl;
+#endif
+				
+				script = new EidosScript(body_node->token_->token_string_, userScript, body_node->token_->token_line_, body_node->token_->token_start_, body_node->token_->token_UTF16_start_);
+			}
+			else
+			{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				std::cout << "=== User-defined function definition did not find user script (gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << ")" << std::endl;
+#endif
+				
+				script = new EidosScript(body_node->token_->token_string_);
+			}
 			
 			script->Tokenize();
 			script->ParseInterpreterBlockToAST(false);
 			
 			sig->body_script_ = script;
 			sig->user_defined_ = true;
+			
+			// this is the line that `function` is on, so we want to use p_node->token_; note this is different
+			// from the line offset kept by the script, which refers to the line offset to the starting brace
+			// of the body; we want the offset to `function` for debug points, so this is not redundant
 			sig->user_definition_line_ = p_node->token_->token_line_;
 			
 			//std::cout << *sig << std::endl;

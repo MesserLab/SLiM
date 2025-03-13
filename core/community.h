@@ -291,6 +291,7 @@ public:
 	
 	inline __attribute__((always_inline)) SLiMCycleStage CycleStage(void) const												{ return cycle_stage_; }
 	
+	inline __attribute__((always_inline)) SLiMEidosScript *Script(void) { return script_; }
 	inline __attribute__((always_inline)) std::string ScriptString(void) { return script_->String(); }
 	
 	

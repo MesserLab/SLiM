@@ -149,6 +149,7 @@ development head (in the master branch):
 		fix #479, CLI progress bar would be a nice option; this is now -p[rogress]
 		fix #478, record resource usage information in the tree sequence provenance; now we also print user/sys CPU usage for -t[ime], since we now have the information
 		add setValuesVectorized() method to EidosDictionaryUnretained, to set values 1:1 from a source vector into dictionary entries of objects; like vectorized property assignment, but for setValue()
+		fix error position tracking for errors inside user-defined functions, and in most nested situations
 
 
 version 4.3 (Eidos version 3.3):

@@ -1076,7 +1076,7 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	
 	CheckScheduling(start_tick, target_stage);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, target_type, start_tick, end_tick, nullptr, ticksSpec);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, target_type, start_tick, end_tick, nullptr, ticksSpec);
 	
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
@@ -1113,7 +1113,7 @@ EidosValue_SP Community::ExecuteMethod_registerInteractionCallback(EidosGlobalSt
 	
 	CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage7AdvanceTickCounter : SLiMCycleStage::kNonWFStage7AdvanceTickCounter);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_tick, end_tick, nullptr, nullptr);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_tick, end_tick, nullptr, nullptr);
 	
 	new_script_block->interaction_type_id_ = int_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;

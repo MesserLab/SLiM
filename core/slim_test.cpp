@@ -64,8 +64,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new Community(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -86,8 +85,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneTick(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -103,8 +101,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	
 	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
@@ -145,8 +142,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 			if (raise_message.find(p_reason_snip) != std::string::npos)
 			{
 				if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
-					(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
-					!gEidosErrorContext.currentScript)
+					(gEidosErrorContext.errorPosition.characterEndOfError == -1))
 				{
 					if (!p_expect_error_position)
 					{
@@ -170,8 +166,6 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 				{
 					if (!p_expect_error_position)
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << " : raise expected, and error info is set; but error info was not expected!" << std::endl;
-					
-					Eidos_ScriptErrorPosition(gEidosErrorContext);
 					
 					gSLiMTestSuccessCount++;
 					
@@ -216,8 +210,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 	delete community;
 	InteractionType::DeleteSparseVectorFreeList();
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
@@ -264,10 +257,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 			std::cerr << "   raise message: " << raise_message << std::endl;
 			
 			if ((gEidosErrorContext.errorPosition.characterStartOfError != -1) &&
-				(gEidosErrorContext.errorPosition.characterEndOfError != -1) &&
-				gEidosErrorContext.currentScript)
+				(gEidosErrorContext.errorPosition.characterEndOfError != -1))
 			{
-				Eidos_ScriptErrorPosition(gEidosErrorContext);
 				Eidos_LogScriptError(std::cerr, gEidosErrorContext);
 			}
 			
@@ -288,11 +279,103 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	delete community;
 	InteractionType::DeleteSparseVectorFreeList();
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptStop): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+}
+
+void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber)
+{
+	{
+		Community *community = nullptr;
+		
+		try {
+			std::istringstream infile(p_script_string);
+			
+			community = new Community();
+			community->InitializeFromFile(infile);
+			community->InitializeRNGFromSeed(nullptr);
+			community->FinishInitialization();
+			
+			while (community->_RunOneTick());
+			
+			gSLiMTestFailureCount++;
+			
+			if (p_lineNumber != -1)
+				std::cerr << "[" << p_lineNumber << "] ";
+			
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << std::endl;
+		}
+		catch (...)
+		{
+			// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+			std::string raise_message = Eidos_GetTrimmedRaiseMessage();
+			
+			if (raise_message.find(p_reason_snip) != std::string::npos)
+			{
+				if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
+					(gEidosErrorContext.errorPosition.characterEndOfError == -1))
+				{
+					gSLiMTestFailureCount++;
+					
+					if (p_lineNumber != -1)
+						std::cerr << "[" << p_lineNumber << "] ";
+					
+					std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but no error info set" << std::endl;
+					std::cerr << "   raise message: " << raise_message << std::endl;
+					std::cerr << "--------------------" << std::endl << std::endl;
+				}
+				else if (gEidosErrorContext.errorPosition.characterStartOfError != p_bad_position)
+				{
+					gSLiMTestFailureCount++;
+					
+					std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected (" << gEidosErrorContext.errorPosition.characterStartOfError << ")" << std::endl;
+					std::cerr << p_script_string << "   raise message: " << raise_message << std::endl;
+					Eidos_LogScriptError(std::cerr, gEidosErrorContext);
+					std::cerr << "--------------------" << std::endl << std::endl;
+				}
+				else
+				{
+					gSLiMTestSuccessCount++;
+					
+					//std::cerr << p_script_string << " == (expected raise) : " << EIDOS_OUTPUT_SUCCESS_TAG << "\n   " << raise_message << endl;
+				}
+			}
+			else
+			{
+				gSLiMTestFailureCount++;
+				
+				if (p_lineNumber != -1)
+					std::cerr << "[" << p_lineNumber << "] ";
+				
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << std::endl;
+				std::cerr << "   raise message: " << raise_message << std::endl;
+				std::cerr << "--------------------" << std::endl << std::endl;
+			}
+			
+			// Error messages that say (internal error) should not be possible to trigger in script
+			if (raise_message.find("(internal error)") != std::string::npos)
+			{
+				std::cerr << p_script_string << " : error message contains (internal error) erroneously" << std::endl;
+				std::cerr << "   raise message: " << raise_message << std::endl;
+			}
+		}
+		
+		if (community)
+			for (Species *species : community->AllSpecies())
+				species->DeleteAllMutationRuns();
+		
+		delete community;
+		InteractionType::DeleteSparseVectorFreeList();
+		
+		ClearErrorContext();
+		
+		if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+			std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
 	}
 	
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
@@ -367,6 +450,7 @@ int RunSLiMTests(void)
 	
 	// Run tests
 	_RunBasicTests();
+	_RunErrorPositionTests();
 	_RunRelatednessTests();
 	_RunInitTests();
 	_RunCommunityTests();
@@ -578,6 +662,168 @@ void _RunBasicTests(void)
 							)V0G0N");
 	
 	SLiMAssertScriptRaise(ltb3_script, "long-term reference has been kept", 0, false);	// sim.getValue('x') is not scoped, so there is a long-term reference
+}
+
+#pragma mark error position tracking
+void _RunErrorPositionTests(void)
+{
+	// test that errors are correctly located within the user's script (or their own script)
+	// error tracking is very complicated (at least with the faulty design we have right now),
+	// and so one of the tests here is known to fail and is commented out until things improve
+	// note that the tests here are also in the folder "error tracking tests" in my tests folder
+	
+	// 1_early.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			foo;
+		}
+	)V0G0N", 36, "undefined identifier foo", __LINE__);
+	
+	// 2_modifyChild.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+		}
+		modifyChild() {
+			foo;
+		}
+	)V0G0N", 87, "undefined identifier foo", __LINE__);
+	
+	// 3_userDef_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			foo;
+		}
+	)V0G0N", 79, "undefined identifier foo", __LINE__);
+	
+	// 4_userDef_function_nested.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			fn2();
+		}
+		function (void)fn2(void) {
+			foo;
+		}
+	)V0G0N", 122, "undefined identifier foo", __LINE__);
+	
+	// 5_lambda.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			executeLambda("foo;");
+		}
+	)V0G0N", 36, "undefined identifier foo", __LINE__);
+	
+	// 6_lambda_nested.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			fn2();
+		}
+		function (void)fn2(void) {
+			executeLambda("foo;");
+		}
+	)V0G0N", 122, "undefined identifier foo", __LINE__);
+	
+	// 7_tokenize_error.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			$
+		}
+	)V0G0N", 36, "unexpected token '$'", __LINE__);
+	
+	// 8_parse_error.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			1 + ;
+		}
+	)V0G0N", 40, "unexpected token ';'", __LINE__);
+	
+	// 9_triggered_callback.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			sim.recalculateFitness();
+		}
+		fitnessEffect() {
+			foo;
+		}
+	)V0G0N", 118, "undefined identifier foo", __LINE__);
+	
+	// 10_triggered_callback_nested.slim
+	
+	// The error position is wrong for this test, for reasons that are well understood.
+	// The error context is foo() when the error is raised,because callbacks don't set
+	// up their own error context information, but rather rely on the assumption that
+	// they are executed in the user script context (which is almost always true).
+	// The error position is in the fitnessEffect() callback's coordinates, which are
+	// user script coordinates, but the context is set to foo(), so the error position
+	// gets translated to user space using the wrong offset.  I don't see an easy way
+	// to fix this, or even to catch that it has happened.  BCH 3/12/2025
+	
+	/*SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			foo();
+		}
+		function (void)foo(void) {
+			sim.recalculateFitness();
+		}
+		fitnessEffect() {
+			foo;
+		}
+	)V0G0N", 118, "undefined identifier foo", __LINE__);*/
+	
+	// 11_userDef_lambda.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			executeLambda("foo();");
+		}
+		function (void)foo(void) {
+			bar;
+		}
+	)V0G0N", 126, "undefined identifier bar", __LINE__);
+	
+	// 12_builtin_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sum("a");
+		}
+	)V0G0N", 36, "cannot be type string", __LINE__);
+	
+	// 13_sapply_userDef_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sapply(1:10, "foo(applyValue);");
+		}
+		function (void)foo(integer$ x) {
+			bar;
+		}
+	)V0G0N", 112, "undefined identifier bar", __LINE__);
+	
+	// there is a #14 and #15 in "error tracking tests", but they check that Unicode characters don't throw off
+	// the error range, and I don't want to deal with putting them here because Unicode.
 }
 
 #pragma mark Individual relatedness tests

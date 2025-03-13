@@ -2683,6 +2683,20 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					}
 					catch (...)
 					{
+						// There is an error-reporting coordinate system problem here.  The error might have
+						// occurred directly in the callback, or in something the callback called, like a
+						// user-defined function or a lambda.  Also, we might have been called directly by
+						// the SLiM core, and have the user script's coordinates set up, or the call to us
+						// might have been triggered by a call like recalculateFitness() called in an event
+						// or from a user-defined function.  So there are all sorts of possibilities on both
+						// ends.  Since we didn't save and set the error context, the way calls to user-
+						// defined functions and lambdas do (because it would be slow), we don't really have
+						// a way to repair the situation now, I don't think.  We can't even tell whether
+						// things are screwed up or not.  We will do nothing.  Most of the time, the error
+						// was directly in our code and we were called by SLiM or an event, so everything
+						// is in user script coordinates and we'll get away with it.  In very unusual
+						// circumstances, the error position reported will be wrong in the GUI.  Fixing that
+						// would require a total redesign of the error-tracking mechanism.  BCH 3/12/2025
 						throw;
 					}
 					

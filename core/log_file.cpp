@@ -197,7 +197,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script};
 	
 	EidosValue_SP result_SP;
 	
@@ -220,7 +220,16 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 	catch (...)
 	{
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("_GeneratedValue_CustomScript()");
+			}
+		}
+		
 		throw;
 	}
 	
@@ -236,7 +245,7 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script};
 	
 	EidosValue_SP result_SP;
 	
@@ -283,7 +292,16 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 	catch (...)
 	{
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("_GeneratedValues_CustomMeanAndSD()");
+			}
+		}
+		
 		throw;
 	}
 	
@@ -639,9 +657,9 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on parsing/running script blocks
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	EidosScript *source_script = new EidosScript(source, -1);
+	EidosScript *source_script = new EidosScript(source);
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script};
 	
 	try {
 		source_script->Tokenize();
@@ -650,7 +668,10 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	catch (...)
 	{
 		if (gEidosTerminateThrows)
+		{
 			gEidosErrorContext = error_context_save;
+			TranslateErrorContextToUserScript("ExecuteMethod_addCustomColumn()");
+		}
 		
 		delete source_script;
 		source_script = nullptr;
@@ -721,9 +742,9 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	const std::string &source = source_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
 	EidosErrorContext error_context_save = gEidosErrorContext;
-	EidosScript *source_script = new EidosScript(source, -1);
+	EidosScript *source_script = new EidosScript(source);
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, source_script};
 	
 	try {
 		source_script->Tokenize();
@@ -732,7 +753,10 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	catch (...)
 	{
 		if (gEidosTerminateThrows)
+		{
 			gEidosErrorContext = error_context_save;
+			TranslateErrorContextToUserScript("ExecuteMethod_addMeanSDColumns()");
+		}
 		
 		delete source_script;
 		source_script = nullptr;
@@ -1139,7 +1163,7 @@ EidosValue_SP LogFile_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id,
 //
 EidosValue_SP LogFile_Class::ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
-#pragma unused (p_method_id, p_arguments, p_interpreter)
+#pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setValuesVectorized): LogFile manages its dictionary entries; they cannot be modified by the user." << EidosTerminate(nullptr);
 }
 

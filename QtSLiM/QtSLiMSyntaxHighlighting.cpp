@@ -200,7 +200,7 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
     // set up a new cached script if we don't have one
     if (!script)
     {
-        script = new EidosScript(document()->toPlainText().toUtf8().constData(), -1);
+        script = new EidosScript(document()->toPlainText().toUtf8().constData());
         
         script->Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
         

@@ -168,8 +168,8 @@
 	if ([typeName isEqualToString:@"edu.messerlab.slim"])
 	{
 		SLiMWindowController *controller = [[self windowControllers] objectAtIndex:0];
-		NSString *currentScriptString = [controller->scriptTextView string];
-		NSData *data = [currentScriptString dataUsingEncoding:NSUTF8StringEncoding];
+		NSString *curScriptString = [controller->scriptTextView string];
+		NSData *data = [curScriptString dataUsingEncoding:NSUTF8StringEncoding];
 		
 		if (!data && outError)
 			*outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteInapplicableStringEncodingError userInfo:@{ NSLocalizedDescriptionKey : @"The script could not be converted to UTF-8 encoding."}];
