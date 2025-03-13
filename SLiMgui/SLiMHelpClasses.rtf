@@ -3597,8 +3597,10 @@ See the description of the
 
 \f4\fs20 \cf2 Returns a vector containing the haplosomes of the target individual that correspond to the chromosomes passed in 
 \f3\fs18 chromosomes
-\f4\fs20  (following the order of 
+\f4\fs20  (following the order of the 
 \f3\fs18 chromosomes
+\f4\fs20  property of 
+\f3\fs18 Individual
 \f4\fs20 ).  Chromosomes can be specified by id (
 \f3\fs18 integer
 \f4\fs20 ), by symbol (
@@ -3608,13 +3610,17 @@ See the description of the
 \f4\fs20  objects themselves; if 
 \f3\fs18 NULL
 \f4\fs20  is passed (the default), all chromosomes defined for the species are used, in the order in which they were defined.\
-For chromosomes that can be diploid (types 
+For chromosomes that are intrinsically diploid (types 
 \f3\fs18 "A"
 \f4\fs20 , 
 \f3\fs18 "X"
 \f4\fs20 , and 
 \f3\fs18 "Z"
-\f4\fs20 ), 
+\f4\fs20 , as well as the 
+\f3\fs18 "H-"
+\f4\fs20  and 
+\f3\fs18 "-Y"
+\f4\fs20  backward-compatibility chromosome types), 
 \f3\fs18 index
 \f4\fs20  can be 
 \f3\fs18 0
@@ -11643,8 +11649,10 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 
 \f4\fs20 \cf2 Returns a vector containing the subpopulation\'92s haplosomes that correspond to the chromosomes passed in 
 \f3\fs18 chromosomes
-\f4\fs20  (following the order of 
+\f4\fs20  (following the order of the 
 \f3\fs18 chromosomes
+\f4\fs20  property of 
+\f3\fs18 Individual
 \f4\fs20 ).  Chromosomes can be specified by id (
 \f3\fs18 integer
 \f4\fs20 ), by symbol (
