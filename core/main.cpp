@@ -108,7 +108,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-p[rogress]]";
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-c[heck]] [-p[rogress]] ";
 #ifdef _OPENMP
 	// Some flags are visible only for a parallel build
 	// FIXME: these might not fit on the same line as other things
@@ -137,6 +137,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -p[rogress]        : show a progress bar in the terminal as SLiM runs" << std::endl;
 		SLIM_OUTSTREAM << "   -x                 : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>    : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
+		SLIM_OUTSTREAM << "   -c[heck]           : check the input script's syntax, without executing it" << std::endl;
 #ifdef _OPENMP
 		// Some flags are visible only for a parallel build
 		SLIM_OUTSTREAM << "   -maxThreads <n>    : set the maximum number of threads used" << std::endl;
@@ -191,8 +192,8 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false, tree_seq_force = false;
-	bool show_progress = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
+	bool tree_seq_checks = false, tree_seq_force = false, show_progress = false, check_script = false;
 	std::vector<std::string> defined_constants;
 	
 #ifdef _OPENMP
@@ -403,6 +404,13 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 			continue;
 		}
 		
+		// -check or -c: check the supplied script without executing it
+		if (strcmp(arg, "--check") == 0 || strcmp(arg, "-check") == 0 || strcmp(arg, "-c") == 0)
+		{
+			check_script = true;
+			continue;
+		}
+		
 		// -maxThreads <x>: set the maximum number of OpenMP threads that will be used
 		if (strcmp(arg, "-maxThreads") == 0)
 		{
@@ -528,6 +536,19 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie(false, true);
 	
+	// for -check / -c, we suppress output other than the result of the check
+	if (check_script)
+	{
+		SLiM_verbosity_level = 0;
+		keep_time = false;
+		keep_mem = false;
+		keep_mem_hist = false;
+		skip_checks = false;
+		tree_seq_checks = false;
+		tree_seq_force = false;
+		show_progress = false;
+	}
+	
 	// announce if we are running a debug build, are skipping runtime checks, etc.
 #if DEBUG
 	if (SLiM_verbosity_level >= 1)
@@ -637,6 +658,13 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		community = new Community();
 		community->InitializeFromFile(infile);
 		model_name = Eidos_LastPathComponent(std::string(input_file));
+	}
+	
+	if (check_script)
+	{
+		// We survived loading the script above, so apparently it checks out OK.
+		std::cout << "// ********** Check successful; no errors found." << std::endl;
+		return EXIT_SUCCESS;
 	}
 	
 	if (keep_mem_hist)

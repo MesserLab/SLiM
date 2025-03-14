@@ -152,6 +152,7 @@ development head (in the master branch):
 		fix error position tracking for errors inside user-defined functions, and in most nested situations
 		fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F
 		rename Haplosome methods output(), outputMS(), and outputVCF() to outputHaplosomes(), outputHaplosomesToMS(), and outputHaplosomesToVCF(), to parallel the new Individual output methods
+		fix #494, adding a -c / -check command-line option to check the syntax of the input script
 
 
 version 4.3 (Eidos version 3.3):
