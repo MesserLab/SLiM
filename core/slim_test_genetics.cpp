@@ -859,63 +859,63 @@ void _RunHaplosomeTests(const std::string &temp_path)
 	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "10 early() { gen = p1.haplosomes[0]; gen.removeMutations(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { gen = p1.haplosomes[0]; mut = gen.addNewMutation(m1, 0.1, 5000); gen.removeMutations(NULL, T); }", "substitute may not be T if", __LINE__);
 	
-	// Test Haplosome + (void)outputMS([Ns$ filePath], [logical$ append = F], [logical$ filterMonomorphic = F])
-	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 0, T).outputMS(); stop(); }", "at least one haplosome is required", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputMS(); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputMS(NULL); stop(); }", __LINE__);
+	// Test Haplosome + (void)outputHaplosomesToMS([Ns$ filePath], [logical$ append = F], [logical$ filterMonomorphic = F])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 0, T).outputHaplosomesToMS(); stop(); }", "at least one haplosome is required", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomesToMS(); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomesToMS(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputMS('" + temp_path + "/slimOutputMSTest2.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomesToMS('" + temp_path + "/slimOutputMSTest2.txt'); stop(); }", __LINE__);
 	}
 	
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputMS(NULL); stop(); }", "cannot output null haplosomes", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputMS(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomesToMS(NULL); stop(); }", "cannot output null haplosomes", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputHaplosomesToMS(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputMS('" + temp_path + "/slimOutputMSTest4.txt'); stop(); }", "cannot output null haplosomes", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputMS('" + temp_path + "/slimOutputMSTest5.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomesToMS('" + temp_path + "/slimOutputMSTest4.txt'); stop(); }", "cannot output null haplosomes", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputHaplosomesToMS('" + temp_path + "/slimOutputMSTest5.txt'); stop(); }", __LINE__);
 	}
 	
-	// Test Haplosome + (void)output([Ns$ filePath])
-	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 0, T).output(); stop(); }", "at least one haplosome is required", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).output(); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).output(NULL); stop(); }", __LINE__);
+	// Test Haplosome + (void)outputHaplosomes([Ns$ filePath])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 0, T).outputHaplosomes(); stop(); }", "at least one haplosome is required", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomes(); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomes(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).output('" + temp_path + "/slimOutputTest2.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomes('" + temp_path + "/slimOutputTest2.txt'); stop(); }", __LINE__);
 	}
 	
-	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).output(NULL); stop(); }", "cannot output null haplosomes", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).output(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomes(NULL); stop(); }", "cannot output null haplosomes", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputHaplosomes(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).output('" + temp_path + "/slimOutputTest4.txt'); stop(); }", "cannot output null haplosomes", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).output('" + temp_path + "/slimOutputTest5.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes, 100, T).outputHaplosomes('" + temp_path + "/slimOutputTest4.txt'); stop(); }", "cannot output null haplosomes", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.haplosomes[!p1.haplosomes.isNullHaplosome], 100, T).outputHaplosomes('" + temp_path + "/slimOutputTest5.txt'); stop(); }", __LINE__);
 	}
 	
-	// Test Haplosome + (void)outputVCF([Ns$ filePath], [logical$ outputMultiallelics])
-	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).haplosomes.outputVCF(); stop(); }", "at least one haplosome is required", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF(); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF(NULL); stop(); }", __LINE__);
+	// Test Haplosome + (void)outputHaplosomesToVCF([Ns$ filePath], [logical$ outputMultiallelics])
+	SLiMAssertScriptRaise(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).haplosomes.outputHaplosomesToVCF(); stop(); }", "at least one haplosome is required", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF(); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF('" + temp_path + "/slimOutputVCFTest2.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF('" + temp_path + "/slimOutputVCFTest2.txt'); stop(); }", __LINE__);
 	}
-	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF(NULL, F); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF(NULL, F); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF('" + temp_path + "/slimOutputVCFTest4.txt', F); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF('" + temp_path + "/slimOutputVCFTest4.txt', F); stop(); }", __LINE__);
 	}
 	
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF(NULL); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF('" + temp_path + "/slimOutputVCFTest6.txt'); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF('" + temp_path + "/slimOutputVCFTest6.txt'); stop(); }", __LINE__);
 	}
-	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF(NULL, F); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF(NULL, F); stop(); }", __LINE__);
 	if (Eidos_TemporaryDirectoryExists())
 	{
-		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputVCF('" + temp_path + "/slimOutputVCFTest8.txt', F); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).haplosomes.outputHaplosomesToVCF('" + temp_path + "/slimOutputVCFTest8.txt', F); stop(); }", __LINE__);
 	}
 }
 

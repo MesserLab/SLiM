@@ -14,6 +14,6 @@ initialize() {
 }
 5000 late() {
 	g = p1.sampleIndividuals(5).haplosomes;
-	g.outputVCF(simplifyNucleotides=F);
-	g.outputVCF(simplifyNucleotides=T);
+	g.outputHaplosomesToVCF(simplifyNucleotides=F);
+	g.outputHaplosomesToVCF(simplifyNucleotides=T);
 }

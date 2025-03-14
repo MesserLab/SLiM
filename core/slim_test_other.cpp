@@ -2041,9 +2041,9 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutationFrequenciesInHaplosomes(); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.mutationsOfType(m1); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.nucleotides(); }", "deferred haplosomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.output(); }", "deferred haplosomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputMS(); }", "deferred haplosomes", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputVCF(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputHaplosomes(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputHaplosomesToMS(); }", "deferred haplosomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.outputHaplosomesToVCF(); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.positionsOfMutationsOfType(m1); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.readHaplosomesFromMS('foo', m1); }", "deferred haplosomes", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.haplosomes.readHaplosomesFromVCF('foo'); }", "deferred haplosomes", __LINE__);

@@ -2191,9 +2191,9 @@ const std::vector<EidosMethodSignature_CSP> *Haplosome_Class::Methods(void) cons
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readHaplosomesFromMS, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_S("mutationType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readHaplosomesFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_removeMutations, kEidosValueMaskVOID))->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddLogical_OS("substitute", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputMS, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_output, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomesToMS, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomesToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("groupAsIndividuals", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputHaplosomes, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
@@ -2211,9 +2211,9 @@ EidosValue_SP Haplosome_Class::ExecuteClassMethod(EidosGlobalStringID p_method_i
 		case gID_addNewMutation:				return ExecuteMethod_addNewMutation(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_mutationCountsInHaplosomes:
 		case gID_mutationFrequenciesInHaplosomes:	return ExecuteMethod_mutationFreqsCountsInHaplosomes(p_method_id, p_target, p_arguments, p_interpreter);
-		case gID_output:
-		case gID_outputMS:
-		case gID_outputVCF:						return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
+		case gID_outputHaplosomes:
+		case gID_outputHaplosomesToMS:
+		case gID_outputHaplosomesToVCF:			return ExecuteMethod_outputX(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readHaplosomesFromMS:			return ExecuteMethod_readHaplosomesFromMS(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_readHaplosomesFromVCF:			return ExecuteMethod_readHaplosomesFromVCF(p_method_id, p_target, p_arguments, p_interpreter);
 		case gID_removeMutations:				return ExecuteMethod_removeMutations(p_method_id, p_target, p_arguments, p_interpreter);
@@ -3018,46 +3018,46 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_mutationFreqsCountsInHaplosomes(Eid
 		return population.Eidos_CountsForTalliedMutations(mutations_value);
 }
 
-//	*********************	+ (void)output([Ns$ filePath = NULL], [logical$ append=F])
-//	*********************	+ (void)outputMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
-//	*********************	+ (void)outputVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T])
+//	*********************	+ (void)outputHaplosomes([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	+ (void)outputHaplosomesToMS([Ns$ filePath = NULL], [logical$ append=F], [logical$ filterMonomorphic = F])
+//	*********************	+ (void)outputHaplosomesToVCF([Ns$ filePath = NULL], [logical$ outputMultiallelics = T], [logical$ append=F], [logical$ simplifyNucleotides = F], [logical$ outputNonnucleotides = T], [logical$ groupAsIndividuals = T])
 //
 EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
-	EidosValue *outputMultiallelics_value = ((p_method_id == gID_outputVCF) ? p_arguments[1].get() : nullptr);
-	EidosValue *append_value = ((p_method_id == gID_outputVCF) ? p_arguments[2].get() : p_arguments[1].get());
-	EidosValue *filterMonomorphic_value = ((p_method_id == gID_outputMS) ? p_arguments[2].get() : nullptr);
-	EidosValue *simplifyNucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[3].get() : nullptr);
-	EidosValue *outputNonnucleotides_value = ((p_method_id == gID_outputVCF) ? p_arguments[4].get() : nullptr);
-	EidosValue *groupAsIndividuals_value = ((p_method_id == gID_outputVCF) ? p_arguments[5].get() : nullptr);
+	EidosValue *outputMultiallelics_value = ((p_method_id == gID_outputHaplosomesToVCF) ? p_arguments[1].get() : nullptr);
+	EidosValue *append_value = ((p_method_id == gID_outputHaplosomesToVCF) ? p_arguments[2].get() : p_arguments[1].get());
+	EidosValue *filterMonomorphic_value = ((p_method_id == gID_outputHaplosomesToMS) ? p_arguments[2].get() : nullptr);
+	EidosValue *simplifyNucleotides_value = ((p_method_id == gID_outputHaplosomesToVCF) ? p_arguments[3].get() : nullptr);
+	EidosValue *outputNonnucleotides_value = ((p_method_id == gID_outputHaplosomesToVCF) ? p_arguments[4].get() : nullptr);
+	EidosValue *groupAsIndividuals_value = ((p_method_id == gID_outputHaplosomesToVCF) ? p_arguments[5].get() : nullptr);
 	
 	// default to outputting multiallelic positions (used by VCF output only)
 	bool output_multiallelics = true;
 	
-	if (p_method_id == gID_outputVCF)
+	if (p_method_id == gID_outputHaplosomesToVCF)
 		output_multiallelics = outputMultiallelics_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool simplify_nucs = false;
 	
-	if (p_method_id == gID_outputVCF)
+	if (p_method_id == gID_outputHaplosomesToVCF)
 		simplify_nucs = simplifyNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool output_nonnucs = true;
 	
-	if (p_method_id == gID_outputVCF)
+	if (p_method_id == gID_outputHaplosomesToVCF)
 		output_nonnucs = outputNonnucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	bool group_as_individuals = true;
 	
-	if (p_method_id == gID_outputVCF)
+	if (p_method_id == gID_outputHaplosomesToVCF)
 		group_as_individuals = groupAsIndividuals_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// figure out if we're filtering out mutations that are monomorphic within the sample (MS output only)
 	bool filter_monomorphic = false;
 	
-	if (p_method_id == gID_outputMS)
+	if (p_method_id == gID_outputHaplosomesToMS)
 		filter_monomorphic = filterMonomorphic_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	// Get all the haplosomes we're sampling from p_target; they must all be in the same species, which we determine here
@@ -3114,11 +3114,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		// BCH 2/7/2025: changed GS/GM/GV to HS/HM/HV, for the genome -> haplosome transition
 		output_stream << "#OUT: " << community.Tick() << " " << species->Cycle() << " H";
 		
-		if (p_method_id == gID_output)
+		if (p_method_id == gID_outputHaplosomes)
 			output_stream << "S";
-		else if (p_method_id == gID_outputMS)
+		else if (p_method_id == gID_outputHaplosomesToMS)
 			output_stream << "M";
-		else if (p_method_id == gID_outputVCF)
+		else if (p_method_id == gID_outputHaplosomesToVCF)
 			output_stream << "V";
 		
 		output_stream << " " << sample_size;
@@ -3132,11 +3132,11 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		output_stream << std::endl;
 		
 		// Call out to print the actual sample
-		if (p_method_id == gID_output)
+		if (p_method_id == gID_outputHaplosomes)
 			Haplosome::PrintHaplosomes_SLiM(output_stream, haplosomes);
-		else if (p_method_id == gID_outputMS)
+		else if (p_method_id == gID_outputHaplosomesToMS)
 			Haplosome::PrintHaplosomes_MS(output_stream, haplosomes, *chromosome, filter_monomorphic);
-		else if (p_method_id == gID_outputVCF)
+		else if (p_method_id == gID_outputHaplosomesToVCF)
 			Haplosome::PrintHaplosomes_VCF(output_stream, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
 	}
 	else
@@ -3152,7 +3152,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 		{
 			switch (p_method_id)
 			{
-				case gID_output:
+				case gID_outputHaplosomes:
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
 					// BCH 2/2/2025: added the cycle count here after the tick; it was already documented as being here!
 					// BCH 2/2/2025: added the chromosome symbol in the header; it is redundant for SLiM-format output,
@@ -3170,10 +3170,10 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_metho
 					
 					Haplosome::PrintHaplosomes_SLiM(outfile, haplosomes);
 					break;
-				case gID_outputMS:
+				case gID_outputHaplosomesToMS:
 					Haplosome::PrintHaplosomes_MS(outfile, haplosomes, *chromosome, filter_monomorphic);
 					break;
-				case gID_outputVCF:
+				case gID_outputHaplosomesToVCF:
 					Haplosome::PrintHaplosomes_VCF(outfile, haplosomes, *chromosome, group_as_individuals, output_multiallelics, simplify_nucs, output_nonnucs);
 					break;
 				default:
@@ -3311,7 +3311,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_readHaplosomesFromMS(EidosGlobalStr
 						EIDOS_TERMINATION << "ERROR (Haplosome_Class::ExecuteMethod_readHaplosomesFromMS): readMS() requires positions in [0,1]." << EidosTerminate();
 					
 					// BCH 26 Jan. 2020: There is a little subtlety here.  This equation, round(pos * L), provides
-					// the exact inverse of what outputMS() / outputMSSample() do, so it should exactly recover
+					// the exact inverse of what outputHaplosomesToMS() / outputMSSample() do, so it should exactly recover
 					// positions written out by SLiM in MS format (modulo numerical error).  However, it results
 					// in half as much "mutational density" at positions 0 and L as at other positions, if the
 					// positions are uniformly distributed in [0,1] rather than originating in SLiM.  In that case,

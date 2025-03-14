@@ -2102,6 +2102,18 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
             (selectionString == "haploidDominanceCoeff"))
         return offerAndExecuteAutofix(selection, "hemizygousDominanceCoeff", "The `haploidDominanceCoeff` property of MutationType has been renamed to `hemizygousDominanceCoeff`.", terminationMessage);
     
+    if (terminationMessage.contains("method output() is not defined on object element type Haplosome") &&
+            (selectionString == "output"))
+        return offerAndExecuteAutofix(selection, "outputHaplosomes", "The `output()` method of Haplosome has been renamed to `outputHaplosomes()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method outputMS() is not defined on object element type Haplosome") &&
+            (selectionString == "outputMS"))
+        return offerAndExecuteAutofix(selection, "outputHaplosomesToMS", "The `outputMS()` method of Haplosome has been renamed to `outputHaplosomesToMS()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method outputVCF() is not defined on object element type Haplosome") &&
+            (selectionString == "outputVCF"))
+        return offerAndExecuteAutofix(selection, "outputHaplosomesToVCF", "The `outputVCF()` method of Haplosome has been renamed to `outputHaplosomesToVCF()`.", terminationMessage);
+    
     return false;
 }
 

@@ -18,5 +18,5 @@ initialize() {
 	allIndividuals = sim.subpopulations.individuals;
 	w = asFloat(allIndividuals.countOfMutationsOfType(m2) + 1);
 	sampledIndividuals = sample(allIndividuals, 10, weights=w);
-	sampledIndividuals.haplosomes.output();
+	sampledIndividuals.haplosomes.outputHaplosomes();
 }

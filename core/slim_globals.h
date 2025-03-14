@@ -1042,9 +1042,9 @@ extern const std::string &gStr_smooth;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
 extern const std::string &gStr_outputSample;
-extern const std::string &gStr_outputMS;
-extern const std::string &gStr_outputVCF;
-extern const std::string &gStr_output;
+extern const std::string &gStr_outputHaplosomesToMS;
+extern const std::string &gStr_outputHaplosomesToVCF;
+extern const std::string &gStr_outputHaplosomes;
 extern const std::string &gStr_evaluate;
 extern const std::string &gStr_distance;
 extern const std::string &gStr_localPopulationDensity;
@@ -1492,9 +1492,9 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,
-	gID_outputMS,
-	gID_outputVCF,
-	gID_output,
+	gID_outputHaplosomesToMS,
+	gID_outputHaplosomesToVCF,
+	gID_outputHaplosomes,
 	gID_evaluate,
 	gID_distance,
 	gID_localPopulationDensity,

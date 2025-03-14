@@ -2193,7 +2193,7 @@ Several helper functions are provided for working with sequences, such as
 \f4\fs20  to convert a codon sequence (such as provided by the codon format described above) to an amino acid sequence.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)output([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)outputHaplosomes([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2226,16 +2226,16 @@ Several helper functions are provided for working with sequences, such as
 \f4\fs20 .\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 See 
-\f3\fs18 outputMS()
+\f3\fs18 output\cf2 HaplosomesTo\cf0 MS()
 \f4\fs20  and 
-\f3\fs18 outputVCF()
+\f3\fs18 output\cf2 HaplosomesTo\cf0 VCF()
 \f4\fs20  for other output formats.  Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(void)outputMS([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 +\'a0(void)output\cf2 HaplosomesTo\cf0 MS([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0filterMonomorphic\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -2280,15 +2280,15 @@ If
 \f4\fs20  if desired; note that this option means that some mutations that do exist in the sampled haplosomes might not be included in the output, simply because they exist in every sampled haplosome.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 See 
-\f3\fs18 output()
+\f3\fs18 outputHaplosomes()
 \f4\fs20  and 
-\f3\fs18 outputVCF()
+\f3\fs18 output\cf2 HaplosomesTo\cf0 VCF()
 \f4\fs20  for other output formats.  Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 +\'a0(void)outputVCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 +\'a0(void)output\cf2 HaplosomesTo\cf0 VCF([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0outputMultiallelics\'a0=\'a0T], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0simplifyNucleotides\'a0=\'a0F], [logical$\'a0outputNonnucleotides\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0groupAsIndividuals\'a0=\'a0T]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -2374,9 +2374,9 @@ With
 \f3\fs18 ~
 \f4\fs20 , rather than the state of a pair of haplosomes being represented as a single call in a way that can sometimes be ambiguous, as discussed above.  However, the resulting output might confuse some VCF parsers that expect diploid calls for individuals, and it will not be as obvious which calls in the output belong to a given diploid individual.\
 See 
-\f3\fs18 outputMS()
+\f3\fs18 outputHaplosomesToMS()
 \f4\fs20  and 
-\f3\fs18 output()
+\f3\fs18 outputHaplosomes()
 \f4\fs20  for other output formats.  Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
@@ -11695,7 +11695,7 @@ This method is equivalent to calling
 \f4\fs20 ; passing 
 \f3\fs18 "*"
 \f4\fs20 , the default, indicates that haplosomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
-\f3\fs18 outputMS()
+\f3\fs18 outputHaplosomesToMS()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\
@@ -11761,7 +11761,7 @@ See
 \f4\fs20 ; passing 
 \f3\fs18 "*"
 \f4\fs20 , the default, indicates that haplosomes from individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
-\f3\fs18 output()
+\f3\fs18 outputHaplosomes()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\
@@ -11822,7 +11822,7 @@ See
 \f4\fs20 ; passing 
 \f3\fs18 "*"
 \f4\fs20 , the default, indicates that individuals should be selected randomly, without respect to sex.  If the sampling options provided by this method are not adequate, see the 
-\f3\fs18 outputVCF()
+\f3\fs18 outputHaplosomesToVCF()
 \f4\fs20  method of 
 \f3\fs18 Haplosome
 \f4\fs20  for a more flexible low-level option.\

@@ -151,6 +151,7 @@ development head (in the master branch):
 		add setValuesVectorized() method to EidosDictionaryUnretained, to set values 1:1 from a source vector into dictionary entries of objects; like vectorized property assignment, but for setValue()
 		fix error position tracking for errors inside user-defined functions, and in most nested situations
 		fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F
+		rename Haplosome methods output(), outputMS(), and outputVCF() to outputHaplosomes(), outputHaplosomesToMS(), and outputHaplosomesToVCF(), to parallel the new Individual output methods
 
 
 version 4.3 (Eidos version 3.3):
