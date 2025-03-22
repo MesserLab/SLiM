@@ -8553,7 +8553,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_haplosomesForChromosomes(EidosGlobalS
 	return EidosValue_SP(vec);
 }
 
-//	*********************	– (void)deviatePositions(No<Individual> individuals, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
+//	*********************	– (object<Individual>)deviatePositions(No<Individual> individuals, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -8606,6 +8606,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 		boundary = BoundaryCondition::kReflecting;
 	else if (boundary_str.compare("reprising") == 0)
 		boundary = BoundaryCondition::kReprising;
+	else if (boundary_str.compare("absorbing") == 0)
+		boundary = BoundaryCondition::kAbsorbing;
 	else if (boundary_str.compare("periodic") == 0)
 		boundary = BoundaryCondition::kPeriodic;
 	else
@@ -8641,6 +8643,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	
 	SpatialKernel kernel0(dimensionality, max_distance, p_arguments, 3, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 3
 	
+	// Make a return vector that is initially empty; unless boundary is "absorbing", it will remain empty
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+	EidosValue_Object *result = ((EidosValue_Object *)result_SP.get());
+	
 	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
 	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
 	// overhead of drawing a displacement from the kernel, which requires a random number draw.  I tested doing
@@ -8649,7 +8655,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
 	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
 	// are common, though.
-	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
+	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || (boundary == BoundaryCondition::kAbsorbing) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
 		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 		double stddev = kernel0.kernel_param2_;
@@ -8719,6 +8725,23 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 				ind->spatial_y_ = a1;
 			}
 		}
+		else if (boundary == BoundaryCondition::kAbsorbing)
+		{
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *ind = individuals[individual_index];
+				double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+				double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+				
+				if ((a0 < bx0) || (a0 > bx1) ||
+					(a1 < by0) || (a1 > by1))
+					result->push_object_element_capcheck_NORR(ind);
+				
+				ind->spatial_x_ = a0;
+				ind->spatial_y_ = a1;
+			}
+		}
 		else if (boundary == BoundaryCondition::kPeriodic)
 		{
 			// FIXME: TO BE PARALLELIZED
@@ -8738,7 +8761,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 				ind->spatial_y_ = a1;
 			}
 		}
-		return gStaticEidosValueVOID;
+		return result_SP;
 	}
 	
 	// main code path; note that here we may have multiple kernels defined, one per individual
@@ -8778,6 +8801,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 					case BoundaryCondition::kReprising:
 						if ((a[0] < bx0) || (a[0] > bx1))
 							goto reprise_1;
+						break;
+					case BoundaryCondition::kAbsorbing:
+						if ((a[0] < bx0) || (a[0] > bx1))
+							result->push_object_element_capcheck_NORR(ind);
 						break;
 					case BoundaryCondition::kPeriodic:			// (periodic_x must be true)
 						while (a[0] < 0.0)	a[0] += bx1;
@@ -8833,6 +8860,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 						if ((a[0] < bx0) || (a[0] > bx1) ||
 							(a[1] < by0) || (a[1] > by1))
 							goto reprise_2;
+						break;
+					case BoundaryCondition::kAbsorbing:
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1))
+							result->push_object_element_capcheck_NORR(ind);
 						break;
 					case BoundaryCondition::kPeriodic:
 						if (periodic_x)
@@ -8908,6 +8940,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 							(a[2] < bz0) || (a[2] > bz1))
 							goto reprise_3;
 						break;
+					case BoundaryCondition::kAbsorbing:
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1) ||
+							(a[2] < bz0) || (a[2] > bz1))
+							result->push_object_element_capcheck_NORR(ind);
+						break;
 					case BoundaryCondition::kPeriodic:
 						if (periodic_x)
 						{
@@ -8937,7 +8975,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
 	
-	return gStaticEidosValueVOID;
+	return result_SP;
 }
 
 //	*********************	– (float)pointDeviated(integer$ n, float point, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
@@ -8993,6 +9031,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 		boundary = BoundaryCondition::kReprising;
 	else if (boundary_str.compare("periodic") == 0)
 		boundary = BoundaryCondition::kPeriodic;
+	else if (boundary_str.compare("absorbing") == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() does not support boundary condition 'absorbing', but see Subpopulation method deviatePositions()." << EidosTerminate();
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): unrecognized boundary condition '" << boundary_str << "'." << EidosTerminate();
 	
@@ -9153,6 +9193,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 						while (a[0] < 0.0)	a[0] += bx1;
 						while (a[0] > bx1)	a[0] -= bx1;
 						break;
+					case BoundaryCondition::kAbsorbing:			// ruled out above
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): (internal error) absorbing boundaries not implemented." << EidosTerminate();
 				}
 				
 				*(float_result_ptr++) = a[0];
@@ -9216,6 +9258,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 							while (a[1] > by1)	a[1] -= by1;
 						}
 						break;
+					case BoundaryCondition::kAbsorbing:			// ruled out above
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): (internal error) absorbing boundaries not implemented." << EidosTerminate();
 				}
 				
 				*(float_result_ptr++) = a[0];
@@ -9295,6 +9339,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 							while (a[2] > bz1)	a[2] -= bz1;
 						}
 						break;
+					case BoundaryCondition::kAbsorbing:			// ruled out above
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): (internal error) absorbing boundaries not implemented." << EidosTerminate();
 				}
 				
 				*(float_result_ptr++) = a[0];
@@ -11357,7 +11403,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskVOID))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));

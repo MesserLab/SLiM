@@ -622,6 +622,7 @@ enum class BoundaryCondition : char {
 	kStopping,
 	kReflecting,
 	kReprising,
+	kAbsorbing,
 	kPeriodic
 };
 

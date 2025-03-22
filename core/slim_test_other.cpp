@@ -1170,6 +1170,7 @@ void _RunContinuousSpaceTests(void)
 	// BCH 10/5/2023: I'm not sure what I intended to go here!  This function was empty until now.  But now I've added
 	// the tests below, which test inheritance of position and pointDeviated().  Here's the full model that we test
 	// variants of:
+	// BCH 3/22/2025: adding "absorbing" when using deviatePositions(), setting fitnessScaling to 0.0.
 	
 	/*
 	 initialize() {
@@ -1227,7 +1228,7 @@ void _RunContinuousSpaceTests(void)
 				{
 					for (int callbacks = 0; callbacks <= 1; ++callbacks)
 					{
-						for (int boundary = 0; boundary <= 3; boundary++)
+						for (int boundary = 0; boundary <= 4; boundary++)
 						{
 							for (int kernel = 0; kernel <= 4; kernel++)
 							{
@@ -1238,6 +1239,8 @@ void _RunContinuousSpaceTests(void)
 									if ((boundary != 3) && periodic)		// with non-periodic bounds, do not use periodic boundary condition
 										continue;
 									if ((dimcount == 3) && (kernel == 4))	// in 3D, do not use Student's t displacement; not implemented
+										continue;
+									if ((boundary == 4) && (use_deviate_positions == 0))	// with absorbing boundaries, need to be using deviatePositions()
 										continue;
 									
 									std::string model_string = "initialize() { ";
@@ -1314,9 +1317,9 @@ void _RunContinuousSpaceTests(void)
 									if (use_deviate_positions == 0)
 										model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
 									else if (use_deviate_positions == 1)
-										model_string.append("p1.deviatePositions(NULL, ");
+										model_string.append("to_kill = p1.deviatePositions(NULL, ");
 									else if (use_deviate_positions == 2)
-										model_string.append("p1.deviatePositions(inds, ");
+										model_string.append("to_kill = p1.deviatePositions(inds, ");
 									
 									switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
 									{
@@ -1324,6 +1327,7 @@ void _RunContinuousSpaceTests(void)
 										case 1: model_string.append("'reflecting'"); break;
 										case 2: model_string.append("'reprising'"); break;
 										case 3: model_string.append("'periodic'"); break;
+										case 4: model_string.append("'absorbing'"); break;
 									}
 									
 									switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
@@ -1338,9 +1342,14 @@ void _RunContinuousSpaceTests(void)
 									if (use_deviate_positions == 0)
 										model_string.append("); ");
 									else
+									{
 										model_string.append("; ");
+										model_string.append("to_kill.fitnessScaling = 0.0; ");
+									}
 									
-									model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+									// no bounds-checking for 'absorbing'; the individuals are out of bounds but will be killed
+									if (boundary != 4)
+										model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
 									model_string.append("} 10 late() {} ");
 									
 									SLiMAssertScriptSuccess(model_string);

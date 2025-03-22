@@ -155,6 +155,7 @@ development head (in the master branch):
 		fix #494, adding a -c / -check command-line option to check the syntax of the input script
 		fix #496, calling addCustomColumn() or addMeanSDColumns() inside a for loop passing the loop index variable for custom= does bad things
 			also, we now require an object value for the context parameter to belong to a class that is under retain-release, since this is a long-term reference and could cause a crash otherwise
+		add "absorbing" boundary condition option for deviatePositions(), returning a vector of individuals to be killed because they moved out of bounds
 
 
 version 4.3 (Eidos version 3.3):

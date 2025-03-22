@@ -11613,7 +11613,7 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)deviatePositions(No<Individual>\'a0individuals, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)deviatePositions(No<Individual>\'a0individuals, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Deviates the spatial positions of the individuals supplied in 
@@ -11632,7 +11632,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3\fs18 individuals
 \f4\fs20  with the 
 \f3\fs18 setSpatialPosition()
-\f4\fs20  method.  The boundary condition 
+\f4\fs20  method.\
+The boundary condition 
 \f3\fs18 boundary
 \f4\fs20  must be one of 
 \f3\fs18 "none"
@@ -11642,8 +11643,10 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f3\fs18 "reflecting"
 \f4\fs20 , 
 \f3\fs18 "stopping"
-\f4\fs20 , or 
+\f4\fs20 , 
 \f3\fs18 "reprising"
+\f4\fs20 , or 
+\f3\fs18 "absorbing"
 \f4\fs20 , and the spatial kernel type 
 \f3\fs18 functionType
 \f4\fs20  must be one of 
@@ -11673,6 +11676,13 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20 , and 
 \f3\fs18 functionType
 \f4\fs20  must be the same for all of the points, in the present design.)\
+The returned vector contains individuals that did not survive the dispersal process.  For 
+\f3\fs18 "absorbing"
+\f4\fs20  boundaries, this will contain the individuals that attempted to disperse beyond the spatial bounds, and in most cases the caller will then kill those individuals \'96 probably by passing them to 
+\f3\fs18 killIndividuals()
+\f4\fs20 , but perhaps by setting their 
+\f3\fs18 fitnessScaling
+\f4\fs20  to zero.  (The positions of the individuals in the returned vector will be the out-of-bounds positions that were drawn for them; rather than killing those individuals, the caller could conceivably handle them in some other way.)  For all other boundary conditions, the returned vector of individuals will be empty and may be ignored by the caller.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
@@ -12090,7 +12100,11 @@ The boundary condition must be one of
 \f3\fs18 pointStopped()
 \f4\fs20  methods; see their documentation for further details.  For 
 \f3\fs18 "reprising"
-\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.  Note that absorbing boundaries (for which being out-of-bounds is lethal) would be implemented in script; this method cannot enforce them.\
+\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.  Note that absorbing boundaries (for which being out-of-bounds is lethal) would need to be implemented in script; this method cannot enforce them.  (Note, however, that the 
+\f3\fs18 deviatePositions()
+\f4\fs20  method of 
+\f3\fs18 Subpopulation
+\f4\fs20  can enforce absorbing boundaries.)\
 Note that for the typical usage case, in which 
 \f3\fs18 point
 \f4\fs20  comes from the 
