@@ -681,6 +681,19 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	
 	gEidosErrorContext = error_context_save;
 	
+	// Check contextValue for validity and make a copy of it.  Copying is needed to
+	// ensure that the value is not changed underneath us externally, for example
+	// by a for loop; see https://github.com/MesserLab/SLiM/issues/496.
+	if (context_value->Type() == EidosValueType::kValueObject)
+	{
+		EidosValue_Object *context_object = (EidosValue_Object *)context_value.get();
+		
+		if (!context_object->Class()->UsesRetainRelease())
+			EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addCustomColumn): the context parameter to addCustomColumn() cannot be an object of a class that is not under retain-release, since the lifetime of such objects cannot be guaranteed.  See the documentation for addCustomColumn() for discussion of this limitation." << EidosTerminate();
+	}
+	
+	context_value = context_value->CopyValues();
+	
 	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_CustomScript, source_script, -1, std::move(context_value));
 	column_names_.emplace_back(column_name);
 	
@@ -765,6 +778,19 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	}
 	
 	gEidosErrorContext = error_context_save;
+	
+	// Check contextValue for validity and make a copy of it.  Copying is needed to
+	// ensure that the value is not changed underneath us externally, for example
+	// by a for loop; see https://github.com/MesserLab/SLiM/issues/496.
+	if (context_value->Type() == EidosValueType::kValueObject)
+	{
+		EidosValue_Object *context_object = (EidosValue_Object *)context_value.get();
+		
+		if (!context_object->Class()->UsesRetainRelease())
+			EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addMeanSDColumns): the context parameter to addMeanSDColumns() cannot be an object of a class that is not under retain-release, since the lifetime of such objects cannot be guaranteed.  See the documentation for addCustomColumn() for discussion of this limitation." << EidosTerminate();
+	}
+	
+	context_value = context_value->CopyValues();
 	
 	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_CustomMeanAndSD, source_script, -1, std::move(context_value));
 	column_names_.emplace_back(column_name + "_mean");

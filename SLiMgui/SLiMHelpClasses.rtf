@@ -5295,11 +5295,39 @@ The
 \f3\fs18 context
 \f4\fs20 , when 
 \f3\fs18 source
-\f4\fs20  is called, allowing the same source code to be used to generate values for multiple data columns; you might, for example, provide the particular 
+\f4\fs20  is called, allowing the same source code to be used to generate values for multiple data columns; you might, for example, pass the 
+\f3\fs18 id
+\f4\fs20  of the particular 
 \f3\fs18 Subpopulation
-\f4\fs20  object here that you wish 
+\f4\fs20  object that you wish 
 \f3\fs18 source
-\f4\fs20  to use for its calculations.  This is optional; if the default value of 
+\f4\fs20  to use for its calculations, and 
+\f3\fs18 source
+\f4\fs20  could then use the 
+\f3\fs18 Community
+\f4\fs20  method 
+\f3\fs18 subpopulationsWithIDs()
+\f4\fs20  to look up the subpopulation from the 
+\f3\fs18 id
+\f4\fs20  value provided in 
+\f3\fs18 context
+\f4\fs20 .\
+Note that the 
+\f3\fs18 Subpopulation
+\f4\fs20  object itself cannot be passed in 
+\f3\fs18 context
+\f4\fs20 , because class 
+\f3\fs18 Subpopulation
+\f4\fs20  is not under retain-release memory management in SLiM, meaning essentially that subpopulation objects can cease to exist unpredictably (because they go extinct, for example).  A reference to such an object cannot be kept long-term by your script (including by 
+\f3\fs18 LogFile
+\f4\fs20 ), because if the object ceases to exist, the reference would become invalid and a crash would result.  Passing such an object \'96 one not under retain-release \'96 to 
+\f3\fs18 addCustomColumn()
+\f4\fs20  will therefore raise an error, to safeguard against that possible crash.  The workaround for this limitation is to find a way to look up the desired object, such as the suggestion above of using the subpopulation\'92s 
+\f3\fs18 id
+\f4\fs20  to look it up.  See section 30.2 for further discussion of scoping rules, long-term references, and retain-release memory management in SLiM.\
+The use of 
+\f3\fs18 context
+\f4\fs20  is optional; if the default value of 
 \f3\fs18 NULL
 \f4\fs20  is used, then 
 \f3\fs18 context
@@ -5390,13 +5418,16 @@ See
 \f3\fs18 float
 \f4\fs20  values.  In the latter case, the result vector will be summarized in the two columns by its mean and standard deviation respectively.  If the result vector has exactly one value, the standard deviation will be written as 
 \f3\fs18 NA
-\f4\fs20 .  The 
+\f4\fs20 .\
+The 
 \f3\fs18 context
 \f4\fs20  parameter is set up as a pseudo-parameter when 
 \f3\fs18 source
 \f4\fs20  is called, as described in 
 \f3\fs18 addCustomColumn()
-\f4\fs20 .\
+\f4\fs20 .  See the documentation for that method for further discussion of 
+\f3\fs18 context
+\f4\fs20 , including limitations on its use.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)addPopulationSexRatio([No<Species>$\'a0species\'a0=\'a0NULL])\

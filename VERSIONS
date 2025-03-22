@@ -153,6 +153,8 @@ development head (in the master branch):
 		fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F
 		rename Haplosome methods output(), outputMS(), and outputVCF() to outputHaplosomes(), outputHaplosomesToMS(), and outputHaplosomesToVCF(), to parallel the new Individual output methods
 		fix #494, adding a -c / -check command-line option to check the syntax of the input script
+		fix #496, calling addCustomColumn() or addMeanSDColumns() inside a for loop passing the loop index variable for custom= does bad things
+			also, we now require an object value for the context parameter to belong to a class that is under retain-release, since this is a long-term reference and could cause a crash otherwise
 
 
 version 4.3 (Eidos version 3.3):
