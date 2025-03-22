@@ -123,7 +123,7 @@ private:
 	
 	// these ivars track top-level simulation state: the tick, cycle stage, etc.
 	slim_tick_t tick_start_ = 0;													// the first tick number for which the simulation will run
-	slim_tick_t tick_ = 0;															// the current tick reached in simulation
+	slim_tick_t tick_ = -1;															// the current tick reached in simulation
 	EidosValue_SP cached_value_tick_;												// a cached value for tick_; invalidates automatically when used
 	
 	SLiMCycleStage cycle_stage_ = SLiMCycleStage::kStagePreCycle;					// the within-cycle stage currently being executed

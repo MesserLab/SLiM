@@ -561,7 +561,19 @@ public:
 	SLiMUndefinedIdentifierException(const std::string &msg) : message(msg) {}
 	
 	const char* what() const noexcept { return message.c_str(); } 
-}; 
+};
+
+// Similarly, this custom exception subclass is used to allow tick range evaluation to tolerate
+// undefined function names during the initial attempt in Community::FinishInitialization(),
+// before initialize() callbacks have run and thus before user-defined functions are set up.
+// Unlike SLiMUndefinedIdentifierException, an error string is not needed.
+class SLiMUndefinedFunctionException : public std::exception
+{ 
+public: 
+	SLiMUndefinedFunctionException() {}
+	
+	const char* what() const noexcept { return ""; } 
+};
 
 
 // *******************************************************************************************************************

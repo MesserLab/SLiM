@@ -109,6 +109,11 @@ private:
 	// the use of this facility.
 	bool use_custom_undefined_identifier_raise_ = false;
 	
+	// similarly, a flag controlling the special use of SLiMUndefinedFunctionException
+	// by EidosInterpreter::Evaluate_Call(); see Community::_EvaluateTickRangeNode() for
+	// the use of this facility.
+	bool use_custom_undefined_function_raise_ = false;
+	
 	// The standard built-in function map, set up by CacheBuiltInFunctionMap()
 	static EidosFunctionMap *s_built_in_function_map_;
 	
@@ -328,6 +333,9 @@ public:
 	// Support for tick range expression parsing; see Community::_EvaluateTickRangeNode()
 	bool UseCustomUndefinedIdentifierRaise(void) { return use_custom_undefined_identifier_raise_; }
 	void SetUseCustomUndefinedIdentifierRaise(bool p_flag) { use_custom_undefined_identifier_raise_ = p_flag; }
+	
+	bool UseCustomUndefinedFunctionRaise(void) { return use_custom_undefined_function_raise_; }
+	void SetUseCustomUndefinedFunctionRaise(bool p_flag) { use_custom_undefined_function_raise_ = p_flag; }
 };
 
 

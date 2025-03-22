@@ -1476,6 +1476,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			
 			if (signature_iter == function_map_.end())
 			{
+				// This raises a special exception if the function name is undefined.
+				// This facility is used by Community::_EvaluateTickRangeNode() for tolerant evaluation.
+				if (use_custom_undefined_function_raise_)
+					throw SLiMUndefinedFunctionException();
+				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << ".";
 				if (Context() == nullptr)
 					EIDOS_TERMINATION << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";

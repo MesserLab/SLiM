@@ -101,6 +101,9 @@ Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEid
 	AddSLiMFunctionsToMap(simulation_functions_);
 	
 	// reading from the input file is deferred to InitializeFromFile() to make raise-handling simpler - finish construction
+	
+	// BCH 3/21/2025: Note that tick_ == -1 at this point, now, so we can differentiate construction from initialize()
+	// It gets set to 0 in Community::FinishInitialization(), when we finish with the construction phase.
 }
 
 Community::~Community(void)
@@ -454,6 +457,10 @@ void Community::FinishInitialization(void)
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		ClearErrorContext();
 	}
+	
+	// We have been in the "construction" phase, with tick_ == -1 as set in the header.
+	// Now we're done with construction, and set the tick counter to 0 for "initialization".
+	tick_ = 0;
 }
 
 void Community::ValidateScriptBlockCaches(void)
@@ -1548,7 +1555,16 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 	// errors at all; when running on the command line, it simply logs the error and exits.  So we
 	// needed a special flag to change that behavior to throwing a custom exception in all cases, to
 	// make the interpreter tolerant at runtime of this specific case.
+	// BCH 3/21/2025: Broadening this mechanism to also encompass a raise due to an undefined function
+	// name, only when tick == -1 (during construction).  We get called by FinishInitialization(), at
+	// which point user-defined functions have not yet been parsed, and we want to fail silently and
+	// try again later if a tick range expression depends on a user-defined function.  The evaluation
+	// should succeed after initialize().  See https://github.com/MesserLab/SLiM/issues/495.  Note that
+	// we do not protect against an undefined function name in doCall(), only in direct function calls.
+	// I'm not sure there's a really solid reason for that choice, it's just what I decided to do.
 	interpreter.SetUseCustomUndefinedIdentifierRaise(true);
+	if (tick_ == -1)
+		interpreter.SetUseCustomUndefinedFunctionRaise(true);
 	
 	try
 	{
@@ -1560,8 +1576,13 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 		p_error_string = e.what();
 		return EidosValue_SP();
 	}
+	catch (SLiMUndefinedFunctionException &e)
+	{
+		// for undefined functions, we don't need to remember the name; just return nullptr
+		return EidosValue_SP();
+	}
 	
-	// no need to set the "custom undefined identifier raise" flag back, it's a local interpreter anyway
+	// no need to set the "custom undefined..." flags back, it's a local interpreter anyway
 	
 	p_error_string = "";	// no execution error, so clear out any cached error string present
 	

@@ -2592,6 +2592,31 @@ void _RunSLiMEidosBlockTests(void)
 		20 late() { community.deregisterScriptBlock(s1); }
 		)V0G0N");
 	SLiMAssertScriptSuccess(tickexpr7);
+	
+	// Test tick range expressions involving a user-defined function (see https://github.com/MesserLab/SLiM/issues/495)
+	std::string tickexpr8(R"V0G0N(
+		initialize() {
+		}
+		function (i) tock(i years) {
+			return (asInteger(years / 30));
+		}
+		tock(300) early() {
+			stop('executed the scheduled event');
+		}
+		)V0G0N");
+	SLiMAssertScriptStop(tickexpr8);
+	
+	std::string tickexpr9(R"V0G0N(
+		initialize() {
+		}
+		function (i) tock(i years) {
+			return (asInteger(years / 30));
+		}
+		tuck(300) early() {		// typo
+			stop('executed the scheduled event');
+		}
+		)V0G0N");
+	SLiMAssertScriptRaise(tickexpr9, "unrecognized function name tuck", __LINE__);
 }
 
 
