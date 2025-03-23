@@ -3224,7 +3224,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 			if (p_method_id == gEidosID_setValuesVectorized)
 				Individual::s_any_individual_dictionary_set_ = true;
 			
-			return EidosDictionaryUnretained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+			return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 		}
 	}
 }

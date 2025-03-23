@@ -1181,7 +1181,7 @@ EidosValue_SP LogFile_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gEidosID_setValuesVectorized:	return ExecuteMethod_setValuesVectorized(p_method_id, p_target, p_arguments, p_interpreter);
-		default:							return EidosDictionaryRetained_Class::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+		default:							return super::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
 	}
 }
 
