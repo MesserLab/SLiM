@@ -6490,13 +6490,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() may not be called from a nested callback." << EidosTerminate();
 	
 	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
@@ -6580,13 +6580,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() may not be called from a nested callback." << EidosTerminate();
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
@@ -6695,13 +6695,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): addEmpty() may not be called from a nested callback." << EidosTerminate();
 	
 	// Check the count and short-circuit if it is zero
 	EidosValue *count_value = p_arguments[3].get();
@@ -6771,19 +6771,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_addMultiRecombinant(EidosGlobalString
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// This code is strongly patterned on the code for addRecombinant(), and should be maintained in parallel
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): method -addMultiRecombinant() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): method -addMultiRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): method -addMultiRecombinant() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() may not be called from a nested callback." << EidosTerminate();
 	
 	// We could technically make this work in the no-genetics case, if the parameters specify that both
 	// child haplosomes are null, but there's really no reason for anybody to use addRecombinant() in that
 	// case, and getting all the logic correct below would be error-prone.
 	if (!species_.HasGenetics())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): method -addMultiRecombinant() may not be called for a no-genetics species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addMultiRecombinant): addMultiRecombinant() may not be called for a no-genetics species." << EidosTerminate();
 	
 	// Get arguments and do trivial processing
 	EidosValue *pattern_value = p_arguments[0].get();
@@ -7640,23 +7640,23 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() is not available in WF models." << EidosTerminate();
 
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may not be called from a nested callback." << EidosTerminate();
 	
 	// We could technically make this work in the no-genetics case, if the parameters specify that both
 	// child haplosomes are null, but there's really no reason for anybody to use addRecombinant() in that
 	// case, and getting all the logic correct below would be error-prone.
 	if (!species_.HasGenetics())
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may not be called for a no-genetics species." << EidosTerminate();
 	
 	// This method may only be used in single-chromosome models; it is for the simple case, and for backward compatibility.
 	if (species_.Chromosomes().size() != 1)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called in single-chromosome models; see addMultiRecombinant() for the multi-chromosome version of this method." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() may only be called in single-chromosome models; see addMultiRecombinant() for the multi-chromosome version of this method." << EidosTerminate();
 	
 	Chromosome *chromosome = species_.Chromosomes()[0];
 	
@@ -8232,13 +8232,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() may not be called from a nested callback." << EidosTerminate();
 	
 	// Get and check the parent
 	EidosValue *parent_value = p_arguments[0].get();
@@ -8322,12 +8322,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (community_.executing_species_ == &species_)
 		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
@@ -8365,7 +8365,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			slim_popsize_t source_subpop_index = migrant->index_;
 			
 			if (source_subpop_index < 0)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() may not move an individual that is not visible in a subpopulation.  This error may also occur if you try to migrate the same individual more than once in a single takeMigrants() call (i.e., if the migrants vector is not uniqued)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() may not move an individual that is not visible in a subpopulation.  This error may also occur if you try to migrate the same individual more than once in a single takeMigrants() call (i.e., if the migrants vector is not uniqued)." << EidosTerminate();
 			
 			// remove the originals from source_subpop's vectors
 			if (migrant->sex_ == IndividualSex::kFemale)
@@ -8487,7 +8487,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): method -setMigrationRates() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): setMigrationRates() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *sourceSubpops_value = p_arguments[0].get();
 	EidosValue *rates_value = p_arguments[1].get();
@@ -10581,7 +10581,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): method -setCloningRate() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): setCloningRate() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *rate_value = p_arguments[0].get();
 	
@@ -10629,7 +10629,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): method -setSelfingRate() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): setSelfingRate() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *rate_value = p_arguments[0].get();
 	
@@ -10653,7 +10653,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): method -setSexRatio() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): setSexRatio() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *sexRatio_value = p_arguments[0].get();
 	
@@ -10760,7 +10760,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSubpopulationSize): method -setSubpopulationSize() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSubpopulationSize): setSubpopulationSize() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *size_value = p_arguments[0].get();
 	
@@ -10778,12 +10778,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): removeSubpopulation() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (community_.executing_species_ == &species_)
 		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): removeSubpopulation() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
 	
 	population_.RemoveSubpopulation(*this);
 	

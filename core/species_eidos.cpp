@@ -2464,7 +2464,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): method -addSubpopSplit() is not available in nonWF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() is not available in nonWF models." << EidosTerminate();
 	
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
@@ -2744,12 +2744,12 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): killIndividuals() is not available in WF models." << EidosTerminate();
 	
 	// TIMING RESTRICTION
 	if (community_.executing_species_ == this)
 		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): killIndividuals() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
 	
 	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
 	int individuals_count = individuals_value->Count();
@@ -2774,7 +2774,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 		slim_popsize_t source_subpop_index = doomed->index_;
 		
 		if (source_subpop_index < 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() may not kill an individual that is not visible in a subpopulation.  This error will occur if you try to kill the same individual more than once." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): killIndividuals() may not kill an individual that is not visible in a subpopulation.  This error will occur if you try to kill the same individual more than once." << EidosTerminate();
 		
 		Subpopulation *source_subpop = doomed->subpopulation_;
 		slim_popsize_t source_subpop_size = source_subpop->parent_subpop_size_;
@@ -3545,10 +3545,10 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (p_method_id == gID_registerMateChoiceCallback)
 		if (model_type_ == SLiMModelType::kModelTypeNonWF)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): method -registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): registerMateChoiceCallback() is not available in nonWF models." << EidosTerminate();
 	if (p_method_id == gID_registerSurvivalCallback)
 		if (model_type_ == SLiMModelType::kModelTypeWF)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): method -registerSurvivalCallback() is not available in WF models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): registerSurvivalCallback() is not available in WF models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
@@ -3696,7 +3696,7 @@ EidosValue_SP Species::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerReproductionCallback): method -registerReproductionCallback() is not available in WF models." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() is not available in WF models." << EidosTerminate();
 	
 	EidosValue *id_value = p_arguments[0].get();
 	EidosValue *source_value = p_arguments[1].get();
