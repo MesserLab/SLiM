@@ -1422,6 +1422,7 @@ const std::string &gStr_treeSeqOutput = EidosRegisteredString("treeSeqOutput", g
 const std::string &gStr__debug = EidosRegisteredString("_debug", gID__debug);
 const std::string &gStr_setMigrationRates = EidosRegisteredString("setMigrationRates", gID_setMigrationRates);
 const std::string &gStr_deviatePositions = EidosRegisteredString("deviatePositions", gID_deviatePositions);
+const std::string &gStr_deviatePositionsWithMap = EidosRegisteredString("deviatePositionsWithMap", gID_deviatePositionsWithMap);
 const std::string &gStr_pointDeviated = EidosRegisteredString("pointDeviated", gID_pointDeviated);
 const std::string &gStr_pointInBounds = EidosRegisteredString("pointInBounds", gID_pointInBounds);
 const std::string &gStr_pointReflected = EidosRegisteredString("pointReflected", gID_pointReflected);

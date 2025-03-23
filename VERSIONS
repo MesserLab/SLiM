@@ -156,6 +156,7 @@ development head (in the master branch):
 		fix #496, calling addCustomColumn() or addMeanSDColumns() inside a for loop passing the loop index variable for custom= does bad things
 			also, we now require an object value for the context parameter to belong to a class that is under retain-release, since this is a long-term reference and could cause a crash otherwise
 		add "absorbing" boundary condition option for deviatePositions(), returning a vector of individuals to be killed because they moved out of bounds
+		add new Subpopulation method deviatePositionsWithMap(), similar to deviatePositions() but adding a spatial map that defines inside/outside bounds
 
 
 version 4.3 (Eidos version 3.3):

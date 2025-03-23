@@ -6209,6 +6209,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 
 		case gID_haplosomesForChromosomes:	return ExecuteMethod_haplosomesForChromosomes(p_method_id, p_arguments, p_interpreter);
 		case gID_deviatePositions:		return ExecuteMethod_deviatePositions(p_method_id, p_arguments, p_interpreter);
+		case gID_deviatePositionsWithMap:	return ExecuteMethod_deviatePositionsWithMap(p_method_id, p_arguments, p_interpreter);
 		case gID_pointDeviated:			return ExecuteMethod_pointDeviated(p_method_id, p_arguments, p_interpreter);
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_interpreter);
@@ -8591,8 +8592,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 		individuals_count = individuals_value->Count();
 	}
 	
+	// Make a return vector that is initially empty; unless boundary is "absorbing", it will remain empty
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+	EidosValue_Object *result = ((EidosValue_Object *)result_SP.get());
+	
 	if (individuals_count == 0)
-		return gStaticEidosValueVOID;
+		return result_SP;
 	
 	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[1].get();
 	const std::string &boundary_str = boundary_value->StringRefAtIndex_NOCAST(0, nullptr);
@@ -8642,10 +8647,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): deviatePositions() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of individuals being processed (" << kernel_count << " kernels defined; " << individuals_count << " individuals processed)." << EidosTerminate();
 	
 	SpatialKernel kernel0(dimensionality, max_distance, p_arguments, 3, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 3
-	
-	// Make a return vector that is initially empty; unless boundary is "absorbing", it will remain empty
-	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
-	EidosValue_Object *result = ((EidosValue_Object *)result_SP.get());
 	
 	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
 	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
@@ -8973,6 +8974,699 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositions(EidosGlobalStringID 
 		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositions): (internal error) unrecognized dimensionality." << EidosTerminate();
+	}
+	
+	return result_SP;
+}
+
+//	*********************	– (object<Individual>)deviatePositionsWithMap(No<Individual> individuals, string$ boundary, so<SpatialMap>$ map, numeric$ maxDistance, string$ functionType, ...)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	// NOTE: most of the code of this method is shared with pointDeviated(), and even more, with deviatePositions()
+	
+	SLiMCycleStage cycle_stage = community_.CycleStage();
+	
+	// TIMING RESTRICTION
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() may only be called from a first(), early(), or late() event." << EidosTerminate();
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() may not be called from inside a callback." << EidosTerminate();
+	
+	int dimensionality = species_.SpatialDimensionality();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() cannot be called in non-spatial simulations." << EidosTerminate();
+	
+	EidosValue *individuals_value = p_arguments[0].get();
+	Individual * const *individuals;
+	int individuals_count;
+	
+	if (individuals_value->Type() == EidosValueType::kValueNULL)
+	{
+		// NULL requests that the positions of all individuals in the subpop should be deviated
+		individuals = parent_individuals_.data();
+		individuals_count = parent_subpop_size_;
+	}
+	else
+	{
+		individuals = (Individual * const *)individuals_value->ObjectData();
+		individuals_count = individuals_value->Count();
+	}
+	
+	// Make a return vector that is initially empty; unless boundary is "absorbing", it will remain empty
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Individual_Class));
+	EidosValue_Object *result = ((EidosValue_Object *)result_SP.get());
+	
+	if (individuals_count == 0)
+		return result_SP;
+	
+	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[1].get();
+	const std::string &boundary_str = boundary_value->StringRefAtIndex_NOCAST(0, nullptr);
+	BoundaryCondition boundary;
+	
+	if (boundary_str.compare("reprising") == 0)
+		boundary = BoundaryCondition::kReprising;
+	else if (boundary_str.compare("absorbing") == 0)
+		boundary = BoundaryCondition::kAbsorbing;
+	else if ((boundary_str.compare("none") == 0) ||
+			 (boundary_str.compare("stopping") == 0) ||
+			 (boundary_str.compare("reflecting") == 0) ||
+			 (boundary_str.compare("periodic") == 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() does not support boundary condition '" << boundary_str << "'." << EidosTerminate();
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): unrecognized boundary condition '" << boundary_str << "'." << EidosTerminate();
+	
+	// Periodic boundaries are a bit complicated.  Unlike deviatePositions(), we automatically apply periodic
+	// boundaries if they are defined, so that the deviated point is within spatial bounds and can be checked
+	// against the spatial map.
+	// Since periodic boundaries depend upon the species configuration, we require all individuals to belong to the target species here
+	// In other cases, it doesn't seem necessary to enforce this, and it might be useful to be able to violate it
+	bool periodic_x = false, periodic_y = false, periodic_z = false;
+	
+	species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+	
+	if (periodic_x || periodic_y || periodic_z)
+	{
+		if (community_.SpeciesForIndividualsVector(individuals, individuals_count) != &species_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() requires that all individuals belong to the same species as the target subpopulation, when periodic boundaries are in effect." << EidosTerminate();
+	}
+	
+	// Get the spatial map's name; see ExecuteMethod_spatialMapValue() for the origin of this code
+	EidosValue *map_value = p_arguments[2].get();
+	SpatialMap *map = nullptr;
+	std::string map_name;
+	
+	if (map_value->Type() == EidosValueType::kValueString)
+	{
+		map_name = ((EidosValue_String *)map_value)->StringRefAtIndex_NOCAST(0, nullptr);
+		
+		if (map_name.length() == 0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() map name must not be zero-length." << EidosTerminate();
+	}
+	else
+	{
+		map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		map_name = map->name_;
+	}
+	
+	// Find the SpatialMap by name; we do this lookup even if a map object was supplied, to check that that map is present
+	auto map_iter = spatial_maps_.find(map_name);
+	
+	if (map_iter != spatial_maps_.end())
+	{
+		SpatialMap *found_map = map_iter->second;
+		
+		if (map && (found_map != map))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() could not find map in the target subpopulation (although it did find a different map with the same name)." << EidosTerminate();
+		
+		map = found_map;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() could not find map '" << map_name << "' in the target subpopulation." << EidosTerminate();
+	
+	bool map_interpolated = map->interpolate_;
+	
+	// Process the max distance and kernel
+	EidosValue *maxDistance_value = p_arguments[3].get();
+	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
+	
+	SpatialKernelType k_type;
+	int k_param_count;
+	int kernel_count = SpatialKernel::PreprocessArguments(dimensionality, max_distance, p_arguments, 4, /* p_expect_max_density */ false, &k_type, &k_param_count);
+	
+	if ((kernel_count != 1) && (kernel_count != individuals_count))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() requires that the number of spatial kernels defined (by the supplied kernel-definition arguments) either must be 1, or must equal the number of individuals being processed (" << kernel_count << " kernels defined; " << individuals_count << " individuals processed)." << EidosTerminate();
+	
+	SpatialKernel kernel0(dimensionality, max_distance, p_arguments, 4, 0, /* p_expect_max_density */ false, k_type, k_param_count);	// uses our arguments starting at index 4
+	
+	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
+	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
+	// overhead of drawing a displacement from the kernel, which requires a random number draw.  However, common
+	// 2D cases are optimized here; see deviatePositions().  This provides about a 10% speedup compared to the
+	// general-purpose code below.  The sub-optimization here for non-interpolated maps provides another 3% or so,
+	// which is pretty marginal, but it's an easy optimization.
+	if ((kernel_count == 1) && (dimensionality == 2) && (kernel0.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel0.max_distance_) && !periodic_x && !periodic_y && !periodic_z && ((boundary == BoundaryCondition::kReprising) || (boundary == BoundaryCondition::kAbsorbing)))
+	{
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		double stddev = kernel0.kernel_param2_;
+		double bx0 = bounds_x0_, bx1 = bounds_x1_;
+		double by0 = bounds_y0_, by1 = bounds_y1_;
+		double bounds_size_x = bx1 - bx0;
+		double bounds_size_y = by1 - by0;
+		
+		if (boundary == BoundaryCondition::kReprising)
+		{
+			if (map_interpolated)
+			{
+				// FIXME: TO BE PARALLELIZED
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals[individual_index];
+					double a0_original = ind->spatial_x_;
+					double a1_original = ind->spatial_y_;
+					int num_tries = 0;
+					
+				reprise_specialcase:
+					if (++num_tries == 1000000)
+						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+					
+					double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
+					double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+					
+					if ((a0 < bx0) || (a0 > bx1) ||
+						(a1 < by0) || (a1 > by1))
+						goto reprise_specialcase;
+					
+					// within the spatial bounds, so now we have to check the map
+					double a_normalized[2];
+					
+					a_normalized[0] = (a0 - bx0) / bounds_size_x;
+					a_normalized[1] = (a1 - by0) / bounds_size_y;
+					
+					double value_for_point = map->ValueAtPoint_S2(a_normalized);
+					
+					if (value_for_point <= 0)
+					{
+						// habitability 0: always reprise
+						goto reprise_specialcase;
+					}
+					else if (value_for_point >= 1)
+					{
+						// habitability 1: never reprise (drop through)
+					}
+					else
+					{
+						// intermediate: do a random number draw, where value_for_point is P(within bounds)
+						if (Eidos_rng_uniform(rng) > value_for_point)
+							goto reprise_specialcase;
+					}
+					
+					ind->spatial_x_ = a0;
+					ind->spatial_y_ = a1;
+				}
+			}
+			else	// !map_interpolated
+			{
+				// FIXME: TO BE PARALLELIZED
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals[individual_index];
+					double a0_original = ind->spatial_x_;
+					double a1_original = ind->spatial_y_;
+					int num_tries = 0;
+					
+				reprise_specialcase_nointerp:
+					if (++num_tries == 1000000)
+						EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+					
+					double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
+					double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+					
+					if ((a0 < bx0) || (a0 > bx1) ||
+						(a1 < by0) || (a1 > by1))
+						goto reprise_specialcase_nointerp;
+					
+					// within the spatial bounds, so now we have to check the map
+					double a0_normalized = (a0 - bx0) / bounds_size_x;
+					double a1_normalized = (a1 - by0) / bounds_size_y;
+					double value_for_point = map->ValueAtPoint_S2_NOINTERPOLATE(a0_normalized, a1_normalized);
+					
+					if (value_for_point <= 0)
+					{
+						// habitability 0: always reprise
+						goto reprise_specialcase_nointerp;
+					}
+					else if (value_for_point >= 1)
+					{
+						// habitability 1: never reprise (drop through)
+					}
+					else
+					{
+						// intermediate: do a random number draw, where value_for_point is P(within bounds)
+						if (Eidos_rng_uniform(rng) > value_for_point)
+							goto reprise_specialcase_nointerp;
+					}
+					
+					ind->spatial_x_ = a0;
+					ind->spatial_y_ = a1;
+				}
+			}
+		}
+		else if (boundary == BoundaryCondition::kAbsorbing)
+		{
+			if (map_interpolated)
+			{
+				// FIXME: TO BE PARALLELIZED
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals[individual_index];
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+					
+					if ((a0 < bx0) || (a0 > bx1) ||
+						(a1 < by0) || (a1 > by1))
+					{
+						result->push_object_element_capcheck_NORR(ind);
+					}
+					else
+					{
+						// within the spatial bounds, so now we have to check the map
+						double a_normalized[2];
+						
+						a_normalized[0] = (a0 - bx0) / bounds_size_x;
+						a_normalized[1] = (a1 - by0) / bounds_size_y;
+						
+						double value_for_point = map->ValueAtPoint_S2(a_normalized);
+						
+						if (value_for_point <= 0)
+						{
+							// habitability 0: always absorb
+							result->push_object_element_capcheck_NORR(ind);
+						}
+						else if (value_for_point >= 1)
+						{
+							// habitability 1: never absorb (drop through)
+						}
+						else
+						{
+							// intermediate: do a random number draw, where value_for_point is P(within bounds)
+							if (Eidos_rng_uniform(rng) > value_for_point)
+								result->push_object_element_capcheck_NORR(ind);
+						}
+					}
+					
+					ind->spatial_x_ = a0;
+					ind->spatial_y_ = a1;
+				}
+			}
+			else	// !map_interpolated
+			{
+				// FIXME: TO BE PARALLELIZED
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *ind = individuals[individual_index];
+					double a0 = ind->spatial_x_ + gsl_ran_gaussian(rng, stddev);
+					double a1 = ind->spatial_y_ + gsl_ran_gaussian(rng, stddev);
+					
+					if ((a0 < bx0) || (a0 > bx1) ||
+						(a1 < by0) || (a1 > by1))
+					{
+						result->push_object_element_capcheck_NORR(ind);
+					}
+					else
+					{
+						// within the spatial bounds, so now we have to check the map
+						double a0_normalized = (a0 - bx0) / bounds_size_x;
+						double a1_normalized = (a1 - by0) / bounds_size_y;
+						double value_for_point = map->ValueAtPoint_S2_NOINTERPOLATE(a0_normalized, a1_normalized);
+						
+						if (value_for_point <= 0)
+						{
+							// habitability 0: always absorb
+							result->push_object_element_capcheck_NORR(ind);
+						}
+						else if (value_for_point >= 1)
+						{
+							// habitability 1: never absorb (drop through)
+						}
+						else
+						{
+							// intermediate: do a random number draw, where value_for_point is P(within bounds)
+							if (Eidos_rng_uniform(rng) > value_for_point)
+								result->push_object_element_capcheck_NORR(ind);
+						}
+					}
+					
+					ind->spatial_x_ = a0;
+					ind->spatial_y_ = a1;
+				}
+			}
+		}
+		return result_SP;
+	}
+	
+	// main code path; note that here we may have multiple kernels defined, one per individual
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
+	switch (dimensionality)
+	{
+		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double bounds_size_x = bx1 - bx0;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
+				Individual *ind = individuals[individual_index];
+				double a[1];
+				int num_tries = 0;
+				
+			reprise_1:
+				kernel.DrawDisplacement_S1(a);
+				a[0] += ind->spatial_x_;
+				
+				if (periodic_x)
+				{
+					while (a[0] < 0.0)	a[0] += bx1;
+					while (a[0] > bx1)	a[0] -= bx1;
+				}
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kReprising:
+					{
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						if ((a[0] < bx0) || (a[0] > bx1))
+							goto reprise_1;
+						
+						// within the spatial bounds, so now we have to check the map
+						double a_normalized[1];
+						
+						a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+						
+						double value_for_point = map->ValueAtPoint_S1(a_normalized);
+						
+						if (value_for_point <= 0)
+						{
+							// habitability 0: always reprise
+							goto reprise_1;
+						}
+						else if (value_for_point >= 1)
+						{
+							// habitability 1: never reprise (drop through)
+						}
+						else
+						{
+							// intermediate: do a random number draw, where value_for_point is P(within bounds)
+							if (Eidos_rng_uniform(rng) > value_for_point)
+								goto reprise_1;
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kAbsorbing:
+					{
+						if ((a[0] < bx0) || (a[0] > bx1))
+						{
+							result->push_object_element_capcheck_NORR(ind);
+						}
+						else
+						{
+							// within the spatial bounds, so now we have to check the map
+							double a_normalized[1];
+							
+							a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+							
+							double value_for_point = map->ValueAtPoint_S1(a_normalized);
+							
+							if (value_for_point <= 0)
+							{
+								// habitability 0: always reprise
+								result->push_object_element_capcheck_NORR(ind);
+							}
+							else if (value_for_point >= 1)
+							{
+								// habitability 1: never reprise (drop through)
+							}
+							else
+							{
+								// intermediate: do a random number draw, where value_for_point is P(within bounds)
+								if (Eidos_rng_uniform(rng) > value_for_point)
+									result->push_object_element_capcheck_NORR(ind);
+							}
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kNone:
+					case BoundaryCondition::kStopping:
+					case BoundaryCondition::kReflecting:
+					case BoundaryCondition::kPeriodic:
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): (internal error) unsupported boundary condition." << EidosTerminate();
+				}
+				
+				ind->spatial_x_ = a[0];
+			}
+			break;
+		}
+		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			double bounds_size_x = bx1 - bx0;
+			double bounds_size_y = by1 - by0;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
+				Individual *ind = individuals[individual_index];
+				double a[2];
+				int num_tries = 0;
+				
+			reprise_2:
+				kernel.DrawDisplacement_S2(a);
+				a[0] += ind->spatial_x_;
+				a[1] += ind->spatial_y_;
+				
+				if (periodic_x)
+				{
+					while (a[0] < 0.0)	a[0] += bx1;
+					while (a[0] > bx1)	a[0] -= bx1;
+				}
+				if (periodic_y)
+				{
+					while (a[1] < 0.0)	a[1] += by1;
+					while (a[1] > by1)	a[1] -= by1;
+				}
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kReprising:
+					{
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1))
+							goto reprise_2;
+						
+						// within the spatial bounds, so now we have to check the map
+						double a_normalized[2];
+						
+						a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+						a_normalized[1] = (a[1] - by0) / bounds_size_y;
+						
+						double value_for_point = map->ValueAtPoint_S2(a_normalized);
+						
+						if (value_for_point <= 0)
+						{
+							// habitability 0: always reprise
+							goto reprise_2;
+						}
+						else if (value_for_point >= 1)
+						{
+							// habitability 1: never reprise (drop through)
+						}
+						else
+						{
+							// intermediate: do a random number draw, where value_for_point is P(within bounds)
+							if (Eidos_rng_uniform(rng) > value_for_point)
+								goto reprise_2;
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kAbsorbing:
+					{
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1))
+						{
+							result->push_object_element_capcheck_NORR(ind);
+						}
+						else
+						{
+							// within the spatial bounds, so now we have to check the map
+							double a_normalized[2];
+							
+							a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+							a_normalized[1] = (a[1] - by0) / bounds_size_y;
+							
+							double value_for_point = map->ValueAtPoint_S2(a_normalized);
+							
+							if (value_for_point <= 0)
+							{
+								// habitability 0: always reprise
+								result->push_object_element_capcheck_NORR(ind);
+							}
+							else if (value_for_point >= 1)
+							{
+								// habitability 1: never reprise (drop through)
+							}
+							else
+							{
+								// intermediate: do a random number draw, where value_for_point is P(within bounds)
+								if (Eidos_rng_uniform(rng) > value_for_point)
+									result->push_object_element_capcheck_NORR(ind);
+							}
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kNone:
+					case BoundaryCondition::kStopping:
+					case BoundaryCondition::kReflecting:
+					case BoundaryCondition::kPeriodic:
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): (internal error) unsupported boundary condition." << EidosTerminate();
+				}
+				
+				ind->spatial_x_ = a[0];
+				ind->spatial_y_ = a[1];
+			}
+			break;
+		}
+		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			double bz0 = bounds_z0_, bz1 = bounds_z1_;
+			double bounds_size_x = bx1 - bx0;
+			double bounds_size_y = by1 - by0;
+			double bounds_size_z = bz1 - bz0;
+			
+			// FIXME: TO BE PARALLELIZED
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				SpatialKernel kernel((kernel_count == 1) ? kernel0 : SpatialKernel(dimensionality, max_distance, p_arguments, 4, individual_index, /* p_expect_max_density */ false, k_type, k_param_count));
+				Individual *ind = individuals[individual_index];
+				double a[3];
+				int num_tries = 0;
+				
+			reprise_3:
+				kernel.DrawDisplacement_S3(a);
+				a[0] += ind->spatial_x_;
+				a[1] += ind->spatial_y_;
+				a[2] += ind->spatial_z_;
+				
+				if (periodic_x)
+				{
+					while (a[0] < 0.0)	a[0] += bx1;
+					while (a[0] > bx1)	a[0] -= bx1;
+				}
+				if (periodic_y)
+				{
+					while (a[1] < 0.0)	a[1] += by1;
+					while (a[1] > by1)	a[1] -= by1;
+				}
+				if (periodic_z)
+				{
+					while (a[2] < 0.0)	a[2] += bz1;
+					while (a[2] > bz1)	a[2] -= bz1;
+				}
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case BoundaryCondition::kReprising:
+					{
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() failed to find a successful deviated point by reprising after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1) ||
+							(a[2] < bz0) || (a[2] > bz1))
+							goto reprise_3;
+						
+						// within the spatial bounds, so now we have to check the map
+						double a_normalized[3];
+						
+						a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+						a_normalized[1] = (a[1] - by0) / bounds_size_y;
+						a_normalized[2] = (a[2] - bz0) / bounds_size_z;
+						
+						double value_for_point = map->ValueAtPoint_S3(a_normalized);
+						
+						if (value_for_point <= 0)
+						{
+							// habitability 0: always reprise
+							goto reprise_3;
+						}
+						else if (value_for_point >= 1)
+						{
+							// habitability 1: never reprise (drop through)
+						}
+						else
+						{
+							// intermediate: do a random number draw, where value_for_point is P(within bounds)
+							if (Eidos_rng_uniform(rng) > value_for_point)
+								goto reprise_3;
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kAbsorbing:
+					{
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1) ||
+							(a[2] < bz0) || (a[2] > bz1))
+						{
+							result->push_object_element_capcheck_NORR(ind);
+						}
+						else
+						{
+							// within the spatial bounds, so now we have to check the map
+							double a_normalized[3];
+							
+							a_normalized[0] = (a[0] - bx0) / bounds_size_x;
+							a_normalized[1] = (a[1] - by0) / bounds_size_y;
+							a_normalized[2] = (a[2] - bz0) / bounds_size_z;
+							
+							double value_for_point = map->ValueAtPoint_S3(a_normalized);
+							
+							if (value_for_point <= 0)
+							{
+								// habitability 0: always reprise
+								result->push_object_element_capcheck_NORR(ind);
+							}
+							else if (value_for_point >= 1)
+							{
+								// habitability 1: never reprise (drop through)
+							}
+							else
+							{
+								// intermediate: do a random number draw, where value_for_point is P(within bounds)
+								if (Eidos_rng_uniform(rng) > value_for_point)
+									result->push_object_element_capcheck_NORR(ind);
+							}
+						}
+						
+						break;
+					}
+					case BoundaryCondition::kNone:
+					case BoundaryCondition::kStopping:
+					case BoundaryCondition::kReflecting:
+					case BoundaryCondition::kPeriodic:
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): (internal error) unsupported boundary condition." << EidosTerminate();
+				}
+				
+				ind->spatial_x_ = a[0];
+				ind->spatial_y_ = a[1];
+				ind->spatial_z_ = a[2];
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
 	
 	return result_SP;
@@ -11404,6 +12098,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_haplosomesForChromosomes, kEidosValueMaskObject, gSLiM_Haplosome_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddInt_OSN("index", gStaticEidosValueNULL)->AddLogical_OS("includeNulls", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositions, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deviatePositionsWithMap, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_N("individuals", gSLiM_Individual_Class)->AddString_S("boundary")->AddArg(kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "map", gSLiM_SpatialMap_Class)->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));

@@ -7742,6 +7742,11 @@ The kernel is specified with a kernel type,
 \f4\fs20  and 
 \f3\fs18 functionType
 \f4\fs20  are required to be singletons, however, their values cannot vary from point to point in the present design.\
+See also the 
+\f3\fs18 Subpopulation
+\f4\fs20  method 
+\f3\fs18 deviatePositionsWithMap()
+\f4\fs20 , which is conceptually similar to this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)sampleNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
@@ -7784,6 +7789,11 @@ This method can be used to find points in the vicinity of individuals that are f
 \f4\fs20  works by rejection sampling, and so will be very inefficient if the maximum value of the map (anywhere, across the entire map) is much larger than the typical value of the map where individuals are.  The algorithm for 
 \f3\fs18 sampleImprovedNearbyPoint()
 \f4\fs20  is different, and does not exhibit this performance issue.\
+See also the 
+\f3\fs18 Subpopulation
+\f4\fs20  method 
+\f3\fs18 deviatePositionsWithMap()
+\f4\fs20 , which is conceptually similar to this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
@@ -11683,6 +11693,131 @@ The returned vector contains individuals that did not survive the dispersal proc
 \f4\fs20 , but perhaps by setting their 
 \f3\fs18 fitnessScaling
 \f4\fs20  to zero.  (The positions of the individuals in the returned vector will be the out-of-bounds positions that were drawn for them; rather than killing those individuals, the caller could conceivably handle them in some other way.)  For all other boundary conditions, the returned vector of individuals will be empty and may be ignored by the caller.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)deviatePositionsWithMap(No<Individual>\'a0individuals, string$\'a0boundary, so<SpatialMap>$\'a0map, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Deviates the spatial positions of the individuals supplied in 
+\f3\fs18 individuals
+\f4\fs20 , using the provided boundary condition and dispersal kernel.  The supplied 
+\f3\fs18 SpatialMap
+\f4\fs20  object (or a 
+\f3\fs18 string
+\f4\fs20  specifying a map by name), 
+\f3\fs18 map
+\f4\fs20 , is used (in addition to the spatial bounds of the subpopulation) to define which positions are considered to be \'93out of bounds\'94, as described below.  If 
+\f3\fs18 individuals
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 , the positions of all individuals in the target subpopulation are deviated.  This method is essentially an extension of the 
+\f3\fs18 deviatePositions()
+\f4\fs20  method, adding bounds-checking using 
+\f3\fs18 map
+\f4\fs20 ; however, there are some differences as described below.\
+The boundary condition 
+\f3\fs18 boundary
+\f4\fs20  must be either 
+\f3\fs18 "reprising"
+\f4\fs20  or 
+\f3\fs18 "absorbing"
+\f4\fs20 .  In the simple case where map values are either 
+\f3\fs18 0
+\f4\fs20  (bad habitat) or 
+\f3\fs18 1
+\f4\fs20  (good habitat), 
+\f3\fs18 "reprising"
+\f4\fs20  means a new location is drawn conditional on falling within the good habitat; 
+\f3\fs18 "absorbing"
+\f4\fs20  means individuals falling outside the good habitat are \'93absorbed\'94 (killed, probably).  The details are discussed below, when 
+\f3\fs18 map
+\f4\fs20  is discussed.  Note that the boundary condition 
+\f3\fs18 "none"
+\f4\fs20  is not supported because points must be within the boundaries of the spatial map to be checked.  Reflecting and stopping boundaries are not supported because, with the spatial map, if a drawn point is considered out-of-bounds it is not clear where the \'93edge\'94 is, and therefore reflecting off of the edge, or stopping at the edge, are not well-defined.  Finally, 
+\f3\fs18 "periodic"
+\f4\fs20  is not supported because it does not specify any action to be taken when a drawn point is considered to be \'93out of bounds\'94 according to the spatial map; instead, this method automatically applies any periodic boundaries that have been defined and then, using the resulting point, checks the subpopulation\'92s spatial bounds and the spatial map, and applies reprising or absorbing boundaries as requested if the point is \'93out of bounds\'94.\
+The spatial map defined by 
+\f3\fs18 map
+\f4\fs20  must be configured in a specific way.  First of all, it must be defined in, or added to, the target subpopulation (and thus, by implication, it must match the spatial bounds of the subpopulation, and its spatiality must be compatible with the subpopulation\'92s dimensionality, as discussed in 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  and/or 
+\f3\fs18 addSpatialMap()
+\f4\fs20 ).  Second, the values in the spatial map must represent \'93habitability\'94, in the following sense.  The value of 
+\f3\fs18 map
+\f4\fs20  at a given drawn point is obtained, symbolized here by 
+\f3\fs18 x
+\f4\fs20 .  Next, 
+\f3\fs18 x
+\f4\fs20  is clamped to the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ]; values less than 
+\f3\fs18 0
+\f4\fs20  become 
+\f3\fs18 0
+\f4\fs20 , values greater than 
+\f3\fs18 1
+\f4\fs20  become 
+\f3\fs18 1
+\f4\fs20 .  The resulting 
+\f3\fs18 x
+\f4\fs20  value is then interpreted as the probability that the point is considered \'93within bounds\'94 (as far as the spatial map is concerned; points that are outside the subpopulation\'92s spatial bounds are 
+\f1\i always
+\f4\i0  considered \'93out of bounds\'94).  If 
+\f3\fs18 boundary
+\f4\fs20  is 
+\f3\fs18 "reprising"
+\f4\fs20 , 
+\f3\fs18 1-x
+\f4\fs20  is thus the probability that the point will be redrawn; if boundary is 
+\f3\fs18 "absorbing"
+\f4\fs20 , 
+\f3\fs18 1-x
+\f4\fs20  is thus the probability that the individual will be considered \'93absorbed\'94, as discussed below.  In this manner, the concept of \'93out of bounds\'94 is treated as a probability by this method, rather than a binary state.\
+The spatial kernel type 
+\f3\fs18 functionType
+\f4\fs20  must be one of 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , or 
+\f3\fs18 "t"
+\f4\fs20 , with the ellipsis parameters 
+\f3\fs18 ...
+\f4\fs20  supplying kernel configuration parameters appropriate for that kernel type; see 
+\f3\fs18 pointDeviated()
+\f4\fs20  for further details.  As with 
+\f3\fs18 pointDeviated()
+\f4\fs20 , the ellipsis parameters that follow 
+\f3\fs18 functionType
+\f4\fs20  may each, independently, be either a singleton or a vector of length equal to 
+\f3\fs18 n
+\f4\fs20 .  This allows each individual\'92s position to be deviated with a different kernel, representing, for example, the movements of individuals with differing dispersal capabilities/propensities.  (However, other parameters such as 
+\f3\fs18 boundary
+\f4\fs20 , 
+\f3\fs18 maxDistance
+\f4\fs20 , and 
+\f3\fs18 functionType
+\f4\fs20  must be the same for all of the points, in the present design.)\
+The returned vector contains individuals that did not survive the dispersal process.  For 
+\f3\fs18 "absorbing"
+\f4\fs20  boundaries, this will contain the individuals that attempted to disperse to a point considered \'93out of bounds\'94 as described above, and in most cases the caller will then kill those individuals \'96 probably by passing them to 
+\f3\fs18 killIndividuals()
+\f4\fs20 , but perhaps by setting their 
+\f3\fs18 fitnessScaling
+\f4\fs20  to zero.  (The positions of the individuals in the returned vector will be the out-of-bounds positions that were drawn for them; rather than killing those individuals, the caller could conceivably handle them in some other way.)  For all other boundary conditions, the returned vector of individuals will be empty and may be ignored by the caller.\
+See also the 
+\f3\fs18 SpatialMap
+\f4\fs20  methods 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  and 
+\f3\fs18 sampleImprovedNearbyPoint()
+\f4\fs20 , which are in some ways conceptually similar to this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL], [Ni$\'a0index\'a0=\'a0NULL], [logical$\'a0includeNulls\'a0=\'a0T])\
