@@ -1849,19 +1849,19 @@ void _RunFunctionDispatchTests(void)
 {
 	// test function dispatch, default arguments, and named arguments
 	EidosAssertScriptSuccess_I("abs(-10);", 10);
-	EidosAssertScriptRaise("abs();", 0, "missing required argument x");
+	EidosAssertScriptRaise("abs();", 0, "missing required argument 'x'");
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("abs(x=-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptSuccess_I("abs(x=-10);", 10);
 	EidosAssertScriptRaise("abs(y=-10);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "supplied more than once");
-	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "unrecognized named argument y");
+	EidosAssertScriptRaise("abs(x=-10, y=-10);", 0, "unrecognized named argument 'y'");
 	EidosAssertScriptRaise("abs(y=-10, x=-10);", 0, "skipped over required argument");
 	
 	EidosAssertScriptSuccess_I("integerDiv(6, 3);", 2);
 	EidosAssertScriptRaise("integerDiv(6, 3, 3);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("integerDiv(x=6, y=3, 3);", 0, "too many arguments supplied");
-	EidosAssertScriptRaise("integerDiv(6);", 0, "missing required argument y");
+	EidosAssertScriptRaise("integerDiv(6);", 0, "missing required argument 'y'");
 	EidosAssertScriptSuccess_I("integerDiv(x=6, y=3);", 2);
 	EidosAssertScriptRaise("integerDiv(y=6, 3);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("integerDiv(y=6, x=3);", 0, "skipped over required argument");
@@ -1872,26 +1872,28 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess_IV("seq(1, 3, NULL);", {1, 2, 3});
 	EidosAssertScriptSuccess_IV("seq(1, 3, by=1);", {1, 2, 3});
 	EidosAssertScriptSuccess_IV("seq(1, 3, by=NULL);", {1, 2, 3});
-	EidosAssertScriptRaise("seq(1, 3, x=1);", 0, "ran out of optional arguments");
+	EidosAssertScriptRaise("seq(10, to=20, from=10);", 0, "supplied twice in the argument list");
+	EidosAssertScriptRaise("seq(10, 20, foo=20);", 0, "no parameter with that name");
+	EidosAssertScriptRaise("rainbow(10, v=0.5, s=0.5);", 0, "supplied out of order");
 	EidosAssertScriptRaise("seq(1, 3, by=1, length=1, by=1);", 0, "supplied more than once");
 	EidosAssertScriptRaise("seq(1, 3, length=1, by=1);", 0, "supplied out of order");
 	EidosAssertScriptSuccess_IV("seq(1, 3);", {1, 2, 3});
-	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument by skipped over required argument");
-	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument by skipped over required argument");
+	EidosAssertScriptRaise("seq(by=1, 1, 3);", 0, "named argument 'by' skipped over required argument");
+	EidosAssertScriptRaise("seq(by=NULL, 1, 3);", 0, "named argument 'by' skipped over required argument");
 	
 	EidosAssertScriptSuccess_NULL("c();");
 	EidosAssertScriptSuccess_NULL("c(NULL);");
 	EidosAssertScriptSuccess_I("c(2);", 2);
 	EidosAssertScriptSuccess_IV("c(1, 2, 3);", {1, 2, 3});
-	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument x");
-	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument x");
-	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument x");
-	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("c(x=2);", 0, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(x=1, 2, 3);", 0, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(1, x=2, 3);", 0, "unrecognized named argument 'x'");
+	EidosAssertScriptRaise("c(1, 2, x=3);", 0, "unrecognized named argument 'x'");
 	
 	EidosAssertScriptSuccess_I("doCall('abs', -10);", 10);
 	EidosAssertScriptSuccess_I("doCall(functionName='abs', -10);", 10);
 	EidosAssertScriptRaise("doCall(x='abs', -10);", 0, "skipped over required argument");
-	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "unrecognized named argument x");
+	EidosAssertScriptRaise("doCall('abs', x=-10);", 0, "unrecognized named argument 'x'");
 	EidosAssertScriptRaise("doCall('abs', functionName=-10);", 0, "could not be matched");
 	EidosAssertScriptRaise("doCall(x='abs');", 0, "skipped over required argument");
 	EidosAssertScriptRaise("doCall(functionName='abs');", 0, "requires 1 argument(s), but 0 are supplied");

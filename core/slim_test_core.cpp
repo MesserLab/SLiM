@@ -194,7 +194,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", "may be called only once", __LINE__);
 	
 	// Test (void)initializeSLiMModelType(string$ modelType)
-	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType(); stop(); }", "missing required argument modelType", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType(); stop(); }", "missing required argument 'modelType'", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('WF'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMModelType('nonWF'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMModelType('foo'); stop(); }", "legal values", __LINE__);

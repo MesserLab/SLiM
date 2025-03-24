@@ -1088,6 +1088,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	std::vector<uint8_t> &no_fill_index = argument_cache->no_fill_index_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
+	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filed explicitly or by default
+	
 	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
 	auto node_children_end = node_children.end();
 	int sig_arg_index = 0;
@@ -1123,11 +1125,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
 					no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 					arg_buffer.emplace_back(child->cached_literal_value_);
+					filled_explicitly.emplace_back(true);
 				}
 				else
 				{
 					fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, false, kEidosValueMaskAny);
 					arg_buffer.emplace_back(nullptr);
+					filled_explicitly.emplace_back(true);
 				}
 				continue;
 			}
@@ -1175,13 +1179,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							
 							// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
 							if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 							
 							// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1193,6 +1197,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						
 						no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 						arg_buffer.emplace_back(default_value);
+						filled_explicitly.emplace_back(false);
 					}
 					
 					// Move to the next signature argument; if we have run out of them, then treat this argument as illegal
@@ -1203,13 +1208,34 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						
 						// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
 						if ((p_call_signature->call_name_ == "defineSpatialMap") && ((named_arg == "values") || (named_arg == "interpolate")))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 						
 						// Special error-handling for initializeSLiMOptions() because its mutationRuns parameter changed to doMutationRunExperiments in SLiM 5
 						if ((p_call_signature->call_name_ == "initializeSLiMOptions") && (named_arg == "mutationRuns"))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 						
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << EidosTerminate(nullptr);
+						// Try to diagnose the exact nature of the error, to give a better error message
+						const std::vector<EidosGlobalStringID> &arg_list = p_call_signature->arg_name_IDs_;
+						auto arg_iter = std::find(arg_list.begin(), arg_list.end(), named_arg_nameID);
+						
+						if (arg_iter != arg_list.end())
+						{
+							// it is a legit parameter name; so either it was supplied twice, or out of order
+							// we distinguish those cases because if it was supplied twice, it was filled explicitly;
+							// if it was supplied out of order, then its value was filled non-explicitly, by a default
+							size_t named_arg_index = std::distance(arg_list.begin(), arg_iter);
+							bool named_arg_was_filled_explicitly = filled_explicitly[named_arg_index];
+							
+							if (named_arg_was_filled_explicitly)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' was supplied twice in the argument list; each parameter may be supplied only once." << EidosTerminate(nullptr);
+							else
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' was supplied out of order; another argument that comes after it in the parameter list was supplied before it.  Eidos requires that parameters be supplied in the order they are given." << EidosTerminate(nullptr);
+						}
+						else
+						{
+							// this parameter name does not exist in the call signature
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched, because there is no parameter with that name in the call signature." << EidosTerminate(nullptr);
+						}
 					}
 				}
 				while (true);
@@ -1224,11 +1250,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
 				no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 				arg_buffer.emplace_back(child->cached_literal_value_);
+				filled_explicitly.emplace_back(true);
 			}
 			else
 			{
 				fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, sig_arg_is_singleton, sig_arg_type_mask & kEidosValueMaskFlagStrip);
 				arg_buffer.emplace_back(nullptr);
+				filled_explicitly.emplace_back(true);
 			}
 			
 			// Move to the next signature argument, and check whether it is an ellipsis
@@ -1252,10 +1280,10 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
 					
 					if (named_arg_nameID == arg_name_ID)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument '" << named_arg << "' to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
 			}
 			else
 			{
@@ -1279,9 +1307,9 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
 				if ((p_call_signature->call_name_ == "apply") && (p_call_signature->arg_names_[sig_arg_index] == "lambdaSource"))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << EidosTerminate(nullptr);
 			}
 			
 			EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1293,6 +1321,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			
 			no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 			arg_buffer.emplace_back(default_value);
+			filled_explicitly.emplace_back(true);
 		}
 		
 		sig_arg_index++;

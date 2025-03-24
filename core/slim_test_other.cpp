@@ -242,7 +242,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 		}
 		
 		// Test InteractionType – (void)evaluate(io<Subpopulation> subpops)
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.evaluate(); stop(); }", "required argument subpops", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.evaluate(); stop(); }", "required argument 'subpops'", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(p1); i1.evaluate(p1); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(p1); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(1); stop(); }", __LINE__);

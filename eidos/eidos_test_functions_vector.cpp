@@ -432,7 +432,7 @@ void _RunFunctionValueInspectionManipulationTests_a_through_f(void)
 	EidosAssertScriptSuccess_L("any(F,F,c(F,F,F,F),c(F,F,F,F));", false);
 	
 	// cat() – can't test the actual output, but we can make sure it executes...
-	EidosAssertScriptRaise("cat();", 0, "missing required argument x");
+	EidosAssertScriptRaise("cat();", 0, "missing required argument 'x'");
 	EidosAssertScriptSuccess_VOID("cat(NULL);");
 	EidosAssertScriptSuccess_VOID("cat(T);");
 	EidosAssertScriptSuccess_VOID("cat(5);");
