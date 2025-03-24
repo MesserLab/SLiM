@@ -78,8 +78,11 @@ private:
 	
 	EidosValue_SP self_value_;						// cached EidosValue object for speed
 	
+#ifdef SLIMGUI
+	// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 	uint8_t color_set_;								// set to true if the color for the individual has been set
 	uint8_t colorR_, colorG_, colorB_;				// cached color components from the color property
+#endif
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
@@ -161,7 +164,12 @@ public:
 	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	virtual ~Individual(void) override;
 	
-	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
+	inline __attribute__((always_inline)) void ClearColor(void) {
+#ifdef SLIMGUI
+		// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
+		color_set_ = false;
+#endif
+	}
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.

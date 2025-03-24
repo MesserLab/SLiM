@@ -54,7 +54,10 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 // individual first, haplosomes later; this is the new multichrom paradigm
 // BCH 10/12/2024: Note that this will rarely be called after simulation startup; see NewSubpopIndividual()
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
-	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
+#ifdef SLIMGUI
+	color_set_(false),
+#endif
+	mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	sex_(p_sex), migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
@@ -1498,6 +1501,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			// as of SLiM 4.0.1, we construct a color string from the RGB values, which will
 			// not necessarily be what the user set, but will represent the same color
+#ifdef SLIMGUI
 			if (!color_set_)
 				return gStaticEidosValue_StringEmpty;
 			
@@ -1506,6 +1510,10 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			Eidos_GetColorString(colorR_, colorG_, colorB_, hex_chars);
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(std::string(hex_chars)));
+#else
+			// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
+			return gStaticEidosValue_StringEmpty;
+#endif
 		}
 		case gID_tag:				// ACCELERATED
 		{
@@ -1974,6 +1982,8 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	{
 		case gEidosID_color:		// ACCELERATED
 		{
+#ifdef SLIMGUI
+			// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 			const std::string &color_string = ((EidosValue_String &)p_value).StringRefAtIndex_NOCAST(0, nullptr);
 			
 			if (color_string.empty())
@@ -1986,6 +1996,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 				color_set_ = true;
 				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
+#endif
 			return;
 		}
 		case gID_tag:				// ACCELERATED
@@ -2399,6 +2410,9 @@ void Individual::SetProperty_Accelerated_z(EidosObject **p_values, size_t p_valu
 
 void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
+#pragma unused (p_values, p_values_size, p_source, p_source_size)
+#ifdef SLIMGUI
+	// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 	if (p_source_size == 1)
 	{
 		const std::string &source_value = ((EidosValue_String &)p_source).StringRefAtIndex_NOCAST(0, nullptr);
@@ -2448,6 +2462,7 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 			}
 		}
 	}
+#endif
 }
 
 void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)

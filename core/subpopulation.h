@@ -263,7 +263,12 @@ public:
 			
 #if DEBUG
 			// check all ivars that should be guaranteed by the junkyard
-			if ((back->KeyCount() != 0) || (back->color_set_ != false) || (back->tag_value_ != SLIM_TAG_UNSET_VALUE) || (back->tagF_value_ != SLIM_TAGF_UNSET_VALUE) || (back->tagL0_set_ != false) || (back->tagL1_set_ != false) || (back->tagL2_set_ != false) || (back->tagL3_set_ != false) || (back->tagL4_set_ != false) || (back->reproductive_output_ != 0))
+			if ((back->KeyCount() != 0) || (back->tag_value_ != SLIM_TAG_UNSET_VALUE) || (back->tagF_value_ != SLIM_TAGF_UNSET_VALUE) || (back->tagL0_set_ != false) || (back->tagL1_set_ != false) || (back->tagL2_set_ != false) || (back->tagL3_set_ != false) || (back->tagL4_set_ != false) || (back->reproductive_output_ != 0)
+#ifdef SLIMGUI
+				// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
+				|| (back->color_set_ != false)
+#endif				
+				)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopIndividual): (internal error) junkyard individual incorrectly configured." << EidosTerminate();
 #endif
 			
