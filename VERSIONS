@@ -157,6 +157,7 @@ development head (in the master branch):
 			also, we now require an object value for the context parameter to belong to a class that is under retain-release, since this is a long-term reference and could cause a crash otherwise
 		add "absorbing" boundary condition option for deviatePositions(), returning a vector of individuals to be killed because they moved out of bounds
 		add new Subpopulation method deviatePositionsWithMap(), similar to deviatePositions() but adding a spatial map that defines inside/outside bounds
+		disable OpenGL by default on Windows; the user can turn it on in the prefs; just too many people experiencing broken drawing and being confused
 
 
 version 4.3 (Eidos version 3.3):

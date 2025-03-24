@@ -134,8 +134,15 @@ bool QtSLiMPreferencesNotifier::useOpenGLPref(void)
 {
 #ifndef SLIM_NO_OPENGL
     QSettings settings;
-    
+
+#ifdef _WIN32
+    // BCH 3/23/2025: Too many people are getting bitten by OpenGL not working properly on
+    // Windows, for reasons that have not been diagnosed.  Turning this off on Windows.
+    // It runs a little slower, but there will be a lot less confusion.
+    return settings.value(QtSLiMUseOpenGL, QVariant(false)).toBool();
+#else
     return settings.value(QtSLiMUseOpenGL, QVariant(true)).toBool();
+#endif
 #else
     return false;
 #endif
