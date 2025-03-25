@@ -2787,16 +2787,12 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 		}
 	}
 	else if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
+	{
 		singleton_origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex_NOCAST(0, nullptr));
+	}
 	else
 	{
-#if DEBUG
-		// Use dynamic_cast<> only in DEBUG since it is hella slow
-		// The class should be guaranteed by the method signature already
-		Subpopulation *origin_subpop = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex_NOCAST(0, nullptr));
-#else
 		Subpopulation *origin_subpop = ((Subpopulation *)(arg_origin_subpop->ObjectElementAtIndex_NOCAST(0, nullptr)));
-#endif
 		
 		// SPECIES CONSISTENCY CHECK
 		if (&origin_subpop->species_ != species)
@@ -2855,13 +2851,7 @@ EidosValue_SP Haplosome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID 
 					if (arg_origin_subpop->Type() == EidosValueType::kValueInt)
 						origin_subpop_id = SLiMCastToObjectidTypeOrRaise(arg_origin_subpop->IntAtIndex_NOCAST(mut_parameter_index, nullptr));
 					else
-#if DEBUG
-						// Use dynamic_cast<> only in DEBUG since it is hella slow
-						// The class should be guaranteed by the method signature already
-						origin_subpop_id = dynamic_cast<Subpopulation *>(arg_origin_subpop->ObjectElementAtIndex_NOCAST(mut_parameter_index, nullptr))->subpopulation_id_;
-#else
 						origin_subpop_id = ((Subpopulation *)(arg_origin_subpop->ObjectElementAtIndex_NOCAST(mut_parameter_index, nullptr)))->subpopulation_id_;
-#endif
 				}
 				
 				if (nucleotide_count != 1)

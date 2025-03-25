@@ -740,31 +740,19 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				}
 				case EidosValueType::kValueObject:
 				{
-					EidosValue_Object *base_object_vector = dynamic_cast<EidosValue_Object *>(base_value.get());
+					EidosValue_Object *base_object_vector = (EidosValue_Object *)base_value.get();
 					
-					if (base_object_vector)
+					if (rvalue_count == 1)
 					{
-						if (rvalue_count == 1)
-						{
-							EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
-							
-							for (int value_idx = 0; value_idx < index_count; value_idx++)
-								base_object_vector->set_object_element_no_check_CRR(rvalue, indices[value_idx]);
-						}
-						else
-						{
-							for (int value_idx = 0; value_idx < index_count; value_idx++)
-								base_object_vector->set_object_element_no_check_CRR(p_rvalue->ObjectElementAtIndex_CAST(value_idx, nullptr), indices[value_idx]);
-						}
+						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_object_vector->set_object_element_no_check_CRR(rvalue, indices[value_idx]);
 					}
 					else
 					{
-						// true singleton case; we can't use set_object_element_no_check_CRR() to set the element
-						// note (rvalue_count == 1) must be true here, so there is only one case to handle
-						EidosValue_Object *base_object_singleton = dynamic_cast<EidosValue_Object *>(base_value.get());
-						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
-						
-						base_object_singleton->set_object_element_no_check_CRR(rvalue, 0);
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_object_vector->set_object_element_no_check_CRR(p_rvalue->ObjectElementAtIndex_CAST(value_idx, nullptr), indices[value_idx]);
 					}
 					break;
 				}

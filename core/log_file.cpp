@@ -870,13 +870,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringI
 	}
 	else
 	{
-#if DEBUG
-		// Use dynamic_cast<> only in DEBUG since it is hella slow
-		// the class of the object here should be guaranteed by the caller anyway
-		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-#else
 		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-#endif
 		
 		subpop_id = subpop->subpopulation_id_;
 	}
@@ -904,13 +898,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 	}
 	else
 	{
-#if DEBUG
-		// Use dynamic_cast<> only in DEBUG since it is hella slow
-		// the class of the object here should be guaranteed by the caller anyway
-		Subpopulation *subpop = dynamic_cast<Subpopulation *>(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-#else
 		Subpopulation *subpop = (Subpopulation *)(subpop_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-#endif
 		
 		subpop_id = subpop->subpopulation_id_;
 	}

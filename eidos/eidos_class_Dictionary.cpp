@@ -271,11 +271,7 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
-		
-		if (!integer_vec)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_SLiM): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
-		
+		EidosValue_Int *integer_vec = (EidosValue_Int *)all_keys.get();
 		const int64_t *all_key_integers = integer_vec->data();
 		int all_keys_count = integer_vec->Count();
 		
@@ -382,11 +378,7 @@ std::string EidosDictionaryUnretained::Serialization_Pretty(int indent_level) co
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
-		
-		if (!integer_vec)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_Pretty): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
-		
+		EidosValue_Int *integer_vec = (EidosValue_Int *)all_keys.get();
 		const int64_t *all_key_integers = integer_vec->data();
 		int all_keys_count = integer_vec->Count();
 		

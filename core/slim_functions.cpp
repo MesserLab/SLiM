@@ -1815,8 +1815,8 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// run the lambda on each bin, which does not depend upon the spatiality
 		THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
 		
-		EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(operation_value);
-		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+		EidosValue_String *lambda_value_singleton = (EidosValue_String *)operation_value;
+		EidosScript *script = lambda_value_singleton->CachedScript();
 		
 		// Errors in lambdas should be reported for the lambda script, not for the calling script,
 		// if possible.  In the GUI this does not work well, however; there, errors should be

@@ -407,8 +407,8 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *lambdaSource_value = p_arguments[0].get();
-	EidosValue_String *lambdaSource_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[0].get());
-	EidosScript *script = (lambdaSource_value_singleton ? lambdaSource_value_singleton->CachedScript() : nullptr);
+	EidosValue_String *lambdaSource_value_singleton = (EidosValue_String *)p_arguments[0].get();
+	EidosScript *script = lambdaSource_value_singleton->CachedScript();
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -1239,8 +1239,8 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
-	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[1].get());
-	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+	EidosValue_String *lambda_value_singleton = (EidosValue_String *)p_arguments[1].get();
+	EidosScript *script = lambda_value_singleton->CachedScript();
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
