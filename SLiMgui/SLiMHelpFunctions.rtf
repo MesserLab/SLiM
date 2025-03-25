@@ -2197,9 +2197,11 @@ The implementation
 
 \f2\fs20 \cf2 Calculates 
 \f7\i \uc0\u960 
-\f2\i0  (a metric of genetic diversity based on pairwise sequence differences) for a vector of haplosomes (containing at least two elements), based upon the mutations in the haplosomes.  The mathematical formulation (as an estimator of the population parameter 
+\f2\i0  (nucleotide diversity, a metric of genetic diversity) for a vector of haplosomes (containing at least two elements), based upon the mutations in the haplosomes.  
+\f7\i \uc0\u960 
+\f2\i0  is computed by calculating the mean number of pairwise differences at each site, summing across all sites, and dividing by the number of sites.  Therefore, it is interpretable as the number of differences per site expected between two randomly chosen sequences.  The mathematical formulation (as an estimator of the population parameter 
 \f7\i \uc0\u952 
-\f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).  This value is averaged by the number of sites.\
+\f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equations 9.1\'969.5 in Li 1997, equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).\
 Often 
 \f1\fs18 haplosomes
 \f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
@@ -2230,7 +2232,7 @@ The implementation of
 \f7\i \uc0\u960 
 \f2\i0  have been derived (Tajima 1996) though are not used here.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
-\f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\
+\f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph and Chase Nelson.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcTajimasD(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
