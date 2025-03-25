@@ -78,6 +78,8 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
     window->activateWindow();
     
     // check the coordinates of the window and make sure it is actually visible on-screen
+    // This requires Qt 5.10 or later
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
     QScreen *screen1 = QGuiApplication::screenAt(window->frameGeometry().topLeft());
     QScreen *screen2 = QGuiApplication::screenAt(window->frameGeometry().topRight());
     QScreen *screen3 = QGuiApplication::screenAt(window->frameGeometry().bottomLeft());
@@ -95,6 +97,7 @@ void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
     // it would be nice to move the window to some concept of a "closest point to the current position
     // that is fully visible", but I'm not sure how to do that, for the general case; (100, 100) seems ok
     window->move(100, 100);
+#endif
 }
 
 void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets)
