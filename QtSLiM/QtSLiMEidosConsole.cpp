@@ -200,9 +200,7 @@ void QtSLiMEidosConsole::showBrowserClicked(void)
         }
     }
     
-    variableBrowser_->show();
-    variableBrowser_->raise();
-    variableBrowser_->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(variableBrowser_);
 }
 
 QStatusBar *QtSLiMEidosConsole::statusBar(void)

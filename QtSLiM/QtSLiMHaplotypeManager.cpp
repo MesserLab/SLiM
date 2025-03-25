@@ -229,11 +229,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
     
     // If we have more than one chromosome to do, show the window so the user can see partial results there
     if (chromosomes.size() > 1)
-    {
-        window->show();
-        window->raise();
-        window->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(window);
     
     // then create and install the haplotype managers, one by one; each will display once it is completed
     for (int index = 0; index < (int)chromosomes.size(); ++index)
@@ -258,11 +254,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetControlle
     
     // If we have just one chromosome to do, show the window now that it's done
     if (chromosomes.size() <= 1)
-    {
-        window->show();
-        window->raise();
-        window->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(window);
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,

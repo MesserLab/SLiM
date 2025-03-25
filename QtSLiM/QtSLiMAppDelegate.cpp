@@ -348,11 +348,7 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
             QWidget *imageWindow = requester->imageWindowWithPath(fileName);
             
             if (imageWindow)
-            {
-                imageWindow->show();
-                imageWindow->raise();
-                imageWindow->activateWindow();
-            }
+                QtSLiMMakeWindowVisibleAndExposed(imageWindow);
             
             return requester;
         }
@@ -367,9 +363,7 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
         // Should be a .slim or .txt file; look for an existing window for the file, otherwise open a new window (or reuse a reuseable window)
         QtSLiMWindow *existing = findMainWindow(fileName);
         if (existing) {
-            existing->show();
-            existing->raise();
-            existing->activateWindow();
+            QtSLiMMakeWindowVisibleAndExposed(existing);
             return existing;
         }
         
@@ -1201,20 +1195,16 @@ void QtSLiMAppDelegate::dispatch_preferences(void)
 {
     QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
     
-    prefsWindow.show();
-    prefsWindow.raise();
-    prefsWindow.activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(&prefsWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_about(void)
 {
     QtSLiMAbout *aboutWindow = new QtSLiMAbout(nullptr);
     
-    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);    
+    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);
     
-    aboutWindow->show();
-    aboutWindow->raise();
-    aboutWindow->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(aboutWindow);
 }
 
 QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const QString &title, double scaleFactor)
@@ -1272,11 +1262,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
@@ -1284,11 +1270,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
@@ -1296,11 +1278,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF_MS.png", "WF Cycle (Multispecies)", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
@@ -1308,11 +1286,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF_MS.png", "nonWF Cycle (Multispecies)", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showColorChart(void)
@@ -1320,11 +1294,7 @@ void QtSLiMAppDelegate::dispatch_showColorChart(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/ColorChart.png", "Eidos Color Chart", 0.5);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
@@ -1332,20 +1302,14 @@ void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/PlotSymbols.png", "Plot Symbols", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_help(void)
 {
     QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
     
-    helpWindow.show();
-    helpWindow.raise();
-    helpWindow.activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(&helpWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_biggerFont(void)

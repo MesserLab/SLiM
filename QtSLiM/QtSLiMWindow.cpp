@@ -3406,7 +3406,7 @@ void QtSLiMWindow::updateWindowMenu(void)
         
         if (mainWin)
         {
-            QAction *action = ui->menuWindow->addAction(title, mainWin, [mainWin]() { mainWin->raise(); mainWin->activateWindow(); });
+            QAction *action = ui->menuWindow->addAction(title, mainWin, [mainWin]() { QtSLiMMakeWindowVisibleAndExposed(mainWin); });
             action->setCheckable(mainWin == activeWindow);  // only set checkable if checked, to avoid the empty checkbox on Ubuntu
             action->setChecked(mainWin == activeWindow);
             action->setObjectName("__QtSLiM_window__");
@@ -3445,7 +3445,7 @@ void QtSLiMWindow::updateWindowMenu(void)
                 QString subwindowTitle = QString::fromStdString(subpair.first);
                 QWidget *subwindow = subpair.second;
                 
-                QAction *subwindowAction = ui->menuWindow->addAction(subwindowTitle.prepend("    "), subwindow, [subwindow]() { subwindow->raise(); subwindow->activateWindow(); });
+                QAction *subwindowAction = ui->menuWindow->addAction(subwindowTitle.prepend("    "), subwindow, [subwindow]() { QtSLiMMakeWindowVisibleAndExposed(subwindow); });
                 subwindowAction->setCheckable(subwindow == activeWindow);  // only set checkable if checked, to avoid the empty checkbox on Ubuntu
                 subwindowAction->setChecked(subwindow == activeWindow);
                 subwindowAction->setObjectName("__QtSLiM_subwindow__");
@@ -4957,11 +4957,7 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
             customPlot->setTickLabelSize(tickLabelSize);
         
         if (createdWindow)
-        {
-            graphWindow->show();
-            graphWindow->raise();
-            graphWindow->activateWindow();
-        }
+            QtSLiMMakeWindowVisibleAndExposed(graphWindow);
     }
     else
     {
@@ -5298,9 +5294,7 @@ void QtSLiMWindow::showDrawerClicked(void)
     
     tablesDrawerController->setGeometry(windowRect);
     
-    tablesDrawerController->show();
-    tablesDrawerController->raise();
-    tablesDrawerController->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(tablesDrawerController);
 }
 
 void QtSLiMWindow::chromosomeDisplayPopupButtonRunMenu(void)
@@ -5386,11 +5380,7 @@ void QtSLiMWindow::chromosomeDisplayPopupButtonRunMenu(void)
         QWidget *chromosomeDisplay = newChromosomeDisplay(chrom_symbol, windowTitle);
         
         if (chromosomeDisplay)
-        {
-            chromosomeDisplay->show();
-            chromosomeDisplay->raise();
-            chromosomeDisplay->activateWindow();
-        }
+            QtSLiMMakeWindowVisibleAndExposed(chromosomeDisplay);
     }
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
@@ -5407,9 +5397,7 @@ void QtSLiMWindow::showConsoleClicked(void)
         return;
     }
     
-    consoleController->show();
-    consoleController->raise();
-    consoleController->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(consoleController);
 }
 
 void QtSLiMWindow::showBrowserClicked(void)
@@ -5437,9 +5425,7 @@ void QtSLiMWindow::debugOutputClicked(void)
     
     stopDebugButtonFlash();
     
-    debugOutputWindow_->show();
-    debugOutputWindow_->raise();
-    debugOutputWindow_->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(debugOutputWindow_);
 }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
@@ -6072,11 +6058,7 @@ void QtSLiMWindow::displayGraphClicked(void)
                 QWidget *graphWindow = graphWindowWithView(graphView);
                 
                 if (graphWindow)
-                {
-                    graphWindow->show();
-                    graphWindow->raise();
-                    graphWindow->activateWindow();
-                }
+                    QtSLiMMakeWindowVisibleAndExposed(graphWindow);
             }
             else
             {
@@ -6609,11 +6591,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
                 QWidget *graphWindow = graphWindowWithView(graphView);
                 
                 if (graphWindow)
-                {
-                    graphWindow->show();
-                    graphWindow->raise();
-                    graphWindow->activateWindow();
-                }
+                    QtSLiMMakeWindowVisibleAndExposed(graphWindow);
             }
             else
             {

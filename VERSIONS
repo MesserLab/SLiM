@@ -160,6 +160,7 @@ development head (in the master branch):
 		disable OpenGL by default on Windows; the user can turn it on in the prefs; just too many people experiencing broken drawing and being confused
 		color variables on Individual now exist only under SLiMgui; at the command line there is now no memory backing them, so (policy change) they cannot be used as scratch space
 		add a color chart and a plot symbols chart to the SLiMgui Help menu's list of quick-reference charts it can show
+		attempt to fix SLiMgui window visibility issues -- miniaturized windows not becoming visible, off-screen windows remaining offscreen, etc.
 
 
 version 4.3 (Eidos version 3.3):

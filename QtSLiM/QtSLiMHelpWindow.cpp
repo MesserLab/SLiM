@@ -510,9 +510,7 @@ void QtSLiMHelpWindow::searchScopeToggled(void)
 void QtSLiMHelpWindow::enterSearchForString(QString searchString, bool titlesOnly)
 {
 	// Show our window and bring it front
-    show();
-    raise();
-    activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(this);
 	
 	// Set the search string per the request
     ui->searchField->setText(searchString);

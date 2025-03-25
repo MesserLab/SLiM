@@ -182,9 +182,7 @@ QPlainTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireMod
 
 void QtSLiMFindPanel::showFindPanel(void)
 {
-    show();
-    raise();
-    activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(this);
     
     // When the find panel is raised, it is conventional to select the find text so the user can immediately type to replace it
     ui->findTextLineEdit->selectAll();
