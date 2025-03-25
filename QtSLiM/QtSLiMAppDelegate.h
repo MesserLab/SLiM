@@ -112,6 +112,8 @@ public slots:
     void dispatch_showCycle_nonWF(void);
     void dispatch_showCycle_WF_MS(void);
     void dispatch_showCycle_nonWF_MS(void);
+    void dispatch_showColorChart(void);
+    void dispatch_showPlotSymbols(void);
     void dispatch_help(void);
     void dispatch_quit(void);
     

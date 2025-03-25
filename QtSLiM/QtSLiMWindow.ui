@@ -1469,6 +1469,9 @@ QSlider::handle:horizontal:disabled {
     <addaction name="actionShowCycle_WF_MS"/>
     <addaction name="actionShowCycle_nonWF_MS"/>
     <addaction name="separator"/>
+    <addaction name="actionShowColorChart"/>
+    <addaction name="actionShowPlotSymbols"/>
+    <addaction name="separator"/>
     <addaction name="actionQtSLiMHelp"/>
     <addaction name="actionSLiMWorkshops"/>
     <addaction name="separator"/>
@@ -2081,6 +2084,22 @@ QSlider::handle:horizontal:disabled {
   <action name="actionCreate_Haplotype_Plot_Selected">
    <property name="text">
     <string>Create Haplotype Plot (selected chromosome)</string>
+   </property>
+  </action>
+  <action name="actionShowColorChart">
+   <property name="text">
+    <string>Show Color Chart</string>
+   </property>
+   <property name="toolTip">
+    <string>Show a chart of the named colors provided by Eidos</string>
+   </property>
+  </action>
+  <action name="actionShowPlotSymbols">
+   <property name="text">
+    <string>Show Plot Symbols</string>
+   </property>
+   <property name="toolTip">
+    <string>Show a chart depicting the plot symbols used by Plot's points() method</string>
    </property>
   </action>
  </widget>

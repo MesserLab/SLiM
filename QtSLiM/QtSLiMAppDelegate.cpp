@@ -879,6 +879,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionShowCycle_nonWF_MS);
     }
     {
+        QAction *actionShowColorChart = new QAction("Show Color Chart", this);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
+        window->addAction(actionShowColorChart);
+    }
+    {
+        QAction *actionShowPlotSymbols = new QAction("Show Plot Symbols", this);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
+        window->addAction(actionShowPlotSymbols);
+    }
+    {
         QAction *actionHelp = new QAction("Help", this);
         //actionHelp->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -1294,6 +1306,30 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
 {
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF_MS.png", "nonWF Cycle (Multispecies)", 0.32);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showColorChart(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/ColorChart.png", "Eidos Color Chart", 0.5);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/PlotSymbols.png", "Plot Symbols", 0.32);
     
     if (imageWindow)
     {
