@@ -5,7 +5,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '0 5 * * 1'
+    - cron: "0 5 * * 1"
 jobs:
   canceller:
     runs-on: ubuntu-latest
@@ -20,14 +20,14 @@ jobs:
         include:
           # Ubuntu with the oldest supported GCC
           # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
-          - {os: ubuntu-22.04, gcc: 9, python: 3.9}
-          - {os: ubuntu-24.04, gcc: 12, python: 3.12}
+          - { os: ubuntu-22.04, gcc: 9, python: 3.9 }
+          - { os: ubuntu-24.04, gcc: 12, python: 3.12 }
           # macOS, oldest supported version
           # (macos-10.15, macos-11, and macos-12 were removed by GitHub)
-          - {os: macos-13, python: 3.9}
+          - { os: macos-13, python: 3.9 }
           # macOS, newest supported version
-          - {os: macos-15, python: 3.12}
-      
+          - { os: macos-15, python: 3.12 }
+
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
@@ -56,8 +56,7 @@ jobs:
           CACHE_NUMBER: 0
         id: cache
       - name: Update environment
-        run:
-          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
+        run: conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Workaround for gcc-11
         if: startsWith(matrix.os, 'ubuntu') && matrix.gcc == 11
@@ -76,21 +75,25 @@ jobs:
           mkdir Debug && \
           cd Debug && \
           cmake -D CMAKE_BUILD_TYPE=Debug .. && \
-          make -j 2 && make test
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
       - name: Build and test (Release)
         run: |
           mkdir Release && \
           cd Release && \
           cmake -D CMAKE_BUILD_TYPE=Release .. && \
-          make -j 2 && make test
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
       - name: Treesequence tests
         shell: bash -el {0}
         run: |
-            conda activate anaconda-client-env && \
-            export PATH=$PATH:$PWD/Release && \
-            echo $PATH && \
-            cd treerec/tests && python -m pytest -xv
-  
+          conda activate anaconda-client-env && \
+          export PATH=$PATH:$PWD/Release && \
+          echo $PATH && \
+          cd treerec/tests && python -m pytest -xv
+
   tests-Windows-CLI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
@@ -98,8 +101,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {sys: mingw64, env: x86_64, python: 3.9}
-          - {sys: ucrt64, env: ucrt-x86_64, python: 3.9}
+          - { sys: mingw64, env: x86_64, python: 3.9 }
+          - { sys: ucrt64, env: ucrt-x86_64, python: 3.9 }
     defaults:
       run:
         shell: msys2 {0}
@@ -149,8 +152,7 @@ jobs:
           pkgs-dirs: D:\conda_pkgs_dir
       - name: Update environment
         shell: bash -el {0}
-        run:
-          conda env update -n anaconda-client-env -f treerec/tests/environment.yml
+        run: conda env update -n anaconda-client-env -f treerec/tests/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Build and test (Debug)
         run: |
@@ -160,7 +162,9 @@ jobs:
           mkdir Debug && \
           cd Debug && \
           cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug .. && \
-          make -j 2 && make test
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
       - name: Build and test (Release)
         run: |
           cd windows_compat/gnulib && \
@@ -169,15 +173,17 @@ jobs:
           mkdir Release && \
           cd Release && \
           cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release .. && \
-          make -j 2 && make test
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
       - name: Treesequence tests
         shell: bash -el {0}
         run: |
-            conda activate anaconda-client-env && \
-            export PATH=$PATH:$PWD/Release && \
-            echo $PATH && \
-            cd treerec/tests && python -m pytest -xv
-  
+          conda activate anaconda-client-env && \
+          export PATH=$PATH:$PWD/Release && \
+          echo $PATH && \
+          cd treerec/tests && python -m pytest -xv
+
   tests-Unix-GUI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
@@ -186,18 +192,18 @@ jobs:
         include:
           # BCH 2/12/2025: Ubuntu 22.04 is being discontinued, shifting forward
           # Ubuntu 22.04 with the oldest supported Qt5 and GCC.
-          - {os: ubuntu-22.04, qt: 5.9.5, gcc: 9}
+          - { os: ubuntu-22.04, qt: 5.9.5, gcc: 9 }
           # Ubuntu 22.04 with last official LTS Qt5 and GCC.
-          - {os: ubuntu-22.04, qt: 5.15.2, gcc: 12}
+          - { os: ubuntu-22.04, qt: 5.15.2, gcc: 12 }
           # Ubuntu 24.04 with the most recent Qt6 and GCC.
-          - {os: ubuntu-22.04, qt: 6.8.2, gcc: 12}
+          - { os: ubuntu-22.04, qt: 6.8.2, gcc: 12 }
           # old macOS with oldest supported Qt5; macos-12 was removed by GitHub,
           # so we can't CI with Qt 5.9.5 any more, oh well
           #- {os: macos-12, qt: 5.9.5}
           # old macOS with last official LTS Qt5
-          - {os: macos-13, qt: 5.15.2}
+          - { os: macos-13, qt: 5.15.2 }
           # new macOS with most recent Qt6
-          - {os: macos-15, qt: 6.8.2}
+          - { os: macos-15, qt: 6.8.2 }
     runs-on: ${{ matrix.os }}
     env:
       CXXFLAGS: -D NO_QT_VERSION_ERROR
@@ -229,16 +235,18 @@ jobs:
           mkdir Release && \
           cd Release  && \
           cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..  && \
-          make -j 2 && make test
-  
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
+
   tests-Windows-GUI:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {sys: mingw64, env: x86_64}
-          - {sys: ucrt64, env: ucrt-x86_64}
+          - { sys: mingw64, env: x86_64 }
+          - { sys: ucrt64, env: ucrt-x86_64 }
     runs-on: windows-latest
     defaults:
       run:
@@ -267,8 +275,9 @@ jobs:
           mkdir Release && \
           cd Release && \
           cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release .. && \
-          make -j 2 && make test
-
+          make -j 2 && \
+          # Show any output from the test program whenever the test fails
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
   tests-windows-latest-pacman:
     if: github.event_name != 'schedule' || (github.event_name == 'schedule' && github.repository == 'messerlab/slim')
     runs-on: windows-latest
@@ -276,8 +285,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {sys: mingw64, env: x86_64}
-          - {sys: ucrt64, env: ucrt-x86_64}
+          - { sys: mingw64, env: x86_64 }
+          - { sys: ucrt64, env: ucrt-x86_64 }
     defaults:
       run:
         shell: msys2 {0}
