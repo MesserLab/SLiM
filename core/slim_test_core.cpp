@@ -1904,7 +1904,10 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.sex == rep('H', 10))) stop(); }", __LINE__);
+#ifdef SLIMGUI
+	// the color property is only functional under SLiMgui now
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.color = 'red'; if (all(i.color == '#FF0000')) stop(); }", __LINE__);
+#endif
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
@@ -1977,7 +1980,10 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.subpopulation == rep(p1, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; if (all(i.sex == repEach(c('F','M'), 5))) stop(); }", __LINE__);
+#ifdef SLIMGUI
+	// the color property is only functional under SLiMgui now
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.color = 'red'; if (all(i.color == '#FF0000')) stop(); }", __LINE__);
+#endif
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i[0].tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
@@ -2062,7 +2068,10 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = asFloat(seqAlong(i) % 2 == 0); if (all(i.z == (seqAlong(i) % 2 == 0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = seqAlong(i); if (all(i.z == seqAlong(i))) stop(); }", "cannot be type integer", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.z = asFloat(seqAlong(i)); if (all(i.z == seqAlong(i))) stop(); }", __LINE__);
+#ifdef SLIMGUI
+	// the color property is only functional under SLiMgui now
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.color = format('#%.6X', seqAlong(i)); if (all(i.color == format('#%.6X', seqAlong(i)))) stop(); }", __LINE__);
+#endif
 	
 	// Test Individual - (logical)containsMutations(object<Mutation> mutations)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 early() { i = p1.individuals; i.containsMutations(object()); stop(); }", __LINE__);
