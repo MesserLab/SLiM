@@ -43,6 +43,7 @@ extern const char *gSLiMSourceCode_calcHeterozygosity;
 extern const char *gSLiMSourceCode_calcWattersonsTheta;
 extern const char *gSLiMSourceCode_calcInbreedingLoad;
 extern const char *gSLiMSourceCode_calcPi;
+extern const char *gSLiMSourceCode_calcSFS;
 extern const char *gSLiMSourceCode_calcTajimasD;
 
 
@@ -74,6 +75,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPi", gSLiMSourceCode_calcPi, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcSFS", gSLiMSourceCode_calcSFS, kEidosValueMaskNumeric, "SLiM"))->AddInt_OSN("binCount", gStaticEidosValueNULL)->AddObject_ON("haplosomes", gSLiM_Haplosome_Class, gStaticEidosValueNULL)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddString_OS("metric", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("density")))->AddLogical_OS("fold", gStaticEidosValue_LogicalF));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcTajimasD", gSLiMSourceCode_calcTajimasD, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		
 		// Other built-in SLiM functions
@@ -109,7 +111,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 // These are implemented in Eidos, for transparency/modifiability.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by Community::SLiMFunctionSignatures().
 
-// (float$)calcFST(object<Haplosome> haplosomes1, object<Haplosome> haplosomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+#pragma mark (float$)calcFST(object<Haplosome> haplosomes1, object<Haplosome> haplosomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
 R"V0G0N({
 	if ((haplosomes1.length() == 0) | (haplosomes2.length() == 0))
@@ -170,7 +172,7 @@ R"V0G0N({
 	return fst;
 })V0G0N";
 
-// (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
+#pragma mark (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
 R"V0G0N({
 	if (individuals.length() < 2)
@@ -195,7 +197,7 @@ R"V0G0N({
 	return var(individuals.sumOfMutationsOfType(mutType));
 })V0G0N";
 
-// (float$)calcPairHeterozygosity(object<Haplosome>$ haplosome1, object<Haplosome>$ haplosome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
+#pragma mark (float$)calcPairHeterozygosity(object<Haplosome>$ haplosome1, object<Haplosome>$ haplosome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
 const char *gSLiMSourceCode_calcPairHeterozygosity = 
 R"V0G0N({
 	species = haplosome1.individual.subpopulation.species;
@@ -236,7 +238,7 @@ R"V0G0N({
 	return size(unshared) / length;
 })V0G0N";
 
-// (float$)calcHeterozygosity(o<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+#pragma mark (float$)calcHeterozygosity(o<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcHeterozygosity = 
 R"V0G0N({
 	if (haplosomes.length() == 0)
@@ -289,7 +291,7 @@ R"V0G0N({
 	return heterozygosity;
 })V0G0N";
 
-// (float$)calcWattersonsTheta(o<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+#pragma mark (float$)calcWattersonsTheta(o<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcWattersonsTheta = 
 R"V0G0N({
 	if (haplosomes.length() == 0)
@@ -348,7 +350,7 @@ R"V0G0N({
 	return theta;
 })V0G0N";
 
-// (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
+#pragma mark (float$)calcInbreedingLoad(object<Haplosome> haplosomes, [Nio<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
 R"V0G0N({
 	// look up an integer mutation type id from the community
@@ -411,7 +413,7 @@ R"V0G0N({
 	return (sum(q*s) - sum(q^2*s) - 2*sum(q*(1-q)*s*h));
 })V0G0N";
 
-// function (float$)calcPi(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+#pragma mark (float$)calcPi(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcPi = 
 R"V0G0N({
 	if (haplosomes.length() < 2)
@@ -477,7 +479,143 @@ R"V0G0N({
 	return avg_pi;
 })V0G0N";
 
-//function (float$)calcTajimasD(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+#pragma mark (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
+const char *gSLiMSourceCode_calcSFS = 
+R"V0G0N({
+	// first determine the haplosomes and the species
+	if (isNULL(haplosomes)) {
+		if (community.allSpecies.length() != 1)
+			stop("ERROR (): calcSFS() can only infer the value of haplosomes in a single-species model; otherwise, you need to supply the specific haplosomes to be used.");
+		
+		species = community.allSpecies;
+		haplosomes = sim.subpopulations.haplosomesNonNull;
+	}
+	else
+	{
+		if (haplosomes.length() == 0)
+			stop("ERROR (calcSFS): haplosomes must be non-empty.");
+		
+		species = haplosomes[0].individual.subpopulation.species;
+		
+		if (community.allSpecies.length() > 1)
+		{
+			if (any(haplosomes.individual.subpopulation.species != species))
+				stop("ERROR (calcSFS): all haplosomes must belong to the same species.");
+		}
+		
+		// exclude null haplosomes silently
+		haplosomes = haplosomes[!haplosomes.isNullHaplosome];
+	}
+	
+	// validate binCount
+	if (!isNULL(binCount))
+		if ((binCount <= 0) | (binCount > 100000))
+				stop("ERROR (calcSFS): binCount must be in the range [1, 100000], or NULL.");
+	
+	// if no haplosomes are supplied, we don't want to error (we want to work
+	// even when called on an empty simulation, for ease of use), so we just
+	// return zeros; note after this point haplosomes is guaranteed non-empty
+	if (haplosomes.length() == 0)
+	{
+		if (isNULL(binCount))
+				return integer(0);
+		return float(binCount);
+	}
+	
+	// a NULL binCount means: each haplosome is a sample, and bins should be
+	// counts, not frequency bins; with N samples, we have bins for the counts
+	// from 1 to N-1 (here we do 0 to N, we will remove the end bins downstream)
+	// note for this mode we do require that all haplosomes belong to a single
+	// chromosome; counts combined across different haplosomes are not valid
+	// in the general case.
+	binsAreSampleCounts = F;
+	if (isNULL(binCount))
+	{
+		chromosome = haplosomes[0].chromosome;
+		if (any(haplosomes.chromosome != chromosome))
+				stop("ERROR (calcSFS): when binCount is NULL, all haplosomes must be associated with the same chromosome; counts should be within a single chromosome, since a different number of haplosomes could be present for different chromosomes.");
+		
+		binCount = haplosomes.length() + 1;		// 0 to number of haplosomes
+		binsAreSampleCounts = T;
+	}
+	
+	// apart from the case above, we do not need to require a single chromosome;
+	// we work with all mutations in the model, even if the haplosomes supplied
+	// belong to a single chromosome.  this works because mutations that are not
+	// present in any of the supplied haplosomes will have a frequency of zero,
+	// and those will be filtered out below.
+	if (isNULL(muts))
+	{
+		muts = species.mutations;
+	}
+	else
+	{
+		if (any(muts.chromosome.species != species))
+			stop("ERROR (calcSFS): all mutations in muts must belong to the same species as the haplosomes; an SFS can be calculated only within a single species.");
+	}
+	
+	if (!binsAreSampleCounts)
+	{
+		// get the frequencies; note mutationFrequenciesInHaplosomes() is smart enough
+		// to assess the frequency of each mutation only within the haplosomes that
+		// are associated with the same chromosome as the mutation, so this should do
+		// the right thing even in multichrom models.
+		freqs = haplosomes.mutationFrequenciesInHaplosomes(muts);
+		
+		// filter out frequencies of zero; they should not influence the SFS.
+		freqs = freqs[freqs != 0.0];
+		
+		// discretize the frequencies into the specified number of bins
+		bins = pmin(asInteger(floor(freqs * binCount)), binCount - 1);
+		
+		// tabulate the number of mutations in each frequency bin to make a histogram
+		tallies = tabulate(bins, maxbin=binCount-1);
+	}
+	else
+	{
+		// this is the "binCount=NULL" case, where each bin is an integer count
+		// we handle this separately to avoid possible float numerical error
+		counts = haplosomes.mutationCountsInHaplosomes(muts);
+		
+		// filter out counts of zero; they should not influence the SFS.
+		counts = counts[counts != 0.0];
+		
+		// tabulate the number of mutations in each count bin to make a histogram
+		tallies = tabulate(counts, maxbin=binCount-1);
+		
+		// unlike above (frequency bins), with count bins we discard the bottom
+		// and top bins; count bins span [1, N-1]; the top bin might contain fixed
+		// mutations in SLiM, but they are not empirically observable
+		if (binsAreSampleCounts)
+			tallies = tallies[1:(length(tallies)-2)];
+	}
+	
+	// "fold" the SFS if requested, combining the first and last value, and on
+	// to the center; this is often done empirically because you don't know
+	// which allele is ancestral and which is derived.  the tricky thing is
+	// what to do with the central bin, if there is an odd number of bins; we
+	// add it to itself, but the central bin could be handled other ways too,
+	// such as excluding that data point (which the user can do after).
+	if (fold & (size(tallies) >= 2))
+	{
+		midpoint = (length(tallies) - 1) / 2;
+		leftSeq = asInteger(seq(from=0, to=midpoint));
+		rightSeq = asInteger(seq(from=length(tallies)-1, to=midpoint));
+		tallies = tallies[leftSeq] + tallies[rightSeq];
+	}
+	
+	// return either counts or densities, as requested; note that you can have
+	// binsAreSampleCounts be T, and yet return density values, that is legal,
+	// and just means that you want densities for singletons, doubletons, etc.
+	if (metric == "count")
+		return tallies;
+	else if (metric == "density")
+		return tallies / sum(tallies);
+	else
+		stop("ERROR (calcSFS): unrecognized value '" + metric + "' for parameter metric.");
+})V0G0N";
+
+#pragma mark (float$)calcTajimasD(object<Haplosome> haplosomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcTajimasD = 
 R"V0G0N({
 	if (haplosomes.length() < 4)

@@ -64,6 +64,7 @@
         <file>recipes/Recipe 9.9 - Keeping a reference to a sweep mutation.txt</file>
         <file>recipes/Recipe 9.10 - Tracking the fate of background mutations.txt</file>
         <file>recipes/Recipe 9.11 - Effective population size versus census population size.txt</file>
+        <file>recipes/Recipe 9.12 - Observing the site frequency spectrum (SFS) during selective sweeps.txt</file>
         <file>recipes/Recipe 10.1 - Temporally varying selection.txt</file>
         <file>recipes/Recipe 10.2 - Spatially varying selection.txt</file>
         <file>recipes/Recipe 10.3.1 - Fitness as a function of genomic background, Epistasis I.txt</file>

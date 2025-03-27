@@ -2235,6 +2235,134 @@ The implementation of
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph and Chase Nelson.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (numeric)calcSFS([Ni$\'a0binCount\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [string$\'a0metric\'a0=\'a0"density"], [logical$\'a0fold\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the site frequency spectrum, or SFS, for the mutations specified by 
+\f1\fs18 muts
+\f2\fs20 , within the haplosomes specified by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The site frequency spectrum (sometimes called the allele frequency spectrum) is essentially a histogram of the frequencies of the mutations within the haplosomes; the first bin spans the lowest range of frequencies (down to a frequency of 
+\f1\fs18 0.0
+\f2\fs20 , or a count of 
+\f1\fs18 1
+\f2\fs20 ), whereas the last bin spans the highest range of frequencies (up to a frequency of 
+\f1\fs18 1.0
+\f2\fs20 , or a count equal to number of haplosomes minus one).  This histogram can be returned as a 
+\f1\fs18 float
+\f2\fs20  vector of density values for each bin by specifying 
+\f1\fs18 "density"
+\f2\fs20  for 
+\f1\fs18 metric
+\f2\fs20  (the default), or as an 
+\f1\fs18 integer
+\f2\fs20  vector of count values for each bin by specifying 
+\f1\fs18 "count"
+\f2\fs20 .\
+There are two modes of operation for 
+\f1\fs18 calcSFS()
+\f2\fs20 .  If a specific number of bins is passed for 
+\f1\fs18 binCount
+\f2\fs20 , then the frequency range 
+\f1\fs18 [0.0, 1.0]
+\f2\fs20  is subdivided into 
+\f1\fs18 binCount
+\f2\fs20  intervals of equal width, and the mutations are tallied into those bins according to their frequencies within the haplosomes to produce the histogram.  In this mode, there will be exactly 
+\f1\fs18 binCount
+\f2\fs20  elements in the returned vector.  Note that either 
+\f1\fs18 "density"
+\f2\fs20  or 
+\f1\fs18 "count"
+\f2\fs20  can be chosen in this mode; you can return the frequency bin tallies as either densities or counts.\
+In the other mode of operation, chosen with a 
+\f1\fs18 binCount
+\f2\fs20  value of 
+\f1\fs18 NULL
+\f2\fs20 , the bins instead represent the count of the number of occurrences for each mutation, and range from a count of 
+\f1\fs18 1
+\f2\fs20  (the bin for mutations that occur only once in the haplosomes, sometimes called \'93singletons\'94) up to a count of 
+\f1\fs18 N-1
+\f2\fs20  where 
+\f1\fs18 N
+\f2\fs20  is the number of haplosomes.  (Note that mutations occurring in all 
+\f1\fs18 N
+\f2\fs20  haplosomes are not included in the tally, since they would not be empirically observable.)  In this mode, there will be exactly 
+\f1\fs18 N-1
+\f2\fs20  elements in the returned vector.  Again, either 
+\f1\fs18 "density"
+\f2\fs20  or 
+\f1\fs18 "count"
+\f2\fs20  can be chosen in this mode; you can return the count bin tallies as either densities or counts (it\'92s a bit confusing, but we\'92re talking about two different kinds of \'93counts\'94, the count of the number of times a mutation occurs in the haplosomes versus the count of the number of mutations that were tallied into a particular count bin).\
+The 
+\f1\fs18 haplosomes
+\f2\fs20  parameter can be either a vector of 
+\f1\fs18 Haplosome
+\f2\fs20  objects or 
+\f1\fs18 NULL
+\f2\fs20 .  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, 
+\f1\fs18 calcSFS()
+\f2\fs20  will calculate the SFS across the whole species, using all non-null haplosomes present (and thus there must be only a single species in the model, since an SFS cannot be calculated across multiple species).  Otherwise, 
+\f1\fs18 haplosomes
+\f2\fs20  can contain any set of haplosomes desired, such as from the individuals of one subpopulation, several subpopulations, or an entire species.  However, they must all belong to the same species, and null haplosomes will be automatically and silently excluded from the set.\
+The 
+\f1\fs18 muts
+\f2\fs20  parameter can be either a vector of 
+\f1\fs18 Mutation
+\f2\fs20  objects or 
+\f1\fs18 NULL
+\f2\fs20 .  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, 
+\f1\fs18 calcSFS()
+\f2\fs20  will calculate the SFS across all mutations belonging to the focal species (as determined from the species of the haplosomes).  Otherwise, 
+\f1\fs18 muts
+\f2\fs20  can contain any set of mutations desired, such as mutations belonging to a specific mutation type, mutations within a specific range of positions along the chromosome, or all of the mutations in the focal species.\
+The 
+\f1\fs18 binCount
+\f2\fs20  and 
+\f1\fs18 metric
+\f2\fs20  parameters have already been discussed.  Finally, the 
+\f1\fs18 fold
+\f2\fs20  parameter, if 
+\f1\fs18 T
+\f2\fs20 , \'93folds\'94 the calculated SFS, adding the first and last bins, the second and next-to-last bins, etc., until the center is reached.  Folding is common when working with empirical data, where one often doesn\'92t know the \'93polarity\'94 \'96 which allele at a site is ancestral and which is derived.  Folding solves this problem, because the polarity then doesn\'92t matter; the tally for a given mutation ends up in the same bin regardless.  If the number of bins is even, folding can be performed without ambiguity; the final number of bins is exactly half the original number of bins, and each final bin is the sum of two original bins.  If the number of bins is odd, the correct treatment of the central bin is somewhat ambiguous.  In 
+\f1\fs18 calcFST()
+\f2\fs20 , the central bin is added to itself \'96 doubled \'96 and the number of bins is equal to half the original number of bins rounded up.  If you would prefer to exclude the central bin altogether \'96 another population treatment \'96 then when the original number of bins is odd, you can simply discard the final value in the returned vector (and, if you wish to work with densities rather than counts, re-normalize the result to sum to 1.0).\
+The implementation of 
+\f1\fs18 calcSFS()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , tallies each mutation separately, even if more than one mutation occurs at the same position (or is even stacked with another mutation).  One could regard this choice as embodying an infinite-sites interpretation of the SFS, perhaps; in any case, it follows SLiM\'92s behavior in other population-genetics utility functions.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.\
+This function is compatible with multi-chromosome models, in the following sense.  When 
+\f1\fs18 binCount
+\f2\fs20  is specified with an 
+\f1\fs18 integer
+\f2\fs20  value, mutations are binned according to their frequencies, as described above.  In a multi-chromosome model, the haplosomes and mutations used by 
+\f1\fs18 calcSFS()
+\f2\fs20  may be associated with more than one chromosome, and the frequency assessed for each mutation is its frequency specifically within the haplosomes associated with its chromosome (as you would expect).  Mutations occurring in different chromosomes can therefore be tallied together into the same frequency bins, and combined into a single SFS; this produces a meaningful.  (If you want an SFS for just a single chromosome, then of course you can pass just those haplosomes and mutations to 
+\f1\fs18 calcSFS()
+\f2\fs20 .)  When 
+\f1\fs18 binCount
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , on the other hand, mutations are binned according to their counts, as described above.  In a multi-chromosome model, it would not make sense to bin counts together from different chromosomes, since those counts might not be on the same scale \'96 the number of haplosomes associated with the various chromosomes might not be equal.  In this case, 
+\f1\fs18 calcSFS()
+\f2\fs20  will raise an error if haplosomes from more than one chromosome are supplied, or if haplosomes is 
+\f1\fs18 NULL
+\f2\fs20  (since it doesn\'92t know which chromosome to choose).  If you wish to tally according to counts, with 
+\f1\fs18 binCount=NULL
+\f2\fs20 , you must pass in a vector of haplosomes associated with a single chromosome.  (If you know what you are doing and wish to combine counts across multiple chromosomes, you can simply call 
+\f1\fs18 calcSFS()
+\f2\fs20  once per chromosome, and combine the resulting vectors by adding them together.)\
+The Eidos source code for 
+\f1\fs18 calcSFS()
+\f2\fs20  can be seen in the Eidos console by typing 
+\f1\fs18 functionSource("calcSFS")
+\f2\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (float$)calcTajimasD(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
