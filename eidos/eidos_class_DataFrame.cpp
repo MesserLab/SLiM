@@ -242,7 +242,7 @@ void EidosDataFrame::AllKeysRemoved(void)
 	super::AllKeysRemoved();
 	
 	// Maintain our user-defined key ordering
-	sorted_keys_.clear();
+	sorted_keys_.resize(0);
 }
 
 void EidosDataFrame::ContentsChanged(const std::string &p_operation_name)

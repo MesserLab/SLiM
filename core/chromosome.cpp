@@ -295,12 +295,12 @@ void Chromosome::CreateNucleotideMutationRateMap(void)
 	std::vector<double> &mut_rates_F = mutation_rates_F_;
 	
 	// clear the mutation map; there may be old cruft in there, if we're called by setHotspotMap() for example
-	mut_positions_H.clear();
-	mut_positions_M.clear();
-	mut_positions_F.clear();
-	mut_rates_H.clear();
-	mut_rates_M.clear();
-	mut_rates_F.clear();
+	mut_positions_H.resize(0);
+	mut_positions_M.resize(0);
+	mut_positions_F.resize(0);
+	mut_rates_H.resize(0);
+	mut_rates_M.resize(0);
+	mut_rates_F.resize(0);
 	
 	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
 	{
@@ -1607,7 +1607,7 @@ void Chromosome::_DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num
 	// Note that we also redraw noncrossover and simple, on this code path; that shouldn't matter since they are independent of layout
 generateDSBsRedrawingLengths:
 	
-	dsb_infos.clear();
+	dsb_infos.resize(0);
 	
 	if (gene_conversion_avg_length_ < 2.0)
 	{
@@ -1648,7 +1648,7 @@ generateDSBsWithoutRedrawingLengths:
 	// First draw DSB points; dsb_points contains positions and a flag for whether the breakpoint is at a rate=0.5 position
 	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 	static std::vector<std::pair<slim_position_t, bool>> dsb_points;	// using a static prevents reallocation
-	dsb_points.clear();
+	dsb_points.resize(0);
 	
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
@@ -1677,8 +1677,8 @@ generateDSBsWithoutRedrawingLengths:
 	int final_num_breakpoints = (int)dsb_points.size();
 	slim_position_t last_position_used = -1;
 	
-	p_crossovers.clear();
-	p_heteroduplex.clear();
+	p_crossovers.resize(0);
+	p_heteroduplex.resize(0);
 	
 	for (int i = 0; i < final_num_breakpoints; i++)
 	{
@@ -3463,8 +3463,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() multiplier " << EidosStringForFloat(multiplier) << " out of range; multipliers must be >= 0." << EidosTerminate();
 		
 		// then adopt them
-		multipliers.clear();
-		positions.clear();
+		multipliers.resize(0);
+		positions.resize(0);
 		
 		multipliers.emplace_back(multiplier);
 		positions.emplace_back(last_position_);
@@ -3500,8 +3500,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
-		multipliers.clear();
-		positions.clear();
+		multipliers.resize(0);
+		positions.resize(0);
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
@@ -3575,8 +3575,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() rate " << EidosStringForFloat(mutation_rate) << " out of range; rates must be >= 0." << EidosTerminate();
 		
 		// then adopt them
-		rates.clear();
-		positions.clear();
+		rates.resize(0);
+		positions.resize(0);
 		
 		rates.emplace_back(mutation_rate);
 		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
@@ -3612,8 +3612,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() end " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
-		rates.clear();
-		positions.clear();
+		rates.resize(0);
+		positions.resize(0);
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{
@@ -3684,8 +3684,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << recombination_rate << " out of range; rates must be in [0.0, 0.5]." << EidosTerminate();
 		
 		// then adopt them
-		rates.clear();
-		positions.clear();
+		rates.resize(0);
+		positions.resize(0);
 		
 		rates.emplace_back(recombination_rate);
 		//positions.emplace_back(?);	// deferred; patched in Chromosome::InitializeDraws().
@@ -3721,8 +3721,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() rate " << new_last_position << " noncompliant; the last interval must end at the last position of the chromosome (" << last_position_ << ")." << EidosTerminate();
 		
 		// then adopt them
-		rates.clear();
-		positions.clear();
+		rates.resize(0);
+		positions.resize(0);
 		
 		for (int interval_index = 0; interval_index < end_count; ++interval_index)
 		{

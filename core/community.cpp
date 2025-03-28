@@ -1152,7 +1152,7 @@ void Community::DeregisterScheduledScriptBlocks(void)
 	}
 #endif
 	
-	scheduled_deregistrations_.clear();
+	scheduled_deregistrations_.resize(0);
 }
 
 void Community::DeregisterScheduledInteractionBlocks(void)
@@ -1214,7 +1214,7 @@ void Community::DeregisterScheduledInteractionBlocks(void)
 	}
 #endif
 	
-	scheduled_interaction_deregs_.clear();
+	scheduled_interaction_deregs_.resize(0);
 }
 
 void Community::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)

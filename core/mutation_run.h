@@ -334,8 +334,8 @@ public:
 			allocation_pool->DisposeChunk(const_cast<MutationRun *>(inuse_run));
 		}
 		
-		free_pool.clear();
-		in_use_pool.clear();
+		free_pool.resize(0);
+		in_use_pool.resize(0);
 	}
 	
 	MutationRun(const MutationRun&) = delete;					// no copying

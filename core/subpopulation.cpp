@@ -3232,8 +3232,8 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 {
 	if (species_.PedigreesEnabled())
 	{
-		lifetime_reproductive_output_MH_.clear();
-		lifetime_reproductive_output_F_.clear();
+		lifetime_reproductive_output_MH_.resize(0);
+		lifetime_reproductive_output_F_.resize(0);
 		
 		if (species_.SexEnabled())
 		{
@@ -5433,7 +5433,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 	
 	cached_parent_individuals_value_.reset();
 	
-	nonWF_offspring_individuals_.clear();
+	nonWF_offspring_individuals_.resize(0);
 }
 
 // nonWF only:
@@ -5618,8 +5618,8 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	// clear lifetime reproductive outputs, in preparation for new values
 	if (pedigrees_enabled)
 	{
-		lifetime_reproductive_output_MH_.clear();
-		lifetime_reproductive_output_F_.clear();
+		lifetime_reproductive_output_MH_.resize(0);
+		lifetime_reproductive_output_F_.resize(0);
 	}
 	
 	// pre-plan mortality; this avoids issues with callbacks accessing the subpop state while buffers are being modified

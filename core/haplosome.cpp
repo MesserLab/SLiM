@@ -346,7 +346,7 @@ void Haplosome::record_derived_states(Species *p_species) const
 		int mutrun_size = mutrun->size();
 		slim_position_t last_pos = -1;
 		
-		//record_vec.clear();	// should always be left clear by the code below
+		//record_vec.resize(0);	// should always be left clear by the code below
 		
 		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
 		{
@@ -360,7 +360,7 @@ void Haplosome::record_derived_states(Species *p_species) const
 				if (last_pos != -1)
 				{
 					p_species->RecordNewDerivedState(this, last_pos, record_vec);
-					record_vec.clear();
+					record_vec.resize(0);
 				}
 				
 				// ...and start a new derived-state block
@@ -374,7 +374,7 @@ void Haplosome::record_derived_states(Species *p_species) const
 		if (last_pos != -1)
 		{
 			p_species->RecordNewDerivedState(this, last_pos, record_vec);
-			record_vec.clear();
+			record_vec.resize(0);
 		}
 	}
 }

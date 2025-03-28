@@ -216,7 +216,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 		subpop_data->kd_node_count_EXERTERS_ = 0;
 		
 		// Free the interaction() callbacks that were cached
-		subpop_data->evaluation_interaction_callbacks_.clear();
+		subpop_data->evaluation_interaction_callbacks_.resize(0);
 	}
 	
 	// At this point, positions_ is guaranteed to be nullptr, as are the k-d tree buffers.
@@ -610,7 +610,7 @@ void InteractionType::_InvalidateData(InteractionsData &data)
 	data.kd_root_EXERTERS_ = nullptr;
 	data.kd_node_count_EXERTERS_ = 0;
 	
-	data.evaluation_interaction_callbacks_.clear();
+	data.evaluation_interaction_callbacks_.resize(0);
 }
 
 void InteractionType::Invalidate(void)
@@ -6595,7 +6595,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source) noexcept
 	kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 	
 	p_source.evaluated_ = false;
-	p_source.evaluation_interaction_callbacks_.clear();
+	p_source.evaluation_interaction_callbacks_.resize(0);
 	p_source.individual_count_ = 0;
 	p_source.first_male_index_ = 0;
 	p_source.periodic_x_ = false;
@@ -6647,7 +6647,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source) no
 		kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 		
 		p_source.evaluated_ = false;
-		p_source.evaluation_interaction_callbacks_.clear();
+		p_source.evaluation_interaction_callbacks_.resize(0);
 		p_source.individual_count_ = 0;
 		p_source.first_male_index_ = 0;
 		p_source.periodic_x_ = false;
@@ -6707,7 +6707,7 @@ _InteractionsData::~_InteractionsData(void)
 	kd_node_count_EXERTERS_ = 0;
 	
 	// Unnecessary since it's about to be destroyed anyway
-	//evaluation_interaction_callbacks_.clear();
+	//evaluation_interaction_callbacks_.resize(0);
 }
 
 

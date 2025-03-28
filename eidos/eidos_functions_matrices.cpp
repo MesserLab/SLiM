@@ -163,7 +163,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 			{
 				int margin_dim = margins[margin_index];
 				
-				inclusion_indices[margin_dim].clear();
+				inclusion_indices[margin_dim].resize(0);
 				inclusion_indices[margin_dim].emplace_back(margin_counter[margin_index]);
 			}
 			

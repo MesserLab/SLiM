@@ -87,7 +87,7 @@ static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSym
 		for (EidosSymbolTableSlot *table : gEidosSymbolTable_TablePool)
 			free(table);
 		
-		gEidosSymbolTable_TablePool.clear();
+		gEidosSymbolTable_TablePool.resize(0);
 		
 		//std::cout << "old symbol table pool's table capacity of " << gEidosSymbolTable_TablePool_table_capacity << " increasing to " << p_capacity << std::endl;
 		gEidosSymbolTable_TablePool_table_capacity = p_capacity;

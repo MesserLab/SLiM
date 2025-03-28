@@ -262,7 +262,7 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 	static std::vector<Mutation *> return_vec;
 	
 	// First clear out whatever might be left over from last time
-	return_vec.clear();
+	return_vec.resize(0);
 	
 	// Then fill in all the mutation IDs at the given position.  We search backward from the end since usually we are called
 	// when a new mutation has just been added to the end; this will be slow for addNew[Drawn]Mutation() and removeMutations(),

@@ -3771,7 +3771,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 						
 						// disable use of MID for this read
 						info_MID_defined = false;
-						info_mutids.clear();
+						info_mutids.resize(0);
 					}
 				}
 				else if (info_S_defined && (info_substr.compare(0, 2, "S=") == 0))		// Selection Coefficient

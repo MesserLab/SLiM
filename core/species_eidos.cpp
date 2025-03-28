@@ -2596,7 +2596,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::ExecuteMethod_individualsWithPedigreeIDs(): usage of statics");
 	
 	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
-	subpops_to_search.clear();
+	subpops_to_search.resize(0);
 	
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -2878,7 +2878,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry
 		
-		subpops_to_tally.clear();
+		subpops_to_tally.resize(0);
 		
 		if (requested_subpop_count)
 		{

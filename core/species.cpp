@@ -2801,7 +2801,7 @@ void Species::EmptyGraveyard(void)
 	for (Individual *individual : graveyard_)
 		individual->subpopulation_->FreeSubpopIndividual(individual);
 	
-	graveyard_.clear();
+	graveyard_.resize(0);
 }
 
 void Species::WF_GenerateOffspring(void)
@@ -2873,7 +2873,7 @@ void Species::WF_GenerateOffspring(void)
 			Subpopulation *subpop = subpop_pair.second;
 			
 			// Get mateChoice() callbacks that apply to this subpopulation
-			subpop->registered_mate_choice_callbacks_.clear();
+			subpop->registered_mate_choice_callbacks_.resize(0);
 			
 			for (SLiMEidosBlock *callback : mate_choice_callbacks)
 			{
@@ -2884,7 +2884,7 @@ void Species::WF_GenerateOffspring(void)
 			}
 			
 			// Get modifyChild() callbacks that apply to this subpopulation
-			subpop->registered_modify_child_callbacks_.clear();
+			subpop->registered_modify_child_callbacks_.resize(0);
 			
 			for (SLiMEidosBlock *callback : modify_child_callbacks)
 			{
@@ -2895,7 +2895,7 @@ void Species::WF_GenerateOffspring(void)
 			}
 			
 			// Get recombination() callbacks that apply to this subpopulation
-			subpop->registered_recombination_callbacks_.clear();
+			subpop->registered_recombination_callbacks_.resize(0);
 			
 			for (SLiMEidosBlock *callback : recombination_callbacks)
 			{
@@ -2906,7 +2906,7 @@ void Species::WF_GenerateOffspring(void)
 			}
 			
 			// Get mutation() callbacks that apply to this subpopulation
-			subpop->registered_mutation_callbacks_.clear();
+			subpop->registered_mutation_callbacks_.resize(0);
 			
 			for (SLiMEidosBlock *callback : mutation_callbacks)
 			{
@@ -3291,7 +3291,7 @@ void Species::nonWF_GenerateOffspring(void)
 		Subpopulation *subpop = subpop_pair.second;
 		
 		// Get reproduction() callbacks that apply to this subpopulation
-		subpop->registered_reproduction_callbacks_.clear();
+		subpop->registered_reproduction_callbacks_.resize(0);
 		
 		for (SLiMEidosBlock *callback : reproduction_callbacks)
 		{
@@ -3302,7 +3302,7 @@ void Species::nonWF_GenerateOffspring(void)
 		}
 		
 		// Get modifyChild() callbacks that apply to this subpopulation
-		subpop->registered_modify_child_callbacks_.clear();
+		subpop->registered_modify_child_callbacks_.resize(0);
 		
 		for (SLiMEidosBlock *callback : modify_child_callbacks)
 		{
@@ -3313,7 +3313,7 @@ void Species::nonWF_GenerateOffspring(void)
 		}
 		
 		// Get recombination() callbacks that apply to this subpopulation
-		subpop->registered_recombination_callbacks_.clear();
+		subpop->registered_recombination_callbacks_.resize(0);
 		
 		for (SLiMEidosBlock *callback : recombination_callbacks)
 		{
@@ -3324,7 +3324,7 @@ void Species::nonWF_GenerateOffspring(void)
 		}
 		
 		// Get mutation() callbacks that apply to this subpopulation
-		subpop->registered_mutation_callbacks_.clear();
+		subpop->registered_mutation_callbacks_.resize(0);
 		
 		for (SLiMEidosBlock *callback : mutation_callbacks)
 		{
@@ -5803,8 +5803,8 @@ void Species::RecordNewDerivedState(const Haplosome *p_haplosome, slim_position_
 	static std::vector<MutationMetadataRec> mutation_metadata;
 	MutationMetadataRec metadata_rec;
 	
-	derived_mutation_ids.clear();
-	mutation_metadata.clear();
+	derived_mutation_ids.resize(0);
+	mutation_metadata.resize(0);
 	for (Mutation *mutation : p_derived_mutations)
 	{
 		derived_mutation_ids.emplace_back(mutation->mutation_id_);
@@ -7623,7 +7623,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		
 		// get all haplosomes from all subpopulations for the focal chromosome; we will cross-check them all simultaneously
 		static std::vector<Haplosome *> haplosomes;
-		haplosomes.clear();
+		haplosomes.resize(0);
 		
 		for (auto pop_iter : population_.subpops_)
 		{
@@ -7771,7 +7771,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
 				static std::vector<slim_mutationid_t> fixed_mutids;
 				
-				fixed_mutids.clear();
+				fixed_mutids.resize(0);
 				for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
 					fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
 				
@@ -7864,8 +7864,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 					{
 						static std::vector<slim_mutationid_t> allele_mutids;
 						static std::vector<slim_mutationid_t> haplosome_mutids;
-						allele_mutids.clear();
-						haplosome_mutids.clear();
+						allele_mutids.resize(0);
+						haplosome_mutids.resize(0);
 						
 						// tabulate all tree mutations
 						for (tsk_size_t mutid_index = 0; mutid_index < haplosome_allele_length; ++mutid_index)

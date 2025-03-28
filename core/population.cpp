@@ -109,7 +109,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 	for (auto substitution : substitutions_)
 		substitution->Release();
 	
-	substitutions_.clear();
+	substitutions_.resize(0);
 	treeseq_substitutions_map_.clear();
 	
 	// The malloced storage of the mutation registry will be freed when it is destroyed, but it
@@ -509,7 +509,7 @@ void Population::PurgeRemovedSubpopulations(void)
 		for (auto removed_subpop : removed_subpops_)
 			delete removed_subpop;
 		
-		removed_subpops_.clear();
+		removed_subpops_.resize(0);
 	}
 }
 
@@ -652,8 +652,8 @@ void Population::DoDeferredReproduction(void)
 	EIDOS_BENCHMARK_END(EidosBenchmarkType::k_DEFERRED_REPRO);
 	
 	// Clear the deferred reproduction queue
-	deferred_reproduction_nonrecombinant_.clear();
-	deferred_reproduction_recombinant_.clear();
+	deferred_reproduction_nonrecombinant_.resize(0);
+	deferred_reproduction_recombinant_.resize(0);
 }
 #endif
 
@@ -2681,10 +2681,10 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #pragma omp threadprivate (all_breakpoints)
 #endif
 	
-	all_breakpoints.clear();
+	all_breakpoints.resize(0);
 	
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
-															// this is not static since we don't want to call clear() every time for a rare edge case
+															// this is not static since we don't want to call resize(0) every time for a rare edge case
 	
 	{
 #ifdef USE_GSL_POISSON
@@ -2910,7 +2910,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #pragma omp threadprivate (mut_positions)
 #endif
 		
-		mut_positions.clear();
+		mut_positions.resize(0);
 		
 		num_mutations = p_chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
 		
@@ -2923,7 +2923,7 @@ void Population::HaplosomeCrossed(Chromosome &p_chromosome, Haplosome &p_child_h
 #pragma omp threadprivate (mutations_to_add)
 #endif
 		
-		mutations_to_add.clear();
+		mutations_to_add.resize(0);
 		
 #ifdef _OPENMP
 		bool saw_error_in_critical = false;
@@ -3556,7 +3556,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 #pragma omp threadprivate (mut_positions)
 #endif
 		
-		mut_positions.clear();
+		mut_positions.resize(0);
 		
 		num_mutations = p_chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
 		
@@ -3569,7 +3569,7 @@ void Population::HaplosomeCloned(Chromosome &p_chromosome, Haplosome &p_child_ha
 #pragma omp threadprivate (mutations_to_add)
 #endif
 		
-		mutations_to_add.clear();
+		mutations_to_add.resize(0);
 		
 #ifdef _OPENMP
 		bool saw_error_in_critical = false;
@@ -3958,7 +3958,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 #pragma omp threadprivate (mut_positions)
 #endif
 		
-		mut_positions.clear();
+		mut_positions.resize(0);
 		
 		num_mutations = p_chromosome.DrawSortedUniquedMutationPositions(num_mutations, parent_sex, mut_positions);
 		
@@ -3971,7 +3971,7 @@ void Population::HaplosomeRecombined(Chromosome &p_chromosome, Haplosome &p_chil
 #pragma omp threadprivate (mutations_to_add)
 #endif
 		
-		mutations_to_add.clear();
+		mutations_to_add.resize(0);
 		
 #ifdef _OPENMP
 		bool saw_error_in_critical = false;
@@ -6591,7 +6591,7 @@ slim_refcount_t Population::_CountNonNullHaplosomesForChromosome(Chromosome *p_c
 
 void Population::InvalidateMutationReferencesCache(void)
 {
-	last_tallied_subpops_.clear();
+	last_tallied_subpops_.resize(0);
 	cached_tallies_valid_ = false;
 }
 
@@ -6660,7 +6660,7 @@ doDebugCheck:
 #endif
 	
 	// set up the cache info
-	last_tallied_subpops_.clear();
+	last_tallied_subpops_.resize(0);
 	cached_tallies_valid_ = true;
 	
 	// When tallying the full population, we update total_haplosome_count_ as well, since we did the work
@@ -7027,7 +7027,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	static std::vector<double> tallied_haplosome_counts;		// static to avoid alloc/dealloc
 	
-	tallied_haplosome_counts.clear();
+	tallied_haplosome_counts.resize(0);
 	tallied_haplosome_counts.reserve(chromosomes.size());
 	
 	for (Chromosome *chromosome : chromosomes)
@@ -7114,7 +7114,7 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	static std::vector<slim_refcount_t> tallied_haplosome_counts;		// static to avoid alloc/dealloc
 	
-	tallied_haplosome_counts.clear();
+	tallied_haplosome_counts.resize(0);
 	tallied_haplosome_counts.reserve(chromosomes.size());
 	
 	for (Chromosome *chromosome : chromosomes)
@@ -7207,7 +7207,7 @@ void Population::RemoveAllFixedMutations(void)
 	const std::vector<Chromosome *> &chromosomes = species_.Chromosomes();
 	static std::vector<slim_refcount_t> total_haplosome_counts;		// static to avoid alloc/dealloc
 	
-	total_haplosome_counts.clear();
+	total_haplosome_counts.resize(0);
 	total_haplosome_counts.reserve(chromosomes.size());
 	
 	for (Chromosome *chromosome : chromosomes)
@@ -7457,7 +7457,7 @@ void Population::RemoveAllFixedMutations(void)
 		}
 		
 		// Clear the accumulator for reuse next tick
-		fixed_mutation_accumulator.clear();
+		fixed_mutation_accumulator.resize(0);
 	}
 	
 	// now we can delete (or zombify) removed mutation objects
