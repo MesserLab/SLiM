@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/12/14.
-//  Copyright (c) 2014-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -25,7 +25,10 @@
 
 
 #include <iostream>
+#include <iomanip>
+#include <ios>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <cstdio>
@@ -34,6 +37,7 @@
 #include <unistd.h>
 #include <ctime>
 #include <chrono>
+#include <algorithm>
 #include <sys/stat.h>
 
 #include "community.h"
@@ -77,7 +81,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
-		SLIM_OUTSTREAM << "Copyright 2013-2024 Philipp Messer.  All rights reserved." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "Copyright 2013-2025 Philipp Messer.  All rights reserved." << std::endl << std::endl;
 		SLIM_OUTSTREAM << "By Benjamin C. Haller, http://benhaller.com/, and Philipp Messer." << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "---------------------------------------------------------------------------------" << std::endl << std::endl;
@@ -104,9 +108,10 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] ";
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-c[heck]] [-p[rogress]] ";
 #ifdef _OPENMP
 	// Some flags are visible only for a parallel build
+	// FIXME: these might not fit on the same line as other things
 	SLIM_OUTSTREAM << "[-maxThreads <n>] [-perTaskThreads \"x\"] ";
 #endif
 #if (SLIMPROFILING == 1)
@@ -129,8 +134,10 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -t[ime]            : print SLiM's total execution time (in user clock time)" << std::endl;
 		SLIM_OUTSTREAM << "   -m[em]             : print SLiM's peak memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -M[emhist]         : print a histogram of SLiM's memory usage" << std::endl;
+		SLIM_OUTSTREAM << "   -p[rogress]        : show a progress bar in the terminal as SLiM runs" << std::endl;
 		SLIM_OUTSTREAM << "   -x                 : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>    : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
+		SLIM_OUTSTREAM << "   -c[heck]           : check the input script's syntax, without executing it" << std::endl;
 #ifdef _OPENMP
 		// Some flags are visible only for a parallel build
 		SLIM_OUTSTREAM << "   -maxThreads <n>    : set the maximum number of threads used" << std::endl;
@@ -185,7 +192,8 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false, tree_seq_force = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false;
+	bool tree_seq_checks = false, tree_seq_force = false, show_progress = false, check_script = false;
 	std::vector<std::string> defined_constants;
 	
 #ifdef _OPENMP
@@ -314,6 +322,14 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 			continue;
 		}
 		
+		// -progress or -p: show a progress bar as the model runs
+		if (strcmp(arg, "--progress") == 0 || strcmp(arg, "-progress") == 0 || strcmp(arg, "-p") == 0)
+		{
+			show_progress = true;
+			
+			continue;
+		}
+		
 		// -x: skip runtime checks for greater speed, or to avoid them if they are causing problems
 		if (strcmp(arg, "-x") == 0)
 		{
@@ -385,6 +401,13 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 			
 			defined_constants.emplace_back(argv[arg_index]);
 			
+			continue;
+		}
+		
+		// -check or -c: check the supplied script without executing it
+		if (strcmp(arg, "--check") == 0 || strcmp(arg, "-check") == 0 || strcmp(arg, "-c") == 0)
+		{
+			check_script = true;
 			continue;
 		}
 		
@@ -513,6 +536,19 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie(false, true);
 	
+	// for -check / -c, we suppress output other than the result of the check
+	if (check_script)
+	{
+		SLiM_verbosity_level = 0;
+		keep_time = false;
+		keep_mem = false;
+		keep_mem_hist = false;
+		skip_checks = false;
+		tree_seq_checks = false;
+		tree_seq_force = false;
+		show_progress = false;
+	}
+	
 	// announce if we are running a debug build, are skipping runtime checks, etc.
 #if DEBUG
 	if (SLiM_verbosity_level >= 1)
@@ -539,7 +575,6 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	
 	// keep time (we do this whether or not the -time flag was passed)
 	std::clock_t begin_cpu = std::clock();
-	std::chrono::steady_clock::time_point begin_wall = std::chrono::steady_clock::now();
 	
 	// keep memory usage information, if asked to
 	size_t *mem_record = nullptr;
@@ -625,6 +660,13 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		model_name = Eidos_LastPathComponent(std::string(input_file));
 	}
 	
+	if (check_script)
+	{
+		// We survived loading the script above, so apparently it checks out OK.
+		std::cout << "// ********** Check successful; no errors found." << std::endl;
+		return EXIT_SUCCESS;
+	}
+	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	
@@ -652,6 +694,22 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 		// checks can be disabled with the -x command-line option.
 		int mem_check_counter = 0, mem_check_mod = 10;
 #endif
+		
+		// decide whether or not we're showing progress; we show it only if we have a tty (i.e. a terminal window)
+		// it'd be nice if we could show progress in a terminal window even when our output has been redirected, but
+		// I don't know how we'd do that -- how do we write to the terminal if stdout and stderr are redirected??
+		if (show_progress)
+		{
+			if (isatty(fileno(stdout)))
+				Eidos_StartProgress(&std::cout);
+			else if (isatty(fileno(stderr)))
+				Eidos_StartProgress(&std::cerr);
+			else
+			{
+				std::cerr << "### Not showing progress, since neither stdout nor stderr is a tty." << std::endl << std::endl;
+				show_progress = false;
+			}
+		}
 		
 		// Run the simulation to its natural end
 #if (SLIMPROFILING == 1)
@@ -704,6 +762,38 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 			
 			if (!tick_result)
 				break;
+			
+			if (show_progress)
+			{
+				slim_tick_t current_tick = community->Tick();
+				slim_tick_t last_tick = community->EstimatedLastTick();
+				slim_tick_t progress_step;
+				
+				if (last_tick <= 1000)
+					progress_step = 1;
+				else if (last_tick <= 10000)
+					progress_step = 10;
+				else
+					progress_step = 100;	// the maximum value, just so our updates are reasonably frequent
+				
+				// We write out a line, as long as we are past initialize(), on any of three conditions:
+				// it's tick 1, it is a multiple of progress_step ticks, or the progress line got erased
+				if ((current_tick >= 1) && ((current_tick == 1) || (current_tick % progress_step == 0) || (Eidos_ProgressLength() == 0)))
+				{
+					double progress_fraction = (current_tick - 1) / (double)(last_tick - 1);
+					const int bar_length = 30;
+					int filled_count = std::max(0, std::min((int)round(bar_length * progress_fraction), bar_length));
+					int empty_count = bar_length - filled_count;
+					std::string filled_str = std::string(filled_count, '#');
+					std::string empty_str = std::string(empty_count, ' ');
+					std::ostringstream out_line;
+					
+					// decided not to use std::setw(3) to put the percentage in a fixed-width field
+					out_line << " [" << filled_str << empty_str << "] : " << std::setprecision(0) << std::fixed << (progress_fraction * 100) << "% (tick " << current_tick << " of " << community->EstimatedLastTick() << ")";
+					
+					Eidos_WriteProgress(out_line.str());
+				}
+			}
 			
 			if (keep_mem_hist)
 			{
@@ -763,15 +853,20 @@ int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-e
 	}
 	
 	// end timing and print elapsed time
-	std::clock_t end_cpu = std::clock();
-	std::chrono::steady_clock::time_point end_wall = std::chrono::steady_clock::now();
-	double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
-	double wall_time_secs = std::chrono::duration<double>(end_wall - begin_wall).count();
-	
 	if (keep_time)
 	{
+		std::clock_t end_cpu = std::clock();
+		double cpu_time_secs = static_cast<double>(end_cpu - begin_cpu) / CLOCKS_PER_SEC;
+		double user_time, sys_time;
+		
+		Eidos_GetUserSysTime(&user_time, &sys_time);
+		
 		SLIM_ERRSTREAM << "// ********** CPU time used: " << cpu_time_secs << std::endl;
-		SLIM_ERRSTREAM << "// ********** Wall time used: " << wall_time_secs << std::endl;
+		if (user_time > 0.0)
+			SLIM_ERRSTREAM << "// ********** User CPU time: " << user_time << std::endl;
+		if (sys_time > 0.0)
+			SLIM_ERRSTREAM << "// ********** System CPU time: " << sys_time << std::endl;
+		SLIM_ERRSTREAM << "// ********** Wall time used: " << Eidos_WallTimeSeconds() << std::endl;
 	}
 	
 	if (gEidosBenchmarkType != EidosBenchmarkType::kNone)

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/28/2022.
-//  Copyright (c) 2022-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2022-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -101,6 +101,9 @@ Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEid
 	AddSLiMFunctionsToMap(simulation_functions_);
 	
 	// reading from the input file is deferred to InitializeFromFile() to make raise-handling simpler - finish construction
+	
+	// BCH 3/21/2025: Note that tick_ == -1 at this point, now, so we can differentiate construction from initialize()
+	// It gets set to 0 in Community::FinishInitialization(), when we finish with the construction phase.
 }
 
 Community::~Community(void)
@@ -119,9 +122,6 @@ Community::~Community(void)
 		delete interaction_type.second;
 	interaction_types_.clear();
 	
-	for (Species *species : all_species_)
-		delete species;
-	
 	delete simulation_globals_;
 	simulation_globals_ = nullptr;
 	
@@ -137,6 +137,10 @@ Community::~Community(void)
 	// All the script blocks that refer to the script are now gone
 	delete script_;
 	script_ = nullptr;
+	
+	// delete the Species last, after everything that might refer to Species state is gone
+	for (Species *species : all_species_)
+		delete species;
 }
 
 void Community::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
@@ -175,7 +179,6 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	
 	// Set up top-level error-reporting info
 	gEidosErrorContext.currentScript = script_;
-	gEidosErrorContext.executingRuntimeScript = false;
 	
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
@@ -432,12 +435,8 @@ void Community::InitializeFromFile(std::istream &p_infile)
 		}
 	}
 	
-	// Reset error position indicators used by SLiMgui
-	ClearErrorPosition();
-	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 }
 
 void Community::FinishInitialization(void)
@@ -451,18 +450,17 @@ void Community::FinishInitialization(void)
 	{
 		// Set up top-level error-reporting info
 		gEidosErrorContext.currentScript = script_;
-		gEidosErrorContext.executingRuntimeScript = false;
 		
 		// Do the tick range evaluation work
 		EvaluateScriptBlockTickRanges();
 		
-		// Reset error position indicators used by SLiMgui
-		ClearErrorPosition();
-		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 	}
+	
+	// We have been in the "construction" phase, with tick_ == -1 as set in the header.
+	// Now we're done with construction, and set the tick counter to 0 for "initialization".
+	tick_ = 0;
 }
 
 void Community::ValidateScriptBlockCaches(void)
@@ -557,7 +555,7 @@ void Community::ValidateScriptBlockCaches(void)
 	}
 }
 
-std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, Species *p_species)
+std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id, Species *p_species)
 {
 	if (!script_block_types_cached_)
 		ValidateScriptBlockCaches();
@@ -636,6 +634,15 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 			slim_objectid_t subpopulation_id = script_block->subpopulation_id_;
 			
 			if ((subpopulation_id != -1) && (p_subpopulation_id != subpopulation_id))
+				continue;
+		}
+		
+		// check that the chromosome id matches, if requested
+		if (p_chromosome_id != -1)
+		{
+			int64_t chromosome_id = script_block->chromosome_id_;
+			
+			if ((chromosome_id != -1) && (p_chromosome_id != chromosome_id))
 				continue;
 		}
 		
@@ -1032,6 +1039,9 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 		if (p_script_block->subpopulation_id_ != -1)
 			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has subpopulation_id_ set." << EidosTerminate(p_error_token);
 		
+		if (p_script_block->chromosome_id_ != -1)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has chromosome_id_ set." << EidosTerminate(p_error_token);
+		
 		if (p_script_block->interaction_type_id_ != -1)
 			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback or initialize() callback has interaction_type_id_ set." << EidosTerminate(p_error_token);
 		
@@ -1142,7 +1152,7 @@ void Community::DeregisterScheduledScriptBlocks(void)
 	}
 #endif
 	
-	scheduled_deregistrations_.clear();
+	scheduled_deregistrations_.resize(0);
 }
 
 void Community::DeregisterScheduledInteractionBlocks(void)
@@ -1204,7 +1214,7 @@ void Community::DeregisterScheduledInteractionBlocks(void)
 	}
 #endif
 	
-	scheduled_interaction_deregs_.clear();
+	scheduled_interaction_deregs_.resize(0);
 }
 
 void Community::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)
@@ -1396,19 +1406,19 @@ Species *Community::SpeciesForIndividuals(EidosValue *value)
 	return Community::SpeciesForIndividualsVector(individuals, value_count);
 }
 
-Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int value_count)
+Species *Community::SpeciesForHaplosomesVector(const Haplosome * const *haplosomes, int value_count)
 {
 	if (value_count == 0)
 		return nullptr;
 	
-	Species *consensus_species = &genomes[0]->OwningIndividual()->subpopulation_->species_;
+	Species *consensus_species = &haplosomes[0]->OwningIndividual()->subpopulation_->species_;
 	
 	if (consensus_species->community_.all_species_.size() == 1)	// with only one species, all objects must be in this species
 		return consensus_species;
 	
 	for (int value_index = 1; value_index < value_count; ++value_index)
 	{
-		const Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
+		const Species *species = &haplosomes[value_index]->OwningIndividual()->subpopulation_->species_;
 		
 		if (species != consensus_species)
 			return nullptr;
@@ -1417,10 +1427,10 @@ Species *Community::SpeciesForGenomesVector(const Genome * const *genomes, int v
 	return consensus_species;
 }
 
-Species *Community::SpeciesForGenomes(EidosValue *value)
+Species *Community::SpeciesForHaplosomes(EidosValue *value)
 {
 	if (value->Type() != EidosValueType::kValueObject)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of type object." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of type object." << EidosTerminate();
 	
 	EidosValue_Object *object_value = (EidosValue_Object *)value;
 	
@@ -1429,16 +1439,16 @@ Species *Community::SpeciesForGenomes(EidosValue *value)
 	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
 		return nullptr;
 	
-	if (object_value->Class() != gSLiM_Genome_Class)
-		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
+	if (object_value->Class() != gSLiM_Haplosome_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForHaplosomes): (internal error) value is not of class Haplosome." << EidosTerminate();
 	
 	if (value_count == 1)
-		return &((Genome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+		return &((Haplosome *)object_value->ObjectElementAtIndex_NOCAST(0, nullptr))->OwningIndividual()->subpopulation_->species_;
 	
 	EidosValue_Object *object_vector_value = (EidosValue_Object *)object_value;
-	const Genome * const *genomes = (Genome **)object_vector_value->data();
+	const Haplosome * const *haplosomes = (Haplosome **)object_vector_value->data();
 	
-	return Community::SpeciesForGenomesVector(genomes, value_count);
+	return Community::SpeciesForHaplosomesVector(haplosomes, value_count);
 }
 
 Species *Community::SpeciesForMutationsVector(const Mutation * const *mutations, int value_count)
@@ -1545,7 +1555,16 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 	// errors at all; when running on the command line, it simply logs the error and exits.  So we
 	// needed a special flag to change that behavior to throwing a custom exception in all cases, to
 	// make the interpreter tolerant at runtime of this specific case.
+	// BCH 3/21/2025: Broadening this mechanism to also encompass a raise due to an undefined function
+	// name, only when tick == -1 (during construction).  We get called by FinishInitialization(), at
+	// which point user-defined functions have not yet been parsed, and we want to fail silently and
+	// try again later if a tick range expression depends on a user-defined function.  The evaluation
+	// should succeed after initialize().  See https://github.com/MesserLab/SLiM/issues/495.  Note that
+	// we do not protect against an undefined function name in doCall(), only in direct function calls.
+	// I'm not sure there's a really solid reason for that choice, it's just what I decided to do.
 	interpreter.SetUseCustomUndefinedIdentifierRaise(true);
+	if (tick_ == -1)
+		interpreter.SetUseCustomUndefinedFunctionRaise(true);
 	
 	try
 	{
@@ -1557,8 +1576,13 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 		p_error_string = e.what();
 		return EidosValue_SP();
 	}
+	catch (SLiMUndefinedFunctionException &e)
+	{
+		// for undefined functions, we don't need to remember the name; just return nullptr
+		return EidosValue_SP();
+	}
 	
-	// no need to set the "custom undefined identifier raise" flag back, it's a local interpreter anyway
+	// no need to set the "custom undefined..." flags back, it's a local interpreter anyway
 	
 	p_error_string = "";	// no execution error, so clear out any cached error string present
 	
@@ -2013,18 +2037,12 @@ bool Community::RunOneTick(void)
 		catch (...)
 		{
 			simulation_valid_ = false;
-			
-			// In the event of a raise, we clear gEidosCurrentScript, which is not normally part of the error-
-			// reporting state, but is used only to inform EidosTerminate() about the current script at the point
-			// when a raise occurs.  We don't want raises after RunOneTick() returns to be attributed to us,
-			// so we clear the script pointer.  We do NOT clear any of the error-reporting state, since it will
-			// be used by higher levels to select the error in the GUI.
-			gEidosErrorContext.currentScript = nullptr;
 			return false;
 		}
 	}
 	
-	gEidosErrorContext.currentScript = nullptr;
+	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
+	ClearErrorContext();
 #endif
 	
 	return false;
@@ -2042,7 +2060,6 @@ bool Community::_RunOneTick(void)
 	
 	// Define the current script around each cycle execution, for error reporting
 	gEidosErrorContext.currentScript = script_;
-	gEidosErrorContext.executingRuntimeScript = false;
 	
 	// Activate all species at the beginning of the tick, according their modulo/phase
 	if (tick_ == 0)
@@ -2143,7 +2160,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// The zero tick is handled here by shared code, since it is the same for WF and nonWF models
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
-	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, -1, nullptr);
 	
 	for (auto script_block : function_blocks)
 		ExecuteFunctionDefinitionBlock(script_block);
@@ -2215,8 +2232,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 #endif
 	
 	// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -2232,7 +2248,7 @@ void Community::RunInitializeCallbacks(void)
 	num_modeltype_declarations_ = 0;
 	
 	// execute `species all` initialize() callbacks, which should always have a tick of 0 set
-	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, nullptr);
+	std::vector<SLiMEidosBlock*> init_blocks = ScriptBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1, -1, nullptr);
 	
 	for (auto script_block : init_blocks)
 		ExecuteEidosEvent(script_block);
@@ -2346,10 +2362,9 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 void Community::AllSpecies_CheckIntegrity(void)
 {
 #if DEBUG
-	// Check the integrity of all the information in the individuals and genomes of the parental population
+	// Check the integrity of all the information in the individuals and haplosomes of the parental population
 	for (Species *species : all_species_)
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
-			subpop_pair.second->CheckIndividualIntegrity();
+		species->Species_CheckIntegrity();
 #endif
 	
 #if DEBUG
@@ -2367,8 +2382,19 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (species->species_id_ != (int)species_index)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
 		
-		if (&species->TheChromosome().species_ != species)
-			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->TheChromosome().species_ mismatch." << EidosTerminate();
+		const std::vector<Chromosome *> &chromosomes = species->Chromosomes();
+		size_t chromosomes_count = chromosomes.size();
+		
+		for (size_t chromosome_index = 0; chromosome_index < chromosomes_count; chromosome_index++)
+		{
+			Chromosome *chromosome = chromosomes[chromosome_index];
+			
+			if (&chromosome->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->species_ mismatch." << EidosTerminate();
+			
+			if (&chromosome->community_ != this)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) chromosome->community_ mismatch." << EidosTerminate();
+		}
 		
 		Population &population = species->population_;
 		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
@@ -2430,8 +2456,8 @@ void Community::AllSpecies_PurgeRemovedObjects(void)
 	// with PurgeRemovedSubpopulations() only in Population::SwapGenerations().
 	for (Species *species : all_species_)
 	{
+		species->EmptyGraveyard();		// needs to be done first; uses subpopulation references
 		species->population_.PurgeRemovedSubpopulations();
-		species->EmptyGraveyard();
 	}
 }
 
@@ -2460,7 +2486,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2488,7 +2514,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage1ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2547,8 +2573,18 @@ bool Community::_RunOneTickWF(void)
 			if (species->Active())
 				species->WF_SwitchToChildGeneration();
 		
+		// invalidate interactions, now that the generation they were valid for has disappeared
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		for (Species *species : all_species_)
+			if (species->Active())
+				InvalidateInteractionsForSpecies(species);
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
+		
+		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
+		// BCH 5 Oct. 2024: this moved upward slightly in the tick cycle; used to happen in "remove fixed mutations"
+		DeregisterScheduledInteractionBlocks();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2562,27 +2598,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 3: Remove fixed mutations and associated tasks
+	// Stage 3: Swap generations
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "remove fixed mutations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage3RemoveFixedMutations;
+		cycle_stage_ = SLiMCycleStage::kWFStage3SwapGenerations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->MaintainMutationRegistry();
-		
-		// Invalidate interactions, now that the generation they were valid for is disappearing
-		for (Species *species : all_species_)
-			if (species->Active())
-				InvalidateInteractionsForSpecies(species);
-		
-		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
-		DeregisterScheduledInteractionBlocks();
+				species->WF_SwapGenerations();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2596,19 +2626,21 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 4: Swap generations
+	// Stage 4: Remove fixed mutations and associated tasks
 	//
+	// BCH 10/5/2024: Note this stage swapped positions with "swap generations" as part of
+	// the multispecies work; I do not expect that change to have any user-visible fallout
 	{
 #if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		cycle_stage_ = SLiMCycleStage::kWFStage4SwapGenerations;
+		cycle_stage_ = SLiMCycleStage::kWFStage4RemoveFixedMutations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->WF_SwapGenerations();
+				species->MaintainMutationRegistry();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2631,7 +2663,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kWFStage5ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2679,9 +2711,9 @@ bool Community::_RunOneTickWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in the fitness recalculation step??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -2707,14 +2739,10 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kWFStage7AdvanceTickCounter;
 		
 #ifdef SLIMGUI
-		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
-		// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
-		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
-		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences...() will be made at that
-		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+		// re-tally for SLiMgui; this tallies into separate counters, uses the selected subpops, etc.
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation_SLiMgui();
 #endif
 		
 		for (Species *species : all_species_)
@@ -2762,8 +2790,7 @@ bool Community::_RunOneTickWF(void)
 		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		
 		return result;
 	}
@@ -2794,7 +2821,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -2922,7 +2949,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3067,7 +3094,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -3076,9 +3103,9 @@ bool Community::_RunOneTickNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
+		// FIXME wait, why should this overhead appear in late() events??
 		for (Species *species : all_species_)
-			if (species->Active())
-				species->FinishMutationRunExperimentTiming();
+			species->FinishMutationRunExperimentTimings();
 		
 #if (SLIMPROFILING == 1)
 		// PROFILING
@@ -3106,14 +3133,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 #ifdef SLIMGUI
-		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
-		// it is needed, though, so that if the user added/removed mutations in a late() event SLiMgui displays correctly
-		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
-		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences...() will be made at that
-		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
+		// re-tally for SLiMgui; this tallies into separate counters, uses the selected subpops, etc.
 		for (Species *species : all_species_)
 			if (species->HasGenetics())
-				species->population_.TallyMutationReferencesAcrossPopulation(false);
+				species->population_.TallyMutationReferencesAcrossPopulation_SLiMgui();
 #endif
 		
 		for (Species *species : all_species_)
@@ -3168,8 +3191,7 @@ bool Community::_RunOneTickNonWF(void)
 		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		
 		return result;
 	}
@@ -3283,14 +3305,18 @@ void Community::StartProfiling(void)
 	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
 	for (Species *focal_species : all_species_)
 	{
-		focal_species->profile_mutcount_history_.clear();
 		focal_species->profile_nonneutral_regime_history_.clear();
-		focal_species->profile_mutation_total_usage_ = 0;
-		focal_species->profile_nonneutral_mutation_total_ = 0;
-		focal_species->profile_mutrun_total_usage_ = 0;
-		focal_species->profile_unique_mutrun_total_ = 0;
-		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
 		focal_species->profile_max_mutation_index_ = 0;
+		
+		for (Chromosome *focal_chromosome : focal_species->Chromosomes())
+		{
+			focal_chromosome->profile_mutcount_history_.clear();
+			focal_chromosome->profile_mutation_total_usage_ = 0;
+			focal_chromosome->profile_nonneutral_mutation_total_ = 0;
+			focal_chromosome->profile_mutrun_total_usage_ = 0;
+			focal_chromosome->profile_unique_mutrun_total_ = 0;
+			focal_chromosome->profile_mutrun_nonneutral_recache_total_ = 0;
+		}
 	}
 #endif
 	

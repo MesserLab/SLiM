@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/7/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -65,7 +65,7 @@ const EidosClass *SLiMgui::Class(void) const
 
 void SLiMgui::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP SLiMgui::GetProperty(EidosGlobalStringID p_property_id)

@@ -2,7 +2,7 @@
 
 initialize() {
 	initializeSLiMModelType("nonWF");
-	initializeSex("A");
+	initializeSex();
 	defineConstant("K", 500);
 	
 	initializeMutationType("m1", 0.5, "f", 0.0);

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/4/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -45,7 +45,7 @@ QtSLiMHaplotypeOptions::QtSLiMHaplotypeOptions(QWidget *p_parent) :
     setSizeGripEnabled(false);
     
     // enabled/disable the sample size lineEdit
-    connect(ui->genomesSampleRadio, &QAbstractButton::toggled, this, [this]() { ui->sampleSizeLineEdit->setEnabled(ui->genomesSampleRadio->isChecked()); });
+    connect(ui->haplosomesSampleRadio, &QAbstractButton::toggled, this, [this]() { ui->sampleSizeLineEdit->setEnabled(ui->haplosomesSampleRadio->isChecked()); });
 }
 
 QtSLiMHaplotypeOptions::~QtSLiMHaplotypeOptions()
@@ -56,7 +56,7 @@ QtSLiMHaplotypeOptions::~QtSLiMHaplotypeOptions()
 void QtSLiMHaplotypeOptions::done(int r)
 {
     // do validation; see https://www.qtcentre.org/threads/8048-Validate-Data-in-QDialog
-    bool usingSampleSize = ui->genomesSampleRadio->isChecked();
+    bool usingSampleSize = ui->haplosomesSampleRadio->isChecked();
     
     if ((QDialog::Accepted == r) && usingSampleSize)  // ok was pressed and the sample size field is being used
     {
@@ -82,9 +82,9 @@ void QtSLiMHaplotypeOptions::done(int r)
     }
 }
 
-size_t QtSLiMHaplotypeOptions::genomeSampleSize(void)
+size_t QtSLiMHaplotypeOptions::haplosomeSampleSize(void)
 {
-    bool usingSampleSize = ui->genomesSampleRadio->isChecked();
+    bool usingSampleSize = ui->haplosomesSampleRadio->isChecked();
     
     if (!usingSampleSize)
         return 0;

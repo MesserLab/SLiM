@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/11/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -251,12 +251,6 @@
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	static BOOL alreadyHere = NO;
 	
-	if (population.child_generation_valid_)
-	{
-		NSLog(@"child_generation_valid_ set in fetchDataForFinishedTick");
-		return;
-	}
-	
 	// Check that the subpop we're supposed to be surveying exists; if not, bail.
 	BOOL foundSelectedSubpop = NO;
 	BOOL foundSelectedMutType = NO;
@@ -307,7 +301,8 @@
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	// BCH 4/21/2023: This could use mutrun use counts to run faster...
 	//
-	int subpop_total_genome_count = 0;
+	int haplosome_count_per_individual = displaySpecies->HaplosomeCountPerIndividual();
+	int subpop_total_haplosome_count = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	const MutationIndex *registry_iter = registry;
@@ -322,33 +317,35 @@
 		{
 			Subpopulation *subpop = subpop_pair.second;
 			
-			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-			
-			for (int i = 0; i < subpop_genome_count; i++)
+			for (Individual *ind : subpop->parent_individuals_)
 			{
-				Genome &genome = *subpop_genomes[i];
+				Haplosome **haplosomes = ind->haplosomes_;
 				
-				if (!genome.IsNull())
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
 				{
-					int mutrun_count = genome.mutrun_count_;
+					Haplosome *haplosome = haplosomes[haplosome_index];
 					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					if (!haplosome->IsNull())
 					{
-						const MutationRun *mutrun = genome.mutruns_[run_index];
-						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+						int mutrun_count = haplosome->mutrun_count_;
 						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
 						{
-							const Mutation *mutation = mut_block_ptr + *genome_iter;
+							const MutationRun *mutrun = haplosome->mutruns_[run_index];
+							const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+							const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
 							
-							if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
-								(mutation->gui_scratch_reference_count_)++;
+							for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
+							{
+								const Mutation *mutation = mut_block_ptr + *haplosome_iter;
+								
+								if (mutation->mutation_type_ptr_->mutation_type_index_ == _selectedMutationTypeIndex)
+									(mutation->gui_scratch_reference_count_)++;
+							}
 						}
+						
+						subpop_total_haplosome_count++;
 					}
-					
-					subpop_total_genome_count++;
 				}
 			}
 		}
@@ -362,7 +359,7 @@
 		
 		if (refcount)
 		{
-			uint16_t value = (uint16_t)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_genome_count);	// FIXME static analyzer says potential divide by zero here
+			uint16_t value = (uint16_t)((refcount * (unsigned long long)UINT16_MAX) / subpop_total_haplosome_count);	// FIXME static analyzer says potential divide by zero here
 			NSNumber *mutationIDNumber = [[NSNumber alloc] initWithLongLong:mutation->mutation_id_];
 			MutationFrequencyHistory *history = [frequencyHistoryDict objectForKey:mutationIDNumber];
 			

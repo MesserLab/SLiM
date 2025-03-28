@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/13/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -348,11 +348,7 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
             QWidget *imageWindow = requester->imageWindowWithPath(fileName);
             
             if (imageWindow)
-            {
-                imageWindow->show();
-                imageWindow->raise();
-                imageWindow->activateWindow();
-            }
+                QtSLiMMakeWindowVisibleAndExposed(imageWindow);
             
             return requester;
         }
@@ -367,9 +363,7 @@ QtSLiMWindow *QtSLiMAppDelegate::openFile(const QString &fileName, QtSLiMWindow 
         // Should be a .slim or .txt file; look for an existing window for the file, otherwise open a new window (or reuse a reuseable window)
         QtSLiMWindow *existing = findMainWindow(fileName);
         if (existing) {
-            existing->show();
-            existing->raise();
-            existing->activateWindow();
+            QtSLiMMakeWindowVisibleAndExposed(existing);
             return existing;
         }
         
@@ -472,9 +466,9 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                 {
                     case 4: chapterName = "Getting started: Neutral evolution in a panmictic population";		break;
                     case 5: chapterName = "Demography and population structure";								break;
-                    case 6: chapterName = "Sexual reproduction";												break;
-                    case 7: chapterName = "Mutation types, genomic elements, and chromosome structure";         break;
-                    case 8: chapterName = "SLiMgui visualizations for polymorphism patterns";					break;
+                    case 6: chapterName = "Mutation types, genomic elements, and chromosome structure";			break;
+                    case 7: chapterName = "SLiMgui visualizations for polymorphism patterns";         			break;
+                    case 8: chapterName = "Reproduction, meiosis, and multiple chromosomes";					break;
                     case 9:	chapterName = "Selective sweeps";													break;
                     case 10:chapterName = "Context-dependent selection using mutationEffect() callbacks";		break;
                     case 11:chapterName = "Complex mating schemes using mateChoice() callbacks";				break;
@@ -482,11 +476,12 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 13:chapterName = "Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
                     case 14:chapterName = "Advanced WF models";													break;
                     case 15:chapterName = "Going beyond Wright-Fisher models: nonWF model recipes";             break;
-                    case 16:chapterName = "Continuous-space models, interactions, and spatial maps";			break;
-                    case 17:chapterName = "Tree-sequence recording: tracking population history";				break;
-                    case 18:chapterName = "Modeling explicit nucleotides";										break;
-                    case 19:chapterName = "Multispecies modeling";                                              break;
-                    case 22:chapterName = "Parallel SLiM: Running SLiM multithreaded";                          break;
+                    case 16:chapterName = "Advanced nonWF techniques for managing reproduction";             	break;
+                    case 17:chapterName = "Continuous-space models, interactions, and spatial maps";			break;
+                    case 18:chapterName = "Tree-sequence recording: tracking population history";				break;
+                    case 19:chapterName = "Modeling explicit nucleotides";										break;
+                    case 20:chapterName = "Multispecies modeling";                                              break;
+                    case 23:chapterName = "Parallel SLiM: Running SLiM multithreaded";                          break;
                     default: break;
                 }
                 
@@ -878,6 +873,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionShowCycle_nonWF_MS);
     }
     {
+        QAction *actionShowColorChart = new QAction("Show Color Chart", this);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
+        window->addAction(actionShowColorChart);
+    }
+    {
+        QAction *actionShowPlotSymbols = new QAction("Show Plot Symbols", this);
+        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
+        window->addAction(actionShowPlotSymbols);
+    }
+    {
         QAction *actionHelp = new QAction("Help", this);
         //actionHelp->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -1188,20 +1195,16 @@ void QtSLiMAppDelegate::dispatch_preferences(void)
 {
     QtSLiMPreferences &prefsWindow = QtSLiMPreferences::instance();
     
-    prefsWindow.show();
-    prefsWindow.raise();
-    prefsWindow.activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(&prefsWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_about(void)
 {
     QtSLiMAbout *aboutWindow = new QtSLiMAbout(nullptr);
     
-    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);    
+    aboutWindow->setAttribute(Qt::WA_DeleteOnClose);
     
-    aboutWindow->show();
-    aboutWindow->raise();
-    aboutWindow->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(aboutWindow);
 }
 
 QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const QString &title, double scaleFactor)
@@ -1259,11 +1262,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
@@ -1271,11 +1270,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
@@ -1283,11 +1278,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF_MS(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF_MS.png", "WF Cycle (Multispecies)", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
@@ -1295,20 +1286,30 @@ void QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS(void)
     QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF_MS.png", "nonWF Cycle (Multispecies)", 0.32);
     
     if (imageWindow)
-    {
-        imageWindow->show();
-        imageWindow->raise();
-        imageWindow->activateWindow();
-    }
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
+}
+
+void QtSLiMAppDelegate::dispatch_showColorChart(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/ColorChart.png", "Eidos Color Chart", 0.5);
+    
+    if (imageWindow)
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
+}
+
+void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/PlotSymbols.png", "Plot Symbols", 0.32);
+    
+    if (imageWindow)
+        QtSLiMMakeWindowVisibleAndExposed(imageWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_help(void)
 {
     QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
     
-    helpWindow.show();
-    helpWindow.raise();
-    helpWindow.activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(&helpWindow);
 }
 
 void QtSLiMAppDelegate::dispatch_biggerFont(void)

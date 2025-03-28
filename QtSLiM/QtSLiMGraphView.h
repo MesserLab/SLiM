@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -109,9 +109,9 @@ public slots:
     virtual void invalidateDrawingCache(void);      // subclasses must call this themselves in their destructor - super cannot do it!
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);          // subclasses must call super: QtSLiMGraphView::controllerRecycled()
-    virtual void controllerChromosomeSelectionChanged(void);
     virtual void controllerTickFinished(void);
     virtual void updateAfterTick(void);             // subclasses must call super: QtSLiMGraphView::updateAfterTick()
+    virtual void updateSpeciesBadge(void);
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
@@ -122,7 +122,6 @@ protected:
     void setFocalDisplaySpecies(Species *species);
     Species *focalDisplaySpecies(void);
     bool missingFocalDisplaySpecies(void);                          // true if the graph has a focal display species but can't find it
-    void updateSpeciesBadge(void);
     
     // Base graphing functionality
     QRect interiorRectForBounds(QRect bounds);
@@ -179,7 +178,7 @@ protected:
     bool addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID = -1);
     bool addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex);
     size_t tallyGUIMutationReferences(slim_objectid_t subpop_id, int muttype_index);
-    size_t tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index);
+    size_t tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index);
     
     // Properties; initialized in the constructor, these defaults are just zero-fill
     // Note that the bounds in user coordinates (x0_/x1_/y0_/y1_) are now separate from

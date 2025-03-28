@@ -1,0 +1,44 @@
+// Keywords: multiple chromosomes, inheritance patterns, mating systems
+
+initialize() {
+	defineConstant("K", 500);	// carrying capacity
+	initializeSLiMModelType("nonWF");
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	m1.convertToSubstitution = T;
+	
+	ids = 1:7;
+	symbols = c("A", "X", "Y", "P", "Q", "R", "S");
+	lengths = c(3e6, 2e6, 1e6, 1e6, 1e6, 1e6, 1e6);
+	types = c("A", "X", "Y", "H", "H", "H", "H");
+	
+	for (id in ids, symbol in symbols, length in lengths, type in types)
+	{
+		initializeChromosome(id, length, type, symbol);
+		initializeMutationRate(1e-7);
+		initializeRecombinationRate(1e-7);
+		initializeGenomicElement(g1, 0, length-1);
+	}
+}
+reproduction(NULL, "F") {
+	mate = subpop.sampleIndividuals(1, sex="M");
+	
+	pattern = Dictionary();
+	sim.addPatternForClone("P", pattern, individual);
+	sim.addPatternForClone("Q", pattern, runif(1) < 0.5 ? individual else mate);
+	sim.addPatternForCross("R", pattern, individual, mate);
+	ind_hapS = individual.haplosomesForChromosomes("S");
+	mate_hapS = mate.haplosomesForChromosomes("S");
+	sim.addPatternForRecombinant("S", pattern, ind_hapS, mate_hapS, NULL,
+		NULL, NULL, NULL);
+	subpop.addMultiRecombinant(pattern, parent1=individual, parent2=mate,
+		randomizeStrands=F);
+}
+1 early() {
+	sim.addSubpop("p1", K);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+1000 early() { sim.simulationFinished(); }

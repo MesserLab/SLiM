@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/30/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -277,7 +277,7 @@ double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tal
     // Find the maximum age and choose the new bin count
     slim_age_t maxAge = 1;
     
-    for (const Individual *individual : subpop1->CurrentIndividuals())
+    for (const Individual *individual : subpop1->parent_individuals_)
         maxAge = std::max(maxAge, individual->age_);
     
     // compare to the logic in QtSLiMGraphView_LifetimeReproduction::reproductionDistribution();
@@ -292,7 +292,7 @@ double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tal
     int totalBinCount = (tallySexesSeparately ? newBinCount * 2 : newBinCount);
     double *ageTallies = static_cast<double *>(calloc(totalBinCount, sizeof(double)));
     
-    for (const Individual *individual : subpop1->CurrentIndividuals())
+    for (const Individual *individual : subpop1->parent_individuals_)
     {
         slim_age_t age = individual->age_ - 1;  // age 1 is bin 0, age binCount is bin binCount-1
         

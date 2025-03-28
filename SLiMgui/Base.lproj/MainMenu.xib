@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -343,13 +343,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="y3S-hm-vJt"/>
-                            <menuItem title="Create Haplotype Plot" id="C5t-tf-csy">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="graphHaplotypes:" target="-1" id="Yqt-cJ-GjB"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="CsN-zd-8hB"/>
                             <menuItem title="Dump Population State" keyEquivalent="" id="7LZ-Ir-BDL">
                                 <connections>
                                     <action selector="dumpPopulationToOutput:" target="-1" id="V9u-uo-yiz"/>
@@ -529,13 +522,13 @@ DQ
         <window title="SLiMguiLegacy Preferences" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" hidesOnDeactivate="YES" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="cET-rW-zho" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <rect key="contentRect" x="272" y="199" width="268" height="431"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1728" height="1079"/>
             <view key="contentView" id="ae8-oN-lQF">
                 <rect key="frame" x="0.0" y="0.0" width="268" height="431"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="pFc-cT-SJr">
-                        <rect key="frame" x="32" y="199" width="124" height="18"/>
+                        <rect key="frame" x="32" y="205" width="128" height="18"/>
                         <buttonCell key="cell" type="check" title="In the script area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="9pj-Hb-YGA">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -545,7 +538,7 @@ DQ
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="LNo-up-hn1">
-                        <rect key="frame" x="32" y="179" width="130" height="18"/>
+                        <rect key="frame" x="32" y="183" width="134" height="18"/>
                         <buttonCell key="cell" type="check" title="In the output area" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="ihE-H7-bQ0">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -554,15 +547,15 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.SyntaxHighlightOutput" id="bnx-Hd-3Wk"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
-                        <rect key="frame" x="18" y="223" width="180" height="16"/>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PHC-Yj-PFy">
+                        <rect key="frame" x="18" y="230" width="180" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Enable syntax highlighting:" id="oD3-D6-zvA">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VCf-DB-Pyy">
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VCf-DB-Pyy">
                         <rect key="frame" x="18" y="293" width="115" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Display font size:" id="A2o-Lb-mVo">
                             <font key="font" metaFont="systemBold"/>
@@ -571,7 +564,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2D7-na-mil">
-                        <rect key="frame" x="14" y="55" width="240" height="32"/>
+                        <rect key="frame" x="13" y="55" width="242" height="32"/>
                         <buttonCell key="cell" type="push" title="Reset suppressed alert panels" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="BiX-hI-4aP">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -580,7 +573,7 @@ DQ
                             <action selector="resetSuppressionFlags:" target="Voe-Tx-rLC" id="sy4-nE-cpj"/>
                         </connections>
                     </button>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eMc-AI-9kI">
+                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eMc-AI-9kI">
                         <rect key="frame" x="40" y="20" width="197" height="34"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="193" id="aqY-r4-K0p"/>
@@ -592,8 +585,8 @@ DQ
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6sR-dN-vyi">
-                        <rect key="frame" x="18" y="145" width="196" height="16"/>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6sR-dN-vyi">
+                        <rect key="frame" x="18" y="148" width="195" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When checking script syntax:" id="GjS-PY-od2">
                             <font key="font" metaFont="systemBold"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -601,7 +594,7 @@ DQ
                         </textFieldCell>
                     </textField>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="eGw-cr-yvD">
-                        <rect key="frame" x="32" y="121" width="160" height="18"/>
+                        <rect key="frame" x="32" y="123" width="164" height="18"/>
                         <buttonCell key="cell" type="check" title="Play sound on success" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="3e1-wW-7r7">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -611,7 +604,7 @@ DQ
                         </connections>
                     </button>
                     <button translatesAutoresizingMaskIntoConstraints="NO" id="A87-L1-NNH">
-                        <rect key="frame" x="32" y="101" width="148" height="18"/>
+                        <rect key="frame" x="32" y="101" width="152" height="18"/>
                         <buttonCell key="cell" type="check" title="Play sound on failure" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tjb-mF-4Z6">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
@@ -620,7 +613,7 @@ DQ
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.PlaySoundParseFailure" id="ol0-B0-hQe"/>
                         </connections>
                     </button>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1Yf-hO-IoP">
                         <rect key="frame" x="18" y="395" width="189" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="When SLiMguiLegacy starts:" id="dL6-Sg-GED">
                             <font key="font" metaFont="systemBold"/>
@@ -629,9 +622,9 @@ DQ
                         </textFieldCell>
                     </textField>
                     <matrix verticalHuggingPriority="750" allowsEmptySelection="NO" autorecalculatesCellSize="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gPW-po-YSE">
-                        <rect key="frame" x="33" y="329" width="209" height="58"/>
+                        <rect key="frame" x="33" y="329" width="213" height="58"/>
                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                        <size key="cellSize" width="209" height="18"/>
+                        <size key="cellSize" width="213" height="18"/>
                         <size key="intercellSpacing" width="4" height="2"/>
                         <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" inset="2" id="UXn-kw-QHE">
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -658,13 +651,13 @@ DQ
                         </connections>
                     </matrix>
                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fUY-QK-PRE">
-                        <rect key="frame" x="64" y="260" width="19" height="28"/>
+                        <rect key="frame" x="64" y="259" width="19" height="28"/>
                         <stepperCell key="cell" continuous="YES" alignment="left" minValue="9" maxValue="30" doubleValue="11" id="CFF-pU-pUU"/>
                         <connections>
                             <binding destination="sPi-91-YoN" name="value" keyPath="values.DisplayFontSize" id="lde-VA-Uvc"/>
                         </connections>
                     </stepper>
-                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KpB-tT-jSj">
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KpB-tT-jSj">
                         <rect key="frame" x="85" y="266" width="42" height="16"/>
                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="points" id="E9s-Wo-eYy">
                             <font key="font" metaFont="system"/>
@@ -672,7 +665,7 @@ DQ
                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <textField verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
+                    <textField focusRingType="none" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1i1-DN-XAq">
                         <rect key="frame" x="34" y="263" width="30" height="21"/>
                         <constraints>
                             <constraint firstAttribute="width" constant="30" id="vBs-sL-kPy"/>

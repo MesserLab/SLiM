@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22505" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22505"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -77,7 +77,7 @@
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
             <windowPositionMask key="initialPositionMask" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="740" y="50" width="1180" height="978"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="2560" height="1417"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1728" height="1079"/>
             <value key="minSize" type="size" width="650" height="100"/>
             <view key="contentView" id="esE-Q8-bJT">
                 <rect key="frame" x="0.0" y="0.0" width="1180" height="978"/>
@@ -94,13 +94,13 @@
                                         <rect key="frame" x="0.0" y="0.0" width="1180" height="393"/>
                                         <subviews>
                                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" horizontalScrollElasticity="none" verticalScrollElasticity="none" translatesAutoresizingMaskIntoConstraints="NO" id="gYT-79-LuL" userLabel="Bordered Scroll View - SLiM Table View">
-                                                <rect key="frame" x="15" y="140" width="257" height="207"/>
+                                                <rect key="frame" x="15" y="109" width="257" height="237"/>
                                                 <clipView key="contentView" id="W1T-hP-cku">
-                                                    <rect key="frame" x="1" y="0.0" width="255" height="206"/>
+                                                    <rect key="frame" x="1" y="1" width="255" height="235"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
                                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" headerView="Pg2-UV-Ozl" id="l73-oi-ONH" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                                            <rect key="frame" x="0.0" y="0.0" width="255" height="183"/>
+                                                            <rect key="frame" x="0.0" y="0.0" width="255" height="212"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <size key="intercellSpacing" width="3" height="2"/>
                                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -118,7 +118,7 @@
                                                                     </textFieldCell>
                                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                 </tableColumn>
-                                                                <tableColumn editable="NO" width="57" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
+                                                                <tableColumn editable="NO" width="48" minWidth="30" maxWidth="150" headerToolTip="the subpopulation size" id="GUM-4Z-3XN">
                                                                     <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="N">
                                                                         <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                         <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -202,54 +202,39 @@
                                                     <rect key="frame" x="224" y="17" width="15" height="102"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                 </scroller>
-                                                <tableHeaderView key="headerView" id="Pg2-UV-Ozl">
+                                                <tableHeaderView key="headerView" wantsLayer="YES" id="Pg2-UV-Ozl">
                                                     <rect key="frame" x="0.0" y="0.0" width="255" height="23"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                 </tableHeaderView>
                                             </scrollView>
                                             <openGLView wantsLayer="YES" colorSize="5bit_RGB_8bit_Alpha" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sjX-UH-cdK" customClass="PopulationView">
-                                                <rect key="frame" x="292" y="140" width="657" height="238"/>
+                                                <rect key="frame" x="292" y="109" width="657" height="269"/>
                                                 <constraints>
                                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="123" id="kRR-52-LFB"/>
                                                 </constraints>
                                             </openGLView>
                                             <customView translatesAutoresizingMaskIntoConstraints="NO" id="KMS-2V-Mrb" customClass="ChromosomeView">
-                                                <rect key="frame" x="13" y="90" width="1079" height="30"/>
+                                                <rect key="frame" x="13" y="85" width="1089" height="14"/>
                                                 <constraints>
-                                                    <constraint firstAttribute="height" constant="30" id="iIj-zH-vsV"/>
+                                                    <constraint firstAttribute="height" constant="14" id="iIj-zH-vsV"/>
                                                 </constraints>
                                             </customView>
                                             <customView translatesAutoresizingMaskIntoConstraints="NO" id="nQF-Rr-G8N" customClass="ChromosomeView">
-                                                <rect key="frame" x="13" y="10" width="1079" height="65"/>
-                                                <subviews>
-                                                    <openGLView wantsLayer="YES" colorSize="5bit_RGB_8bit_Alpha" useAuxiliaryDepthBufferStencil="NO" useDoubleBufferingEnabled="YES" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ufe-5v-Ypd" customClass="ChromosomeGLView">
-                                                        <rect key="frame" x="3" y="17" width="1073" height="47"/>
-                                                        <connections>
-                                                            <outlet property="delegate" destination="nQF-Rr-G8N" id="XPo-oM-wzf"/>
-                                                        </connections>
-                                                    </openGLView>
-                                                </subviews>
+                                                <rect key="frame" x="13" y="10" width="1089" height="65"/>
                                                 <constraints>
-                                                    <constraint firstItem="ufe-5v-Ypd" firstAttribute="top" secondItem="nQF-Rr-G8N" secondAttribute="top" constant="1" id="5HY-3s-kYQ"/>
-                                                    <constraint firstItem="ufe-5v-Ypd" firstAttribute="leading" secondItem="nQF-Rr-G8N" secondAttribute="leading" constant="3" id="BJ6-mg-YsL"/>
                                                     <constraint firstAttribute="height" constant="65" id="JPS-fW-ATa"/>
-                                                    <constraint firstAttribute="trailing" secondItem="ufe-5v-Ypd" secondAttribute="trailing" constant="3" id="h09-Jb-ZwP"/>
-                                                    <constraint firstAttribute="bottom" secondItem="ufe-5v-Ypd" secondAttribute="bottom" constant="17" id="iA1-fJ-3Bo"/>
                                                 </constraints>
-                                                <connections>
-                                                    <outlet property="proxyGLView" destination="ufe-5v-Ypd" id="fRo-PK-N0P"/>
-                                                </connections>
                                             </customView>
                                             <button toolTip="step one tick" translatesAutoresizingMaskIntoConstraints="NO" id="KIv-hd-PKz">
                                                 <rect key="frame" x="969" y="317" width="60" height="62"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="62" id="Vv1-iX-VsS"/>
-                                                    <constraint firstAttribute="width" constant="60" id="rdv-0R-Jfy"/>
-                                                </constraints>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play_step" imagePosition="only" alignment="center" alternateImage="play_step_H" state="on" imageScaling="proportionallyDown" inset="2" id="Cxo-uM-PHU">
                                                     <behavior key="behavior" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="62" id="Vv1-iX-VsS"/>
+                                                    <constraint firstAttribute="width" constant="60" id="rdv-0R-Jfy"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="playOneStep:" target="-2" id="3qa-EP-u0q"/>
                                                     <binding destination="-2" name="enabled2" keyPath="continuousPlayOn" previousBinding="ft9-At-7Dj" id="0aX-af-Yss">
@@ -279,14 +264,14 @@
                                             </button>
                                             <button toolTip="play simulation continuously" translatesAutoresizingMaskIntoConstraints="NO" id="epB-1i-iSd">
                                                 <rect key="frame" x="1037" y="317" width="60" height="62"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="62" id="7Ja-OP-gnh"/>
-                                                    <constraint firstAttribute="width" constant="60" id="cOX-g3-QpN"/>
-                                                </constraints>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="play" imagePosition="only" alignment="center" alternateImage="play_H" imageScaling="proportionallyDown" inset="2" id="rYT-zi-9QC">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="62" id="7Ja-OP-gnh"/>
+                                                    <constraint firstAttribute="width" constant="60" id="cOX-g3-QpN"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="play:" target="-2" id="VCD-6t-QM8"/>
                                                     <binding destination="-2" name="enabled3" keyPath="profilePlayOn" previousBinding="yrO-xY-7SO" id="7kJ-07-A2N">
@@ -316,14 +301,14 @@
                                             </button>
                                             <button toolTip="profile simulation" translatesAutoresizingMaskIntoConstraints="NO" id="mKg-N7-deE">
                                                 <rect key="frame" x="1077" y="353" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
-                                                    <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
-                                                </constraints>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="profile" imagePosition="only" alignment="center" alternateImage="profile_H" imageScaling="proportionallyDown" inset="2" id="40U-MC-Ckj">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="30" id="1df-ha-jBo"/>
+                                                    <constraint firstAttribute="height" constant="32" id="a7f-2b-5gS"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="profile:" target="-2" id="j7F-r8-HWX"/>
                                                     <binding destination="-2" name="enabled3" keyPath="nonProfilePlayOn" previousBinding="Q14-og-oZd" id="XDu-nT-A9O">
@@ -353,14 +338,14 @@
                                             </button>
                                             <button toolTip="recycle simulation" translatesAutoresizingMaskIntoConstraints="NO" id="eXF-cI-cZK">
                                                 <rect key="frame" x="1105" y="317" width="60" height="62"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="60" id="4tc-V6-kZY"/>
-                                                    <constraint firstAttribute="height" constant="62" id="aPK-yN-EYQ"/>
-                                                </constraints>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="recycle" imagePosition="only" alignment="center" alternateImage="recycle_H" state="on" imageScaling="proportionallyDown" inset="2" id="OHT-FK-3O8">
                                                     <behavior key="behavior" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="60" id="4tc-V6-kZY"/>
+                                                    <constraint firstAttribute="height" constant="62" id="aPK-yN-EYQ"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="recycle:" target="-2" id="owa-01-mi9"/>
                                                     <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="BXX-cv-rTI">
@@ -379,8 +364,8 @@
                                                     </binding>
                                                 </connections>
                                             </button>
-                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bdq-3V-iQ8">
-                                                <rect key="frame" x="967" y="273" width="36" height="16"/>
+                                            <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bdq-3V-iQ8">
+                                                <rect key="frame" x="967" y="272" width="36" height="16"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Tick:" id="fmB-1c-4a3">
                                                     <font key="font" metaFont="systemBold"/>
                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -390,8 +375,8 @@
                                                     <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="K0I-2S-JQz"/>
                                                 </connections>
                                             </textField>
-                                            <textField toolTip="the tick that is about to execute" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
-                                                <rect key="frame" x="1035" y="270" width="130" height="21"/>
+                                            <textField toolTip="the tick that is about to execute" focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
+                                                <rect key="frame" x="1035" y="269" width="130" height="21"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1" drawsBackground="YES" id="bq2-MX-jxa">
                                                     <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
                                                     <font key="font" metaFont="system"/>
@@ -449,7 +434,7 @@
                                                 </connections>
                                             </textField>
                                             <slider toolTip="simulation playing speed" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kRU-NC-9qC">
-                                                <rect key="frame" x="1035" y="298" width="64" height="13"/>
+                                                <rect key="frame" x="1033" y="296" width="68" height="17"/>
                                                 <sliderCell key="cell" controlSize="mini" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="below" sliderType="linear" id="kmr-mp-1sk"/>
                                                 <connections>
                                                     <action selector="playSpeedChanged:" target="-2" id="PVe-yr-IZh"/>
@@ -470,32 +455,32 @@
                                                 </connections>
                                             </slider>
                                             <progressIndicator wantsLayer="YES" horizontalHuggingPriority="750" verticalHuggingPriority="750" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="VWw-o4-Pjo">
-                                                <rect key="frame" x="1010" y="272" width="16" height="16"/>
+                                                <rect key="frame" x="1010" y="271" width="16" height="16"/>
                                             </progressIndicator>
                                             <button toolTip="open/close object tables drawer" translatesAutoresizingMaskIntoConstraints="NO" id="3fa-Za-QvL">
-                                                <rect key="frame" x="1135" y="88" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="32" id="4gq-2g-xvB"/>
-                                                    <constraint firstAttribute="width" constant="30" id="g48-FM-gxG"/>
-                                                </constraints>
+                                                <rect key="frame" x="1140" y="78" width="25" height="27"/>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="open_type_drawer" imagePosition="only" alignment="center" alternateImage="open_type_drawer_H" imageScaling="proportionallyDown" inset="2" id="Dm4-xg-0ds">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="27" id="4gq-2g-xvB"/>
+                                                    <constraint firstAttribute="width" constant="25" id="g48-FM-gxG"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="drawerButtonToggled:" target="-2" id="DLd-gY-khQ"/>
                                                 </connections>
                                             </button>
                                             <button toolTip="toggle rate map visibility" translatesAutoresizingMaskIntoConstraints="NO" id="LwJ-mt-MjQ">
-                                                <rect key="frame" x="1101" y="44" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="32" id="4J9-f9-mpe"/>
-                                                    <constraint firstAttribute="width" constant="30" id="FN0-OD-97g"/>
-                                                </constraints>
+                                                <rect key="frame" x="1111" y="49" width="25" height="27"/>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_recombination" imagePosition="only" alignment="center" alternateImage="show_recombination_H" imageScaling="proportionallyDown" inset="2" id="NBm-PA-GYK">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="27" id="4J9-f9-mpe"/>
+                                                    <constraint firstAttribute="width" constant="25" id="FN0-OD-97g"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="showRecombinationIntervalsButtonToggled:" target="-2" id="e5b-9e-AJ2"/>
                                                     <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="9BS-bN-H04">
@@ -506,15 +491,15 @@
                                                 </connections>
                                             </button>
                                             <button toolTip="toggle genomic element visibility" translatesAutoresizingMaskIntoConstraints="NO" id="57G-Tr-aOB">
-                                                <rect key="frame" x="1135" y="44" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="30" id="CcM-qY-jmu"/>
-                                                    <constraint firstAttribute="height" constant="32" id="ba8-3w-fLF"/>
-                                                </constraints>
+                                                <rect key="frame" x="1140" y="49" width="25" height="27"/>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_genomicelements" imagePosition="only" alignment="center" alternateImage="show_genomicelements_H" imageScaling="proportionallyDown" inset="2" id="Khh-xo-2e0">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="25" id="CcM-qY-jmu"/>
+                                                    <constraint firstAttribute="height" constant="27" id="ba8-3w-fLF"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="showGenomicElementsButtonToggled:" target="-2" id="tBB-CB-bKJ"/>
                                                     <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="WJp-LY-owe">
@@ -525,15 +510,15 @@
                                                 </connections>
                                             </button>
                                             <button toolTip="toggle mutation visibility" translatesAutoresizingMaskIntoConstraints="NO" id="MPC-lP-uVU">
-                                                <rect key="frame" x="1101" y="10" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="30" id="C1r-iq-hEs"/>
-                                                    <constraint firstAttribute="height" constant="32" id="fR0-Jl-R4D"/>
-                                                </constraints>
+                                                <rect key="frame" x="1111" y="20" width="25" height="27"/>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_mutations" imagePosition="only" alignment="center" alternateImage="show_mutations_H" imageScaling="proportionallyDown" inset="2" id="FIP-qN-mJZ">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="25" id="C1r-iq-hEs"/>
+                                                    <constraint firstAttribute="height" constant="27" id="fR0-Jl-R4D"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="showMutationsButtonToggled:" target="-2" id="0jC-oj-oAj"/>
                                                     <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="HKd-Bq-cIz">
@@ -544,15 +529,15 @@
                                                 </connections>
                                             </button>
                                             <button toolTip="toggle fixed substitution visibility" translatesAutoresizingMaskIntoConstraints="NO" id="sC1-aa-1AY">
-                                                <rect key="frame" x="1135" y="10" width="30" height="32"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="30" id="mmQ-Qq-kYs"/>
-                                                    <constraint firstAttribute="height" constant="32" id="oUP-Ah-wLY"/>
-                                                </constraints>
+                                                <rect key="frame" x="1140" y="20" width="25" height="27"/>
                                                 <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_fixed" imagePosition="only" alignment="center" alternateImage="show_fixed_H" imageScaling="proportionallyDown" inset="2" id="NAi-Yf-wxz">
                                                     <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                     <font key="font" metaFont="system"/>
                                                 </buttonCell>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="25" id="mmQ-Qq-kYs"/>
+                                                    <constraint firstAttribute="height" constant="27" id="oUP-Ah-wLY"/>
+                                                </constraints>
                                                 <connections>
                                                     <action selector="showFixedSubstitutionsButtonToggled:" target="-2" id="fiR-do-Wbo"/>
                                                     <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="S9t-eF-WBj">
@@ -563,10 +548,10 @@
                                                 </connections>
                                             </button>
                                             <customView hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1i8-ZT-cwT" customClass="PopulationErrorView">
-                                                <rect key="frame" x="292" y="140" width="657" height="238"/>
+                                                <rect key="frame" x="292" y="109" width="657" height="269"/>
                                             </customView>
-                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8pr-59-g4r">
-                                                <rect key="frame" x="967" y="243" width="45" height="16"/>
+                                            <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8pr-59-g4r">
+                                                <rect key="frame" x="967" y="242" width="45" height="16"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Cycle:" id="iJF-fn-UC7">
                                                     <font key="font" metaFont="systemBold"/>
                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -576,8 +561,8 @@
                                                     <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="Qi9-TV-fJu"/>
                                                 </connections>
                                             </textField>
-                                            <textField toolTip="the cycle that will execute next" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SK3-fM-QuU">
-                                                <rect key="frame" x="1035" y="241" width="130" height="21"/>
+                                            <textField toolTip="the cycle that will execute next" focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SK3-fM-QuU">
+                                                <rect key="frame" x="1035" y="240" width="130" height="21"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="right" drawsBackground="YES" id="6Dx-Ud-xy8">
                                                     <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" formatWidth="-1" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="qL7-n7-QG8"/>
                                                     <font key="font" usesAppearanceFont="YES"/>
@@ -611,7 +596,7 @@
                                                 </connections>
                                             </textField>
                                             <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yft-oc-j5g">
-                                                <rect key="frame" x="13" y="355" width="141" height="24"/>
+                                                <rect key="frame" x="13" y="355" width="123" height="24"/>
                                                 <segmentedCell key="cell" borderStyle="border" alignment="left" style="rounded" trackingMode="selectOne" id="OAY-i8-ktG">
                                                     <font key="font" metaFont="system"/>
                                                     <segments>
@@ -632,7 +617,7 @@
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="kRU-NC-9qC" secondAttribute="leading" constant="2" id="3qI-rE-8al"/>
                                             <constraint firstItem="57G-Tr-aOB" firstAttribute="leading" secondItem="LwJ-mt-MjQ" secondAttribute="trailing" constant="4" id="5O2-8m-7lT"/>
                                             <constraint firstAttribute="bottom" secondItem="nQF-Rr-G8N" secondAttribute="bottom" constant="10" id="6I6-UZ-CRE"/>
-                                            <constraint firstItem="nQF-Rr-G8N" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="bottom" constant="15" id="809-sA-R79"/>
+                                            <constraint firstItem="nQF-Rr-G8N" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="bottom" constant="10" id="809-sA-R79"/>
                                             <constraint firstItem="KIv-hd-PKz" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="8vQ-GM-6Oy"/>
                                             <constraint firstItem="yft-oc-j5g" firstAttribute="trailing" relation="lessThanOrEqual" secondItem="gYT-79-LuL" secondAttribute="trailing" id="9VU-DJ-EiT"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="trailing" secondItem="kRU-NC-9qC" secondAttribute="trailing" constant="-2" id="9fC-VY-d0v"/>
@@ -644,7 +629,7 @@
                                             <constraint firstAttribute="trailing" secondItem="57G-Tr-aOB" secondAttribute="trailing" constant="15" id="EaR-pw-uZm"/>
                                             <constraint firstItem="sjX-UH-cdK" firstAttribute="leading" secondItem="gYT-79-LuL" secondAttribute="trailing" constant="20" id="GER-9e-c56"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="KIv-hd-PKz" secondAttribute="trailing" constant="8" id="IRk-z7-f7T"/>
-                                            <constraint firstItem="3fa-Za-QvL" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="top" id="KtX-Ea-Cw0"/>
+                                            <constraint firstItem="3fa-Za-QvL" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="top" constant="-6" id="KtX-Ea-Cw0"/>
                                             <constraint firstItem="yft-oc-j5g" firstAttribute="top" secondItem="SJ3-be-U3c" secondAttribute="top" constant="15" id="LDB-Zj-sxG"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="trailing" secondItem="Yfj-bi-uzJ" secondAttribute="trailing" id="LSL-e2-CxJ"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="mKg-N7-deE" secondAttribute="bottom" constant="-26" id="MXR-dr-7JN"/>
@@ -670,7 +655,7 @@
                                             <constraint firstItem="VWw-o4-Pjo" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="trailing" constant="9" id="pCu-QP-RtD"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="KIv-hd-PKz" secondAttribute="top" id="pnS-73-RN0"/>
                                             <constraint firstItem="gYT-79-LuL" firstAttribute="bottom" secondItem="1i8-ZT-cwT" secondAttribute="bottom" id="u70-S5-h2X"/>
-                                            <constraint firstItem="KMS-2V-Mrb" firstAttribute="top" secondItem="sjX-UH-cdK" secondAttribute="bottom" constant="20" id="uQe-Eb-jXh"/>
+                                            <constraint firstItem="KMS-2V-Mrb" firstAttribute="top" secondItem="sjX-UH-cdK" secondAttribute="bottom" constant="10" id="uQe-Eb-jXh"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="Yfj-bi-uzJ" secondAttribute="leading" id="vDE-O3-YUj"/>
                                             <constraint firstItem="8pr-59-g4r" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="wq4-z5-OJb"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="firstBaseline" secondItem="8pr-59-g4r" secondAttribute="firstBaseline" id="xHx-GQ-9gs"/>
@@ -693,7 +678,7 @@
                                 <rect key="frame" x="0.0" y="403" width="1180" height="575"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
-                                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="150" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qCd-b9-dko">
+                                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="150" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qCd-b9-dko">
                                         <rect key="frame" x="15" y="15" width="1150" height="18"/>
                                         <textFieldCell key="cell" lineBreakMode="truncatingTail" allowsUndo="NO" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" usesSingleLineMode="YES" id="Q41-yU-9YD">
                                             <font key="font" size="11" name="Menlo-Regular"/>
@@ -753,14 +738,14 @@
                                                     </scrollView>
                                                     <button toolTip="check script syntax" translatesAutoresizingMaskIntoConstraints="NO" id="SAG-aF-oTT" userLabel="Check Script Button">
                                                         <rect key="frame" x="9" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" constant="20" id="RIq-r4-vDp"/>
-                                                            <constraint firstAttribute="height" constant="22" id="jPz-bf-YxD"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="check" imagePosition="only" alignment="center" alternateImage="check_H" state="on" imageScaling="proportionallyDown" inset="2" id="DXP-Jw-OQ3">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="20" id="RIq-r4-vDp"/>
+                                                            <constraint firstAttribute="height" constant="22" id="jPz-bf-YxD"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="checkScript:" target="-2" id="Tzc-ZZ-S5W"/>
                                                             <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="n3s-mW-AaJ">
@@ -779,7 +764,7 @@
                                                             </binding>
                                                         </connections>
                                                     </button>
-                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
+                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0fj-1F-Ipl">
                                                         <rect key="frame" x="127" y="518" width="119" height="16"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Input Commands:" id="5TY-HF-5xK">
                                                             <font key="font" metaFont="systemBold"/>
@@ -789,56 +774,56 @@
                                                     </textField>
                                                     <button toolTip="scripting help" translatesAutoresizingMaskIntoConstraints="NO" id="lnH-Vh-Iwz" userLabel="Script Help Button">
                                                         <rect key="frame" x="55" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="22" id="YC1-of-YFY"/>
-                                                            <constraint firstAttribute="width" constant="20" id="dHN-qx-bVJ"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="syntax_help" imagePosition="only" alignment="center" alternateImage="syntax_help_H" state="on" imageScaling="proportionallyDown" inset="2" id="uGp-51-Lem">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="YC1-of-YFY"/>
+                                                            <constraint firstAttribute="width" constant="20" id="dHN-qx-bVJ"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="showScriptHelp:" target="-2" id="R6V-TU-6uQ"/>
                                                         </connections>
                                                     </button>
                                                     <button toolTip="show/hide Eidos console" translatesAutoresizingMaskIntoConstraints="NO" id="aPl-XV-6R5">
                                                         <rect key="frame" x="78" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" constant="20" id="Fln-18-1SY"/>
-                                                            <constraint firstAttribute="height" constant="22" id="oJv-9T-R4T"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_console" imagePosition="only" alignment="center" alternateImage="show_console_H" imageScaling="proportionallyDown" inset="2" id="efp-zE-fTb">
                                                             <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="20" id="Fln-18-1SY"/>
+                                                            <constraint firstAttribute="height" constant="22" id="oJv-9T-R4T"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="toggleConsoleVisibility:" target="-2" id="S9a-zL-vcz"/>
                                                         </connections>
                                                     </button>
                                                     <button toolTip="show/hide Eidos variable browser" translatesAutoresizingMaskIntoConstraints="NO" id="02L-Zx-QDl" userLabel="Variable Browser Button">
                                                         <rect key="frame" x="101" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="22" id="9am-gN-1cK"/>
-                                                            <constraint firstAttribute="width" constant="20" id="lng-51-msY"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="show_browser" imagePosition="only" alignment="center" alternateImage="show_browser_H" imageScaling="proportionallyDown" inset="2" id="u9U-vi-gge">
                                                             <behavior key="behavior" pushIn="YES" changeContents="YES" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="9am-gN-1cK"/>
+                                                            <constraint firstAttribute="width" constant="20" id="lng-51-msY"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="toggleBrowserVisibility:" target="-2" id="5tc-7r-IRA"/>
                                                         </connections>
                                                     </button>
                                                     <button toolTip="prettyprint script" translatesAutoresizingMaskIntoConstraints="NO" id="ge3-vP-zZp" userLabel="Prettyprint Button">
                                                         <rect key="frame" x="32" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" constant="20" id="QUX-Ha-Gk7"/>
-                                                            <constraint firstAttribute="height" constant="22" id="rxe-WV-cBh"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="prettyprint" imagePosition="only" alignment="center" alternateImage="prettyprint_H" state="on" imageScaling="proportionallyDown" inset="2" id="ghZ-di-p9F">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="20" id="QUX-Ha-Gk7"/>
+                                                            <constraint firstAttribute="height" constant="22" id="rxe-WV-cBh"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="prettyprintScript:" target="-2" id="uUv-Zd-UNT"/>
                                                             <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="sYs-sI-hg6">
@@ -914,14 +899,14 @@
                                                     </scrollView>
                                                     <button toolTip="clear output log" translatesAutoresizingMaskIntoConstraints="NO" id="CMF-cK-m13">
                                                         <rect key="frame" x="0.0" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="22" id="FKj-XX-l10"/>
-                                                            <constraint firstAttribute="width" constant="20" id="son-ze-4qq"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="delete" imagePosition="only" alignment="center" alternateImage="delete_H" state="on" imageScaling="proportionallyDown" inset="2" id="qBn-5M-A1i">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="FKj-XX-l10"/>
+                                                            <constraint firstAttribute="width" constant="20" id="son-ze-4qq"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="clearOutput:" target="-2" id="OOx-Wc-Wy4"/>
                                                             <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="vi5-3f-azI">
@@ -931,7 +916,7 @@
                                                             </binding>
                                                         </connections>
                                                     </button>
-                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="25p-qC-Ntg">
+                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="25p-qC-Ntg">
                                                         <rect key="frame" x="49" y="518" width="83" height="16"/>
                                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Run Output:" id="mtR-8d-kHj">
                                                             <font key="font" metaFont="systemBold"/>
@@ -944,14 +929,14 @@
                                                     </textField>
                                                     <button toolTip="dump population state" translatesAutoresizingMaskIntoConstraints="NO" id="kDh-Fw-f06">
                                                         <rect key="frame" x="23" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="width" constant="20" id="PPw-YS-gFo"/>
-                                                            <constraint firstAttribute="height" constant="22" id="iUB-cU-r0N"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="dump_output" imagePosition="only" alignment="center" alternateImage="dump_output_H" state="on" imageScaling="proportionallyDown" inset="2" id="3DM-1V-rPm">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="20" id="PPw-YS-gFo"/>
+                                                            <constraint firstAttribute="height" constant="22" id="iUB-cU-r0N"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="dumpPopulationToOutput:" target="-2" id="kWy-Yp-t7q"/>
                                                             <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="g4L-Cw-cE8">
@@ -963,14 +948,14 @@
                                                     </button>
                                                     <button toolTip="show a graph" translatesAutoresizingMaskIntoConstraints="NO" id="jBY-mF-gPl" userLabel="SLiM Menu Button" customClass="SLiMMenuButton">
                                                         <rect key="frame" x="150" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="22" id="KJG-l7-7ce"/>
-                                                            <constraint firstAttribute="width" constant="20" id="yxs-Pk-tdg"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="graph_submenu" imagePosition="only" alignment="center" alternateImage="graph_submenu_H" state="on" imageScaling="proportionallyDown" inset="2" id="adY-8u-J23">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="KJG-l7-7ce"/>
+                                                            <constraint firstAttribute="width" constant="20" id="yxs-Pk-tdg"/>
+                                                        </constraints>
                                                         <connections>
                                                             <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="Ghv-mX-Qp0">
                                                                 <dictionary key="options">
@@ -981,14 +966,14 @@
                                                     </button>
                                                     <button toolTip="change working directory" translatesAutoresizingMaskIntoConstraints="NO" id="Egy-bI-OBh">
                                                         <rect key="frame" x="546" y="516" width="20" height="22"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="22" id="LZE-xd-FP4"/>
-                                                            <constraint firstAttribute="width" constant="20" id="m4D-2J-gZG"/>
-                                                        </constraints>
                                                         <buttonCell key="cell" type="smallSquare" bezelStyle="smallSquare" image="change_folder" imagePosition="only" alignment="center" alternateImage="change_folder_H" state="on" imageScaling="proportionallyDown" inset="2" id="GRU-4T-yEL">
                                                             <behavior key="behavior" lightByContents="YES"/>
                                                             <font key="font" metaFont="system"/>
                                                         </buttonCell>
+                                                        <constraints>
+                                                            <constraint firstAttribute="height" constant="22" id="LZE-xd-FP4"/>
+                                                            <constraint firstAttribute="width" constant="20" id="m4D-2J-gZG"/>
+                                                        </constraints>
                                                         <connections>
                                                             <action selector="changeWorkingDirectory:" target="-2" id="3nE-nX-o58"/>
                                                             <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="wsb-nR-7wK">
@@ -1068,7 +1053,7 @@
             <rect key="frame" x="0.0" y="0.0" width="280" height="739"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DPt-AC-FkI">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DPt-AC-FkI">
                     <rect key="frame" x="18" y="703" width="109" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Mutation Types:" id="kbX-rh-UR0">
                         <font key="font" metaFont="systemBold"/>
@@ -1079,7 +1064,7 @@
                         <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="2mq-SA-JiA"/>
                     </connections>
                 </textField>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4rT-qK-JNW">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4rT-qK-JNW">
                     <rect key="frame" x="18" y="524" width="164" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Genomic Element Types:" id="j3V-NJ-ulW">
                         <font key="font" metaFont="systemBold"/>
@@ -1093,11 +1078,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7GG-eb-uRQ">
                     <rect key="frame" x="32" y="559" width="228" height="136"/>
                     <clipView key="contentView" id="kOe-M0-icb">
-                        <rect key="frame" x="1" y="0.0" width="226" height="135"/>
+                        <rect key="frame" x="1" y="1" width="226" height="134"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="bNE-qm-DmG" id="cuy-J5-PqR" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="112"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="111"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1139,7 +1124,7 @@
                                         </textFieldCell>
                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                     </tableColumn>
-                                    <tableColumn editable="NO" width="84" minWidth="65" maxWidth="500" id="QI1-51-Ixv">
+                                    <tableColumn editable="NO" width="65" minWidth="65" maxWidth="500" id="QI1-51-Ixv">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Params">
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -1180,11 +1165,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sez-rK-O1h">
                     <rect key="frame" x="32" y="379" width="228" height="137"/>
                     <clipView key="contentView" id="y9i-Z5-n1Q">
-                        <rect key="frame" x="1" y="0.0" width="226" height="136"/>
+                        <rect key="frame" x="1" y="1" width="226" height="135"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="8xi-NL-17O" id="YFd-nW-pee" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="113"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="112"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1214,7 +1199,7 @@
                                         </textFieldCell>
                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                     </tableColumn>
-                                    <tableColumn editable="NO" width="137" minWidth="120" maxWidth="500" id="HQN-n3-bmZ">
+                                    <tableColumn editable="NO" width="120" minWidth="120" maxWidth="500" id="HQN-n3-bmZ">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Mutation types">
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -1252,7 +1237,7 @@
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L7m-fP-gXR">
                     <rect key="frame" x="18" y="165" width="91" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Eidos Blocks:" id="OOa-Ar-p63">
                         <font key="font" metaFont="systemBold"/>
@@ -1266,11 +1251,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8qO-Fw-xcP">
                     <rect key="frame" x="32" y="20" width="228" height="137"/>
                     <clipView key="contentView" id="RTN-L2-LBh">
-                        <rect key="frame" x="1" y="0.0" width="226" height="136"/>
+                        <rect key="frame" x="1" y="1" width="226" height="135"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="NXa-cS-jsO" id="7Xo-DL-2qY" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="113"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="112"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1312,7 +1297,7 @@
                                         </textFieldCell>
                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                     </tableColumn>
-                                    <tableColumn editable="NO" width="54" minWidth="40" maxWidth="500" id="Ar2-sx-Oqi">
+                                    <tableColumn editable="NO" width="40" minWidth="40" maxWidth="500" id="Ar2-sx-Oqi">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Type">
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -1350,7 +1335,7 @@
                         <autoresizingMask key="autoresizingMask"/>
                     </tableHeaderView>
                 </scrollView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="f5M-vb-jNw">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="f5M-vb-jNw">
                     <rect key="frame" x="18" y="344" width="122" height="16"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Interaction Types:" id="Pwf-6p-rWo">
                         <font key="font" metaFont="systemBold"/>
@@ -1364,11 +1349,11 @@
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="D7Y-iI-hMH">
                     <rect key="frame" x="32" y="200" width="228" height="136"/>
                     <clipView key="contentView" id="LcT-aO-1Uj">
-                        <rect key="frame" x="1" y="0.0" width="226" height="135"/>
+                        <rect key="frame" x="1" y="1" width="226" height="134"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" headerView="P1H-2s-yo1" id="Kyc-Yl-d6g" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                <rect key="frame" x="0.0" y="0.0" width="226" height="112"/>
+                                <rect key="frame" x="0.0" y="0.0" width="226" height="111"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="3" height="2"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -1410,7 +1395,7 @@
                                         </textFieldCell>
                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                     </tableColumn>
-                                    <tableColumn editable="NO" width="84" minWidth="65" maxWidth="500" id="f1e-l7-uRu">
+                                    <tableColumn editable="NO" width="65" minWidth="65" maxWidth="500" id="f1e-l7-uRu">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Params">
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -1529,13 +1514,6 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
                         <action selector="graphPopulationVisualization:" target="-2" id="f4v-7h-YUt"/>
-                    </connections>
-                </menuItem>
-                <menuItem isSeparatorItem="YES" id="6iX-11-D87"/>
-                <menuItem title="Create Haplotype Plot" id="1B7-wP-aTH">
-                    <modifierMask key="keyEquivalentModifierMask"/>
-                    <connections>
-                        <action selector="graphHaplotypes:" target="-2" id="dHj-mf-eFY"/>
                     </connections>
                 </menuItem>
             </items>

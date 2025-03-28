@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/4/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -37,7 +37,7 @@ public:
     explicit QtSLiMHaplotypeOptions(QWidget *p_parent = nullptr);
     virtual ~QtSLiMHaplotypeOptions() override;
     
-    size_t genomeSampleSize(void);    // 0 indicates "all genomes"
+    size_t haplosomeSampleSize(void);    // 0 indicates "all haplosomes"
     QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod(void);
     QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization(void);
     

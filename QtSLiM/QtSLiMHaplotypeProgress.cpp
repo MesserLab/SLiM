@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/4/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -47,16 +47,18 @@ QtSLiMHaplotypeProgress::~QtSLiMHaplotypeProgress()
     delete ui;
 }
 
-void QtSLiMHaplotypeProgress::runProgressWithGenomeCount(size_t genome_count, int stepCount)
+void QtSLiMHaplotypeProgress::runProgressWithHaplosomeCount(size_t haplosome_count, int stepCount, int progressChromIndex, int progressChromTotal)
 {
     // set up initial state
     taskDistances_Value_ = 0;
 	taskClustering_Value_ = 0;
 	taskOptimization_Value_ = 0;
     
-    ui->step1ProgressBar->setRange(0, static_cast<int>(genome_count));
-    ui->step2ProgressBar->setRange(0, static_cast<int>(genome_count));
-    ui->step3ProgressBar->setRange(0, static_cast<int>(genome_count));
+    ui->chromosomeIndexLabel->setText(QString("Chromosome %1 of %2:").arg(progressChromIndex).arg(progressChromTotal));
+    
+    ui->step1ProgressBar->setRange(0, static_cast<int>(haplosome_count));
+    ui->step2ProgressBar->setRange(0, static_cast<int>(haplosome_count));
+    ui->step3ProgressBar->setRange(0, static_cast<int>(haplosome_count));
     
     ui->step1ProgressBar->setValue(0);
     ui->step2ProgressBar->setValue(0);

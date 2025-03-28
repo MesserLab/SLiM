@@ -3,7 +3,7 @@
 //  EidosScribe
 //
 //  Created by Ben Haller on 6/14/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -154,7 +154,7 @@
 			// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
 			// in the token stream parallel to searching in the text.
 			std::string script_string([scriptString UTF8String]);
-			EidosScript script(script_string, -1);
+			EidosScript script(script_string);
 			
 			// Tokenize
 			script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -766,9 +766,9 @@
 
 - (void)selectErrorRange
 {
-	// If there is error-tracking information set, and the error is not attributed to a runtime script
-	// such as a lambda or a callback, then we can highlight the error range
-	if (!gEidosErrorContext.executingRuntimeScript &&
+	// If there is error-tracking information set, and the error is attributed to the user script,
+	// then we can highlight the error range
+	if ((!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0)) &&
 		(gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
 		(gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
 	{
@@ -783,7 +783,7 @@
 	
 	// In any case, since we are the ultimate consumer of the error information, we should clear out
 	// the error state to avoid misattribution of future errors
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+	ClearErrorContext();
 }
 
 - (void)setSelectedRanges:(NSArray *)ranges affinity:(NSSelectionAffinity)affinity stillSelecting:(BOOL)stillSelectingFlag
@@ -957,7 +957,7 @@
 						// because of strings, which are a pain in the butt.  To simplify that issue, we tokenize and search
 						// in the token stream parallel to searching in the text.
 						std::string script_string([scriptString UTF8String]);
-						EidosScript script(script_string, -1);
+						EidosScript script(script_string);
 						
 						// Tokenize
 						script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -1091,7 +1091,7 @@
 	// Construct a Script object from the current script string
 	NSString *scriptString = [self string];
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string, -1);
+	EidosScript script(script_string);
 	
 	// Tokenize
 	script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
@@ -1356,10 +1356,28 @@
 		
 		// set the typing attributes; this code just makes an assumption about the correct typing attributes
 		// based on the class, probably I ought to add a new method on EidosTextView to get a typing attr dict...
+		NSDictionary *textAttributes;
+		
 		if ([self isKindOfClass:[EidosConsoleTextView class]])
-			[self setTypingAttributes:[NSDictionary eidosInputAttrsWithSize:[self displayFontSize]]];
+			textAttributes = [NSDictionary eidosInputAttrsWithSize:[self displayFontSize]];
 		else
-			[self setTypingAttributes:[NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize]];
+			textAttributes = [NSDictionary eidosTextAttributesWithColor:nil size:_displayFontSize];
+		
+		[self setTypingAttributes:textAttributes];
+		
+		// fix the tab stops
+		NSParagraphStyle *pstyle = [textAttributes objectForKey:NSParagraphStyleAttributeName];
+		
+		[ts beginEditing];
+		
+		[ts enumerateAttribute:NSParagraphStyleAttributeName inRange:NSMakeRange(0, ts.length) options:0 usingBlock:^(id value, NSRange range, BOOL *stop) {
+			if (value) {
+				[ts removeAttribute:NSParagraphStyleAttributeName range:range];
+				[ts addAttribute:NSParagraphStyleAttributeName value:pstyle range:range];
+			}
+		}];
+		
+		[ts endEditing];
 	}
 }
 
@@ -1441,7 +1459,7 @@
 	// This returns a function map (owned by the caller) that reflects the best guess we can make, incorporating
 	// any functions known to our delegate, as well as all functions we can scrape from the script string.
 	std::string script_string([scriptString UTF8String]);
-	EidosScript script(script_string, -1);
+	EidosScript script(script_string);
 	
 	// Tokenize
 	script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -1498,7 +1516,7 @@
 	if ([scriptString length])
 	{
 		std::string script_string([scriptString UTF8String]);
-		EidosScript script(script_string, -1);
+		EidosScript script(script_string);
 		
 		// Tokenize
 		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -2300,7 +2318,7 @@
 			delete definitive_function_map;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
-			EidosScript script(script_string, -1);
+			EidosScript script(script_string);
 			
 #if EIDOS_DEBUG_COMPLETION
 			std::cout << "Eidos script:\n" << script_string << std::endl << std::endl;
@@ -2325,7 +2343,7 @@
 #endif
 		
 		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
-		EidosScript script(script_string, -1);
+		EidosScript script(script_string);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 #if EIDOS_DEBUG_COMPLETION

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/1/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -74,8 +74,19 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 #pragma mark EidosScript
 #pragma mark -
 
-EidosScript::EidosScript(std::string p_script_string, int32_t p_user_script_line_offset) :
-	script_string_(std::move(p_script_string)), user_script_line_offset_(p_user_script_line_offset)
+// This constructor is for a script that is unmoored from the user script, like a lambda.  There is no way
+// to correlate error positions in it back to the user script, no way to set debug points in it, etc.
+EidosScript::EidosScript(std::string p_script_string) : script_string_(std::move(p_script_string))
+{
+}
+
+// This constructor locates the script within in the context of the user's script, allowing things like debug
+// points and error tracking to be correlated between this derived script and the original user script.  For
+// the user script itself, the user script pointer should be nullptr and the offsets should be zero; the fact
+// that they are not -1 implies that they are valid offsets, and the fact the user script pointer is nullptr
+// says "I *am* the user script".
+EidosScript::EidosScript(std::string p_script_string, EidosScript *p_user_script, int32_t p_user_script_line_offset, int32_t p_user_script_char_offset, int32_t p_user_script_UTF16_offset) :
+	script_string_(std::move(p_script_string)), user_script_(p_user_script), user_script_line_offset_(p_user_script_line_offset), user_script_offset_(p_user_script_char_offset), user_script_offset_UTF16_(p_user_script_UTF16_offset)
 {
 }
 
@@ -2192,7 +2203,7 @@ EidosASTNode *EidosScript::Parse_ObjectClassSpec(EidosASTNode *p_type_node)
 			if (!parse_make_bad_nodes_)
 			{
 				// A little concession to SLiM compatibility here; if you try to use a SLiM class name in pure Eidos, you get a more helpful error message
-				if ((object_class == "Chromosome") || (object_class == "Community") || (object_class == "Genome") || (object_class == "GenomicElement") || (object_class == "GenomicElementType") || (object_class == "Individual") || (object_class == "InteractionType") || (object_class == "LogFile") || (object_class == "Mutation") || (object_class == "MutationType") || (object_class == "Plot") || (object_class == "SLiMEidosBlock") || (object_class == "SLiMgui") || (object_class == "SpatialMap") || (object_class == "Species") || (object_class == "Subpopulation") || (object_class == "Substitution"))
+				if ((object_class == "Chromosome") || (object_class == "Community") || (object_class == "Haplosome") || (object_class == "GenomicElement") || (object_class == "GenomicElementType") || (object_class == "Individual") || (object_class == "InteractionType") || (object_class == "LogFile") || (object_class == "Mutation") || (object_class == "MutationType") || (object_class == "Plot") || (object_class == "SLiMEidosBlock") || (object_class == "SLiMgui") || (object_class == "SpatialMap") || (object_class == "Species") || (object_class == "Subpopulation") || (object_class == "Substitution"))
 					EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "'.  Note that " << object_class << " is the name of a class in SLiM, but you are coding in pure Eidos; SLiM classes are not defined." << EidosTerminate(current_token_);
 				
 				EIDOS_TERMINATION << "ERROR (EidosScript::Parse_ObjectClassSpec): could not find an Eidos class named '" << object_class << "'." << EidosTerminate(current_token_);

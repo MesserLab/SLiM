@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -74,6 +74,9 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 	{
 		EidosValue *message_value = p_arguments[1].get();
 		
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		if (message_value->Type() != EidosValueType::kValueNULL)
 		{
 			std::string &&stop_string = message_value->StringAtIndex_NOCAST(0, nullptr);
@@ -123,6 +126,9 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const std::
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	output_stream << "To cite Eidos in publications please use:" << std::endl << std::endl;
 	output_stream << "Haller, B.C. (2016). Eidos: A Simple Scripting Language." << std::endl;
 	output_stream << "URL: http://benhaller.com/slim/Eidos_Manual.pdf" << std::endl << std::endl;
@@ -137,8 +143,6 @@ EidosValue_SP Eidos_ExecuteFunction_citation(__attribute__((unused)) const std::
 }
 
 //	(float$)clock([string$ type = "cpu"])
-static std::chrono::steady_clock::time_point timebase = std::chrono::steady_clock::now();	// start at launch
-
 EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
@@ -157,9 +161,7 @@ EidosValue_SP Eidos_ExecuteFunction_clock(__attribute__((unused)) const std::vec
 	else if (type_name == "mono")
 	{
 		// monotonic clock time; this is best for measured user-perceived elapsed times
-		std::chrono::steady_clock::time_point ts = std::chrono::steady_clock::now();
-		std::chrono::steady_clock::duration clock_duration = ts - timebase;
-		double seconds = std::chrono::duration<double>(clock_duration).count();
+		double seconds = Eidos_WallTimeSeconds();
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(seconds));
 	}
@@ -405,8 +407,8 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *lambdaSource_value = p_arguments[0].get();
-	EidosValue_String *lambdaSource_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[0].get());
-	EidosScript *script = (lambdaSource_value_singleton ? lambdaSource_value_singleton->CachedScript() : nullptr);
+	EidosValue_String *lambdaSource_value_singleton = (EidosValue_String *)p_arguments[0].get();
+	EidosScript *script = lambdaSource_value_singleton->CachedScript();
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -418,9 +420,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr), -1);
+		script = new EidosScript(lambdaSource_value->StringAtIndex_NOCAST(0, nullptr));
 		
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		try
 		{
@@ -440,7 +442,10 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
+			{
 				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("ExecuteLambdaInternal()");
+			}
 			
 			delete script;
 			
@@ -485,7 +490,7 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 	std::clock_t begin_clock = 0, end_clock = 0;
 	std::chrono::steady_clock::time_point begin_ts, end_ts;
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 	
 	try
 	{
@@ -524,7 +529,15 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("ExecuteLambdaInternal()");
+			}
+		}
 		
 		if (!lambdaSource_value_singleton)
 			delete script;
@@ -543,6 +556,9 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 			time_spent = static_cast<double>(end_clock - begin_clock) / CLOCKS_PER_SEC;
 		else
 			time_spent = std::chrono::duration<double>(end_ts - begin_ts).count();
+		
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
 		
 		p_interpreter.ExecutionOutputStream() << "// ********** executeLambda() elapsed time: " << time_spent << std::endl;
 	}
@@ -614,6 +630,9 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	std::string match_string = (function_name_specified ? functionName_value->StringAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	bool signature_found = false;
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
 	
@@ -658,6 +677,9 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 	EidosValue *functionName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	std::string match_string = functionName_value->StringAtIndex_NOCAST(0, nullptr);
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	// function_map_ is already alphabetized since maps keep sorted order
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();
@@ -719,6 +741,9 @@ EidosValue_SP Eidos_ExecuteFunction_license(__attribute__((unused)) const std::v
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	output_stream << "Eidos is free software: you can redistribute it and/or" << std::endl;
@@ -752,6 +777,9 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	bool showSymbolTables = p_arguments[0]->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	std::ostream &outstream = p_interpreter.ExecutionOutputStream();
 	EidosSymbolTable &current_symbol_table = p_interpreter.SymbolTable();
@@ -803,6 +831,8 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 {
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(objectElement, gEidosDictionaryRetained_Class));
+	
+	objectElement->Release();	// retained by result_SP now
 	
 #ifdef _OPENMP
 	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(gEidos_OMP_threads_ABS_FLOAT)));
@@ -969,7 +999,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	return gStaticEidosValueVOID;
 }
 
-//	(void)parallelSetTaskThreadCounts(object$ dict)
+//	(void)parallelSetTaskThreadCounts(No<Dictionary>$ dict)
 EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *source_value = p_arguments[0].get();
@@ -983,13 +1013,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 	}
 	else
 	{
-		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
-		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
-		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-		
-		if (!source)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+		EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 		
 		if (source->KeysAreStrings())
 		{
@@ -1215,8 +1239,8 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
-	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[1].get());
-	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+	EidosValue_String *lambda_value_singleton = (EidosValue_String *)p_arguments[1].get();
+	EidosScript *script = lambda_value_singleton->CachedScript();
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -1228,9 +1252,9 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr));
 		
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		try
 		{
@@ -1240,7 +1264,10 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
+			{
 				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_sapply()");
+			}
 			
 			delete script;
 			
@@ -1254,7 +1281,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	// Execute inside try/catch so we can handle errors well
 	std::vector<EidosValue_SP> results;
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 	
 	try
 	{
@@ -1340,7 +1367,15 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_sapply()");
+			}
+		}
 		
 		if (!lambda_value_singleton)
 			delete script;
@@ -1377,6 +1412,9 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *message_value = p_arguments[0].get();
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	if (message_value->Type() != EidosValueType::kValueNULL)
 	{
@@ -1691,6 +1729,9 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	
 	if (print)
 	{
+		// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+		Eidos_EraseProgress();
+		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		output_stream << "Eidos version " << EIDOS_VERSION_STRING << std::endl;

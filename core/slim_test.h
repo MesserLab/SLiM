@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/14/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -29,8 +29,10 @@ int RunSLiMTests(void);
 
 // Helper functions for testing
 extern void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber = -1);
-extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true);
+extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true, bool p_error_is_in_stop = false);
 extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber = -1);
+
+extern void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber);
 
 
 // Conceptually, all the slim_test_X.cpp stuff is a single source file, and all the details below are private.
@@ -46,9 +48,10 @@ extern void _RunGenomicElementTypeTests(void);
 extern void _RunGenomicElementTests(void);
 extern void _RunChromosomeTests(void);
 extern void _RunMutationTests(void);
-extern void _RunGenomeTests(const std::string &temp_path);
+extern void _RunHaplosomeTests(const std::string &temp_path);
 extern void _RunSubpopulationTests(void);
 extern void _RunIndividualTests(void);
+extern void _RunErrorPositionTests(void);
 extern void _RunRelatednessTests(void);
 extern void _RunInteractionTypeTests(void);
 extern void _RunSubstitutionTests(void);
@@ -59,6 +62,7 @@ extern void _RunNonWFTests(void);
 extern void _RunTreeSeqTests(const std::string &temp_path);
 extern void _RunNucleotideFunctionTests(void);
 extern void _RunNucleotideMethodTests(void);
+extern void _RunPopGenFunctionTests(void);
 extern void _RunParallelSLiMTests();
 
 // Test function shared strings

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/7/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -158,12 +158,13 @@ public:
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
+	int64_t chromosome_id_ = -1;								// -1 if not limited by this
+	std::string chromosome_symbol_;								// if non-empty, converted into chromosome_id_ after initialize() callbacks
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
 	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its tick range and type nodes
 	const EidosASTNode *compound_statement_node_ = nullptr;		// NOT OWNED: the node for the compound statement that constitutes the body of the block
 	const EidosToken *identifier_token_ = nullptr;
-	int32_t user_script_line_offset_;							// the initial position (lines) in the user's script; -1 if it is not in the user's script
 	
 	slim_usertag_t block_active_ = -1;							// the "active" property of the block: 0 if inactive, all other values are active
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
@@ -175,9 +176,9 @@ public:
 	bool contains_effect_ = false;				// "effect" (mutationEffect callback parameter)
 	bool contains_individual_ = false;			// "individual" (fitnessEffect/mutationEffect/mateChoice/recombination/survival/reproduction callback parameter)
 	bool contains_element_ = false;				// "element" (mutation callback parameter)
-	bool contains_genome_ = false;				// "genome" (mutation callback parameter)
-	bool contains_genome1_ = false;				// "genome1" (recombination callback parameter)
-	bool contains_genome2_ = false;				// "genome2" (recombination callback parameter)
+	bool contains_haplosome_ = false;			// "haplosome" (mutation callback parameter)
+	bool contains_haplosome1_ = false;			// "haplosome1" (recombination callback parameter)
+	bool contains_haplosome2_ = false;			// "haplosome2" (recombination callback parameter)
 	bool contains_subpop_ = false;				// "subpop" (fitnessEffect/mutationEffect/interaction/mateChoice/modifyChild/recombination/survival/reproduction/mutation callback parameter)
 	bool contains_homozygous_ = false;			// "homozygous" (mutationEffect callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
@@ -216,7 +217,7 @@ public:
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
 	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file; species gets set later
-	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.

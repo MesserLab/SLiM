@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -39,9 +39,6 @@ public:
     virtual QtSLiMLegendSpec legendKey(void) override;
     virtual bool providesStringForData(void) override;
     virtual void appendStringForData(QString &string) override;    
-    
-public slots:
-    virtual void controllerChromosomeSelectionChanged(void) override;
     
 private:
     double *populationSFS(int mutationTypeCount);    

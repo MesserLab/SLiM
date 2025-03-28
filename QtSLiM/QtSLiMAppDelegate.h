@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/13/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -112,6 +112,8 @@ public slots:
     void dispatch_showCycle_nonWF(void);
     void dispatch_showCycle_WF_MS(void);
     void dispatch_showCycle_nonWF_MS(void);
+    void dispatch_showColorChart(void);
+    void dispatch_showPlotSymbols(void);
     void dispatch_help(void);
     void dispatch_quit(void);
     

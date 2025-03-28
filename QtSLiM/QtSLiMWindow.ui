@@ -33,7 +33,7 @@
     <item>
      <layout class="QVBoxLayout" name="overallTopLayout" stretch="1,0">
       <property name="spacing">
-       <number>10</number>
+       <number>5</number>
       </property>
       <item>
        <layout class="QHBoxLayout" name="topLayout">
@@ -590,7 +590,7 @@ QSlider::handle:horizontal:disabled {
         <item>
          <layout class="QVBoxLayout" name="chromosomeWidgetLayout">
           <property name="spacing">
-           <number>15</number>
+           <number>4</number>
           </property>
           <item>
            <widget class="QtSLiMChromosomeWidget" name="chromosomeOverview">
@@ -603,13 +603,13 @@ QSlider::handle:horizontal:disabled {
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>30</height>
+              <height>20</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>30</height>
+              <height>20</height>
              </size>
             </property>
            </widget>
@@ -641,7 +641,7 @@ QSlider::handle:horizontal:disabled {
         <item>
          <layout class="QVBoxLayout" name="chromosomeRightLayout">
           <property name="spacing">
-           <number>0</number>
+           <number>5</number>
           </property>
           <item alignment="Qt::AlignRight">
            <widget class="QtSLiMPushButton" name="toggleDrawerButton">
@@ -689,22 +689,6 @@ QSlider::handle:horizontal:disabled {
            </widget>
           </item>
           <item>
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>15</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
            <widget class="QtSLiMPushButton" name="chromosomeActionButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -750,6 +734,51 @@ QSlider::handle:horizontal:disabled {
            </widget>
           </item>
           <item>
+           <widget class="QtSLiMPushButton" name="chromosomeDisplayButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;make a new chromosome display window&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="icon">
+             <iconset resource="buttons.qrc">
+              <normaloff>:/buttons/chrom_display.png</normaloff>
+              <normalon>:/buttons/chrom_display_H.png</normalon>:/buttons/chrom_display.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>20</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+            <property name="flat">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="verticalSpacer_2">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -760,7 +789,7 @@ QSlider::handle:horizontal:disabled {
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
-              <height>45</height>
+              <height>14</height>
              </size>
             </property>
            </spacer>
@@ -1392,7 +1421,8 @@ QSlider::handle:horizontal:disabled {
      <addaction name="separator"/>
      <addaction name="actionGraph_Multispecies_Population_Size_Time"/>
      <addaction name="separator"/>
-     <addaction name="actionCreate_Haplotype_Plot"/>
+     <addaction name="actionCreate_Haplotype_Plot_All"/>
+     <addaction name="actionCreate_Haplotype_Plot_Selected"/>
     </widget>
     <addaction name="actionStep"/>
     <addaction name="actionPlay"/>
@@ -1438,6 +1468,9 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionShowCycle_WF_MS"/>
     <addaction name="actionShowCycle_nonWF_MS"/>
+    <addaction name="separator"/>
+    <addaction name="actionShowColorChart"/>
+    <addaction name="actionShowPlotSymbols"/>
     <addaction name="separator"/>
     <addaction name="actionQtSLiMHelp"/>
     <addaction name="actionSLiMWorkshops"/>
@@ -1966,9 +1999,9 @@ QSlider::handle:horizontal:disabled {
     <string>Graph Population Visualization</string>
    </property>
   </action>
-  <action name="actionCreate_Haplotype_Plot">
+  <action name="actionCreate_Haplotype_Plot_All">
    <property name="text">
-    <string>Create Haplotype Plot</string>
+    <string>Create Haplotype Plot (all chromosomes)</string>
    </property>
   </action>
   <action name="actionShowCycle_WF">
@@ -2046,6 +2079,27 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionCreate_Haplotype_Plot_Selected">
+   <property name="text">
+    <string>Create Haplotype Plot (selected chromosome)</string>
+   </property>
+  </action>
+  <action name="actionShowColorChart">
+   <property name="text">
+    <string>Show Color Chart</string>
+   </property>
+   <property name="toolTip">
+    <string>Show a chart of the named colors provided by Eidos</string>
+   </property>
+  </action>
+  <action name="actionShowPlotSymbols">
+   <property name="text">
+    <string>Show Plot Symbols</string>
+   </property>
+   <property name="toolTip">
+    <string>Show a chart depicting the plot symbols used by Plot's points() method</string>
    </property>
   </action>
  </widget>

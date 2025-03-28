@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2513
+{\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fnil\fcharset0 Menlo-Regular;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red28\green0\blue207;\red63\green110\blue116;
@@ -332,8 +332,8 @@ A
 \f3\fs18 dominanceCoeff
 \f2\fs22  property of the mutation\'92s 
 \f3\fs18 MutationType
-\f2\fs22 ; if the focal individual has only one non-null genome, however, such that the mutation is paired with a null genome (i.e., is actually hemizygous or haploid, not heterozygous), the 
-\f3\fs18 haploidDominanceCoeff
+\f2\fs22 ; if the focal individual has only one non-null haplosome, however, such that the mutation is paired with a null haplosome (i.e., is actually hemizygous, not heterozygous), the 
+\f3\fs18 hemizygousDominanceCoeff
 \f2\fs22  property of the 
 \f3\fs18 MutationType
 \f2\fs22  is used instead.\
@@ -419,7 +419,7 @@ In addition to the standard SLiM globals, a
 \f3\fs18 F
 \f2\fs22  (heterozygous), or 
 \f3\fs18 NULL
-\f2\fs22  (it is\uc0\u8232 paired with a null chromosome, and is thus hemizygous or haploid)\
+\f2\fs22  (it is\uc0\u8232 paired with a null haplosome, and is thus hemizygous or haploid)\
 
 \f3\fs18 effect
 \f2\fs22 	The default relative fitness value calculated by SLiM\
@@ -435,7 +435,7 @@ In addition to the standard SLiM globals, a
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 mutationEffect()
-\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null genomes involved, for example, you could do something like this:\
+\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null haplosomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
@@ -791,7 +791,7 @@ A
 \f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 modifyChild()
-\f2\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The parent or parents, and their genomes, are provided to the callback, as is the generated child and its genomes.  The callback may accept the generated child, modify it, substitute completely different genomic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
+\f2\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The parent or parents are provided to the callback, as is the generated child.  The callback may accept the generated child, modify it, substitute completely different genetic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
 In addition to the standard SLiM globals, a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
@@ -799,11 +799,6 @@ In addition to the standard SLiM globals, a
 
 \f3\fs18 \cf2 child
 \f2\fs22 	The generated child (an object of class 
-\f3\fs18 Individual
-\f2\fs22 )\
-
-\f3\fs18 parent1
-\f2\fs22 	The first parent (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
 
@@ -816,6 +811,11 @@ In addition to the standard SLiM globals, a
 \f2\fs22 	
 \f3\fs18 T
 \f2\fs22  if the child is the result of selfing (but see note below)\
+
+\f3\fs18 parent1
+\f2\fs22 	The first parent (an object of class 
+\f3\fs18 Individual
+\f2\fs22 )\
 
 \f3\fs18 parent2
 \f2\fs22 	The second parent (an object of class 
@@ -833,14 +833,12 @@ In addition to the standard SLiM globals, a
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 modifyChild()
-\f2\fs22  callback to decide upon a course of action.  The genomes of child (available as 
-\f3\fs18 child.genome1
-\f2\fs22  and 
-\f3\fs18 child.genome2
-\f2\fs22 ) may be modified by the callback; whatever mutations they contain on exit will be used for the new child.  Alternatively, they may be left unmodified (to accept the generated child as is).  These variables may be thought of as the two gametes that will fuse to produce the fertilized egg that results in a new offspring; 
-\f3\fs18 child.genome1
+\f2\fs22  callback to decide upon a course of action.  The haplosomes of child (available as 
+\f3\fs18 child.haplosomes
+\f2\fs22 ) may be modified by the callback; whatever mutations they contain on exit will be used for the new child.  Alternatively, they may be left unmodified (to accept the generated child as is).  The child\'92s haplosomes may be thought of as the two gametes that will fuse to produce the fertilized egg that results in a new offspring; for a biparental cross involving diploid autosomes, 
+\f3\fs18 child.haploidGenome1
 \f2\fs22  is the gamete contributed by the first parent (the female, if sex is turned on), and 
-\f3\fs18 child.genome2
+\f3\fs18 child.haploidGenome2
 \f2\fs22  is the gamete contributed by the second parent (the male, if sex is turned on).  The 
 \f3\fs18 child
 \f2\fs22  object itself may also be modified \'96 for example, to set the spatial position of the child.\
@@ -850,7 +848,7 @@ Importantly, a
 \f3\fs18 modifyChild()
 \f2\fs22  callbacks.  Normally this should be 
 \f3\fs18 T
-\f2\fs22 , indicating that generation of the child may proceed (with whatever modifications might have been made to the child\'92s genomes).  A return value of 
+\f2\fs22 , indicating that generation of the child may proceed (with whatever modifications might have been made to the child\'92s haplosomes).  A return value of 
 \f3\fs18 F
 \f2\fs22  indicates that generation of this child should not continue; this will cause new parent(s) to be drawn, a new child to be generated, and a new call to the 
 \f3\fs18 modifyChild()
@@ -924,19 +922,25 @@ A
 \f2\fs22  callback is defined with a syntax much like that of other callbacks:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 [id] [t1 [: t2]] recombination([<subpop-id>]) \{ ... \}\
+\f3\fs18 \cf2 [id] [t1 [: t2]] recombination([<subpop-id> [, <chromosome-id>]]) \{ ... \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 recombination()
 \f2\fs22  callback will be called during the generation of every gamete during the tick(s) in which it is active.  It may optionally be restricted to apply only to gametes generated by parents in a specified subpopulation, using the 
 \f3\fs18 <subpop-id>
-\f2\fs22  specifier.  (In multispecies models, the definition must be preceded by a 
+\f2\fs22  specifier.  In addition, in multi-chromosome models it may optionally be restricted to apply only to a specified chromosome, using the 
+\f3\fs18 <chromosome-id>
+\f2\fs22  specifier, which may be either the 
+\f3\fs18 id
+\f2\fs22  or the 
+\f3\fs18 symbol
+\f2\fs22  of a chromosome defined in the species.  (In multispecies models, the definition must be preceded by a 
 \f3\fs18 species
 \f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 recombination()
-\f2\fs22  callback is called, a parent has already been chosen to generate a gamete, and candidate recombination breakpoints for use in recombining the parental genomes have been drawn.  The genomes of the focal parent are provided to the callback, as is the focal parent itself (as an 
+\f2\fs22  callback is called, a parent has already been chosen to generate a gamete, and candidate recombination breakpoints for use in recombining the parental haplosomes have been drawn.  The relevant haplosomes of the focal parent are provided to the callback, as is the focal parent itself (as an 
 \f3\fs18 Individual
 \f2\fs22  object) and the subpopulation in which it resides.  Furthermore, the proposed breakpoints are provided to the callback.  The callback may modify these breakpoints in order to change the breakpoints used, in which case it must return 
 \f3\fs18 T
@@ -953,11 +957,11 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 \cf2 individual
 \f2\fs22 	The focal parent that is generating a gamete\
 
-\f3\fs18 genome1
-\f2\fs22 	One genome of the focal parent; this is the initial copy strand\
+\f3\fs18 haplosome1
+\f2\fs22 	One haplosome of the focal parent; this is the initial copy strand\
 
-\f3\fs18 genome2
-\f2\fs22 	The other genome of the focal parent
+\f3\fs18 haplosome2
+\f2\fs22 	The other haplosome of the focal parent
 \f3\fs18 \
 subpop
 \f2\fs22 	The subpopulation to which the focal parent belongs
@@ -987,19 +991,15 @@ The positions specified in
 \f3\fs18 breakpoints
 \f2\fs22  mean that a crossover will occur immediately 
 \f0\i before
-\f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The genome specified by 
-\f3\fs18 genome1
+\f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The haplosome specified by 
+\f3\fs18 haplosome1
 \f2\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.  (Note that 
-\f3\fs18 genome1
+\f3\fs18 haplosome1
 \f2\fs22  and 
-\f3\fs18 genome2
-\f2\fs22  will be the same objects as 
-\f3\fs18 individual.genome1
-\f2\fs22  and 
-\f3\fs18 individual.genome2
-\f2\fs22 , but may be swapped, if 
-\f3\fs18 individual.genome2
-\f2\fs22  is the initial copy strand!)\
+\f3\fs18 haplosome2
+\f2\fs22  will be haplosomes from 
+\f3\fs18 individual
+\f2\fs22 , but their order may be swapped, depending on which is the initial copy strand!)\
 In this design, the recombination callback does not specify a custom recombination map.  Instead, the callback can add or remove breakpoints at specific locations.  To implement a chromosomal inversion, for example, if the parent is heterozygous for the inversion mutation then crossovers within the inversion region are removed by the callback.  As another example, to implement a model of the evolution of the overall recombination rate, a model could (1) set the global recombination rate to the highest rate attainable in the simulation, (2) for each individual, within the 
 \f3\fs18 recombination()
 \f2\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers may also be added, not just removed, by 
@@ -1026,7 +1026,7 @@ Note that the positions in
 \f3\fs18 recombination()
 \f2\fs22  callbacks have completed, the positions from 
 \f3\fs18 breakpoints
-\f2\fs22  will be sorted, uniqued, and used as the crossover points in generating the prospective gamete genome.  The essential point here is that if the same position occurs more than once, across 
+\f2\fs22  will be sorted, uniqued, and used as the crossover points in generating the prospective gamete haplosome.  The essential point here is that if the same position occurs more than once, across 
 \f3\fs18 breakpoints
 \f2\fs22 , the multiple occurrences of the position do not cancel; SLiM does not cross over and then \'93cross back over\'94 given a pair of identical positions.  Instead, the multiple occurrences of the position will simply be uniqued down to a single occurrence.\
 As with the other callback types, multiple 
@@ -1245,7 +1245,7 @@ When a
 \f3\fs18 reproduction()
 \f2\fs22  callback may add offspring generated by any parent(s), to any subpopulation in the focal species.  The focal individual is provided to the callback (as an 
 \f3\fs18 Individual
-\f2\fs22  object), as are its genomes and the subpopulation in which it resides.\
+\f2\fs22  object), as is the subpopulation in which it resides.\
 A common alternative pattern is for a 
 \f3\fs18 reproduction()
 \f2\fs22  callback to ignore the focal individual and generate all of the offspring for a species for the current tick, from all parents.  The callback then sets 
@@ -1337,15 +1337,15 @@ When a
 \f3\fs18 mutation()
 \f2\fs22  callback is called, a focal mutation (provided to the callback as an object of type 
 \f3\fs18 Mutation
-\f2\fs22 ) has just been created by SLiM, referencing a particular position in a parental genome (also provided, as an object of type 
-\f3\fs18 Genome
-\f2\fs22 ).  The mutation will not be added to that parental genome; rather, the parental genome is being copied, during reproduction, to make a gamete or an offspring genome, and the mutation is, conceptually, a copying error made during that process.  It will be added to the offspring genome that is the end result of the copying process (which may also involve recombination with another genome).  At the point that the 
+\f2\fs22 ) has just been created by SLiM, referencing a particular position in a parental haplosome (also provided, as an object of type 
+\f3\fs18 Haplosome
+\f2\fs22 ).  The mutation will not be added to that parental haplosome; rather, the parental haplosome is being copied, during reproduction, to make a gamete or an offspring haplosome, and the mutation is, conceptually, a copying error made during that process.  It will be added to the offspring haplosome that is the end result of the copying process (which may also involve recombination with another haplosome).  At the point that the 
 \f3\fs18 mutation()
-\f2\fs22  callback is called, the offspring genome is not yet created, however, and so it cannot be accessed from within the 
+\f2\fs22  callback is called, the offspring haplosome is not yet created, however, and so it cannot be accessed from within the 
 \f3\fs18 mutation()
 \f2\fs22  callback; the 
 \f3\fs18 mutation()
-\f2\fs22  callback can affect only the mutation itself, not the genome to which the mutation will be added.\
+\f2\fs22  callback can affect only the mutation itself, not the haplosome to which the mutation will be added.\
 In addition to the standard SLiM globals, then, a 
 \f3\fs18 mutation()
 \f2\fs22  callback is supplied with additional information passed through global variables:\
@@ -1354,8 +1354,8 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 \cf2 mut
 \f2\fs22 	The focal mutation that is being modified or reviewed\
 
-\f3\fs18 genome
-\f2\fs22 	The parental genome that is being copied\
+\f3\fs18 haplosome
+\f2\fs22 	The parental haplosome that is being copied\
 
 \f3\fs18 element
 \f2\fs22 	The genomic element that controls the mutation site\
@@ -1380,7 +1380,7 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 ) originally at the mutating position\
 
 \f3\fs18 parent
-\f2\fs22 	The parent which is generating the offspring genome
+\f2\fs22 	The parent which is generating the offspring haplosome
 \f3\fs18 \
 \pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
 \cf2 subpop
@@ -1398,7 +1398,7 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 Mutation
 \f2\fs22 .  A return of 
 \f3\fs18 T
-\f2\fs22  indicates that the proposed mutation should be used in generating the offspring genome (perhaps with modifications made by the callback).  Conversely, a return of 
+\f2\fs22  indicates that the proposed mutation should be used in generating the offspring haplosome (perhaps with modifications made by the callback).  Conversely, a return of 
 \f3\fs18 F
 \f2\fs22  indicates that the proposed mutation should be suppressed.  If a proposed mutation is suppressed, SLiM will not try again; one fewer mutations will be generated during reproduction than would otherwise have been true.  Returning 
 \f3\fs18 F
@@ -1406,7 +1406,7 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 Mutation
 \f2\fs22  replaces the proposed mutation (
 \f3\fs18 mut
-\f2\fs22 ) with the mutation returned; the offspring genomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
+\f2\fs22 ) with the mutation returned; the offspring haplosomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
 The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
@@ -1425,10 +1425,10 @@ The callback may perform a variety of actions related to the generated mutation.
 \f3\fs18 nucleotide
 \f2\fs22  (or 
 \f3\fs18 nucleotideValue
-\f2\fs22 ) property of the mutation may also be changed; note that the original nucleotide at the focal position in the parental genome is provided through 
+\f2\fs22 ) property of the mutation may also be changed; note that the original nucleotide at the focal position in the parental haplosome is provided through 
 \f3\fs18 originalNuc
 \f2\fs22  (it could be retrieved with 
-\f3\fs18 genome.nucleotides()
+\f3\fs18 haplosome.nucleotides()
 \f2\fs22 , but SLiM already has it at hand anyway).  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
 It is possible, of course, to do actions unrelated to mutation inside 
 \f3\fs18 mutation()
@@ -1441,7 +1441,7 @@ It is possible, of course, to do actions unrelated to mutation inside
 \f2\fs22  events should be used for general-purpose scripting.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to mutation should not influence or be influenced by the dynamics of mutation.\
 The proposed mutation will not appear in the 
 \f3\fs18 sim.mutations
-\f2\fs22  vector of segregating mutations until it has been added to a genome; it will therefore not be visible in that vector within its own 
+\f2\fs22  vector of segregating mutations until it has been added to a haplosome; it will therefore not be visible in that vector within its own 
 \f3\fs18 mutation()
 \f2\fs22  callback invocation, and indeed, may not be visible in subsequent callbacks during the reproduction tick cycle stage until such time as the offspring individual being generated has been completed.  If that offspring is ultimately rejected, in particular by a 
 \f3\fs18 modifyChild()
@@ -1450,7 +1450,7 @@ The proposed mutation will not appear in the
 \f2\fs22  callback, that the focal mutation will ultimately be added to the simulation, depending upon the rest of the model\'92s script.\
 There is one subtlety to be mentioned here, having to do with subpopulations.  The 
 \f3\fs18 subpop
-\f2\fs22  pseudo-parameter discussed above is always the subpopulation of the parent which possesses the genome that is being copied and is mutating; there is no ambiguity about that whatsoever.  The 
+\f2\fs22  pseudo-parameter discussed above is always the subpopulation of the parent which possesses the haplosome that is being copied and is mutating; there is no ambiguity about that whatsoever.  The 
 \f3\fs18 <subpop-id>
 \f2\fs22  specified in the 
 \f3\fs18 mutation()
@@ -1470,7 +1470,9 @@ There is one subtlety to be mentioned here, having to do with subpopulations.  T
 \f0\i gamete
 \f2\i0  that is sustaining a mutation during its production.  The exception to this rule is 
 \f3\fs18 addRecombinant()
-\f2\fs22 ; since there are four different source subpopulations potentially in play there, it was deemed simpler in that case for the 
+\f2\fs22  and 
+\f3\fs18 addMultiRecombinant()
+\f2\fs22 ; since there are four different source subpopulations potentially in play there per mutation, it was deemed simpler in that case for the 
 \f3\fs18 <subpop-id>
 \f2\fs22  to specify the 
 \f0\i target
@@ -1478,6 +1480,8 @@ There is one subtlety to be mentioned here, having to do with subpopulations.  T
 \f3\fs18 mutation()
 \f2\fs22  callback will be restricted.  If restriction to the source subpopulation is needed with 
 \f3\fs18 addRecombinant()
+\f2\fs22  or 
+\f3\fs18 addMultiRecombinant()
 \f2\fs22 , the 
 \f3\fs18 subpop
 \f2\fs22  pseudo-parameter may be consulted rather than using 

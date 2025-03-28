@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/30/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -24,6 +24,9 @@
 #include "subpopulation.h"
 
 #include <QDebug>
+
+#include <utility>
+#include <vector>
 
 
 QtSLiMPopulationTableModel::QtSLiMPopulationTableModel(QObject *p_parent) : QAbstractTableModel(p_parent)

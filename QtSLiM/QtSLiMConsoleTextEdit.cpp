@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/6/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -100,7 +100,7 @@ void QtSLiMConsoleTextEdit::showWelcome(void)
     QString welcomeMessage;
     welcomeMessage = welcomeMessage + "Eidos version " + EIDOS_VERSION_STRING + NEWLINE + NEWLINE;		// EIDOS VERSION
     welcomeMessage += "By Benjamin C. Haller (http://benhaller.com/)." + NEWLINE;
-    welcomeMessage += "Copyright (c) 2016–2024 P. Messer. All rights reserved." + NEWLINE + NEWLINE;
+    welcomeMessage += "Copyright (c) 2016–2025 P. Messer. All rights reserved." + NEWLINE + NEWLINE;
     welcomeMessage += "Eidos is free software with ABSOLUTELY NO WARRANTY." + NEWLINE;
     welcomeMessage += "Type license() for license and distribution details." + NEWLINE + NEWLINE;
     welcomeMessage += "Go to https://github.com/MesserLab/SLiM for source code," + NEWLINE;
@@ -210,11 +210,12 @@ void QtSLiMConsoleTextEdit::appendExecution(QString result, QString errorString,
         textCursor().setBlockFormat(marginBlockFormat);
         insertPlainText(errorString);
         
-        if (!gEidosErrorContext.executingRuntimeScript &&
-                (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
-                (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
+		// If we have an error, it is in the user script, and it has a valid position,
+		// then we can try to highlight it in the input
+        if ((!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0)) &&
+            (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+            (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
 		{
-			// An error occurred, so let's try to highlight it in the input
             int promptEnd = lastPromptCursor.position();
 			int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + promptEnd;
 			int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + promptEnd;

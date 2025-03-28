@@ -1,0 +1,67 @@
+// Keywords: migration, dispersal, admixture, ancestry, introgression
+
+initialize() {
+	defineConstant("Z", 1e9);       // last chromosome position
+	defineConstant("I", 1e6);       // interval between markers
+	
+	initializeMutationType("m1", 0.5, "f", 0.0);   // p1 marker
+	initializeMutationType("m2", 0.5, "f", 0.0);   // p2 marker
+	initializeMutationType("m3", 0.5, "f", 0.0);   // p3 marker
+	initializeMutationType("m4", 0.5, "e", 0.5);   // beneficial
+	c(m1,m2,m3,m4).color = c("red", "green", "blue", "white");
+	c(m1,m2,m3).convertToSubstitution = F;
+	
+	initializeGenomicElementType("g1", m4, 1.0);
+	initializeGenomicElement(g1, 0, Z);
+	initializeMutationRate(0);
+	initializeRecombinationRate(1e-9);
+}
+1 late() {
+	sim.addSubpop("p1", 500);
+	sim.addSubpop("p2", 500);
+	sim.addSubpop("p3", 500);
+	
+	// set up markers in each subpopulation, and add a beneficial mutation
+	positions = seq(from=0, to=Z, by=I);
+	defineConstant("M", size(positions));
+	catn("Modeling " + M + " ancestry markers.");
+	
+	for (subpop in c(p1,p2,p3),
+	     muttype in c(m1,m2,m3),
+	     symbol in c("M1","M2","M3"))
+	{
+		haplosomes = subpop.haplosomes;
+		muts = haplosomes.addNewDrawnMutation(muttype, positions);
+		defineConstant(symbol, muts);
+		
+		mut = haplosomes.addNewDrawnMutation(m4, integerDiv(Z, 2));
+		catn("Beneficial mutation: s == " + mut.selectionCoeff);
+	}
+	
+	// set up circular migration between the subpops
+	p1.setMigrationRates(p2, 0.01);
+	p2.setMigrationRates(p3, 0.01);
+	p3.setMigrationRates(p1, 0.01);
+}
+:100000 late() {
+	if (exists("slimgui")) {
+		plot = slimgui.createPlot("Local ancestry", c(0,1), c(0,1),
+			xlab="Position", ylab="Ancestry fraction", width=700, height=250);
+		plot.addLegend(labelSize=14, graphicsWidth=20);
+		plot.legendLineEntry("p1 ancestry", "red", lwd=3);
+		plot.legendLineEntry("p2 ancestry", "green", lwd=3);
+		plot.legendLineEntry("p3 ancestry", "blue", lwd=3);
+		plot.abline(v=0.5, color="black", lwd=2);
+		
+		for (col in c(m1,m2,m3).color, symbol in c("M1","M2","M3"))
+		{
+			mutlist = executeLambda(symbol + ";");
+			freqs = sim.mutationFrequencies(NULL, mutlist);
+			plot.lines(seq(0, 1, length=size(freqs)), freqs, color=col, lwd=3);
+			plot.abline(h=mean(freqs), color=col);
+		}
+	}
+	
+	if (sim.countOfMutationsOfType(m4) == 0)
+		sim.simulationFinished();
+}

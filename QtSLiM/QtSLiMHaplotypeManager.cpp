@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/3/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -18,7 +18,7 @@
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "QtSLiMHaplotypeManager.h"
-#include "QtSLiMWindow.h"
+#include "QtSLiMChromosomeWidget.h"
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
 #include "QtSLiMPreferences.h"
@@ -35,6 +35,8 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QLabel>
+#include <QMessageBox>
+#include <QPalette>
 #include <QDebug>
 
 #include <vector>
@@ -46,117 +48,225 @@
 #include "species.h"
 
 
+const int QtSLiM_SubpopulationStripWidth = 5;
 
 
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
+void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller, Chromosome *focalChromosome)
 {
+    QtSLiMWindow *slimWindow = controller->slimWindow();
+    
+    if (!slimWindow)
+        return;
+    
     Species *displaySpecies = controller->focalDisplaySpecies();
-    QtSLiMHaplotypeOptions optionsPanel(controller);
+    
+    if (!displaySpecies)
+    {
+        QMessageBox messageBox(slimWindow);
+        messageBox.setText("Haplotype Plot");
+        messageBox.setInformativeText("A single species must be chosen to create a haplotype plot; the plot will be based upon the selected species.");
+        messageBox.setIcon(QMessageBox::Warning);
+        
+        // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+        // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+        // seems necessary so floating windows can't be on top of the message box
+        messageBox.setWindowModality(Qt::ApplicationModal);
+        messageBox.exec();
+        return;
+    }
+    
+    // This method can create a haplotype plot for one chromosome or many.  Many is the
+    // base case, of which one is a special case.  Chromosomes assort independently, so
+    // each per-chromosome plot is independent, but it is useful to see them together.
+    std::vector<Chromosome *> chromosomes;
+    
+    if (focalChromosome)
+        chromosomes.push_back(focalChromosome);
+    else
+        chromosomes = displaySpecies->Chromosomes();
+    
+    if (chromosomes.size() == 0)
+        return;         // should never happen; menu items etc. should be disabled in this case
+    
+    slim_position_t longestLength = 0;
+    
+    for (Chromosome *chromosome : chromosomes)
+        longestLength = std::max(longestLength, chromosome->last_position_ + 1);
+    
+    // Run the options panel
+    QtSLiMHaplotypeOptions optionsPanel(controller->slimWindow());
     
     int result = optionsPanel.exec();
     
-    if (result == QDialog::Accepted)
+    if (result != QDialog::Accepted)
+        return;
+    
+    QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod = optionsPanel.clusteringMethod();
+    QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
+    size_t haplosomeSampleSize = optionsPanel.haplosomeSampleSize();
+    
+    // Make a new window to show the graph
+    QWidget *window = new QWidget(controller->slimWindow(), Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
+    
+    window->setMinimumSize(400, 200);
+    window->resize(500, 400);
+#ifdef __APPLE__
+    // set the window icon only on macOS; on Linux it changes the app icon as a side effect
+    window->setWindowIcon(QIcon());
+#endif
+    
+    // Set up a top-level view, topViewWidget, that contains all of the haplotype views (empty for now)
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    
+    QtSLiMHaplotypeTopView *topViewWidget = new QtSLiMHaplotypeTopView(nullptr);
+    QHBoxLayout *allViewsLayout = new QHBoxLayout;
+    
+    allViewsLayout->setContentsMargins(5, 5, 5, 5);
+    allViewsLayout->setSpacing(5);
+    
+    topViewWidget->setLayout(allViewsLayout);
+    topLayout->addWidget(topViewWidget);
+    
+    if (chromosomes.size() > 1)
     {
-        size_t genomeSampleSize = optionsPanel.genomeSampleSize();
-        QtSLiMHaplotypeManager::ClusteringMethod clusteringMethod = optionsPanel.clusteringMethod();
-        QtSLiMHaplotypeManager::ClusteringOptimization clusteringOptimization = optionsPanel.clusteringOptimization();
+        topViewWidget->setShowChromosomeSymbols(true);
+        allViewsLayout->setContentsMargins(5, 20, 5, 5);
+    }
+    
+    std::vector<QtSLiMHaplotypeView *> haplotypeViews;
+    
+    for (Chromosome *chromosome : chromosomes)
+    {
+        QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
+        QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        sizePolicy1.setHorizontalStretch(std::max(3, (int)std::round(255 * ((chromosome->last_position_ + 1) / (double)longestLength))));
+        sizePolicy1.setVerticalStretch(0);
+        haplotypeView->setSizePolicy(sizePolicy1);
+        haplotypeView->chromosomeSymbol_ = chromosome->Symbol();
+        
+        allViewsLayout->addWidget(haplotypeView);
+        haplotypeViews.push_back(haplotypeView);
+    }
+    
+    // Add a horizontal layout at the bottom, for the action button, and maybe other cruft, over time
+    // The first haplotype view runs the action buttion, and forwards all state changes along the chain
+    QHBoxLayout *buttonLayout = nullptr;
+    
+    {
+        buttonLayout = new QHBoxLayout;
+        
+        buttonLayout->setContentsMargins(5, 5, 5, 5);
+        buttonLayout->setSpacing(5);
+        topLayout->addLayout(buttonLayout);
+        
+        if (controller->community()->all_species_.size() > 1)
+        {
+            // make our species avatar badge
+            QLabel *speciesLabel = new QLabel();
+            speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
+            buttonLayout->addWidget(speciesLabel);
+        }
+        
+        QSpacerItem *leftSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(leftSpacer);
+        
+        if (chromosomes.size() > 1)
+        {
+            // draw a little warning, in gray italic small, since users might think the chromosome plots are somehow correlated
+            QLabel *warningLabel = new QLabel();
+            
+            warningLabel->setText("note: each chromosome is sampled independently");
+            warningLabel->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+            
+            QFont labelFont(warningLabel->font());
+            labelFont.setItalic(true);
+            labelFont.setPointSize(labelFont.pointSize() - 2);
+            warningLabel->setFont(labelFont);
+            
+            QPalette labelPalette(warningLabel->palette());
+            labelPalette.setColor(QPalette::WindowText, QtSLiMColorWithWhite(0.5, 1.0));
+            warningLabel->setPalette(labelPalette);
+            
+            buttonLayout->addWidget(warningLabel);
+        }
+        
+        QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        buttonLayout->addItem(rightSpacer);
+        
+        // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
+        QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
+        actionButton->setObjectName(QString::fromUtf8("actionButton"));
+        actionButton->setMinimumSize(QSize(20, 20));
+        actionButton->setMaximumSize(QSize(20, 20));
+        actionButton->setFocusPolicy(Qt::NoFocus);
+        QIcon icon4;
+        icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
+        icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
+        actionButton->setIcon(icon4);
+        actionButton->setIconSize(QSize(20, 20));
+        actionButton->qtslimSetBaseName("action");
+        actionButton->setCheckable(true);
+        actionButton->setFlat(true);
+#if QT_CONFIG(tooltip)
+        actionButton->setToolTip("<html><head/><body><p>configure plot</p></body></html>");
+#endif // QT_CONFIG(tooltip)
+        buttonLayout->addWidget(actionButton);
+        
+        connect(actionButton, &QPushButton::pressed, topViewWidget, [actionButton, topViewWidget]() { actionButton->qtslimSetHighlight(true); topViewWidget->actionButtonRunMenu(actionButton); });
+        connect(actionButton, &QPushButton::released, topViewWidget, [actionButton]() { actionButton->qtslimSetHighlight(false); });
+        
+        actionButton->setEnabled(true);
+    }
+    
+    // make window actions for all global menu items
+    // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
+    
+    // If we have more than one chromosome to do, show the window so the user can see partial results there
+    if (chromosomes.size() > 1)
+        QtSLiMMakeWindowVisibleAndExposed(window);
+    
+    // then create and install the haplotype managers, one by one; each will display once it is completed
+    for (int index = 0; index < (int)chromosomes.size(); ++index)
+    {
+        Chromosome *chromosome = chromosomes[index];
+        QtSLiMHaplotypeView *haplotypeView = haplotypeViews[index];
         
         // First generate the haplotype plot data, with a progress panel
-        QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, displaySpecies, genomeSampleSize, true);
+        QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization, controller,
+                                                                              displaySpecies, chromosome, QtSLiMRange(0,0), haplosomeSampleSize,
+                                                                              true, index + 1, chromosomes.size());
         
         if (haplotypeManager->valid_)
         {
-            // Make a new window to show the graph
-            QWidget *window = new QWidget(controller, Qt::Window | Qt::Tool);    // the graph window has us as a parent, but is still a standalone window
-            
-            window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleString));
-            window->setMinimumSize(400, 200);
-            window->resize(500, 400);
-#ifdef __APPLE__
-            // set the window icon only on macOS; on Linux it changes the app icon as a side effect
-            window->setWindowIcon(QIcon());
-#endif
-            
-            // Install the haplotype view in the window
-            QtSLiMHaplotypeView *haplotypeView = new QtSLiMHaplotypeView(nullptr);
-            QVBoxLayout *topLayout = new QVBoxLayout;
-            
-            window->setLayout(topLayout);
-            topLayout->setContentsMargins(0, 0, 0, 0);
-            topLayout->setSpacing(0);
-            topLayout->addWidget(haplotypeView);
+            // this will be called for each chromosome, but the titles should all be the same, so it's fine
+            window->setWindowTitle(QString("Haplotype snapshot (%1)").arg(haplotypeManager->titleStringWithoutChromosome));
             
             // The haplotype manager is owned by the graph view, as a delegate object
             haplotypeView->setDelegate(haplotypeManager);
-            
-            // Add a horizontal layout at the bottom, for the action button, and maybe other cruft, over time
-            QHBoxLayout *buttonLayout = nullptr;
-            
-            {
-                buttonLayout = new QHBoxLayout;
-                
-                buttonLayout->setContentsMargins(5, 5, 5, 5);
-                buttonLayout->setSpacing(5);
-                topLayout->addLayout(buttonLayout);
-                
-                if (controller->community->all_species_.size() > 1)
-                {
-                    // make our species avatar badge
-                    QLabel *speciesLabel = new QLabel();
-                    speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
-                    buttonLayout->addWidget(speciesLabel);
-                }
-                
-                QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
-                buttonLayout->addItem(rightSpacer);
-                
-                // this code is based on the creation of executeScriptButton in ui_QtSLiMEidosConsole.h
-                QtSLiMPushButton *actionButton = new QtSLiMPushButton(window);
-                actionButton->setObjectName(QString::fromUtf8("actionButton"));
-                actionButton->setMinimumSize(QSize(20, 20));
-                actionButton->setMaximumSize(QSize(20, 20));
-                actionButton->setFocusPolicy(Qt::NoFocus);
-                QIcon icon4;
-                icon4.addFile(QtSLiMImagePath("action", false), QSize(), QIcon::Normal, QIcon::Off);
-                icon4.addFile(QtSLiMImagePath("action", true), QSize(), QIcon::Normal, QIcon::On);
-                actionButton->setIcon(icon4);
-                actionButton->setIconSize(QSize(20, 20));
-                actionButton->qtslimSetBaseName("action");
-                actionButton->setCheckable(true);
-                actionButton->setFlat(true);
-#if QT_CONFIG(tooltip)
-                actionButton->setToolTip("<html><head/><body><p>configure plot</p></body></html>");
-#endif // QT_CONFIG(tooltip)
-                buttonLayout->addWidget(actionButton);
-                
-                connect(actionButton, &QPushButton::pressed, haplotypeView, [actionButton, haplotypeView]() { actionButton->qtslimSetHighlight(true); haplotypeView->actionButtonRunMenu(actionButton); });
-                connect(actionButton, &QPushButton::released, haplotypeView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
-                
-                actionButton->setEnabled(true);
-            }
-            
-            // make window actions for all global menu items
-            // we do NOT need to do this, because we use Qt::Tool; Qt will use our parent winodw's shortcuts
-            //qtSLiMAppDelegate->addActionsForGlobalMenuItems(window);
-            
-            // Show the window
-            window->show();
-            window->raise();
-            window->activateWindow();
         }
     }
+    
+    // If we have just one chromosome to do, show the window now that it's done
+    if (chromosomes.size() <= 1)
+        QtSLiMMakeWindowVisibleAndExposed(window);
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress) :
+                                               QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
+                                               QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
+                                               int progressChromTotal) :
     QObject(p_parent)
 {
     controller_ = controller;
     focalSpeciesName_ = displaySpecies->name_;
     
-    Community *community = controller_->community;
+    Community *community = controller_->community();
     Species *graphSpecies = focalDisplaySpecies();
     Population &population = graphSpecies->population_;
     
@@ -174,12 +284,13 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
         for (auto subpop_pair : population.subpops_)
             selected_subpops.emplace_back(subpop_pair.second);
     
-    // Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...
-    
-    controller_->chromosomeSelection(graphSpecies, &usingSubrange, &subrangeFirstBase, &subrangeLastBase);
+    // Figure out whether we're analyzing / displaying a subrange
+    usingSubrange = (displayedRange.length == 0) ? false : true;
+    subrangeFirstBase = displayedRange.location;
+    subrangeLastBase = displayedRange.location + displayedRange.length - 1;
     
     // Also dig to find out whether we're displaying all mutation types or just a subset; if a subset, each MutationType has a display flag
-    displayingMuttypeSubset = (controller_->chromosomeDisplayMuttypes().size() != 0);
+    displayingMuttypeSubset = (controller_->displayMuttypes_.size() != 0);
     
     // Set our window title from the controller's state
     QString title;
@@ -209,26 +320,46 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     
     title.append(QString(", tick %1").arg(community->Tick()));
     
+    titleStringWithoutChromosome = title;
+    
+    if (displaySpecies->Chromosomes().size() > 1)
+        title.append(QString(", chromosome '%2'").arg(QString::fromStdString(chromosome->Symbol())));
+    
     titleString = title;
     subpopCount = static_cast<int>(selected_subpops.size());
     
-    // Fetch genomes and figure out what we're going to plot; note that we plot only non-null genomes
+    // Fetch haplosomes and figure out what we're going to plot; note that we plot only non-null haplosomes
+    slim_chromosome_index_t chromosome_index = chromosome->Index();
+    int first_haplosome_index = graphSpecies->FirstHaplosomeIndices()[chromosome_index];
+    int last_haplosome_index = graphSpecies->LastHaplosomeIndices()[chromosome_index];
+    
     for (Subpopulation *subpop : selected_subpops)
-        for (Genome *genome : subpop->parent_genomes_)
-            if (!genome->IsNull())
-                genomes.emplace_back(genome);
+    {
+        for (Individual *ind : subpop->parent_individuals_)
+        {
+            Haplosome **ind_haplosomes = ind->haplosomes_;
+            
+            for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
+            {
+                Haplosome *haplosome = ind_haplosomes[haplosome_index];
+                
+                if (!haplosome->IsNull())
+                    haplosomes.emplace_back(haplosome);
+            }
+        }
+    }
     
     // If a sample is requested, select that now; sampleSize <= 0 means no sampling
-    if ((sampleSize > 0) && (genomes.size() > sampleSize))
+    if ((sampleSize > 0) && (haplosomes.size() > sampleSize))
     {
-        Eidos_random_unique(genomes.begin(), genomes.end(), sampleSize);
-        genomes.resize(sampleSize);
+        Eidos_random_unique(haplosomes.begin(), haplosomes.end(), sampleSize);
+		haplosomes.resize(sampleSize);
     }
     
     // Cache all the information about the mutations that we're going to need
-    configureMutationInfoBuffer();
+    configureMutationInfoBuffer(chromosome);
     
-    // Keep track of the range of subpop IDs we reference, even if not represented by any genomes here
+    // Keep track of the range of subpop IDs we reference, even if not represented by any haplosomes here
     maxSubpopID = 0;
     minSubpopID = SLIM_MAX_ID_VALUE;
     
@@ -245,8 +376,8 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     {
         int progressSteps = (clusterOptimization == QtSLiMHaplotypeManager::ClusterOptimizeWith2opt) ? 3 : 2;
         
-        progressPanel_ = new QtSLiMHaplotypeProgress(controller_);
-        progressPanel_->runProgressWithGenomeCount(genomes.size(), progressSteps);
+        progressPanel_ = new QtSLiMHaplotypeProgress(controller_->slimWindow());
+        progressPanel_->runProgressWithHaplosomeCount(haplosomes.size(), progressSteps, progressChromIndex, progressChromTotal);
     }
     
     // Do the clustering analysis synchronously, updating the progress panel as we go
@@ -286,8 +417,8 @@ Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
 {
     // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
     // Before initialize() is done species have not been created, so we return nullptr in that case
-	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
-		return controller_->community->SpeciesWithName(focalSpeciesName_);
+    if (controller_ && controller_->community() && (controller_->community()->Tick() >= 1))
+		return controller_->community()->SpeciesWithName(focalSpeciesName_);
 	
 	return nullptr;
 }
@@ -295,28 +426,28 @@ Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
 void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 {
 	// Work out an approximate best sort order
-	sortGenomes();
+	sortHaplosomes();
 	
     if (valid_ && progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
         valid_ = false;
     
     if (valid_)
 	{
-		// Remember the subpop ID for each genome
-		for (Genome *genome : genomes)
-			genomeSubpopIDs.emplace_back(genome->individual_->subpopulation_->subpopulation_id_);
+		// Remember the subpop ID for each haplosome
+		for (Haplosome *haplosome : haplosomes)
+			haplosomeSubpopIDs.emplace_back(haplosome->individual_->subpopulation_->subpopulation_id_);
 		
 		// Build our plotting data vectors.  Because we are a snapshot, we can't rely on our controller's data
 		// at all after this method returns; we have to remember everything we need to create our display list.
 		configureDisplayBuffers();
 	}
 	
-	// Now we are done with the genomes vector; clear it
-	genomes.clear();
-	genomes.resize(0);
+	// Now we are done with the haplosomes vector; clear it
+	haplosomes.clear();
+	haplosomes.resize(0);
 }
 
-void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
+void QtSLiMHaplotypeManager::configureMutationInfoBuffer(Chromosome *chromosome)
 {
     Species *graphSpecies = focalDisplaySpecies();
     
@@ -331,6 +462,10 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	MutationIndex biggest_index = 0;
 	
 	// First, find the biggest index presently in use; that's how many entries we need
+    // BCH 12/25/2024: With multiple chromosomes, this is rather wasteful; I think this class
+    // could be redesigned to capture just the subset of mutations that are live for a given
+    // chromosome, essentially re-indexing the mutations, but it's not clear this matters
+    // to performance; we just waste a bit of memory here, but it's not a big deal.
 	for (const MutationIndex *reg_ptr = registry; reg_ptr != reg_end_ptr; ++reg_ptr)
 	{
 		MutationIndex mut_index = *reg_ptr;
@@ -375,17 +510,17 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = graphSpecies->chromosome_->last_position_;
+	mutationLastPosition = chromosome->last_position_;
 }
 
-void QtSLiMHaplotypeManager::sortGenomes(void)
+void QtSLiMHaplotypeManager::sortHaplosomes(void)
 {
-    size_t genome_count = genomes.size();
+    size_t haplosome_count = haplosomes.size();
 	
-	if (genome_count == 0)
+	if (haplosome_count == 0)
 		return;
 	
-	std::vector<Genome *> original_genomes = genomes;	// copy the vector because we will need to reorder it below
+	std::vector<Haplosome *> original_haplosomes = haplosomes;	// copy the vector because we will need to reorder it below
 	std::vector<int> final_path;
 	
 	// first get our distance matrix; these are inter-city distances
@@ -412,18 +547,18 @@ void QtSLiMHaplotypeManager::sortGenomes(void)
 	switch (clusterMethod)
 	{
 		case ClusterNearestNeighbor:
-			nearestNeighborSolve(distances, genome_count, final_path);
+			nearestNeighborSolve(distances, haplosome_count, final_path);
 			break;
 			
 		case ClusterGreedy:
-			greedySolve(distances, genome_count, final_path);
+			greedySolve(distances, haplosome_count, final_path);
 			break;
 	}
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
 	
-	checkPath(final_path, genome_count);
+	checkPath(final_path, haplosome_count);
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
@@ -436,22 +571,22 @@ void QtSLiMHaplotypeManager::sortGenomes(void)
 				break;
 				
 			case ClusterOptimizeWith2opt:
-				do2optOptimizationOfSolution(final_path, distances, genome_count);
+				do2optOptimizationOfSolution(final_path, distances, haplosome_count);
 				break;
 		}
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
             goto cancelledExit;
 		
-		checkPath(final_path, genome_count);
+		checkPath(final_path, haplosome_count);
 	}
 	
     if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
 		goto cancelledExit;
 	
-	// reorder the genomes vector according to the path we found
-	for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
-		genomes[genome_index] = original_genomes[static_cast<size_t>(final_path[genome_index])];
+	// reorder the haplosomes vector according to the path we found
+	for (size_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
+		haplosomes[haplosome_index] = original_haplosomes[static_cast<size_t>(final_path[haplosome_index])];
 	
 cancelledExit:
 	free(distances);
@@ -459,32 +594,32 @@ cancelledExit:
 
 void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 {
-    size_t genome_count = genomes.size();
+    size_t haplosome_count = haplosomes.size();
 	
-	// Allocate our display list and size it so it has one std::vector<MutationIndex> per genome
+	// Allocate our display list and size it so it has one std::vector<MutationIndex> per haplosome
 	displayList = new std::vector<std::vector<MutationIndex>>;
 	
-	displayList->resize(genome_count);
+	displayList->resize(haplosome_count);
 	
-	// Then save off the information for each genome into the display list
-	for (size_t genome_index = 0; genome_index < genome_count; ++genome_index)
+	// Then save off the information for each haplosome into the display list
+	for (size_t haplosome_index = 0; haplosome_index < haplosome_count; ++haplosome_index)
 	{
-		Genome &genome = *genomes[genome_index];
-		std::vector<MutationIndex> &genome_display = (*displayList)[genome_index];
+		Haplosome &haplosome = *haplosomes[haplosome_index];
+		std::vector<MutationIndex> &haplosome_display = (*displayList)[haplosome_index];
 		
 		if (!usingSubrange)
 		{
-			// Size our display list to fit the number of mutations in the genome
-			size_t mut_count = static_cast<size_t>(genome.mutation_count());
+			// Size our display list to fit the number of mutations in the haplosome
+			size_t mut_count = static_cast<size_t>(haplosome.mutation_count());
 			
-			genome_display.reserve(mut_count);
+			haplosome_display.reserve(mut_count);
 			
 			// Loop through mutations to get the mutation indices
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -496,25 +631,25 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						MutationIndex mut_index = *mut_ptr;
 						
 						if ((mutationInfo + mut_index)->display_)
-							genome_display.emplace_back(*mut_ptr);
+							haplosome_display.emplace_back(*mut_ptr);
 					}
 				}
 				else
 				{
 					// displaying all mutation types, no need to check
 					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-						genome_display.emplace_back(*mut_ptr);
+						haplosome_display.emplace_back(*mut_ptr);
 				}
 			}
 		}
 		else
 		{
 			// We are using a subrange, so we need to check the position of each mutation before adding it
-			int mutrun_count = genome.mutrun_count_;
+			int mutrun_count = haplosome.mutrun_count_;
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				const MutationRun *mutrun = genome.mutruns_[run_index];
+				const MutationRun *mutrun = haplosome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -528,7 +663,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
 							if ((mutationInfo + mut_index)->display_)
-								genome_display.emplace_back(mut_index);
+								haplosome_display.emplace_back(mut_index);
 					}
 				}
 				else
@@ -540,7 +675,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 						slim_position_t mut_position = *(mutationPositions + mut_index);
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
-							genome_display.emplace_back(mut_index);
+							haplosome_display.emplace_back(mut_index);
 					}
 				}
 			}
@@ -548,11 +683,11 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 	}
 }
 
-void QtSLiMHaplotypeManager::tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &genomeList)
+void QtSLiMHaplotypeManager::tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &haplosomeList)
 {
     EIDOS_BZERO(bincounts, 1024 * sizeof(int64_t));
 	
-	for (MutationIndex mut_index : genomeList)
+	for (MutationIndex mut_index : haplosomeList)
 		bincounts[mutationInfo[mut_index].position_ % 1024]++;
 }
 
@@ -567,7 +702,7 @@ int64_t QtSLiMHaplotypeManager::distanceForBincounts(int64_t *bincounts1, int64_
 }
 
 #ifndef SLIM_NO_OPENGL
-void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts)
+void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground)
 {
     // Erase the background to either black or white, depending on displayBW
 	if (eraseBackground)
@@ -582,21 +717,20 @@ void QtSLiMHaplotypeManager::glDrawHaplotypes(QRect interior, bool displayBW, bo
 	// Draw subpopulation strips if requested
 	if (showSubpopStrips)
 	{
-		const int stripWidth = 15;
 		QRect subpopStripRect = interior;
 		
-        subpopStripRect.setWidth(stripWidth);
+        subpopStripRect.setWidth(QtSLiM_SubpopulationStripWidth);
 		glDrawSubpopStripsInRect(subpopStripRect);
         
-        interior.adjust(stripWidth, 0, 0, 0);
+        interior.adjust(QtSLiM_SubpopulationStripWidth, 0, 0, 0);
 	}
 	
 	// Draw the haplotypes in the remaining portion of the interior
-	glDrawDisplayListInRect(interior, displayBW, previousFirstBincounts);
+	glDrawDisplayListInRect(interior, displayBW);
 }
 #endif
 
-void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter)
+void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, QPainter &painter)
 {
     // Erase the background to either black or white, depending on displayBW
     if (eraseBackground)
@@ -607,34 +741,33 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
     // Draw subpopulation strips if requested
     if (showSubpopStrips)
     {
-        const int stripWidth = 15;
         QRect subpopStripRect = interior;
         
-        subpopStripRect.setWidth(stripWidth);
+        subpopStripRect.setWidth(QtSLiM_SubpopulationStripWidth);
         qtDrawSubpopStripsInRect(subpopStripRect, painter);
         
-        interior.adjust(stripWidth, 0, 0, 0);
+        interior.adjust(QtSLiM_SubpopulationStripWidth, 0, 0, 0);
     }
     
     // Draw the haplotypes in the remaining portion of the interior
-    qtDrawDisplayListInRect(interior, displayBW, previousFirstBincounts, painter);
+    qtDrawDisplayListInRect(interior, displayBW, painter);
 }
 
 // Traveling Salesman Problem code
 //
-// We have a set of genomes, each of which may be defined as being a particular distance from each other genome (defined here
-// as the number of differences in the mutations contained).  We want to sort the genomes into an order that groups similar
-// genomes together, minimizing the overall distance through "genome space" traveled from top to bottom of our display.  This
+// We have a set of haplosomes, each of which may be defined as being a particular distance from each other haplosome (defined here
+// as the number of differences in the mutations contained).  We want to sort the haplosomes into an order that groups similar
+// haplosomes together, minimizing the overall distance through "haplosome space" traveled from top to bottom of our display.  This
 // is exactly the Traveling Salesman Problem, without returning to the starting "city".  This is a very intensively studied
-// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of genomes,
-// whereas we will routinely have thousands of genomes.  We will find an approximate solution using a fast heuristic algorithm,
+// problem, is NP-hard, and would take an enormously long time to solve exactly for even a relatively small number of haplosomes,
+// whereas we will routinely have thousands of haplosomes.  We will find an approximate solution using a fast heuristic algorithm,
 // because we are not greatly concerned with the quality of the solution and we are extremely concerned with runtime.  The
 // nearest-neighbor method is the fastest heuristic, and is O(N^2) in the number of cities; the Greedy algorithm is slower but
 // produces significantly better results.  We can refine our initial solution using the 2-opt method.
 
 #pragma mark Traveling salesman problem
 
-// This allocates and builds an array of distances between genomes.  The returned array is owned by the caller.  This is where
+// This allocates and builds an array of distances between haplosomes.  The returned array is owned by the caller.  This is where
 // we spend the large majority of our time, at present; this algorithm is O(N^2), but has a large constant (because really also
 // it depends on the length of the chromosome, the configuration of mutation runs, etc.).  This method runs prior to the actual
 // Traveling Salesman Problem; here we're just figuring out the distances between our "cities".  We have four versions of this
@@ -642,54 +775,54 @@ void QtSLiMHaplotypeManager::qtDrawHaplotypes(QRect interior, bool displayBW, bo
 // subset of all of the mutation types.
 int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 {
-    size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+    size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
-				int genome1_mutcount = genome1_mutrun->size();
-				int genome2_mutcount = genome2_mutrun->size();
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
+				int haplosome1_mutcount = haplosome1_mutrun->size();
+				int haplosome2_mutcount = haplosome2_mutrun->size();
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
-				else if (genome1_mutcount == 0)
-					distance += genome2_mutcount;
-				else if (genome2_mutcount == 0)
-					distance += genome1_mutcount;
+				else if (haplosome1_mutcount == 0)
+					distance += haplosome2_mutcount;
+				else if (haplosome2_mutcount == 0)
+					distance += haplosome1_mutcount;
 				else
 				{
 					// We use a radix strategy to count the number of mismatches; assume up front that all mutations are mismatched,
 					// and then subtract two for each mutation that turns out to be shared, using a uint8_t buffer to track usage.
-					distance += genome1_mutcount + genome2_mutcount;
+					distance += haplosome1_mutcount + haplosome2_mutcount;
 					
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 						mutation_seen[*mutrun1_ptr] = seen_marker;
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 						if (mutation_seen[*mutrun2_ptr] == seen_marker)
 							distance -= 2;
 					
@@ -707,7 +840,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -723,31 +856,31 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 {
     slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -757,18 +890,18 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -780,9 +913,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -810,7 +943,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -826,44 +959,44 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses only mutations of a mutation type that is chosen for display
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses only mutations of a mutation type that is chosen for display
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 {
-    size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+    size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						
@@ -874,9 +1007,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						
@@ -903,7 +1036,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -919,31 +1052,31 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 	return distances;
 }
 
-// This does the same thing as buildDistanceArrayForGenomes:, but uses the chosen subrange of each genome, and only mutations of mutation types being displayed
+// This does the same thing as buildDistanceArrayForHaplosomes:, but uses the chosen subrange of each haplosome, and only mutations of mutation types being displayed
 int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 {
     slim_position_t firstBase = subrangeFirstBase, lastBase = subrangeLastBase;
 	
-	size_t genome_count = genomes.size();
-	int64_t *distances = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	size_t haplosome_count = haplosomes.size();
+	int64_t *distances = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	uint8_t *mutation_seen = static_cast<uint8_t *>(calloc(mutationIndexCount, sizeof(uint8_t)));
 	uint8_t seen_marker = 1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
-		Genome *genome1 = genomes[i];
+		Haplosome *haplosome1 = haplosomes[i];
 		int64_t *distance_column = distances + i;
-		int64_t *distance_row = distances + i * genome_count;
-		slim_position_t mutrun_length = genome1->mutrun_length_;
-		int mutrun_count = genome1->mutrun_count_;
-		const MutationRun **genome1_mutruns = genome1->mutruns_;
+		int64_t *distance_row = distances + i * haplosome_count;
+		slim_position_t mutrun_length = haplosome1->mutrun_length_;
+		int mutrun_count = haplosome1->mutrun_count_;
+		const MutationRun **haplosome1_mutruns = haplosome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
-		for (size_t j = i + 1; j < genome_count; ++j)
+		for (size_t j = i + 1; j < haplosome_count; ++j)
 		{
-			Genome *genome2 = genomes[j];
-			const MutationRun **genome2_mutruns = genome2->mutruns_;
+			Haplosome *haplosome2 = haplosomes[j];
+			const MutationRun **haplosome2_mutruns = haplosome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -953,18 +1086,18 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
-				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
+				const MutationRun *haplosome1_mutrun = haplosome1_mutruns[mutrun_index];
+				const MutationRun *haplosome2_mutrun = haplosome2_mutruns[mutrun_index];
 				
-				if (genome1_mutrun == genome2_mutrun)
+				if (haplosome1_mutrun == haplosome2_mutrun)
 					;										// identical runs have no differences
 				else
 				{
 					// We use a radix strategy to count the number of mismatches.  Note this is done a bit differently than in
-					// buildDistanceArrayForGenomes:; here we do not add the total and then subtract matches.
-					const MutationIndex *mutrun1_end = genome1_mutrun->end_pointer_const();
+					// buildDistanceArrayForHaplosomes:; here we do not add the total and then subtract matches.
+					const MutationIndex *mutrun1_end = haplosome1_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun1_ptr = genome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
+					for (const MutationIndex *mutrun1_ptr = haplosome1_mutrun->begin_pointer_const(); mutrun1_ptr != mutrun1_end; ++mutrun1_ptr)
 					{
 						MutationIndex mut1_index = *mutrun1_ptr;
 						slim_position_t mut1_position = mutationPositions[mut1_index];
@@ -979,9 +1112,9 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 						}
 					}
 					
-					const MutationIndex *mutrun2_end = genome2_mutrun->end_pointer_const();
+					const MutationIndex *mutrun2_end = haplosome2_mutrun->end_pointer_const();
 					
-					for (const MutationIndex *mutrun2_ptr = genome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
+					for (const MutationIndex *mutrun2_ptr = haplosome2_mutrun->begin_pointer_const(); mutrun2_ptr != mutrun2_end; ++mutrun2_ptr)
 					{
 						MutationIndex mut2_index = *mutrun2_ptr;
 						slim_position_t mut2_position = mutationPositions[mut2_index];
@@ -1012,7 +1145,7 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 			}
 			
 			// set the distance at both mirrored locations in the distance buffer
-			*(distance_column + j * genome_count) = distance;
+			*(distance_column + j * haplosome_count) = distance;
 			*(distance_row + j) = distance;
 		}
 		
@@ -1032,21 +1165,21 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 // may be quite important to the solution we get.  It seems reasonable to start at the city that is the most isolated, i.e. has
 // the largest distance from itself to any other city.  By starting with this city, we avoid having to have two edges connecting
 // to it, both of which would be relatively long.  However, this is just a guess, and might be modified by refinement later.
-int QtSLiMHaplotypeManager::indexOfMostIsolatedGenomeWithDistances(int64_t *distances, size_t genome_count)
+int QtSLiMHaplotypeManager::indexOfMostIsolatedHaplosomeWithDistances(int64_t *distances, size_t haplosome_count)
 {
 	int64_t greatest_isolation = -1;
 	int greatest_isolation_index = -1;
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
 		int64_t isolation = INT64_MAX;
-		int64_t *row_ptr = distances + i * genome_count;
+		int64_t *row_ptr = distances + i * haplosome_count;
 		
-		for (size_t j = 0; j < genome_count; ++j)
+		for (size_t j = 0; j < haplosome_count; ++j)
 		{
 			int64_t distance = row_ptr[j];
 			
-			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of genomes
+			// distances of 0 don't count for isolation estimation; we really want the most isolated identical cluster of haplosomes
 			// this also serves to take care of the j == i case for us without special-casing, which is nice...
 			if (distance == 0)
 				continue;
@@ -1066,53 +1199,53 @@ int QtSLiMHaplotypeManager::indexOfMostIsolatedGenomeWithDistances(int64_t *dist
 }
 
 // The nearest-neighbor method provides an initial solution for the Traveling Salesman Problem by beginning with a chosen city
-// (see indexOfMostIsolatedGenomeWithDistances:size: above) and adding successive cities according to which is closest to the
+// (see indexOfMostIsolatedHaplosomeWithDistances:size: above) and adding successive cities according to which is closest to the
 // city we have reached thus far.  This is quite simple to implement, and runs in O(N^2) time.  However, the greedy algorithm
 // below runs only a little more slowly, and produces significantly better results, so unless speed is essential it is better.
-void QtSLiMHaplotypeManager::nearestNeighborSolve(int64_t *distances, size_t genome_count, std::vector<int> &solution)
+void QtSLiMHaplotypeManager::nearestNeighborSolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution)
 {
-    size_t genomes_left = genome_count;
+    size_t haplosomes_left = haplosome_count;
 	
-	solution.reserve(genome_count);
+	solution.reserve(haplosome_count);
 	
 	// we have to make a copy of the distances matrix, as we modify it internally
-	int64_t *distances_copy = static_cast<int64_t *>(malloc(genome_count * genome_count * sizeof(int64_t)));
+	int64_t *distances_copy = static_cast<int64_t *>(malloc(haplosome_count * haplosome_count * sizeof(int64_t)));
 	
-	memcpy(distances_copy, distances, genome_count * genome_count * sizeof(int64_t));
+	memcpy(distances_copy, distances, haplosome_count * haplosome_count * sizeof(int64_t));
 	
-	// find the genome that is farthest from any other genome; this will be our starting point, for now
-	int last_path_index = indexOfMostIsolatedGenomeWithDistances(distances_copy, genome_count);
+	// find the haplosome that is farthest from any other haplosome; this will be our starting point, for now
+	int last_path_index = indexOfMostIsolatedHaplosomeWithDistances(distances_copy, haplosome_count);
 	
 	do
 	{
-		// add the chosen genome to our path
+		// add the chosen haplosome to our path
 		solution.emplace_back(last_path_index);
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
             break;
 		
         if (progressPanel_)
-            progressPanel_->setHaplotypeProgress(genome_count - genomes_left + 1, 1);
+            progressPanel_->setHaplotypeProgress(haplosome_count - haplosomes_left + 1, 1);
 		
-		// if we just added the last genome, we're done
-		if (--genomes_left == 0)
+		// if we just added the last haplosome, we're done
+		if (--haplosomes_left == 0)
 			break;
 		
-		// otherwise, mark the chosen genome as unavailable by setting distances to it to INT64_MAX
+		// otherwise, mark the chosen haplosome as unavailable by setting distances to it to INT64_MAX
 		int64_t *column_ptr = distances_copy + last_path_index;
 		
-		for (size_t i = 0; i < genome_count; ++i)
+		for (size_t i = 0; i < haplosome_count; ++i)
 		{
 			*column_ptr = INT64_MAX;
-			column_ptr += genome_count;
+			column_ptr += haplosome_count;
 		}
 		
 		// now we need to find the next city, which will be the nearest neighbor of the last city
-		int64_t *row_ptr = distances_copy + last_path_index * static_cast<int>(genome_count);
+		int64_t *row_ptr = distances_copy + last_path_index * static_cast<int>(haplosome_count);
 		int64_t nearest_neighbor_distance = INT64_MAX;
 		int nearest_neighbor_index = -1;
 		
-		for (size_t i = 0; i < genome_count; ++i)
+		for (size_t i = 0; i < haplosome_count; ++i)
 		{
 			int64_t distance = row_ptr[i];
 			
@@ -1149,19 +1282,19 @@ static bool operator>(const greedy_edge &i, const greedy_edge &j) { return (i.d 
 static bool operator==(const greedy_edge &i, const greedy_edge &j) { return (i.d == j.d); }
 static bool operator!=(const greedy_edge &i, const greedy_edge &j) { return (i.d != j.d); }
 
-void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count, std::vector<int> &solution)
+void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution)
 {
     // The first thing we need to do is sort all possible edges in ascending order by length;
 	// we don't need to differentiate a->b versus b->a since our distances are symmetric
 	std::vector<greedy_edge> edge_buf;
-	size_t edge_count = (genome_count * (genome_count - 1)) / 2;
+	size_t edge_count = (haplosome_count * (haplosome_count - 1)) / 2;
 	
 	edge_buf.reserve(edge_count);	// one of the two factors is even so /2 is safe
 	
-	for (size_t i = 0; i < genome_count - 1; ++i)
+	for (size_t i = 0; i < haplosome_count - 1; ++i)
 	{
-		for (size_t k = i + 1; k < genome_count; ++k)
-			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * genome_count)});
+		for (size_t k = i + 1; k < haplosome_count; ++k)
+			edge_buf.emplace_back(greedy_edge{static_cast<int>(i), static_cast<int>(k), *(distances + i + k * haplosome_count)});
 	}
     
 	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
@@ -1172,9 +1305,9 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
         // We have a progress panel, so we do an incremental sort
         BareBoneIIQS<greedy_edge> sorter(edge_buf.data(), edge_count);
         
-        for (size_t i = 0; i < genome_count - 1; ++i)
+        for (size_t i = 0; i < haplosome_count - 1; ++i)
         {
-            for (size_t k = i + 1; k < genome_count; ++k)
+            for (size_t k = i + 1; k < haplosome_count; ++k)
                 sorter.next();
             
             if (progressPanel_->haplotypeProgressIsCancelled())
@@ -1199,11 +1332,11 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	// in the same group creates a cycle and is thus illegal (maybe there's a better way to detect cycles but I
 	// haven't thought of it yet :->).
 	std::vector<greedy_edge> path_components;
-	uint8_t *node_degrees = static_cast<uint8_t *>(calloc(sizeof(uint8_t), genome_count));
-	int *node_groups = static_cast<int *>(calloc(sizeof(int), genome_count));
+	uint8_t *node_degrees = static_cast<uint8_t *>(calloc(sizeof(uint8_t), haplosome_count));
+	int *node_groups = static_cast<int *>(calloc(sizeof(int), haplosome_count));
 	int next_node_group = 1;
 	
-	path_components.reserve(genome_count);
+	path_components.reserve(haplosome_count);
 	
 	for (size_t edge_index = 0; edge_index < edge_count; ++edge_index)
 	{
@@ -1253,12 +1386,12 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 		{
 			// joining two groups; one gets assimilated
 			// the assimilation could probably be done more efficiently but this overhead won't matter
-			for (size_t node_index = 0; node_index < genome_count; ++node_index)
+			for (size_t node_index = 0; node_index < haplosome_count; ++node_index)
 				if (node_groups[node_index] == group_k)
 					node_groups[node_index] = group_i;
 		}
 		
-		if (path_components.size() == genome_count - 1)		// no return edge
+		if (path_components.size() == haplosome_count - 1)		// no return edge
 			break;
 		
         if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())
@@ -1269,7 +1402,7 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	{
 		int degree1_count = 0, degree2_count = 0, universal_group = node_groups[0];
 		
-		for (size_t node_index = 0; node_index < genome_count; ++node_index)
+		for (size_t node_index = 0; node_index < haplosome_count; ++node_index)
 		{
 			if (node_degrees[node_index] == 1) ++degree1_count;
 			else if (node_degrees[node_index] == 2) ++degree2_count;
@@ -1290,10 +1423,10 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 	// Finally, we have a jumble of edges that are in no order, and we need to make a coherent path from them.
 	// We start at the first degree-1 node we find, which is one of the two ends; doesn't matter which.
 	{
-		size_t remaining_edge_count = genome_count - 1;
+		size_t remaining_edge_count = haplosome_count - 1;
 		size_t last_index;
 		
-		for (last_index = 0; last_index < genome_count; ++last_index)
+		for (last_index = 0; last_index < haplosome_count; ++last_index)
 			if (node_degrees[last_index] == 1)
 				break;
 		
@@ -1339,25 +1472,25 @@ cancelExit:
 }
 
 // check that a given path visits every city exactly once
-bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t genome_count)
+bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t haplosome_count)
 {
-    uint8_t *visits = static_cast<uint8_t *>(calloc(sizeof(uint8_t), genome_count));
+    uint8_t *visits = static_cast<uint8_t *>(calloc(sizeof(uint8_t), haplosome_count));
 	
-	if (path.size() != genome_count)
+	if (path.size() != haplosome_count)
 	{
 		qDebug() << "checkPath:size: path is wrong length";
 		free(visits);
 		return false;
 	}
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 	{
 		int city_index = path[i];
 		
 		visits[city_index]++;
 	}
 	
-	for (size_t i = 0; i < genome_count; ++i)
+	for (size_t i = 0; i < haplosome_count; ++i)
 		if (visits[i] != 1)
 		{
 			qDebug() << "checkPath:size: city visited wrong count (" << visits[i] << ")";
@@ -1370,16 +1503,16 @@ bool QtSLiMHaplotypeManager::checkPath(std::vector<int> &path, size_t genome_cou
 }
 
 // calculate the length of a given path
-int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *distances, size_t genome_count)
+int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *distances, size_t haplosome_count)
 {
 	int64_t length = 0;
 	int current_city = path[0];
 	
-	for (size_t city_index = 1; city_index < genome_count; city_index++)
+	for (size_t city_index = 1; city_index < haplosome_count; city_index++)
 	{
 		int next_city = path[city_index];
 		
-		length += *(distances + static_cast<size_t>(current_city) * genome_count + next_city);
+		length += *(distances + static_cast<size_t>(current_city) * haplosome_count + next_city);
 		current_city = next_city;
 	}
 	
@@ -1391,10 +1524,10 @@ int64_t QtSLiMHaplotypeManager::lengthOfPath(std::vector<int> &path, int64_t *di
 // might be useful to provide as an option.  This method always takes the first optimization it sees that moves in a
 // positive direction; I tried taking the best optimization available at each step, instead, and it ran half as fast
 // and achieved results that were no better on average, so I didn't even keep that code.
-void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t genome_count)
+void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t haplosome_count)
 {
     // Figure out the length of the current path
-	int64_t original_distance = lengthOfPath(path, distances, genome_count);
+	int64_t original_distance = lengthOfPath(path, distances, haplosome_count);
 	int64_t best_distance = original_distance;
 	
 	//NSLog(@"2-opt initial length: %lld", (long long int)best_distance);
@@ -1403,9 +1536,9 @@ void QtSLiMHaplotypeManager::do2optOptimizationOfSolution(std::vector<int> &path
 	size_t farthest_i = 0;	// for our progress bar
 	
 startAgain:
-	for (size_t i = 0; i < genome_count - 1; i++)
+	for (size_t i = 0; i < haplosome_count - 1; i++)
 	{
-		for (size_t k = i + 1; k < genome_count; ++k)
+		for (size_t k = i + 1; k < haplosome_count; ++k)
 		{
 			// First, try the proposed path without actually constructing it; we just need to subtract the lengths of the
 			// edges being removed and add the lengths of the edges being added, rather than constructing the whole new
@@ -1420,8 +1553,8 @@ startAgain:
 			// we can only get away with juggling the distances this way because our problem is symmetric; the length of
 			// 3-4-5 is guaranteed the same as the length of the reversed segment 5-4-3.  If the reversed segment is at
 			// one or the other end of the path, we only need to patch up one edge; we don't return to the start city.
-			// Note also that i and k are not genome indexes; they are indexes into our current path, which provides us
-			// with the relevant genomes indexes.
+			// Note also that i and k are not haplosome indexes; they are indexes into our current path, which provides us
+			// with the relevant haplosomes indexes.
 			int64_t new_distance = best_distance;
 			size_t index_i = static_cast<size_t>(path[i]);
 			size_t index_k = static_cast<size_t>(path[k]);
@@ -1430,15 +1563,15 @@ startAgain:
 			{
 				size_t index_i_minus_1 = static_cast<size_t>(path[i - 1]);
 				
-				new_distance -= *(distances + index_i_minus_1 + index_i * genome_count);	// remove edge (i-1)-(i)
-				new_distance += *(distances + index_i_minus_1 + index_k * genome_count);	// add edge (i-1)-(k)
+				new_distance -= *(distances + index_i_minus_1 + index_i * haplosome_count);	// remove edge (i-1)-(i)
+				new_distance += *(distances + index_i_minus_1 + index_k * haplosome_count);	// add edge (i-1)-(k)
 			}
-			if (k < genome_count - 1)
+			if (k < haplosome_count - 1)
 			{
 				size_t index_k_plus_1 = static_cast<size_t>(path[k + 1]);
 				
-				new_distance -= *(distances + index_k + index_k_plus_1 * genome_count);		// remove edge (k)-(k+1)
-				new_distance += *(distances + index_i + index_k_plus_1 * genome_count);		// add edge (i)-(k+1)
+				new_distance -= *(distances + index_k + index_k_plus_1 * haplosome_count);		// remove edge (k)-(k+1)
+				new_distance += *(distances + index_i + index_k_plus_1 * haplosome_count);		// add edge (i)-(k+1)
 			}
 			
 			if (new_distance < best_distance)
@@ -1459,7 +1592,7 @@ startAgain:
 				best_distance = new_distance;
 				
 				//NSLog(@"Improved path length: %lld (inverted from %d to %d)", (long long int)best_distance, i, k);
-				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:genome_count]);
+				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:haplosome_count]);
 				goto startAgain;
 			}
 		}
@@ -1483,7 +1616,10 @@ startAgain:
 // QtSLiMHaplotypeView
 //
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// It displays a haplotype view for one chromosome; QtSLiMHaplotypeTopView may contain one or more
 //
+
+#pragma mark QtSLiMHaplotypeView
 
 QtSLiMHaplotypeView::QtSLiMHaplotypeView(QWidget *p_parent, Qt::WindowFlags f)
 #ifndef SLIM_NO_OPENGL
@@ -1529,42 +1665,146 @@ void QtSLiMHaplotypeView::paintEvent(QPaintEvent * /* p_paint_event */)
 #endif
 {
     QPainter painter(this);
-    
-    painter.eraseRect(rect());      // erase to background color, which is not guaranteed
-    
-    // inset and frame with gray
     QRect interior = rect();
     
-    interior.adjust(5, 5, -5, 0);   // 0 because the action button layout already has margin
-    painter.fillRect(interior, Qt::gray);
+    // frame with gray
+#ifndef SLIM_NO_OPENGL
+    if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+    {
+        painter.beginNativePainting();
+        glColor3f(0.5f, 0.5f, 0.5f);
+        glRecti(interior.x(), interior.y(), interior.x() + interior.width(), interior.y() + interior.height());
+    }
+    else
+#endif
+    {
+        painter.fillRect(interior, QtSLiMColorWithWhite(0.5, 1.0));
+    }
+        
     interior.adjust(1, 1, -1, -1);
     
     if (delegate_)
     {
 #ifndef SLIM_NO_OPENGL
         if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true);
+        else
+#endif
+            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, painter);
+    }
+    else
+    {
+#ifndef SLIM_NO_OPENGL
+        if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
         {
             painter.beginNativePainting();
-            delegate_->glDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr);
-            painter.endNativePainting();
+            glColor3f(0.95f, 0.95f, 0.95f);
+            glRecti(interior.x(), interior.y(), interior.x() + interior.width(), interior.y() + interior.height());
         }
         else
 #endif
         {
-            delegate_->qtDrawHaplotypes(interior, displayBlackAndWhite_, showSubpopulationStrips_, true, nullptr, painter);
+            painter.fillRect(interior, QtSLiMColorWithWhite(0.9, 1.0));
+        }
+    }
+
+#ifndef SLIM_NO_OPENGL
+    if (QtSLiMPreferencesNotifier::instance().useOpenGLPref())
+        painter.endNativePainting();
+#endif
+}
+
+void QtSLiMHaplotypeView::setDisplayBlackAndWhite(bool flag)
+{
+    displayBlackAndWhite_ = flag;
+    update();
+}
+
+void QtSLiMHaplotypeView::setDisplaySubpopulationStrips(bool flag)
+{
+    showSubpopulationStrips_ = flag;
+    update();
+}
+
+
+//
+// QtSLiMHaplotypeTopView
+//
+// This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// This contains a set of QtSLiMHaplotypeViews to display a set of haplotype plots for chromosomes
+//
+
+#pragma mark QtSLiMHaplotypeTopView
+
+QtSLiMHaplotypeTopView::QtSLiMHaplotypeTopView(QWidget *p_parent, Qt::WindowFlags f)
+    : QWidget(p_parent, f)
+{
+}
+
+QtSLiMHaplotypeTopView::~QtSLiMHaplotypeTopView(void)
+{
+}
+
+void QtSLiMHaplotypeTopView::paintEvent(QPaintEvent * /* p_paint_event */)
+{
+    QPainter painter(this);
+    QRect interior = rect();
+    
+    painter.fillRect(interior, Qt::white);
+    
+    if (showChromosomeSymbols_)
+    {
+        // We draw the text labels for our child views, since we are a regular QWidget and they might be QOpenGLWidgets
+        // This is the main motivation for the existence of this class at all; taking a snapshot of a mixed-drawing
+        // widget with render() does not work well for some reason, so we need the QPainter drawing done in the parent
+        static QFont *tickFont = nullptr;
+        
+        if (!tickFont)
+        {
+            tickFont = new QFont();
+#ifdef __linux__
+            tickFont->setPointSize(8);
+#else
+            tickFont->setPointSize(11);
+#endif
+        }
+        painter.setFont(*tickFont);
+        painter.setPen(Qt::black);
+        
+        QFontMetricsF fontMetrics(*tickFont);
+        
+        const QObjectList &child_objects = children();
+        
+        for (QObject *child_object : child_objects)
+        {
+            QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+            
+            if (child_widget && child_widget->isVisible())
+            {
+                QString chromosomeSymbol = QString::fromStdString(child_widget->chromosomeSymbol_);
+                
+                if (chromosomeSymbol.length())
+                {
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+                    double symbolLabelWidth = fontMetrics.width(chromosomeSymbol);               // deprecated in 5.11
+#else
+                    double symbolLabelWidth = fontMetrics.horizontalAdvance(chromosomeSymbol);   // added in Qt 5.11
+#endif
+                    
+                    QRect viewFrame = child_widget->geometry();
+                    QRect labelFrame = QRect(viewFrame.left(), 0, viewFrame.width(), viewFrame.top());
+                    
+                    if (symbolLabelWidth <= viewFrame.width())
+                        painter.drawText(labelFrame,
+                                         Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignVCenter | Qt::AlignHCenter,
+                                         chromosomeSymbol);
+                }
+            }
         }
     }
 }
 
-void QtSLiMHaplotypeView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
-{
-    contextMenuEvent(nullptr);
-    
-    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
-    p_actionButton->qtslimSetHighlight(false);
-}
-
-void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
+void QtSLiMHaplotypeTopView::actionButtonRunMenu(QtSLiMPushButton *p_actionButton)
 {
     QMenu contextMenu("graph_menu", this);
     
@@ -1577,7 +1817,7 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
     QAction *exportPlot = contextMenu.addAction("Export Plot...");
     
     // Run the context menu synchronously
-    QPoint menuPos = (p_event ? p_event->globalPos() : QCursor::pos());
+    QPoint menuPos = QCursor::pos();
     QAction *action = contextMenu.exec(menuPos);
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
@@ -1586,23 +1826,42 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
         if (action == bwColorToggle)
         {
             displayBlackAndWhite_ = !displayBlackAndWhite_;
-            update();
+            
+            // We tell all of our child QtSLiMHaplotypeViews about this configuration change
+            const QObjectList &child_objects = children();
+            
+            for (QObject *child_object : child_objects)
+            {
+                QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+                
+                if (child_widget && child_widget->isVisible())
+                    child_widget->setDisplayBlackAndWhite(displayBlackAndWhite_);
+            }
         }
         if (action == subpopStripsToggle)
         {
             showSubpopulationStrips_ = !showSubpopulationStrips_;
-            update();
+            
+            // We tell all of our child QtSLiMHaplotypeViews about this configuration change
+            const QObjectList &child_objects = children();
+            
+            for (QObject *child_object : child_objects)
+            {
+                QtSLiMHaplotypeView *child_widget = qobject_cast<QtSLiMHaplotypeView *>(child_object);
+                
+                if (child_widget && child_widget->isVisible())
+                    child_widget->setDisplaySubpopulationStrips(showSubpopulationStrips_);
+            }
         }
-#ifndef SLIM_NO_OPENGL
-        if (action == copyPlot)
+        else if (action == copyPlot)
         {
-            QImage snap = grabFramebuffer();
-            QSize snapSize = snap.size();
-            QImage interior = snap.copy(5, 5, snapSize.width() - 10, snapSize.height() - 10);
+            QPixmap pixmap(size());
+            render(&pixmap);
+            QImage snap = pixmap.toImage();
             QClipboard *clipboard = QGuiApplication::clipboard();
-            clipboard->setImage(interior);
+            clipboard->setImage(snap);
         }
-        if (action == exportPlot)
+        else if (action == exportPlot)
         {
             // FIXME maybe this should use QtSLiMDefaultSaveDirectory?  see QtSLiMWindow::saveAs()
             QString desktopPath = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -1612,17 +1871,18 @@ void QtSLiMHaplotypeView::contextMenuEvent(QContextMenuEvent *p_event)
             
             if (!fileName.isEmpty())
             {
-                QImage snap = grabFramebuffer();
-                QSize snapSize = snap.size();
-                QImage interior = snap.copy(5, 5, snapSize.width() - 10, snapSize.height() - 10);
+                QPixmap pixmap(size());
+                render(&pixmap);
+                QImage snap = pixmap.toImage();
                 
-                interior.save(fileName, "PNG", 100);    // JPG does not come out well; colors washed out
+                snap.save(fileName, "PNG", 100);    // JPG does not come out well; colors washed out
             }
         }
-#endif
     }
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    p_actionButton->qtslimSetHighlight(false);
 }
-
 
 
 

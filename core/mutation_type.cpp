@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -61,7 +61,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), haploid_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(std::move(p_dfe_parameters)), dfe_strings_(std::move(p_dfe_strings)), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), hemizygous_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(std::move(p_dfe_parameters)), dfe_strings_(std::move(p_dfe_strings)), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -287,9 +287,9 @@ double MutationType::DrawSelectionCoefficient(void) const
 			if (!cached_dfe_script_)
 			{
 				std::string script_string = dfe_strings_[0];
-				cached_dfe_script_ = new EidosScript(script_string, -1);
+				cached_dfe_script_ = new EidosScript(script_string);
 				
-				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
+				gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
 				
 				try
 				{
@@ -299,7 +299,10 @@ double MutationType::DrawSelectionCoefficient(void) const
 				catch (...)
 				{
 					if (gEidosTerminateThrows)
+					{
 						gEidosErrorContext = error_context_save;
+						TranslateErrorContextToUserScript("DrawSelectionCoefficient()");
+					}
 					
 					delete cached_dfe_script_;
 					cached_dfe_script_ = nullptr;
@@ -313,7 +316,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			}
 			
 			// Execute inside try/catch so we can handle errors well
-			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_, true};
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, cached_dfe_script_};
 			
 			try
 			{
@@ -341,7 +344,15 @@ double MutationType::DrawSelectionCoefficient(void) const
 				// don't throw, this catch block will never be hit; exit() will already have been called
 				// and the error will have been reported from the context of the lambda script string.)
 				if (gEidosTerminateThrows)
-					gEidosErrorContext = error_context_save;
+				{
+					// In some cases, such as if the error occurred in a derived user-defined function, we can
+					// actually get a user script error context at this point, and don't need to intervene.
+					if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+					{
+						gEidosErrorContext = error_context_save;
+						TranslateErrorContextToUserScript("DrawSelectionCoefficient()");
+					}
+				}
 				
 #ifdef DEBUG_LOCKS_ENABLED
 				DrawSelectionCoefficient_InterpreterLock.end_critical();
@@ -409,7 +420,7 @@ const EidosClass *MutationType::Class(void) const
 
 void MutationType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<m" << mutation_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<m" << mutation_type_id_ << ">";
 }
 
 EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
@@ -481,8 +492,8 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
-		case gID_haploidDominanceCoeff:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(haploid_dominance_coeff_));
+		case gID_hemizygousDominanceCoeff:
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hemizygous_dominance_coeff_));
 		case gID_mutationStackGroup:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(stack_group_));
 		case gID_nucleotideBased:
@@ -618,13 +629,13 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			return;
 		}
 			
-		case gID_haploidDominanceCoeff:
+		case gID_hemizygousDominanceCoeff:
 		{
 			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
-			haploid_dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+			hemizygous_dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			
-			// Changing the haploid dominance coefficient means that the cached fitness effects of all mutations using this type
+			// Changing the hemizygous dominance coefficient means that the cached fitness effects of all mutations using this type
 			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
 			species_.any_dominance_coeff_changed_ = true;
 			species_.community_.mutation_types_changed_ = true;
@@ -811,7 +822,7 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionType,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_distributionParams,		true,	kEidosValueMaskFloat | kEidosValueMaskString)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_dominanceCoeff));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haploidDominanceCoeff,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_hemizygousDominanceCoeff,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackGroup,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationStackPolicy,	false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
