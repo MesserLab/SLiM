@@ -163,6 +163,7 @@
         <file>recipes/Recipe 17.16 - A spatial model with carrying-capacity density.txt</file>
         <file>recipes/Recipe 17.17 - A spatial epidemiological S-I-R model.txt</file>
         <file>recipes/Recipe 17.18 - A sexual, age-structured spatial model.txt</file>
+        <file>recipes/Recipe 17.19 - Modeling indirect competition mediated by resource availability.txt</file>
         <file>recipes/Recipe 18.1 - A minimal tree-seq model.txt</file>
         <file>recipes/Recipe 18.2 - Overlaying neutral mutations.py</file>
         <file>recipes/Recipe 18.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>

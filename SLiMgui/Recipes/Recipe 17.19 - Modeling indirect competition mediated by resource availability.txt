@@ -1,0 +1,90 @@
+// Keywords: resources, foraging, spatial competition, home range, multispecies
+
+species all initialize()
+{
+	initializeSLiMModelType("nonWF");
+	
+	// Foraging interaction.
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=1.5);
+	
+	// Reproduction interaction.
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=3,
+		sexSegregation="FM");
+}
+species resourceNode initialize()
+{
+	initializeSpecies(avatar="🪣", color="cornflowerblue");
+	initializeSLiMOptions(dimensionality="xy");
+}
+species forager initialize()
+{
+	initializeSpecies(avatar="🤤", color="red");
+	initializeSLiMOptions(dimensionality="xy");
+	initializeSex();
+}
+
+ticks all 1 early()
+{
+	// Coordinates for the resource nodes.
+	xs = rep(seq(0.5, 100), 100);
+	ys = repEach(seq(0.5, 100), 100);
+	
+	// Add the resource nodes.
+	resourceNode.addSubpop("p1", 10000);
+	p1.setSpatialBounds(c(0, 0, 100, 100));
+	p1.individuals.x = xs;
+	p1.individuals.y = ys;
+	p1.individuals.tagF = 10.0;
+	
+	// Initialize the population of foragers.
+	forager.addSubpop("p2", 100000);
+	p2.setSpatialBounds(p1.spatialBounds);
+	p2.individuals.setSpatialPosition(p2.pointUniform(p2.individualCount));
+}
+
+ticks all 2: first()
+{
+	// Evaluate the spatial interaction for reproduction.
+	i2.evaluate(p2);
+}
+species forager reproduction(NULL, "F")
+{
+	// Draw the litter size first, and return if it's zero.
+	litterSize = rpois(1, 8);
+	if (litterSize == 0)
+		return;
+	
+	// Draw a random mate from among males in range.
+	mate = i2.drawByStrength(individual, 1, p2);
+	if (size(mate) == 0)
+		return;
+	
+	// Produce the offspring.
+	subpop.addCrossed(individual, mate, count=litterSize);
+}
+
+ticks all 2:100 early()
+{
+	// Dispersal of new offspring.
+	offspring = p2.subsetIndividuals(maxAge=0);
+	p2.deviatePositions(offspring, "reprising", INF, "n", 1.5);
+	
+	// Evaluate the spatial interaction between resource nodes and foragers.
+	i1.evaluate(c(p2, p1));
+	
+	// Survival in this model is based entirely on resource availability.
+	p2.individuals.fitnessScaling = 0.0;
+	
+	for (node in p1.individuals)
+	{
+		// Find all foragers within range of the resource node.
+		f = i1.nearestNeighbors(node, p2.individualCount, p2);
+		
+		// Evenly divide resources to all foragers within range.
+		f.fitnessScaling = f.fitnessScaling + node.tagF / size(f);
+	}
+	
+	// In some cases, if the landscape is at very low density, some individuals
+	// might have a fitnessScaling value > 1.0. This value must be capped.
+	p2.individuals.fitnessScaling = pmin(p2.individuals.fitnessScaling, 1.0);
+}

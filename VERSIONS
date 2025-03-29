@@ -162,6 +162,7 @@ development head (in the master branch):
 		add a color chart and a plot symbols chart to the SLiMgui Help menu's list of quick-reference charts it can show
 		attempt to fix SLiMgui window visibility issues -- miniaturized windows not becoming visible, off-screen windows remaining offscreen, etc.
 		add calcSFS() function to the popgen utility functions suite, add recipe 9.12 to demonstrate it
+		add recipe 17.19, "Modeling indirect competition mediated by resource availability", demonstrating Sam's resource-explicit approach
 
 
 version 4.3 (Eidos version 3.3):
