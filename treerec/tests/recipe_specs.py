@@ -37,6 +37,9 @@ recipe_specs = {
     "test_097 modeling nucleotides.slim":     {"mutations": True},
     "test_____pop_names_pX.slim":		      {"mutations": True},
     "test_____pop_names_nondefault.slim":     {"mutations": True},
+    "test_____simple_not_perm.slim":          {},
+    "test_____simple_perm.slim":              {},
+    "test_____simple_none.slim":              {},
 }
 
 

@@ -19,6 +19,10 @@ class OutputResult:
         assert os.path.isdir(out_dir)
         self.dir = out_dir
 
+    def get_normal_ts(self):
+        ts = tskit.load(os.path.join(self.dir, "test_output.trees"))
+        return ts
+
     def get_ts(self, include_text=False):
         if include_text:
             # read in from text
@@ -70,8 +74,8 @@ class OutputResult:
         """
         Read in the genotypes output by the SLiM function outputMutationResult(),
         producing a dictionary indexed by position, whose values are dictionaries
-        indexed by SLiM genome ID, giving a mutation carried at that position in
-        that genome. Return None if no such filename exists
+        indexed by SLiM genome ID, giving the mutations carried at that position
+        in that genome; also return a list of SLiM IDs found.
         """
         basename = "slim_mutation_output.txt"  # matches the name in init.slim
         filename = os.path.join(self.dir, basename)
@@ -79,10 +83,12 @@ class OutputResult:
             raise RuntimeError(f"No mutation file {basename} in {self.dir}")
         slim_file = open(filename, "r")
         slim = {}
+        slim_ids = []
         for header in slim_file:
             headstring = header.split()
             assert headstring[0] == "#Genome:"
             genome = int(headstring[1])
+            slim_ids.append(genome)
             mutations = slim_file.readline().split()
             assert mutations[0] == "Mutations:"
             mutations = [int(u) for u in mutations[1:]]
@@ -95,7 +101,7 @@ class OutputResult:
                 if genome not in slim[pos]:
                     slim[pos][genome] = []
                 slim[pos][genome].append(mut)
-        return slim
+        return slim, slim_ids
 
     def marked_mutation_output(self, ts):
         """
@@ -186,7 +192,7 @@ def recipe(request, tmp_path_factory, worker_id):
     Return a dict containing information about the recipe results. Most logic in this
     fixture is to check whether we are running as a single proc, or as a worker.
     """
-    recipe_name=request.param
+    recipe_name = request.param
     return_val = {"name": recipe_name}
     return_val.update(recipe_specs[recipe_name])
 
