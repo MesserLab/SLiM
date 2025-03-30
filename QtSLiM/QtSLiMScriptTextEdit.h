@@ -197,6 +197,8 @@ public:
     
     QString exportAsHtml(void);
     
+    virtual void insertFromMimeData(const QMimeData *source) override;
+    
 public slots:
     void copyAsHTML(void);
     void shiftSelectionLeft(void);

@@ -2762,6 +2762,36 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
 	}
 }
 
+void QtSLiMScriptTextEdit::insertFromMimeData(const QMimeData *source)
+{
+    // if the data pasted is text, we want to convert weird line breaks into newlines
+    // note that the substitution done here strips off any other mime types in source,
+    // but that seems fine; if there's text, we're going to paste text, so whatever.
+    if (source && source->hasText())
+    {
+        QString text = source->text();
+        
+        // Unknown characters can be identified with https://www.babelstone.co.uk/Unicode/whatisit.html
+        //qDebug() << "pasted:" << text;
+        
+        // Unicode "U+2028 : LINE SEPARATOR" is the one presently causing me problems,
+        // but U+2029 should be replaced as well; we want vanilla non-unicode line ends.
+        text.replace(QChar::LineSeparator, '\n');
+        text.replace(QChar::ParagraphSeparator, '\n');
+        
+        //qDebug() << "substituted:" << text;
+        
+        QMimeData substitute;
+        substitute.setText(text);
+        
+        QPlainTextEdit::insertFromMimeData(&substitute);
+        return;
+    }
+    
+    // call to super to do the work
+    QPlainTextEdit::insertFromMimeData(source);
+}
+
 // From here down is the machinery for providing line numbers with LineNumberArea
 // This code is adapted from https://doc.qt.io/qt-5/qtwidgets-widgets-codeeditor-example.html
 
