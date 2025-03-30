@@ -1429,6 +1429,7 @@ const std::string &gStr_pointReflected = EidosRegisteredString("pointReflected",
 const std::string &gStr_pointStopped = EidosRegisteredString("pointStopped", gID_pointStopped);
 const std::string &gStr_pointPeriodic = EidosRegisteredString("pointPeriodic", gID_pointPeriodic);
 const std::string &gStr_pointUniform = EidosRegisteredString("pointUniform", gID_pointUniform);
+const std::string &gStr_pointUniformWithMap = EidosRegisteredString("pointUniformWithMap", gID_pointUniformWithMap);
 const std::string &gStr_setCloningRate = EidosRegisteredString("setCloningRate", gID_setCloningRate);
 const std::string &gStr_setSelfingRate = EidosRegisteredString("setSelfingRate", gID_setSelfingRate);
 const std::string &gStr_setSexRatio = EidosRegisteredString("setSexRatio", gID_setSexRatio);

@@ -12371,7 +12371,54 @@ The length of
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)removeSpatialMap(so<SpatialMap>$\'a0map)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(float)pointUniformWithMap(integer$\'a0n, so<SpatialMap>$\'a0map)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a new point (or points, for 
+\f3\fs18 n
+\f4\fs20  > 1) generated from uniform draws for each coordinate, within the spatial boundaries of the subpopulation, and rejection sampled using the spatial map 
+\f3\fs18 map
+\f4\fs20  as described below.  The returned vector will contain 
+\f3\fs18 n
+\f4\fs20  points, each comprised of a number of coordinates equal to the dimensionality of the simulation, so it will be of total length 
+\f3\fs18 n
+\f4\fs20 *dimensionality.  This may only be called in simulations for which continuous space has been enabled with 
+\f3\fs18 initializeSLiMOptions()
+\f4\fs20 .\
+The spatial map defined by 
+\f3\fs18 map
+\f4\fs20  must be configured in a specific way.  First of all, it must be defined in, or added to, the target subpopulation (and thus, by implication, it must match the spatial bounds of the subpopulation, and its spatiality must be compatible with the subpopulation\'92s dimensionality, as discussed in 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  and/or 
+\f3\fs18 addSpatialMap()
+\f4\fs20 ).  Second, the values in the spatial map must represent \'93habitability\'94, in the following sense.  The value of 
+\f3\fs18 map
+\f4\fs20  at a given drawn point is obtained, symbolized here by 
+\f3\fs18 x
+\f4\fs20 .  Next, 
+\f3\fs18 x
+\f4\fs20  is clamped to the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ]; values less than 
+\f3\fs18 0
+\f4\fs20  become 
+\f3\fs18 0
+\f4\fs20 , values greater than 
+\f3\fs18 1
+\f4\fs20  become 
+\f3\fs18 1
+\f4\fs20 .  The resulting 
+\f3\fs18 x
+\f4\fs20  value is then interpreted as the probability that the point is considered \'93within bounds\'94 (as far as the spatial map is concerned; points that are outside the subpopulation\'92s spatial bounds are 
+\f1\i always
+\f4\i0  considered \'93out of bounds\'94).  Given this, 
+\f3\fs18 1-x
+\f4\fs20  is thus the probability that the point will be redrawn because it fell out of bounds.  Each point will be redrawn repeatedly until a point considered \'93within bounds\'94 is obtained.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)removeSpatialMap(so<SpatialMap>$\'a0map)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Removes the 

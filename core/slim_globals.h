@@ -1002,6 +1002,7 @@ extern const std::string &gStr_pointReflected;
 extern const std::string &gStr_pointStopped;
 extern const std::string &gStr_pointPeriodic;
 extern const std::string &gStr_pointUniform;
+extern const std::string &gStr_pointUniformWithMap;
 extern const std::string &gStr_setCloningRate;
 extern const std::string &gStr_setSelfingRate;
 extern const std::string &gStr_setSexRatio;
@@ -1453,6 +1454,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pointStopped,
 	gID_pointPeriodic,
 	gID_pointUniform,
+	gID_pointUniformWithMap,
 	gID_setCloningRate,
 	gID_setSelfingRate,
 	gID_setSexRatio,

@@ -6216,6 +6216,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_pointStopped:			return ExecuteMethod_pointStopped(p_method_id, p_arguments, p_interpreter);
 		case gID_pointPeriodic:			return ExecuteMethod_pointPeriodic(p_method_id, p_arguments, p_interpreter);
 		case gID_pointUniform:			return ExecuteMethod_pointUniform(p_method_id, p_arguments, p_interpreter);
+		case gID_pointUniformWithMap:	return ExecuteMethod_pointUniformWithMap(p_method_id, p_arguments, p_interpreter);
 		case gID_setSpatialBounds:		return ExecuteMethod_setSpatialBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_cachedFitness:			return ExecuteMethod_cachedFitness(p_method_id, p_arguments, p_interpreter);
 		case gID_sampleIndividuals:		return ExecuteMethod_sampleIndividuals(p_method_id, p_arguments, p_interpreter);
@@ -10572,6 +10573,179 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	}
 	
 	return result_SP;
+}
+
+//	*********************	– (float)pointUniformWithMap(integer$ n, so<SpatialMap>$ map)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	int dimensionality = species_.SpatialDimensionality();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() cannot be called in non-spatial simulations." << EidosTerminate();
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t point_count = n_value->IntAtIndex_NOCAST(0, nullptr);
+	
+	if (point_count < 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() requires n >= 0." << EidosTerminate();
+	if (point_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// Get the spatial map's name; see ExecuteMethod_spatialMapValue() for the origin of this code
+	EidosValue *map_value = p_arguments[1].get();
+	SpatialMap *map = nullptr;
+	std::string map_name;
+	
+	if (map_value->Type() == EidosValueType::kValueString)
+	{
+		map_name = ((EidosValue_String *)map_value)->StringRefAtIndex_NOCAST(0, nullptr);
+		
+		if (map_name.length() == 0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() map name must not be zero-length." << EidosTerminate();
+	}
+	else
+	{
+		map = (SpatialMap *)map_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		map_name = map->name_;
+	}
+	
+	// Find the SpatialMap by name; we do this lookup even if a map object was supplied, to check that that map is present
+	auto map_iter = spatial_maps_.find(map_name);
+	
+	if (map_iter != spatial_maps_.end())
+	{
+		SpatialMap *found_map = map_iter->second;
+		
+		if (map && (found_map != map))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() could not find map in the target subpopulation (although it did find a different map with the same name)." << EidosTerminate();
+		
+		map = found_map;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() could not find map '" << map_name << "' in the target subpopulation." << EidosTerminate();
+	
+	// Generate the points
+	int64_t length_out = point_count * dimensionality;
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(length_out);
+	double *float_result_data = float_result->data_mutable();
+	EidosValue_SP result_SP = EidosValue_SP(float_result);
+	
+	// FIXME: PARALLELIZE
+	switch (dimensionality)
+	{
+		case 1:
+		{
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					double *point_base = &(float_result_data[point_index]);
+					int num_tries = 0;
+					
+					do {
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						// ValueAtPoint_S1() requires points normalized to [0, 1] in the map's spatiality
+						point_base[0] = Eidos_rng_uniform(rng);
+						double value_for_point = map->ValueAtPoint_S1(point_base);
+						
+						if (value_for_point <= 0)
+							continue;
+						else if (value_for_point >= 1)
+							break;
+						else if (Eidos_rng_uniform(rng) <= value_for_point)
+							break;
+					} while (true);
+					
+					point_base[0] = point_base[0] * xsize + xbase;
+				}
+			}
+			break;
+		}
+		case 2:
+		{
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
+				
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					double *point_base = &(float_result_data[point_index * 2]);
+					int num_tries = 0;
+					
+					do {
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						// ValueAtPoint_S2() requires points normalized to [0, 1] in the map's spatiality
+						point_base[0] = Eidos_rng_uniform(rng);
+						point_base[1] = Eidos_rng_uniform(rng);
+						double value_for_point = map->ValueAtPoint_S2(point_base);
+						
+						if (value_for_point <= 0)
+							continue;
+						else if (value_for_point >= 1)
+							break;
+						else if (Eidos_rng_uniform(rng) <= value_for_point)
+							break;
+					} while (true);
+					
+					point_base[0] = point_base[0] * xsize + xbase;
+					point_base[1] = point_base[1] * ysize + ybase;
+				}
+			}
+			break;
+		}
+		case 3:
+		{
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
+				double zsize = bounds_z1_ - bounds_z0_, zbase = bounds_z0_;
+				
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					double *point_base = &(float_result_data[point_index * 3]);
+					int num_tries = 0;
+					
+					do {
+						if (++num_tries == 1000000)
+							EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() failed to find a successful drawn point after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+						
+						// ValueAtPoint_S3() requires points normalized to [0, 1] in the map's spatiality
+						point_base[0] = Eidos_rng_uniform(rng);
+						point_base[1] = Eidos_rng_uniform(rng);
+						point_base[2] = Eidos_rng_uniform(rng);
+						double value_for_point = map->ValueAtPoint_S3(point_base);
+						
+						if (value_for_point <= 0)
+							continue;
+						else if (value_for_point >= 1)
+							break;
+						else if (Eidos_rng_uniform(rng) <= value_for_point)
+							break;
+					} while (true);
+					
+					point_base[0] = point_base[0] * xsize + xbase;
+					point_base[1] = point_base[1] * ysize + ybase;
+					point_base[2] = point_base[2] * zsize + zbase;
+				}
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): (internal error) unrecognized dimensionality." << EidosTerminate();
+	}
+	
+	return result_SP;
 }			
 
 // WF only:
@@ -12105,6 +12279,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointPeriodic, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniform, kEidosValueMaskFloat))->AddInt_OS(gEidosStr_n, gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointUniformWithMap, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddArg(kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskSingleton, "map", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setCloningRate, kEidosValueMaskVOID))->AddNumeric("rate"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelfingRate, kEidosValueMaskVOID))->AddNumeric_S("rate"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskVOID))->AddFloat_S("sexRatio"));
