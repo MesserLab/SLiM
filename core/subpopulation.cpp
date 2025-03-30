@@ -9091,6 +9091,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_deviatePositionsWithMap(EidosGlobalSt
 	
 	bool map_interpolated = map->interpolate_;
 	
+	// The map is required to have spatiality equal to the species dimensionality.  This is because the value
+	// queries to the map using ValueAtPoint_S2() etc. are in the map's spatiality, and we don't want to have
+	// to be translating points in and out of that spatiality.  Other methods don't have this problem because
+	// either they get passed a point (which must be in the map or interaction type's spatiality) or they have
+	// cached the point in the correct spatiality internally (as InteractionType does).  Users who have a map
+	// in a weird spatiality can always do the work of this method themselves, with more basic calls.
+	if (dimensionality != map->spatiality_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_deviatePositionsWithMap): deviatePositionsWithMap() requires that the map's spatiality is equal to the dimensionality of the species." << EidosTerminate();
+	
 	// Process the max distance and kernel
 	EidosValue *maxDistance_value = p_arguments[3].get();
 	double max_distance = maxDistance_value->NumericAtIndex_NOCAST(0, nullptr);
@@ -10626,6 +10635,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniformWithMap(EidosGlobalString
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() could not find map '" << map_name << "' in the target subpopulation." << EidosTerminate();
+	
+	// The map is required to have spatiality equal to the species dimensionality.  This is because the value
+	// queries to the map using ValueAtPoint_S2() etc. are in the map's spatiality, and we don't want to have
+	// to be translating points in and out of that spatiality.  Other methods don't have this problem because
+	// either they get passed a point (which must be in the map or interaction type's spatiality) or they have
+	// cached the point in the correct spatiality internally (as InteractionType does).  Users who have a map
+	// in a weird spatiality can always do the work of this method themselves, with more basic calls.
+	if (dimensionality != map->spatiality_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniformWithMap): pointUniformWithMap() requires that the map's spatiality is equal to the dimensionality of the species." << EidosTerminate();
 	
 	// Generate the points
 	int64_t length_out = point_count * dimensionality;

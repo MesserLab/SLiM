@@ -4397,23 +4397,26 @@ Importantly, distances are calculated according to the spatiality of the
 \f3\fs18 point[1]
 \f4\fs20  is assumed to be a 
 \f1\i z
-\f4\i0  value.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f4\i0  value, and 
+\f3\fs18 point
+\f4\fs20  must be exactly two elements in length.  Be careful; this means that in general it is not safe to pass an individual\'92s 
 \f3\fs18 spatialPosition
 \f4\fs20  property for 
 \f3\fs18 point
-\f4\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation).  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
+\f4\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation); other properties on 
+\f3\fs18 Individual
+\f4\fs20  exist for getting the individual\'92s coordinates in a particular spatiality, such as the 
+\f3\fs18 xz
+\f4\fs20  property for this example.  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
 \f3\fs18 pointPeriodic()
-\f4\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.  All individuals in 
+\f4\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.\
+All individuals in 
 \f3\fs18 exerters
 \f4\fs20  must belong to a single subpopulation; the 
 \f3\fs18 evaluate()
 \f4\fs20  method must have been previously called for that subpopulation, and positions saved at evaluation time will be used.  If the 
 \f3\fs18 InteractionType
-\f4\fs20  is non-spatial, this method may not be called.  The vector 
-\f3\fs18 point
-\f4\fs20  must be exactly as long as the spatiality of the 
-\f3\fs18 InteractionType
-\f4\fs20 .\
+\f4\fs20  is non-spatial, this method may not be called.\
 Importantly, distances are calculated according to the spatiality of the 
 \f3\fs18 InteractionType
 \f4\fs20  (as declared in 
@@ -4800,11 +4803,36 @@ Beginning in SLiM 4.1, this method has a vectorized mode of operation in which t
 \f3\fs18 count
 \f4\fs20  individuals in 
 \f3\fs18 exerterSubpop
-\f4\fs20  that are spatially closest to 
+\f4\fs20  that are spatially closest to the point given by the spatial coordinates in 
 \f3\fs18 point
-\f4\fs20 , according to the distance metric of the 
+\f4\fs20 , which may be thought of as the \'93receiver\'94, according to the distance metric of the 
 \f3\fs18 InteractionType
-\f4\fs20 .  The subpopulation may be supplied either as an 
+\f4\fs20 .  The 
+\f3\fs18 point
+\f4\fs20  vector is interpreted as providing coordinates precisely as specified by the spatiality of the interaction type; if the interaction type\'92s spatiality is 
+\f3\fs18 "xz"
+\f4\fs20 , for example, then 
+\f3\fs18 point[0]
+\f4\fs20  is assumed to be an 
+\f1\i x
+\f4\i0  value, and 
+\f3\fs18 point[1]
+\f4\fs20  is assumed to be a 
+\f1\i z
+\f4\i0  value, and 
+\f3\fs18 point
+\f4\fs20  must be exactly two elements in length.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f3\fs18 spatialPosition
+\f4\fs20  property for 
+\f3\fs18 point
+\f4\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation); other properties on 
+\f3\fs18 Individual
+\f4\fs20  exist for getting the individual\'92s coordinates in a particular spatiality, such as the 
+\f3\fs18 xz
+\f4\fs20  property for this example.  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
+\f3\fs18 pointPeriodic()
+\f4\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.\
+The subpopulation may be supplied either as an 
 \f3\fs18 integer
 \f4\fs20  ID, or as a 
 \f3\fs18 Subpopulation
@@ -4857,9 +4885,36 @@ Note that this method does not use interaction eligibility as a criterion; it wi
 
 \f4\fs20 \cf2 Returns the number of individuals in 
 \f3\fs18 exerterSubpop
-\f4\fs20  that are within the maximum interaction distance according to the distance metric of the 
+\f4\fs20  that are within the maximum interaction distance of the point given by the spatial coordinates in 
+\f3\fs18 point
+\f4\fs20 , which may be thought of as the \'93receiver\'94, according to the distance metric of the 
 \f3\fs18 InteractionType
-\f4\fs20 .  The subpopulation may be supplied either as an 
+\f4\fs20 .  The 
+\f3\fs18 point
+\f4\fs20  vector is interpreted as providing coordinates precisely as specified by the spatiality of the interaction type; if the interaction type\'92s spatiality is 
+\f3\fs18 "xz"
+\f4\fs20 , for example, then 
+\f3\fs18 point[0]
+\f4\fs20  is assumed to be an 
+\f1\i x
+\f4\i0  value, and 
+\f3\fs18 point[1]
+\f4\fs20  is assumed to be a 
+\f1\i z
+\f4\i0  value, and 
+\f3\fs18 point
+\f4\fs20  must be exactly two elements in length.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f3\fs18 spatialPosition
+\f4\fs20  property for 
+\f3\fs18 point
+\f4\fs20 , for example (although it is safe if the spatiality of the interaction matches the dimensionality of the simulation); other properties on 
+\f3\fs18 Individual
+\f4\fs20  exist for getting the individual\'92s coordinates in a particular spatiality, such as the 
+\f3\fs18 xz
+\f4\fs20  property for this example.  A coordinate for a periodic spatial dimension must be within the spatial bounds for that dimension, since coordinates outside of periodic bounds are meaningless (
+\f3\fs18 pointPeriodic()
+\f4\fs20  may be used to ensure this); coordinates for non-periodic spatial dimensions are not restricted.\
+The subpopulation may be supplied either as an 
 \f3\fs18 integer
 \f4\fs20  ID, or as a 
 \f3\fs18 Subpopulation
@@ -7716,9 +7771,28 @@ The
 \f3\fs18 sampleNearbyPoint()
 \f4\fs20  samples a Metropolis\'96Hastings move on the spatial map.  See 
 \f3\fs18 sampleNearbyPoint()
-\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of individuals that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that individuals will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.  Note that unlike 
+\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of points that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that points will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.  Note that unlike 
 \f3\fs18 sampleNearbyPoint()
 \f4\fs20 , this method requires that all map values are non-negative.\
+The parameter 
+\f3\fs18 point
+\f4\fs20  may contain any number of points; the returned vector will contain corresponding points sampled as described above.  Each supplied point must provide coordinates precisely as specified by the spatiality of the target map; for example, if the target map\'92s spatiality is 
+\f3\fs18 "xz"
+\f4\fs20  (in an 
+\f3\fs18 "xyz"
+\f4\fs20  species), each point must contain two elements, providing the 
+\f1\i x
+\f4\i0  and 
+\f1\i z
+\f4\i0  coordinate.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f3\fs18 spatialPosition
+\f4\fs20  property for 
+\f3\fs18 point
+\f4\fs20 , for example (although it is safe if the spatiality of the map matches the dimensionality of the simulation); other properties on 
+\f3\fs18 Individual
+\f4\fs20  exist for getting the individual\'92s coordinates in a particular spatiality, such as the 
+\f3\fs18 xz
+\f4\fs20  property for this example.  Supplied points are not required to be within bounds, but since nearby points are sampled from the given kernel and must be within bounds, an infinite loop might result if a supplied point is substantially outside bounds.\
 The kernel is specified with a kernel type, 
 \f3\fs18 functionType
 \f4\fs20 , followed by zero or more ellipsis arguments; see 
@@ -7759,6 +7833,25 @@ See also the
 \f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.  The point returned will be within spatial bounds, respecting periodic boundaries if in effect (so there is no need to call 
 \f3\fs18 pointPeriodic()
 \f4\fs20  on the result).\
+The parameter 
+\f3\fs18 point
+\f4\fs20  may contain any number of points; the returned vector will contain corresponding points sampled as described above.  Each supplied point must provide coordinates precisely as specified by the spatiality of the target map; for example, if the target map\'92s spatiality is 
+\f3\fs18 "xz"
+\f4\fs20  (in an 
+\f3\fs18 "xyz"
+\f4\fs20  species), each point must contain two elements, providing the 
+\f1\i x
+\f4\i0  and 
+\f1\i z
+\f4\i0  coordinate.  Be careful; this means that in general it is not safe to pass an individual\'92s 
+\f3\fs18 spatialPosition
+\f4\fs20  property for 
+\f3\fs18 point
+\f4\fs20 , for example (although it is safe if the spatiality of the map matches the dimensionality of the simulation); other properties on 
+\f3\fs18 Individual
+\f4\fs20  exist for getting the individual\'92s coordinates in a particular spatiality, such as the 
+\f3\fs18 xz
+\f4\fs20  property for this example.  Supplied points are not required to be within bounds, but since nearby points are sampled from the given kernel and must be within bounds, an infinite loop might result if a supplied point is substantially outside bounds.\
 The kernel is specified with a kernel type, 
 \f3\fs18 functionType
 \f4\fs20 , followed by zero or more ellipsis arguments; see 
@@ -11738,11 +11831,11 @@ The boundary condition
 \f4\fs20  is not supported because it does not specify any action to be taken when a drawn point is considered to be \'93out of bounds\'94 according to the spatial map; instead, this method automatically applies any periodic boundaries that have been defined and then, using the resulting point, checks the subpopulation\'92s spatial bounds and the spatial map, and applies reprising or absorbing boundaries as requested if the point is \'93out of bounds\'94.\
 The spatial map defined by 
 \f3\fs18 map
-\f4\fs20  must be configured in a specific way.  First of all, it must be defined in, or added to, the target subpopulation (and thus, by implication, it must match the spatial bounds of the subpopulation, and its spatiality must be compatible with the subpopulation\'92s dimensionality, as discussed in 
-\f3\fs18 defineSpatialMap()
-\f4\fs20  and/or 
-\f3\fs18 addSpatialMap()
-\f4\fs20 ).  Second, the values in the spatial map must represent \'93habitability\'94, in the following sense.  The value of 
+\f4\fs20  must be configured in a specific way.  First of all, it must be defined in, or added to, the target subpopulation (and thus, by implication, it must match the spatial bounds of the subpopulation.  Second, its spatiality must be equal to the dimensionality of the species; in an 
+\f3\fs18 "xy"
+\f4\fs20  species, for example, the map must also be 
+\f3\fs18 "xy"
+\f4\fs20 .  Third, the values in the spatial map must represent \'93habitability\'94, in the following sense.  The value of 
 \f3\fs18 map
 \f4\fs20  at a given drawn point is obtained, symbolized here by 
 \f3\fs18 x
@@ -12368,7 +12461,10 @@ The length of
 \f3\fs18 n
 \f4\fs20 *dimensionality.  This may only be called in simulations for which continuous space has been enabled with 
 \f3\fs18 initializeSLiMOptions()
-\f4\fs20 .\
+\f4\fs20 .\kerning1\expnd0\expndtw0   See 
+\f3\fs18 pointUniformWithMap()
+\f4\fs20  for an extension to this method which uses a spatial map to govern the probability of a particular point being chosen.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(float)pointUniformWithMap(integer$\'a0n, so<SpatialMap>$\'a0map)\
