@@ -5119,6 +5119,13 @@ void Species::SimplifyAllTreeSequences(void)
 		// mark the nodes we want to keep: samples (including remembered nodes), plus all nodes referenced by edges
 		for (tsk_size_t j = 0; j < sample_count; j++)
 			keep_nodes[samples[j]] = true;
+
+		// update the 'sample' flags on the nodes (which simplify didn't update because we used the NO_FILTER_NODES flag)
+		for (tsk_size_t j = 0; j < num_nodes; j++)
+			main_tables.nodes.flags[j] &= (~TSK_NODE_IS_SAMPLE);
+		
+		for (tsk_size_t j = 0; j < sample_count; j++)
+			main_tables.nodes.flags[samples[j]] |= TSK_NODE_IS_SAMPLE;
 		
 		for (Chromosome *chromosome : chromosomes_)
 		{
