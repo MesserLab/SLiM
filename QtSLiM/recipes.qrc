@@ -116,6 +116,7 @@
         <file>recipes/Recipe 14.13 - Modeling biallelic loci with a mutation() callback I.txt</file>
         <file>recipes/Recipe 14.13 - Modeling biallelic loci with a mutation() callback II.txt</file>
         <file>recipes/Recipe 14.14 - Modeling biallelic loci in script.txt</file>
+        <file>recipes/Recipe 14.15 - Using runs of homozygosity (ROH) to track inbreeding.txt</file>
         <file>recipes/Recipe 15.1 - A minimal nonWF model.txt</file>
         <file>recipes/Recipe 15.2 - Age structure (a life table model).txt</file>
         <file>recipes/Recipe 15.4 - Monogamous mating and variation in litter size.txt</file>

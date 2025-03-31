@@ -2156,6 +2156,62 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 This function was contributed by Chris Kyriazis; thanks, Chris!\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (float$)calcMeanFroh(object<Individual>\'a0individuals, [integer$\'a0minimumLength\'a0=\'a01000000], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the mean value of the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  statistic across the individuals passed in 
+\f1\fs18 individuals
+\f2\fs20 .  This statistic is a measure of individual autozygosity, likely resulting from inbreeding, and is calculated based upon \'93runs of homozygosity\'94, or ROH, in the genome of an individual.  Broadly speaking, 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  is the proportion of an individual\'92s genome that is spanned by ROH longer than a given threshold length.  However, it should be noted that there are many different ways of calculating 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub , producing different results.  For example, the threshold length might be a given constant, or might be determined statistically from the characteristics of the population.  Furthermore, some heterozygous sites might be discarded (to compensate for genotyping errors), a minimum SNP density might be required within a sliding window for an ROH to be diagnosed, and so forth \'96 it can get quite complex, as seen in the software PLINK (Purcell et al., 2007).  The method used by 
+\f1\fs18 calcMeanFroh()
+\f2\fs20  is the simplest possible method, assessing ROH for each individual directly from the simulated mutations without filtering or modification, and applying a given constant threshold length.  If a more sophisticated 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  algorithm is desired, one could modify the implementation of 
+\f1\fs18 calcMeanFroh()
+\f2\fs20 , which is viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , or one could output VCF data from SLiM and analyze it with PLINK or other tools, perhaps calling out from the running SLiM script with 
+\f1\fs18 system()
+\f2\fs20 .\
+The threshold ROH length used by 
+\f1\fs18 calcMeanFroh()
+\f2\fs20  is supplied by the parameter 
+\f1\fs18 minimumLength
+\f2\fs20 .  It defaults to 
+\f1\fs18 1e6
+\f2\fs20 , or 1 Mbp, since that is a length commonly used in the literature, but can be adjusted as desired.\
+The 
+\f1\fs18 chromosome
+\f2\fs20  parameter can be supplied to focus the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation on a specific chromosome; otherwise, the calculation spans all chromosomes for which the individual is actually diploid (without a null haplosome).  If 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  cannot be calculated for an individual (due to the presence of null haplosomes for every intrinsically diploid chromosome being analyzed), that individual is omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation; for example, if an X chromosome is the focal chromosome being analyzed, all males will be omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation.  If all individuals are omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation for this reason, 
+\f1\fs18 NAN
+\f2\fs20  is returned.\
+This function was developed with advice from Ryan Chaffee.  Thanks, Ryan!\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Haplosome>$\'a0haplosome1, object<Haplosome>$\'a0haplosome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 

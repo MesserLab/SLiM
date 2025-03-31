@@ -1,0 +1,59 @@
+// Keywords: runs of homozygosity, ROH, F_ROH, inbreeding, autozygosity
+
+initialize() {
+	initializeMutationRate(5e-8);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e9-1);
+	initializeRecombinationRate(1e-8);
+}
+1 early() {
+	sim.addSubpop("p1", 100);
+	sim.addSubpop("p2", 100);
+	sim.addSubpop("p3", 100);
+	p1.setMigrationRates(p2, 0.1);
+	p2.setMigrationRates(p1, 0.001);
+	p1.setMigrationRates(p3, 0.001);
+	p3.setMigrationRates(p1, 0.1);
+	
+	// start our histories empty
+	for (subpop in c(p1,p2,p3))
+	{
+		subpop.setValue("FROH_hist", float(0));
+		subpop.setValue("FROH_hist_tick", integer(0));
+	}
+}
+500 early() {
+	p2.setSubpopulationSize(20);
+}
+700 early() {
+	p2.setSubpopulationSize(100);
+}
+1400 early() {
+	p3.setSubpopulationSize(20);
+}
+1600 early() {
+	p3.setSubpopulationSize(500);
+}
+100:2000 late() {
+	// in SLiMgui, make a plot every ten ticks
+	if (exists("slimgui") & (community.tick % 10 == 0))
+	{
+		plot = slimgui.createPlot("Froh history",
+			xrange=c(1, community.estimatedLastTick()), yrange=c(0.0,0.5),
+			xlab="Tick", ylab="Mean Froh", width=500, height=300);
+		plot.addLegend("topRight");
+		
+		for (subpop in c(p1,p2,p3), color in c("red", "cornflowerblue", "chartreuse3"))
+		{
+			mean_FROH = calcMeanFroh(subpop.individuals);
+			FROH_hist = c(subpop.getValue("FROH_hist"), mean_FROH);
+			FROH_hist_tick = c(subpop.getValue("FROH_hist_tick"), community.tick);
+			subpop.setValue("FROH_hist", FROH_hist);
+			subpop.setValue("FROH_hist_tick", FROH_hist_tick);
+			
+			plot.lines(x=FROH_hist_tick, y=FROH_hist, color=color, lwd=2.0);
+			plot.legendLineEntry("p" + subpop.id, color, lwd=2.0);
+		}
+	}
+}

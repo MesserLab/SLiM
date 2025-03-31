@@ -38,6 +38,7 @@
 
 extern const char *gSLiMSourceCode_calcFST;
 extern const char *gSLiMSourceCode_calcVA;
+extern const char *gSLiMSourceCode_calcMeanFroh;
 extern const char *gSLiMSourceCode_calcPairHeterozygosity;
 extern const char *gSLiMSourceCode_calcHeterozygosity;
 extern const char *gSLiMSourceCode_calcWattersonsTheta;
@@ -70,6 +71,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Population genetics utilities (implemented with Eidos code)
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes1", gSLiM_Haplosome_Class)->AddObject("haplosomes2", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcMeanFroh", gSLiMSourceCode_calcMeanFroh, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt_OS("minimumLength", EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(1000000)))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("haplosome1", gSLiM_Haplosome_Class)->AddObject_S("haplosome2", gSLiM_Haplosome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("haplosomes", gSLiM_Haplosome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
@@ -195,6 +197,102 @@ R"V0G0N({
 			stop("ERROR (calcVA): all individuals must belong to the same species as mutType.");
 	
 	return var(individuals.sumOfMutationsOfType(mutType));
+})V0G0N";
+
+#pragma mark (float$)calcMeanFroh(object<Individual> individuals, [integer$ minimumLength = 1e6], [Niso<Chromosome>$ chromosome = NULL])
+const char *gSLiMSourceCode_calcMeanFroh = 
+R"V0G0N({
+	// With zero individuals, we return NAN; it's good to be flexible on
+	// this, so models don't error out on local extinction and such.
+	if (length(individuals) == 0)
+		return NAN;
+	
+	species = individuals[0].subpopulation.species;
+	
+	if (community.allSpecies.length() > 1)
+	{
+		if (any(individuals.subpopulation.species != species))
+		stop("ERROR (calcMeanFroh): calcMeanFroh() requires that all individuals belong to a single species.");
+	}
+	
+	if (minimumLength < 0)
+		stop("ERROR (calcMeanFroh): calcMeanFroh() requires minimumLength >= 0 (" + minimumLength + " supplied).");
+	
+	// get the chromosomes we will operate over
+	if (isNULL(chromosome))
+	{
+		chromosomes = species.chromosomes;
+		chromosomes = chromosomes[chromosomes.intrinsicPloidy == 2];
+	}
+	else
+	{
+		if (type(chromosome) == "integer")
+			chromosome = species.chromosomesWithIDs(chromosome);
+		else if (type(chromosome) == "string")
+			chromosome = species.chromosomesWithSymbols(chromosome);
+		
+		if (chromosome.species != species)
+			stop("ERROR (calcMeanFroh): calcMeanFroh() requires that chromosome belong to the same species as individual.");
+		if (chromosome.intrinsicPloidy != 2)
+			stop("ERROR (calcMeanFroh): calcMeanFroh() requires that chromosome have intrinsic ploidy 2.");
+		
+		chromosomes = chromosome;
+	}
+	
+	if (chromosomes.length() == 0)
+		stop("ERROR (calcMeanFroh): no chromosomes with intrinsic ploidy 2 in calcMeanFroh().");
+	
+	// average over the individuals supplied; some might be skipped over,
+	// if they have no diploid haplosomes (due to null haplosomes)
+	total_individuals = 0;
+	total_froh = 0;
+	
+	for (individual in individuals)
+	{
+		// do the calculation
+		total_chr_length = 0;
+		total_roh_length = 0;
+		
+		for (chr in chromosomes)
+		{
+			// get the haplosomes we will operate over
+			haplosomes = individual.haplosomesForChromosomes(chr, includeNulls=F);
+			
+			if (haplosomes.length() != 2)
+				next;
+			
+			het_pos = individual.mutationsFromHaplosomes("heterozygous").position;
+			het_pos_1 = c(-1, het_pos);
+			het_pos_2 = c(het_pos, chr.lastPosition + 1);
+			roh = (het_pos_2 - het_pos_1) - 1;
+			
+			// filter the ROH we found by the threshold length passed in
+			if (minimumLength > 0)
+				roh = roh[roh >= minimumLength];
+			
+			total_roh_length = total_roh_length + sum(roh);
+			total_chr_length = total_chr_length + chr.length;
+		}
+		
+		// if total_chr_length is zero, the individual has no chromosome for which
+		// it is actually diploid, so we can't calculate F_ROH; we skip it
+		if (total_chr_length == 0)
+			next;
+		
+		// we calculate F_ROH as the total ROH lengths divided by the total length
+		// we add that in to our running total, to average over the individuals
+		total_froh = total_froh + (total_roh_length / total_chr_length);
+		total_individuals = total_individuals + 1;
+	}
+	
+	// if we got zero individuals that we could actually calculate F_ROH for, we
+	// return NAN, because it seems like we want to be tolerant of this case;
+	// the user can handle it as they wish
+	if (total_individuals == 0)
+		return NAN;
+	
+	// return the average F_ROH across individuals it could be calculated for
+	return total_froh / total_individuals;
 })V0G0N";
 
 #pragma mark (float$)calcPairHeterozygosity(object<Haplosome>$ haplosome1, object<Haplosome>$ haplosome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
