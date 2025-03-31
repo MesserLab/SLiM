@@ -265,6 +265,7 @@ EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedSet(Eidos_Acce
 
 EidosPropertySignature *EidosPropertySignature::MarkDeprecated(void)
 {
+	// At present, the only consequence of deprecation is that the property/method is not listed in the documentation
 	deprecated_ = true;
 	return this;
 }

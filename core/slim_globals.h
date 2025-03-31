@@ -930,6 +930,7 @@ extern const std::string &gStr_setSpatialPosition;
 extern const std::string &gStr_substitutionsOfType;
 extern const std::string &gStr_sumOfMutationsOfType;
 extern const std::string &gStr_uniqueMutationsOfType;
+extern const std::string &gStr_mutationsFromHaplosomes;
 extern const std::string &gStr_readHaplosomesFromMS;
 extern const std::string &gStr_readHaplosomesFromVCF;
 extern const std::string &gStr_removeMutations;
@@ -1382,6 +1383,7 @@ enum _SLiMGlobalStringID : int {
 	gID_substitutionsOfType,
 	gID_sumOfMutationsOfType,
 	gID_uniqueMutationsOfType,
+	gID_mutationsFromHaplosomes,
 	gID_readHaplosomesFromMS,
 	gID_readHaplosomesFromVCF,
 	gID_removeMutations,

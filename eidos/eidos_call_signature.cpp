@@ -276,6 +276,7 @@ EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argum
 
 EidosCallSignature *EidosCallSignature::MarkDeprecated(void)
 {
+	// At present, the only consequence of deprecation is that the property/method is not listed in the documentation
 	deprecated_ = true;
 	return this;
 }

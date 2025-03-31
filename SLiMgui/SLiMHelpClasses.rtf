@@ -3402,7 +3402,9 @@ See the description of the
 \f3\fs18 sortBy()
 \f4\fs20 .)  This method is provided primarily for speed; it executes much faster than the Eidos equivalent above.  Indeed, it is faster than just 
 \f3\fs18 individual.haplosomes.mutations
-\f4\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.\
+\f4\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.  For more flexibility, see the method 
+\f3\fs18 mutationsFromHaplosomes()
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 x <\'96> (float$)\
@@ -3588,7 +3590,7 @@ See the description of the
 \f4\fs20 , out of all of the mutations in the individual (in all of its haplosomes; a mutation that is present in both homologous haplosomes counts twice).  If you need a vector of the matching 
 \f3\fs18 Mutation
 \f4\fs20  objects, rather than just a count, you should probably use 
-\f3\fs18 uniqueMutationsOfType()
+\f3\fs18 mutationsFromHaplosomes()
 \f4\fs20 .  This method is provided for speed; it is much faster than the corresponding Eidos code.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -3647,6 +3649,101 @@ For chromosomes that are intrinsically diploid (types
 \f4\fs20 , and 
 \f3\fs18 haploidGenome2NonNull
 \f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Mutation>)mutationsFromHaplosomes(string$\'a0category, [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL], [Niso<Chromosome>\'a0chromosomes\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of mutations from the haplosomes of the target individual.  Several options are provided that filter which mutations are returned.\
+The 
+\f3\fs18 category
+\f4\fs20  parameter must be one of five supported values: 
+\f3\fs18 "unique"
+\f4\fs20 , 
+\f3\fs18 "homozygous"
+\f4\fs20 , 
+\f3\fs18 "heterozygous"
+\f4\fs20 , 
+\f3\fs18 "hemizygous"
+\f4\fs20 , or 
+\f3\fs18 "all"
+\f4\fs20 .  If 
+\f3\fs18 category
+\f4\fs20  is 
+\f3\fs18 "unique"
+\f4\fs20 , a given mutation will be returned only once, whether it is present homozygously or heterozygously (or hemizygously, for that matter); this mode of operation is similar to the 
+\f3\fs18 uniqueMutations
+\f4\fs20  property, but provides more control due to the other options provided by this method.  If 
+\f3\fs18 category
+\f4\fs20  is 
+\f3\fs18 "homozygous"
+\f4\fs20 , a given mutation will be returned only if it is present homozygously (in both of the homologous haplosomes for a given chromosome).  If 
+\f3\fs18 category
+\f4\fs20  is 
+\f3\fs18 "heterozygous"
+\f4\fs20 , a given mutation will be returned only if it is present heterozygously (in only one of the two homologous non-null haplosomes for a given chromosome).  If 
+\f3\fs18 category
+\f4\fs20  is 
+\f3\fs18 "hemizygous"
+\f4\fs20 , a given mutation will be returned only if it is present hemizygously (in one haplosome for an intrinsically diploid chromosome, when the other haplosome is a null haplosome).  If 
+\f3\fs18 category
+\f4\fs20  is 
+\f3\fs18 "all"
+\f4\fs20 , a given mutation will be returned each time that it occurs in the haplosomes of the individual; in other words, it will be present in the returned vector 
+\f1\i twice
+\f4\i0  if it is homozygous, 
+\f1\i once
+\f4\i0  if it is heterozygous or hemizygous.  Mutations in the single haplosome of an intrinsically haploid chromosome will be returned for 
+\f3\fs18 category
+\f4\fs20  values of 
+\f3\fs18 "unique"
+\f4\fs20 , 
+\f3\fs18 "homozygous"
+\f4\fs20 , and 
+\f3\fs18 "all"
+\f4\fs20 .\
+The 
+\f3\fs18 mutType
+\f4\fs20  parameter may be 
+\f3\fs18 NULL
+\f4\fs20 , or may specify a mutation type by its 
+\f3\fs18 integer
+\f4\fs20  id or with the 
+\f3\fs18 MutationType
+\f4\fs20  object itself.  If 
+\f3\fs18 mutType
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), mutations of every mutation type are returned; no filtering by mutation type is done.  Otherwise, only mutations of the specified mutation type will be returned.\
+The 
+\f3\fs18 chromosomes
+\f4\fs20  parameter may be 
+\f3\fs18 NULL
+\f4\fs20 , or may provide a vector of chromosomes specified by their 
+\f3\fs18 integer
+\f4\fs20  id, 
+\f3\fs18 string
+\f4\fs20  symbol, or with the 
+\f3\fs18 Chromosome
+\f4\fs20  object itself.  If 
+\f3\fs18 chromosomes
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), mutations associated with every chromosome are returned; no filtering by chromosome is done.  Otherwise, only mutations associated with the specified chromosomes will be returned.\
+The returned vector will contain tranches of mutations, one tranche per chromosome, in the order that the chromosomes were specified (if 
+\f3\fs18 chromosomes
+\f4\fs20  is non-
+\f3\fs18 NULL
+\f4\fs20 ) or the order the chromosomes were defined in the model (if 
+\f3\fs18 chromosomes
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20 ).  Within a given tranche, the mutations for that chromosome will be returned in sorted order by 
+\f3\fs18 position
+\f4\fs20 .  (If more than one mutation associated with a given chromosome exists at the same position, the order in which those mutations are returned is undefined.)\
+This method replaces the deprecated method 
+\f3\fs18 uniqueMutationsOfType()
+\f4\fs20 , while providing additional useful options.  It is particularly useful for efficient, vectorized assessment of the homozygous versus heterozygous state of the mutations contained by an individual, which is otherwise difficult to assess efficiently.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F])\
@@ -4173,9 +4270,14 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \f5 \'a0
 \f3 (object<Mutation>)uniqueMutationsOfType(io<MutationType>$\'a0mutType)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns an 
+\f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
+\f4\b0   Its functionality was replaced by 
+\f3\fs18 mutationsFromHaplosomes()
+\f4\fs20  in SLiM 5.0.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Returns an 
 \f3\fs18 object
 \f4\fs20  vector of all the mutations that are of the type specified by 
 \f3\fs18 mutType
