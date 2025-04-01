@@ -274,7 +274,7 @@ jobs:
           cd ../.. && \
           mkdir Release && \
           cd Release && \
-          cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release .. && \
+          cmake -G"MSYS Makefiles" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release .. && \
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
