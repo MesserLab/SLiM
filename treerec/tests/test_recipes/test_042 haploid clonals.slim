@@ -22,13 +22,13 @@ initialize() {
 	p1.setCloningRate(1.0);
 }
 modifyChild() {
-	child.genome2.removeMutations(child.genome2.mutations);
+	child.haploidGenome2.removeMutations(child.haploidGenome2.mutations);
 	return T;
 }
 late() {
 	muts = sim.mutationsOfType(m1);
 	freqs = sim.mutationFrequencies(NULL, muts);
-	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
+	sim.subpopulations.haplosomes.removeMutations(muts[freqs == 0.5], T);
 }
 5 early() {
 	addAncestralSamples(5);

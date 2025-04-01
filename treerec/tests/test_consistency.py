@@ -9,10 +9,13 @@ class TestWithMutations:
 
     def test_ts_slim_consistency(self, recipe):
         for result in recipe["results"]:
-            slim = result.mutation_output()
+            slim, slim_ids = result.mutation_output()
             for ts in result.get_ts():
                 # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
                 ids = result.get_slim_ids(ts)
+                for sid in ids:
+                    if ts.node(ids[sid]).is_sample():
+                        assert sid in slim_ids
                 # this is a dict of tskit ID -> index in samples
                 msp_samples = {}
                 for k, u in enumerate(ts.samples()):
@@ -28,6 +31,7 @@ class TestWithMutations:
                         pos += 1
                     print("-----------------")
                     print("pos:", pos)
+                    print("slim:", None if pos not in slim else slim[pos])
                     print(var)
                     for j in ids:
                         print("slim id", j, "msp id", ids[j])
@@ -35,7 +39,7 @@ class TestWithMutations:
                             sample_num = msp_samples[ids[j]]
                             geno = var.genotypes[sample_num]
                             msp_genotypes = var.alleles[geno].split(",")
-                            print("msp:", msp_genotypes)
+                            print("msp:", msp_genotypes, ";", geno)
                             if (pos not in slim) or (j not in slim[pos]):
                                 # no mutations at this site
                                 assert msp_genotypes == ['']
