@@ -46,8 +46,6 @@ function (void)saveTreeSeqFormats(void) {
    // create tree seq representation in various formats: this could overwrite any
    // existing ones output in the same cycle, but they should be identical
    // if done in the same cycle at the same point of the lifecycle
-   // TODO REMOVE
-   // sim.treeSeqOutput(".", simplify=T, _binary=F);
    sim.treeSeqOutput("test_output.trees", simplify=T);
    sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
 }
@@ -79,8 +77,9 @@ function (void)saveIndividualMutations(o<Individual>$ ind) {
     * a list of positions of those mutations.
     * * */
    pedID = ind.pedigreeID;
-   for(k in seqAlong(ind.haplosomes)){
+   for (k in seqAlong(ind.haplosomes)){
       haplosome = ind.haplosomes[k];
+      chromID = haplosome.chromosome.id;
       haplosomeID = (2 * pedID) + k;
       if (haplosome.isNullHaplosome) {
          ids = c();
@@ -89,7 +88,7 @@ function (void)saveIndividualMutations(o<Individual>$ ind) {
          ids = c(haplosome.mutations.id, sim.substitutions.id);
          positions = c(haplosome.mutations.position, sim.substitutions.position);
       }
-      writeFile(mutationsFile, "#Genome: " + paste(haplosomeID) + " " + paste(ind.sex), append=T);
+      writeFile(mutationsFile, "#Genome: " + paste(haplosomeID) + " " + paste(chromID) + " " + paste(ind.sex), append=T);
       writeFile(mutationsFile, "Mutations: " + paste(ids), append=T);
       writeFile(mutationsFile, "Positions: " + paste(positions), append=T);
    }
@@ -165,20 +164,22 @@ function (void)outputMutationResult(void) {
       // Marked output: For each mutation type, output at each position the list
       // of genomes that have inherited a mutation of that type at that position
       for(Mut in sim.mutationTypes){
-         for(Pos in 0:sim.chromosome.lastPosition){
-            GenomesWithMutAtPos = NULL;
-            for(pop in sim.subpopulations) {
-               for(Ind in pop.individuals){
-                  pedID = Ind.pedigreeID;
-                  for(k in seqAlong(Ind.haplosomes)){
-                     haplosomeID = (2 * pedID) + k;
-                     if(Ind.haplosomes[k].containsMarkerMutation(Mut,Pos)){
-                        GenomesWithMutAtPos = c(GenomesWithMutAtPos, haplosomeID);
+         for (chrom in sim.chromosomes) {
+            for(Pos in 0:chrom.lastPosition){
+               GenomesWithMutAtPos = NULL;
+               for(pop in sim.subpopulations) {
+                  for(Ind in pop.individuals){
+                     pedID = Ind.pedigreeID;
+                     for(k in seqAlong(Ind.haplosomesForChromosomes(chrom))){
+                        haplosomeID = (2 * pedID) + k;
+                        if(Ind.haplosomes[k].containsMarkerMutation(Mut,Pos)){
+                           GenomesWithMutAtPos = c(GenomesWithMutAtPos, haplosomeID);
+                        }
                      }
                   }
+                  writeFile(mutationsFile, paste(Mut) + " " + paste(Pos) + " " + paste(chrom.id), append=T);
+                  writeFile(mutationsFile, paste(GenomesWithMutAtPos), append=T);
                }
-               writeFile(mutationsFile, paste(Mut) + " " + paste(Pos), append=T);
-               writeFile(mutationsFile, paste(GenomesWithMutAtPos), append=T);
             }
          }
       }

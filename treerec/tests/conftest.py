@@ -2,6 +2,7 @@
 import collections
 import os
 import subprocess
+import pathlib
 
 from filelock import FileLock
 import pytest
@@ -10,6 +11,18 @@ import tskit
 from recipe_specs import recipe_specs
 
 SLiMindividual = collections.namedtuple('SLiMindividual', 'type population pos nodes')
+
+
+def load_file_or_dir(p):
+    if os.path.isdir(p):
+        tsl = [tskit.load(f) for f in pathlib.Path(p).glob("*.trees")]
+    else:
+        tsl = [tskit.load(p),]
+    tsi = [ts.metadata['SLiM']['this_chromosome']['id'] for ts in tsl]
+    out = {i : ts for i, ts in zip(tsi, tsl)}
+    assert len(out) == len(tsl) # ensures keys are unique
+    return out
+
 
 class OutputResult:
     """
@@ -23,44 +36,16 @@ class OutputResult:
         ts = tskit.load(os.path.join(self.dir, "test_output.trees"))
         return ts
 
-    def get_ts(self, include_text=False):
-        if include_text:
-            # read in from text
-            node_file = open(os.path.join(self.dir, "NodeTable.txt"), "r")
-            edge_file = open(os.path.join(self.dir, "EdgeTable.txt"), "r")
-            try:
-                site_file = open(os.path.join(self.dir, "SiteTable.txt"), "r")
-            except IOerror:
-                site_file = None
-            try:
-                mutation_file = open(os.path.join(self.dir, "MutationTable.txt"), "r")
-            except IOerror:
-                mutation_file = None
-            try:
-                individual_file = open(os.path.join(self.dir, "IndividualTable.txt"), "r")
-            except IOerror:
-                individual_file = None
-            try:
-                population_file = open(os.path.join(self.dir, "PopulationTable.txt"), "r")
-            except IOerror:
-                population_file = None
-            text_ts = msprime.load_text(nodes=node_file, edges=edge_file, 
-                                   sites=site_file, mutations=mutation_file,
-                                   individuals=individual_file,
-                                   populations=population_file,
-                                   base64_metadata=False)
-    
-            print("******* Text input.")
-            yield text_ts
-        # and binary
-        bin_ts = tskit.load(os.path.join(self.dir, "test_output.trees"))
+    def get_ts(self):
+        # binary
         print("******** Binary input.")
+        bin_ts = load_file_or_dir(os.path.join(self.dir, "test_output.trees"))
         yield bin_ts
         # and nonsimplified binary
         print("******** Unsimplified binary.")
-        bin_nonsip_ts = tskit.load(
+        bin_nonsimp_ts = load_file_or_dir(
             os.path.join(self.dir, "test_output.unsimplified.trees"))
-        yield bin_nonsip_ts
+        yield bin_nonsimp_ts
 
     @staticmethod
     def get_slim_ids(ts):
@@ -88,6 +73,8 @@ class OutputResult:
             headstring = header.split()
             assert headstring[0] == "#Genome:"
             genome = int(headstring[1])
+            chrom = int(headstring[2])
+            # sex = int(headstring[3])
             slim_ids.append(genome)
             mutations = slim_file.readline().split()
             assert mutations[0] == "Mutations:"
@@ -96,17 +83,19 @@ class OutputResult:
             assert positions[0] == "Positions:"
             positions = [int(u) for u in positions[1:]]
             for pos, mut in zip(positions, mutations):
-                if pos not in slim:
-                    slim[pos] = {}
-                if genome not in slim[pos]:
-                    slim[pos][genome] = []
-                slim[pos][genome].append(mut)
+                key = (chrom, pos)
+                if key not in slim:
+                    slim[key] = {}
+                if genome not in slim[key]:
+                    slim[key][genome] = []
+                slim[key][genome].append(mut)
         return slim, slim_ids
 
     def marked_mutation_output(self, ts):
         """
-        Output from SLiM will be indexed by position,
-        and contain a dict indexed by mutation type giving the indivs
+        This provides a dictionary indexed by chromosome ID,
+        whose values are lists indexed by position,
+        which contain dicts indexed by mutation type giving the indivs
         inheriting that mut at that position
         """
         basename = "slim_no_mutation_output.txt"  # matches the name in init.slim
@@ -115,17 +104,20 @@ class OutputResult:
             raise RuntimeError(f"No marked mutation file {basename} in {self.dir}")
         slim_file = open(filename, "r")
         ids = self.get_slim_ids(ts)
-        slim = []
+        slim = {}
         for header in slim_file:
             assert header[0:12] == "MutationType"
-            mut, pos = header[12:].split()
+            mut, pos, chrom = header[12:].split()
+            chrom = int(chrom)
+            if chrom not in slim:
+                slim[chrom] = []
             pos = int(pos)
-            if pos == len(slim):
-                slim.append({})
+            while pos >= len(slim[chrom]):
+                slim[chrom].append({})
             slim_ids = [int(u) for u in slim_file.readline().split()]
             for u in slim_ids:
                 assert u in ids
-            slim[pos][mut] = [ids[u] for u in slim_ids]
+            slim[chrom][pos][mut] = [ids[u] for u in slim_ids]
         return slim
 
     def individual_output(self):
