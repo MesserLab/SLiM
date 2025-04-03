@@ -11,13 +11,13 @@ initialize() {
 	for (id in 1:3, type in c("A", "X", "Y"))
 	{
 		initializeChromosome(id, 1e6, type=type, symbol=type);
-		initializeGenomicElement(g1, 0, 1e6-1);
-		initializeMutationRate(1e-8);
-		initializeRecombinationRate(1e-8);
+		initializeGenomicElement(g1, 0, 1e5-1);
+		initializeMutationRate(1e-6);
+		initializeRecombinationRate(1e-6);
 	}
 }
 1 early() {
-	sim.addSubpop("p1", 50);
+	sim.addSubpop("p1", 20);
 }
 20 early() {
 	addAncestralSamples(5);

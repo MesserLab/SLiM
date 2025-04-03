@@ -16,12 +16,13 @@ def node_has_data(ts, n):
 @pytest.mark.parametrize('recipe', recipe_eq("mutations"), indirect=True)
 class TestWithMutations:
 
-    def test_ts_slim_consistency(self, recipe):
+    def test_mutation_consistency(self, recipe):
         for result in recipe["results"]:
             slim, slim_ids = result.mutation_output()
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id]
+                    assert ts.num_mutations > 0, ts.metadata['SLiM']['this_chromosome']
                     # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
                     ids = result.get_slim_ids(ts)
                     for sid in ids:
@@ -37,13 +38,14 @@ class TestWithMutations:
                         pos += 1
                         while pos < int(var.position):
                             # invariant sites: no genotypes
+                            assert pos < ts.sequence_length
                             assert (chrom_id, pos) not in slim
                             pos += 1
                         key = (chrom_id, pos)
-                        print("-----------------")
-                        print("chrom_id, pos:", key)
-                        print("slim:", None if key not in slim else slim[key])
-                        print(var)
+                        # print("-----------------")
+                        # print("chrom_id, pos:", key)
+                        # print("slim:", None if key not in slim else slim[key])
+                        # print(var)
                         for j in ids:
                             if ids[j] in msp_samples:
                                 sample_num = msp_samples[ids[j]]
@@ -77,12 +79,13 @@ class TestMarkedMutations:
                 print('labels of roots in from tree:', a_labels)
                 assert len(set(a_labels)) == 1
 
-    def test_ts_slim_consistency(self, recipe):
+    def test_marked_consistency(self, recipe):
         for result in recipe["results"]:
             # load tree sequence representations
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id]
+                    assert ts.num_mutations > 0
                     # this is a dictionary of SLiM -> msprime ID (from metadata in nodes)
                     slim = result.marked_mutation_output(ts)[chrom_id]
                     pos = 0
@@ -103,7 +106,7 @@ class TestMarkedMutations:
 @pytest.mark.parametrize('recipe', recipe_eq("individuals"), indirect=True)
 class TestIndividuals:
 
-    def test_ts_slim_consistency(self, recipe):
+    def test_individual_consistency(self, recipe):
         # load tree sequence
         for result in recipe["results"]:
             slim_individuals = result.individual_output()

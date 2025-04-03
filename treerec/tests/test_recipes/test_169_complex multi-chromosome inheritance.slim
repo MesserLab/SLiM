@@ -1,11 +1,11 @@
 // Keywords: multiple chromosomes, inheritance patterns, mating systems
 
 initialize() {
+	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
 	source("init.slim");
 	initializeTreeSeq();
-	defineConstant("K", 50);	// carrying capacity
-	initializeSLiMModelType("nonWF");
+	defineConstant("K", 20);	// carrying capacity
 	initializeSex();
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
@@ -13,14 +13,14 @@ initialize() {
 	
 	ids = 1:7;
 	symbols = c("A", "X", "Y", "P", "Q", "R", "S");
-	lengths = c(3e6, 2e6, 1e6, 1e6, 1e6, 1e6, 1e6);
+	lengths = c(3e4, 2e4, 1e4, 1e4, 1e4, 1e4, 1e4);
 	types = c("A", "X", "Y", "H", "H", "H", "H");
 	
 	for (id in ids, symbol in symbols, length in lengths, type in types)
 	{
 		initializeChromosome(id, length, type, symbol);
-		initializeMutationRate(1e-7);
-		initializeRecombinationRate(1e-7);
+		initializeMutationRate(1e-5);
+		initializeRecombinationRate(1e-5);
 		initializeGenomicElement(g1, 0, length-1);
 	}
 }
@@ -47,7 +47,7 @@ early() {
 10 early() {
 	addAncestralSamples(5);
 }
-50 late() {
+30 late() {
 	outputIndividuals();
 	outputMutationResult();
 }

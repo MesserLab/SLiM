@@ -90,8 +90,9 @@ function (void)saveIndividualMutations(o<Individual>$ ind) {
             ids = c();
             positions = c();
          } else {
-            ids = c(haplosome.mutations.id, sim.substitutions.id);
-            positions = c(haplosome.mutations.position, sim.substitutions.position);
+            subs = sim.substitutions[sim.substitutions.chromosome.id == chromID];
+            ids = c(haplosome.mutations.id, subs.id);
+            positions = c(haplosome.mutations.position, subs.position);
          }
          writeFile(mutationsFile, "#Genome: " + paste(haplosomeID) + " " + paste(chromID)
                    + " " + paste(ind.sex) + " " + paste(pedID), append=T);

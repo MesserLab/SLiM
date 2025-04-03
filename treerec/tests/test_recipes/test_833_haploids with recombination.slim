@@ -13,10 +13,10 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 early() { sim.addSubpop("p1", 100); }
-20 early() {
+10 early() {
 	addAncestralSamples(5);
 }
-50 late() {
+30 late() {
 	outputIndividuals();
 	outputMutationResult();
 }

@@ -1,22 +1,20 @@
 // Keywords: multiple chromosomes, pseudo-autosomal region (PAR)
 
 initialize() {
-	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
-	source("init.slim");
-	initializeTreeSeq();
-	defineConstant("A1_LEN", 2e7);
-	defineConstant("PAR1_LEN", 2771479);
-	defineConstant("PAR2_LEN", 329513);
-	defineConstant("X_LEN", 156040895 - (PAR1_LEN + PAR2_LEN));
-	defineConstant("Y_LEN", 57227415 - (PAR1_LEN + PAR2_LEN));
-	defineConstant("MU", 1e-8);
-	defineConstant("R", 1e-7);
-	defineConstant("N", 50);
-	defineConstant("REC", N*10);      // start recording at this tick
-	defineConstant("RUNTIME", N*50);  // finish at this tick
+	defineConstant("A1_LEN", 2e5);
+	defineConstant("PAR1_LEN", 27714);
+	defineConstant("PAR2_LEN", 3295);
+	defineConstant("X_LEN", 1560408 - (PAR1_LEN + PAR2_LEN));
+	defineConstant("Y_LEN", 572274 - (PAR1_LEN + PAR2_LEN));
+	defineConstant("MU", 1e-6);
+	defineConstant("R", 1e-5);
+	defineConstant("N", 20);
 	
 	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
 	initializeSex();
+	source("init.slim");
+	initializeTreeSeq();
 	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution = T;
 	initializeGenomicElementType("g1", m1, 1.0);
 	
@@ -141,10 +139,10 @@ reproduction()
 	adults = p1.subsetIndividuals(minAge=1);
 	sim.killIndividuals(adults);
 }
-100 early() {
+10 early() {
 	addAncestralSamples(5);
 }
-150 late() {
+30 late() {
 	outputIndividuals();
 	outputMutationResult();
 }
