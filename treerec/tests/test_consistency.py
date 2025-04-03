@@ -113,7 +113,6 @@ class TestIndividuals:
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id].simplify(filter_individuals=True)
-                    ts.dump("temp.trees")
                     # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
                     ids = result.get_slim_ids(ts)
                     # this is a dict of tskit ID -> index in samples
