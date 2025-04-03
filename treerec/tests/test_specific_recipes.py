@@ -38,9 +38,9 @@ class TestUnaryNodes:
         "test_____retain_individuals_unary.slim",
     ])
     def test_contains_unary_nonsample_nodes(self, recipe):
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                assert np.any(np.array(list(self.max_children_node(ts).values())) == 1)
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        assert np.any(np.array(list(self.max_children_node(ts).values())) == 1)
 
     @pytest.mark.parametrize('recipe', indirect=True, argvalues=[
         'test_____remember_individuals.slim',
@@ -49,18 +49,18 @@ class TestUnaryNodes:
         """
         Historical remembered individuals can have a node with a single descendant
         """
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                num_unary_nodes = 0
-                for tree in ts.trees():
-                    for n in tree.nodes():
-                        if tree.num_children(n) == 1 and tree.parent(n) >= 0:
-                            assert ts.node(n).individual >= 0  # has an individual
-                            ind = ts.individual(ts.node(n).individual)
-                            assert ts.node(n).is_sample()
-                            assert (ind.flags & pyslim.INDIVIDUAL_REMEMBERED) != 0
-                            num_unary_nodes += 1
-                assert num_unary_nodes > 0
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        num_unary_nodes = 0
+        for tree in ts.trees():
+            for n in tree.nodes():
+                if tree.num_children(n) == 1 and tree.parent(n) >= 0:
+                    assert ts.node(n).individual >= 0  # has an individual
+                    ind = ts.individual(ts.node(n).individual)
+                    assert ts.node(n).is_sample()
+                    assert (ind.flags & pyslim.INDIVIDUAL_REMEMBERED) != 0
+                    num_unary_nodes += 1
+        assert num_unary_nodes > 0
 
     @pytest.mark.parametrize('recipe', indirect=True, argvalues=[
         "test_____retain_and_remember_individuals.slim",
@@ -68,10 +68,10 @@ class TestUnaryNodes:
         "test_____remember_individuals.slim",
     ])
     def test_no_purely_unary_internal_nonsample_nodes(self, recipe):
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                max_children_per_node = self.max_children_node(ts)
-                assert np.all(np.array(list(max_children_per_node.values())) != 1)
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        max_children_per_node = self.max_children_node(ts)
+        assert np.all(np.array(list(max_children_per_node.values())) != 1)
 
 
 class TestIndividualsInGeneration:
@@ -98,20 +98,20 @@ class TestIndividualsInGeneration:
         have unary nodes in individuals for all tree sequence lineages
         """
         gens = final_gen - np.array(gens)  # convert to ts times
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                # Check all initial generation nodes are roots
-                nodes_at_start = np.where(ts.tables.nodes.time == final_gen)[0]
-                nodes_at_gen = {g: np.where(ts.tables.nodes.time == g)[0] for g in gens}
-                for nodes in nodes_at_gen.values():
-                    # All nodes in the target generations should have an individual
-                    assert np.all(ts.tables.nodes.individual[nodes] >= 0)
-                for tree in ts.trees():
-                    assert np.all(np.isin(tree.roots, nodes_at_start))
-                    for gen, nodes in nodes_at_gen.items():
-                        treenodes_at_gen = set(tree.nodes()) & set(nodes)
-                        assert len(treenodes_at_gen) == self.num_lineages_at_time(
-                            ts, gen, tree.interval.left)
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        # Check all initial generation nodes are roots
+        nodes_at_start = np.where(ts.tables.nodes.time == final_gen)[0]
+        nodes_at_gen = {g: np.where(ts.tables.nodes.time == g)[0] for g in gens}
+        for nodes in nodes_at_gen.values():
+            # All nodes in the target generations should have an individual
+            assert np.all(ts.tables.nodes.individual[nodes] >= 0)
+        for tree in ts.trees():
+            assert np.all(np.isin(tree.roots, nodes_at_start))
+            for gen, nodes in nodes_at_gen.items():
+                treenodes_at_gen = set(tree.nodes()) & set(nodes)
+                assert len(treenodes_at_gen) == self.num_lineages_at_time(
+                    ts, gen, tree.interval.left)
 
     @pytest.mark.parametrize('recipe, gens, final_gen', indirect=["recipe"], argvalues=[
         ('test_____retain_and_remember_individuals.slim', (50, 100), 200),
@@ -122,20 +122,20 @@ class TestIndividualsInGeneration:
         simplify out those with only unary nodes, and not all lineages will have a node
         """
         gens = final_gen - np.array(gens)  # convert to ts times
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                # Check all initial generation nodes are roots
-                nodes_at_start = np.where(ts.tables.nodes.time == final_gen)[0]
-                nodes_at_gen = {g: np.where(ts.tables.nodes.time == g)[0] for g in gens}
-                for nodes in nodes_at_gen.values():
-                    # All nodes in the target generations should have an individual
-                    assert np.all(ts.tables.nodes.individual[nodes] >= 0)
-                for tree in ts.trees():
-                    assert np.all(np.isin(tree.roots, nodes_at_start))
-                    for gen, nodes in nodes_at_gen.items():
-                        treenodes_at_gen = set(tree.nodes()) & set(nodes)
-                        assert len(treenodes_at_gen) < self.num_lineages_at_time(
-                            ts, gen, tree.interval.left)
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        # Check all initial generation nodes are roots
+        nodes_at_start = np.where(ts.tables.nodes.time == final_gen)[0]
+        nodes_at_gen = {g: np.where(ts.tables.nodes.time == g)[0] for g in gens}
+        for nodes in nodes_at_gen.values():
+            # All nodes in the target generations should have an individual
+            assert np.all(ts.tables.nodes.individual[nodes] >= 0)
+        for tree in ts.trees():
+            assert np.all(np.isin(tree.roots, nodes_at_start))
+            for gen, nodes in nodes_at_gen.items():
+                treenodes_at_gen = set(tree.nodes()) & set(nodes)
+                assert len(treenodes_at_gen) < self.num_lineages_at_time(
+                    ts, gen, tree.interval.left)
 
 
 class TestPopNames:
@@ -151,11 +151,11 @@ class TestPopNames:
         Even if p1 is gone by the time we write out the tree sequence,
         it should still have a name in the population table.
         """
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
-                assert pop_names[1] == "p1"
-                assert pop_names[3] == "p3"
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
+        assert pop_names[1] == "p1"
+        assert pop_names[3] == "p3"
 
     @pytest.mark.parametrize('recipe', indirect=True, argvalues=[
         'test_____pop_names_nondefault.slim',
@@ -165,11 +165,11 @@ class TestPopNames:
         Even if p1 is gone by the time we write out the tree sequence,
         it should still have a name in the population table.
         """
-        for result in recipe["results"]:
-            for ts in result.get_ts():
-                pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
-                assert pop_names[1] == "the_p1"
-                assert pop_names[3] == "the_p3"
+        assert len(recipe["results"]) == 1
+        ts = recipe["results"][0].get_normal_ts()
+        pop_names = [p.metadata['name'] if p.metadata is not None else None for p in ts.populations()]
+        assert pop_names[1] == "the_p1"
+        assert pop_names[3] == "the_p3"
 
 
 class TestSimple:

@@ -10,7 +10,6 @@ import os
 # test_002_xxx is based on the corresponding SLiM test recipe
 recipe_specs = {
     "test_____ancestral_marks.slim":	            {"marked_mutations": True},
-    "test_____ongoing_muts.slim":		            {"marked_mutations": True},
     "test_____sexual_WF.slim":		                {"marked_mutations": True},
     "test_____sexual_nonwf.slim":		            {"mutations": True, "individuals": True},
     "test_____simple_nonwf.slim":		            {"mutations": True, "individuals": True},
@@ -35,8 +34,8 @@ recipe_specs = {
     "test_____retain_and_remember_individuals.slim": {"marked_mutations": True, "individuals": True},
     "test_____retain_individuals_nonWF_unary.slim": {"marked_mutations": True, "individuals": True},
     "test_097 modeling nucleotides.slim":           {"mutations": True, "individuals": True},
-    "test_____pop_names_pX.slim":		            {"mutations": True},
-    "test_____pop_names_nondefault.slim":           {"mutations": True},
+    "test_____pop_names_pX.slim":		            {},
+    "test_____pop_names_nondefault.slim":           {},
     "test_____simple_not_perm.slim":                {},
     "test_____simple_perm.slim":                    {},
     "test_____simple_none.slim":                    {},

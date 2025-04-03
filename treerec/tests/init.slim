@@ -18,26 +18,14 @@ function (void)initializeMarkedMutations(i$ num_marks)
 function (void)initializeMarks(i$ num_marks)
 {
    // add a separate type of mutation to each of some genomes
-   markedGenomes = sample(sim.subpopulations.haplosomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
+   markedGenomes = sample(sim.subpopulations.haplosomes,
+        min(num_marks,2*sum(sim.subpopulations.individualCount)));
    for (k in seqAlong(markedGenomes)){
       chrom = markedGenomes[k].chromosome;
       for (pos in 0:chrom.lastPosition){
           mut = sim.mutationTypes[k];
           markedGenomes[k].addNewDrawnMutation(mut,pos);
         }
-   }
-   return;
-}
-
-function (void)ongoingMarks(i$ num_marks)
-{
-   // add a new mutation of type m0 to each of some genomes
-   markedGenomes = sample(sim.subpopulations.haplosomes, min(num_marks,2*sum(sim.subpopulations.individualCount)));
-   for (k in seqAlong(markedGenomes)){
-      chrom = markedGenomes[k].chromosome;
-      for (pos in 0:chrom.lastPosition){
-         markedGenomes[k].addNewDrawnMutation(m0,pos);
-      }
    }
    return;
 }

@@ -149,13 +149,16 @@ class TestIndividuals:
                             assert slim_ind.population == metadata['subpopulation']
                             assert np.allclose(slim_ind.pos, ts_individuals[ped_id].location)
                             ts_nodes = set([ids[n] for n in slim_ind.nodes])
-                            ind_nodes = []
-                            for n in ts_individuals[ped_id].nodes:
-                                has_data = node_has_data(ts, n)
-                                if has_data:
-                                    ind_nodes.append(n)
-                            assert ts_nodes == set(ind_nodes)
+                            ind_nodes = ts_individuals[ped_id].nodes
+                            # haplosomes can legit have all missing data in the tree sequence
+                            # in certain circumstances; for instance, if they have no coalescent
+                            # ancestors (since we simplify above), or if they were in the
+                            # original generation and Remembered.
+                            has_data = [node_has_data(ts, n) for n in ind_nodes]
+                            for n, h in zip(ind_nodes, has_data):
+                                assert n in ts_nodes or not h
                             for n in ts_nodes:
+                                assert n in ind_nodes
                                 assert ts.node(n).is_sample()
                             if ped_id not in alive:
                                 assert slim_ind.type == "remember"
