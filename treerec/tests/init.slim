@@ -63,7 +63,7 @@ function (void)saveIndividual(o<Individual>$ ind, s$ store) {
       " " + paste(ind.pedigreeID) +
       " " + paste(ind.subpopulation.id) +
       " " + paste(ind.x, ind.y, ind.z, sep=",") +
-      " " + paste(ind.haplosomes.haplosomePedigreeID, sep=",");
+      " " + paste(unique(ind.haplosomes.haplosomePedigreeID), sep=",");
    writeFile(
       individualsFile,
       outstr,
@@ -77,20 +77,27 @@ function (void)saveIndividualMutations(o<Individual>$ ind) {
     * a list of positions of those mutations.
     * * */
    pedID = ind.pedigreeID;
-   for (k in seqAlong(ind.haplosomes)){
-      haplosome = ind.haplosomes[k];
-      chromID = haplosome.chromosome.id;
-      haplosomeID = (2 * pedID) + k;
-      if (haplosome.isNullHaplosome) {
-         ids = c();
-         positions = c();
+   for (k in c(0, 1)) {
+      if (k == 0) {
+         haploidGenome = ind.haploidGenome1;
       } else {
-         ids = c(haplosome.mutations.id, sim.substitutions.id);
-         positions = c(haplosome.mutations.position, sim.substitutions.position);
+         haploidGenome = ind.haploidGenome2;
       }
-      writeFile(mutationsFile, "#Genome: " + paste(haplosomeID) + " " + paste(chromID) + " " + paste(ind.sex), append=T);
-      writeFile(mutationsFile, "Mutations: " + paste(ids), append=T);
-      writeFile(mutationsFile, "Positions: " + paste(positions), append=T);
+      for (haplosome in haploidGenome) {
+         haplosomeID = haplosome.haplosomePedigreeID;
+         chromID = haplosome.chromosome.id;
+         if (haplosome.isNullHaplosome) {
+            ids = c();
+            positions = c();
+         } else {
+            ids = c(haplosome.mutations.id, sim.substitutions.id);
+            positions = c(haplosome.mutations.position, sim.substitutions.position);
+         }
+         writeFile(mutationsFile, "#Genome: " + paste(haplosomeID) + " " + paste(chromID)
+                   + " " + paste(ind.sex) + " " + paste(pedID), append=T);
+         writeFile(mutationsFile, "Mutations: " + paste(ids), append=T);
+         writeFile(mutationsFile, "Positions: " + paste(positions), append=T);
+      }
    }
 }
 
@@ -102,6 +109,7 @@ function (void)addAncestralSamples(i$ num_samples) {
    inds = sample(sim.subpopulations.individuals, 
               min(num_samples, sum(sim.subpopulations.individualCount)));
    sim.treeSeqRememberIndividuals(inds);
+   addIndividuals(inds, "remember");
    if(!exists("n_marks")) {
       for (ind in inds) {
          catn("Recording genomes from individual " + ind.pedigreeID);
@@ -163,16 +171,16 @@ function (void)outputMutationResult(void) {
    } else {
       // Marked output: For each mutation type, output at each position the list
       // of genomes that have inherited a mutation of that type at that position
-      for(Mut in sim.mutationTypes){
+      for (Mut in sim.mutationTypes){
          for (chrom in sim.chromosomes) {
-            for(Pos in 0:chrom.lastPosition){
+            for (Pos in 0:chrom.lastPosition){
                GenomesWithMutAtPos = NULL;
-               for(pop in sim.subpopulations) {
-                  for(Ind in pop.individuals){
+               for (pop in sim.subpopulations) {
+                  for (Ind in pop.individuals){
                      pedID = Ind.pedigreeID;
-                     for(k in seqAlong(Ind.haplosomesForChromosomes(chrom))){
+                     for (k in seqAlong(Ind.haplosomesForChromosomes(chrom))){
                         haplosomeID = (2 * pedID) + k;
-                        if(Ind.haplosomes[k].containsMarkerMutation(Mut,Pos)){
+                        if (Ind.haplosomes[k].containsMarkerMutation(Mut,Pos)){
                            GenomesWithMutAtPos = c(GenomesWithMutAtPos, haplosomeID);
                         }
                      }

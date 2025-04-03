@@ -75,6 +75,7 @@ class OutputResult:
             genome = int(headstring[1])
             chrom = int(headstring[2])
             # sex = int(headstring[3])
+            # ped_id = int(headstring[4])
             slim_ids.append(genome)
             mutations = slim_file.readline().split()
             assert mutations[0] == "Mutations:"

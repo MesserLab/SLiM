@@ -108,10 +108,11 @@ initialize() {
 
 500 late() { 
 	outputMutationResult();
-	muts = sim.mutations;   // all mutations, no uniquing
-	freqs = sim.mutationFrequencies(NULL, muts);
-	selCoeffs = muts.selectionCoeff;
-	totalSel = sum(freqs * selCoeffs);
-	
-	catn("Weighted selection coefficient total: " + totalSel);
+	outputIndividuals();
+	// muts = sim.mutations;   // all mutations, no uniquing
+	// freqs = sim.mutationFrequencies(NULL, muts);
+	// selCoeffs = muts.selectionCoeff;
+	// totalSel = sum(freqs * selCoeffs);
+	// 
+	// catn("Weighted selection coefficient total: " + totalSel);
 }

@@ -4,6 +4,15 @@ import pytest
 
 from recipe_specs import recipe_eq
 
+def node_has_data(ts, n):
+    # some chromosome types are represented by a single haplosome
+    # in SLiM but still two nodes in the output, and not (currently)
+    # distinguishable in any way except they have only missing data
+    return (
+        np.sum(ts.edges_parent == n) + np.sum(ts.edges_child == n)
+        > 0
+    )
+
 @pytest.mark.parametrize('recipe', recipe_eq("mutations"), indirect=True)
 class TestWithMutations:
 
@@ -16,14 +25,13 @@ class TestWithMutations:
                     # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
                     ids = result.get_slim_ids(ts)
                     for sid in ids:
-                        if ts.node(ids[sid]).is_sample():
+                        has_data = node_has_data(ts, ids[sid])
+                        if ts.node(ids[sid]).is_sample() and has_data:
                             assert sid in slim_ids
                     # this is a dict of tskit ID -> index in samples
                     msp_samples = {}
                     for k, u in enumerate(ts.samples()):
                         msp_samples[u] = k
-                    # this contains the genotype information output by SLiM:
-                    #  indexed by position, then SLiM ID
                     pos = -1
                     for var in ts.variants(isolated_as_missing=False):
                         pos += 1
@@ -37,18 +45,15 @@ class TestWithMutations:
                         print("slim:", None if key not in slim else slim[key])
                         print(var)
                         for j in ids:
-                            print("slim id", j, "msp id", ids[j])
                             if ids[j] in msp_samples:
                                 sample_num = msp_samples[ids[j]]
                                 geno = var.genotypes[sample_num]
                                 msp_genotypes = var.alleles[geno].split(",")
-                                print("msp:", msp_genotypes, ";", geno)
                                 if (key not in slim) or (j not in slim[key]):
                                     # no mutations at this site
-                                    assert msp_genotypes == ['']
+                                    assert msp_genotypes == [''], f"sid={j}, msp={ids[j]}, {key in slim} / {j in slim[key]}\n   {slim[key]}"
                                 else:
-                                    print("slim:", slim[key][j])
-                                    assert set(msp_genotypes) == set([str(x) for x in slim[key][j]])
+                                    assert set(msp_genotypes) == set([str(x) for x in slim[key][j]]), f"slim: {slim[key][j]}"
 
 
 @pytest.mark.parametrize('recipe', recipe_eq("marked_mutations"), indirect=True)
@@ -105,12 +110,16 @@ class TestIndividuals:
             for tsl in result.get_ts():
                 for chrom_id in tsl:
                     ts = tsl[chrom_id].simplify(filter_individuals=True)
+                    ts.dump("temp.trees")
                     # this is a dictionary of SLiM -> tskit ID (from metadata in nodes)
                     ids = result.get_slim_ids(ts)
                     # this is a dict of tskit ID -> index in samples
                     # check that all the individual data lines up
                     ts_individuals = {i.metadata['pedigree_id']: i for i in ts.individuals()}
-                    alive = {ts.individual(i).metadata['pedigree_id'] for i in pyslim.individuals_alive_at(ts, 0)}
+                    alive = {
+                            ts.individual(i).metadata['pedigree_id']
+                            for i in pyslim.individuals_alive_at(ts, 0)
+                    }
                     num_expected = 0
                     for ped_id, slim_ind in slim_individuals.items():
                         if slim_ind.type.startswith("retain"):
@@ -124,7 +133,6 @@ class TestIndividuals:
                                 assert slim_ind.population == metadata['subpopulation']
                                 assert np.allclose(slim_ind.pos, ts_individuals[ped_id].location)
                                 for n in ts_nodes:
-                                    print(ped_id)
                                     assert not ts.node(n).is_sample()
                             else:
                                 assert ped_id not in ts_individuals
@@ -138,7 +146,12 @@ class TestIndividuals:
                             assert slim_ind.population == metadata['subpopulation']
                             assert np.allclose(slim_ind.pos, ts_individuals[ped_id].location)
                             ts_nodes = set([ids[n] for n in slim_ind.nodes])
-                            assert ts_nodes == set(ts_individuals[ped_id].nodes)
+                            ind_nodes = []
+                            for n in ts_individuals[ped_id].nodes:
+                                has_data = node_has_data(ts, n)
+                                if has_data:
+                                    ind_nodes.append(n)
+                            assert ts_nodes == set(ind_nodes)
                             for n in ts_nodes:
                                 assert ts.node(n).is_sample()
                             if ped_id not in alive:
