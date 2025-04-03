@@ -2170,7 +2170,7 @@ This function was contributed by Chris Kyriazis; thanks, Chris!\
 \fs20 \nosupersub  is the proportion of an individual\'92s genome that is spanned by ROH longer than a given threshold length.  However, it should be noted that there are many different ways of calculating 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub roh
-\fs20 \nosupersub , producing different results.  For example, the threshold length might be a given constant, or might be determined statistically from the characteristics of the population.  Furthermore, some heterozygous sites might be discarded (to compensate for genotyping errors), a minimum SNP density might be required within a sliding window for an ROH to be diagnosed, and so forth \'96 it can get quite complex, as seen in the software PLINK (Purcell et al., 2007).  The method used by 
+\fs20 \nosupersub , producing different results.  For example, the threshold length might be a given constant, or might be determined statistically from the characteristics of the population.  Furthermore, some heterozygous sites might be discarded (to compensate for genotyping errors), a minimum SNP density might be required within a sliding window for an ROH to be diagnosed, and so forth \'96 it can get quite complex, as seen in the software PLINK (Purcell et al., 2007) and GARLIC (Szpiech, Blant and Pemberton, 2017).  The method used by 
 \f1\fs18 calcMeanFroh()
 \f2\fs20  is the simplest possible method, assessing ROH for each individual directly from the simulated mutations without filtering or modification, and applying a given constant threshold length.  If a more sophisticated 
 \f3\i F
@@ -2179,7 +2179,7 @@ This function was contributed by Chris Kyriazis; thanks, Chris!\
 \f1\fs18 calcMeanFroh()
 \f2\fs20 , which is viewable with 
 \f1\fs18 functionSource()
-\f2\fs20 , or one could output VCF data from SLiM and analyze it with PLINK or other tools, perhaps calling out from the running SLiM script with 
+\f2\fs20 , or one could output VCF data from SLiM and analyze it with other tools, perhaps calling out from the running SLiM script with 
 \f1\fs18 system()
 \f2\fs20 .\
 The threshold ROH length used by 
