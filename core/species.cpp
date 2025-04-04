@@ -9777,14 +9777,14 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInf
 			
 			if (pedigree_id >= gSLiM_next_pedigree_id)
 			{
-				static bool been_here = false;
-				
-				if (!been_here)
-				{
-					// decided to keep this as a warning; this circumstance is not necessarily pathological, but it probably usually is...
-					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a haplosome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
-					been_here = true;
-				}
+				// We tried issuing a warning here:
+				//
+				// p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a haplosome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
+				//
+				// It proved not useful.  It got hit if you remembered an individual and then killed it and ended the sim,
+				// such that that individual's nodes were still in the table, but it was not-alive and was more recently
+				// born than any alive individual.  An uncommon thing to do, but not unreasonable.  On the other hand, this
+				// warning did not flag any actually pathological cases for anyone; and it was a very confusing warning!
 				
 				gSLiM_next_pedigree_id = pedigree_id + 1;
 			}
