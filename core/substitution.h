@@ -68,6 +68,7 @@ public:
 	inline virtual ~Substitution(void) override { }
 	
 	void PrintForSLiMOutput(std::ostream &p_out) const;
+	void PrintForSLiMOutput_Tag(std::ostream &p_out) const;
 	
 	//
 	// Eidos support

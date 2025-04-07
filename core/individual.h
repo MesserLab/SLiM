@@ -304,7 +304,7 @@ public:
 	}
 	
 	// Individual-level output methods; used by outputIndividuals() and outputIndividualsToVCF()
-	static void PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome);
+	static void PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_object_tags, bool p_output_substitutions, Chromosome *p_focal_chromosome);
 	static void PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, Chromosome *p_focal_chromosome);
 	
 	//

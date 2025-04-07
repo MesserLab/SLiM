@@ -261,7 +261,6 @@ class Community;
 
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportOutput:(id)sender;			// wired through firstResponder because these are menu items
-- (IBAction)exportPopulation:(id)sender;		// wired through firstResponder because these are menu items
 
 //	Eidos SLiMgui method forwards
 - (void)eidos_openDocument:(NSString *)path;

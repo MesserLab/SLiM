@@ -814,7 +814,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	bool has_individual_pedigree_IDs = false;
 	bool has_nucleotides = false;
 	bool output_ancestral_nucs = false;
-	int individual_tags_count = false;
 	
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
@@ -897,8 +896,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 					has_nucleotides = true;
 				else if (sub == "ANC_SEQ")
 					output_ancestral_nucs = true;
-				else if (sub == "IND_TAGS")
-					individual_tags_count = 7;
+				else if (sub == "OBJECT_TAGS")
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): readFromPopulationFile() does not support reading in object tags from text format; output of object tags should be turned off in outputFull(), or you should save in binary instead with binary=T." << EidosTerminate();
+				else if (sub == "SUBSTITUTIONS")
+					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): readFromPopulationFile() does not support reading in substitutions from text format; output of substitutions should be turned off in outputFull(), or you should save in binary instead with binary=T." << EidosTerminate();
 				else
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unrecognized flag in Flags line: '" << sub << "'." << EidosTerminate();
 			}
@@ -977,7 +978,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		community_.SymbolTable().InitializeConstantSymbolEntry(symbol_entry);
 	}
 	
-	// Now we are in the Individuals section; handle spatial positions, tags, etc. until we hit a Chromosome line
+	// Now we are in the Individuals section; handle spatial positions, etc. until we hit a Chromosome line
 	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
 	if (line.find("Individuals") != std::string::npos)
@@ -1075,7 +1076,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			// Parse the optional fields at the end of each individual line.  This is a bit tricky.
 			// First we read all of the fields in, then we decide how to use them.
 			std::vector<std::string> opt_params;
-			int expected_opt_param_count = spatial_output_count + age_output_count + individual_tags_count;
+			int expected_opt_param_count = spatial_output_count + age_output_count;
 			int opt_param_index = 0;
 			
 			while (iss >> sub)
@@ -1098,127 +1099,6 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (age_output_count)
 			{
 				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[opt_param_index++], nullptr);	// age
-			}
-			
-			if (individual_tags_count)
-			{
-				{
-					std::string &tag_string = opt_params[opt_param_index++];
-					
-					if (tag_string == "?")
-						individual.tag_value_ = SLIM_TAG_UNSET_VALUE;
-					else
-					{
-						const char *c_str = tag_string.c_str();
-						char *last_used_char = nullptr;
-						errno = 0;
-						
-						int64_t converted_value = strtoll(c_str, &last_used_char, 10);
-						
-						if (errno || (last_used_char == c_str))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_InitializePopulationFromTextFile): tag value could not be represented as an integer (strtoll conversion error)." << EidosTerminate();
-						
-						individual.tag_value_ = converted_value;
-					}
-				}
-				{
-					std::string &tagF_string = opt_params[opt_param_index++];
-					
-					if (tagF_string == "?")
-						individual.tagF_value_ = SLIM_TAGF_UNSET_VALUE;
-					else
-						individual.tagF_value_ = EidosInterpreter::FloatForString(tagF_string, nullptr);
-				}
-				{
-					std::string &tagL0_string = opt_params[opt_param_index++];
-					
-					if (tagL0_string == "?")
-						individual.tagL0_set_ = false;
-					else if (tagL0_string == "F")
-					{
-						individual.tagL0_value_ = 0;
-						individual.tagL0_set_ = true;
-					}
-					else if (tagL0_string == "T")
-					{
-						individual.tagL0_value_ = 1;
-						individual.tagL0_set_ = true;
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL0 value for individual." << EidosTerminate();
-				}
-				{
-					std::string &tagL1_string = opt_params[opt_param_index++];
-					
-					if (tagL1_string == "?")
-						individual.tagL1_set_ = false;
-					else if (tagL1_string == "F")
-					{
-						individual.tagL1_value_ = 0;
-						individual.tagL1_set_ = true;
-					}
-					else if (tagL1_string == "T")
-					{
-						individual.tagL1_value_ = 1;
-						individual.tagL1_set_ = true;
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL1 value for individual." << EidosTerminate();
-				}
-				{
-					std::string &tagL2_string = opt_params[opt_param_index++];
-					
-					if (tagL2_string == "?")
-						individual.tagL2_set_ = false;
-					else if (tagL2_string == "F")
-					{
-						individual.tagL2_value_ = 0;
-						individual.tagL2_set_ = true;
-					}
-					else if (tagL2_string == "T")
-					{
-						individual.tagL2_value_ = 1;
-						individual.tagL2_set_ = true;
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL2 value for individual." << EidosTerminate();
-				}
-				{
-					std::string &tagL3_string = opt_params[opt_param_index++];
-					
-					if (tagL3_string == "?")
-						individual.tagL3_set_ = false;
-					else if (tagL3_string == "F")
-					{
-						individual.tagL3_value_ = 0;
-						individual.tagL3_set_ = true;
-					}
-					else if (tagL3_string == "T")
-					{
-						individual.tagL3_value_ = 1;
-						individual.tagL3_set_ = true;
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL3 value for individual." << EidosTerminate();
-				}
-				{
-					std::string &tagL4_string = opt_params[opt_param_index++];
-					
-					if (tagL4_string == "?")
-						individual.tagL4_set_ = false;
-					else if (tagL4_string == "F")
-					{
-						individual.tagL4_value_ = 0;
-						individual.tagL4_set_ = true;
-					}
-					else if (tagL4_string == "T")
-					{
-						individual.tagL4_value_ = 1;
-						individual.tagL4_set_ = true;
-					}
-					else
-						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): unexpected tagL4 value for individual." << EidosTerminate();
-				}
 			}
 		}
 	}
@@ -1570,7 +1450,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	int pedigree_output_count = 0;
 	bool has_nucleotides = false;
 	bool has_ancestral_nucs = false;
-	bool has_ind_tags = false;
+	bool has_object_tags = false;
+	bool has_substitutions = false;
 	
 	// Read file into buf
 	std::ifstream infile(p_file, std::ios::in | std::ios::binary);
@@ -1659,7 +1540,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if (flags & 0x0008) pedigree_output_count = 1;
 		if (flags & 0x0010) has_nucleotides = true;
 		if (flags & 0x0020) has_ancestral_nucs = true;
-		if (flags & 0x0040) has_ind_tags = true;
+		if (flags & 0x0040) has_object_tags = true;
+		if (flags & 0x0080) has_substitutions = true;
 		
 		memcpy(&slim_tick_t_size, p, sizeof(slim_tick_t_size));
 		p += sizeof(slim_tick_t_size);
@@ -1762,7 +1644,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		double subpop_sex_ratio;
 		
 		// If there isn't enough buffer left to read a full subpop record, we assume we are done with this section
-		if (p + sizeof(subpop_start_tag) + sizeof(subpop_id) + sizeof(subpop_size) + sizeof(sex_flag) + sizeof(subpop_sex_ratio) > buf_end)
+		if (p + sizeof(subpop_start_tag) + sizeof(subpop_id) + sizeof(subpop_size) + sizeof(sex_flag) + sizeof(subpop_sex_ratio) + (has_object_tags ? sizeof(slim_usertag_t) : 0) > buf_end)
 			break;
 		
 		// If the first int32_t is not a subpop start tag, then we are done with this section
@@ -1790,6 +1672,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		// Create the population population
 		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, subpop_sex_ratio, false);
+		
+		if (has_object_tags)
+		{
+			memcpy(&new_subpop->tag_value_, p, sizeof(new_subpop->tag_value_));
+			p += sizeof(new_subpop->tag_value_);
+		}
 		
 		// define a new Eidos variable to refer to the new subpopulation
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
@@ -1822,7 +1710,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)	// go through all children
 		{
 			// If there isn't enough buffer left to read a full subpop record, we have an error
-			if (p + sizeof(IndividualSex) + pedigree_output_count * sizeof(slim_pedigreeid_t) + spatial_output_count * sizeof(double) + age_output_count * sizeof(slim_age_t) + (has_ind_tags ? sizeof(slim_usertag_t) + sizeof(double) + 5*sizeof(char) : 0) > buf_end)
+			if (p + sizeof(IndividualSex) + pedigree_output_count * sizeof(slim_pedigreeid_t) + spatial_output_count * sizeof(double) + age_output_count * sizeof(slim_age_t) + (has_object_tags ? sizeof(slim_usertag_t) + sizeof(double) + 5*sizeof(char) : 0) > buf_end)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in individuals section." << EidosTerminate();
 			
 			Individual &individual = *(subpop->parent_individuals_[individual_index]);
@@ -1881,7 +1769,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				p += sizeof(slim_age_t);
 			}
 			
-			if (has_ind_tags)
+			if (has_object_tags)
 			{
 				memcpy(&individual.tag_value_, p, sizeof(individual.tag_value_));
 				p += sizeof(tag_value_);
@@ -1972,7 +1860,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		int64_t chromosome_lastpos;
 		int32_t mutation_map_size;
 		
-		if (p + sizeof(raw_chromosome_index) + sizeof(raw_chromosome_type) + sizeof(chromosome_id) + sizeof(chromosome_lastpos) > buf_end)
+		if (p + sizeof(raw_chromosome_index) + sizeof(raw_chromosome_type) + sizeof(chromosome_id) + sizeof(chromosome_lastpos) + (has_object_tags ? sizeof(slim_usertag_t) : 0) > buf_end)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in chromosome information." << EidosTerminate();
 		
 		memcpy(&raw_chromosome_index, p, sizeof(raw_chromosome_index));
@@ -2005,6 +1893,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		if (chromosome_lastpos != chromosome->last_position_)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): chromosome last position mismatch." << EidosTerminate();
+		
+		if (has_object_tags)
+		{
+			memcpy(&chromosome->tag_value_, p, sizeof(chromosome->tag_value_));
+			p += sizeof(chromosome->tag_value_);
+		}
 		
 		// Read in the size of the mutation map, so we can allocate a vector rather than utilizing std::map
 		if (p + sizeof(mutation_map_size) > buf_end)
@@ -2041,6 +1935,8 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			
 			if (has_nucleotides)
 				record_size += sizeof(nucleotide);
+			if (has_object_tags)
+				record_size += sizeof(slim_usertag_t);
 			
 			if (p + record_size > buf_end)
 				break;
@@ -2108,6 +2004,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			
 			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
 			
+			// read the tag value, if present
+			if (has_object_tags)
+			{
+				memcpy(&new_mut->tag_value_, p, sizeof(slim_usertag_t));
+				p += sizeof(slim_usertag_t);
+			}
+			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			mutations[polymorphism_id] = new_mut_index;
 			population_.MutationRegistryAdd(new_mut);
@@ -2165,7 +2068,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 					int32_t total_mutations;
 					
 					// If there isn't enough buffer left to read a full haplosome record, we have an error
-					if (p + sizeof(subpop_id) + sizeof(total_mutations) > buf_end)
+					if (p + sizeof(subpop_id) + sizeof(total_mutations) + (has_object_tags ? sizeof(slim_usertag_t) : 0) > buf_end)
 						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF in haplosome header." << EidosTerminate();
 					
 					memcpy(&subpop_id, p, sizeof(subpop_id));
@@ -2173,6 +2076,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 					
 					if (subpop_id != subpop_pair.first + 1)		// + 1 to avoid colliding with section_end_tag
 						EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): subpop id mismatch." << EidosTerminate();
+					
+					if (has_object_tags)
+					{
+						memcpy(&haplosome.tag_value_, p, sizeof(slim_usertag_t));
+						p += sizeof(slim_usertag_t);
+					}
 					
 					memcpy(&total_mutations, p, sizeof(total_mutations));
 					p += sizeof(total_mutations);
@@ -2308,6 +2217,125 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				if (section_end_tag != (int32_t)0xFFFF0000)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after ancestral sequence." << EidosTerminate();
 			}
+		}
+	}
+	
+	if (has_substitutions)
+	{
+		while (true)
+		{
+			int32_t substitution_start_tag;
+			slim_mutationid_t mutation_id;
+			slim_objectid_t mutation_type_id;
+			slim_position_t position;
+			slim_selcoeff_t selection_coeff;
+			slim_selcoeff_t dominance_coeff;
+			slim_objectid_t subpop_index;
+			slim_tick_t origin_tick;
+			slim_tick_t fixation_tick;
+			slim_chromosome_index_t chromosome_index;
+			int8_t nucleotide = -1;
+			
+			// If there isn't enough buffer left to read a full mutation record, we assume we are done with this section
+			int record_size = sizeof(substitution_start_tag) + sizeof(mutation_id) + sizeof(mutation_type_id) + sizeof(position) + sizeof(selection_coeff) + sizeof(dominance_coeff) + sizeof(subpop_index) + sizeof(origin_tick) + sizeof(fixation_tick) + sizeof(chromosome_index);
+			
+			if (has_nucleotides)
+				record_size += sizeof(nucleotide);
+			if (has_object_tags)
+				record_size += sizeof(slim_usertag_t);
+			
+			if (p + record_size > buf_end)
+				break;
+			
+			// If the first int32_t is not a mutation start tag, then we are done with this section
+			memcpy(&substitution_start_tag, p, sizeof(substitution_start_tag));
+			if (substitution_start_tag != (int32_t)0xFFFF0003)
+				break;
+			
+			// Otherwise, we have a mutation record; read in the rest of it
+			p += sizeof(substitution_start_tag);
+			
+			memcpy(&mutation_id, p, sizeof(mutation_id));
+			p += sizeof(mutation_id);
+			
+			memcpy(&mutation_type_id, p, sizeof(mutation_type_id));
+			p += sizeof(mutation_type_id);
+			
+			memcpy(&position, p, sizeof(position));
+			p += sizeof(position);
+			
+			memcpy(&selection_coeff, p, sizeof(selection_coeff));
+			p += sizeof(selection_coeff);
+			
+			memcpy(&dominance_coeff, p, sizeof(dominance_coeff));
+			p += sizeof(dominance_coeff);
+			
+			memcpy(&subpop_index, p, sizeof(subpop_index));
+			p += sizeof(subpop_index);
+			
+			memcpy(&origin_tick, p, sizeof(origin_tick));
+			p += sizeof(origin_tick);
+			
+			memcpy(&fixation_tick, p, sizeof(fixation_tick));
+			p += sizeof(fixation_tick);
+			
+			memcpy(&chromosome_index, p, sizeof(chromosome_index));
+			(void)chromosome_index;
+			p += sizeof(chromosome_index);
+			
+			if (has_nucleotides)
+			{
+				memcpy(&nucleotide, p, sizeof(nucleotide));
+				p += sizeof(nucleotide);
+			}
+			
+			// note the tag is read below, after the substitution is created
+			
+			// look up the mutation type from its index
+			MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
+			
+			if (!mutation_type_ptr) 
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
+			
+			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			
+			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
+			
+			if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
+			if ((nucleotide != -1) && !mutation_type_ptr->nucleotide_based_)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
+			
+			// construct the new substitution
+			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
+			
+			// read its tag, if requested
+			if (has_object_tags)
+			{
+				memcpy(&new_substitution->tag_value_, p, sizeof(slim_usertag_t));
+				p += sizeof(slim_usertag_t);
+			}
+			
+			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
+			// TREE SEQUENCE RECORDING
+			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
+			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
+			if (RecordingTreeSequence())
+				population_.treeseq_substitutions_map_.emplace(new_substitution->position_, new_substitution);
+			
+			population_.substitutions_.emplace_back(new_substitution);
+		}
+		
+		if (p + sizeof(section_end_tag) > buf_end)
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
+		else
+		{
+			memcpy(&section_end_tag, p, sizeof(section_end_tag));
+			p += sizeof(section_end_tag);
+			
+			if (section_end_tag != (int32_t)0xFFFF0000)
+				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): missing section end after mutations." << EidosTerminate();
 		}
 	}
 	

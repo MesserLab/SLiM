@@ -7429,7 +7429,7 @@ void Population::RemoveAllFixedMutations(void)
 			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
-				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick);
+				Substitution *sub = new Substitution(*mut_to_remove, tick);
 				
 				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
 				substitutions_.emplace_back(sub);
@@ -7439,7 +7439,12 @@ void Population::RemoveAllFixedMutations(void)
 		{
 			// When not doing tree recording, we just create substitutions and keep them in a vector
 			for (int i = 0; i < fixed_mutation_accumulator_size; i++)
-				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick));
+			{
+				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
+				Substitution *sub = new Substitution(*mut_to_remove, tick);
+				
+				substitutions_.emplace_back(sub);
+			}
 		}
 		
 		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
@@ -7560,7 +7565,7 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 
 // print all mutations and all haplosomes to a stream in binary, for maximum reading speed
 // this is a binary version of Individual::PrintIndividuals_SLiM(), which is quite parallel
-void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags) const
+void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_object_tags, bool p_output_substitutions) const
 {
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::PrintAllBinary): (internal error) called with child generation active!." << EidosTerminate();
@@ -7617,7 +7622,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			if (pedigree_output_count)		flags |= 0x0008;
 			if (has_nucleotides)			flags |= 0x0010;
 			if (output_ancestral_nucs)		flags |= 0x0020;
-			if (p_output_ind_tags)			flags |= 0x0040;
+			if (p_output_object_tags)		flags |= 0x0040;
+			if (p_output_substitutions)		flags |= 0x0080;
 			
 			p_out.write(reinterpret_cast<char *>(&flags), sizeof flags);
 		}
@@ -7663,7 +7669,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Populations section
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
-		Subpopulation *subpop = subpop_pair.second;
+		const Subpopulation *subpop = subpop_pair.second;
 		slim_objectid_t subpop_id = subpop_pair.first;
 		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		double subpop_sex_ratio;
@@ -7698,6 +7704,10 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		
 		// Write the sex ratio; if we are not sexual, this will be garbage, but that is fine, we want a constant-length record
 		p_out.write(reinterpret_cast<char *>(&subpop_sex_ratio), sizeof subpop_sex_ratio);
+		
+		// Write the tag if requested
+		if (p_output_object_tags)
+			p_out.write(reinterpret_cast<const char *>(&subpop->tag_value_), sizeof subpop->tag_value_);
 		
 		// now will come either a subpopulation start tag, or a section end tag
 	}
@@ -7744,8 +7754,8 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
 			
-			// output individual tags if requested
-			if (p_output_ind_tags)
+			// output object tags if requested
+			if (p_output_object_tags)
 			{
 				char T_value = 1, F_value = 0, UNDEF_value = 2;
 				
@@ -7792,7 +7802,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	
 	p_out.write(reinterpret_cast<char *>(&chromosome_count), sizeof chromosome_count);
 	
-	for (Chromosome *chromosome : chromosomes)
+	for (const Chromosome *chromosome : chromosomes)
 	{
 		// write information about the chromosome; we don't write the symbol, since strings are annoying,
 		// so the chromosome symbol will not be validated on read, but I think that's fine
@@ -7805,6 +7815,9 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&chromosome_type), sizeof chromosome_type);
 		p_out.write(reinterpret_cast<char *>(&chromosome_id), sizeof chromosome_id);
 		p_out.write(reinterpret_cast<char *>(&chromosome_lastpos), sizeof chromosome_lastpos);
+		
+		if (p_output_object_tags)
+			p_out.write(reinterpret_cast<const char *>(&chromosome->tag_value_), sizeof chromosome->tag_value_);
 		
 		// Find all polymorphisms
 		int first_haplosome_index = species_.FirstHaplosomeIndices()[chromosome_index];
@@ -7859,7 +7872,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
-			slim_tick_t tick = mutation_ptr->origin_tick_;
+			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
 			slim_refcount_t prevalence = polymorphism.prevalence_;
 			int8_t nucleotide = mutation_ptr->nucleotide_;
 			
@@ -7876,11 +7889,14 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
 			p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
 			p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
-			p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
+			p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
 			p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
 			
 			if (has_nucleotides)
 				p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);							// added in version 5
+			
+			if (p_output_object_tags)
+				p_out.write(reinterpret_cast<const char *>(&mutation_ptr->tag_value_), sizeof mutation_ptr->tag_value_);
 			
 			// now will come either a mutation start tag, or a section end tag
 		}
@@ -7902,10 +7918,13 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				
 				for (int haplosome_index = first_haplosome_index; haplosome_index <= last_haplosome_index; haplosome_index++)
 				{
-					Haplosome *haplosome = haplosomes[haplosome_index];
+					const Haplosome *haplosome = haplosomes[haplosome_index];
 					
 					// Write out the haplosome header; start with the subpop id + 1 to guarantee that the first 32 bits are != section_end_tag
 					p_out.write(reinterpret_cast<char *>(&subpop_id), sizeof subpop_id);	// + 1
+					
+					if (p_output_object_tags)
+						p_out.write(reinterpret_cast<const char *>(&haplosome->tag_value_), sizeof haplosome->tag_value_);
 					
 					// Write out the mutation list
 					if (haplosome->IsNull())
@@ -7996,6 +8015,51 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 		}
 	}
+	
+	// New in SLiM 5, output substitutions if requested
+	if (p_output_substitutions)
+	{
+		for (const Substitution *substitution_ptr : substitutions_)
+		{
+			const MutationType *mutation_type_ptr = substitution_ptr->mutation_type_ptr_;
+			int64_t mutation_id = substitution_ptr->mutation_id_;
+			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
+			slim_position_t position = substitution_ptr->position_;
+			slim_selcoeff_t selection_coeff = substitution_ptr->selection_coeff_;
+			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
+			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
+			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
+			slim_chromosome_index_t chromosome_index = substitution_ptr->chromosome_index_;
+			int8_t nucleotide = substitution_ptr->nucleotide_;
+			
+			// Write a tag indicating we are starting a new substitution
+			int32_t substitution_start_tag = 0xFFFF0003;
+			
+			p_out.write(reinterpret_cast<char *>(&substitution_start_tag), sizeof substitution_start_tag);
+			
+			// Write the mutation data
+			p_out.write(reinterpret_cast<char *>(&mutation_id), sizeof mutation_id);
+			p_out.write(reinterpret_cast<char *>(&mutation_type_id), sizeof mutation_type_id);
+			p_out.write(reinterpret_cast<char *>(&position), sizeof position);
+			p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
+			p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
+			p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
+			p_out.write(reinterpret_cast<char *>(&origin_tick), sizeof origin_tick);
+			p_out.write(reinterpret_cast<char *>(&fixation_tick), sizeof fixation_tick);
+			p_out.write(reinterpret_cast<char *>(&chromosome_index), sizeof chromosome_index);
+			
+			if (has_nucleotides)
+				p_out.write(reinterpret_cast<char *>(&nucleotide), sizeof nucleotide);
+			if (p_output_object_tags)
+				p_out.write(reinterpret_cast<const char *>(&substitution_ptr->tag_value_), sizeof substitution_ptr->tag_value_);
+			
+			// now will come either a mutation start tag, or a section end tag
+		}
+		
+		// Write a tag indicating the section has ended
+		p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
+	}
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id
@@ -8049,7 +8113,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 	}
 	
 	// print the sample using Haplosome's static member function
-	Haplosome::PrintHaplosomes_SLiM(p_out, sample);
+	Haplosome::PrintHaplosomes_SLiM(p_out, sample, /* p_output_object_tags */ false);
 }
 
 // print sample of p_sample_size haplosomes from subpopulation p_subpop_id, using "ms" format

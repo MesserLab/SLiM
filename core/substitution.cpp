@@ -73,6 +73,40 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	p_out << std::endl;
 }
 
+void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
+{ 
+	// BCH 4/7/2025: This is a copy of PrintForSLiMOutput() with output of tag_value_ added at the end
+	
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_;
+	
+	// BCH 2/2/2025: Note that in multi-chrom models, this method now prints the chromosome symbol after the position
+	// For brevity and backward compatibility, the chromosome symbol is not printed in single-chromosome models
+	Species &species = mutation_type_ptr_->species_;
+	const std::vector<Chromosome *> &chromosomes = species.Chromosomes();
+	
+	if (chromosomes.size() > 1)
+	{
+		Chromosome *chromosome = chromosomes[chromosome_index_];
+		
+		p_out << " \"" << chromosome->Symbol() << "\"";
+	}
+	
+	// and then the remainder of the output line
+	p_out << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	
+	// output a nucleotide if available
+	if (mutation_type_ptr_->nucleotide_based_)
+		p_out << " " << gSLiM_Nucleotides[nucleotide_];
+	
+	// output the tag value, or '?' or the tag is not defined
+	if (tag_value_ == SLIM_TAG_UNSET_VALUE)
+		p_out << ' ' << '?';
+	else
+		p_out << ' ' << tag_value_;
+	
+	p_out << std::endl;
+}
+
 
 //
 //	Eidos support

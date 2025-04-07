@@ -2193,7 +2193,7 @@ Several helper functions are provided for working with sequences, such as
 \f4\fs20  to convert a codon sequence (such as provided by the codon format described above) to an amino acid sequence.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)outputHaplosomes([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 +\'a0(void)outputHaplosomes([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 , [logical$\'a0objectTags\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2223,6 +2223,19 @@ Several helper functions are provided for working with sequences, such as
 \f3\fs18 append
 \f4\fs20  is 
 \f3\fs18 T
+\f4\fs20 .\
+The 
+\f3\fs18 objectTags
+\f4\fs20  parameter may be used to request that tag values for objects be written out.  This option is turned off (
+\f3\fs18 F
+\f4\fs20 ) by default, for brevity; if it turned on (
+\f3\fs18 T
+\f4\fs20 ), the 
+\f3\fs18 tag
+\f4\fs20  property values of all haplosomes and mutations in the output will be written.  If there is other state that you wish you persist, such as tags on objects of other classes, values attached to objects with 
+\f3\fs18 setValue()
+\f4\fs20 , and so forth, you should persist that state in separate files using calls such as 
+\f3\fs18 writeFile()
 \f4\fs20 .\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 See 
@@ -3746,7 +3759,7 @@ This method replaces the deprecated method
 \f4\fs20 , while providing additional useful options.  It is particularly useful for efficient, vectorized assessment of the homozygous versus heterozygous state of the mutations contained by an individual, which is otherwise difficult to assess efficiently.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F])\
+\f3\fs18 \cf2 +\'a0(void)outputIndividuals([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL], [logical$\'a0spatialPositions\'a0=\'a0T], [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0F], [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0objectTags\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Output the state of the target vector of individuals in SLiM's own format.  If the optional parameter 
@@ -3842,14 +3855,20 @@ The
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
 Finally, the 
-\f3\fs18 individualTags
-\f4\fs20  parameter may be used to request that tag values for all individuals be written out (and read in by 
-\f3\fs18 readFromPopulationFile()
-\f4\fs20 , subsequently).  This option is turned off (
+\f3\fs18 objectTags
+\f4\fs20  parameter may be used to request that tag values for objects be written out.  This option is turned off (
 \f3\fs18 F
 \f4\fs20 ) by default, for brevity; if it turned on (
 \f3\fs18 T
-\f4\fs20 ), the values of all tags for all individuals (specifically, the 
+\f4\fs20 ), the values of all tags for all objects of supported classes (
+\f3\fs18 Chromosome
+\f4\fs20 , 
+\f3\fs18 Individual
+\f4\fs20 , 
+\f3\fs18 Haplosome
+\f4\fs20 , 
+\f3\fs18 Mutation
+\f4\fs20 ) will be written.  For individuals, the 
 \f3\fs18 tag
 \f4\fs20 , 
 \f3\fs18 tagF
@@ -3863,7 +3882,13 @@ Finally, the
 \f3\fs18 tagL3
 \f4\fs20 , and 
 \f3\fs18 tagL4
-\f4\fs20  properties) will be written.\
+\f4\fs20  properties will be written; for chromosomes, haplosomes, and mutations, the 
+\f3\fs18 tag
+\f4\fs20  property will be written.  If there is other state that you wish you persist, such as tags on objects of other classes, values attached to objects with 
+\f3\fs18 setValue()
+\f4\fs20 , and so forth, you should persist that state in separate files using calls such as 
+\f3\fs18 writeFile()
+\f4\fs20 .\
 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.\
@@ -9122,7 +9147,7 @@ See the
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)outputFixedMutations([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \'96\'a0(void)outputFixedMutations([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 , [logical$\'a0objectTags\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -9151,19 +9176,22 @@ See the
 \f3\fs18 F
 \f4\fs20  for their mutation type \'96 are not output; they are still considered to be segregating mutations by SLiM.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 In SLiM 5 and later, in models with multiple chromosome the output includes the symbol of the chromosome associated with each mutation.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In SLiM 3.3 and later, the output format includes the nucleotides associated with any nucleotide-based mutations.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
+\cf2 \kerning1\expnd0\expndtw0 In SLiM 5.0 and later, in models with multiple chromosome the output includes the symbol of the chromosome associated with each mutation.\
+Beginning with SLiM 5.0, the 
+\f3\fs18 objectTags
+\f4\fs20  parameter may be used to request that tag values for substitutions be written out.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputFull([Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0binary\'a0=\'a0F], [logical$\'a0append\'a0=\'a0F], [logical$\'a0spatialPositions\'a0=\'a0T]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0individualTags\'a0=\'a0F]\cf0 )
+, [logical$\'a0ages\'a0=\'a0T], [logical$\'a0ancestralNucleotides\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0pedigreeIDs\'a0=\'a0F], [logical$\'a0objectTags\'a0=\'a0F], [logical$\'a0substitutions\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -9261,14 +9289,24 @@ Beginning with SLiM 3.3, the
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
 Beginning with SLiM 5.0, the 
-\f3\fs18 individualTags
-\f4\fs20  parameter may be used to request that tag values for all individuals be written out (and read in by 
-\f3\fs18 readFromPopulationFile()
-\f4\fs20 , subsequently).  This option is turned off (
+\f3\fs18 objectTags
+\f4\fs20  parameter may be used to request that tag values for objects be written out.  This option is turned off (
 \f3\fs18 F
 \f4\fs20 ) by default, for brevity; if it turned on (
 \f3\fs18 T
-\f4\fs20 ), the values of all tags for all individuals (specifically, the 
+\f4\fs20 ), the values of all tags for all objects of supported classes (
+\f3\fs18 Chromosome
+\f4\fs20 , 
+\f3\fs18 Subpopulation
+\f4\fs20 , 
+\f3\fs18 Individual
+\f4\fs20 , 
+\f3\fs18 Haplosome
+\f4\fs20 , 
+\f3\fs18 Mutation
+\f4\fs20 , 
+\f3\fs18 Substitution
+\f4\fs20 ) will be written.  For individuals, the 
 \f3\fs18 tag
 \f4\fs20 , 
 \f3\fs18 tagF
@@ -9282,7 +9320,28 @@ Beginning with SLiM 5.0, the
 \f3\fs18 tagL3
 \f4\fs20 , and 
 \f3\fs18 tagL4
-\f4\fs20  properties) will be written.\
+\f4\fs20  properties will be written; for chromosomes, subpopulations, haplosomes, and mutations, the 
+\f3\fs18 tag
+\f4\fs20  property will be written.  The saved tag information can be read in by 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20 , but only if the output is in binary format (
+\f3\fs18 binary=T
+\f4\fs20 ).  Note that if there is other state that you wish you persist, such as tags on objects of other classes, values attached to objects with 
+\f3\fs18 setValue()
+\f4\fs20 , and so forth, you should persist that state in separate files using calls such as 
+\f3\fs18 writeFile()
+\f4\fs20 .\
+Beginning with SLiM 5.0, the 
+\f3\fs18 substitutions
+\f4\fs20  parameter may be used to request that information about 
+\f3\fs18 Substitution
+\f4\fs20  objects in the simulation be written out.  This option is turned off (
+\f3\fs18 F
+\f4\fs20 ) by default, for brevity.  The saved substitution information can be read in by 
+\f3\fs18 readFromPopulationFile()
+\f4\fs20 , but only if the output is in binary format (
+\f3\fs18 binary=T
+\f4\fs20 ).\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
@@ -9290,7 +9349,7 @@ Beginning with SLiM 5.0, the
 \f5 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations, [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F])
+\f3\fs18 \cf0 \'96\'a0(void)outputMutations(object<Mutation>\'a0mutations, [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 , [logical$\'a0objectTags\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -9313,12 +9372,15 @@ If the optional parameter
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4 \cf2 In SLiM 5 and later, in models with multiple chromosome the output includes the symbol of the chromosome associated with each mutation.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\f4 \cf2 \expnd0\expndtw0\kerning0
 In SLiM 3.3 and later, the output format includes the nucleotides associated with any nucleotide-based mutations.\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 Output is generally done in a 
+\cf2 \kerning1\expnd0\expndtw0 In SLiM 5 and later, in models with multiple chromosome the output includes the symbol of the chromosome associated with each mutation.\
+Beginning with SLiM 5.0, the 
+\f3\fs18 objectTags
+\f4\fs20  parameter may be used to request that tag values for mutations be written out.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.
 \f5 \
@@ -9408,6 +9470,36 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f4\i0  if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
+As of SLiM 5.0, this method will read and restore tag values for objects of supported classes (
+\f3\fs18 Chromosome
+\f4\fs20 , 
+\f3\fs18 Subpopulation
+\f4\fs20 , 
+\f3\fs18 Individual
+\f4\fs20 , 
+\f3\fs18 Haplosome
+\f4\fs20 , 
+\f3\fs18 Mutation
+\f4\fs20 , 
+\f3\fs18 Substitution
+\f4\fs20 ) if they were saved by 
+\f3\fs18 outputFull()
+\f4\fs20  with its 
+\f3\fs18 objectTags=T
+\f4\fs20  option.  This facility is only available when reading binary output from 
+\f3\fs18 outputFull()
+\f4\fs20 , as chosen by its 
+\f3\fs18 binary=T
+\f4\fs20  option; otherwise, an error will result.\
+As of SLiM 5.0, this method will read and restore substitutions if they were saved by 
+\f3\fs18 outputFull()
+\f4\fs20  with its 
+\f3\fs18 substitutions=T
+\f4\fs20  option.  This facility is only available when reading binary output from 
+\f3\fs18 outputFull()
+\f4\fs20 , as chosen by its 
+\f3\fs18 binary=T
+\f4\fs20  option; otherwise, an error will result.\
 This method can also be used to read tree-sequence information, in the form of single-chromosome 
 \f3\fs18 .trees
 \f4\fs20  files and multi-chromosome trees archives, as saved by 

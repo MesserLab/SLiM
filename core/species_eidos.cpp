@@ -3071,13 +3071,14 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	}
 }
 			
-//	*********************	– (void)outputFixedMutations([Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	– (void)outputFixedMutations([Ns$ filePath = NULL], [logical$ append=F], [logical$ objectTags=F])
 //
 EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *append_value = p_arguments[1].get();
+	EidosValue *objectTags_value = p_arguments[2].get();
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -3138,12 +3139,17 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	// Output Mutations section
 	out << "Mutations:" << std::endl;
 	
+	bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
 	std::vector<Substitution*> &subs = population_.substitutions_;
 	
 	for (unsigned int i = 0; i < subs.size(); i++)
 	{
 		out << i << " ";
-		subs[i]->PrintForSLiMOutput(out);
+		
+		if (output_object_tags)
+			subs[i]->PrintForSLiMOutput_Tag(out);
+		else
+			subs[i]->PrintForSLiMOutput(out);
 		
 #if DO_MEMORY_CHECKS
 		if (eidos_do_memory_checks)
@@ -3162,7 +3168,7 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	return gStaticEidosValueVOID;
 }
 			
-//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = T], [logical$ pedigreeIDs = F], [logical$ individualTags = F])
+//	*********************	– (void)outputFull([Ns$ filePath = NULL], [logical$ binary = F], [logical$ append=F], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = T], [logical$ pedigreeIDs = F], [logical$ objectTags = F], [logical$ substitutions = F])
 //
 EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3174,7 +3180,8 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	EidosValue *ages_value = p_arguments[4].get();
 	EidosValue *ancestralNucleotides_value = p_arguments[5].get();
 	EidosValue *pedigreeIDs_value = p_arguments[6].get();
-	EidosValue *individualTags_value = p_arguments[7].get();
+	EidosValue *objectTags_value = p_arguments[7].get();
+	EidosValue *substitutions_value = p_arguments[8].get();
 	
 	// TIMING RESTRICTION
 	if (!community_.warned_early_output_)
@@ -3195,7 +3202,8 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	bool output_ages = ages_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex_NOCAST(0, nullptr);
-	bool output_individual_tags = individualTags_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_substitutions = substitutions_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (output_pedigree_ids && !PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputFull): outputFull() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
@@ -3215,7 +3223,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		Individual::PrintIndividuals_SLiM(output_stream, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, /* p_focal_chromosome */ nullptr);
+		Individual::PrintIndividuals_SLiM(output_stream, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_object_tags, output_substitutions, /* p_focal_chromosome */ nullptr);
 	}
 	else
 	{
@@ -3235,11 +3243,11 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		{
 			if (use_binary)
 			{
-				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags);
+				population_.PrintAllBinary(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_object_tags, output_substitutions);
 			}
 			else
 			{
-				Individual::PrintIndividuals_SLiM(outfile, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, /* p_focal_chromosome */ nullptr);
+				Individual::PrintIndividuals_SLiM(outfile, nullptr, 0, *this, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_object_tags, output_substitutions, /* p_focal_chromosome */ nullptr);
 			}
 			
 			outfile.close(); 
@@ -3253,7 +3261,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	return gStaticEidosValueVOID;
 }
 			
-//	*********************	– (void)outputMutations(object<Mutation> mutations, [Ns$ filePath = NULL], [logical$ append=F])
+//	*********************	– (void)outputMutations(object<Mutation> mutations, [Ns$ filePath = NULL], [logical$ append=F], [logical$ objectTags=F])
 //
 EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3261,6 +3269,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	EidosValue *mutations_value = p_arguments[0].get();
 	EidosValue *filePath_value = p_arguments[1].get();
 	EidosValue *append_value = p_arguments[2].get();
+	EidosValue *objectTags_value = p_arguments[3].get();
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
@@ -3369,10 +3378,16 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code
 			// NOTE the format of this output changed because print_no_id() added the mutation_id_ to its output; BCH 11 June 2016
 			// BCH 3/6/2022: Note that the cycle was added after the tick in SLiM 4.
+			bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
+			
 			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 			{
 				out << "#OUT: " << community_.Tick() << " " << Cycle() << " T p" << subpop_pair.first << " ";
-				polymorphism_pair.second.Print_NoID(out);
+				
+				if (output_object_tags)
+					polymorphism_pair.second.Print_NoID_Tag(out);
+				else
+					polymorphism_pair.second.Print_NoID(out);
 			}
 		}
 	}
@@ -4236,9 +4251,9 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("individualTags", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF)->AddLogical_OS("substitutions", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddObject_OSN("subpopMap", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("tick", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessEffectCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));

@@ -146,12 +146,6 @@
                                     <action selector="exportOutput:" target="-1" id="oa4-mp-Id1"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Export Population..." id="syB-pF-RCP">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="exportPopulation:" target="-1" id="mM7-7a-BIs"/>
-                                </connections>
-                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="aJh-i4-bef"/>
                             <menuItem title="Page Setup…" keyEquivalent="P" id="qIS-W8-SiK">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>

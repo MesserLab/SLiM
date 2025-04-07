@@ -165,6 +165,10 @@ development head (in the master branch):
 		add recipe 17.19, "Modeling indirect competition mediated by resource availability", demonstrating Sam's resource-explicit approach
 		add mutationsFromHaplosomes() method, deprecate uniqueMutationsOfType()
 		add calcMeanFroh() function to the popgen utility functions suite, add recipe 14.15 to demonstrate it
+		extend outputFull() to support saving out substitutions, in a table at the end in the same format as outputFixedMutations()
+		change outputFull() individualTags parameter to objectTags, persist tags for individual, mutation, substitution, haplosome, subpopulation, and chromosome
+		extend readFromPopulationFile() to support restoring substitutions and tag values, but only for output in binary format; parsing text is too annoying
+		add [l$ objectTags=F] flag to outputIndividuals(), outputHaplosomes(), outputFixedMutations(), and outputMutations(), mirroring the work done for outputFull()
 
 
 version 4.3 (Eidos version 3.3):

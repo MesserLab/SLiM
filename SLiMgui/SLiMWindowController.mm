@@ -1264,8 +1264,6 @@
 		return !(continuousPlayOn || tickPlayOn);
 	if (sel == @selector(exportOutput:))
 		return !(continuousPlayOn || tickPlayOn);
-	if (sel == @selector(exportPopulation:))
-		return !(invalidSimulation || continuousPlayOn || tickPlayOn);
 	
 	if (sel == @selector(clearOutput:))
 		return !(invalidSimulation);
@@ -3095,8 +3093,8 @@
 		Species *displaySpecies = [self focalDisplaySpecies];
 		slim_tick_t species_cycle = displaySpecies->Cycle();
 		
-		// dump the population: output spatial positions and ages if available, but not ancestral sequence or tags
-		Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, false, /* p_focal_chromosome */ nullptr);
+		// dump the population: output spatial positions and ages and tags if available, but not ancestral sequence or substitutions
+		Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, true, false, /* p_focal_chromosome */ nullptr);
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
@@ -3106,7 +3104,7 @@
 		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -3255,43 +3253,6 @@
 			NSString *currentOutputString = [outputTextView string];
 			
 			[currentOutputString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
-			
-			[sp autorelease];
-		}
-	}];
-}
-
-- (IBAction)exportPopulation:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
-	
-	[sp setTitle:@"Export Population"];
-	[sp setNameFieldLabel:@"Export As:"];
-	[sp setMessage:@"Export the simulation state to a file:"];
-	[sp setExtensionHidden:NO];
-	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:@[@"txt"]];
-	
-	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSModalResponseOK)
-		{
-			std::ostringstream outstring;
-//			const std::vector<std::string> &input_parameters = community->InputParameters();
-//			
-//			for (int i = 0; i < input_parameters.size(); i++)
-//				outstring << input_parameters[i] << std::endl;
-			
-			// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
-			Species *displaySpecies = [self focalDisplaySpecies];
-			
-			Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, true, false, true, /* p_focal_chromosome */ nullptr);	// include spatial positions, ages, ancestral sequence, and tags, if available
-			
-			std::string &&population_dump = outstring.str();
-			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];
-			
-			[populationDump writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			
 			[sp autorelease];
 		}

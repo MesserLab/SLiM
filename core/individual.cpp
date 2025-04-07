@@ -538,7 +538,7 @@ int Individual::SharedParentCountWithIndividual(Individual &p_ind)
 
 // print a vector of individuals, with all mutations and all haplosomes, to a stream
 // this takes a focal chromosome; if nullptr, data from all chromosomes is printed
-void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_ind_tags, Chromosome *p_focal_chromosome)
+void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_object_tags, bool p_output_substitutions, Chromosome *p_focal_chromosome)
 {
 	Population &population = species.population_;
 	Community &community = species.community_;
@@ -614,7 +614,8 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 	if (p_output_pedigree_ids)		p_out << " PEDIGREES";
 	if (has_nucleotides)			p_out << " NUC";
 	if (output_ancestral_nucs)		p_out << " ANC_SEQ";
-	if (p_output_ind_tags)			p_out << " IND_TAGS";
+	if (p_output_object_tags)		p_out << " OBJECT_TAGS";
+	if (p_output_substitutions)		p_out << " SUBSTITUTIONS";
 	p_out << std::endl;
 	
 	// Output populations first, for outputFull() only
@@ -647,6 +648,14 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 				p_out << " S " << subpop_sex_ratio;
 			else
 				p_out << " H";
+			
+			if (p_output_object_tags)
+			{
+				if (subpop->tag_value_ == SLIM_TAG_UNSET_VALUE)
+					p_out << " ?";
+				else
+					p_out << ' ' << subpop->tag_value_;
+			}
 			
 			p_out << std::endl;
 			
@@ -720,7 +729,7 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			p_out << " " << individual.age_;
 		
 		// output individual tags if requested
-		if (p_output_ind_tags)
+		if (p_output_object_tags)
 		{
 			if (individual.tag_value_ == SLIM_TAG_UNSET_VALUE)
 				p_out << " ?";
@@ -786,7 +795,17 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		// write information about the chromosome; note that we write the chromosome symbol, but PrintAllBinary() does not
 		slim_chromosome_index_t chromosome_index = chromosome->Index();
 		
-		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " \"" << chromosome->Symbol() << "\"" << std::endl;
+		p_out << "Chromosome: " << (uint32_t)chromosome_index << " " << chromosome->Type() << " " << chromosome->ID() << " " << chromosome->last_position_ << " \"" << chromosome->Symbol() << "\"";
+		
+		if (p_output_object_tags)
+		{
+			if (chromosome->tag_value_ == SLIM_TAG_UNSET_VALUE)
+				p_out << " ?";
+			else
+				p_out << ' ' << chromosome->tag_value_;
+		}
+		
+		p_out << std::endl;
 		
 		int first_haplosome_index = species.FirstHaplosomeIndices()[chromosome_index];
 		int last_haplosome_index = species.LastHaplosomeIndices()[chromosome_index];
@@ -834,7 +853,10 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 		{
 			// NOTE this added mutation_id_, BCH 11 June 2016
 			// NOTE the output format changed due to the addition of the nucleotide, BCH 2 March 2019
-			polymorphism_pair.second.Print_ID(p_out);
+			if (p_output_object_tags)
+				polymorphism_pair.second.Print_ID_Tag(p_out);
+			else
+				polymorphism_pair.second.Print_ID(p_out);
 			
 #if DO_MEMORY_CHECKS
 			if (eidos_do_memory_checks)
@@ -864,6 +886,14 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 				// since we changed from a haplosome index to an individual index, we now emit an "i",
 				// just follow the same convention as the Individuals section
 				p_out << "p" << ind->subpopulation_->subpopulation_id_ << ":i" << ind->index_;
+				
+				if (p_output_object_tags)
+				{
+					if (haplosome->tag_value_ == SLIM_TAG_UNSET_VALUE)
+						p_out << " ?";
+					else
+						p_out << ' ' << haplosome->tag_value_;
+				}
 				
 				if (haplosome->IsNull())
 				{
@@ -914,6 +944,34 @@ void Individual::PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p
 			// operator<< above ends with a newline; here we add another, which the read code
 			// can use to recognize that the nucleotide sequence has ended, even without an EOF
 			p_out << std::endl;
+		}
+	}
+	
+	// Output substitutions at the end if requested; see Species::ExecuteMethod_outputFixedMutations()
+	if (output_full_population && p_output_substitutions)
+	{
+		p_out << "Substitutions:" << std::endl;
+		
+		std::vector<Substitution*> &subs = population.substitutions_;
+		
+		for (unsigned int i = 0; i < subs.size(); i++)
+		{
+			p_out << i << " ";
+			
+			if (p_output_object_tags)
+				subs[i]->PrintForSLiMOutput_Tag(p_out);
+			else
+				subs[i]->PrintForSLiMOutput(p_out);
+			
+#if DO_MEMORY_CHECKS
+			if (eidos_do_memory_checks)
+			{
+				mem_check_counter++;
+				
+				if (mem_check_counter % mem_check_mod == 0)
+					Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): Out of memory while outputting substitution objects.)");
+			}
+#endif
 		}
 	}
 	
@@ -3525,7 +3583,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->MarkDeprecated());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsFromHaplosomes, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S("category")->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional, "chromosomes", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		
-		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("individualTags", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividuals, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF)->AddLogical_OS("objectTags", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_outputIndividualsToVCF, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_readIndividualsFromVCF, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddString_S(gEidosStr_filePath)->AddIntObject_OSN("mutationType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
@@ -3556,7 +3614,7 @@ EidosValue_SP Individual_Class::ExecuteClassMethod(EidosGlobalStringID p_method_
 	}
 }
 
-//	*********************	+ (void)outputIndividuals([Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = F], [logical$ pedigreeIDs = F], [logical$ individualTags = F])
+//	*********************	+ (void)outputIndividuals([Ns$ filePath = NULL], [logical$ append=F], [Niso<Chromosome>$ chromosome = NULL], [logical$ spatialPositions = T], [logical$ ages = T], [logical$ ancestralNucleotides = F], [logical$ pedigreeIDs = F], [logical$ objectTags = F])
 //
 EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
@@ -3568,7 +3626,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 	EidosValue *ages_value = p_arguments[4].get();
 	EidosValue *ancestralNucleotides_value = p_arguments[5].get();
 	EidosValue *pedigreeIDs_value = p_arguments[6].get();
-	EidosValue *individualTags_value = p_arguments[7].get();
+	EidosValue *objectTags_value = p_arguments[7].get();
 	
 	// here we need to require at least one target individual,
 	// do a species consistency check and get the species/community,
@@ -3609,7 +3667,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 	bool output_ages = ages_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_ancestral_nucs = ancestralNucleotides_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool output_pedigree_ids = pedigreeIDs_value->LogicalAtIndex_NOCAST(0, nullptr);
-	bool output_individual_tags = individualTags_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool output_object_tags = objectTags_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (output_pedigree_ids && !species->PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_outputIndividuals): outputIndividuals() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
@@ -3621,7 +3679,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		Individual::PrintIndividuals_SLiM(output_stream, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, chromosome);
+		Individual::PrintIndividuals_SLiM(output_stream, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_object_tags, /* p_output_substitutions */ false, chromosome);
 	}
 	else
 	{
@@ -3633,7 +3691,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_outputIndividuals(EidosGlobalStrin
 		
 		if (outfile.is_open())
 		{
-			Individual::PrintIndividuals_SLiM(outfile, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_individual_tags, chromosome);
+			Individual::PrintIndividuals_SLiM(outfile, individuals_buffer, individuals_count, *species, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids, output_object_tags, /* p_output_substitutions */ false, chromosome);
 			
 			outfile.close(); 
 		}

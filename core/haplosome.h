@@ -402,7 +402,7 @@ public:
 	void record_derived_states(Species *p_species) const;
 	
 	// print the sample represented by haplosomes, using SLiM's own format
-	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes);
+	static void PrintHaplosomes_SLiM(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, bool p_output_object_tags);
 	
 	// print the sample represented by haplosomes, using "ms" format
 	static void PrintHaplosomes_MS(std::ostream &p_out, std::vector<Haplosome *> &p_haplosomes, const Chromosome &p_chromosome, bool p_filter_monomorphic);
