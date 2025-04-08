@@ -1605,6 +1605,93 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 	return result_SP;
 }
 
+SLiMCycleStage Community::CycleStageForScriptBlockType(SLiMEidosBlockType p_block_type)
+{
+	// Figure out what cycle stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
+	SLiMCycleStage stage = SLiMCycleStage::kStagePostCycle;	// unused below, just here to silence a warning
+	
+	// NOLINTBEGIN(*-branch-clone) : multiple internal tick stages map to the same user-level stage
+	if (model_type_ == SLiMModelType::kModelTypeWF)
+	{
+		switch (p_block_type)
+		{
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMCycleStage::kWFStage0ExecuteFirstScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kWFStage1ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kWFStage5ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
+			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kWFStage7AdvanceTickCounter; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:
+			case SLiMEidosBlockType::SLiMEidosNoBlockType:
+			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+		}
+	}
+	else
+	{
+		switch (p_block_type)
+		{
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kNonWFStage6ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
+			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kNonWFStage7AdvanceTickCounter; break;
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kNonWFStage4SurvivalSelection; break;
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
+			case SLiMEidosBlockType::SLiMEidosNoBlockType:
+			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+		}
+	}
+	// NOLINTEND(*-branch-clone)
+	
+	return stage;
+}
+
+bool Community::IsPastOrPresent(slim_tick_t p_block_tick, SLiMEidosBlockType p_block_type)
+{
+	// This checks whether the given tick, for the given script block type, would be past or present (true)
+	// versus future (false).  If the tick is less than the current tick, then it is clearly past; if it is
+	// greater. it is clearly future.  The tricky part is if it is equal; then we have to look at the tick
+	// cycle stage and determine whether, within the current tick, it is past/present or future.  See also
+	// Community::CheckScheduling() for a very similar piece of code, different only in how it handles the
+	// problem.
+	
+	// Note that these timing calculations are really just an approximation in some cases.  For example,
+	// a fitnessEffect() callback normally runs during fitness calculation, and that is what this code and
+	// Community::CycleStageForScriptBlockType() above assume; but fitness calculation can occur at other
+	// times too.  If the user defines a new constant in a first() event that activates a fitnessEffect()
+	// callback in the current tick, and then immediately recalculates fitness, the callback might not be
+	// used in the calculation -- although in fact I think it would be, given the design of the code.  The
+	// point being that there is not an exact 1-to-1 correspondence between script block types and cycle
+	// stages, in reality, and so this timing check is just an approximation.
+	
+	if (p_block_tick < tick_)
+		return true;
+	
+	if (p_block_tick == tick_)
+	{
+		SLiMCycleStage block_cycle_stage = CycleStageForScriptBlockType(p_block_type);
+		
+		if (block_cycle_stage <= cycle_stage_)
+			return true;
+	}
+	
+	return false;
+}
+
 void Community::EvaluateScriptBlockTickRanges()
 {
 	if (all_tick_ranges_evaluated_)
@@ -1615,6 +1702,8 @@ void Community::EvaluateScriptBlockTickRanges()
 	// Evaluate tick range expressions to determine the start and end tick for each block
 	// Assume all succeed in evaluating, until one fails
 	all_tick_ranges_evaluated_ = true;
+	
+	bool any_scheduling_change = false;		// set to true if anything actually gets scheduled
 	
 	for (auto script_block : script_blocks)
 	{
@@ -1697,13 +1786,14 @@ void Community::EvaluateScriptBlockTickRanges()
 				script_block->tick_start_ = (slim_tick_t)start_expr_value->IntAtIndex_NOCAST(0, nullptr);
 				script_block->tick_end_ = (slim_tick_t)end_expr_value->IntAtIndex_NOCAST(0, nullptr);
 				script_block->tick_set_.clear();
+				any_scheduling_change = true;
 				
 				if (script_block->tick_end_ < script_block->tick_start_)
 					EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): the end tick expression " << end_tick_node->token_->token_string_ << " evaluated to be less than the start tick expression " << start_tick_node->token_->token_string_ << " (" << script_block->tick_end_ << " < " << script_block->tick_start_ << ")." << EidosTerminate(end_tick_node->ErrorPositionForNodeAndChildren());
 				
 				// With a specified start tick, it is an error for that start tick
 				// to be past/present, since a fire of the event will be missed
-				if (script_block->tick_start_ <= tick_)
+				if (IsPastOrPresent(script_block->tick_start_, script_block->type_))
 					EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): the start tick expression " << start_tick_node->token_->token_string_ << " evaluated to " << script_block->tick_start_ << ", which is past/present; the current tick is " << tick_ << ".  This means that the event will not be able to execute in one or more of its scheduled ticks, which is an error." << EidosTerminate(start_tick_node->ErrorPositionForNodeAndChildren());
 				
 #if DEBUG_TICK_RANGES
@@ -1729,10 +1819,11 @@ void Community::EvaluateScriptBlockTickRanges()
 				script_block->tick_start_ = (slim_tick_t)start_expr_value->IntAtIndex_NOCAST(0, nullptr);
 				script_block->tick_end_ = SLIM_MAX_TICK + 1;
 				script_block->tick_set_.clear();
+				any_scheduling_change = true;
 				
 				// With a specified start tick, it is an error for that start tick
 				// to be past/present, since a fire of the event will be missed
-				if (script_block->tick_start_ <= tick_)
+				if (IsPastOrPresent(script_block->tick_start_, script_block->type_))
 					EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): the start tick expression " << start_tick_node->token_->token_string_ << " evaluated to " << script_block->tick_start_ << ", which is past/present; the current tick is " << tick_ << ".  This means that the event will not be able to execute in one or more of its scheduled ticks, which is an error." << EidosTerminate(start_tick_node->ErrorPositionForNodeAndChildren());
 				
 #if DEBUG_TICK_RANGES
@@ -1758,6 +1849,7 @@ void Community::EvaluateScriptBlockTickRanges()
 				script_block->tick_start_ = 1;
 				script_block->tick_end_ = (slim_tick_t)end_expr_value->IntAtIndex_NOCAST(0, nullptr);
 				script_block->tick_set_.clear();
+				any_scheduling_change = true;
 				
 				// With an implied start, it is an error for that start tick
 				// to be past/present, since a fire of the event will be missed
@@ -1788,6 +1880,7 @@ void Community::EvaluateScriptBlockTickRanges()
 					script_block->tick_range_evaluated_ = true;
 					script_block->tick_range_is_sequence_ = false;
 					script_block->tick_set_.clear();
+					any_scheduling_change = true;
 				}
 				else
 				{
@@ -1816,10 +1909,11 @@ void Community::EvaluateScriptBlockTickRanges()
 						script_block->tick_start_ = (slim_tick_t)first_value;
 						script_block->tick_end_ = (slim_tick_t)prev_value;
 						script_block->tick_set_.clear();
+						any_scheduling_change = true;
 						
 						// With a specified start tick, it is an error for that start tick
 						// to be past/present, since a fire of the event will be missed
-						if (script_block->tick_start_ <= tick_)
+						if (IsPastOrPresent(script_block->tick_start_, script_block->type_))
 						{
 							if (script_block->tick_start_ == script_block->tick_end_)
 								EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): the tick range expression " << start_tick_node->token_->token_string_ << " evaluated to tick " << script_block->tick_start_ << ", which is past/present; the current tick is " << tick_ << ".  This means that the event will not be able to execute in its scheduled tick, which is an error." << EidosTerminate(start_tick_node->ErrorPositionForNodeAndChildren());
@@ -1838,6 +1932,7 @@ void Community::EvaluateScriptBlockTickRanges()
 						
 						script_block->tick_range_evaluated_ = true;
 						script_block->tick_range_is_sequence_ = false;
+						any_scheduling_change = true;
 						
 						std::unordered_set<slim_tick_t> &tick_set = script_block->tick_set_;
 						
@@ -1853,7 +1948,7 @@ void Community::EvaluateScriptBlockTickRanges()
 								
 								// With a non-sequential range, it is an error for any tick
 								// to be past/present, since a fire of the event will be missed
-								if (tick <= tick_)
+								if (IsPastOrPresent(tick, script_block->type_))
 									EIDOS_TERMINATION << "ERROR (Community::EvaluateScriptBlockTickRanges): the tick range expression " << start_tick_node->token_->token_string_ << " evaluated to include tick " << tick << ", which is past/present; the current tick is " << tick_ << ".  This means that the event will not be able to execute in one or more of its scheduled ticks, which is an error." << EidosTerminate(start_tick_node->ErrorPositionForNodeAndChildren());
 							}
 							else
@@ -1877,6 +1972,7 @@ void Community::EvaluateScriptBlockTickRanges()
 				script_block->tick_start_ = -1;
 				script_block->tick_end_ = SLIM_MAX_TICK + 1;
 				script_block->tick_set_.clear();
+				any_scheduling_change = true;
 				
 #if DEBUG_TICK_RANGES
 				std::cout << "  tick range is every tick." << std::endl;
@@ -1889,10 +1985,13 @@ void Community::EvaluateScriptBlockTickRanges()
 		}
 	}
 	
-	// Notify the various interested parties that the script blocks have changed
-	last_script_block_tick_cached_ = false;
-	script_block_types_cached_ = false;
-	scripts_changed_ = true;
+	if (any_scheduling_change)
+	{
+		// Notify the various interested parties that the script blocks have changed
+		last_script_block_tick_cached_ = false;
+		script_block_types_cached_ = false;
+		scripts_changed_ = true;
+	}
 	
 	// We are now open for business
 }
@@ -2500,6 +2599,10 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
@@ -2527,6 +2630,10 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
@@ -2592,6 +2699,10 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
@@ -2619,6 +2730,10 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
@@ -2648,6 +2763,10 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
@@ -2676,6 +2795,10 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
@@ -2727,6 +2850,10 @@ bool Community::_RunOneTickWF(void)
 			species->population_.SurveyPopulation();
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	
@@ -2835,6 +2962,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
@@ -2933,6 +3064,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
@@ -2962,6 +3097,10 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
@@ -3011,6 +3150,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
@@ -3051,6 +3194,10 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
+	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
@@ -3077,6 +3224,10 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
@@ -3112,6 +3263,10 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
 #endif
 	}
+	
+	// BCH 4/8/2025: Now we check between tick cycle stages, to allow deferred scheduling within one tick.
+	if (!all_tick_ranges_evaluated_)
+		EvaluateScriptBlockTickRanges();
 	
 	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();

@@ -169,6 +169,7 @@ development head (in the master branch):
 		change outputFull() individualTags parameter to objectTags, persist tags for individual, mutation, substitution, haplosome, subpopulation, and chromosome
 		extend readFromPopulationFile() to support restoring substitutions and tag values, but only for output in binary format; parsing text is too annoying
 		add [l$ objectTags=F] flag to outputIndividuals(), outputHaplosomes(), outputFixedMutations(), and outputMutations(), mirroring the work done for outputFull()
+		extend deferred tick scheduling to allow scheduling to occur within a single tick, as long as it is for a later tick cycle stage
 
 
 version 4.3 (Eidos version 3.3):

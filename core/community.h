@@ -264,6 +264,8 @@ public:
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
 	
 	EidosValue_SP _EvaluateTickRangeNode(const EidosASTNode *p_node, std::string &p_error_string);	// evaluate a node that represents a tick range expression
+	SLiMCycleStage CycleStageForScriptBlockType(SLiMEidosBlockType p_block_type);	// look up the cycle stage a block executes in
+	bool IsPastOrPresent(slim_tick_t p_block_tick, SLiMEidosBlockType p_block_type); // is the given tick/cycle stage past/present (true) or future (false)?
 	void EvaluateScriptBlockTickRanges(void);										// evaluate tick range expressions to find when a block is scheduled
 	void FlagUnevaluatedScriptBlockTickRanges(void);								// error for script blocks whose tick range is unevaluated
 	slim_tick_t FirstTick(void);													// derived from the first tick in which an Eidos block is registered

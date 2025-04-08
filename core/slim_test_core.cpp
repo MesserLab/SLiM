@@ -2572,6 +2572,27 @@ void _RunSLiMEidosBlockTests(void)
 		)V0G0N");
 	SLiMAssertScriptRaise(tickexpr4, "past/present", __LINE__);
 	
+	// A deferred block scheduled into the near future in the same tick, which should work:
+	std::string tickexpr4_1(R"V0G0N(
+		initialize() { defineConstant("TIME1", 5); }
+		1 early() { sim.addSubpop("p1", 5); }
+		TIME1 first() { defineConstant("TIME2", 5); }
+		TIME2 early() { stop(); }
+		20 late() { }
+		)V0G0N");
+	SLiMAssertScriptStop(tickexpr4_1);
+	
+	std::string tickexpr4_2(R"V0G0N(
+		initialize() { initializeSLiMModelType("nonWF"); }
+		1 first() { sim.addSubpop("p1", 500); defineGlobal("COUNT", 0); defineConstant("FOO", 10); }
+		1:FOO reproduction() {
+			defineGlobal("COUNT", COUNT + 1);
+			self.active = 0;
+		}
+		20 late() { if (COUNT == 10) stop(); }
+	)V0G0N");
+	SLiMAssertScriptStop(tickexpr4_2);
+	
 	// A deferred block that never gets scheduled because global variables aren't used:
 	std::string tickexpr5(R"V0G0N(
 		initialize() { defineConstant("TIME1", 5); }
