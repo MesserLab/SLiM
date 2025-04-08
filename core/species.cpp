@@ -9770,7 +9770,7 @@ void Species::__AddMutationsFromTreeSequenceToHaplosomes(std::unordered_map<slim
 	free(variant);
 }
 
-void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq)
+void Species::__CheckNodePedigreeIDs(__attribute__((unused)) EidosInterpreter *p_interpreter, TreeSeqInfo &p_treeseq)
 {
 	tsk_table_collection_t &tables = p_treeseq.tables_;
 	
