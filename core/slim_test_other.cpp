@@ -2117,65 +2117,70 @@ void _RunTreeSeqTests(const std::string &temp_path)
 	}
 	
 	// test remembering, saving, and loading with each chromosome type
-	std::vector<std::string> chr_types = {"A", "H", "X", "Y", "Z", "W", "HF", "FL", "HM", "ML", "H-", "-Y"};
-	
-	for (const std::string &chr_type : chr_types)
+	// this relies on being able to write to the temporary directory on the machine
+	if (Eidos_TemporaryDirectoryExists())
 	{
-		std::string test_script = R"V0G0N(
-			initialize() {
-				defineConstant("CHR_TYPE", "*****");
-				defineConstant("SEED", getSeed());
-				initializeTreeSeq(runCrosschecks=T);
-				initializeSex();
-				
-				initializeChromosome(1, 10000, CHR_TYPE);
-				initializeMutationType("m1", 0.5, "f", 0.0);
-				initializeGenomicElementType("g1", m1, 1.0);
-				
-				initializeGenomicElement(g1, 0, 9999);
-				initializeMutationRate(2e-5);
-				initializeRecombinationRate(2e-5);
-			}
-			1 late() {
-				sim.addSubpop("p1", 20);
-				;;;;;
-				sim.setValue("iter", 0);
-			}
-			2: early() {
-				ind = sample(sim.subpopulations.individuals, 1);
-				sim.treeSeqRememberIndividuals(ind);
-			}
-			100 late() {
-				sim.treeSeqOutput("/tmp/slim_trees_test.trees");
-				setSeed(SEED + 1);
-			}
-			200 late() {
-				s = sum(sim.mutationCounts(NULL) + sim.substitutions.size());
-				if (sim.getValue("iter") == 0)
-				{
-					sim.setValue("s", s);
-					sim.setValue("iter", 1);
-					sim.readFromPopulationFile("/tmp/slim_trees_test.trees");
-					setSeed(SEED + 1);
-				}
-				else
-				{
-					if (s != sim.getValue("s"))
-						stop("s value mismatch for chromosome type " + CHR_TYPE);
-					else
-						catn("s value match (" + s + ") for chromosome type " + CHR_TYPE);
-				}
-			}
-		)V0G0N";
+		std::vector<std::string> chr_types = {"A", "H", "X", "Y", "Z", "W", "HF", "FL", "HM", "ML", "H-", "-Y"};
 		
-		// put the chromosome type into the script
-		test_script.replace(test_script.find("*****"), 5, chr_type);
-		
-		// "H-" requires cloning only, for now at least...
-		if (chr_type == "H-")
-			test_script.replace(test_script.find(";;;;;"), 5, "p1.setCloningRate(1.0);");
-		
-		SLiMAssertScriptSuccess(test_script);
+		for (const std::string &chr_type : chr_types)
+		{
+			std::string test_script = R"V0G0N(
+initialize() {
+	defineConstant("CHR_TYPE", "*****");
+	defineConstant("SEED", getSeed());
+	defineConstant("PATH", tempdir() + "slim_trees_test.trees");
+	initializeTreeSeq(runCrosschecks=T);
+	initializeSex();
+	
+	initializeChromosome(1, 10000, CHR_TYPE);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeGenomicElement(g1, 0, 9999);
+	initializeMutationRate(2e-5);
+	initializeRecombinationRate(2e-5);
+}
+1 late() {
+	sim.addSubpop("p1", 20);
+	;;;;;
+	sim.setValue("iter", 0);
+}
+2: early() {
+	ind = sample(sim.subpopulations.individuals, 1);
+	sim.treeSeqRememberIndividuals(ind);
+}
+100 late() {
+	sim.treeSeqOutput(PATH);
+	setSeed(SEED + 1);
+}
+200 late() {
+	s = sum(sim.mutationCounts(NULL) + sim.substitutions.size());
+	if (sim.getValue("iter") == 0)
+	{
+		sim.setValue("s", s);
+		sim.setValue("iter", 1);
+		sim.readFromPopulationFile(PATH);
+		setSeed(SEED + 1);
+	}
+	else
+	{
+		if (s != sim.getValue("s"))
+			stop("s value mismatch for chromosome type " + CHR_TYPE);
+		else
+			catn("s value match (" + s + ") for chromosome type " + CHR_TYPE);
+	}
+}
+)V0G0N";
+			
+			// put the chromosome type into the script
+			test_script.replace(test_script.find("*****"), 5, chr_type);
+			
+			// "H-" requires cloning only, for now at least...
+			if (chr_type == "H-")
+				test_script.replace(test_script.find(";;;;;"), 5, "p1.setCloningRate(1.0);");
+			
+			SLiMAssertScriptSuccess(test_script);
+		}
 	}
 }
 
