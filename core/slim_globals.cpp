@@ -1129,6 +1129,7 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 				if (just_saw_newline)
 					break;
 				just_saw_newline = true;
+				continue;
 			}
 			
 			// for other whitespace, skip over it but don't reset just_saw_newline
