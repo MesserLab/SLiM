@@ -571,7 +571,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						
 						// haplosome1 should be non-null for these types
 					case ChromosomeType::kX_XSexChromosome:
-					case ChromosomeType::kZ_ZSexChromosome:
 					case ChromosomeType::kHF_HaploidFemaleInherited:
 					case ChromosomeType::kHM_HaploidMaleInherited:
 						if (haplosome1->IsNull())
@@ -580,6 +579,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						
 						// haplosome1 should be null in females, non-null in males
 					case ChromosomeType::kY_YSexChromosome:
+					case ChromosomeType::kZ_ZSexChromosome:
 					case ChromosomeType::kML_HaploidMaleLine:
 						if (is_female != haplosome1->IsNull())
 							null_problem = true;
@@ -695,9 +695,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 						break;
 						
 						// haplosome2 should be non-null for these types
+					case ChromosomeType::kZ_ZSexChromosome:
+						if (haplosome2->IsNull())
+							null_problem = true;
+						break;
 						
 						// haplosome2 should be null in females, non-null in males
-					case ChromosomeType::kZ_ZSexChromosome:
 					case ChromosomeType::kNullY_YSexChromosomeWithNull:
 						if (is_female != haplosome2->IsNull())
 							null_problem = true;
@@ -864,7 +867,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							
 							// haplosome1 should be non-null for these types
 						case ChromosomeType::kX_XSexChromosome:
-						case ChromosomeType::kZ_ZSexChromosome:
 						case ChromosomeType::kHF_HaploidFemaleInherited:
 						case ChromosomeType::kHM_HaploidMaleInherited:
 							if (haplosome1->IsNull())
@@ -873,6 +875,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							
 							// haplosome1 should be null in females, non-null in males
 						case ChromosomeType::kY_YSexChromosome:
+						case ChromosomeType::kZ_ZSexChromosome:
 						case ChromosomeType::kML_HaploidMaleLine:
 							if (is_female != haplosome1->IsNull())
 								null_problem = true;
@@ -971,9 +974,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 							break;
 							
 							// haplosome2 should be non-null for these types
+						case ChromosomeType::kZ_ZSexChromosome:
+							if (haplosome2->IsNull())
+								null_problem = true;
+							break;
 							
 							// haplosome2 should be null in females, non-null in males
-						case ChromosomeType::kZ_ZSexChromosome:
 						case ChromosomeType::kNullY_YSexChromosomeWithNull:
 							if (is_female != haplosome2->IsNull())
 								null_problem = true;
@@ -6343,9 +6349,9 @@ IndividualSex Subpopulation::_ValidateHaplosomesAndChooseSex(ChromosomeType p_ch
 			if (offspring_sex == IndividualSex::kUnspecified)
 				offspring_sex = (p_haplosome2_null ? IndividualSex::kFemale : IndividualSex::kMale);
 			
-			if ((offspring_sex == IndividualSex::kMale) && (p_haplosome1_null || p_haplosome2_null))
+			if ((offspring_sex == IndividualSex::kMale) && (!p_haplosome1_null || p_haplosome2_null))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '-Y', " << p_caller_name << " requires that for a male offspring the first haplosome is null and the second is nonnull (-Y)." << EidosTerminate();
-			if ((offspring_sex == IndividualSex::kFemale) && (!p_haplosome1_null || p_haplosome2_null))
+			if ((offspring_sex == IndividualSex::kFemale) && (!p_haplosome1_null || !p_haplosome2_null))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::_ValidateHaplosomesAndChooseSex): for chromosome type '-Y', " << p_caller_name << " requires that for a female offspring both haplosomes are null (--)." << EidosTerminate();
 			break;
 		}
