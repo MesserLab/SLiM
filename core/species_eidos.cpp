@@ -188,7 +188,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeAncestralNucleotides(con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome->ancestral_seq_buffer_->size()));
 }
 
-//	*********************	(object<Chromosome>$)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+//	*********************	(object<Chromosome>$)initializeChromosome(integer$ id, [Ni$ length = NULL], [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -247,10 +247,16 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	if (ChromosomeFromID(id))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires id to be unique within the species; two chromosomes in the same species may not have the same id." << EidosTerminate();
 	
-	slim_position_t length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
+	// -1 represents a length of NULL, indicating the length is mutable and will be assessed later
+	slim_position_t length = -1;	
 	
-	if (length - 1 > SLIM_MAX_BASE_POSITION)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (length-1) to be <= 1e15." << EidosTerminate();
+	if (length_value->Type() == EidosValueType::kValueInt)
+	{
+		SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
+		
+		if (length - 1 > SLIM_MAX_BASE_POSITION)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (length-1) to be <= 1e15." << EidosTerminate();
+	}
 	
 	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
 	ChromosomeType chromosome_type = ChromosomeTypeForString(type_string);
@@ -312,8 +318,19 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 	
 	chromosome->SetName(name);
-	chromosome->last_position_ = length - 1;
-	chromosome->extent_immutable_ = true;
+	
+	if (length == -1)
+	{
+		// the length is NULL, so it is mutable until Chromosome::InitializeDraws() is called
+		chromosome->last_position_ = 0;
+		chromosome->extent_immutable_ = false;
+	}
+	else
+	{
+		// the length has been specified explicitly, so it is immutable
+		chromosome->last_position_ = length - 1;
+		chromosome->extent_immutable_ = true;
+	}
 	
 	// Add it to our registry; AddChromosome() takes its retain count
 	AddChromosome(chromosome);

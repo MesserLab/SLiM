@@ -48,7 +48,7 @@ A utility function,
 \f3\i \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<Chromosome>$)initializeChromosome(integer$\'a0id, integer$\'a0length, [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
+\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<Chromosome>$)initializeChromosome(integer$\'a0id, [Ni$\'a0length\'a0=\'a0NULL], [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function, added in SLiM\'a05, initiates the configuration of a chromosome in the species being initialized.  The new 
@@ -141,9 +141,25 @@ There are three parameters that in some way identify the chromosome.  First, the
 \f2\fs20  is not used by SLiM, and can be used in any way you wish.\
 The 
 \f1\fs18 length
-\f2\fs20  parameter sets the length, in base positions, of the chromosome, and must be greater than or equal to 
+\f2\fs20  parameter sets the length, in base positions, of the chromosome, and must either be 
+\f1\fs18 NULL
+\f2\fs20 , or an 
+\f1\fs18 integer
+\f2\fs20  greater than or equal to 
 \f1\fs18 1
-\f2\fs20 .  The last valid base position in the chromosome will be 
+\f2\fs20 .  If 
+\f1\fs18 length
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , the length of the chromosome will be calculated after all 
+\f1\fs18 initialize()
+\f2\fs20  callbacks have been called, as the maximum position referenced by the chromosome\'92s genomic elements, recombination map, mutation rate map, and (in nucleotide-based models) hotspot map; in other words, the chromosome will be sized to encompass all of the things it contains (which is also the behavior of the implicitly defined chromosome if 
+\f1\fs18 initializeChromosome()
+\f2\fs20  is not called).  Otherwise \'96 if 
+\f1\fs18 length
+\f2\fs20  is specified with an 
+\f1\fs18 integer
+\f2\fs20  value \'96 the chromosome\'92s length will be fixed at that value, and the last valid base position in the chromosome will be 
 \f1\fs18 length-1
 \f2\fs20 .  Attempting to add a genomic element or a mutation after the last position will raise an error.  Similarly, the last position of the chromosome must match the last position specified for recombination, mutation, and hotspot maps for that chromosome, but not all positions on a chromosome have to actually be used in the model (i.e., not all positions must be covered by a genomic element).\
 The 

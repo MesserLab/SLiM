@@ -2728,10 +2728,16 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lastPosition:
 		{
+			if (!extent_immutable_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lastPosition is not yet defined, since the length of the target chromosome has not yet been determined; you could provide a specified length to initializeChromosome(), or avoid requesting the chromosome's lastPosition until the chromosome's initialization has been finalized (after the execution of initialize() callbacks)." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_));
 		}
 		case gEidosID_length:
 		{
+			if (!extent_immutable_)
+				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lastPosition is not yet defined, since the length of the target chromosome has not yet been determined; you could provide a specified length to initializeChromosome(), or avoid requesting the chromosome's length until the chromosome's initialization has been finalized (after the execution of initialize() callbacks)." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position_ + 1));
 		}
 		case gID_species:
