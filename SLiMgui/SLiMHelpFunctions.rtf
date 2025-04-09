@@ -2298,13 +2298,13 @@ The implementation of
 \f1\fs18 muts
 \f2\fs20 , within the haplosomes specified by 
 \f1\fs18 haplosomes
-\f2\fs20 .  The site frequency spectrum (sometimes called the allele frequency spectrum) is essentially a histogram of the frequencies of the mutations within the haplosomes; the first bin spans the lowest range of frequencies (down to a frequency of 
+\f2\fs20 .  The site frequency spectrum or SFS (sometimes called the allele frequency spectrum, although some authors distinguish between the two) is essentially a histogram of the frequencies of the mutations within the haplosomes; the first bin spans the lowest range of frequencies (down to a frequency of 
 \f1\fs18 0.0
 \f2\fs20 , or a count of 
 \f1\fs18 1
 \f2\fs20 ), whereas the last bin spans the highest range of frequencies (up to a frequency of 
 \f1\fs18 1.0
-\f2\fs20 , or a count equal to number of haplosomes minus one).  This histogram can be returned as a 
+\f2\fs20 , or a count equal to number of haplosomes minus one).  The idea was introduced by Watterson (1975), and will be discussed in any population genetics textbook (e.g., A. Cutter, 2019, pp. 50\'9652).  This histogram can be returned as a 
 \f1\fs18 float
 \f2\fs20  vector of density values for each bin by specifying 
 \f1\fs18 "density"
@@ -2412,11 +2412,7 @@ This function is compatible with multi-chromosome models, in the following sense
 \f2\fs20 , you must pass in a vector of haplosomes associated with a single chromosome.  (If you know what you are doing and wish to combine counts across multiple chromosomes, you can simply call 
 \f1\fs18 calcSFS()
 \f2\fs20  once per chromosome, and combine the resulting vectors by adding them together.)\
-The Eidos source code for 
-\f1\fs18 calcSFS()
-\f2\fs20  can be seen in the Eidos console by typing 
-\f1\fs18 functionSource("calcSFS")
-\f2\fs20 .\
+Thanks to Ryan Chaffee and Chase Nelson for helpful input.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcTajimasD(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
