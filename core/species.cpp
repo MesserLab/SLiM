@@ -8645,7 +8645,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 				break;
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
 				expected_is_null_0 = true;
-				expected_is_null_1 = false;
+				expected_is_null_1 = (sex == IndividualSex::kMale) ? false : true;
 				break;
 		}
 		
