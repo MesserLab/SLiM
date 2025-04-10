@@ -6940,23 +6940,45 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(bool p_clock
 			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
 			{
 				const MutationRun *mutrun = inuse_pool[pool_index];
-				slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+				const slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+				
+				// Note that no locking or atomicity is needed here at all!  This is because
+				// each thread is responsible for particular positions along the haplosome;
+				// no other thread will be accessing this tally at the same time as us!
+				// FIXME this is probably rife with false sharing, however; it would be useful
+				// to put the refcounts for different mutations into different memory blocks
+				// according to the thread that manages each mutation.
 				
 				const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
 				const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
 				
-				while (mutrun_iter != mutrun_end_iter)
+				// I've gone back and forth on unrolling this loop.  This ought to be done
+				// by the compiler, and the best unrolling strategy depends on the platform.
+				// But the compiler doesn't seem to do it, for my macOS system at least, or
+				// doesn't do it well; this increases speed by ~5% here.  I'm not sure if
+				// clang is being dumb, or what, but it seems worthwhile.
+				while (mutrun_iter + 16 < mutrun_end_iter)
 				{
-					slim_refcount_t *refcount_address = refcount_block_ptr + (*mutrun_iter++);
-					
-					// Note that no locking or atomicity is needed here at all!  This is because
-					// each thread is responsible for particular positions along the haplosome;
-					// no other thread will be accessing this tally at the same time as us!
-					// FIXME this is probably rife with false sharing, however; it would be useful
-					// to put the refcounts for different mutations into different memory blocks
-					// according to the thread that manages each mutation.
-					*refcount_address += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
 				}
+				
+				while (mutrun_iter != mutrun_end_iter)
+					*(refcount_block_ptr + (*mutrun_iter++)) += use_count;
 			}
 		}
 		
