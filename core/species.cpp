@@ -981,6 +981,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	// Now we are in the Individuals section; handle spatial positions, etc. until we hit a Chromosome line
 	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
+	if (has_individual_pedigree_IDs)
+		gSLiM_next_pedigree_id = 0;
+	
 	if (line.find("Individuals") != std::string::npos)
 	{
 		while (!infile.eof()) 
@@ -1702,6 +1705,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	// Individuals section
 	const std::vector<Chromosome *> &chromosomes = Chromosomes();
 	
+	if (pedigree_output_count)
+		gSLiM_next_pedigree_id = 0;
+	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
@@ -2042,9 +2048,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		// Haplosomes section
-		if (pedigree_output_count)
-			gSLiM_next_pedigree_id = 0;
-		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 		std::unique_ptr<MutationIndex[]> raii_haplosomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed

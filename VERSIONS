@@ -171,6 +171,8 @@ development head (in the master branch):
 		add [l$ objectTags=F] flag to outputIndividuals(), outputHaplosomes(), outputFixedMutations(), and outputMutations(), mirroring the work done for outputFull()
 		extend deferred tick scheduling to allow scheduling to occur within a single tick, as long as it is for a later tick cycle stage
 		change initializeChromosome() to allow a length of NULL, in which case the length is determined by the components of the chromosome (as for an implicitly defined chromosome)
+		investigated and diagnosed a break in backward compatibility: models involving the Y use the MT RNG differently (less), and thus diverge from SLiM 4.3
+		fix a bug with reloading pedigree IDs after outputFull(), using readFromPopulationFile()
 
 
 version 4.3 (Eidos version 3.3):
