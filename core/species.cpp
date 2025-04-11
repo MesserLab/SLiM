@@ -191,15 +191,15 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 {
 	// Set up our default metadata records for haplosomes, which are variable-length.  The default records
 	// are used as the initial configuration of the nodes for new individuals; then, as haplosomes are
-	// added to the new individual, the is_null_ bits get tweaked as needed in the recorded metadata, which
+	// added to the new individual, the is_vacant_ bits get tweaked as needed in the recorded metadata, which
 	// is a bit gross, but necessary; the node metadata is recorded before the haplosomes are created.
 	// See HaplosomeMetadataRec for comments on this design.
 	
 	// First, calculate how many bytes we need
-	size_t bits_needed_for_is_null = chromosomes_.size();					// each chromosome needs one bit per node table entry
-	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_null_[1] in the record
-	haplosome_metadata_isnull_bytes_ = ((bits_needed_for_is_null + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
-	haplosome_metadata_size_ += haplosome_metadata_isnull_bytes_;
+	size_t bits_needed_for_is_vacant = chromosomes_.size();					// each chromosome needs one bit per node table entry
+	haplosome_metadata_size_ = sizeof(HaplosomeMetadataRec) - 1;			// -1 to subtract out the is_vacant_[1] in the record
+	haplosome_metadata_is_vacant_bytes_ = ((bits_needed_for_is_vacant + 7) / 8);	// (x+7)/8 rounds up to the number of bytes
+	haplosome_metadata_size_ += haplosome_metadata_is_vacant_bytes_;
 	
 	// Then allocate the buffers needed; the "male" versions are present only when sex is enabled
 	hap_metadata_1F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
@@ -207,14 +207,14 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 	hap_metadata_2F_ = (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1);
 	hap_metadata_2M_ = (sex_enabled_ ? (HaplosomeMetadataRec *)calloc(haplosome_metadata_size_, 1) : nullptr);
 	
-	// Then set the is_null_ bits for the default state for males and females; this is the state in which
-	// all chromosomes that dictate the is_null_ state by sex have that dictated state, while all others
+	// Then set the is_vacant_ bits for the default state for males and females; this is the state in which
+	// all chromosomes that dictate the is_vacant_ state by sex have that dictated state, while all others
 	// (types "A", "H", and "H-" only) are assumed to be non-null.  Any positions that are unused for a
-	// given chromosome type (like the second position for type "Y") are left as 0 here, but that should
-	// not be assumed by code that uses these flags for model behavior.  We go from least-significant bit
+	// given chromosome type (like the second position for type "Y") are given as 1 here, "vacant", by
+	// definition; "vacant" is either "unused" or "null haplosome".  We go from least-significant bit
 	// to most-significant bit, byte by byte, with each chromosome using two bits.  The less significant
-	// of those two bits is is_null_ for haplosome 1 for that chromosome; the more significant of those
-	// two bits is is_null_ for haplosome 2 for that chromosome.
+	// of those two bits is is_vacant_ for haplosome 1 for that chromosome; the more significant of those
+	// two bits is is_vacant_ for haplosome 2 for that chromosome.
 	IndividualSex sex = IndividualSex::kFemale;
 	HaplosomeMetadataRec *focal_metadata_1 = hap_metadata_1F_;
 	HaplosomeMetadataRec *focal_metadata_2 = hap_metadata_2F_;
@@ -224,52 +224,52 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		for (Chromosome *chromosome : chromosomes_)
 		{
 			slim_chromosome_index_t chromosome_index = chromosome->Index();
-			bool haplosome_1_is_null = false, haplosome_2_is_null = false;
+			bool haplosome_1_is_vacant = false, haplosome_2_is_vacant = false;
 			
 			switch (chromosome->Type())
 			{
 				case ChromosomeType::kA_DiploidAutosome:
-					haplosome_1_is_null = false;								// always present (by default)
-					haplosome_2_is_null = false;								// always present (by default)
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = false;								// always present (by default)
 					break;
 					
 				case ChromosomeType::kH_HaploidAutosome:
 				case ChromosomeType::kHF_HaploidFemaleInherited:
 				case ChromosomeType::kHM_HaploidMaleInherited:
-					haplosome_1_is_null = false;								// always present (by default)
-					haplosome_2_is_null = false;								// always unused (not null)
+					haplosome_1_is_vacant = false;								// always present (by default)
+					haplosome_2_is_vacant = true;								// always unused
 					break;
 					
 				case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-					haplosome_1_is_null = false;								// always present
-					haplosome_2_is_null = true;									// always null
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = true;								// always null
 					break;
 					
 				case ChromosomeType::kX_XSexChromosome:
-					haplosome_1_is_null = false;								// always present
-					haplosome_2_is_null = (sex == IndividualSex::kMale);		// null in males
+					haplosome_1_is_vacant = false;								// always present
+					haplosome_2_is_vacant = (sex == IndividualSex::kMale);		// null in males
 					break;
 					
 				case ChromosomeType::kY_YSexChromosome:
 				case ChromosomeType::kML_HaploidMaleLine:
-					haplosome_1_is_null = (sex == IndividualSex::kFemale);		// null in females
-					haplosome_2_is_null = false;								// always unused (not null)
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = true;								// always unused
 					break;
 					
 				case ChromosomeType::kZ_ZSexChromosome:
-					haplosome_1_is_null = (sex == IndividualSex::kFemale);		// null in females
-					haplosome_2_is_null = false;								// always present
+					haplosome_1_is_vacant = (sex == IndividualSex::kFemale);	// null in females
+					haplosome_2_is_vacant = false;								// always present
 					break;
 					
 				case ChromosomeType::kW_WSexChromosome:
 				case ChromosomeType::kFL_HaploidFemaleLine:
-					haplosome_1_is_null = (sex == IndividualSex::kMale);		// null in males
-					haplosome_2_is_null = false;								// always unused (not null)
+					haplosome_1_is_vacant = (sex == IndividualSex::kMale);		// null in males
+					haplosome_2_is_vacant = true;								// always unused
 					break;
 					
 				case ChromosomeType::kNullY_YSexChromosomeWithNull:
-					haplosome_1_is_null = true;									// always null
-					haplosome_2_is_null = (sex == IndividualSex::kFemale);		// null in females
+					haplosome_1_is_vacant = true;								// always null
+					haplosome_2_is_vacant = (sex == IndividualSex::kFemale);	// null in females
 					break;
 			}
 			
@@ -277,11 +277,11 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 			int byte_index = chromosome_index / 8;
 			int bit_shift = chromosome_index % 8;
 			
-			if (haplosome_1_is_null)
-				focal_metadata_1->is_null_[byte_index] |= (0x01 << bit_shift);
+			if (haplosome_1_is_vacant)
+				focal_metadata_1->is_vacant_[byte_index] |= (0x01 << bit_shift);
 			
-			if (haplosome_2_is_null)
-				focal_metadata_2->is_null_[byte_index] |= (0x01 << bit_shift);
+			if (haplosome_2_is_vacant)
+				focal_metadata_2->is_vacant_[byte_index] |= (0x01 << bit_shift);
 		}
 		
 		// loop from female to male, then break out
@@ -295,10 +295,10 @@ void Species::_MakeHaplosomeMetadataRecords(void)
 		break;
 	}
 	
-//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_null_[0]);
-//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_null_[0]);
-//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_null_[0]);
-//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_null_[0]);
+//	printf("hap_metadata_1F_ == %.2X\n", hap_metadata_1F_->is_vacant_[0]);
+//	printf("hap_metadata_1M_ == %.2X\n", hap_metadata_1M_->is_vacant_[0]);
+//	printf("hap_metadata_2F_ == %.2X\n", hap_metadata_2F_->is_vacant_[0]);
+//	printf("hap_metadata_2M_ == %.2X\n", hap_metadata_2M_->is_vacant_[0]);
 }
 
 Chromosome *Species::ChromosomeFromID(int64_t p_id)
@@ -5757,7 +5757,7 @@ void Species::RecordNewHaplosome_NULL(Haplosome *p_new_haplosome)
 {
 	// This method records a new null haplosome (no edges to record); see also RecordNewHaplosome().
 	
-	// BCH 12/10/2024: With the new metadata scheme for haplosome, we also need to fix the is_null_metadata if
+	// BCH 12/10/2024: With the new metadata scheme for haplosome, we also need to fix the is_vacant_ metadata if
 	// the new haplosome is a null haplosome *and* it belongs to a chromosome type where that is notable.  In
 	// the present design, that can only be chromosome types "A" and "H"; the other chromosome types do not
 	// allow deviation from the default null-haplosome configuration.
@@ -5779,17 +5779,17 @@ void Species::RecordNewHaplosome_NULL(Haplosome *p_new_haplosome)
 		
 		if ((chromosome_type == ChromosomeType::kA_DiploidAutosome) || (chromosome_type == ChromosomeType::kH_HaploidAutosome))
 		{
-			// it is null and that was unexpected; we need to flip the corresponding is_null_ bit
+			// it is null and that was unexpected; we need to flip the corresponding is_vacant_ bit
 			// each chromosome has two node table entries; entry 1 is for haplosome 1, entry 2 is
-			// for haplosome 2, so there is only one bit per chromosome in a given is_null_ vector
+			// for haplosome 2, so there is only one bit per chromosome in a given is_vacant_ vector
 			tsk_id_t offspringTSKID = p_new_haplosome->OwningIndividual()->TskitNodeIdBase() + p_new_haplosome->chromosome_subposition_;
 			tsk_node_table_t &shared_node_table = treeseq_[0].tables_.nodes;
 			HaplosomeMetadataRec *metadata = (HaplosomeMetadataRec *)(shared_node_table.metadata + shared_node_table.metadata_offset[offspringTSKID]);
-			uint8_t *metadata_is_null = metadata->is_null_;
+			uint8_t *metadata_is_vacant = metadata->is_vacant_;
 			int byte_index = chromosome_index / 8;
 			int bit_shift = chromosome_index % 8;
 			
-			metadata_is_null[byte_index] |= (0x01 << bit_shift);
+			metadata_is_vacant[byte_index] |= (0x01 << bit_shift);
 		}
 	}
 }
@@ -6639,8 +6639,8 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// of information per chromosome, across the two node table entries.)
 	// See the big comment on gSLiM_tsk_node_metadata_schema_FORMAT.
 	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
-	size_t pos = tsk_node_metadata_schema.find("%d");
-	std::string count_string = std::to_string(haplosome_metadata_isnull_bytes_);
+	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
+	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
 	
 	if (pos == std::string::npos)
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
@@ -6819,18 +6819,18 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 
 void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int original_chromosome_index)
 {
-	// This shifts is_null metadata bits in the node table from an original index (the chromosome index
+	// This shifts is_vacant metadata bits in the node table from an original index (the chromosome index
 	// being loaded from a file) to a final index of 0 (destined for a single-chromosome model).  This
 	// is done by allocating a whole new metadata buffer, because in the general case the size of the
-	// metadata records might actually be changing -- if the file has more than one byte of is_null
+	// metadata records might actually be changing -- if the file has more than one byte of is_vacant
 	// information per record.  So we will make new metadata and replace the old.  The new metadata
-	// buffer uses one byte of is_null data, always, since we're loading into a single-chromosome model.
+	// buffer uses one byte of is_vacant data, always, since we're loading into a single-chromosome model.
 	// Note that this means the metadata schema might change too!
 	tsk_table_collection_t &tables = p_treeseq.tables_;
 	tsk_node_table_t &node_table = tables.nodes;
 	HaplosomeMetadataRec *new_metadata_buffer = (HaplosomeMetadataRec *)calloc(node_table.num_rows, sizeof(HaplosomeMetadataRec));
 	
-	// these are for accessing the is_null bit in the original metadata
+	// these are for accessing the is_vacant bit in the original metadata
 	int byte_index = original_chromosome_index / 8;
 	int bit_shift = original_chromosome_index % 8;
 	
@@ -6848,8 +6848,8 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 		
 		new_metadata->haplosome_id_ = node_metadata->haplosome_id_;
 		
-		if ((node_metadata->is_null_[byte_index] >> bit_shift) & 0x01)
-			new_metadata->is_null_[0] = 0x01;
+		if ((node_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01)
+			new_metadata->is_vacant_[0] = 0x01;
 	}
 	
 	// Now change the offsets to the new offsets; we do not allocate a new buffer,
@@ -6865,8 +6865,8 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 	
 	// need to fix the schema, because the number of bytes may have changed
 	std::string tsk_node_metadata_schema = gSLiM_tsk_node_metadata_schema_FORMAT;
-	size_t pos = tsk_node_metadata_schema.find("%d");
-	std::string count_string = std::to_string(haplosome_metadata_isnull_bytes_);
+	size_t pos = tsk_node_metadata_schema.find("\"%d\"");
+	std::string count_string = std::to_string(haplosome_metadata_is_vacant_bytes_);
 	
 	if (pos == std::string::npos)
 		EIDOS_TERMINATION << "ERROR (Species::_MungeIsNullNodeMetadataToIndex0): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
@@ -7104,22 +7104,22 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	//   simulations into a multi-chromosome set, we allow the index to be 0 in "this_chromosome", if and only if
 	//   the "chromosomes" key is not present; the file then represents a single chromosome that doesn't know
 	//   that it's part of a larger set.
-	// In both of these exceptional cases, we need to make sure that we look up bits in the is_null flags of node
-	// metadata using the chromosome index stated in the file being loaded, NOT the chromosome index that the
+	// In both of these exceptional cases, we need to make sure that we look up bits in the is_vacant flags of
+	// node metadata using the chromosome index stated in the file being loaded, NOT the chromosome index that the
 	// data is being loaded into!  In the first case, we can simply munge the node table metadata right now, to
-	// have the is_null bits in the position for index 0.  In the second case, it is much trickier because we
-	// have a shared node table, and we need to fix the is_null bits in the shared table as well.
+	// have the is_vacant bits in the position for index 0.  In the second case, it is much trickier because we
+	// have a shared node table, and we need to fix the is_vacant bits in the shared table as well.
 	if (this_chromosome_index != chromosome->Index())
 	{
 		if (Chromosomes().size() == 1)
 		{
-			// We are loading into a single-chromosome model.  We need to munge the incoming is_null 
-			// metadata to move is_null flags from the file's index down to index 0.
+			// We are loading into a single-chromosome model.  We need to munge the incoming is_vacant 
+			// metadata to move is_vacant flags from the file's index down to index 0.
 			_MungeIsNullNodeMetadataToIndex0(p_treeseq, this_chromosome_index);
 		}
 		else if ((this_chromosome_index == 0) && !chomosomes_key_present)
 		{
-			// We are loading a file that has is_null information at index 0, into a different index
+			// We are loading a file that has is_vacant information at index 0, into a different index
 			// in a multi-chromosome model.  This is allowed when chomosomes_key_present is false,
 			// because this is the pattern we get from loading an msprime simulation in without
 			// setting up all the multi-chrom metadata completely.  Doing this requires that we do more
@@ -8586,7 +8586,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		int bit_shift = chromosome_index % 8;
 		size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
 		
-		// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+		// check that the metadata is long enough to contain the is_vacant bit we will look at; we don't check
 		// that it is exactly the length we expect here, just that it works for our local purposes
 		if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): unexpected node metadata length; this file cannot be read." << EidosTerminate();
@@ -8598,84 +8598,84 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): haplosome id mismatch; this file cannot be read." << EidosTerminate();
 		
 		// check that the null-haplosome flags make sense with the chromosome type
-		bool expected_is_null_0 = false, expected_is_null_1 = false;
+		bool expected_is_vacant_0 = false, expected_is_vacant_1 = false;
 		
 		switch (chromosomeType)
 		{
 			case ChromosomeType::kA_DiploidAutosome:
-				expected_is_null_0 = false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = false;
 				break;
 			case ChromosomeType::kH_HaploidAutosome:
-				expected_is_null_0 = false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kX_XSexChromosome:
-				expected_is_null_0 = false;
-				expected_is_null_1 = (sex == IndividualSex::kMale) ? true : false;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = (sex == IndividualSex::kMale) ? true : false;	// null in males
 				break;
 			case ChromosomeType::kY_YSexChromosome:
-				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : true;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = (sex == IndividualSex::kMale) ? false : true;	// null in females
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kZ_ZSexChromosome:
-				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : true;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = (sex == IndividualSex::kMale) ? false : true;	// null in females
+				expected_is_vacant_1 = false;
 				break;
 			case ChromosomeType::kW_WSexChromosome:
-				expected_is_null_0 = (sex == IndividualSex::kMale) ? true : false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = (sex == IndividualSex::kMale) ? true : false;	// null in males
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kHF_HaploidFemaleInherited:
-				expected_is_null_0 = false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kFL_HaploidFemaleLine:
-				expected_is_null_0 = (sex == IndividualSex::kMale) ? true : false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = (sex == IndividualSex::kMale) ? true : false;	// null in males
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kHM_HaploidMaleInherited:
-				expected_is_null_0 = false;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kML_HaploidMaleLine:
-				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : true;
-				expected_is_null_1 = false;
+				expected_is_vacant_0 = (sex == IndividualSex::kMale) ? false : true;	// null in females
+				expected_is_vacant_1 = true;	// unused
 				break;
 			case ChromosomeType::kHNull_HaploidAutosomeWithNull:
-				expected_is_null_0 = false;
-				expected_is_null_1 = true;
+				expected_is_vacant_0 = false;
+				expected_is_vacant_1 = true;	// null
 				break;
 			case ChromosomeType::kNullY_YSexChromosomeWithNull:
-				expected_is_null_0 = true;
-				expected_is_null_1 = (sex == IndividualSex::kMale) ? false : true;
+				expected_is_vacant_0 = true;	// null
+				expected_is_vacant_1 = (sex == IndividualSex::kMale) ? false : true;	// null in females
 				break;
 		}
 		
 		// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-		bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+		bool node0_is_vacant = !!((node0_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 		
-		if (node0_is_null != expected_is_null_0)
+		if (node0_is_vacant != expected_is_vacant_0)
 		{
 			if ((model_type_ == SLiMModelType::kModelTypeNonWF) &&
 				((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 				;
 			else
-				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_vacant unexpected; this file cannot be read." << EidosTerminate();
 		}
 		
 		// We do not check the second haplosome's null flag if the chromosome type is intrinsically haploid
 		if (chromosome->IntrinsicPloidy() == 2)
 		{
-			bool node1_is_null = !!((node1_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+			bool node1_is_vacant = !!((node1_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 			
-			if (node1_is_null != expected_is_null_1)
+			if (node1_is_vacant != expected_is_vacant_1)
 			{
 				if ((model_type_ == SLiMModelType::kModelTypeNonWF) &&
 					((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 					;
 				else
-					EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): node is_vacant unexpected; this file cannot be read." << EidosTerminate();
 			}
 		}
 	}
@@ -8791,7 +8791,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				int bit_shift = chromosome_index % 8;
 				size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
 				
-				// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+				// check that the metadata is long enough to contain the is_vacant bit we will look at; we don't check
 				// that it is exactly the length we expect here, just that it works for our local purposes
 				if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): unexpected node metadata length; this file cannot be read." << EidosTerminate();
@@ -8803,11 +8803,11 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 				
 				// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-				bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+				bool node0_is_vacant = !!((node0_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 				
-				if (node0_is_null != haplosome0->IsNull())
+				if (node0_is_vacant != haplosome0->IsNull())
 				{
-					if (node0_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+					if (node0_is_vacant && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
 						((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 					{
 						haplosome0->MakeNull();
@@ -8826,11 +8826,11 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 					if (node1_metadata->haplosome_id_ != haplosome1->haplosome_id_)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 					
-					bool node1_is_null = !!((node1_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+					bool node1_is_vacant = !!((node1_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 					
-					if (node1_is_null != haplosome1->IsNull())
+					if (node1_is_vacant != haplosome1->IsNull())
 					{
-						if (node1_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+						if (node1_is_vacant && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
 							((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 						{
 							haplosome1->MakeNull();
@@ -8962,7 +8962,7 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 				int bit_shift = chromosome_index % 8;
 				size_t expected_min_metadata_length = sizeof(HaplosomeMetadataRec) + byte_index;	// 1 byte already counted in HaplosomeMetadataRec
 				
-				// check that the metadata is long enough to contain the is_null bit we will look at; we don't check
+				// check that the metadata is long enough to contain the is_vacant bit we will look at; we don't check
 				// that it is exactly the length we expect here, just that it works for our local purposes
 				if ((node0_metadata_length < expected_min_metadata_length) || (node1_metadata_length < expected_min_metadata_length))
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation_SECONDARY): unexpected node metadata length; this file cannot be read." << EidosTerminate();
@@ -8974,11 +8974,11 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 				
 				// Null haplosomes are allowed to occur arbitrarily in nonWF models in chromosome types 'A' and 'H'
-				bool node0_is_null = !!((node0_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+				bool node0_is_vacant = !!((node0_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 				
-				if (node0_is_null != haplosome0->IsNull())
+				if (node0_is_vacant != haplosome0->IsNull())
 				{
-					if (node0_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+					if (node0_is_vacant && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
 						((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 					{
 						haplosome0->MakeNull();
@@ -8997,11 +8997,11 @@ void Species::__CreateSubpopulationsFromTabulation_SECONDARY(std::unordered_map<
 					if (node1_metadata->haplosome_id_ != haplosome1->haplosome_id_)
 						EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): node-haplosome id mismatch; this file cannot be read." << EidosTerminate();
 					
-					bool node1_is_null = !!((node1_metadata->is_null_[byte_index] >> bit_shift) & 0x01);
+					bool node1_is_vacant = !!((node1_metadata->is_vacant_[byte_index] >> bit_shift) & 0x01);
 					
-					if (node1_is_null != haplosome1->IsNull())
+					if (node1_is_vacant != haplosome1->IsNull())
 					{
-						if (node1_is_null && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
+						if (node1_is_vacant && (model_type_ == SLiMModelType::kModelTypeNonWF) &&
 							((chromosomeType == ChromosomeType::kA_DiploidAutosome) || (chromosomeType == ChromosomeType::kH_HaploidAutosome)))
 						{
 							haplosome1->MakeNull();

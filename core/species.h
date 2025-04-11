@@ -103,21 +103,21 @@ typedef struct __attribute__((__packed__)) {
 	// The difficulty is that this metadata gets attached to nodes in the tree sequence, and in multichrom models the node table is
 	// shared by all of the chromosome-specific tree sequences.  That implies that the haplosome metadata has to be the *same* for all
 	// of the haplosomes that reference that node -- all the first haplosomes of an individual, or all the second haplosomes of an
-	// individual.  We want to keep is_null_ state separately for each haplosome; within one individual, some haplosomes might be nulls,
+	// individual.  We want to keep is_vacant_ state separately for each haplosome; within one individual, some haplosomes might be nulls,
 	// other might not be, and we need to know the difference to correctly read/analyze a tree sequence.  To achieve this, each node's
-	// metadata -- HaplosomeMetadataRec -- will record a *vector* of is_null_ bytes, each containing 8 bits, recording the is_null_
+	// metadata -- HaplosomeMetadataRec -- will record a *vector* of is_vacant_ bytes, each containing 8 bits, recording the is_vacant_
 	// state for each of the haplosome slots represented by the node in its owning individual.  Note that haplosome slots for a given
 	// node can actually have three states in an individual: "real", "null", or "unused".  "Real" would be the first haplosome for the
 	// Y in a male; "null" would be the first haplosome for the Y in a female (a placeholder for the Y that could be there but is not);
 	// and "unused" would be the *second* haplosome for the Y in either sex (because the Y is a haploid chromosome, and haplosomes for
 	// the second position therefore do not exist -- but a node for that slot still exists, because we *always* make two nodes in the
 	// tree sequence for each chromosome, to maintain the 1:2 individual_id:node_id invariant that we assume throughout the code).  The
-	// flags in is_null_ only differentiate between "real" and "null"; the value for "unused" positions should indicate "null", but it
-	// should also not be used anywhere, so it shouldn't matter.  See Species::_MakeHaplosomeMetadataRecords() and elsewhere.
+	// flags in is_vacant_ differentiate between "real" and "unused"/"null"; the value for "unused" positions should indicate "vacant",
+	// just as for "null" positions.  See Species::_MakeHaplosomeMetadataRecords() and elsewhere.
 	//
 	slim_haplosomeid_t haplosome_id_;		// 8 bytes (int64_t): the SLiM haplosome ID for this haplosome, assigned by pedigree rec
 											// 		note that the ID is the same across all chromosomes in an individual!
-	uint8_t is_null_[1];					// 1 byte (8 bits, handled bitwise) -- but this field is actually variable-length, see above
+	uint8_t is_vacant_[1];					// 1 byte (8 bits, handled bitwise) -- but this field is actually variable-length, see above
 	// BCH 12/6/2024: type_, the chromosome type for the haplosome, has moved to top-level metadata; it is constant across a tree sequence
 } HaplosomeMetadataRec;
 
@@ -320,12 +320,12 @@ private:
 	int64_t simplify_elapsed_ = 0;				// the number of cycles elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;					// the current number of cycles between automatic simplifications when using simplification_ratio_
 	
-	size_t haplosome_metadata_size_;			// the number of bytes for haplosome metadata, for this species, including is_null_ flags
-	size_t haplosome_metadata_isnull_bytes_;	// the number of bytes used for is_null_ in the haplosome metadata
-	HaplosomeMetadataRec *hap_metadata_1F_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in females/hermaphrodites
-	HaplosomeMetadataRec *hap_metadata_1M_ = nullptr;		// malloced; default is_null_ flags for first haplosomes in males
-	HaplosomeMetadataRec *hap_metadata_2F_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in females/hermaphrodites
-	HaplosomeMetadataRec *hap_metadata_2M_ = nullptr;		// malloced; default is_null_ flags for second haplosomes in males
+	size_t haplosome_metadata_size_;			// the number of bytes for haplosome metadata, for this species, including is_vacant_ flags
+	size_t haplosome_metadata_is_vacant_bytes_;	// the number of bytes used for is_vacant_ in the haplosome metadata
+	HaplosomeMetadataRec *hap_metadata_1F_ = nullptr;		// malloced; default is_vacant_ flags for first haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_1M_ = nullptr;		// malloced; default is_vacant_ flags for first haplosomes in males
+	HaplosomeMetadataRec *hap_metadata_2F_ = nullptr;		// malloced; default is_vacant_ flags for second haplosomes in females/hermaphrodites
+	HaplosomeMetadataRec *hap_metadata_2M_ = nullptr;		// malloced; default is_vacant_ flags for second haplosomes in males
 	void _MakeHaplosomeMetadataRecords(void);
 	
 	// ********** then we have tree-seq state that is kept separately for each chromosome; each has its own tree sequence

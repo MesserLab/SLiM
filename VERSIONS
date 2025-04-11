@@ -173,6 +173,7 @@ development head (in the master branch):
 		change initializeChromosome() to allow a length of NULL, in which case the length is determined by the components of the chromosome (as for an implicitly defined chromosome)
 		investigated and diagnosed a break in backward compatibility: models involving the Y use the MT RNG differently (less), and thus diverge from SLiM 4.3
 		fix a bug with reloading pedigree IDs after outputFull(), using readFromPopulationFile()
+		change node metadata from `is_null` to `is_vacant` to reflect semantic shift; now it indicates non-null (0) versus unused/null (1); changed schema
 
 
 version 4.3 (Eidos version 3.3):
