@@ -35,7 +35,7 @@ early() {
 	p1.fitnessScaling = K / p1.individualCount;
 }
 late() {
-   sim.treeSeqRememberIndividuals(p1.individuals);
+   addAncestralSamples(p1.individualCount);
 }
 10 late() {
 	outputIndividuals();
