@@ -13,5 +13,6 @@ initialize() {
 4 late() {
    createDirectory("end");
    sim.treeSeqOutput("end/test_output.trees");
+   sim.treeSeqOutput("end/test_output.unsimplified.trees", simplify=F);
 }
 

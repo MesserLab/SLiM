@@ -1,26 +1,25 @@
-// pure cloning.slim : ^Total mutation frequencies: (.*)$
-//
-// A test script for cloning
-//
+// Keywords: multiple chromosomes
+
 initialize() {
 	initializeSLiMOptions(keepPedigrees=T); // necessary for pedigreeID
 	source("init.slim");
-    initializeTreeSeq();
-	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeTreeSeq();
+	initializeMutationType("m1", 1.0, "f", 0.0);
 	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, 1e5, type="H");
 	initializeGenomicElement(g1, 0, 1e5-1);
-	initializeRecombinationRate(1e-8);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(0.0);
 }
 1 early() {
-	sim.addSubpop("p1", 500);
-	
+	sim.addSubpop("p1", 100);
 	p1.setCloningRate(1.0);
 }
 100 early() {
 	addAncestralSamples(5);
 }
-500 late() { 
+150 late() { 
 	outputMutationResult();
 	outputIndividuals();
 }

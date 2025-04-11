@@ -1,0 +1,148 @@
+// Keywords: multiple chromosomes, pseudo-autosomal region (PAR)
+
+initialize() {
+	defineConstant("A1_LEN", 2e5);
+	defineConstant("PAR1_LEN", 27714);
+	defineConstant("PAR2_LEN", 3295);
+	defineConstant("X_LEN", 1560408 - (PAR1_LEN + PAR2_LEN));
+	defineConstant("Y_LEN", 572274 - (PAR1_LEN + PAR2_LEN));
+	defineConstant("MU", 1e-6);
+	defineConstant("R", 1e-5);
+	defineConstant("N", 20);
+	
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
+	initializeSex();
+	source("init.slim");
+	initializeTreeSeq();
+	initializeMutationType("m1", 0.5, "f", 0.0).convertToSubstitution = T;
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	for (id in 1:5, length in c(A1_LEN, PAR1_LEN, X_LEN, Y_LEN, PAR2_LEN),
+		type in c("A","A","X","Y","A"), symbol in c("A1","P1","X","Y","P2"))
+	{
+		chr = initializeChromosome(id, length, type=type, symbol=symbol);
+		initializeGenomicElement(g1, 0, length-1);
+		initializeMutationRate(MU);
+		initializeRecombinationRate(R);
+		defineConstant(paste0("CHR_", symbol), chr);
+	}
+}
+1 late() {
+	sim.addSubpop("p1", N);
+}
+reproduction()
+{
+	for (i in seqLen(N))
+	{
+		parentF = p1.sampleIndividuals(1, sex="F");
+		parentM = p1.sampleIndividuals(1, sex="M");
+	
+		// generate breakpoints for the female parent (X recombines)
+		breaks_F_P1 = CHR_P1.drawBreakpoints(parent=parentF);
+		breaks_F_X = CHR_X.drawBreakpoints(parent=parentF);
+		breaks_F_P2 = CHR_P2.drawBreakpoints(parent=parentF);
+		
+		// generate breakpoints for the male parent (only PARs recombine)
+		breaks_M_P1 = CHR_P1.drawBreakpoints(parent=parentM);
+		breaks_M_P2 = CHR_P2.drawBreakpoints(parent=parentM);
+		
+		// get the haplosomes for each chromosome in each parent
+		strands_F_P1 = parentF.haplosomesForChromosomes(CHR_P1);  // 2
+		strands_F_X = parentF.haplosomesForChromosomes(CHR_X);    // 2
+		strands_F_P2 = parentF.haplosomesForChromosomes(CHR_P2);  // 2
+		
+		strands_M_P1 = parentM.haplosomesForChromosomes(CHR_P1);  // 2
+		strands_M_X = parentM.haplosomesForChromosomes(CHR_X)[0]; // 1
+		strands_M_Y = parentM.haplosomesForChromosomes(CHR_Y);    // 1
+		strands_M_P2 = parentM.haplosomesForChromosomes(CHR_P2);  // 2
+		
+		// choose initial copy strand indices for PAR1 in both (coin flip)
+		initial_F_P1 = rbinom(1, 1, 0.5);
+		initial_M_P1 = rbinom(1, 1, 0.5);
+		
+		// generate the inheritance dictionary for PAR1
+		s1_F_P1 = strands_F_P1[initial_F_P1];
+		s2_F_P1 = strands_F_P1[1 - initial_F_P1];
+		
+		s1_M_P1 = strands_M_P1[initial_M_P1];
+		s2_M_P1 = strands_M_P1[1 - initial_M_P1];
+		
+		pattern = sim.addPatternForRecombinant(CHR_P1, NULL,
+			s1_F_P1, s2_F_P1, breaks_F_P1, s1_M_P1, s2_M_P1, breaks_M_P1,
+			randomizeStrands=F);
+		
+		// the initial strand for the X in the female follows from the
+		// above, because PAR1 is physically linked to the start of the
+		// X; if an odd number of crossovers occurred, switch strands
+		initial_F_X = initial_F_P1;
+		if (size(breaks_F_P1) % 2 == 1) initial_F_X = 1 - initial_F_X;
+		if (runif(1) < R) initial_F_X = 1 - initial_F_X;
+		
+		// do the same for the male, but the "initial strand" is the
+		// X if 0, the Y if 1, and it determines the offspring sex
+		initial_M_XY = initial_M_P1;
+		if (size(breaks_M_P1) % 2 == 1) initial_M_XY = 1 - initial_M_XY;
+		if (runif(1) < R) initial_M_XY = 1 - initial_M_XY;
+		
+		sex = ((initial_M_XY == 0) ? "F" else "M");
+		
+		// generate the inheritance dictionaries for the X and Y
+		s1_F_X = strands_F_X[initial_F_X];
+		s2_F_X = strands_F_X[1 - initial_F_X];
+		
+		if (sex == "F")
+		{
+			sim.addPatternForRecombinant(CHR_X, pattern,
+				s1_F_X, s2_F_X, breaks_F_X, strands_M_X, NULL, NULL,
+				sex=sex, randomizeStrands=F);
+			sim.addPatternForNull(CHR_Y, pattern, sex=sex);
+		}
+		else
+		{
+			sim.addPatternForRecombinant(CHR_X, pattern,
+				s1_F_X, s2_F_X, breaks_F_X, NULL, NULL, NULL,
+				sex=sex, randomizeStrands=F);
+			sim.addPatternForClone(CHR_Y, pattern, parent=parentM, sex=sex);
+		}
+		
+		// and the initial copy strand for PAR2 follows from the above,
+		// because PAR2 is physically linked to the end of the X/Y;
+		// if an odd number of crossovers occurred, switch strands
+		initial_F_P2 = initial_F_X;
+		if (size(breaks_F_X) % 2 == 1) initial_F_P2 = 1 - initial_F_P2;
+		if (runif(1) < R) initial_F_P2 = 1 - initial_F_P2;
+		
+		initial_M_P2 = initial_M_XY;
+		if (runif(1) < R) initial_M_P2 = 1 - initial_M_P2;
+		
+		// generate the inheritance dictionary for PAR2
+		s1_F_P2 = strands_F_P2[initial_F_P2];
+		s2_F_P2 = strands_F_P2[1 - initial_F_P2];
+		
+		s1_M_P2 = strands_M_P2[initial_M_P2];
+		s2_M_P2 = strands_M_P2[1 - initial_M_P2];
+		
+		sim.addPatternForRecombinant(CHR_P2, pattern,
+			s1_F_P2, s2_F_P2, breaks_F_P2, s1_M_P2, s2_M_P2, breaks_M_P2,
+			randomizeStrands=F);
+		
+		// finally, generate the offspring following the pattern dictionary
+		subpop.addMultiRecombinant(pattern, sex=sex,
+			parent1=parentF, parent2=parentM, randomizeStrands=F);
+	}
+	
+	self.active = 0;
+}
+2: early() {
+	// non-overlapping generations
+	adults = p1.subsetIndividuals(minAge=1);
+	sim.killIndividuals(adults);
+}
+10 early() {
+	addAncestralSamples(5);
+}
+30 late() {
+	outputIndividuals();
+	outputMutationResult();
+}
