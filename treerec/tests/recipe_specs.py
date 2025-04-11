@@ -39,6 +39,7 @@ recipe_specs = {
     "test_____simple_not_perm.slim":                {},
     "test_____simple_perm.slim":                    {},
     "test_____simple_none.slim":                    {},
+    "test_____no_generations.slim":                 {"individuals": True},
     "test_____all_the_chromosome_types.slim":       {"mutations": True, "individuals": True},
     "test_831_multiple diploid autosomes.slim":     {"mutations": True, "individuals": True},
     "test_832_clonal haploids and chromosome types.slim": {"mutations": True, "individuals": True},

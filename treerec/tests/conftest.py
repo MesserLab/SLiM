@@ -10,7 +10,7 @@ import tskit
 
 from recipe_specs import recipe_specs
 
-SLiMindividual = collections.namedtuple('SLiMindividual', 'type population pos nodes')
+SLiMindividual = collections.namedtuple('SLiMindividual', 'type sex population pos nodes')
 
 
 def load_file_or_dir(p):
@@ -142,9 +142,10 @@ class OutputResult:
                     store = slim[pedigree_id].type
             slim[pedigree_id] = SLiMindividual(
                 type=store,
-                population=int(fields[2]),
-                pos=[float(p) for p in fields[3].split(",")],
-                nodes=[int(p) for p in fields[4].split(",")],
+                sex=fields[2],
+                population=int(fields[3]),
+                pos=[float(p) for p in fields[4].split(",")],
+                nodes=[int(p) for p in fields[5].split(",")],
             )
         return slim
 

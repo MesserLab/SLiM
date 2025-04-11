@@ -38,26 +38,6 @@ function (void)saveTreeSeqFormats(void) {
    sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
 }
 
-function (void)saveIndividual(o<Individual>$ ind, s$ store) {
-   /* * *
-    * To the individualsFile, save:
-    * "remember", "retain", or "output" (the `store` param) to indicate whether this 
-    *  individual should have been permanently remembered, simply retained, or
-    *  is an individual written during output of the whole population
-    * the pedigree ID
-    * other stuff
-    * * */
-   outstr = "#Individual:" + store +
-      " " + paste(ind.pedigreeID) +
-      " " + paste(ind.subpopulation.id) +
-      " " + paste(ind.x, ind.y, ind.z, sep=",") +
-      " " + paste(unique(ind.haplosomes.haplosomePedigreeID), sep=",");
-   writeFile(
-      individualsFile,
-      outstr,
-      append=T);
-}
-
 function (void)saveIndividualMutations(o<Individual>$ ind) {
    /* * *
     * To the mutationsFile, save:
@@ -111,10 +91,25 @@ function (void)addAncestralSamples(i$ num_samples) {
 
 function (void)addIndividuals([No<Individual> individuals=NULL], [s$ store="remember"]) {
    /* * *
-    * For each individual in `individuals`, write out a line to the current individualsFile.
+    * For each individual in `individuals`, write out a line to the current individualsFile,
+    * containing:
+    * "remember", "retain", or "output" (the `store` param) to indicate whether this 
+    *  individual should have been permanently remembered, simply retained, or
+    *  is an individual written during output of the whole population
+    * the pedigree ID
+    * other stuff
     * * */
-   for (i in individuals) {
-      saveIndividual(i, store);
+   for (ind in individuals) {
+      outstr = "#Individual:" + store +
+         " " + paste(ind.pedigreeID) +
+         " " + paste(ind.sex) +
+         " " + paste(ind.subpopulation.id) +
+         " " + paste(ind.x, ind.y, ind.z, sep=",") +
+         " " + paste(unique(ind.haplosomes.haplosomePedigreeID), sep=",");
+      writeFile(
+         individualsFile,
+         outstr,
+         append=T);
    }
 }
 

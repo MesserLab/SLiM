@@ -132,6 +132,15 @@ class TestIndividuals:
                                 num_expected += 1
                                 assert ped_id in ts_individuals
                                 metadata = ts_individuals[ped_id].metadata
+                                # in metadata, sex is 0 for female, 1 for male, -1 for hermaphrodite
+                                if slim_ind.sex == "F":
+                                    assert metadata['sex'] == 0
+                                elif slim_ind.sex == "M":
+                                    assert metadata['sex'] == 1
+                                elif slim_ind.sex == "H":
+                                    assert metadata['sex'] == -1
+                                else:
+                                    assert False, "Bad sex field in metadata"
                                 assert slim_ind.population == metadata['subpopulation']
                                 assert np.allclose(slim_ind.pos, ts_individuals[ped_id].location)
                                 for n in ts_nodes:
@@ -165,3 +174,121 @@ class TestIndividuals:
                             num_expected += 1
                             
                     assert num_expected == ts.num_individuals
+
+
+@pytest.mark.parametrize('recipe', recipe_eq(), indirect=True)
+class TestChromosomes:
+
+    def chrom_details(self, chrom):
+        # in metadata:
+        # sex is 0 for female, 1 for male, -1 for hermaphrodite
+        # chrom is:
+        # "A" (autosome), the default
+        # "H" (haploid), specifying a haploid autosomal chromosome
+        #    that recombines in biparental crosses.
+        # Some sex-chromosome types are supported only in sexual models:
+        # "X" (X), an X chromosome that is diploid (XX) in females, haploid (X-) in males.
+        # "Y" (Y), a Y chromosome that is haploid (Y) in males, absent (-) in females.
+        # "Z" (Z), a Z chromosome that is diploid (ZZ) in males, haploid (-Z) in females.
+        # "W" (W), a W chromosome that is haploid (W) in females, absent (-) in males.
+        # And there are haploid chromosome types that are also supported only in sexual models:
+        # "HF" (haploid female-inherited), a haploid autosomal chromosome 
+        #   inherited by both sexes from the first (female) parent in biparental crosses.
+        # "FL" (female line), specifying a haploid autosomal chromosome 
+        #   inherited only by females, from the female parent, 
+        #   represented by a null haplosome in males.
+        # "HM" (haploid male-inherited), a haploid autosomal chromosome 
+        #   inherited by both sexes from the second (male) parent in biparental crosses.
+        # "ML" (male line), specifying a haploid autosomal chromosome 
+        #   inherited only by males, from the male parent, 
+        #   represented by a null haplosome in females.
+        # Finally, "H-" and "-Y", are supported for backward compatibility.
+        #
+        # This returns a dictionary with keys:
+        # ploidy: ploidy of chromsome; all inds should have this many
+        # (F/M/H): number of null chromosomes expected for this sex
+        sexes = ["F", "M", "H"]
+        if chrom == "A":
+            out = { "ploidy" : 2 }
+            out.update({ x: 0 for x in sexes })
+        elif chrom == "H":
+            out = { "ploidy" : 1 }
+            out.update({ x: 0 for x in sexes })
+        elif chrom == "X":
+            out = { "ploidy" : 2, "F": 0, "M": 1 }
+        elif chrom == "Y":
+            out = { "ploidy" : 1, "F": 1, "M": 0 }
+        elif chrom == "Z":
+            out = { "ploidy" : 2, "F": 1, "M": 0 }
+        elif chrom == "W":
+            out = { "ploidy" : 1, "F": 0, "M": 1 }
+        elif chrom == "HF":
+            out = { "ploidy" : 1, "F": 0, "M": 0 }
+        elif chrom == "FL":
+            out = { "ploidy" : 1, "F": 0, "M": 1 }
+        elif chrom == "HM":
+            out = { "ploidy" : 1, "F": 0, "M": 0 }
+        elif chrom == "ML":
+            out = { "ploidy" : 1, "F": 1, "M": 0 }
+        elif chrom == "H-":
+            out = { "ploidy" : 2, "F": 1, "M": 1 }
+        elif chrom == "-Y":
+            out = { "ploidy" : 2, "F": 2, "M": 1 }
+        else:
+            assert False, f"Unknown chromosome type {chrom}"
+        return out
+
+    def is_chrom_null(self, k, b):
+        # From the SLiM manual on is_null:
+        # M bytes (uint8_t): a series of bytes comprising a bitfield of is_null
+        # values, true (1) if this node represents a null haplosome for a given
+        # chromosome, false (0) otherwise. For chromosomes with indices 0...N−1, the
+        # chromosome with index k has its is_null bit in bit k%8 of byte k/8, where
+        # byte 0 is the first byte in the series of bytes provided, and bit 0 is the
+        # least-significant bit, the one with value 0x01 (hexadecimal 1). The number
+        # of bytes present, M, is equal to (N+7)/8, the minimum number of bytes
+        # necessary. The operators / and % here are integer divide (rounding down)
+        # and integer modulo, respectively.
+        assert len(b) >= (1 + k) / 8
+        b = b[int(k / 8)]
+        i = k % 8
+        return b >> i & 1
+
+    def test_chromosome_consistency(self, recipe):
+        # check whether chromsomes are null when they're supposed to be
+        # and individuals have the right number of chromosomes
+        for result in recipe["results"]:
+            for tsl in result.get_ts():
+                for chrom_id in tsl:
+                    ts = tsl[chrom_id]
+                    chrom_type = ts.metadata['SLiM']['this_chromosome']['type']
+                    chrom_index = ts.metadata['SLiM']['this_chromosome']['index']
+                    details = self.chrom_details(chrom_type)
+                    if chrom_type in ['X', 'Y', 'Z', 'W', 'HF', 'FL', 'HM', 'ML']:
+                        assert ts.metadata['SLiM']['separate_sexes']
+                    for ind in ts.individuals():
+                        if ind.flags & (pyslim.INDIVIDUAL_ALIVE | pyslim.INDIVIDUAL_REMEMBERED) > 0:
+                            sex = {0 : "F", 1 : "M", -1 : "H"}[ind.metadata['sex']]
+                            assert sex in details, f"Invalid sex {sex} for {chrom_type} chrom"
+                            assert len(ind.nodes) == 2
+                            print(sex, chrom_type, details)
+                            print(ind)
+                            for n in ind.nodes:
+                                print(ts.node(n))
+                            # TODO: problems distinguishing null and just missing
+                            num_null = 0
+                            num_nonmissing = 0
+                            for ni in ind.nodes:
+                                n = ts.node(ni)
+                                has_data = (np.sum(ts.edges_parent == ni)
+                                            + np.sum(ts.edges_child == ni) > 0)
+                                num_nonmissing += has_data
+                                is_null = self.is_chrom_null(chrom_index, n.metadata['is_null'])
+                                num_null += is_null
+                                if is_null:
+                                    assert not has_data
+                            # TODO: remove this condition on time
+                            if n.time + 1 < ts.metadata['SLiM']['tick']:
+                                assert num_nonmissing + num_null == details['ploidy']
+                                assert num_null == details[sex]
+
