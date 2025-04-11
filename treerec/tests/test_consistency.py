@@ -176,7 +176,6 @@ class TestIndividuals:
                     assert num_expected == ts.num_individuals
 
 
-@pytest.mark.parametrize('recipe', recipe_eq(), indirect=True)
 class TestChromosomes:
 
     def chrom_details(self, chrom):
@@ -238,6 +237,35 @@ class TestChromosomes:
             assert False, f"Unknown chromosome type {chrom}"
         return out
 
+    def chrom_inheritance(self, chrom):
+        # This returns a dictionary with keys:
+        # F/M : dictionary with how many haplosomes should be inherited from said parent
+        sexes = ["F", "M", "H"]
+        if chrom == "A":
+            out = { "F" : { "F" : 1, "M" : 1 }, "M" : { "F" : 1, "M" : 1 } }
+        elif chrom == "X":
+            out = { "F" : { "F" : 1, "M" : 1 }, "M" : { "F" : 1, "M" : 0 } }
+        elif chrom == "Y":
+            out = { "F" : { "F" : 0, "M" : 0 }, "M" : { "F" : 0, "M" : 1 } }
+        elif chrom == "Z":
+            out = { "F" : { "F" : 0, "M" : 1 }, "M" : { "F" : 1, "M" : 1 } }
+        elif chrom == "W":
+            out = { "F" : { "F" : 1, "M" : 0 }, "M" : { "F" : 0, "M" : 0 } }
+        elif chrom == "HF":
+            out = { "F" : { "F" : 1, "M" : 0 }, "M" : { "F" : 1, "M" : 0 } }
+        elif chrom == "FL":
+            out = { "F" : { "F" : 1, "M" : 0 }, "M" : { "F" : 0, "M" : 0 } }
+        elif chrom == "HM":
+            out = { "F" : { "F" : 0, "M" : 1 }, "M" : { "F" : 0, "M" : 1 } }
+        elif chrom == "ML":
+            out = { "F" : { "F" : 0, "M" : 0 }, "M" : { "F" : 0, "M" : 1 } }
+        elif chrom == "-Y":
+            out = { "F" : { "F" : 0, "M" : 0 }, "M" : { "F" : 0, "M" : 1 } }
+        else:
+            assert False, f"Unknown chromosome type {chrom}"
+        return out
+
+
     def is_chrom_vacant(self, k, b):
         # From the SLiM manual on is_vacant:
         # M bytes (uint8_t): a series of bytes comprising a bitfield of is_vacant
@@ -252,8 +280,9 @@ class TestChromosomes:
         assert len(b) >= (1 + k) / 8
         b = b[int(k / 8)]
         i = k % 8
-        return b >> i & 1
+        return (b >> i & 1) > 0
 
+    @pytest.mark.parametrize('recipe', recipe_eq(), indirect=True)
     def test_chromosome_consistency(self, recipe):
         # check whether chromsomes are null when they're supposed to be
         # and individuals have the right number of chromosomes
@@ -285,4 +314,42 @@ class TestChromosomes:
                                 n = ts.node(ind.nodes[1])
                                 is_vacant = self.is_chrom_vacant(chrom_index, n.metadata['is_vacant'])
                                 assert is_vacant, "Second node for haploid chromosomes should be vacant."
+
+    @pytest.mark.parametrize('recipe', recipe_eq('everyone'), indirect=True)
+    def test_chromosome_inheritance(self, recipe):
+        # check whether chromsomes are inherited from the right parent
+        for result in recipe["results"]:
+            for tsl in result.get_ts():
+                for chrom_id in tsl:
+                    ts = tsl[chrom_id]
+                    chrom_type = ts.metadata['SLiM']['this_chromosome']['type']
+                    if chrom_type == "H":
+                        continue
+                    chrom_index = ts.metadata['SLiM']['this_chromosome']['index']
+                    inheritance = self.chrom_inheritance(chrom_type)
+                    for ind in ts.individuals():
+                        if len(ind.parents) > 0:
+                            sex = {0 : "F", 1 : "M", -1 : "H"}[ind.metadata['sex']]
+                            assert len(ind.nodes) == 2
+                            this_inh = { "F" : 0, "M" : 0 }
+                            for ni in ind.nodes:
+                                n = ts.node(ni)
+                                is_vacant = self.is_chrom_vacant(chrom_index, n.metadata['is_vacant'])
+                                ne = ts.edges_child == ni
+                                if is_vacant:
+                                    assert np.sum(ne) == 0
+                                else:
+                                    assert np.sum(ne) > 0
+                                    pnodes = ts.edges_parent[ne]
+                                    parents = [ts.node(u).individual for u in pnodes]
+                                    assert len(set(parents)) == 1
+                                    assert parents[0] in ind.parents
+                                    psex = {0 : "F", 1 : "M", -1 : "H"}[ts.individual(parents[0]).metadata['sex']]
+                                    this_inh[psex] += 1
+                                    if chrom_type in ["Y", "W", "HF", "FL", "HM", "ML", "-Y"]:
+                                        # no recombination
+                                        assert len(pnodes) == 1
+                            assert this_inh == inheritance[sex]
+
+
 
