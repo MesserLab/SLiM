@@ -238,12 +238,12 @@ class TestChromosomes:
             assert False, f"Unknown chromosome type {chrom}"
         return out
 
-    def is_chrom_null(self, k, b):
-        # From the SLiM manual on is_null:
-        # M bytes (uint8_t): a series of bytes comprising a bitfield of is_null
+    def is_chrom_vacant(self, k, b):
+        # From the SLiM manual on is_vacant:
+        # M bytes (uint8_t): a series of bytes comprising a bitfield of is_vacant
         # values, true (1) if this node represents a null haplosome for a given
         # chromosome, false (0) otherwise. For chromosomes with indices 0...N−1, the
-        # chromosome with index k has its is_null bit in bit k%8 of byte k/8, where
+        # chromosome with index k has its is_vacant bit in bit k%8 of byte k/8, where
         # byte 0 is the first byte in the series of bytes provided, and bit 0 is the
         # least-significant bit, the one with value 0x01 (hexadecimal 1). The number
         # of bytes present, M, is equal to (N+7)/8, the minimum number of bytes
@@ -271,24 +271,18 @@ class TestChromosomes:
                             sex = {0 : "F", 1 : "M", -1 : "H"}[ind.metadata['sex']]
                             assert sex in details, f"Invalid sex {sex} for {chrom_type} chrom"
                             assert len(ind.nodes) == 2
-                            print(sex, chrom_type, details)
-                            print(ind)
-                            for n in ind.nodes:
-                                print(ts.node(n))
-                            # TODO: problems distinguishing null and just missing
-                            num_null = 0
-                            num_nonmissing = 0
+                            num_vacant = 0
                             for ni in ind.nodes:
                                 n = ts.node(ni)
                                 has_data = (np.sum(ts.edges_parent == ni)
                                             + np.sum(ts.edges_child == ni) > 0)
-                                num_nonmissing += has_data
-                                is_null = self.is_chrom_null(chrom_index, n.metadata['is_null'])
-                                num_null += is_null
-                                if is_null:
+                                is_vacant = self.is_chrom_vacant(chrom_index, n.metadata['is_vacant'])
+                                num_vacant += is_vacant
+                                if is_vacant:
                                     assert not has_data
-                            # TODO: remove this condition on time
-                            if n.time + 1 < ts.metadata['SLiM']['tick']:
-                                assert num_nonmissing + num_null == details['ploidy']
-                                assert num_null == details[sex]
+                            assert num_vacant == 2 - details['ploidy'] + details[sex]
+                            if details['ploidy'] == 1:
+                                n = ts.node(ind.nodes[1])
+                                is_vacant = self.is_chrom_vacant(chrom_index, n.metadata['is_vacant'])
+                                assert is_vacant, "Second node for haploid chromosomes should be vacant."
 
