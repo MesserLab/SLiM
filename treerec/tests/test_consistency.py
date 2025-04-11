@@ -231,7 +231,7 @@ class TestChromosomes:
         elif chrom == "ML":
             out = { "ploidy" : 1, "F": 1, "M": 0 }
         elif chrom == "H-":
-            out = { "ploidy" : 2, "F": 1, "M": 1 }
+            out = { "ploidy" : 2, "H": 1 }
         elif chrom == "-Y":
             out = { "ploidy" : 2, "F": 2, "M": 1 }
         else:
