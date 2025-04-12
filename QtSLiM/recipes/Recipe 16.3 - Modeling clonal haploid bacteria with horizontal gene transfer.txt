@@ -10,7 +10,7 @@ initialize() {
 	initializeGenomicElementType("g1", m1, 1.0);
 	
 	initializeChromosome(1, L, type="H");
-	initializeGenomicElement(g1, 0, L-1);
+	initializeGenomicElement(g1);
 	initializeMutationRate(0);                     // no mutation
 	initializeRecombinationRate(0);                // no recombination
 }

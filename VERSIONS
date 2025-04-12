@@ -176,7 +176,7 @@ development head (in the master branch):
 		change node metadata from `is_null` to `is_vacant` to reflect semantic shift; now it indicates non-null (0) versus unused/null (1); changed schema
 		add rztpois() function to Eidos, to draw from a zero-truncated Poisson distribution
 		extend initializeGenomicElement() to allow NULL,NULL for start,end, making it very easy to configure a single chromosome-length genomic element
-			tweak recipes 8.3.3, 8.3.4, 8.3.5, 8.3.6, and 8.3.7 to show off this new functionality, since it's now the nicest way to handle this situation
+			tweak recipes 8.3.3, 8.3.4, 8.3.5, 8.3.6, 8.3.7, 16.3, 16.9, and 16.10 to show off this new functionality, since it's now the nicest way to handle this situation
 
 
 version 4.3 (Eidos version 3.3):

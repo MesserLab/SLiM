@@ -18,7 +18,7 @@ initialize() {
 		initializeChromosome(id, length, type, symbol);
 		initializeMutationRate(1e-7);
 		initializeRecombinationRate(1e-7);
-		initializeGenomicElement(g1, 0, length-1);
+		initializeGenomicElement(g1);
 	}
 }
 reproduction(NULL, "F") {

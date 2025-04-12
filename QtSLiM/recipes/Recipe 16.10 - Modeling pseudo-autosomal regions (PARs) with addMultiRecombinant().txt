@@ -21,7 +21,7 @@ initialize() {
 		type in c("A","A","X","Y","A"), symbol in c("A1","P1","X","Y","P2"))
 	{
 		chr = initializeChromosome(id, length, type=type, symbol=symbol);
-		initializeGenomicElement(g1, 0, length-1);
+		initializeGenomicElement(g1);
 		initializeMutationRate(MU);
 		initializeRecombinationRate(R);
 		defineConstant(paste0("CHR_", symbol), chr);
