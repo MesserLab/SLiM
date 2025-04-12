@@ -34,6 +34,7 @@ initialize() {
 		fixed = any(sim.substitutions.mutationType == m2);
 		cat(ifelse(fixed, "Outcome: FIXED ", "Outcome: LOST ") + community.tick + "\n");
 		outputMutationResult();
+      outputIndividuals();
 		sim.simulationFinished();
 	}
 }
@@ -53,9 +54,6 @@ mutationEffect(m2) {
 	}
 	return T;
 }
-100 early() {
+10 early() {
 	addAncestralSamples(5);
-}
-500 late() { 
-	  outputMutationResult();
 }

@@ -6645,7 +6645,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	if (pos == std::string::npos)
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequenceMetadata): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
 	
-	tsk_node_metadata_schema.replace(pos, 2, count_string);		// replace %d in the format string with the byte count
+	tsk_node_metadata_schema.replace(pos, 4, count_string);		// replace %d in the format string with the byte count
 	
 	ret = tsk_node_table_set_metadata_schema(&p_tables->nodes,
 			tsk_node_metadata_schema.c_str(),
@@ -6871,7 +6871,7 @@ void Species::_MungeIsNullNodeMetadataToIndex0(TreeSeqInfo &p_treeseq, int origi
 	if (pos == std::string::npos)
 		EIDOS_TERMINATION << "ERROR (Species::_MungeIsNullNodeMetadataToIndex0): (internal error) `%d` substring missing from gSLiM_tsk_node_metadata_schema_FORMAT." << EidosTerminate();
 	
-	tsk_node_metadata_schema.replace(pos, 2, count_string);		// replace %d in the format string with the byte count
+	tsk_node_metadata_schema.replace(pos, 4, count_string);		// replace %d in the format string with the byte count
 	
 	int ret = tsk_node_table_set_metadata_schema(&node_table,
 												 tsk_node_metadata_schema.c_str(),

@@ -22,5 +22,6 @@ initialize() {
 }
 500 late() { 
 	outputMutationResult();
+	outputIndividuals();
 	cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }
