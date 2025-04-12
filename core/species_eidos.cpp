@@ -252,7 +252,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	
 	if (length_value->Type() == EidosValueType::kValueInt)
 	{
-		SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
+		length = SLiMCastToPositionTypeOrRaise(length_value->IntAtIndex_NOCAST(0, nullptr));
 		
 		if (length - 1 > SLIM_MAX_BASE_POSITION)
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): initializeChromosome() requires the last base position (length-1) to be <= 1e15." << EidosTerminate();

@@ -618,6 +618,26 @@ void _RunChromosomeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosomes.geneConversionMeanLength == 1234.5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosomes.geneConversionSimpleConversionFraction == 0.75) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosomes.setGeneConversion(0.2, 1234.5, 0.75); if (sim.chromosomes.geneConversionGCBias == 0.0) stop(); }", __LINE__);
+	
+	// some basic tests of initializeChromosome(), especially length checks and length determination with and without a length of NULL
+	std::string short_init = "initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); ";
+	
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1, length=1e4); initializeGenomicElement(g1, 0, 1e4); }", "extent of the chromosome", __LINE__);
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1, length=1e4); initializeRecombinationRate(1e-7, 1e4); }", "extent of the chromosome", __LINE__);
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1, length=1e4); initializeMutationRate(1e-7, 1e4); }", "extent of the chromosome", __LINE__);
+	
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1, length=1e4); initializeGenomicElement(g1, 0, 1e4-1); stop(); }");
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1, length=1e4); initializeRecombinationRate(1e-7, 1e4-1); stop(); }");
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1, length=1e4); initializeMutationRate(1e-7, 1e4-1); stop(); }");
+	
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e4-1); initializeMutationRate(1e-7, 1e4-1); } 1 early() { if (sim.chromosome.length == 1e4) stop(); }");
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e4-1); initializeMutationRate(1e-7, 1e4-1); } 1 early() { if (sim.chromosome.lastPosition == 1e4-1) stop(); }");
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e5-1); initializeRecombinationRate(1e-7, 1e5-1); initializeMutationRate(1e-7, 1e4-1); }", "do not cover the full chromosome", __LINE__, false);
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e5-1); initializeRecombinationRate(1e-7, 1e4-1); initializeMutationRate(1e-7, 1e5-1); }", "do not cover the full chromosome", __LINE__, false);
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e5-1); initializeMutationRate(1e-7, 1e5-1); } 1 early() { if (sim.chromosome.length == 1e5) stop(); }");
+	SLiMAssertScriptStop(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e5-1); initializeMutationRate(1e-7, 1e5-1); } 1 early() { if (sim.chromosome.lastPosition == 1e5-1) stop(); }");
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e5-1); initializeMutationRate(1e-7, 1e4-1); }", "do not cover the full chromosome", __LINE__, false);
+	SLiMAssertScriptRaise(short_init + "initializeChromosome(1); initializeGenomicElement(g1, 0, 1e4-1); initializeRecombinationRate(1e-7, 1e4-1); initializeMutationRate(1e-7, 1e5-1); }", "do not cover the full chromosome", __LINE__, false);
 }
 
 #pragma mark Mutation tests
