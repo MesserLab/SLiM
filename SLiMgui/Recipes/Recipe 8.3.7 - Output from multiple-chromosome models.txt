@@ -8,7 +8,7 @@ initialize() {
 	for (id in 1:3, type in c("A", "X", "Y"))
 	{
 		initializeChromosome(id, 1e6, type=type, symbol=type);
-		initializeGenomicElement(g1, 0, 1e6-1);
+		initializeGenomicElement(g1);
 		initializeMutationRate(1e-8);
 		initializeRecombinationRate(1e-8);
 	}

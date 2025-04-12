@@ -9,12 +9,12 @@ initialize() {
 	initializeGenomicElementType("g1", m1, 1.0);
 	
 	initializeChromosome(1, X_LEN, type="X", symbol="X");
-	initializeGenomicElement(g1, 0, X_LEN-1);
+	initializeGenomicElement(g1);
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 	
 	initializeChromosome(2, Y_LEN, type="Y", symbol="Y");
-	initializeGenomicElement(g1, 0, Y_LEN-1);
+	initializeGenomicElement(g1);
 	initializeMutationRate(1e-7);
 }
 1 early() {

@@ -354,7 +354,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 	return result_SP;
 }
 
-//	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, integer start, integer end)
+//	*********************	(object<GenomicElement>)initializeGenomicElement(io<GenomicElementType> genomicElementType, [Ni start = NULL], [Ni end = NULL])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -364,6 +364,40 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 	EidosValue *end_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// BEWARE: Before we do anything else, we need to handle the start == end == NULL case,
+	// which modifies start_value and end_value.  Be careful not to break this ugly hack!
+	bool start_is_NULL = (start_value->Type() == EidosValueType::kValueNULL);
+	bool end_is_NULL = (end_value->Type() == EidosValueType::kValueNULL);
+	EidosValue_Int_SP start_value_mocked, end_value_mocked;
+	
+	if (start_is_NULL && end_is_NULL)
+	{
+		if ((num_chromosome_inits_ == 0) || has_implicit_chromosome_)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() only allows NULL for start and end with a chromosome that is explicitly defined with initializeChromosome(), so that the length of the chromosome is known." << EidosTerminate();
+		
+		Chromosome *chromosome = CurrentlyInitializingChromosome();
+		
+		if (!chromosome->extent_immutable_)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() only allows NULL for start and end with a chromosome that has an explicitly defined length." << EidosTerminate();
+		
+		slim_position_t last_position = chromosome->last_position_;
+		
+		// Here is the ugly hack!  We want start_value and end_value to have specific values based upon the
+		// focal chromosome.  The simplest way to achieve that is to substitute new EidosValues in for them.
+		// To do that, we have two EidosValue_Int_SPs defined above, for RAII.  We'll make the mocked values,
+		// and substitute them in for use by the remaining code.  They will be freed on exit from this method.
+		start_value_mocked = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(0));
+		end_value_mocked = EidosValue_Int_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(last_position));
+		start_value = start_value_mocked.get();
+		end_value = end_value_mocked.get();
+	}
+	else if (start_is_NULL || end_is_NULL)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() only allows a start or end value of NULL if _both_ start and end are NULL; they cannot be NULL separately." << EidosTerminate();
+	
+	// ------ end of ugly hack; from here on, start_value and end_value are guaranteed to be type integer -------
+	
+	
+	// Now check counts and such
 	if (start_value->Count() != end_value->Count())
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElement): initializeGenomicElement() requires start and end to be the same length." << EidosTerminate();
 	if ((genomicElementType_value->Count() != 1) && (genomicElementType_value->Count() != start_value->Count()))
@@ -428,7 +462,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 	
 	if (SLiM_verbosity_level >= 1)
 	{
-		if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_inits_ > 20) && (num_genomic_element_inits_ != element_count))
+		if (start_is_NULL && end_is_NULL)
+		{
+			output_stream << "initializeGenomicElement(g" << genomic_element_type_ptr->genomic_element_type_id_ << ");" << std::endl;
+		}
+		else if (ABBREVIATE_DEBUG_INPUT && (num_genomic_element_inits_ > 20) && (num_genomic_element_inits_ != element_count))
 		{
 			if ((num_genomic_element_inits_ - element_count) <= 20)
 				output_stream << "(...initializeGenomicElement() calls omitted...)" << std::endl;

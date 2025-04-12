@@ -346,8 +346,7 @@ As stated above, the new
 \f2\fs20  may mitigate this problem, at the price of biasing the mean tract length downward as discussed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
-\f4 \
+\f1\fs18 \cf2 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, [Ni\'a0start\'a0=\'a0NULL], [Ni\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -385,6 +384,36 @@ Beginning in SLiM 3.3, this function is vectorized: the
 \f2\fs20  and 
 \f1\fs18 end
 \f2\fs20 , providing an independent genomic element type for each new element.  When adding a large number of genomic elements, it will be much faster to add them in order of ascending position with a vectorized call.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 5, passing 
+\f1\fs18 NULL
+\f2\fs20  for 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  is allowed by 
+\f1\fs18 initializeGenomicElement()
+\f2\fs20 , but only in one specific case: if the focal chromosome being configured was explicitly defined with 
+\f1\fs18 initializeChromosome()
+\f2\fs20 , and that focal chromosome was given an explicit length (rather than a length of 
+\f1\fs18 NULL
+\f2\fs20 ).  In that case, 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  may be 
+\f1\fs18 NULL
+\f2\fs20  (
+\f3\i both
+\f2\i0  of them, not just one of them), indicating that the genomic element created should span the entire length of the focal chromosome.  Since 
+\f1\fs18 NULL
+\f2\fs20  is now the default value for 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20 , this makes this common configuration very simple to set up.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The return value provides the genomic element(s) created by the call, in the order in which they were specified in the parameters to 
 \f1\fs18 initializeGenomicElement()
 \f2\fs20 .\
@@ -841,7 +870,8 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1004,9 +1034,8 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b \cf2 The 
+\f0\b The 
 \f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 5 and later, use the 

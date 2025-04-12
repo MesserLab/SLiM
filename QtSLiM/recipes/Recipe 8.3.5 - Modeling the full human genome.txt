@@ -21,7 +21,7 @@ initialize() {
 		initializeChromosome(id, length, type, symbol);
 		initializeMutationRate(1e-7);
 		initializeRecombinationRate(1e-8);   // not used for the Y
-		initializeGenomicElement(g1, 0, length-1);
+		initializeGenomicElement(g1);
 	}
 }
 1 early() { sim.addSubpop("p1", 100); }

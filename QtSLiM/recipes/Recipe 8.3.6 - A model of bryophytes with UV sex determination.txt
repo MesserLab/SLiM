@@ -10,7 +10,7 @@ initialize() {
 	{
 		initializeChromosome(id, 1e7, type=type, symbol=symbol);
 		initializeMutationRate(1e-7);
-		initializeGenomicElement(g1, 0, 1e7-1);
+		initializeGenomicElement(g1);
 		initializeRecombinationRate(1e-8);
 	}
 }
