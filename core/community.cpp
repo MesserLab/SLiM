@@ -1626,11 +1626,13 @@ SLiMCycleStage Community::CycleStageForScriptBlockType(SLiMEidosBlockType p_bloc
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			
+			// script block types that are not allowed in WF models, or have no cycle stage
 			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
-				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Community::CycleStageForScriptBlockType): (internal error) CycleStageForScriptBlockType() cannot be called on this type of script block." << EidosTerminate();
 		}
 	}
 	else
@@ -1649,10 +1651,12 @@ SLiMCycleStage Community::CycleStageForScriptBlockType(SLiMEidosBlockType p_bloc
 			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kNonWFStage4SurvivalSelection; break;
 			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			
+			// script block types that are not allowed in nonWF models, or have no cycle stage
 			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
-				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Community::CycleStageForScriptBlockType): (internal error) CycleStageForScriptBlockType() cannot be called on this type of script block." << EidosTerminate();
 		}
 	}
 	// NOLINTEND(*-branch-clone)
