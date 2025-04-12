@@ -49,7 +49,7 @@
         <file>recipes/Recipe 8.3.3 - Haploids with recombination.txt</file>
         <file>recipes/Recipe 8.3.4 - Sex-chromosome evolution and null haplosomes.txt</file>
         <file>recipes/Recipe 8.3.5 - Modeling the full human genome.txt</file>
-        <file>recipes/Recipe 8.3.6 - Output from multiple-chromosome models.txt</file>
+        <file>recipes/Recipe 8.3.7 - Output from multiple-chromosome models.txt</file>
         <file>recipes/Recipe 9.1 - Introducing adaptive mutations.txt</file>
         <file>recipes/Recipe 9.2 - Making sweeps conditional on fixation.txt</file>
         <file>recipes/Recipe 9.3 - Making sweeps conditional on establishment.txt</file>
@@ -211,5 +211,6 @@
         <file>recipes/Recipe 20.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
         <file>recipes/Recipe 20.7 - A coevolutionary host-parasite matching-allele model.txt</file>
         <file>recipes/Recipe 20.8 - Within-host reproduction in a host-pathogen model.txt</file>
+        <file>recipes/Recipe 8.3.6 - A model of bryophytes with UV sex determination.txt</file>
     </qresource>
 </RCC>
