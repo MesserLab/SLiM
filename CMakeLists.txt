@@ -49,7 +49,11 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
+# This syntax sets the minimum version to 2.8.12, for compatibility with very old installs, but
+# sets the "policy max" to 4.0.  It's hard to tell from the CMake doc whether the "policy" changes
+# that actually signs us up for matter (wow, CMake is complicated!); but we're not doing anything
+# fancy, so it's hard to imagine it matters.  BCH 4/12/2025
+cmake_minimum_required (VERSION 2.8.12...4.0 FATAL_ERROR)
 
 
 # clang-tidy support (for internal development); must come before the project() line
