@@ -35,6 +35,7 @@ initialize() {
 		cat(ifelse(fixed, "Outcome: FIXED ", "Outcome: LOST ") + community.tick + "\n");
 		outputMutationResult();
       outputIndividuals();
+      saveTreeSeq();
 		sim.simulationFinished();
 	}
 }

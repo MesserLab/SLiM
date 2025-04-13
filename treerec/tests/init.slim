@@ -30,10 +30,14 @@ function (void)initializeMarks(i$ num_marks)
    return;
 }
 
-function (void)saveTreeSeqFormats(void) {
+function (void)saveTreeSeq(void) {
    // create tree seq representation in various formats: this could overwrite any
    // existing ones output in the same cycle, but they should be identical
    // if done in the same cycle at the same point of the lifecycle
+   // Note that this should happen after other output functions, and only once;
+   // if not, then there will be errors in Windows CI where we get an error due
+   // to having to delete the directory when writing out the tree sequence file again.
+   setwdForGen();
    sim.treeSeqOutput("test_output.trees", simplify=T);
    sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
 }
@@ -144,7 +148,6 @@ function (void)outputMutationResult(void) {
     * and make a copy, appending data from in the current cycle
     * * */
    baseDir = copyIntoNewWdForGen(mutationsFile); // copy the current mutationsFile
-   saveTreeSeqFormats();
    if(!exists("n_marks")) {
       // Normal output: append details of mutations
       for (pop in sim.subpopulations) {
@@ -182,7 +185,6 @@ function (void)outputMutationResult(void) {
 function (void)outputIndividuals(void) {
    // copy the existing individualsFile into a new subdir and append the current individuals
    baseDir = copyIntoNewWdForGen(individualsFile); // copy the current individualsFile
-   saveTreeSeqFormats();
    for (pop in sim.subpopulations) {
       addIndividuals(pop.individuals, "output");
    }
