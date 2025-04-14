@@ -805,9 +805,70 @@ If the optional
 \f1\fs18 initializeHotspotMap()
 \f2\fs20  should be used.
 \f3\i \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\i0 \cf2 \kerning1\expnd0\expndtw0 The 
+\f1\fs18 initializeMutationRateFromFile()
+\f2\fs20  function is a useful convenience function if you wish to read the mutation rate map from a file.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
+\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Set a mutation rate map from data read from the file at 
+\f1\fs18 path
+\f2\fs20 .  This function is essentially a wrapper for 
+\f1\fs18 initializeMutationRate()
+\f2\fs20  that uses 
+\f1\fs18 readCSV()
+\f2\fs20  and passes the data through.  The file is expected to contain two columns of data.  The first column must be 
+\f1\fs18 integer
+\f2\fs20  start positions for rate map regions; the first region should start at position 
+\f1\fs18 0
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 0
+\f2\fs20 -based, or at position 
+\f1\fs18 1
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 1
+\f2\fs20 -based; in the latter case, 
+\f1\fs18 1
+\f2\fs20  will be subtracted from every position since SLiM uses 
+\f1\fs18 0
+\f2\fs20 -based positions.  The second column must be 
+\f1\fs18 float
+\f2\fs20  rates, relative to the scaling factor specified in 
+\f1\fs18 scale
+\f2\fs20 ; for example, if a given rate is 
+\f1\fs18 1.2
+\f2\fs20  and 
+\f1\fs18 scale
+\f2\fs20  is 
+\f1\fs18 1e-8
+\f2\fs20  (the default), the rate used will be 
+\f1\fs18 1.2e-8
+\f2\fs20 .  No column header line should be present; the file should start immediately with numerical data.  The expected separator between columns is a tab character by default, but may be passed in 
+\f1\fs18 sep
+\f2\fs20 ; the expected decimal separator is a period by default, but may be passed in 
+\f1\fs18 dec
+\f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
+\f1\fs18 lastPosition
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+See 
+\f1\fs18 readCSV()
+\f2\fs20  for further details on 
+\f1\fs18 sep
+\f2\fs20  and 
+\f1\fs18 dec
+\f2\fs20 , which are passed through to it; and see 
+\f1\fs18 initializeMutationRate()
+\f2\fs20  for details on how the rate map is validated and used.\
+This function is written in Eidos, and its source code can be viewed with 
+\f1\fs18 functionSource()
+\f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -978,6 +1039,65 @@ If the optional
 \f2\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
 \f1\fs18 initializeRecombinationRate()
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
+The 
+\f1\fs18 initializeRecombinationRateFromFile()
+\f2\fs20  function is a useful convenience function if you wish to read the recombination rate map from a file.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)initializeRecombinationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Set a recombination rate map from data read from the file at 
+\f1\fs18 path
+\f2\fs20 .  This function is essentially a wrapper for 
+\f1\fs18 initializeRecombinationRate()
+\f2\fs20  that uses 
+\f1\fs18 readCSV()
+\f2\fs20  and passes the data through.  The file is expected to contain two columns of data.  The first column must be 
+\f1\fs18 integer
+\f2\fs20  start positions for rate map regions; the first region should start at position 
+\f1\fs18 0
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 0
+\f2\fs20 -based, or at position 
+\f1\fs18 1
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 1
+\f2\fs20 -based; in the latter case, 
+\f1\fs18 1
+\f2\fs20  will be subtracted from every position since SLiM uses 
+\f1\fs18 0
+\f2\fs20 -based positions.  The second column must be 
+\f1\fs18 float
+\f2\fs20  rates, relative to the scaling factor specified in 
+\f1\fs18 scale
+\f2\fs20 ; for example, if a given rate is 
+\f1\fs18 1.2
+\f2\fs20  and 
+\f1\fs18 scale
+\f2\fs20  is 
+\f1\fs18 1e-8
+\f2\fs20  (the default), the rate used will be 
+\f1\fs18 1.2e-8
+\f2\fs20 .  No column header line should be present; the file should start immediately with numerical data.  The expected separator between columns is a tab character by default, but may be passed in 
+\f1\fs18 sep
+\f2\fs20 ; the expected decimal separator is a period by default, but may be passed in 
+\f1\fs18 dec
+\f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
+\f1\fs18 lastPosition
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+See 
+\f1\fs18 readCSV()
+\f2\fs20  for further details on 
+\f1\fs18 sep
+\f2\fs20  and 
+\f1\fs18 dec
+\f2\fs20 , which are passed through to it; and see 
+\f1\fs18 initializeRecombinationRate()
+\f2\fs20  for details on how the rate map is validated and used.\
+This function is written in Eidos, and its source code can be viewed with 
+\f1\fs18 functionSource()
+\f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)initializeSex([Ns$\'a0chromosomeType\'a0=\'a0NULL])\

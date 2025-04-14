@@ -47,6 +47,9 @@ extern const char *gSLiMSourceCode_calcPi;
 extern const char *gSLiMSourceCode_calcSFS;
 extern const char *gSLiMSourceCode_calcTajimasD;
 
+extern const char *gSLiMSourceCode_initializeMutationRateFromFile;
+extern const char *gSLiMSourceCode_initializeRecombinationRateFromFile;
+
 
 const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
 {
@@ -83,6 +86,9 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Other built-in SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
+
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeMutationRateFromFile", gSLiMSourceCode_initializeMutationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("initializeRecombinationRateFromFile", gSLiMSourceCode_initializeRecombinationRateFromFile, kEidosValueMaskVOID, "SLiM"))->AddString_S("path")->AddInt_S("lastPosition")->AddFloat_OS("scale", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(1e-8)))->AddString_OS("sep", gStaticEidosValue_StringTab)->AddString_OS("dec", gStaticEidosValue_StringPeriod));
 		
 		// Internal SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S(gEidosStr_type));
@@ -785,6 +791,95 @@ R"V0G0N({
 	stdev = sqrt(covar);
 	tajima_d = diff / stdev;
 	return tajima_d;
+})V0G0N";
+
+
+// ************************************************************************************
+//
+//	other built-in functions
+//
+#pragma mark -
+#pragma mark Other built-in functions
+#pragma mark -
+
+#pragma mark (void)initializeMutationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."])
+const char *gSLiMSourceCode_initializeMutationRateFromFile = 
+R"V0G0N({
+	errbase = "ERROR (initializeMutationRateFromFile): ";
+	udf = errbase + "unexpected data format; the file cannot be read.";
+	
+	if ((scale <= 0.0) | (scale > 1.0))
+		stop(errbase + "scale must be in (0.0, 1.0].");
+	if (!fileExists(path))
+		stop(errbase + "file not found at path '" + path + "'.");
+	
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	if (length(map) == 0)
+		stop(udf);
+	if (length(map.allKeys) != 2)
+		stop(udf);
+	
+	ends = map.getValue("ends");
+	rates = map.getValue("rates");
+	if (!isInteger(ends) | !isFloat(rates) | (length(ends) == 0))
+		stop(udf);
+	
+	// We expect the first column to be start positions, not end positions.
+	// The first value in that column therefore tells us whether the data
+	// is zero-based or one-based; we require one or the other.  There is
+	// another -1 applied to the positions because we convert them from
+	// start positions to end positions; each segment ends at the base
+	// previous to the start of the next segment.
+	base = ends[0];
+	if ((base != 0) & (base != 1))
+		stop(errbase + "the first position in the file must be 0 (for 0-based positions) or 1 (for 1-based positions).");
+	
+	if (length(ends) == 1)
+		ends = lastPosition;		// only the first start position is present
+	else
+		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
+	
+	initializeMutationRate(rates * scale, ends);
+})V0G0N";
+
+#pragma mark (void)initializeRecombinationRateFromFile(s$ path, i$ lastPosition, [f$ scale=1e-8], [s$ sep="\t"], [s$ dec="."])
+const char *gSLiMSourceCode_initializeRecombinationRateFromFile = 
+R"V0G0N({
+	errbase = "ERROR (initializeRecombinationRateFromFile): ";
+	udf = errbase + "unexpected data format; the file cannot be read.";
+	
+	if ((scale <= 0.0) | (scale > 1.0))
+		stop(errbase + "scale must be in (0.0, 1.0].");
+	if (!fileExists(path))
+		stop(errbase + "file not found at path '" + path + "'.");
+	
+	map = readCSV(path, colNames=c("ends", "rates"), sep=sep, dec=dec);
+	if (length(map) == 0)
+		stop(udf);
+	if (length(map.allKeys) != 2)
+		stop(udf);
+	
+	ends = map.getValue("ends");
+	rates = map.getValue("rates");
+	if (!isInteger(ends) | !isFloat(rates) | (length(ends) == 0))
+		stop(udf);
+	
+	// We expect the first column to be start positions, not end positions.
+	// The first value in that column therefore tells us whether the data
+	// is zero-based or one-based; we require one or the other.  There is
+	// another -1 applied to the positions because we convert them from
+	// start positions to end positions; each segment ends at the base
+	// previous to the start of the next segment.
+	base = ends[0];
+	if ((base != 0) & (base != 1))
+		stop(errbase + "the first position in the file must be 0 (for 0-based positions) or 1 (for 1-based positions).");
+	
+	if (length(ends) == 1)
+		ends = lastPosition;		// only the first start position is present
+	else
+		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
+	
+	initializeRecombinationRate(rates * scale, ends);
 })V0G0N";
 
 

@@ -1259,6 +1259,9 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(","));
 		gStaticEidosValue_StringComma->MarkAsConstant();
 		
+		gStaticEidosValue_StringTab = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("\t"));
+		gStaticEidosValue_StringTab->MarkAsConstant();
+		
 		gStaticEidosValue_StringPeriod = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("."));
 		gStaticEidosValue_StringPeriod->MarkAsConstant();
 		
