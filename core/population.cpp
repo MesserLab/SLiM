@@ -1185,12 +1185,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
 	bool has_munge_callback = (p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present);
 	bool is_spatial = (species_.SpatialDimensionality() >= 1);
+	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
 	
 	bool (Subpopulation::*MungeIndividualCrossed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent1, Individual *p_parent2, IndividualSex p_child_sex);
 	bool (Subpopulation::*MungeIndividualSelfed_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	bool (Subpopulation::*MungeIndividualCloned_TEMPLATED)(Individual *individual, slim_pedigreeid_t p_pedigree_id, Individual *p_parent);
 	
-	if (species_.DoingAnyMutationRunExperiments())
+	if (mutrun_exp_timing_per_individual)
 	{
 		if (pedigrees_enabled)
 		{
@@ -1534,6 +1535,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		if (total_male_children <= 0 || total_female_children <= 0)
 			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << EidosTerminate();
 	}
+	
+	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
+	// To avoid that overhead, in single-chromosome models we just time across the whole round of reproduction
+	// instead.  Note that in this case we chose a template above for the Munge...() methods that does not time.
+	// FIXME 4/14/2025: It remains true that in multi-chrom models the timing overhead will be very high.  There
+	// are various ways that could potentially be cut down.  (a) not measure in every tick, (b) stop measuring
+	// once you've settled down into stasis, (c) measure a subset of all reproductions.  This should be done in
+	// future, but we're out of time for now.
+	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
 	
 	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_dfe_present)
 	{
@@ -2467,6 +2478,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			}
 		}
 	}
+	
+	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
+	// To avoid that overhead, in single-chromosome models we just time across the whole round of reproduction
+	// instead.  Note that in this case we chose a template above for the Munge...() methods that does not time.
+	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+		species_.Chromosomes()[0]->StopMutationRunExperimentClock("EvolveSubpopulation()");
 }
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
