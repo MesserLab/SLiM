@@ -1530,23 +1530,30 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 #endif
 		
-		if (function_signature->internal_function_)
-		{
-			result_SP = function_signature->internal_function_(*argument_buffer, *this);
-		}
-		else if (function_signature->body_script_)
-		{
-			result_SP = DispatchUserDefinedFunction(*function_signature, *argument_buffer);
-		}
-		else if (!function_signature->delegate_name_.empty())
-		{
-			if (eidos_context_)
-				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, *argument_buffer, *this);
+		try {
+			if (function_signature->internal_function_)
+			{
+				result_SP = function_signature->internal_function_(*argument_buffer, *this);
+			}
+			else if (function_signature->body_script_)
+			{
+				result_SP = DispatchUserDefinedFunction(*function_signature, *argument_buffer);
+			}
+			else if (!function_signature->delegate_name_.empty())
+			{
+				if (eidos_context_)
+					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, *argument_buffer, *this);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+			}
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
+		} catch (...) {
+			// BCH 4/15/2025: Adding the try/catch and _DeprocessArgumentList() call here to fix a leak that
+			// occurred for recursive function calls, for which argument_buffer is heap-allocated.
+			_DeprocessArgumentList(p_node, argument_buffer);
+			throw;
 		}
-		else
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
