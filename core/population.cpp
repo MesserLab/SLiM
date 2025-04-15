@@ -6805,6 +6805,12 @@ void Population::TallyMutationReferencesAcrossPopulation(bool p_clock_for_mutrun
 		// we hit the cache; we just return so the previously computed result is reused
 		
 #if DEBUG
+#if DEBUG_LESS_INTENSIVE
+		// These tests are extremely intensive, so sometimes it's useful to dial them down...
+		if ((community_.Tick() % 97) != 5)
+			return;
+#endif
+		
 		// check that the cached haplosome count is correct; note that it includes only non-null haplosomes
 		for (Chromosome *chromosome : species_.Chromosomes())
 		{
