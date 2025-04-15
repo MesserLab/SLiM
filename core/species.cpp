@@ -6332,7 +6332,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 					nlohmann::json new_metadata = nlohmann::json::object();
 					new_metadata["name"] = (*used_id_name_iter).second;
 					new_metadata_string = new_metadata.dump();
-					got_metadata = true;
+					//got_metadata = true;	// BCH 4/15/2025: value stored is never used; commenting out, I don't *think* this represents a bug, just an unnecessary store...
 				}
 			}
 			
@@ -6455,7 +6455,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 				nlohmann::json new_metadata = nlohmann::json::object();
 				new_metadata["name"] = (*used_id_name_iter).second;
 				new_metadata_string = new_metadata.dump();
-				got_metadata = true;
+				//got_metadata = true;	// BCH 4/15/2025: value stored is never used; commenting out, I don't *think* this represents a bug, just an unnecessary store...
 			}
 		}
 		
