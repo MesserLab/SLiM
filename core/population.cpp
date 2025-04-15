@@ -1474,6 +1474,152 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		}
 	}
 	
+	// refine the above choice with a custom version of optimizations for simple "A" and "H" cases
+	if (!mutrun_exp_timing_per_individual && !has_munge_callback && (species_.Chromosomes().size() == 1))
+	{
+		Chromosome *chromosome = species_.Chromosomes()[0];
+		ChromosomeType chromosome_type = chromosome->Type();
+		
+		if (chromosome_type == ChromosomeType::kA_DiploidAutosome)
+		{
+			if (pedigrees_enabled)
+			{
+				if (recording_tree_sequence)
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<true, true, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<true, true, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<true, false, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<true, false, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (recording_tree_sequence)
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<false, true, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<false, true, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<false, false, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_A<false, false, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_A<false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_A<false, false, false>;
+					}
+				}
+			}
+		}
+		else if (chromosome_type == ChromosomeType::kH_HaploidAutosome)
+		{
+			if (pedigrees_enabled)
+			{
+				if (recording_tree_sequence)
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<true, true, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<true, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<true, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<true, true, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<true, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<true, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<true, false, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<true, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<true, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<true, false, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<true, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<true, false, false>;
+					}
+				}
+			}
+			else
+			{
+				if (recording_tree_sequence)
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<false, true, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<false, true, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<false, true, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<false, true, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<false, true, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<false, true, false>;
+					}
+				}
+				else
+				{
+					if (is_spatial)
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<false, false, true>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<false, false, true>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<false, false, true>;
+					}
+					else
+					{
+						MungeIndividualCrossed_TEMPLATED = &Subpopulation::MungeIndividualCrossed_1CH_H<false, false, false>;
+						//MungeIndividualSelfed_TEMPLATED = &Subpopulation::MungeIndividualSelfed_1CH_H<false, false, false>;
+						MungeIndividualCloned_TEMPLATED = &Subpopulation::MungeIndividualCloned_1CH_H<false, false, false>;
+					}
+				}
+			}
+		}
+	}
+	
 	bool prevent_incidental_selfing = species_.PreventIncidentalSelfing();
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
@@ -6127,26 +6273,60 @@ void Population::TallyMutationRunReferencesForPopulationForChromosome(Chromosome
 				if (last_haplosome_index == first_haplosome_index + 1)
 				{
 					// optimize the simple diploid single-chromosome case
-					if (first_mutrun_index == last_mutrun_index)
+					if (first_haplosome_index == 0)
 					{
-						// optimize the one-mutrun case
-						for (Individual *ind : subpop->parent_individuals_)
+						// optimize the first-chromosome case
+						if ((first_mutrun_index == last_mutrun_index) && (first_mutrun_index == 0))
 						{
-							ind->haplosomes_[first_haplosome_index]->mutruns_[first_mutrun_index]->increment_use_count();
-							ind->haplosomes_[first_haplosome_index+1]->mutruns_[first_mutrun_index]->increment_use_count();
+							// optimize the one-mutrun case (given first-chromosome as well)
+							// this is the hotspot for simple one-chromosome diploid models; note that it
+							// runs about twice as slowly as in 4.3, because we no longer have subpop_genomes
+							// to loop through directly, so we have to gather haplosomes from individuals;
+							// I don't see a way to recover that performance loss easily
+							for (Individual *ind : subpop->parent_individuals_)
+							{
+								ind->haplosomes_[0]->mutruns_[0]->increment_use_count();
+								ind->haplosomes_[1]->mutruns_[0]->increment_use_count();
+							}
+						}
+						else
+						{
+							for (Individual *ind : subpop->parent_individuals_)
+							{
+								Haplosome *haplosome0 = ind->haplosomes_[0];
+								Haplosome *haplosome1 = ind->haplosomes_[1];
+								
+								for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+								{
+									haplosome0->mutruns_[run_index]->increment_use_count();
+									haplosome1->mutruns_[run_index]->increment_use_count();
+								}
+							}
 						}
 					}
 					else
 					{
-						for (Individual *ind : subpop->parent_individuals_)
+						if (first_mutrun_index == last_mutrun_index)
 						{
-							Haplosome *haplosome0 = ind->haplosomes_[first_haplosome_index];
-							Haplosome *haplosome1 = ind->haplosomes_[first_haplosome_index+1];
-							
-							for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							// optimize the one-mutrun case
+							for (Individual *ind : subpop->parent_individuals_)
 							{
-								haplosome0->mutruns_[run_index]->increment_use_count();
-								haplosome1->mutruns_[run_index]->increment_use_count();
+								ind->haplosomes_[first_haplosome_index]->mutruns_[first_mutrun_index]->increment_use_count();
+								ind->haplosomes_[first_haplosome_index+1]->mutruns_[first_mutrun_index]->increment_use_count();
+							}
+						}
+						else
+						{
+							for (Individual *ind : subpop->parent_individuals_)
+							{
+								Haplosome *haplosome0 = ind->haplosomes_[first_haplosome_index];
+								Haplosome *haplosome1 = ind->haplosomes_[first_haplosome_index+1];
+								
+								for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+								{
+									haplosome0->mutruns_[run_index]->increment_use_count();
+									haplosome1->mutruns_[run_index]->increment_use_count();
+								}
 							}
 						}
 					}
