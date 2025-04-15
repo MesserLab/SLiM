@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/11/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -139,7 +139,7 @@
 				
 				if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
 				{
-					const std::string &obj_type_name = arg_obj_class->ClassName();
+					const std::string &obj_type_name = arg_obj_class->ClassNameForDisplay();
 					NSString *objTypeName = [NSString stringWithUTF8String:obj_type_name.c_str()];
 					
 					[attrStr appendAttributedString:[[[NSAttributedString alloc] initWithString:@"<" attributes:typeAttrs] autorelease]];
@@ -252,6 +252,7 @@
 	static double menloFontSize = 0.0;
 	static NSFont *menloFont = nil;
 	static NSMutableParagraphStyle *paragraphStyle = nil;
+	bool recachedFont = false;
 	
 	if (!menloFont || (menloFontSize != fontSize))
 	{
@@ -259,9 +260,10 @@
 			[menloFont release];
 		
 		menloFont = [[NSFont fontWithName:@"Menlo" size:fontSize] retain];
+		recachedFont = true;
 	}
 	
-	if (!paragraphStyle)
+	if (!paragraphStyle || recachedFont)
 	{
 		if (paragraphStyle)
 			[paragraphStyle release];

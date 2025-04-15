@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -197,6 +197,8 @@ public:
     
     QString exportAsHtml(void);
     
+    virtual void insertFromMimeData(const QMimeData *source) override;
+    
 public slots:
     void copyAsHTML(void);
     void shiftSelectionLeft(void);
@@ -221,6 +223,7 @@ protected:
     void sharedInit(void);
     void initializeLineNumbers(void);
     virtual void resizeEvent(QResizeEvent *p_event) override;
+    virtual void paintEvent(QPaintEvent *event) override;
 
 protected slots:
     virtual void displayFontPrefChanged() override;

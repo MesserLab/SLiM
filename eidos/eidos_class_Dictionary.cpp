@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/12/20.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -271,11 +271,7 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
-		
-		if (!integer_vec)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_SLiM): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
-		
+		EidosValue_Int *integer_vec = (EidosValue_Int *)all_keys.get();
 		const int64_t *all_key_integers = integer_vec->data();
 		int all_keys_count = integer_vec->Count();
 		
@@ -382,11 +378,7 @@ std::string EidosDictionaryUnretained::Serialization_Pretty(int indent_level) co
 		
 		// We want to output our keys in the same order as allKeys, so we just use AllKeys()
 		EidosValue_SP all_keys = AllKeys();
-		EidosValue_Int *integer_vec = dynamic_cast<EidosValue_Int *>(all_keys.get());
-		
-		if (!integer_vec)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Serialization_Pretty): (internal error) allKeys did not return an integer vector." << EidosTerminate(nullptr);
-		
+		EidosValue_Int *integer_vec = (EidosValue_Int *)all_keys.get();
 		const int64_t *all_key_integers = integer_vec->data();
 		int all_keys_count = integer_vec->Count();
 		
@@ -1212,7 +1204,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 	}
 }
 
-//	*********************	- (void)addKeysAndValuesFrom(object$ source)
+//	*********************	- (void)addKeysAndValuesFrom(object<Dictionary>$ source)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1222,10 +1214,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 	// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
 	// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
 	// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-	EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(0, nullptr));
-	
-	if (!source)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom): addKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+	EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
 	AddKeysAndValuesFrom(source);
 	
@@ -1234,7 +1223,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_addKeysAndValuesFrom(Eido
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)appendKeysAndValuesFrom(object source)
+//	*********************	- (void)appendKeysAndValuesFrom(object<Dictionary> source)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1245,13 +1234,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom(E
 	// Loop through elements in source and handle them sequentially
 	for (int value_index = 0; value_index < source_count; ++value_index)
 	{
-		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex_NOCAST(value_index, nullptr));
-		
-		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
-		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
-		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
-		if (!source)
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_appendKeysAndValuesFrom): appendKeysAndValuesFrom() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+		EidosDictionaryUnretained *source = (EidosDictionaryUnretained *)source_value->ObjectElementAtIndex_NOCAST(value_index, nullptr);
 		
 		AppendKeysAndValuesFrom(source);
 	}
@@ -1462,14 +1445,14 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 	}
 }
 
-//	*********************	- (logical$)identicalContents(object$ x)
+//	*********************	- (logical$)identicalContents(object<Dictionary>$ x)
 //
 EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_identicalContents(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
 	EidosObject *x_object = x_value->ObjectElementAtIndex_NOCAST(0, nullptr);
-	EidosDictionaryUnretained *x_dict = dynamic_cast<EidosDictionaryUnretained *>(x_object);
+	EidosDictionaryUnretained *x_dict = (EidosDictionaryUnretained *)x_object;
 	
 	if (!x_dict)
 		return gStaticEidosValue_LogicalF;
@@ -1562,26 +1545,32 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 	EidosValue *key_value = p_arguments[0].get();
 	const EidosValue_SP &value = p_arguments[1];
 	
-	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+	// This method used to not call SetKeyValue(), in order to set the same value across multiple
+	// targets.  That made me nervous, and was hard to reconcile with DataFrame, so I removed it.
+	
+	if (key_value->Type() == EidosValueType::kValueString)
 	{
-		EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
+		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
 		
-		// This method used to not call SetKeyValue(), in order to set the same value across multiple
-		// targets.  That made me nervous, and was hard to reconcile with DataFrame, so I removed it.
-		if (key_value->Type() == EidosValueType::kValueString)
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
-			const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
+			EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
 			
 			element->SetKeyValue_StringKeys(key, value);
+			element->ContentsChanged("setValue()");
 		}
-		else
+	}
+	else
+	{
+		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+		
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 		{
-			int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+			EidosDictionaryUnretained *element = (EidosDictionaryUnretained *)(p_elements[element_index]);
 			
 			element->SetKeyValue_IntegerKeys(key, value);
+			element->ContentsChanged("setValue()");
 		}
-		
-		element->ContentsChanged("setValue()");
 	}
 	
 	return gStaticEidosValueVOID;
@@ -1663,20 +1652,113 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, gEidosDictionaryUnretained_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, gEidosDictionaryUnretained_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_compactIndices, kEidosValueMaskInt, gEidosDictionaryRetained_Class))->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getRowValues, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr)->AddLogical_OS("drop", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", gEidosDictionaryUnretained_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_serialize, kEidosValueMaskString))->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("slim"))));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value"))->DeclareAcceleratedImp(EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue));
+		
+		methods->emplace_back(((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_setValuesVectorized, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("values")));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}
 	
 	return methods;
+}
+
+EidosValue_SP EidosDictionaryUnretained_Class::ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+	switch (p_method_id)
+	{
+		case gEidosID_setValuesVectorized:	return ExecuteMethod_setValuesVectorized(p_method_id, p_target, p_arguments, p_interpreter);
+		default:							return EidosClass::ExecuteClassMethod(p_method_id, p_target, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	+ (void)setValuesVectorized(is$ key, * values)
+//
+EidosValue_SP EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *key_value = p_arguments[0].get();
+	const EidosValue *values = p_arguments[1].get();
+	int values_count = values->Count();
+	EidosDictionaryUnretained * const *targets = (EidosDictionaryUnretained * const *)(p_target->ObjectData());
+	int target_size = p_target->Count();
+	
+	if (target_size != values_count)
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized): setValuesVectorized() requires that the size of the target vector equals the size of the values parameter, so that the 1:1 vectorized operation can be performed." << EidosTerminate();
+	
+	if (key_value->Type() == EidosValueType::kValueString)
+	{
+		const std::string &key = ((EidosValue_String *)key_value)->StringRefAtIndex_NOCAST(0, nullptr);
+		
+		if ((values->Type() == EidosValueType::kValueObject) && !((EidosValue_Object *)values)->UsesRetainRelease())
+		{
+			// If we're setting object values that aren't under retain-release, calling ContentsChanged() is probably important
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_StringKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+		else
+		{
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
+			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
+			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
+			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
+			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
+			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_StringKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				//target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+	}
+	else
+	{
+		int64_t key = ((EidosValue_Int *)key_value)->IntAtIndex_NOCAST(0, nullptr);
+		
+		if ((values->Type() == EidosValueType::kValueObject) && !((EidosValue_Object *)values)->UsesRetainRelease())
+		{
+			// If we're setting object values that aren't under retain-release, calling ContentsChanged() is probably important
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_IntegerKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+		else
+		{
+			// Otherwise, we skip ContentsChanged().  This is a small inaccuracy for speed.  If the existing value
+			// in the dictionary is a non-RR object, then we fail to clear contains_non_retain_release_objects_,
+			// which will cause an error downstream when we hit CheckLongTermBoundary(); we will think there is a
+			// a non-RR object held across the long-term boundary when there isn't.  I doubt anyone will EVER hit
+			// this; it requires that the user (a) set a non-RR object for a key, and then (b) set some other
+			// kind of value into the SAME key, removing the non-RR object and making the dictionary safe.
+			for (int target_index = 0; target_index < target_size; ++target_index)
+			{
+				EidosDictionaryUnretained *target = targets[target_index];
+				
+				target->SetKeyValue_IntegerKeys(key, values->GetValueAtIndex(target_index, nullptr));
+				//target->ContentsChanged("setValuesVectorized()");
+			}
+		}
+	}
+	
+	return gStaticEidosValueVOID;
 }
 
 
@@ -1811,6 +1893,8 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
 	
+	// note that we instantiate EidosDictionaryRetained here, even though Dictionary is EidosDictionaryUnretained
+	// user-created dictionaries are under retain/release, but the Dictionary class is EidosDictionaryUnretained
 	objectElement->ConstructFromEidos(p_arguments, p_interpreter, "Eidos_Instantiate_EidosDictionaryRetained", "Dictionary");
 	objectElement->ContentsChanged("Dictionary()");
 	

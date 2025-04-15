@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/24/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -182,9 +182,7 @@ QPlainTextEdit *QtSLiMFindPanel::targetTextEditRequireModifiable(bool requireMod
 
 void QtSLiMFindPanel::showFindPanel(void)
 {
-    show();
-    raise();
-    activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(this);
     
     // When the find panel is raised, it is conventional to select the find text so the user can immediately type to replace it
     ui->findTextLineEdit->selectAll();

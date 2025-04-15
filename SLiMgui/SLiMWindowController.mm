@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -27,7 +27,6 @@
 #import "GraphView_FitnessOverTime.h"
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
-#import "SLiMHaplotypeGraphView.h"
 #import "EidosHelpController.h"
 #import "EidosPrettyprinter.h"
 #import "EidosCocoaExtra.h"
@@ -986,8 +985,8 @@
 	
 	if (!displaySpecies || community->chromosome_changed_)
 	{
-		[chromosomeOverview restoreLastSelection];
 		[chromosomeOverview setNeedsDisplay:YES];
+		[chromosomeZoomed setNeedsDisplay:YES];
 		
 		if (community)
 			community->chromosome_changed_ = false;
@@ -1097,15 +1096,13 @@
 	[scriptTextView recolorAfterChanges];
 	
 	// Set up our chromosome views to show the proper stuff
-	[chromosomeOverview setReferenceChromosomeView:nil];
-	[chromosomeOverview setSelectable:YES];
+	[chromosomeOverview setOverview:true];
 	[chromosomeOverview setShouldDrawGenomicElements:YES];
 	[chromosomeOverview setShouldDrawMutations:NO];
 	[chromosomeOverview setShouldDrawFixedSubstitutions:NO];
 	[chromosomeOverview setShouldDrawRateMaps:NO];
 	
-	[chromosomeZoomed setReferenceChromosomeView:chromosomeOverview];
-	[chromosomeZoomed setSelectable:NO];
+	[chromosomeZoomed setOverview:false];
 	[chromosomeZoomed setShouldDrawGenomicElements:zoomedChromosomeShowsGenomicElements];
 	[chromosomeZoomed setShouldDrawMutations:zoomedChromosomeShowsMutations];
 	[chromosomeZoomed setShouldDrawFixedSubstitutions:zoomedChromosomeShowsFixedSubstitutions];
@@ -1257,16 +1254,6 @@
 		return !(invalidSimulation);
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
-	if (sel == @selector(graphHaplotypes:))
-	{
-		// must be past initialize() and have subpops
-		if (invalidSimulation || !community || (community->Tick() <= 1))
-			return NO;
-		
-		Species *displaySpecies = [self focalDisplaySpecies];
-		
-		return (displaySpecies && (displaySpecies->population_.subpops_.size() > 0));	
-	}
 	
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || tickPlayOn);
@@ -1277,8 +1264,6 @@
 		return !(continuousPlayOn || tickPlayOn);
 	if (sel == @selector(exportOutput:))
 		return !(continuousPlayOn || tickPlayOn);
-	if (sel == @selector(exportPopulation:))
-		return !(invalidSimulation || continuousPlayOn || tickPlayOn);
 	
 	if (sel == @selector(clearOutput:))
 		return !(invalidSimulation);
@@ -1479,60 +1464,6 @@
 	[graphWindowPopulationVisualization orderFront:nil];
 }
 
-- (IBAction)graphHaplotypes:(id)sender
-{
-	// Run the options sheet for the haplotype plot.  If OK is pressed there, -createHaplotypePlot does the real work.
-	[self runHaplotypePlotOptionsSheet];
-	
-	// The sequence of events involved in this is actually quite complicated, because the genome clustering work happens in
-	// a background thread, which gets launched halfway through the setup of the plot window, and there is a progress panel
-	// that is run in SLiMWindowController's window as a sheet even though the clustering is done in SLiMHaplotypeManager,
-	// and there is a configuration sheet that runs first, and so forth.  The sequence of events involved here is:
-	//
-	//	- runHaplotypePlotOptionsSheet is called to get configuration options from the user
-	//		* the options sheet nib is loaded and run
-	//		* upon completion, -createHaplotypePlot is set up as a delayed perform
-	//	- createHaplotypePlot is called
-	//		* the plot window nib is loaded, creating the plot view and window
-	//		- configureForDisplayWithSlimWindowController: is called on the SLiMHaplotypeGraphView
-	//			* the SLiMHaplotypeManager is created by the SLiMHaplotypeGraphView
-	//			- initWithClusteringMethod:... is called on the SLiMHaplotypeManager
-	//				* the first stage of the haplotype analysis is done; genome references are kept
-	//				- runHaplotypePlotProgressSheetWithGenomeCount: is called to start the progress sheet
-	//					* the progress sheet nib is loaded
-	//					* haplotypeProgressTaskCancelled is set to NO to indicate we are not cancelled
-	//					* the progress sheet starts running; it will run until haplotypeProgressSheetOK: below
-	//				* a new background thread is started to run finishClusteringAnalysisWithBackgroundController:
-	//				* initWithClusteringMethod: then returns
-	//		* after configureForDisplayWithSlimWindowController: returns, the graph view and window are remembered
-	//	- finishClusteringAnalysisWithBackgroundController: is called on a background thread
-	//		- haplotypeProgressTaskStarting is called to lock haplotypeProgressLock for the background thread
-	//		* finishClustering... calls the backgroundController periodically to update progress counters and check for cancellation
-	//		* IF CANCELLATION OCCURS DURING PROCESSING:
-	//			- haplotypeProgressSheetCancel: is called on the main thread
-	//				- endSheet:returnCode: is called to trigger the end of the progress sheet
-	//					* haplotypeProgressTaskCancelled is set to YES to signal the background task of cancellation
-	//					* the sheet completion handler spins until the background task sees haplotypeProgressTaskCancelled and drops out
-	//					* the progress sheet is released and goes away
-	//		* OTHERWISE (NO CANCELLATION):
-	//			* the genomes are clustered
-	//			* the display list is created
-	//		* IN EITHER CASE:
-	//			- haplotypeProgressTaskFinished is called on SLiMWindowController
-	//				* haplotypeProgressLock is unlocked
-	//				* the main thread is requested to perform haplotypeProgressSheetOK: (unless haplotypeProgressSheetCancel: has been called already)
-	//			* the background thread terminates by dropping off the end
-	//	- haplotypeProgressSheetOK: is called on the main thread
-	//		- endSheet:returnCode: is called to trigger the end of the progress sheet
-	//			* the progress sheet is released and goes away
-	//			- configurePlotWindowWithSlimWindowController: is called
-	//				* the window is sized and titled
-	//			* the graph window is ordered front
-	//			* the remembered graph view and window are forgotten
-	//
-	// Gah.  Multithreading with UI sucks.
-}
-
 #if (SLIMPROFILING == 1)
 
 - (void)displayProfileResults
@@ -1656,10 +1587,10 @@
 		[content eidosAppendString:(isWF ? @" : stage 2 – offspring generation\n" : @" : stage 2 – early() event execution\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage4Time, percentStage4] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 3 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 3 – generation swap\n" : @" : stage 3 – fitness calculation\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage5Time, percentStage5] attributes:menlo11_d];
-		[content eidosAppendString:(isWF ? @" : stage 4 – generation swap\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
+		[content eidosAppendString:(isWF ? @" : stage 4 – bookkeeping (fixed mutation removal, etc.)\n" : @" : stage 4 – viability/survival selection\n") attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage6Time, percentStage6] attributes:menlo11_d];
 		[content eidosAppendString:(isWF ? @" : stage 5 – late() event execution\n" : @" : stage 5 – bookkeeping (fixed mutation removal, etc.)\n") attributes:optima13_d];
@@ -2059,78 +1990,92 @@
 			continue;
 		}
 		
-		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
-		
-		for (int power = 0; power < 20; ++power)
-			power_tallies[power] = 0;
-		
-		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
-			int power = (int)round(log2(count));
+			int64_t regime_tallies[3];
+			int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 			
-			power_tallies[power]++;
-		}
-		
-		for (int power = 0; power < 20; ++power)
-		{
-			if (power_tallies[power] > 0)
+			for (int regime = 0; regime < 3; ++regime)
+				regime_tallies[regime] = 0;
+			
+			for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
+				if ((regime >= 1) && (regime <= 3))
+					regime_tallies[regime - 1]++;
+				else
+					regime_tallies_total--;
+			
+			for (int regime = 0; regime < 3; ++regime)
 			{
-				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
 			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
 		}
-		
-		
-		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
-		
-		for (int regime = 0; regime < 3; ++regime)
-			regime_tallies[regime] = 0;
-		
-		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
-			if ((regime >= 1) && (regime <= 3))
-				regime_tallies[regime - 1]++;
-			else
-				regime_tallies_total--;
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		for (int regime = 0; regime < 3; ++regime)
-		{
-			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
-		}
-		
-		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
 		
-		[content eidosAppendString:@"\n" attributes:optima13_d];
+		const std::vector<Chromosome *> &chromosomes = focal_species->Chromosomes();
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
-		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
-		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation runs shared among genomes" attributes:optima13_d];
+		for (Chromosome *focal_chromosome : chromosomes)
+		{
+			[content eidosAppendString:@"\n" attributes:optima13_d];
+			[content eidosAppendString:@"Chromosome " attributes:optima13i_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_chromosome->Symbol().c_str()] attributes:optima13i_d];
+			[content eidosAppendString:@":\n" attributes:optima13i_d];
+			[content eidosAppendString:@"\n" attributes:optima3_d];
+			
+			{
+				int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
+				int64_t power_tallies_total = (int)focal_chromosome->profile_mutcount_history_.size();
+				
+				for (int power = 0; power < 20; ++power)
+					power_tallies[power] = 0;
+				
+				for (int32_t count : focal_chromosome->profile_mutcount_history_)
+				{
+					int power = (int)round(log2(count));
+					
+					power_tallies[power]++;
+				}
+				
+				for (int power = 0; power < 20; ++power)
+				{
+					if (power_tallies[power] > 0)
+					{
+						[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
+						[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per haplosome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+					}
+				}
+			}
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutation_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_chromosome->profile_mutation_total_usage_ - focal_chromosome->profile_nonneutral_mutation_total_) / (double)focal_chromosome->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
+			
+			
+			[content eidosAppendString:@"\n" attributes:optima8_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_mutrun_total_usage_] attributes:menlo11_d];
+			[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_chromosome->profile_unique_mutrun_total_] attributes:menlo11_d];
+			[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_chromosome->profile_mutrun_nonneutral_recache_total_ / (double)focal_chromosome->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
+			
+			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_chromosome->profile_mutrun_total_usage_ - focal_chromosome->profile_unique_mutrun_total_) / (double)focal_chromosome->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
+			[content eidosAppendString:@" of mutation runs shared among haplosomes\n" attributes:optima13_d];
+		}
 	}
 #endif
 	
@@ -2147,7 +2092,6 @@
 		double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
 		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
-		[content eidosAppendString:@"\n" attributes:menlo11_d];
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"SLiM memory usage (average / final tick)\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -2183,29 +2127,29 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.communityObjects total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : Community object\n" attributes:optima13_d];
 		
-		// Genome
+		// Haplosome
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, (long long int)mem_last_S.genomeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Haplosome objects (%0.2f / %lld)\n", mem_tot_S.haplosomeObjects_count / ddiv, (long long int)mem_last_S.haplosomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeExternalBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeExternalBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeExternalBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : external MutationRun* buffers\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.haplosomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.haplosomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// GenomicElement
@@ -2228,6 +2172,18 @@
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualObjects total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot_S.individualObjects_count / ddiv, (long long int)mem_last_S.individualObjects_count] attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualHaplosomeVectors / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualHaplosomeVectors total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : external Haplosome* buffers\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualJunkyardAndHaplosomes / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualJunkyardAndHaplosomes total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : individuals awaiting reuse\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
@@ -2971,8 +2927,7 @@
 	
 	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
-	NSString *currentScriptString = [scriptTextView string];
-	const char *cstr = [currentScriptString UTF8String];
+	const char *cstr = [[scriptTextView string] UTF8String];
 	NSString *errorDiagnostic = nil;
 	
 	if (!cstr)
@@ -3064,8 +3019,7 @@
 		if ([self checkScriptSuppressSuccessResponse:YES])
 		{
 			// We know the script is syntactically correct, so we can tokenize and parse it without worries
-			NSString *currentScriptString = [scriptTextView string];
-			const char *cstr = [currentScriptString UTF8String];
+			const char *cstr = [[scriptTextView string] UTF8String];
 			SLiMEidosScript script(cstr);	// SLiMEidosScript does not override Tokenize(), but it could...
 			
 			script.Tokenize(false, true);	// get whitespace and comment tokens
@@ -3139,9 +3093,8 @@
 		Species *displaySpecies = [self focalDisplaySpecies];
 		slim_tick_t species_cycle = displaySpecies->Cycle();
 		
-		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " A" << std::endl;
-		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+		// dump the population: output spatial positions and ages and tags if available, but not ancestral sequence or substitutions
+		Individual::PrintIndividuals_SLiM(SLIM_OUTSTREAM, nullptr, 0, *displaySpecies, true, true, false, false, true, false, /* p_focal_chromosome */ nullptr);
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
@@ -3151,7 +3104,7 @@
 		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput_Tag(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -3274,9 +3227,7 @@
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
 		if (result == NSModalResponseOK)
 		{
-			NSString *currentScriptString = [scriptTextView string];
-			
-			[currentScriptString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
+			[[scriptTextView string] writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			
 			[sp autorelease];
 		}
@@ -3302,45 +3253,6 @@
 			NSString *currentOutputString = [outputTextView string];
 			
 			[currentOutputString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
-			
-			[sp autorelease];
-		}
-	}];
-}
-
-- (IBAction)exportPopulation:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	NSSavePanel *sp = [[NSSavePanel savePanel] retain];
-	
-	[sp setTitle:@"Export Population"];
-	[sp setNameFieldLabel:@"Export As:"];
-	[sp setMessage:@"Export the simulation state to a file:"];
-	[sp setExtensionHidden:NO];
-	[sp setCanSelectHiddenExtension:NO];
-	[sp setAllowedFileTypes:@[@"txt"]];
-	
-	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSModalResponseOK)
-		{
-			std::ostringstream outstring;
-//			const std::vector<std::string> &input_parameters = community->InputParameters();
-//			
-//			for (int i = 0; i < input_parameters.size(); i++)
-//				outstring << input_parameters[i] << std::endl;
-			
-			// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
-			Species *displaySpecies = [self focalDisplaySpecies];
-			slim_tick_t species_cycle = displaySpecies->Cycle();
-			
-			outstring << "#OUT: " << community->tick_ << " " << species_cycle << " A " << std::endl;
-			displaySpecies->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
-			
-			std::string &&population_dump = outstring.str();
-			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];
-			
-			[populationDump writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 			
 			[sp autorelease];
 		}
@@ -3381,314 +3293,6 @@
 		continuousPlayTicksCompleted = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this tick
 		[self performSelectorOnMainThread:@selector(finish_eidos_pauseExecution:) withObject:nil waitUntilDone:NO];	// this will actually stop continuous play
 	}
-}
-
-
-//
-//	Haplotype Plot Options Sheet methods
-//
-#pragma mark -
-#pragma mark Haplotype Plot Options Sheet
-
-- (void)runHaplotypePlotOptionsSheet
-{
-	// Nil out our outlets for a bit of safety, and then load our sheet nib
-	_haplotypeOptionsSheet = nil;
-	_haplotypeSampleTextField = nil;
-	_haplotypeOKButton = nil;
-	
-	// these are the default choices in the nib
-	_haplotypeSample = 0;
-	_haplotypeClustering = 1;
-	
-	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeOptionsSheet" owner:self topLevelObjects:NULL];
-	
-	// Run the sheet in our window
-	if (_haplotypeOptionsSheet)
-	{
-		[_haplotypeSampleTextField setStringValue:@"1000"];
-		
-		[self validateHaplotypeSheetControls:nil];
-		
-		NSWindow *window = [self window];
-		
-		[window beginSheet:_haplotypeOptionsSheet completionHandler:^(NSModalResponse returnCode) {
-			if (returnCode == NSAlertFirstButtonReturn)
-			{
-				// pull values from controls and make the plot
-				[self setHaplotypeSampleSize:[_haplotypeSampleTextField intValue]];
-				[self performSelector:@selector(createHaplotypePlot) withObject:nil afterDelay:0.001];
-			}
-			
-			[_haplotypeOptionsSheet autorelease];
-			_haplotypeOptionsSheet = nil;
-		}];
-	}
-}
-
-- (IBAction)changedHaplotypeSample:(id)sender
-{
-	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
-	int tag = (int)[senderMenuItem tag];
-	
-	if (tag != _haplotypeSample)
-	{
-		_haplotypeSample = tag;
-		[self validateHaplotypeSheetControls:nil];
-	}
-}
-
-- (IBAction)changedHaplotypeClustering:(id)sender
-{
-	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
-	int tag = (int)[senderMenuItem tag];
-	
-	if (tag != _haplotypeClustering)
-	{
-		_haplotypeClustering = tag;
-		//[self validateHaplotypeSheetControls:nil];
-	}
-}
-
-- (IBAction)validateHaplotypeSheetControls:(id)sender
-{
-	if (_haplotypeSample == 0)
-	{
-		[_haplotypeSampleTextField setEnabled:NO];
-		[_haplotypeOKButton setEnabled:YES];
-	}
-	else
-	{
-		BOOL sampleSizeValid = [ScriptMod validIntValueInTextField:_haplotypeSampleTextField withMin:2 max:9999];
-		
-		[_haplotypeSampleTextField setEnabled:YES];
-		[_haplotypeSampleTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:sampleSizeValid]];
-		[_haplotypeOKButton setEnabled:sampleSizeValid];
-	}
-}
-
-- (IBAction)haplotypeSheetOK:(id)sender
-{
-	[[self window] endSheet:_haplotypeOptionsSheet returnCode:NSAlertFirstButtonReturn];
-}
-
-- (IBAction)haplotypeSheetCancel:(id)sender
-{
-	[[self window] endSheet:_haplotypeOptionsSheet returnCode:NSAlertSecondButtonReturn];
-}
-
-- (void)controlTextDidChange:(NSNotification *)notification
-{
-	// NSTextField delegate method
-	[self validateHaplotypeSheetControls:nil];
-}
-
-- (void)createHaplotypePlot
-{
-	// This roughly follows the outline of -graphWindowWithTitle:viewClass: with minor differences (no positioning,
-	// and the graph view is in the nib since NSOpenGLView is much easier to use when it comes out of a nib).
-	// How are we not a graph window?  There can be many of us open; we don't update as the sim changes; we don't position
-	// the way graph windows do; we set our own title and size; we use an NSOpenGLView subclass (that's why we can't subclass).
-	
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeGraphWindow" owner:self topLevelObjects:NULL];
-	
-	// We find our SLiMHaplotypeGraphView here, inside the contentView
-	NSView *contentView = [graphWindow contentView];
-	
-	if ([[contentView subviews] count] == 1)
-	{
-		NSView *subview = [[contentView subviews] objectAtIndex:0];
-		
-		if ([subview isKindOfClass:[SLiMHaplotypeGraphView class]])
-		{
-			SLiMHaplotypeGraphView *graphView = (SLiMHaplotypeGraphView *)subview;
-			
-			[graphView configureForDisplayWithSlimWindowController:self];
-			
-			// The call above will create a background thread for clustering and return quickly.  As a side
-			// effect, however, it will call runHaplotypePlotProgressSheetWithGenomeCount:
-			// which will show the plot window once it is ready, using newHaplotypeGraphView.
-			newHaplotypeGraphView = [graphView retain];
-			
-			// We use one nib for all graph types, so we transfer the outlet to a separate ivar
-			// This puts a retain on the window, too; if the operation is cancelled it will be removed.
-			if (!linkedWindows)
-				linkedWindows = [[NSMutableArray alloc] init];
-			
-			[linkedWindows addObject:graphWindow];
-			
-			return;
-		}
-	}
-	
-	NSLog(@"SLiMHaplotypeGraphWindow.xib not configured correctly!");
-	graphWindow = nil;
-}
-
-- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count
-{
-	// Nil out our outlets for a bit of safety, and then load our sheet nib
-	_haplotypeProgressSheet = nil;
-	_haplotypeProgressDistances = nil;
-	_haplotypeProgressClustering = nil;
-	_haplotypeProgressOptimization = nil;
-	_haplotypeProgressOptimizationLabel = nil;
-	_haplotypeProgressNoOptConstraint = nil;
-	
-	[[NSBundle mainBundle] loadNibNamed:@"SLiMHaplotypeProgressSheet" owner:self topLevelObjects:NULL];
-	
-	// Run the sheet in our window
-	if (_haplotypeProgressSheet)
-	{
-		// Make a lock for use by the background thread to indicate when it is done
-		haplotypeProgressTaskCancelled = NO;
-		if (!haplotypeProgressLock)
-			haplotypeProgressLock = [[NSLock alloc] init];
-		
-		haplotypeProgressTaskDistances_Value = 0;
-		haplotypeProgressTaskClustering_Value = 0;
-		haplotypeProgressTaskOptimization_Value = 0;
-		
-		[_haplotypeProgressDistances setMaxValue:genome_count];
-		[_haplotypeProgressClustering setMaxValue:genome_count];
-		[_haplotypeProgressOptimization setMaxValue:genome_count];
-		
-		[_haplotypeProgressDistances setDoubleValue:0.0];
-		[_haplotypeProgressClustering setDoubleValue:0.0];
-		[_haplotypeProgressOptimization setDoubleValue:0.0];
-		
-		if (_haplotypeClustering != 2)
-		{
-			// If we're not doing an optimization step, hide that progress bar.  If we could just dim it,
-			// that would work, but there is no setEnabled: method for NSProgressIndicator.  So instead,
-			// we hide the progress bar and its label.
-			[_haplotypeProgressOptimizationLabel removeFromSuperview];
-			_haplotypeProgressOptimizationLabel = nil;
-			
-			[_haplotypeProgressOptimization removeFromSuperview];
-			_haplotypeProgressOptimization = nil;
-			
-			// We need to adjust constraints to resize the panel.  Just adjusting the layout constraint's
-			// constant does not cause the window to resize; I don't understand why, since failing to do
-			// so means the window's layout constraints are violated.  Anyway, to address that we tweak
-			// the sheet's frame as well.  The mysteries of autolayout.
-			double layoutConstant = [_haplotypeProgressNoOptConstraint constant];
-			const double newConstant = 26;
-			double heightAdjust = layoutConstant - newConstant;
-			NSRect frame = [_haplotypeProgressSheet frame];
-			
-			frame.size.height -= heightAdjust;
-			
-			[_haplotypeProgressNoOptConstraint setConstant:newConstant];
-			[_haplotypeProgressSheet setFrame:frame display:NO];
-		}
-		
-		NSWindow *window = [self window];
-		
-		[window beginSheet:_haplotypeProgressSheet completionHandler:^(NSModalResponse returnCode) {
-			if (returnCode == NSAlertSecondButtonReturn)
-			{
-				// We got cancelled; spin until the background thread says it is done.  When it
-				// unlocks this lock, we will be able to proceed here.
-				haplotypeProgressTaskCancelled = YES;
-				[haplotypeProgressLock lock];
-				[haplotypeProgressLock unlock];
-				
-				// The new window was added to linkedWindows to retain it, even though it was not
-				// yet visible; since the operation has been cancelled, remove it.
-				[linkedWindows removeLastObject];
-			}
-			
-			// Dismiss the progress sheet
-			[_haplotypeOptionsSheet autorelease];
-			_haplotypeOptionsSheet = nil;
-			
-			if (returnCode == NSAlertFirstButtonReturn)
-			{
-				// Tell the plot window to finish configuring itself
-				[newHaplotypeGraphView configurePlotWindowWithSlimWindowController:self];
-				
-				// Now we are finally ready to show the window
-				[graphWindow orderFront:nil];
-				graphWindow = nil;
-			}
-			
-			// We're done with our responsibilities toward the new graph window
-			[newHaplotypeGraphView release];
-			newHaplotypeGraphView = nil;
-			graphWindow = nil;
-		}];
-	}
-}
-
-- (IBAction)haplotypeProgressSheetOK:(id)sender
-{
-	// We check haplotypeProgressTaskCancelled here again because now we are on the main thread and
-	// there could have been a race condition; the sheet might have gotten cancelled on the main thread
-	// in the time since the background thread requested that this method be called.  I think the way
-	// that haplotypeProgressSheetOK: and haplotypeProgressSheetCancel: both funnel through the main
-	// thread should prevent any races between OK and Cancel, with this check.
-	if (!haplotypeProgressTaskCancelled)
-		if (_haplotypeProgressSheet)
-			[[self window] endSheet:_haplotypeProgressSheet returnCode:NSAlertFirstButtonReturn];
-}
-
-- (IBAction)haplotypeProgressSheetCancel:(id)sender
-{
-	if (_haplotypeProgressSheet)
-		[[self window] endSheet:_haplotypeProgressSheet returnCode:NSAlertSecondButtonReturn];
-}
-
-- (void)updateProgressBars
-{
-	// This should always be on the main thread
-	if (_haplotypeProgressSheet)
-	{
-		[_haplotypeProgressDistances setDoubleValue:haplotypeProgressTaskDistances_Value];
-		[_haplotypeProgressClustering setDoubleValue:haplotypeProgressTaskClustering_Value];
-		[_haplotypeProgressOptimization setDoubleValue:haplotypeProgressTaskOptimization_Value];
-	}
-}
-
-- (void)setHaplotypeProgress:(int)progress forStage:(int)stage
-{
-	// This can be called on a background thread
-	if (_haplotypeProgressSheet)
-	{
-		switch (stage)
-		{
-			case 0: haplotypeProgressTaskDistances_Value = progress; break;
-			case 1: haplotypeProgressTaskClustering_Value = progress; break;
-			case 2: haplotypeProgressTaskOptimization_Value = progress; break;
-		}
-	}
-	
-	[self performSelectorOnMainThread:@selector(updateProgressBars) withObject:nil waitUntilDone:NO];
-}
-
-- (BOOL)haplotypeProgressIsCancelled
-{
-	// This can be called on a background thread; this is how the background task checks for cancellation
-	return haplotypeProgressTaskCancelled;
-}
-
-- (void)haplotypeProgressTaskStarting
-{
-	// This can be called on a background thread; this is how the background task tells us it is starting
-	[haplotypeProgressLock lock];
-}
-
-- (void)haplotypeProgressTaskFinished
-{
-	// This can be called on a background thread; this is how the background task tells us it is done
-	[haplotypeProgressLock unlock];
-	
-	// If the sheet was cancelled, it is already finishing up, and is just waiting for us to release the lock above.
-	// If it was not cancelled, though, then we effectively press the OK button on it to dismiss it.
-	if (!haplotypeProgressTaskCancelled)
-		[self performSelectorOnMainThread:@selector(haplotypeProgressSheetOK:) withObject:nil waitUntilDone:NO];
 }
 
 
@@ -3751,7 +3355,7 @@
 		
 		for (EidosClass *class_object : EidosClass::RegisteredClasses(false, true))
 		{
-			const std::string &element_type = class_object->ClassName();
+			const std::string &element_type = class_object->ClassNameForDisplay();
 			
 			if (!Eidos_string_hasPrefix(element_type, "_"))		// internal classes are undocumented
 				[sharedHelp checkDocumentationOfClass:class_object];
@@ -4245,8 +3849,8 @@
 									break;
 								case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome1,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome2,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
@@ -4254,7 +3858,7 @@
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_element,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_GenomicElement_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+									(*typeTable)->SetTypeForSymbol(gID_haplosome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
 									break;
@@ -4573,7 +4177,7 @@
 			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddIntString_OSN("chromosome", gStaticEidosValueNULLInvisible));
 			
 			sig = callbackSig.get();
 		}
@@ -4654,8 +4258,9 @@
 				popIter++;
 			}
 			
-			// If the selection has changed, that means that the mutation tallies need to be recomputed
-			population.TallyMutationReferencesAcrossPopulation(true);
+			// If the selection has changed, that means that our private mutation tallies need to be recomputed
+			population.InvalidateMutationReferencesCache();	// force a retally
+			population.TallyMutationReferencesAcrossPopulation_SLiMgui();
 			
 			// It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
 			// selection changes should not happen often, so we can just always update, I think.

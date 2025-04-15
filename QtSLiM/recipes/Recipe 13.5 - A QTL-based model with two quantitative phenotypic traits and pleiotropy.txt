@@ -71,7 +71,7 @@ late() {
 	for (ind in sim.subpopulations.individuals)
 	{
 		// construct phenotypes from additive effects of QTL mutations
-		muts = ind.genomes.mutationsOfType(m2);
+		muts = ind.haplosomes.mutationsOfType(m2);
 		phenotype0 = size(muts) ? sum(muts.getValue("e0")) else 0.0;
 		phenotype1 = size(muts) ? sum(muts.getValue("e1")) else 0.0;
 		ind.setValue("phenotype0", phenotype0);

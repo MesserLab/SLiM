@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/30/2024.
-//  Copyright (c) 2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2024-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -30,6 +30,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <limits>
 
 
 #pragma mark -
@@ -60,7 +61,7 @@ const EidosClass *Plot::Class(void) const
 
 void Plot::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP Plot::GetProperty(EidosGlobalStringID p_property_id)

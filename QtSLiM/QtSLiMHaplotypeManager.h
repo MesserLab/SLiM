@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/3/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -38,9 +38,12 @@
 #include "slim_globals.h"
 #include "mutation.h"
 
-class QtSLiMWindow;
+#include "QtSLiMChromosomeWidget.h"
+
+
+class QtSLiMChromosomeWidgetController;
 class Species;
-class Genome;
+class Haplosome;
 class QtSLiMHaplotypeProgress;
 class QtSLiMPushButton;
 
@@ -60,25 +63,28 @@ public:
     };
     
     // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
-    static void CreateHaplotypePlot(QtSLiMWindow *controller);
+    static void CreateHaplotypePlot(QtSLiMChromosomeWidgetController *controller, Chromosome *focalChromosome);
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress);
+                           QtSLiMChromosomeWidgetController *controller, Species *displaySpecies, Chromosome *chromosome,
+                           QtSLiMRange displayedRange, size_t sampleSize, bool showProgress, int progressChromIndex,
+                           int progressChromTotal);
     ~QtSLiMHaplotypeManager(void);
     
 #ifndef SLIM_NO_OPENGL
-    void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts);
+    void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground);
 #endif
-    void qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts, QPainter &painter);
+    void qtDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, QPainter &painter);
     
     // Public properties
     QString titleString;
+    QString titleStringWithoutChromosome;
     int subpopCount = 0;
     bool valid_ = true;     // set to false if the user cancels the progress panel
 
 private:
-    QtSLiMWindow *controller_ = nullptr;
+    QtSLiMChromosomeWidgetController *controller_ = nullptr;
     std::string focalSpeciesName_;                          // we keep the name of our focal species, since a pointer would be unsafe
     
     Species *focalDisplaySpecies(void);
@@ -90,8 +96,8 @@ private:
     
     // Display list data structures.  We map every Mutation in the registry to a struct we define that keeps the necessary information
     // to display that mutation: position and color.  We use MutationIndex to index into a vector of those structs, using the same
-    // index values used by the registry for simplicity.  Each genome is then turned into a vector of MutationIndex that lets
-    // us plot the mutations for that genome.
+    // index values used by the registry for simplicity.  Each haplosome is then turned into a vector of MutationIndex that lets
+    // us plot the mutations for that haplosome.
     struct HaploMutation {
         slim_position_t position_;
         float red_, green_, blue_;
@@ -99,20 +105,20 @@ private:
         bool display_;					// from the mutation type's mutation_type_displayed_ flag
     };
     
-    // Genomes: note that this vector points back into SLiM's data structures, so using it is not safe in general.  It is used
+    // Haplosomes: note that this vector points back into SLiM's data structures, so using it is not safe in general.  It is used
 	// by this class only while building the display list below; after that stage, we clear this vector.  The work to build the
 	// display list gets done on a background thread, but the SLiMgui window is blocked by the progress panel during that time.
-	std::vector<Genome *> genomes;
+	std::vector<Haplosome *> haplosomes;
 	
 	// Display list
 	HaploMutation *mutationInfo = nullptr;                  // a buffer of SLiMHaploMutation providing display information per mutation
 	slim_position_t *mutationPositions = nullptr;           // the same info as in mutationInfo, but in a single buffer for access efficiency
 	slim_position_t mutationLastPosition = 0;               // from the chromosome
 	size_t mutationIndexCount = 0;                          // the number of MutationIndex values in use
-	std::vector<std::vector<MutationIndex>> *displayList = nullptr;	// a vector of genome information, where each genome is a vector of MutationIndex
+	std::vector<std::vector<MutationIndex>> *displayList = nullptr;	// a vector of haplosome information, where each haplosome is a vector of MutationIndex
 	
 	// Subpopulation information
-	std::vector<slim_objectid_t> genomeSubpopIDs;			// the subpop ID for each genome, corresponding to the display list order
+	std::vector<slim_objectid_t> haplosomeSubpopIDs;			// the subpop ID for each haplosome, corresponding to the display list order
 	slim_objectid_t maxSubpopID = 0;
 	slim_objectid_t minSubpopID = 0;
 	
@@ -124,33 +130,33 @@ private:
 	bool displayingMuttypeSubset = false;
     
     void finishClusteringAnalysis(void);
-    void configureMutationInfoBuffer(void);
-    void sortGenomes(void);
+    void configureMutationInfoBuffer(Chromosome *chromosome);
+    void sortHaplosomes(void);
     void configureDisplayBuffers(void);
     void allocateGLBuffers(void);
-    void tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &genomeList);
+    void tallyBincounts(int64_t *bincounts, std::vector<MutationIndex> &haplosomeList);
     int64_t distanceForBincounts(int64_t *bincounts1, int64_t *bincounts2);
     
     // OpenGL drawing; this is the primary drawing code
 #ifndef SLIM_NO_OPENGL
     void glDrawSubpopStripsInRect(QRect interior);
-    void glDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts);
+    void glDrawDisplayListInRect(QRect interior, bool displayBW);
 #endif
     
     // Qt-based drawing, provided as a backup if OpenGL has problems on a given platform
     void qtDrawSubpopStripsInRect(QRect interior, QPainter &painter);
-    void qtDrawDisplayListInRect(QRect interior, bool displayBW, int64_t **previousFirstBincounts, QPainter &painter);
+    void qtDrawDisplayListInRect(QRect interior, bool displayBW, QPainter &painter);
     
     int64_t *buildDistanceArray(void);
     int64_t *buildDistanceArrayForSubrange(void);
     int64_t *buildDistanceArrayForSubtypes(void);
     int64_t *buildDistanceArrayForSubrangeAndSubtypes(void);
-    int indexOfMostIsolatedGenomeWithDistances(int64_t *distances, size_t genome_count);
-    void nearestNeighborSolve(int64_t *distances, size_t genome_count, std::vector<int> &solution);
-    void greedySolve(int64_t *distances, size_t genome_count, std::vector<int> &solution);
-    bool checkPath(std::vector<int> &path, size_t genome_count);
-    int64_t lengthOfPath(std::vector<int> &path, int64_t *distances, size_t genome_count);
-    void do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t genome_count);
+    int indexOfMostIsolatedHaplosomeWithDistances(int64_t *distances, size_t haplosome_count);
+    void nearestNeighborSolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution);
+    void greedySolve(int64_t *distances, size_t haplosome_count, std::vector<int> &solution);
+    bool checkPath(std::vector<int> &path, size_t haplosome_count);
+    int64_t lengthOfPath(std::vector<int> &path, int64_t *distances, size_t haplosome_count);
+    void do2optOptimizationOfSolution(std::vector<int> &path, int64_t *distances, size_t haplosome_count);
 };
 
 
@@ -158,6 +164,7 @@ private:
 // QtSLiMHaplotypeView
 //
 // This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// It displays a haplotype view for one chromosome; QtSLiMHaplotypeTopView may contain one or more
 //
 
 #ifndef SLIM_NO_OPENGL
@@ -169,13 +176,16 @@ class QtSLiMHaplotypeView : public QWidget
     Q_OBJECT
     
 public:
+    std::string chromosomeSymbol_;
+    
     explicit QtSLiMHaplotypeView(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMHaplotypeView(void) override;
     
-    void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); }
+    void setDelegate(QtSLiMHaplotypeManager *delegate) { delegate_ = delegate; delegate_->setParent(this); update(); }
     
-public slots:
-    void actionButtonRunMenu(QtSLiMPushButton *actionButton);    
+    // state changes from the action button; called by QtSLiMHaplotypeTopView
+    void setDisplayBlackAndWhite(bool flag);
+    void setDisplaySubpopulationStrips(bool flag);
     
 private:
     QtSLiMHaplotypeManager *delegate_ = nullptr;
@@ -190,8 +200,36 @@ private:
 #else
     virtual void paintEvent(QPaintEvent *event) override;
 #endif
+};
+
+
+//
+// QtSLiMHaplotypeTopView
+//
+// This class is private to QtSLiMHaplotypeManager, but is declared here so MOC gets it automatically
+// This contains a set of QtSLiMHaplotypeViews to display a set of haplotype plots for chromosomes
+//
+
+class QtSLiMHaplotypeTopView : public QWidget
+{
+    Q_OBJECT
     
-    virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
+public:
+    explicit QtSLiMHaplotypeTopView(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    virtual ~QtSLiMHaplotypeTopView(void) override;
+    
+public slots:
+    void actionButtonRunMenu(QtSLiMPushButton *actionButton);
+    
+    void setShowChromosomeSymbols(bool flag) { showChromosomeSymbols_ = flag; }
+    
+private:
+    bool displayBlackAndWhite_ = false;
+    bool showSubpopulationStrips_ = false;
+    
+    bool showChromosomeSymbols_ = false;
+    
+    virtual void paintEvent(QPaintEvent *event) override;
 };
 
 

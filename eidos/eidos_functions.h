@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -123,6 +123,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_rztpois(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 
 #pragma mark -

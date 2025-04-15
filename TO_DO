@@ -34,6 +34,8 @@ cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-p
 	cd /Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM 
 	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp ./QtSLiM/*.cpp
 
+	NOTE: there is a newer repo that I should shift over to using, https://github.com/cpplint/cpplint
+
 clang-tidy with CMake:
 	see https://danielsieger.com/blog/2021/12/21/clang-tidy-cmake.html
 	install a good version of clang first: sudo port install clang-17 if you use MacPorts

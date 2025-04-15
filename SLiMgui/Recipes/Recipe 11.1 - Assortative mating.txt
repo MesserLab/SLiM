@@ -16,7 +16,7 @@ initialize() {
 	p2.setMigrationRates(p1, 0.1);
 }
 1000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 mutationEffect(m2, p2) { return 0.2; }
@@ -40,7 +40,7 @@ mutationEffect(m2, p2) { return 0.2; }
 		return weights * sourceSubpop.getValue("weights2");
 }
 10000: late() {
-	FST = calcFST(p1.genomes, p2.genomes);
+	FST = calcFST(p1.haplosomes, p2.haplosomes);
 	sim.setValue("FST", sim.getValue("FST") + FST);
 }
 19999 late() {

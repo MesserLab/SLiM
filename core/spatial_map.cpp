@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/4/23.
-//  Copyright (c) 2023-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2023-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1059,7 +1059,7 @@ const EidosClass *SpatialMap::Class(void) const
 
 void SpatialMap::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<\'" << name_ << "\'>";
+	p_ostream << Class()->ClassNameForDisplay() << "<\'" << name_ << "\'>";
 }
 
 EidosValue_SP SpatialMap::GetProperty(EidosGlobalStringID p_property_id)

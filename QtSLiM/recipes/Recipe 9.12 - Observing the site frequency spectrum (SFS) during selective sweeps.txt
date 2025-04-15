@@ -1,0 +1,74 @@
+// Keywords: site frequency spectrum, SFS, population genetics, statistics, custom plotting
+
+initialize() {
+	setSeed(4806519412125461529);
+	defineConstant("N", 1000);
+	defineConstant("L", 1e7);
+	defineConstant("MU", 1e-7);
+	defineConstant("BINCOUNT", 100);
+	initializeMutationRate(MU);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", 0.5, "f", 0.5);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
+}
+initialize() {
+	// Calculate the expected SFS with the same bins as our observed SFS.
+	// This is tricky because we need to calculate it for the number of samples
+	// we have (i.e., number of haplosomes), and then re-bin it; maybe there is
+	// an easier way.  Note that 10000000 is just a constant large enough to
+	// avoid rounding artifacts in the final curve; it is basically the number
+	// of "mutations" scattered across the original expected SFS in order to
+	// re-bin it to the final bin count.  Not sure this math is exactly correct.
+	// It would be great to have a calcExpectedSFS() function built in; if you
+	// know how to do that exactly correctly, for counts as well as density,
+	// then please volunteer!
+	expected = 1 / (1:(2*N-1));
+	expected = expected / sum(expected);
+	expected = asInteger(round(expected * 10000000));
+	bins = asInteger(round(repEach(1:(2*N-1), expected) * (BINCOUNT / (2*N-1))));
+	tallies = tabulate(bins, maxbin=BINCOUNT-1);
+	defineConstant("EXPECTED_SFS", tallies / sum(tallies));
+}
+1 early() {
+	// make a subpop and start drifting towards equilibrium
+	sim.addSubpop("p1", N);
+}
+20*N early() {
+	// start generating rare m2 sweep mutations
+	g1.setMutationFractions(c(m1, m2), c(1, 0.000001));
+}
+25*N early() {
+	// stop generating m2 mutations and allow re-equilibration
+	g1.setMutationFractions(m1, 1);
+}
+1:(35*N) late() {
+	updatePlot();
+}
+
+function (void)updatePlot(void)
+{
+	if (exists("slimgui"))
+	{
+		// get the empirical population SFS
+		sfs_all = calcSFS(BINCOUNT);
+		sfs_m2 = calcSFS(BINCOUNT, muts=sim.mutationsOfType(m2));
+		x = seq(from=0.0, to=1.0, length=BINCOUNT+1) + 0.5/BINCOUNT;
+		x = x[0:(length(x)-2)];
+		
+		// make a plot of the observed vs. expected SFS
+		plot = slimgui.createPlot("Site Frequency Spectrum",
+			xrange=c(0,1), yrange=c(0,1),
+			xlab="Mutation frequency", ylab="Density (sqrt-transformed)");
+		
+		plot.lines(x=x, y=sqrt(sfs_all), color="black", lwd=3);
+		plot.lines(x=x, y=sqrt(EXPECTED_SFS), color="chartreuse2", lwd=2);
+		plot.lines(x=x, y=sqrt(sfs_m2), color="red", lwd=1);
+		
+		plot.addLegend("topRight");
+		plot.legendLineEntry("observed", color="black", lwd=3);
+		plot.legendLineEntry("expected", color="chartreuse2", lwd=2);
+		plot.legendLineEntry("m2 (sweeps)", color="red", lwd=2);
+	}
+}

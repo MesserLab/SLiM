@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -962,6 +962,20 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rweibull(2, 10.0, c(0.1, 0, 1));", 0, "requires k to be");
 	EidosAssertScriptSuccess("rweibull(1, 1, NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess("rweibull(1, NAN, 1);", gStaticEidosValue_FloatNAN);
+	
+	// rztpois()
+	EidosAssertScriptSuccess("rztpois(0, 1.0);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess_IV("setSeed(0); rztpois(5, 1.0);", {1, 3, 1, 1, 1});
+	EidosAssertScriptSuccess_IV("setSeed(1); rztpois(5, 0.2);", {1, 1, 1, 1, 1});
+	EidosAssertScriptSuccess_IV("setSeed(2); rztpois(5, 10000);", {10205, 10177, 10094, 10227, 9875});
+	EidosAssertScriptSuccess_IV("setSeed(2); rztpois(1, 10000);", {10205});
+	EidosAssertScriptSuccess_IV("setSeed(3); rztpois(5, c(1, 10, 100, 1000, 10000));", {1, 10, 84, 1037, 9946});
+	EidosAssertScriptRaise("rztpois(-1, 1.0);", 0, "requires n to be");
+	EidosAssertScriptRaise("rztpois(0, 0.0);", 0, "requires lambda > 0.0");
+	EidosAssertScriptRaise("rztpois(0, NAN);", 0, "requires lambda > 0.0");
+	EidosAssertScriptRaise("rztpois(2, c(0.0, 0.0));", 0, "requires lambda > 0.0");
+	EidosAssertScriptRaise("rztpois(2, c(1.5, NAN));", 0, "requires lambda > 0.0");
+	EidosAssertScriptRaise("setSeed(4); rztpois(5, c(1, 10, 100, 1000));", 12, "requires lambda");
 }
 
 

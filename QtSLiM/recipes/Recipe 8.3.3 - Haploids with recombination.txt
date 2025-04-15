@@ -1,0 +1,13 @@
+// Keywords: multiple chromosomes
+
+initialize() {
+	initializeMutationType("m1", 1.0, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, 1e5, type="H");
+	initializeGenomicElement(g1);
+	initializeMutationRate(1e-7);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 500); }
+10000 late() { sim.simulationFinished(); }

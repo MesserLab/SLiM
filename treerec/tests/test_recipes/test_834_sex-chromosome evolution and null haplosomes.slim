@@ -1,0 +1,33 @@
+// Keywords: multiple chromosomes
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
+	source("init.slim");
+	initializeTreeSeq();
+	defineConstant("X_LEN", 15604);
+	defineConstant("Y_LEN", 5722);
+
+	initializeSex();
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	initializeChromosome(1, X_LEN, type="X", symbol="X");
+	initializeGenomicElement(g1, 0, X_LEN-1);
+	initializeMutationRate(1e-4);
+	initializeRecombinationRate(1e-4);
+	
+	initializeChromosome(2, Y_LEN, type="Y", symbol="Y");
+	initializeGenomicElement(g1, 0, Y_LEN-1);
+	initializeMutationRate(1e-4);
+}
+1 early() {
+	sim.addSubpop("p1", 50);
+}
+10 early() {
+	addAncestralSamples(5);
+}
+25 late() {
+	outputIndividuals();
+	outputMutationResult();
+   saveTreeSeq();
+}

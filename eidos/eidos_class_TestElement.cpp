@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/1/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -57,7 +57,7 @@ const EidosClass *EidosTestElement::Class(void) const
 
 void EidosTestElement::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP EidosTestElement::GetProperty(EidosGlobalStringID p_property_id)
@@ -276,7 +276,7 @@ const EidosClass *EidosTestElementNRR::Class(void) const
 
 void EidosTestElementNRR::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassNameForDisplay();	// standard EidosObject behavior (not Dictionary behavior)
 }
 
 EidosValue_SP EidosTestElementNRR::GetProperty(EidosGlobalStringID p_property_id)

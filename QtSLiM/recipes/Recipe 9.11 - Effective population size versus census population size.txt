@@ -32,7 +32,7 @@ initialize() {
 	p1.setValue("previous_N", p1.individualCount);
 }
 10000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, integerDiv(L, 2));
 }
 20000 late() {
@@ -47,9 +47,19 @@ function (float)mutTypeFrequency(o<MutationType>$ mutType)
 	return NULL;
 }
 
-function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop)
+function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop,
+	[No<Chromosome>$ chromosome = NULL])
 {
-	pi = calcHeterozygosity(p1.genomes);
+	if (isNULL(chromosome))
+	{
+		if (size(sim.chromosomes) == 1)
+			chromosome = sim.chromosomes;
+		else
+			stop("ERROR: in a multi-chrom model, a chromosome must be supplied.");
+	}
+	
+	haplosomes = subpop.haplosomesForChromosomes(chromosome, includeNulls=F);
+	pi = calcHeterozygosity(haplosomes);
 	return pi / (4 * MU);
 }
 

@@ -22,7 +22,7 @@ initialize() {
 		sim.subpopulations[i].setMigrationRates(i+1, 0.1);
 }
 100 late() {
-	target = sample(p0.genomes, 50);
+	target = sample(p0.haplosomes, 50);
 
 	// use old mutation addition formula for backward compatibility
 	mut = target[0].addNewDrawnMutation(m2, 10000);
@@ -34,6 +34,8 @@ initialize() {
 		fixed = any(sim.substitutions.mutationType == m2);
 		cat(ifelse(fixed, "Outcome: FIXED ", "Outcome: LOST ") + community.tick + "\n");
 		outputMutationResult();
+      outputIndividuals();
+      saveTreeSeq();
 		sim.simulationFinished();
 	}
 }
@@ -44,18 +46,15 @@ mutationEffect(m2) {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 1)
 	{
-		hasMutOnChromosome1 = child.genome1.containsMutations(mut);
-		hasMutOnChromosome2 = child.genome2.containsMutations(mut);
+		hasMutOnChromosome1 = child.haploidGenome1.containsMutations(mut);
+		hasMutOnChromosome2 = child.haploidGenome2.containsMutations(mut);
 		if (hasMutOnChromosome1 & !hasMutOnChromosome2)
-			child.genome2.addMutations(mut);
+			child.haploidGenome2.addMutations(mut);
 		else if (hasMutOnChromosome2 & !hasMutOnChromosome1)
-			child.genome1.addMutations(mut);
+			child.haploidGenome1.addMutations(mut);
 	}
 	return T;
 }
-100 early() {
+10 early() {
 	addAncestralSamples(5);
-}
-500 late() { 
-	  outputMutationResult();
 }

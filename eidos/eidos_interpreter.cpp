@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/4/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -170,7 +170,7 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 	{
 		// This script block is constructed at runtime and has its own script, so we need to redirect error tracking
 		EidosErrorContext error_context_save = gEidosErrorContext;
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_script_for_block, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_script_for_block};
 		
 		// Same code as below, just bracketed by the error context save/restore
 		result_SP = FastEvaluateNode(root_node_);
@@ -740,31 +740,19 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				}
 				case EidosValueType::kValueObject:
 				{
-					EidosValue_Object *base_object_vector = dynamic_cast<EidosValue_Object *>(base_value.get());
+					EidosValue_Object *base_object_vector = (EidosValue_Object *)base_value.get();
 					
-					if (base_object_vector)
+					if (rvalue_count == 1)
 					{
-						if (rvalue_count == 1)
-						{
-							EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
-							
-							for (int value_idx = 0; value_idx < index_count; value_idx++)
-								base_object_vector->set_object_element_no_check_CRR(rvalue, indices[value_idx]);
-						}
-						else
-						{
-							for (int value_idx = 0; value_idx < index_count; value_idx++)
-								base_object_vector->set_object_element_no_check_CRR(p_rvalue->ObjectElementAtIndex_CAST(value_idx, nullptr), indices[value_idx]);
-						}
+						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
+						
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_object_vector->set_object_element_no_check_CRR(rvalue, indices[value_idx]);
 					}
 					else
 					{
-						// true singleton case; we can't use set_object_element_no_check_CRR() to set the element
-						// note (rvalue_count == 1) must be true here, so there is only one case to handle
-						EidosValue_Object *base_object_singleton = dynamic_cast<EidosValue_Object *>(base_value.get());
-						EidosObject *rvalue = p_rvalue->ObjectElementAtIndex_CAST(0, nullptr);
-						
-						base_object_singleton->set_object_element_no_check_CRR(rvalue, 0);
+						for (int value_idx = 0; value_idx < index_count; value_idx++)
+							base_object_vector->set_object_element_no_check_CRR(p_rvalue->ObjectElementAtIndex_CAST(value_idx, nullptr), indices[value_idx]);
 					}
 					break;
 				}
@@ -1088,6 +1076,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 	std::vector<uint8_t> &no_fill_index = argument_cache->no_fill_index_;
 	const std::vector<EidosASTNode *> &node_children = p_node->children_;
 	
+	std::vector<uint8_t> filled_explicitly;		// locally, we need a vector that tells us whether an index was filed explicitly or by default
+	
 	// Run through the argument nodes, reserve space for them in the arguments buffer, and evaluate default/constant values once for all calls
 	auto node_children_end = node_children.end();
 	int sig_arg_index = 0;
@@ -1123,11 +1113,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
 					no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 					arg_buffer.emplace_back(child->cached_literal_value_);
+					filled_explicitly.emplace_back(true);
 				}
 				else
 				{
 					fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, false, kEidosValueMaskAny);
 					arg_buffer.emplace_back(nullptr);
+					filled_explicitly.emplace_back(true);
 				}
 				continue;
 			}
@@ -1175,13 +1167,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							
 							// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
 							if ((p_call_signature->call_name_ == "apply") && ((named_arg == "lambdaSource") || (named_arg == "simplify")))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 							
 							// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
 							if ((p_call_signature->call_name_ == "defineSpatialMap") && (named_arg == "gridSize"))
-								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 							
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument " << named_arg << " skipped over required argument " << p_call_signature->arg_names_[sig_arg_index] << "; all required arguments must be supplied in order." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' skipped over required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'; all required arguments must be supplied in order." << EidosTerminate(nullptr);
 						}
 						
 						EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1193,6 +1185,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						
 						no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 						arg_buffer.emplace_back(default_value);
+						filled_explicitly.emplace_back(false);
 					}
 					
 					// Move to the next signature argument; if we have run out of them, then treat this argument as illegal
@@ -1203,9 +1196,34 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 						
 						// Special error-handling for defineSpatialMap() because its gridSize parameter was removed in SLiM 3.5
 						if ((p_call_signature->call_name_ == "defineSpatialMap") && ((named_arg == "values") || (named_arg == "interpolate")))
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 						
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): ran out of optional arguments while searching for named argument " << named_arg << "." << EidosTerminate(nullptr);
+						// Special error-handling for initializeSLiMOptions() because its mutationRuns parameter changed to doMutationRunExperiments in SLiM 5
+						if ((p_call_signature->call_name_ == "initializeSLiMOptions") && (named_arg == "mutationRuns"))
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+						
+						// Try to diagnose the exact nature of the error, to give a better error message
+						const std::vector<EidosGlobalStringID> &arg_list = p_call_signature->arg_name_IDs_;
+						auto arg_iter = std::find(arg_list.begin(), arg_list.end(), named_arg_nameID);
+						
+						if (arg_iter != arg_list.end())
+						{
+							// it is a legit parameter name; so either it was supplied twice, or out of order
+							// we distinguish those cases because if it was supplied twice, it was filled explicitly;
+							// if it was supplied out of order, then its value was filled non-explicitly, by a default
+							size_t named_arg_index = std::distance(arg_list.begin(), arg_iter);
+							bool named_arg_was_filled_explicitly = filled_explicitly[named_arg_index];
+							
+							if (named_arg_was_filled_explicitly)
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' was supplied twice in the argument list; each parameter may be supplied only once." << EidosTerminate(nullptr);
+							else
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' was supplied out of order; another argument that comes after it in the parameter list was supplied before it.  Eidos requires that parameters be supplied in the order they are given." << EidosTerminate(nullptr);
+						}
+						else
+						{
+							// this parameter name does not exist in the call signature
+							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): named argument '" << named_arg << "' could not be matched, because there is no parameter with that name in the call signature." << EidosTerminate(nullptr);
+						}
 					}
 				}
 				while (true);
@@ -1220,11 +1238,13 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
 				no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 				arg_buffer.emplace_back(child->cached_literal_value_);
+				filled_explicitly.emplace_back(true);
 			}
 			else
 			{
 				fill_info.emplace_back(child, arg_buffer.size(), sig_arg_index, sig_arg_is_singleton, sig_arg_type_mask & kEidosValueMaskFlagStrip);
 				arg_buffer.emplace_back(nullptr);
+				filled_explicitly.emplace_back(true);
 			}
 			
 			// Move to the next signature argument, and check whether it is an ellipsis
@@ -1248,10 +1268,10 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
 					
 					if (named_arg_nameID == arg_name_ID)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument '" << named_arg << "' to " << p_call_signature->call_name_ << "() could not be matched; probably supplied more than once or supplied out of order (note that arguments must be supplied in order)." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument '" << named_arg << "' to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
 			}
 			else
 			{
@@ -1275,9 +1295,9 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// We have special error-handling for apply() because sapply() used to be named apply() and we want to steer users to the new call
 				if ((p_call_signature->call_name_ == "apply") && (p_call_signature->arg_names_[sig_arg_index] == "lambdaSource"))
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << std::endl << "NOTE: The apply() function was renamed sapply() in Eidos 1.6, and a new function named apply() has been added; you may need to change this call to be a call to sapply() instead." << EidosTerminate(nullptr);
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument " << p_call_signature->arg_names_[sig_arg_index] << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): missing required argument '" << p_call_signature->arg_names_[sig_arg_index] << "'." << EidosTerminate(nullptr);
 			}
 			
 			EidosValue_SP default_value = p_call_signature->arg_defaults_[sig_arg_index];
@@ -1289,6 +1309,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			
 			no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 			arg_buffer.emplace_back(default_value);
+			filled_explicitly.emplace_back(true);
 		}
 		
 		sig_arg_index++;
@@ -1334,16 +1355,15 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	for (size_t arg_index = 0; arg_index < p_arguments.size(); ++arg_index)
 		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], p_arguments[arg_index]);
 	
-	// Errors in functions should be reported for the function's script, not for the calling script,
-	// if possible.  In the GUI this does not work well, however; there, errors should be
-	// reported as occurring in the call to the function.  Here we save off the current
-	// error context and set up the error context for reporting errors inside the function,
-	// in case that is possible; see how exceptions are handled below.
+	// Save off the current error context for restoration later, if no error occurs.
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	
-	// Execute inside try/catch so we can handle errors well
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_function_signature.body_script_, true};
+	// Set up to indicate that we're now going to be executing from our own private script object.  That
+	// private script object might or might not be derived from the user script, so errors that occur
+	// within it might or might not be reportable as positions in the user script; see below.
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, p_function_signature.body_script_};
 	
+	// Execute inside try/catch so we can handle errors well
 	try
 	{
 		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_);
@@ -1355,12 +1375,23 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	}
 	catch (...)
 	{
-		// If exceptions throw, then we want to set up the error information to highlight the
-		// function call that failed, since we can't highlight the actual error.  (If exceptions
-		// don't throw, this catch block will never be hit; exit() will already have been called
-		// and the error will have been reported from the context of the function's script.)
-		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		// If we're executing a script that does not have a position in the user's script, then the best
+		// we can do is to report the call to the function as the error position.  If the script knows
+		// its position in the user's script, then we don't need to make that correction.  We only make
+		// this correction for gEidosTerminateThrows==true because that is the case when errors are
+		// shown in the GUI.  When at the command line, showing an error position inside an unmoored
+		// script is perfectly fine, and preferable to obscuring that position.  (We could show *both*
+		// pieces of information, in fact, but that is a project for another day.)
+		if (gEidosTerminateThrows && (p_function_signature.body_script_->UserScriptCharOffset() == -1))
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("DispatchUserDefinedFunction()");
+			}
+		}
 		
 		throw;
 	}
@@ -1462,6 +1493,11 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 			
 			if (signature_iter == function_map_.end())
 			{
+				// This raises a special exception if the function name is undefined.
+				// This facility is used by Community::_EvaluateTickRangeNode() for tolerant evaluation.
+				if (use_custom_undefined_function_raise_)
+					throw SLiMUndefinedFunctionException();
+				
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unrecognized function name " << *function_name << ".";
 				if (Context() == nullptr)
 					EIDOS_TERMINATION << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
@@ -1494,23 +1530,30 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		}
 #endif
 		
-		if (function_signature->internal_function_)
-		{
-			result_SP = function_signature->internal_function_(*argument_buffer, *this);
-		}
-		else if (function_signature->body_script_)
-		{
-			result_SP = DispatchUserDefinedFunction(*function_signature, *argument_buffer);
-		}
-		else if (!function_signature->delegate_name_.empty())
-		{
-			if (eidos_context_)
-				result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, *argument_buffer, *this);
+		try {
+			if (function_signature->internal_function_)
+			{
+				result_SP = function_signature->internal_function_(*argument_buffer, *this);
+			}
+			else if (function_signature->body_script_)
+			{
+				result_SP = DispatchUserDefinedFunction(*function_signature, *argument_buffer);
+			}
+			else if (!function_signature->delegate_name_.empty())
+			{
+				if (eidos_context_)
+					result_SP = eidos_context_->ContextDefinedFunctionDispatch(*function_name, *argument_buffer, *this);
+				else
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+			}
 			else
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): function " << function_name << " is defined by the Context, but the Context is not defined." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
+		} catch (...) {
+			// BCH 4/15/2025: Adding the try/catch and _DeprocessArgumentList() call here to fix a leak that
+			// occurred for recursive function calls, for which argument_buffer is heap-allocated.
+			_DeprocessArgumentList(p_node, argument_buffer);
+			throw;
 		}
-		else
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Call): unbound function " << *function_name << "." << EidosTerminate(call_identifier_token);
 		
 		_DeprocessArgumentList(p_node, argument_buffer);
 		
@@ -6073,15 +6116,66 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 			// overhead so it shouldn't matter.  It will smooth out all of the related issues with error reporting, etc.,
 			// since we won't be dependent upon somebody else's script object.  Errors in tokenization/parsing should never
 			// occur, since the code for the function body already passed through that process once.
+			
 			// BCH 2/8/2021: Note that we now base this EidosScript on body_node->token_->token_line_ for purposes of debug
 			// point detection, so Eidos knows that this script is a substring of the original user script.
-			EidosScript *script = new EidosScript(body_node->token_->token_string_, body_node->token_->token_line_);
+			
+			// BCH 3/12/2025: For error-tracking, we now need to locate this function declaration within the user's script.
+			// Finding the user's script here is a bit gross, though!  We get it from the error position, which generally
+			// ought to be set up now with the user script whenever we hit a function declaration.  Maybe in a place like a
+			// lambda it would not be set up, which is OK; then we are unmoored from the user's script, and use nullptr.
+			// It feels weird to use the error info here to find the user script, but maybe it is OK; the error info is the
+			// thing that says "you are interpreting in this script, which is located right here in this other script", and
+			// that's exactly what we need to know.  If using it here proves problematic, the alternative seems to me to be
+			// for EidosInterpreter to have a pointer to the user script within which it is interpreting; but that would
+			// be a big change, and it wouldn't use the information anywhere but here.
+			EidosScript *userScript = nullptr;
+			
+			if (gEidosErrorContext.currentScript)
+			{
+				EidosScript *error_userScript = gEidosErrorContext.currentScript->UserScript();
+				int32_t error_offset = gEidosErrorContext.currentScript->UserScriptUTF16Offset();
+				
+				if (error_userScript)
+				{
+					// the current script is derived from the user script
+					userScript = error_userScript;
+				}
+				else if (error_offset == 0)
+				{
+					// the current script *is* the user script
+					userScript = gEidosErrorContext.currentScript;
+				}
+			}
+			
+			EidosScript *script;
+			
+			if (userScript)
+			{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				std::cout << "=== User-defined function definition found user script " << userScript << "; using that with char offset " << body_node->token_->token_start_ << ", UTF offset " << body_node->token_->token_UTF16_start_ << std::endl;
+#endif
+				
+				script = new EidosScript(body_node->token_->token_string_, userScript, body_node->token_->token_line_, body_node->token_->token_start_, body_node->token_->token_UTF16_start_);
+			}
+			else
+			{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				std::cout << "=== User-defined function definition did not find user script (gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << ")" << std::endl;
+#endif
+				
+				script = new EidosScript(body_node->token_->token_string_);
+			}
 			
 			script->Tokenize();
 			script->ParseInterpreterBlockToAST(false);
 			
 			sig->body_script_ = script;
 			sig->user_defined_ = true;
+			
+			// this is the line that `function` is on, so we want to use p_node->token_; note this is different
+			// from the line offset kept by the script, which refers to the line offset to the starting brace
+			// of the body; we want the offset to `function` for debug points, so this is not redundant
 			sig->user_definition_line_ = p_node->token_->token_line_;
 			
 			//std::cout << *sig << std::endl;

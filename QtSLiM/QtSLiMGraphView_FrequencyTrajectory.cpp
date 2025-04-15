@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 4/1/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -111,12 +111,6 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
     
-    if (population.child_generation_valid_)
-    {
-        qDebug() << "child_generation_valid_ set in fetchDataForFinishedTick";
-        return;
-    }
-    
     // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
     
@@ -132,10 +126,10 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         pair_ref.second->updated = false;
     
     // Tally reference counts within selectedSubpopulationID_
-    size_t subpop_total_genome_count = tallyGUIMutationReferences(selectedSubpopulationID_, selectedMutationTypeIndex_);
+    size_t subpop_total_haplosome_count = tallyGUIMutationReferences(selectedSubpopulationID_, selectedMutationTypeIndex_);
     
-    if (subpop_total_genome_count == 0)
-        subpop_total_genome_count = 1;  // refcounts will all be zero; prevent NAN values below, make them 0 instead
+    if (subpop_total_haplosome_count == 0)
+        subpop_total_haplosome_count = 1;  // refcounts will all be zero; prevent NAN values below, make them 0 instead
     
     // Now we can run through the mutations and use the tallies in gui_scratch_reference_count to update our histories
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -147,7 +141,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         
         if (refcount)
         {
-            uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_genome_count);
+            uint16_t value = static_cast<uint16_t>((static_cast<size_t>(refcount) * static_cast<size_t>(UINT16_MAX)) / subpop_total_haplosome_count);
             slim_mutationid_t mutationID = mutation->mutation_id_;
             auto history_iter = frequencyHistoryDict_.find(mutationID);
             

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2022 Tskit Developers
+ * Copyright (c) 2019-2025 Tskit Developers
  * Copyright (c) 2016-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -74,7 +74,7 @@ tsk_variant_copy_alleles(tsk_variant_t *self, const char **alleles)
     }
     self->user_alleles_mem = tsk_malloc(total_len * sizeof(char *));
     if (self->user_alleles_mem == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     offset = 0;
@@ -103,7 +103,7 @@ variant_init_samples_and_index_map(tsk_variant_t *self,
     self->alt_sample_index_map
         = tsk_malloc(num_nodes * sizeof(*self->alt_sample_index_map));
     if (self->alt_samples == NULL || self->alt_sample_index_map == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     tsk_memcpy(self->alt_samples, samples, num_samples * sizeof(*samples));
@@ -113,16 +113,16 @@ variant_init_samples_and_index_map(tsk_variant_t *self,
     for (j = 0; j < num_samples; j++) {
         u = samples[j];
         if (u < 0 || u >= (tsk_id_t) num_nodes) {
-            ret = TSK_ERR_NODE_OUT_OF_BOUNDS;
+            ret = tsk_trace_error(TSK_ERR_NODE_OUT_OF_BOUNDS);
             goto out;
         }
         if (self->alt_sample_index_map[u] != TSK_NULL) {
-            ret = TSK_ERR_DUPLICATE_SAMPLE;
+            ret = tsk_trace_error(TSK_ERR_DUPLICATE_SAMPLE);
             goto out;
         }
         /* We can only detect missing data for samples */
         if (!impute_missing && !(flags[u] & TSK_NODE_IS_SAMPLE)) {
-            ret = TSK_ERR_MUST_IMPUTE_NON_SAMPLES;
+            ret = tsk_trace_error(TSK_ERR_MUST_IMPUTE_NON_SAMPLES);
             goto out;
         }
         self->alt_sample_index_map[samples[j]] = (tsk_id_t) j;
@@ -156,7 +156,7 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
         /* Take a copy of the samples so we don't have to manage the lifecycle*/
         self->samples = tsk_malloc(num_samples * sizeof(*samples));
         if (self->samples == NULL) {
-            ret = TSK_ERR_NO_MEMORY;
+            ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
             goto out;
         }
         tsk_memcpy(self->samples, samples, num_samples * sizeof(*samples));
@@ -176,11 +176,11 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
         for (max_alleles = 0; alleles[max_alleles] != NULL; max_alleles++)
             ;
         if (max_alleles > max_alleles_limit) {
-            ret = TSK_ERR_TOO_MANY_ALLELES;
+            ret = tsk_trace_error(TSK_ERR_TOO_MANY_ALLELES);
             goto out;
         }
         if (max_alleles == 0) {
-            ret = TSK_ERR_ZERO_ALLELES;
+            ret = tsk_trace_error(TSK_ERR_ZERO_ALLELES);
             goto out;
         }
     }
@@ -188,7 +188,7 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
     self->alleles = tsk_calloc(max_alleles, sizeof(*self->alleles));
     self->allele_lengths = tsk_malloc(max_alleles * sizeof(*self->allele_lengths));
     if (self->alleles == NULL || self->allele_lengths == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     if (self->user_alleles) {
@@ -201,7 +201,7 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
         self->num_samples = tsk_treeseq_get_num_samples(tree_sequence);
         self->samples = tsk_malloc(self->num_samples * sizeof(*self->samples));
         if (self->samples == NULL) {
-            ret = TSK_ERR_NO_MEMORY;
+            ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
             goto out;
         }
         tsk_memcpy(self->samples, tsk_treeseq_get_samples(tree_sequence),
@@ -224,7 +224,7 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
         self->traversal_stack = tsk_malloc(
             tsk_treeseq_get_num_nodes(tree_sequence) * sizeof(*self->traversal_stack));
         if (self->traversal_stack == NULL) {
-            ret = TSK_ERR_NO_MEMORY;
+            ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
             goto out;
         }
     }
@@ -232,7 +232,7 @@ tsk_variant_init(tsk_variant_t *self, const tsk_treeseq_t *tree_sequence,
     self->genotypes = tsk_malloc(num_samples_alloc * sizeof(*self->genotypes));
     if (self->genotypes == NULL || self->alleles == NULL
         || self->allele_lengths == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
 
@@ -293,20 +293,20 @@ tsk_variant_expand_alleles(tsk_variant_t *self)
     tsk_size_t hard_limit = INT32_MAX;
 
     if (self->max_alleles == hard_limit) {
-        ret = TSK_ERR_TOO_MANY_ALLELES;
+        ret = tsk_trace_error(TSK_ERR_TOO_MANY_ALLELES);
         goto out;
     }
     self->max_alleles = TSK_MIN(hard_limit, self->max_alleles * 2);
     p = tsk_realloc(self->alleles, self->max_alleles * sizeof(*self->alleles));
     if (p == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     self->alleles = p;
     p = tsk_realloc(
         self->allele_lengths, self->max_alleles * sizeof(*self->allele_lengths));
     if (p == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     self->allele_lengths = p;
@@ -470,7 +470,7 @@ tsk_variant_decode(
     tsk_size_t (*mark_missing)(tsk_variant_t *);
 
     if (self->tree_sequence == NULL) {
-        ret = TSK_ERR_VARIANT_CANT_DECODE_COPY;
+        ret = tsk_trace_error(TSK_ERR_VARIANT_CANT_DECODE_COPY);
         goto out;
     }
 
@@ -487,7 +487,7 @@ tsk_variant_decode(
     /* When we have no specified samples we need sample lists to be active
      * on the tree, as indicated by the presence of left_sample */
     if (!by_traversal && self->tree.left_sample == NULL) {
-        ret = TSK_ERR_NO_SAMPLE_LISTS;
+        ret = tsk_trace_error(TSK_ERR_NO_SAMPLE_LISTS);
         goto out;
     }
 
@@ -508,7 +508,7 @@ tsk_variant_decode(
         allele_index = tsk_variant_get_allele_index(
             self, self->site.ancestral_state, self->site.ancestral_state_length);
         if (allele_index == -1) {
-            ret = TSK_ERR_ALLELE_NOT_FOUND;
+            ret = tsk_trace_error(TSK_ERR_ALLELE_NOT_FOUND);
             goto out;
         }
     } else {
@@ -545,7 +545,7 @@ tsk_variant_decode(
             self, mutation.derived_state, mutation.derived_state_length);
         if (allele_index == -1) {
             if (self->user_alleles) {
-                ret = TSK_ERR_ALLELE_NOT_FOUND;
+                ret = tsk_trace_error(TSK_ERR_ALLELE_NOT_FOUND);
                 goto out;
             }
             if (self->num_alleles == self->max_alleles) {
@@ -606,7 +606,7 @@ tsk_variant_restricted_copy(const tsk_variant_t *self, tsk_variant_t *other)
     if (other->samples == NULL || other->genotypes == NULL
         || other->user_alleles_mem == NULL || other->allele_lengths == NULL
         || other->alleles == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     tsk_memcpy(

@@ -26,5 +26,7 @@ initialize() {
 }
 500 late() { 
 	outputMutationResult();
+	outputIndividuals();
+   saveTreeSeq();
 	cat("\nTotal mutation frequencies: " + sum(sim.mutationFrequencies(NULL)) + "\n"); 
 }

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/7/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -80,7 +80,7 @@ static inline bool SLiM_TokenIsCallbackIdentifier(EidosToken *token)
 #pragma mark SLiMEidosScript
 #pragma mark -
 
-SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string, 0)
+SLiMEidosScript::SLiMEidosScript(const std::string &p_script_string) : EidosScript(p_script_string, nullptr, 0, 0, 0)
 {
 }
 
@@ -589,12 +589,47 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
 					Match(EidosTokenType::kTokenLParen, "SLiM recombination() callback");
 					
-					// A (optional) subpopulation id is present; add it
+					// A (optional) subpopulation id (or NULL) is present; add it
 					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 					{
 						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 						
 						Match(EidosTokenType::kTokenIdentifier, "SLiM recombination() callback");
+						
+						if (current_token_type_ == EidosTokenType::kTokenComma)
+						{
+							// A (optional) chromosome identifier (id or symbol, or NULL) is present; add it
+							Match(EidosTokenType::kTokenComma, "SLiM recombination() callback");
+							
+							if (current_token_type_ == EidosTokenType::kTokenString)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenString, "SLiM recombination() callback");
+							}
+							else if (current_token_type_ == EidosTokenType::kTokenNumber)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenNumber, "SLiM recombination() callback");
+							}
+							else if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+							{
+								callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+								
+								Match(EidosTokenType::kTokenIdentifier, "SLiM reproduction() callback");
+							}
+							else
+							{
+								if (!parse_make_bad_nodes_)
+									EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; chromosome-id (integer or string) or NULL expected." << EidosTerminate(current_token_);
+								
+								// Make a placeholder bad node, to be error-tolerant
+								EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
+								EidosASTNode *bad_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(bad_token, true);
+								callback_info_node->AddChild(bad_node);
+							}
+						}
 					}
 					
 					Match(EidosTokenType::kTokenRParen, "SLiM recombination() callback");
@@ -884,7 +919,7 @@ SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_nod
 SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
+	root_node_(p_root_node)
 {
 	// self_symbol_ is always a constant, but can't be marked as such on construction
 	self_symbol_.second->MarkAsConstant();
@@ -1159,14 +1194,31 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_recombination) == 0))
 				{
-					if ((n_callback_children != 0) && (n_callback_children != 1))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs 0 or 1 parameters." << EidosTerminate(callback_token);
+					if ((n_callback_children != 0) && (n_callback_children != 1) && (n_callback_children != 2))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs 0, 1, or 2 parameters." << EidosTerminate(callback_token);
 					
-					if (n_callback_children == 1)
+					if (n_callback_children >= 1)
 					{
 						EidosToken *subpop_id_token = callback_children[0]->token_;
 						
-						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+						if (subpop_id_token->token_string_ == gEidosStr_NULL)
+							subpopulation_id_ = -1;		// not limited to one subpopulation
+						else
+							subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+					}
+					
+					if (n_callback_children >= 2)
+					{
+						EidosToken *chromosome_id_token = callback_children[1]->token_;
+						
+						if ((chromosome_id_token->token_type_ == EidosTokenType::kTokenIdentifier) && (chromosome_id_token->token_string_ == gEidosStr_NULL))
+							chromosome_id_ = -1;		// not limited by chromosome
+						else if (chromosome_id_token->token_type_ == EidosTokenType::kTokenNumber)
+							chromosome_id_ = EidosInterpreter::NonnegativeIntegerForString(chromosome_id_token->token_string_, chromosome_id_token);
+						else if (chromosome_id_token->token_type_ == EidosTokenType::kTokenString)
+							chromosome_symbol_ = chromosome_id_token->token_string_;	// will be translated into chromosome_id_ in RunInitializeCallbacks()
+						else
+							EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): recombination() callback needs a value for chromosome that is a non-negative integer, or NULL." << EidosTerminate(callback_token);
 					}
 					
 					type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
@@ -1242,10 +1294,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), tick_range_evaluated_(true), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), tick_range_evaluated_(true), tick_range_is_sequence_(true), tick_start_(p_start), tick_end_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec)
 {
 	// this constructor is used by the various registerX() methods that register a new script block; they all take a start and end tick,
 	// with no option to supply a vector of ticks instead, which is why there is no constructor here taking a vector of ticks
@@ -1254,7 +1306,9 @@ SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script
 	self_symbol_.second->MarkAsConstant();
 	script_block_symbol_.second->MarkAsConstant();
 	
-	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
+	// since this constructor is for script blocks that are not derived from the user script, we use the corresponding EidosScript constructor
+	script_ = new EidosScript(p_script_string);
+	
 	// the caller should now call TokenizeAndParse() to complete initialization
 }
 
@@ -1309,9 +1363,9 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_effect) == 0)				contains_effect_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
-		if (token_string.compare(gStr_genome) == 0)				contains_genome_ = true;
-		if (token_string.compare(gStr_genome1) == 0)			contains_genome1_ = true;
-		if (token_string.compare(gStr_genome2) == 0)			contains_genome2_ = true;
+		if (token_string.compare(gStr_haplosome) == 0)			contains_haplosome_ = true;
+		if (token_string.compare(gStr_haplosome1) == 0)			contains_haplosome1_ = true;
+		if (token_string.compare(gStr_haplosome2) == 0)			contains_haplosome2_ = true;
 		if (token_string.compare(gStr_subpop) == 0)				contains_subpop_ = true;
 		if (token_string.compare(gStr_homozygous) == 0)			contains_homozygous_ = true;
 		if (token_string.compare(gStr_sourceSubpop) == 0)		contains_sourceSubpop_ = true;
@@ -1347,9 +1401,9 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 		contains_effect_ = true;
 		contains_individual_ = true;
 		contains_element_ = true;
-		contains_genome_ = true;
-		contains_genome1_ = true;
-		contains_genome2_ = true;
+		contains_haplosome_ = true;
+		contains_haplosome1_ = true;
+		contains_haplosome2_ = true;
 		contains_subpop_ = true;
 		contains_homozygous_ = true;
 		contains_sourceSubpop_ = true;
@@ -1479,6 +1533,10 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 			p_out << "recombination(";
 			if (subpopulation_id_ != -1)
 				p_out << "p" << subpopulation_id_;
+			else if (chromosome_id_ != -1)
+				p_out << "NULL";
+			if (chromosome_id_ != -1)
+				p_out << ", \"" << chromosome_id_ << "\"";
 			p_out << ")";
 			break;
 		}
@@ -1544,7 +1602,7 @@ const EidosClass *SLiMEidosBlock::Class(void) const
 
 void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<";
+	p_ostream << Class()->ClassNameForDisplay() << "<";
 	
 	if (tick_range_is_sequence_)
 	{
@@ -1827,7 +1885,7 @@ EidosTypeSpecifier SLiMTypeTable::GetTypeForSymbol(EidosGlobalStringID p_symbol_
 				switch(first_ch)
 				{
 					case 'p': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class};
-					case 'g': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class};
+					case 'g': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class};
 					case 'm': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_MutationType_Class};
 					case 's': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class};
 					case 'i': return EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_InteractionType_Class};

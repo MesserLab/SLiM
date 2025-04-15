@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -53,6 +53,10 @@ typedef enum {
     kBottomLeft,
     kBottomRight
 } QtSLiM_LegendPosition;
+
+void QtSLiMMakeWindowVisibleAndExposed(QWidget *window);
+
+void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets = true);
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter);
 void QtSLiMFrameRect(const QRectF &p_rect, const QColor &p_color, QPainter &p_painter, double p_lineWidth);

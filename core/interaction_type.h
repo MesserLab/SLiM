@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/25/17.
-//  Copyright (c) 2017-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -418,7 +418,7 @@ public:
 			for (auto sv : pool)
 				delete (sv);
 			
-			pool.clear();
+			pool.resize(0);
 		}
 		
 		#if DEBUG
@@ -429,7 +429,7 @@ public:
 		for (auto sv : s_freed_sparse_vectors_SINGLE)
 			delete (sv);
 		
-		s_freed_sparse_vectors_SINGLE.clear();
+		s_freed_sparse_vectors_SINGLE.resize(0);
 		#if DEBUG
 		s_sparse_vector_count_SINGLE = 0;
 		#endif

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -78,8 +78,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[2].get();
-	EidosValue_String *lambda_value_singleton = dynamic_cast<EidosValue_String *>(p_arguments[2].get());
-	EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+	EidosValue_String *lambda_value_singleton = (EidosValue_String *)p_arguments[2].get();
+	EidosScript *script = lambda_value_singleton->CachedScript();
 	
 	// Errors in lambdas should be reported for the lambda script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -91,9 +91,9 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
 	if (!script)
 	{
-		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr), -1);
+		script = new EidosScript(lambda_value->StringAtIndex_NOCAST(0, nullptr));
 		
-		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 		
 		try
 		{
@@ -103,7 +103,10 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		catch (...)
 		{
 			if (gEidosTerminateThrows)
+			{
 				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_apply()");
+			}
 			
 			delete script;
 			
@@ -116,7 +119,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	
 	std::vector<EidosValue_SP> results;
 	
-	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script};
 	
 	try
 	{
@@ -160,7 +163,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 			{
 				int margin_dim = margins[margin_index];
 				
-				inclusion_indices[margin_dim].clear();
+				inclusion_indices[margin_dim].resize(0);
 				inclusion_indices[margin_dim].emplace_back(margin_counter[margin_index]);
 			}
 			
@@ -262,7 +265,15 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		// don't throw, this catch block will never be hit; exit() will already have been called
 		// and the error will have been reported from the context of the lambda script string.)
 		if (gEidosTerminateThrows)
-			gEidosErrorContext = error_context_save;
+		{
+			// In some cases, such as if the error occurred in a derived user-defined function, we can
+			// actually get a user script error context at this point, and don't need to intervene.
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == -1))
+			{
+				gEidosErrorContext = error_context_save;
+				TranslateErrorContextToUserScript("Eidos_ExecuteFunction_apply()");
+			}
+		}
 		
 		if (!lambda_value_singleton)
 			delete script;

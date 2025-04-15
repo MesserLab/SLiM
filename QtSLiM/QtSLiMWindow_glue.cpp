@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/11/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -42,6 +42,7 @@ void QtSLiMWindow::glueUI(void)
 
     connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::showDrawerClicked);
     //connect(ui->chromosomeActionButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeActionClicked); // this button runs when it is pressed
+    //connect(ui->chromosomeDisplayButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeDisplayClicked); // this button runs when it is pressed
 
     connect(ui->clearDebugButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMScriptTextEdit::clearDebugPoints);
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
@@ -64,6 +65,7 @@ void QtSLiMWindow::glueUI(void)
     ui->recycleButton->qtslimSetBaseName("recycle");
     ui->toggleDrawerButton->qtslimSetBaseName("open_type_drawer");
     ui->chromosomeActionButton->qtslimSetBaseName("action");
+    ui->chromosomeDisplayButton->qtslimSetBaseName("chrom_display");
     ui->clearDebugButton->qtslimSetBaseName("clear_debug");
     ui->checkScriptButton->qtslimSetBaseName("check");
     ui->prettyprintButton->qtslimSetBaseName("prettyprint");
@@ -96,6 +98,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->toggleDrawerButton, &QPushButton::released, this, &QtSLiMWindow::toggleDrawerReleased);
     connect(ui->chromosomeActionButton, &QPushButton::pressed, this, &QtSLiMWindow::chromosomeActionPressed);
     connect(ui->chromosomeActionButton, &QPushButton::released, this, &QtSLiMWindow::chromosomeActionReleased);
+    connect(ui->chromosomeDisplayButton, &QPushButton::pressed, this, &QtSLiMWindow::chromosomeDisplayPressed);
+    connect(ui->chromosomeDisplayButton, &QPushButton::released, this, &QtSLiMWindow::chromosomeDisplayReleased);
     connect(ui->clearDebugButton, &QPushButton::pressed, this, &QtSLiMWindow::clearDebugPressed);
     connect(ui->clearDebugButton, &QPushButton::released, this, &QtSLiMWindow::clearDebugReleased);
     connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMWindow::checkScriptPressed);
@@ -146,6 +150,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
     connect(ui->actionShowCycle_WF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF_MS);
     connect(ui->actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
+    connect(ui->actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
+    connect(ui->actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->actionQuitQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
     connect(ui->actionNew, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
@@ -179,7 +185,8 @@ void QtSLiMWindow::glueUI(void)
 	connect(ui->actionGraph_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     connect(ui->actionGraph_Multispecies_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
-	connect(ui->actionCreate_Haplotype_Plot, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionCreate_Haplotype_Plot_All, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionCreate_Haplotype_Plot_Selected, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
     connect(ui->actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
@@ -276,11 +283,20 @@ void QtSLiMWindow::toggleDrawerReleased(void)
 void QtSLiMWindow::chromosomeActionPressed(void)
 {
     ui->chromosomeActionButton->qtslimSetHighlight(true);
-    chromosomeActionRunMenu();  // this button runs its menu when it is pressed, so make that call here
+    chromosomeConfig->actionButtonRunMenu(ui->chromosomeActionButton);
 }
 void QtSLiMWindow::chromosomeActionReleased(void)
 {
     ui->chromosomeActionButton->qtslimSetHighlight(false);
+}
+void QtSLiMWindow::chromosomeDisplayPressed(void)
+{
+    ui->chromosomeDisplayButton->qtslimSetHighlight(true);
+    chromosomeDisplayPopupButtonRunMenu();  // this button runs its menu when it is pressed, so make that call here
+}
+void QtSLiMWindow::chromosomeDisplayReleased(void)
+{
+    ui->chromosomeDisplayButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::clearDebugPressed(void)
 {

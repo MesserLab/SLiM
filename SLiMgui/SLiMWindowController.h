@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -35,8 +35,6 @@
 
 #include <ctime>
 
-
-@class SLiMHaplotypeGraphView;
 
 class Community;
 
@@ -178,18 +176,6 @@ class Community;
 	IBOutlet NSWindow *profileWindow;		// outlet for ProfileReport.xib; note this does not stay wired up, it is just used transiently
 	IBOutlet NSTextView *profileTextView;	// ditto
 	
-	// Haplotype plot progress panel
-	NSLock *haplotypeProgressLock;
-	BOOL haplotypeProgressTaskCancelled;
-	
-	SLiMHaplotypeGraphView *newHaplotypeGraphView;
-	
-	int haplotypeProgressTaskDistances_Value;
-	int haplotypeProgressTaskClustering_Value;
-	int haplotypeProgressTaskOptimization_Value;
-	
-	volatile int haplotypeProgressGreedySortProgressFlag;		// see greedyPeriodicCounterUpdateWithBackgroundController: for comments on this
-	
 	// Misc
 	bool observingKeyPaths;
 	
@@ -246,7 +232,6 @@ class Community;
 - (IBAction)graphMutationFixationTimeHistogram:(id)sender;
 - (IBAction)graphFitnessOverTime:(id)sender;
 - (IBAction)graphPopulationVisualization:(id)sender;
-- (IBAction)graphHaplotypes:(id)sender;
 
 - (IBAction)playOneStep:(id)sender;
 - (IBAction)play:(id)sender;
@@ -276,52 +261,10 @@ class Community;
 
 - (IBAction)exportScript:(id)sender;			// wired through firstResponder because these are menu items
 - (IBAction)exportOutput:(id)sender;			// wired through firstResponder because these are menu items
-- (IBAction)exportPopulation:(id)sender;		// wired through firstResponder because these are menu items
-
 
 //	Eidos SLiMgui method forwards
 - (void)eidos_openDocument:(NSString *)path;
 - (void)eidos_pauseExecution;
-
-
-// Haplotype plot options sheet
-
-// Outlets connected to objects in SLiMHaplotypeOptionsSheet.xib
-@property (nonatomic, retain) IBOutlet NSWindow *haplotypeOptionsSheet;
-@property (nonatomic, assign) IBOutlet NSTextField *haplotypeSampleTextField;
-@property (nonatomic, assign) IBOutlet NSButton *haplotypeOKButton;
-
-@property (nonatomic) int haplotypeSample;		// 0 = all genomes, 1 = sample
-@property (nonatomic) int haplotypeClustering;	// 0 = nearest neighbor, 1 = greedy, 2 = greedy + 2-opt
-@property (nonatomic) int haplotypeSampleSize;	// from haplotypeSampleTextField
-
-- (void)runHaplotypePlotOptionsSheet;
-
-- (IBAction)changedHaplotypeSample:(id)sender;
-- (IBAction)changedHaplotypeClustering:(id)sender;
-
-- (IBAction)validateHaplotypeSheetControls:(id)sender;
-
-- (IBAction)haplotypeSheetCancel:(id)sender;
-- (IBAction)haplotypeSheetOK:(id)sender;
-
-
-// Haplotype plot progress sheet
-@property (nonatomic, retain) IBOutlet NSWindow *haplotypeProgressSheet;
-@property (nonatomic, assign) IBOutlet NSProgressIndicator *haplotypeProgressDistances;
-@property (nonatomic, assign) IBOutlet NSProgressIndicator *haplotypeProgressClustering;
-@property (nonatomic, assign) IBOutlet NSProgressIndicator *haplotypeProgressOptimization;
-@property (nonatomic, assign) IBOutlet NSTextField *haplotypeProgressOptimizationLabel;
-@property (nonatomic, assign) IBOutlet NSLayoutConstraint *haplotypeProgressNoOptConstraint;
-
-- (void)runHaplotypePlotProgressSheetWithGenomeCount:(int)genome_count;
-
-- (IBAction)haplotypeProgressSheetCancel:(id)sender;
-
-- (void)setHaplotypeProgress:(int)progress forStage:(int)stage;		// the background task indicates progress on task
-- (BOOL)haplotypeProgressIsCancelled;								// the background task asks: has the user cancelled our task?
-- (void)haplotypeProgressTaskStarting;								// the background task tells us it is starting
-- (void)haplotypeProgressTaskFinished;								// the background task tells us it has finished
 
 @end
 

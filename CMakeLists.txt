@@ -49,7 +49,12 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
+# This syntax sets the minimum version to 2.8.12, for compatibility with very old installs, but
+# sets the "policy max" to 4.0.  It's hard to tell from the CMake doc whether the "policy" changes
+# that actually signs us up for matter (wow, CMake is complicated!); but we're not doing anything
+# fancy, so it's hard to imagine it matters.  Be careful to add the 4.0 policy max everywhere that
+# cmake_minimum_required is set.  BCH 4/12/2025
+cmake_minimum_required (VERSION 2.8.12...4.0 FATAL_ERROR)
 
 
 # clang-tidy support (for internal development); must come before the project() line
@@ -57,7 +62,7 @@ cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 option(TIDY "Run clang-tidy on SLiM (for development)" OFF)
 
 if(TIDY)
-	# cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+	# cmake_minimum_required(VERSION 3.6...4.0 FATAL_ERROR)
   if(CMAKE_VERSION VERSION_LESS "3.6")
     message(FATAL_ERROR "To use the clang-tidy wrapper TIDY in this project you will need a version of CMake at least as new as 3.6.")
   endif()
@@ -137,7 +142,8 @@ if(WIN32)
     set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
     set(GNULIB_NAMESPACE_SOURCES "${PROJECT_SOURCE_DIR}/core/chromosome.cpp" 
-        "${PROJECT_SOURCE_DIR}/core/genome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/haplosome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/individual.cpp" 
         "${PROJECT_SOURCE_DIR}/core/population.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
@@ -321,7 +327,7 @@ endif(PARALLEL)
 
 # SLiMgui -- this can be enabled with the -DBUILD_SLIMGUI=ON option to cmake
 if(BUILD_SLIMGUI)
-  cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
+  cmake_minimum_required (VERSION 3.1.0...4.0 FATAL_ERROR)
   set(TARGET_NAME_SLIMGUI SLiMgui)
   find_package(OpenGL REQUIRED)
 

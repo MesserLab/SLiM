@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 9/12/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -132,7 +132,7 @@
 		{
 			const std::string &element_type = class_object->ClassName();
 			
-			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryBase"))		// internal classes are undocumented
+			if (!Eidos_string_hasPrefix(element_type, "_") && (element_type != "DictionaryRetained"))		// internal classes are undocumented
 				[self checkDocumentationOfClass:class_object];
 		}
 		
@@ -517,7 +517,7 @@
 						// but with different signatures, as long as they are not in the same class; we can't handle overloading, but
 						// method lookup is within-class.  So this code could be generalized as the property lookup code below was; I just
 						// haven't bothered to do so.
-						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+						NSLog(@"*** method signature mismatch:\ndocumentation: %@\ndeclaration  : %@", oldSignatureString, newSignatureString);
 					}
 				}
 				else
@@ -611,9 +611,9 @@
 {
 	const EidosClass *superclass = classObject->Superclass();
 	
-	// We're hiding DictionaryBase, where the Dictionary stuff is actually defined, so we have Dictionary pretend that its superclass is Object, so the Dictionary stuff gets checked
-	if (classObject == gEidosDictionaryRetained_Class)
-		superclass = gEidosObject_Class;
+	// We're hiding DictionaryRetained, so DictionaryRetained subclasses pretend their superclass is Dictionary
+	if (superclass == gEidosDictionaryRetained_Class)
+		superclass = gEidosDictionaryUnretained_Class;
 	
 	const std::string &className = classObject->ClassName();
 	NSString *classString = [NSString stringWithUTF8String:className.c_str()];
@@ -1263,6 +1263,7 @@
 						  @"–\u00A0addCloned()",
 						  @"–\u00A0addCrossed()",
 						  @"–\u00A0addEmpty()",
+						  @"–\u00A0addMultiRecombinant()",
 						  @"–\u00A0addRecombinant()",
 						  @"–\u00A0addSelfed()",
 						  @"–\u00A0removeSubpopulation()",

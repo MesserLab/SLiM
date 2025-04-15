@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/29/16.
-//  Copyright (c) 2016-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2016-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -51,26 +51,27 @@ MutationRun::~MutationRun(void)
 
 #if 0
 // linear search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
+bool MutationRun::contains_mutation(const Mutation *p_mut) const
 {
+	MutationIndex mutation_index = p_mut->BlockIndex();
 	const MutationIndex *position = begin_pointer_const();
 	const MutationIndex *end_position = end_pointer_const();
 	
 	for (; position != end_position; ++position)
-		if (*position == p_mutation_index)
+		if (*position == mutation_index)
 			return true;
 	
 	return false;
 }
 #else
 // binary search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
+bool MutationRun::contains_mutation(const Mutation *p_mut) const
 {
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Mutation *mutation = gSLiM_Mutation_Block + p_mutation_index;
-	slim_position_t position = mutation->position_;
+	MutationIndex mutation_index = p_mut->BlockIndex();
+	slim_position_t position = p_mut->position_;
 	int mut_count = size();
 	const MutationIndex *mut_ptr = begin_pointer_const();
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mut_index;
 	
 	{
@@ -107,7 +108,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 		
 		// The mutation at mut_index is at p_position, but it may not be the only such
 		// We check it first, then we check before it scanning backwards, and check after it scanning forwards
-		if (mut_ptr[mut_index] == p_mutation_index)
+		if (mut_ptr[mut_index] == mutation_index)
 			return true;
 	}
 	
@@ -121,7 +122,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 			
 			if ((mut_block_ptr + scan_mut_index)->position_ != position)
 				break;
-			if (scan_mut_index == p_mutation_index)
+			if (scan_mut_index == mutation_index)
 				return true;
 		}
 	}
@@ -135,7 +136,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 			
 			if ((mut_block_ptr + scan_mut_index)->position_ != position)
 				break;
-			if (scan_mut_index == p_mutation_index)
+			if (scan_mut_index == mutation_index)
 				return true;
 		}
 	}
@@ -169,7 +170,7 @@ Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type,
 	else if (p_position == p_last_position)
 	{
 		// The marker is supposed to be at the very end of the chromosome.  This is also a common case,
-		// so we special-case it by starting at the last mutation in the genome.
+		// so we special-case it by starting at the last mutation in the haplosome.
 		if (mut_count == 0)
 			return nullptr;
 		
@@ -261,7 +262,7 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 	static std::vector<Mutation *> return_vec;
 	
 	// First clear out whatever might be left over from last time
-	return_vec.clear();
+	return_vec.resize(0);
 	
 	// Then fill in all the mutation IDs at the given position.  We search backward from the end since usually we are called
 	// when a new mutation has just been added to the end; this will be slow for addNew[Drawn]Mutation() and removeMutations(),
@@ -290,54 +291,54 @@ void MutationRun::_RemoveFixedMutations(void)
 	// That is done only when convertToSubstitution == T, so we don't need to check that flag here.
 	
 	// We don't use begin_pointer() / end_pointer() here, because we actually want to modify the MutationRun even
-	// though it is shared by multiple Genomes; this is an exceptional case, so we go around our safeguards.
-	MutationIndex *genome_iter = mutations_;
-	MutationIndex *genome_backfill_iter = nullptr;
-	MutationIndex *genome_max = mutations_ + mutation_count_;
+	// though it is shared by multiple Haplosomes; this is an exceptional case, so we go around our safeguards.
+	MutationIndex *haplosome_iter = mutations_;
+	MutationIndex *haplosome_backfill_iter = nullptr;
+	MutationIndex *haplosome_max = mutations_ + mutation_count_;
 	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 	
-	// genome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
+	// haplosome_iter advances through the mutation list; for each entry it hits, the entry is either fixed (skip it) or not fixed
 	// (copy it backward to the backfill pointer).  We do this with two successive loops; the first knows that no mutation has
 	// yet been skipped, whereas the second knows that at least one mutation has been.
-	while (genome_iter != genome_max)
+	while (haplosome_iter != haplosome_max)
 	{
-		if ((mutation_block_ptr + (*genome_iter++))->state_ != MutationState::kFixedAndSubstituted)
+		if ((mutation_block_ptr + (*haplosome_iter++))->state_ != MutationState::kFixedAndSubstituted)
 			continue;
 		
-		// Fixed mutation; we want to omit it, so we skip it in genome_backfill_iter and transition to the second loop
-		genome_backfill_iter = genome_iter - 1;
+		// Fixed mutation; we want to omit it, so we skip it in haplosome_backfill_iter and transition to the second loop
+		haplosome_backfill_iter = haplosome_iter - 1;
 		break;
 	}
 	
 #ifdef __clang_analyzer__
 	// the static analyzer doesn't understand the way the loop above drops through to the loop below
-	// this assert is not always true, but it is true whenever (genome_iter != genome_max) at this point
-	assert(genome_backfill_iter);
+	// this assert is not always true, but it is true whenever (haplosome_iter != haplosome_max) at this point
+	assert(haplosome_backfill_iter);
 #endif
 	
-	while (genome_iter != genome_max)
+	while (haplosome_iter != haplosome_max)
 	{
-		MutationIndex mutation_index = *genome_iter;
+		MutationIndex mutation_index = *haplosome_iter;
 		
 		if ((mutation_block_ptr + mutation_index)->state_ != MutationState::kFixedAndSubstituted)
 		{
-			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as genome_iter
-			*genome_backfill_iter = mutation_index;
+			// Unfixed mutation; we want to keep it, so we copy it backward and advance our backfill pointer as well as haplosome_iter
+			*haplosome_backfill_iter = mutation_index;
 			
-			++genome_backfill_iter;
-			++genome_iter;
+			++haplosome_backfill_iter;
+			++haplosome_iter;
 		}
 		else
 		{
 			// Fixed mutation; we want to omit it, so we just advance our pointer
-			++genome_iter;
+			++haplosome_iter;
 		}
 	}
 	
 	// excess mutations at the end have been copied back already; we just adjust mutation_count_ and forget about them
-	if (genome_backfill_iter != nullptr)
+	if (haplosome_backfill_iter != nullptr)
 	{
-		mutation_count_ -= (genome_iter - genome_backfill_iter);
+		mutation_count_ -= (haplosome_iter - haplosome_backfill_iter);
 		
 #if SLIM_USE_NONNEUTRAL_CACHES
 		// invalidate the nonneutral mutation cache
@@ -549,7 +550,7 @@ void MutationRun::check_nonneutral_mutation_cache() const
 
 // Shorthand for clear(), then copy_from_run(p_mutations_to_set), then insert_sorted_mutation() on every
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
-// this is speed: like DoClonalMutation(), we can merge the new mutations in much faster if we do it in
+// this is speed: like HaplosomeCloned(), we can merge the new mutations in much faster if we do it in
 // bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
 void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
 {

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 6/10/16.
-//  Copyright (c) 2016-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2016-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -20,12 +20,12 @@
 /*
  
  The class Individual is a simple placeholder for individual simulated organisms.  It is not used by SLiM's core engine at all;
- it is provided solely for scripting convenience, as a bag containing the two genomes associated with an individual.  This
- makes it easy to sample a subpopulation's individuals, rather than its genomes; to determine whether individuals have a given
- mutation on either of their genomes; and other similar tasks.
+ it is provided solely for scripting convenience, as a bag containing the two haplosomes associated with an individual.  This
+ makes it easy to sample a subpopulation's individuals, rather than its haplosomes; to determine whether individuals have a given
+ mutation on either of their haplosomes; and other similar tasks.
  
  Individuals are kept by Subpopulation, and have the same lifetime as the Subpopulation to which they belong.  Since they do not
- actually contain any information specific to a particular individual – just an index in the Subpopulation's genomes vector –
+ actually contain any information specific to a particular individual – just an index in the Subpopulation's haplosomes vector –
  they do not get deallocated and reallocated between cycles; the same object continues to represent individual #17 of the
  subpopulation for as long as that subpopulation exists.  This is safe because of the way that objects cannot live across code
  block boundaries in SLiM.  The tag values of particular Individual objects will persist between cycles, even though the
@@ -37,7 +37,7 @@
 #define __SLiM__individual__
 
 
-#include "genome.h"
+#include "haplosome.h"
 
 
 class Subpopulation;
@@ -78,13 +78,16 @@ private:
 	
 	EidosValue_SP self_value_;						// cached EidosValue object for speed
 	
+#ifdef SLIMGUI
+	// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
 	uint8_t color_set_;								// set to true if the color for the individual has been set
 	uint8_t colorR_, colorG_, colorB_;				// cached color components from the color property
+#endif
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
-	// If these are maintained, genome pedigree IDs are also maintained in parallel; see genome.h.
+	// If these are maintained, haplosome pedigree IDs are also maintained in parallel; see haplosome.h.
 	float mean_parent_age_;				// the mean age of this individual's parents; 0 if parentless, -1 in WF models
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
 	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
@@ -94,6 +97,14 @@ private:
 	slim_pedigreeid_t pedigree_g3_;		// the id of grandparent 3
 	slim_pedigreeid_t pedigree_g4_;		// the id of grandparent 4
 	int32_t reproductive_output_;		// the number of offspring for which this individual has been a parent, so far
+	
+	// This holds the base tskit id used for haplosomes (nodes) belonging to this individual.  If the haplosome is
+	// in 1st position (the first for its chromosome), its node id is tsk_node_id_base_; if it is in 2nd position
+	// (the second for its chromosome), its node id is tsk_node_id_base_ + 1.  Since this is the same for all
+	// haplosomes for a given individual, we store it here for space efficiency.  This is set up by the method
+	// SetCurrentNewIndividual(), which creates the two new entries in the shared node table that are used by all
+	// haplosomes for the individual.
+	tsk_id_t /* int32_t */ tsk_node_id_base_;
 	
 public:
 	
@@ -132,7 +143,8 @@ public:
 										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
 #endif
 	
-	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
+	Haplosome *hapbuffer_[2];			// *(hapbuffer_[2]), an internal buffer used to avoid allocation and increase memory nonlocality
+	Haplosome **haplosomes_;			// OWNED haplosomes; can point to hapbuffer_ or to an external malloced block
 	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
@@ -149,10 +161,15 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
-	inline virtual ~Individual(void) override { }
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	virtual ~Individual(void) override;
 	
-	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
+	inline __attribute__((always_inline)) void ClearColor(void) {
+#ifdef SLIMGUI
+		// BCH 3/23/2025: color variables now only exist in SLiMgui, to save on memory footprint
+		color_set_ = false;
+#endif
+	}
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
@@ -160,8 +177,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;
@@ -190,8 +207,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 		
 		pedigree_p1_ = p_parent.pedigree_id_;
 		pedigree_p2_ = p_parent.pedigree_id_;
@@ -220,8 +237,8 @@ public:
 	{
 		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = p_pedigree_id * 2;
-		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
+		// haplosome_id_ for all haplosomes should be set to (p_pedigree_id * 2) or (p_pedigree_id * 2 + 1)
+		// that used to be done here, but with multiple chromosomes we do it when the haplosomes are made
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Parentless()
@@ -229,22 +246,40 @@ public:
 		// just for parallel design, no parentage to revoke
 	}
 	
+	// In the new multichromosome design, the individual is created with nullptr values for its haplosomes,
+	// and then this method is used to add each new haplosome object after it is generated
+#if DEBUG
+	void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index);
+#else
+	inline __attribute__((always_inline)) void AddHaplosomeAtIndex(Haplosome *p_haplosome, int p_index)
+	{
+		haplosomes_[p_index] = p_haplosome;
+	}
+#endif
+	
+	// Fetch specific haplosomes; used by haplosomesForChromosomes()
+	void AppendHaplosomesForChromosomes(EidosValue_Object *vec, std::vector<slim_chromosome_index_t> &chromosome_indices, int64_t index, bool includeNulls);
+	
 	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual() and SharedParentCountWithIndividual;
 	// _Relatedness() and _SharedParentCount() are internal API made public for unit testing.
-	double RelatednessToIndividual(Individual &p_ind);
+	double RelatednessToIndividual(Individual &p_ind, ChromosomeType p_chromosome_type);
 	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
 							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
-							   IndividualSex A_sex, IndividualSex B_sex, GenomeType modeledChromosomeType);
+							   IndividualSex A_sex, IndividualSex B_sex, ChromosomeType p_chromosome_type);
 	
 	int SharedParentCountWithIndividual(Individual &p_ind);
 	static int _SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2);
 	
-	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID()			{ return pedigree_id_; }
-	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)		{ pedigree_id_ = p_new_id; }	// should basically never be called
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID()		{ return pedigree_p1_; }
-	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID()		{ return pedigree_p2_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID() const				{ return pedigree_id_; }
+	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)	{ pedigree_id_ = p_new_id; }	// should basically never be called
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID() const		{ return pedigree_p1_; }
+	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID() const		{ return pedigree_p2_; }
 	inline __attribute__((always_inline)) void SetParentPedigreeID(slim_pedigreeid_t p1_new_id, slim_pedigreeid_t p2_new_id)		{ pedigree_p1_ = p1_new_id; pedigree_p2_ = p2_new_id; }	// also?
 	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
+	
+	// Each individual reserves two consecutive nodes in the node table; these get/set the base tskit id for that 2-node block
+	inline __attribute__((always_inline)) tsk_id_t TskitNodeIdBase(void) const { return tsk_node_id_base_; }
+	inline __attribute__((always_inline)) void SetTskitNodeIdBase(tsk_id_t p_id) { tsk_node_id_base_ = p_id; }
 	
 	// Spatial position inheritance from a parent; should be called in every code path that generates an offspring from a parent
 	inline __attribute__((always_inline)) void InheritSpatialPosition(int p_dimensionality, Individual *p_parent) {
@@ -268,6 +303,10 @@ public:
 		}
 	}
 	
+	// Individual-level output methods; used by outputIndividuals() and outputIndividualsToVCF()
+	static void PrintIndividuals_SLiM(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids, bool p_output_object_tags, bool p_output_substitutions, Chromosome *p_focal_chromosome);
+	static void PrintIndividuals_VCF(std::ostream &p_out, const Individual **p_individuals, int64_t p_individuals_count, Species &p_species, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs, Chromosome *p_focal_chromosome);
+	
 	//
 	// Eidos support
 	//
@@ -283,10 +322,12 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_haplosomesForChromosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_relatedness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_sharedParentCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	static EidosValue_SP ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosObject **p_values, size_t p_values_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_mutationsFromHaplosomes(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size);
@@ -307,8 +348,6 @@ public:
 	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
 	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
@@ -327,7 +366,7 @@ public:
 	static void SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	static void SetProperty_Accelerated_color(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);
 	
-	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
+	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentHaplosomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
 	// BCH 5/24/2022: Note that these globals are shared across species, so if one species uses a given facility, all
 	// species will suffer the associated speed penalty for it.  This is a bit unfortunate, but keeps the design simple.
@@ -336,7 +375,7 @@ public:
 	static bool s_any_individual_tag_set_;
 	static bool s_any_individual_tagF_set_;
 	static bool s_any_individual_tagL_set_;
-	static bool s_any_genome_tag_set_;
+	static bool s_any_haplosome_tag_set_;
 	static bool s_any_individual_fitness_scaling_set_;
 	
 	// for Subpopulation::ExecuteMethod_takeMigrants()
@@ -357,6 +396,9 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	
 	virtual EidosValue_SP ExecuteClassMethod(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const override;
+	EidosValue_SP ExecuteMethod_outputIndividuals(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_outputIndividualsToVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	EidosValue_SP ExecuteMethod_readIndividualsFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_setSpatialPosition(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 };
 

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1943,6 +1943,82 @@ EidosValue_SP Eidos_ExecuteFunction_rweibull(const std::vector<EidosValue_SP> &p
 	
 	return result_SP;
 }
+
+//	(integer)rztpois(integer$ n, numeric lambda)
+EidosValue_SP Eidos_ExecuteFunction_rztpois(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex_NOCAST(0, nullptr);
+	EidosValue *arg_lambda = p_arguments[1].get();
+	int arg_lambda_count = arg_lambda->Count();
+	bool lambda_singleton = (arg_lambda_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rztpois): function rztpois() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!lambda_singleton && (arg_lambda_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rztpois): function rztpois() requires lambda to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	// The rpois() function ignores USE_GSL_POISSON and always uses the GSL for maximal accuracy and reliability.
+	// This function does NOT do that, because to use the GSL we would have to rejection sample, and for small
+	// lambda, that could be extremely slow.  We therefore use Eidos_FastRandomPoisson_NONZERO() instead.  It
+	// should fall back on rejection sampling with the GSL in cases where its algorithm is problematic.
+	
+	if (lambda_singleton)
+	{
+		double lambda0 = arg_lambda->NumericAtIndex_NOCAST(0, nullptr);
+		
+		if ((lambda0 <= 0.0) || std::isnan(lambda0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rztpois): function rztpois() requires lambda > 0.0 (" << EidosStringForFloat(lambda0) << " supplied)." << EidosTerminate(nullptr);
+		
+		double exp_neg_lambda = exp(-lambda0);
+		
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		// FIXME PARALLELIZE THIS
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				int_result->set_int_no_check(Eidos_FastRandomPoisson_NONZERO(rng, lambda0, exp_neg_lambda), draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		bool saw_error = false;
+		
+		// FIXME PARALLELIZE THIS
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				double lambda = arg_lambda->NumericAtIndex_NOCAST((int)draw_index, nullptr);
+				
+				if ((lambda <= 0.0) || std::isnan(lambda))
+				{
+					saw_error = true;
+					continue;
+				}
+				
+				int_result->set_int_no_check(Eidos_FastRandomPoisson_NONZERO(rng, lambda, exp(-lambda)), draw_index);
+			}
+		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rztpois): function rztpois() requires lambda > 0.0." << EidosTerminate(nullptr);
+	}
+	
+	return result_SP;
+}
+
 
 
 

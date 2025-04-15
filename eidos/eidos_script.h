@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/1/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -50,7 +50,13 @@ class EidosScript
 protected:
 	
 	const std::string script_string_;		// the full string for the script, from start-brace to the end of the end-brace line
-	int32_t user_script_line_offset_;		// the initial position (lines) in the user's script; -1 if it is not in the user's script
+	
+	// These variables orient this script object within the user-level script; if this script is not derived from
+	// the user's script, these variables will have the default values given here.  See the constructors below.
+	EidosScript *user_script_ = nullptr;	// NOT OWNED: a pointer to the user script that this script is derived from
+	int32_t user_script_line_offset_ = -1;	// the initial position (lines) in the user's script
+	int32_t user_script_offset_ = -1;		// the initial position (chars) in the user's script
+	int32_t user_script_offset_UTF16_ = -1;	// the initial position (UTF-16) in the user's script
 	
 	std::vector<EidosToken> token_stream_;
 	EidosASTNode *parse_root_ = nullptr;						// OWNED POINTER
@@ -69,16 +75,25 @@ public:
 	EidosScript& operator=(const EidosScript&) = delete;					// no copying
 	EidosScript(void) = delete;												// no null construction
 	
-	// Constructing a script now requires the script string to be located in the context of the user's full script string,
-	// to allow debug points set on specific line numbers in the full script to work; there is now a line offset, used to
-	// translate points in this script into points in the full script.  Pass -1 for scripts that are not based in the
-	// user's full script string (lambdas, etc.).
-	explicit EidosScript(std::string p_script_string, int32_t p_user_script_line_offset);
+	// This constructor is for a script that is unmoored from the user script, like a lambda.  There is no way
+	// to correlate error positions in it back to the user script, no way to set debug points in it, etc.
+	explicit EidosScript(std::string p_script_string);
+	
+	// This constructor locates the script within in the context of the user's script, allowing things like debug
+	// points and error tracking to be correlated between this derived script and the original user script.  For
+	// the user script itself, the user script pointer should be nullptr and the offsets should be zero; the fact
+	// that they are not -1 implies that they are valid offsets, and the fact the user script pointer is nullptr
+	// says "I *am* the user script".
+	EidosScript(std::string p_script_string, EidosScript *p_user_script, int32_t p_user_script_line_offset, int32_t p_user_script_char_offset, int32_t p_user_script_UTF16_offset);
 	
 	virtual ~EidosScript(void);
 	
 	void SetFinalSemicolonOptional(bool p_optional_semicolon)		{ final_semicolon_optional_ = p_optional_semicolon; }
+	
+	inline EidosScript *UserScript(void) const { return user_script_; }
 	inline int32_t UserScriptLineOffset(void) const { return user_script_line_offset_; }
+	inline int32_t UserScriptCharOffset(void) const { return user_script_offset_; }
+	inline int32_t UserScriptUTF16Offset(void) const { return user_script_offset_UTF16_; }
 	
 	// generate token stream from script string; if p_make_bad_tokens == true this function will not raise or fail
 	void Tokenize(bool p_make_bad_tokens = false, bool p_keep_nonsignificant = false);

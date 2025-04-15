@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -47,14 +47,12 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#include <memory>
 #include <limits>
 #include <cmath>
 #include <utility>
 #include <iomanip>
 #include <sys/param.h>
 #include <regex>
-#include <signal.h>
 
 // added for Eidos_mkstemps() and Eidos_TemporaryDirectoryExists()
 #include <sys/stat.h>
@@ -109,6 +107,87 @@ int gEidosFloatOutputPrecision = 6;
 int gEidosDebugIndent = 0;
 #endif
 
+// start our wall clock duration timer at launch; this is for Eidos_WallTimeSeconds().
+std::chrono::steady_clock::time_point gEidos_WallTimeBegin = std::chrono::steady_clock::now();
+
+
+#pragma mark -
+#pragma mark Error tracking
+#pragma mark -
+
+void TranslateErrorContextToUserScript(__attribute__ ((unused)) const char *p_caller)
+{
+	// This attempts to translate an error position from the current script out to the user script, so
+	// the position of the error can be highlighted in the GUI.  If the current script is not derived
+	// from the user script, this will fail, and we might try again in a more outer/enclosing script
+	// level, later on in the unwinding of the stack due to the raise.
+	
+	// Note that gEidosErrorContext.currentScript is normally non-nullptr, but in the Eidos console,
+	// lines are executed with gEidosErrorContext.currentScript being nullptr.  There is no "script",
+	// there is only the code that was entered at the prompt, I guess.  Historical reasons, really.
+	
+#if EIDOS_DEBUG_ERROR_POSITIONS
+	// Debugging code for error-tracking
+	std::cout << "=== TranslateErrorContextToUserScript() called from " << p_caller << ":" << std::endl;
+	std::cout << "    gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 << std::endl;
+	std::cout << "    gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 << std::endl;
+	std::cout << "    gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << std::endl;
+	
+	if (gEidosErrorContext.currentScript)
+	{
+		EidosScript *currentScript = gEidosErrorContext.currentScript;
+		EidosScript *userScript = currentScript->UserScript();
+		EidosScript *errorScript = (userScript ? userScript : currentScript);
+		
+		std::cout << "    currentScript->UserScriptUTF16Offset() == " << currentScript->UserScriptUTF16Offset() << std::endl;
+		std::cout << "    currentScript->UserScriptCharOffset() == " << currentScript->UserScriptCharOffset() << std::endl;
+		std::cout << "    currentScript->String() == " << currentScript->String().substr(0, 20) << "..." << std::endl;
+		std::cout << "    currentScript->UserScript() == " << userScript << std::endl;
+		
+		if (errorScript)
+		{
+			const std::string &errorScriptString = errorScript->String();
+			int32_t error_start_utf = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16;
+			int32_t error_end_utf = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16;
+			int32_t offset_to_user_script = (userScript ? currentScript->UserScriptUTF16Offset() : 0);
+			
+			if (offset_to_user_script == -1)
+				offset_to_user_script = 0;
+			
+			int32_t user_error_pos = error_start_utf + offset_to_user_script;
+			int32_t user_error_length = (error_end_utf - error_start_utf) + 1;
+			std::string errorSubstring = errorScriptString.substr(user_error_pos, user_error_length);
+			
+			std::cout << "    errorScript substring == " << errorSubstring << std::endl;
+		}
+	}
+#endif
+	
+	// If the error is in a script derived from the user's script, translate the error up to the user's script.
+	// Doing this here ensures that it takes effect for all the different downstream code paths, of which there
+	// are many.  Note that there are two cases here.  If we have error info that indicates that we're running
+	// in a derived script with a known offset in the user script, then we translate the error position up to
+	// the user script.  If not, we're running in an unmoored script and the error position refers only to that
+	// script; in that case, we leave the error information untouched, and user_script here is nullptr.
+	if (gEidosErrorContext.currentScript)
+	{
+		EidosScript *user_script = gEidosErrorContext.currentScript->UserScript();
+		int32_t utf_offset = gEidosErrorContext.currentScript->UserScriptUTF16Offset();
+		int32_t char_offset = gEidosErrorContext.currentScript->UserScriptCharOffset();
+		
+		if ((utf_offset != -1) && (char_offset != -1) && (user_script != nullptr) && (user_script != gEidosErrorContext.currentScript))
+		{
+			// shift the error position to the user script coordinates
+			gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 += utf_offset;
+			gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 += utf_offset;
+			
+			gEidosErrorContext.errorPosition.characterStartOfError += char_offset;
+			gEidosErrorContext.errorPosition.characterEndOfError += char_offset;
+			
+			gEidosErrorContext.currentScript = user_script;
+		}
+	}
+}
 
 #pragma mark -
 #pragma mark Profiling support
@@ -1180,6 +1259,9 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String(","));
 		gStaticEidosValue_StringComma->MarkAsConstant();
 		
+		gStaticEidosValue_StringTab = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("\t"));
+		gStaticEidosValue_StringTab->MarkAsConstant();
+		
 		gStaticEidosValue_StringPeriod = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("."));
 		gStaticEidosValue_StringPeriod->MarkAsConstant();
 		
@@ -1197,14 +1279,15 @@ void Eidos_WarmUp(void)
 		
 		// Create the global class objects for all Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
-		// and so that the global string names for the classes have already been set up by C++'s static initialization
-		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,			nullptr);
-		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_DictionaryBase,	gEidosObject_Class);
-		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_Dictionary,		gEidosDictionaryUnretained_Class);
-		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,		gEidosDictionaryRetained_Class);
-		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,			gEidosDictionaryRetained_Class);
-		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,		gEidosDictionaryRetained_Class);
-		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,	gEidosObject_Class);
+		// and so that the global string names for the classes have already been set up by C++'s static initialization.
+		// Note the special constructor for EidosDictionaryRetained_Class, with a custom display name for it.
+		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,				nullptr);
+		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_Dictionary,			gEidosObject_Class);
+		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_DictionaryRetained,	gEidosStr_Dictionary,	gEidosDictionaryUnretained_Class);
+		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,			gEidosDictionaryRetained_Class);
+		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,				gEidosDictionaryRetained_Class);
+		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,			gEidosDictionaryRetained_Class);
+		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,		gEidosObject_Class);
 		
 		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
 		// before that point, however, since properties and method signatures may use some of those global permanent values
@@ -1315,7 +1398,7 @@ bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name)
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression)
 {
 	EidosValue_SP value;
-	EidosScript script(p_value_expression, -1);
+	EidosScript script(p_value_expression);
 	
 	// Note this can raise; the caller should be prepared for that
 	script.SetFinalSemicolonOptional(true);
@@ -1343,7 +1426,7 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 	{
 		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid Eidos expression.
 		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
-		EidosScript script(constant, -1);
+		EidosScript script(constant);
 		bool malformed = false;
 		
 		try
@@ -1458,14 +1541,60 @@ std::string gEidosContextLicense;
 std::string gEidosContextCitation;
 
 
+// *******************************************************************************************************************
+//
+//	CLI progress reporting
+//
+#pragma mark -
+#pragma mark CLI progress reporting
+#pragma mark -
+
+std::ostream *gEidos_progress_outstream = nullptr;
+int gEidos_progress_length = 0;
+
+void Eidos_StartProgress(std::ostream *p_progress_stream)
+{
+	if (!gEidos_progress_outstream)
+		gEidos_progress_outstream = p_progress_stream;
+}
+
+void Eidos_WriteProgress(const std::string &p_progress_line)
+{
+	if (gEidos_progress_outstream)
+	{
+		// If we have a progress line up already, erase it in case the new line is shorter
+		Eidos_EraseProgress();
+		
+		// Then show the new line and move to the start of it, so it will get overwritten
+		*gEidos_progress_outstream << p_progress_line << "\r" << std::flush;
+		gEidos_progress_length = (int)p_progress_line.length();
+	}
+}
+
+void Eidos_EraseProgress(void)
+{
+	// Try to erase a progress line we have up.  This will not work well with all styles of output in the
+	// running model.  If the user writes a partial output line without a newline, our progress line
+	// may get tacked on to the end of that, and then not get erased correctly later.  It's hard to
+	// coordinate the progress bar with other output.  We're not going to worry about such issues too
+	// much; the user can always turn off the progress bar, it's an optional feature.
+	if (gEidos_progress_outstream && (gEidos_progress_length > 0))
+	{
+		std::string erase_str = std::string(gEidos_progress_length, ' ');
+		
+		*gEidos_progress_outstream << erase_str << "\r" << std::flush;
+		gEidos_progress_length = 0;
+	}
+}
+
+
 #pragma mark -
 #pragma mark Termination handling
 #pragma mark -
 
-// the part of the input file that caused an error; used to highlight the token or text that caused the error
-EidosErrorContext gEidosErrorContext = {{-1, -1, -1, -1}, nullptr, false};
-
-int gEidosErrorLine = -1, gEidosErrorLineCharacter = -1;
+// The part of the input file that caused an error; used to highlight the token or text that caused the error.
+// The initial state set here is not legal; the currentScript member will need to be set before any error.
+EidosErrorContext gEidosErrorContext = {{-1, -1, -1, -1}, nullptr};
 
 // Warnings
 bool gEidosSuppressWarnings = false;
@@ -1482,6 +1611,9 @@ bool gEidosTerminated;
 // For a shortened backtrace: NSLog(@"%@", [NSThread.callStackSymbols subarrayWithRange:NSMakeRange(0, MIN(5UL, NSThread.callStackSymbols.count))]);
 void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 {
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	fprintf(p_out, "stack trace:\n");
 	
 	// storage array for stack trace address data
@@ -1637,57 +1769,16 @@ void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 	fflush(p_out);
 }
 
-void Eidos_ScriptErrorPosition(const EidosErrorContext &p_error_context)
-{
-	EidosScript *currentScript = p_error_context.currentScript;
-	int errorStart = p_error_context.errorPosition.characterStartOfError;
-	int errorEnd = p_error_context.errorPosition.characterEndOfError;
-	
-	gEidosErrorLine = -1;
-	gEidosErrorLineCharacter = -1;
-	
-	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
-	{
-		// figure out the script line and position
-		const std::string &script_string = currentScript->String();
-		int length = (int)script_string.length();
-		
-		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
-		{
-			int lineStart = (errorStart < length) ? errorStart : length - 1;
-			int lineEnd = (errorEnd < length) ? errorEnd : length - 1;
-			int lineNumber;
-			
-			for (; lineStart > 0; --lineStart)
-				if ((script_string[lineStart - 1] == '\n') || (script_string[lineStart - 1] == '\r'))
-					break;
-			for (; lineEnd < length - 1; ++lineEnd)
-				if ((script_string[lineEnd + 1] == '\n') || (script_string[lineEnd + 1] == '\r'))
-					break;
-			
-			// Figure out the line number in the script where the error starts
-			lineNumber = 1;
-			
-			for (int i = 0; i < lineStart; ++i)
-				if (script_string[i] == '\n')
-					lineNumber++;
-			
-			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = errorStart - lineStart;
-		}
-	}
-}
-
 void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_context)
 {
-	EidosScript *currentScript = p_error_context.currentScript;
+	EidosScript *errorScript = p_error_context.currentScript;
 	int errorStart = p_error_context.errorPosition.characterStartOfError;
 	int errorEnd = p_error_context.errorPosition.characterEndOfError;
 	
-	if (currentScript && (errorStart >= 0) && (errorEnd >= errorStart))
+	if (errorScript && (errorStart >= 0) && (errorEnd >= errorStart))
 	{
 		// figure out the script line, print it, show the error position
-		const std::string &script_string = currentScript->String();
+		const std::string &script_string = errorScript->String();
 		int length = (int)script_string.length();
 		
 		if ((length >= errorStart) && (length >= errorEnd))	// == is the EOF position, which we want to allow but have to treat carefully
@@ -1710,13 +1801,13 @@ void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_
 				if (script_string[i] == '\n')
 					lineNumber++;
 			
-			gEidosErrorLine = lineNumber;
-			gEidosErrorLineCharacter = errorStart - lineStart;
+			int errorLine = lineNumber;
+			int errorLineCharacter = errorStart - lineStart;
 			
-			p_out << std::endl << "Error on script line " << gEidosErrorLine << ", character " << gEidosErrorLineCharacter;
+			p_out << std::endl << "Error on script line " << errorLine << ", character " << errorLineCharacter;
 			
-			if (p_error_context.executingRuntimeScript)
-				p_out << " (inside runtime script block)";
+			if (errorScript->UserScriptCharOffset() == -1)
+				p_out << " (not inside the main user script)";
 			
 			p_out << ":" << std::endl << std::endl;
 			
@@ -1782,6 +1873,15 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_bac
 
 void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 {
+	// At the time that an EidosTerminate error is first raised, we try to translate it from the current script
+	// (which might be an event, a callback, a lambda...) into the user script's context.  This might fail,
+	// because the error might have occurred inside a script that is not derived from the user script; the
+	// code for the error position simply doesn't exist in the user script (perhaps it's a string, or it was
+	// created programmatically).  When we move outward from one script context to another, we will try again
+	// to translate the error context outward to the user script.  The first time we succeed, that defines the
+	// position at which the error will be shown in the GUI.
+	TranslateErrorContextToUserScript("operator<<(EidosTerminate)");
+	
 	p_out << std::endl;
 	
 	p_out.flush();
@@ -1872,13 +1972,16 @@ void CheckLongTermBoundary()
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter != 0)
 		violation = true;
 	
+	// See EidosDictionaryUnretained_Class::ExecuteMethod_setValuesVectorized() for a very obscure
+	// and very unlikely code path that would cause this error to occur... erroneously.  :->
+	
 	if (violation)
 		EIDOS_TERMINATION << "ERROR (CheckLongTermBoundary): A long-term reference has been kept to an Eidos object that is not under retain-release memory management.  For example, a SLiM Individual or Subpopulation may have been placed in a global dictionary.  This is illegal; only objects that are under retain-release memory management can be kept long-term." << EidosTerminate(nullptr);
 }
 
 
 #pragma mark -
-#pragma mark Memory usage monitoring
+#pragma mark Memory usage and runtime monitoring
 #pragma mark -
 
 //
@@ -2175,6 +2278,54 @@ void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &
 			eidos_do_memory_checks = false;
 		}
 	}
+}
+
+double Eidos_WallTimeSeconds(void)
+{
+	std::chrono::steady_clock::time_point end_wall = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::duration wall_duration = end_wall - gEidos_WallTimeBegin;
+	double wall_time_secs = std::chrono::duration<double>(wall_duration).count();
+	
+	return wall_time_secs;
+}
+
+void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time)
+{
+	double user_time, sys_time;
+	
+#if defined(__unix__) || defined(__unix) || defined(unix) || (defined(__APPLE__) && defined(__MACH__))
+	/* BSD, Linux, and OSX -------------------------------------- */
+	struct rusage rusage;
+	getrusage( RUSAGE_SELF, &rusage );
+	
+	user_time = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.0;
+	sys_time = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.0;	
+#elif defined(_WIN32)
+	/* Windows does not have getrusage() ------------------------ */
+	FILETIME proc_creation_time, proc_exit_time, proc_kernel_time, proc_user_time;
+	GetProcessTimes(GetCurrentProcess(), &proc_creation_time, &proc_exit_time, &proc_kernel_time, &proc_user_time);
+	
+	// Windows programming is weird.  Thanks to https://stackoverflow.com/a/12845669/2752221.
+	ULARGE_INTEGER kernel_ularge;
+	ULARGE_INTEGER user_ularge;
+	
+	kernel_ularge.LowPart = proc_kernel_time.dwLowDateTime;
+	kernel_ularge.HighPart = proc_kernel_time.dwHighDateTime;
+	user_ularge.LowPart = proc_user_time.dwLowDateTime;
+	user_ularge.HighPart = proc_user_time.dwHighDateTime;
+	
+	user_time = user_ularge.QuadPart / 10000000.0;
+	sys_time = kernel_ularge.QuadPart / 10000000.0;
+#else
+	/* Unknown OS ----------------------------------------------- */
+	user_time = 0.0;			/* Unsupported. */
+	sys_time = 0.0;				/* Unsupported. */
+#endif
+	
+	if (p_user_time)
+		*p_user_time = user_time;
+	if (p_sys_time)
+		*p_sys_time = sys_time;
 }
 
 
@@ -3902,7 +4053,7 @@ const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gE
 const std::string &gEidosStr__squareTest = EidosRegisteredString("_squareTest", gEidosID__squareTest);
 
 // strings for Dictionary (i.e., for EidosDictionaryUnretained, but also inherited by EidosDictionaryRetained)
-const std::string &gEidosStr_DictionaryBase = EidosRegisteredString("DictionaryBase", gEidosID_DictionaryBase);
+const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
 const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID_allKeys);
 const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
 const std::string &gEidosStr_appendKeysAndValuesFrom = EidosRegisteredString("appendKeysAndValuesFrom", gEidosID_appendKeysAndValuesFrom);
@@ -3913,9 +4064,10 @@ const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidos
 const std::string &gEidosStr_identicalContents = EidosRegisteredString("identicalContents", gEidosID_identicalContents);
 const std::string &gEidosStr_serialize = EidosRegisteredString("serialize", gEidosID_serialize);
 const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidosID_setValue);
+const std::string &gEidosStr_setValuesVectorized = EidosRegisteredString("setValuesVectorized", gEidosID_setValuesVectorized);
 
-// strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
-const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
+// strings for DictionaryRetained (the retain/released subclass created by the Dictionary() constructor)
+const std::string &gEidosStr_DictionaryRetained = EidosRegisteredString("DictionaryRetained", gEidosID_DictionaryRetained);
 
 // strings for DataFrame
 const std::string &gEidosStr_DataFrame = EidosRegisteredString("DataFrame", gEidosID_DataFrame);
@@ -3967,7 +4119,7 @@ const std::string &gEidosStr_color = EidosRegisteredString("color", gEidosID_col
 const std::string &gEidosStr_filePath = EidosRegisteredString("filePath", gEidosID_filePath);
 
 const std::string &gEidosStr_Mutation = EidosRegisteredString("Mutation", gEidosID_Mutation);		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-const std::string &gEidosStr_Genome = EidosRegisteredString("Genome", gEidosID_Genome);			// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+const std::string &gEidosStr_Haplosome = EidosRegisteredString("Haplosome", gEidosID_Haplosome);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 const std::string &gEidosStr_Individual = EidosRegisteredString("Individual", gEidosID_Individual);	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 std::vector<std::string> gEidosConstantNames;

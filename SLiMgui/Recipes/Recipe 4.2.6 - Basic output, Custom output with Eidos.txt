@@ -14,23 +14,23 @@ initialize() {
 
 // custom MS-style output from a multi-subpop sample
 2000 late() {
-	// obtain a random sample of genomes from the whole population
-	g = sample(sim.subpopulations.genomes, 10, T);
+	// obtain a random sample of haplosomes from the whole population
+	h = sample(sim.subpopulations.haplosomes, 10, T);
 	
 	// get the unique mutations in the sample, sorted by position
-	m = sortBy(unique(g.mutations), "position");
+	m = sortBy(unique(h.mutations, preserveOrder=F), "position");
 	
 	// print the number of segregating sites
 	cat("\n\nsegsites: " + size(m) + "\n");
 	
 	// print the positions
-	positions = format("%.6f", m.position / sim.chromosome.lastPosition);
+	positions = format("%.6f", m.position / sim.chromosomes.lastPosition);
 	cat("positions: " + paste(positions, sep=" ") + "\n");
 	
-	// print the sampled genomes
-	for (genome in g)
+	// print the sampled haplosomes
+	for (haplosome in h)
 	{
-		hasMuts = (match(m, genome.mutations) >= 0);
+		hasMuts = (match(m, haplosome.mutations) >= 0);
 		cat(paste(asInteger(hasMuts), sep="") + "\n");
 	}
 }

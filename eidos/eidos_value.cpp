@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -74,6 +74,7 @@ EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringComma;
+EidosValue_String_SP gStaticEidosValue_StringTab;
 EidosValue_String_SP gStaticEidosValue_StringPeriod;
 EidosValue_String_SP gStaticEidosValue_StringDoubleQuote;
 EidosValue_String_SP gStaticEidosValue_String_ECMAScript;
@@ -148,7 +149,7 @@ std::string StringForEidosValueMask(const EidosValueMask p_mask, const EidosClas
 	if (p_object_class && (stripped_mask & kEidosValueMaskObject))
 	{
 		out_string += "<";
-		out_string += p_object_class->ClassName();
+		out_string += p_object_class->ClassNameForDisplay();
 		out_string += ">";
 	}
 	
@@ -1900,7 +1901,7 @@ void EidosValue_Object::RaiseForClassMismatch(void) const
 
 const std::string &EidosValue_Object::ElementType(void) const
 {
-	return Class()->ClassName();
+	return Class()->ClassNameForDisplay();
 }
 
 EidosValue_SP EidosValue_Object::NewMatchingType(void) const

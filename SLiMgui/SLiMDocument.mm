@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/31/17.
-//  Copyright (c) 2017-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -47,7 +47,7 @@
 	"	sim.addSubpop(\"p1\", 500);\n"
 	"}\n"
 	"\n"
-	"// output samples of 10 genomes periodically, all fixed mutations at end\n"
+	"// output samples of 10 haplosomes periodically, all fixed mutations at end\n"
 	"1000 late() { p1.outputSample(10); }\n"
 	"2000 late() { p1.outputSample(10); }\n"
 	"2000 late() { sim.outputFixedMutations(); }\n";
@@ -168,8 +168,8 @@
 	if ([typeName isEqualToString:@"edu.messerlab.slim"])
 	{
 		SLiMWindowController *controller = [[self windowControllers] objectAtIndex:0];
-		NSString *currentScriptString = [controller->scriptTextView string];
-		NSData *data = [currentScriptString dataUsingEncoding:NSUTF8StringEncoding];
+		NSString *curScriptString = [controller->scriptTextView string];
+		NSData *data = [curScriptString dataUsingEncoding:NSUTF8StringEncoding];
 		
 		if (!data && outError)
 			*outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileWriteInapplicableStringEncodingError userInfo:@{ NSLocalizedDescriptionKey : @"The script could not be converted to UTF-8 encoding."}];

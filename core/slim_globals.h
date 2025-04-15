@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/4/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -104,7 +104,7 @@ extern std::ostringstream gSLiMScheduling;		// information about scheduling in e
 // a large amount of headroom, so that we are not at risk of simple calculations with these quantities overflowing.
 // Raising these limits to int64_t is reasonable if you need to run a larger simulation.  Lowering them to int16_t
 // is not recommended, and will likely buy you very little, because most of the memory usage in typical simulations
-// is in the arrays of mutation indices kept by Genome objects.
+// is in the arrays of mutation indices kept by Haplosome objects.
 // BCH 11 May 2018: changing slim_position_t to int64_t for SLiM 3; L <= 1e9 was a bit limiting.  We now enforce a
 // maximum position of 1e15.  INT64_MAX is almost 1e19, so this may seem arbitrary.  The reason is that we want to
 // interact well with code, such as the tree-sequence code, that keeps positions as doubles.  The IEEE standard for
@@ -114,14 +114,15 @@ extern std::ostringstream gSLiMScheduling;		// information about scheduling in e
 typedef int32_t	slim_tick_t;			// tick numbers, tick durations
 typedef int32_t	slim_age_t;				// individual ages which may be from zero on up
 typedef int64_t	slim_position_t;		// chromosome positions, lengths in base pairs
-typedef int64_t slim_mutrun_index_t;	// indices of mutation runs within genomes; SLIM_INF_BASE_POSITION leads to very large values, thus 64-bit
+typedef uint8_t slim_chromosome_index_t;	// the index of a chromosome within a species, in the order they were defined; in [0, 255]
+typedef int64_t slim_mutrun_index_t;	// indices of mutation runs within haplosomes; SLIM_INF_BASE_POSITION leads to very large values, thus 64-bit
 typedef int32_t	slim_objectid_t;		// identifiers values for objects, like the "5" in p5, g5, m5, s5
-typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include genome indices
+typedef int32_t	slim_popsize_t;			// subpopulation sizes and indices, include haplosome indices
 typedef int64_t slim_usertag_t;			// user-provided "tag" values; also used for the "active" property, which is like tag
 typedef int32_t slim_refcount_t;		// mutation refcounts, counts of the number of occurrences of a mutation
 typedef int64_t slim_mutationid_t;		// identifiers for mutations, which require 64 bits since there can be so many
 typedef int64_t slim_pedigreeid_t;		// identifiers for pedigreed individuals; over many ticks in a large model maybe 64 bits?
-typedef int64_t slim_genomeid_t;		// identifiers for pedigreed genomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
+typedef int64_t slim_haplosomeid_t;		// identifiers for pedigreed haplosomes; not user-visible, used by the tree-recording code, pedigree_id*2 + [0/1]
 typedef int32_t slim_polymorphismid_t;	// identifiers for polymorphisms, which need only 32 bits since they are only segregating mutations
 typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-tight classes; also dominance coefficients
 
@@ -130,7 +131,7 @@ typedef float slim_selcoeff_t;			// storage of selection coefficients in memory-
 #define SLIM_INF_BASE_POSITION	(1100000000000000L)	// used to represent a base position infinitely beyond the end of the chromosome
 #define SLIM_MAX_PEDIGREE_ID	(1000000000000000000L)	// pedigree IDs for individuals can range from 0 to 1e18 (~2^60)
 #define SLIM_MAX_ID_VALUE		(1000000000L)	// IDs for subpops, genomic elements, etc. can range from 0 to this
-#define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; genome indexes, up to 2x this
+#define SLIM_MAX_SUBPOP_SIZE	(1000000000L)	// subpopulations can range in size from 0 to this; haplosome indexes, up to Nx this
 #define SLIM_TAG_UNSET_VALUE	(INT64_MIN)		// for tags of type slim_usertag_t, the flag value for "unset"
 #define SLIM_TAGF_UNSET_VALUE	(-DBL_MAX)		// for tags of type double (i.e. tagF), the flag value for "unset"
 
@@ -300,8 +301,8 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  Species : EidosDictionaryUnretained subclass, allocated with new and never deleted
  SLiMEidosBlock : EidosObject subclass, dynamic lifetime with a deferred deletion scheme in Community
  
- MutationRun : no superclass, not visible in Eidos, shared by Genome, private pools for very efficient reuse
- Genome : EidosObject subclass, allocated out of an EidosObjectPool owned by its subpopulation
+ MutationRun : no superclass, not visible in Eidos, shared by Haplosome, private pools for very efficient reuse
+ Haplosome : EidosObject subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Individual : EidosDictionaryUnretained subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Subpopulation : EidosDictionaryUnretained subclass, allocated with new/delete
  
@@ -326,7 +327,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  been lost or fixed.
  
  MutationRun is similarly complex.  It is not visible in Eidos, but a single MutationRun can be shared by multiple
- Genomes, so it keeps a refcount that is updated each tick by tallying usage across genomes.  All MutationRuns are
+ Haplosomes, so it keeps a refcount (updated each tick by tallying usage across haplosomes).  All MutationRuns are
  allocated out of a single pool per species.  When their refcount goes to zero they do not get destructed; instead
  they are returned to a per-species "freed list" while still in a constructed state, allowing extremely fast reuse
  since they are a central bottleneck in most SLiM models.
@@ -363,7 +364,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  BCH 5/24/2022: Adding a new note regarding memory policy in multispecies SLiM.  The above points still apply, but
  it is worth emphasizing that the shared global pools now apply across species.  Multiple species share a pool for
  Mutation objects, and a pool for MutationRun objects, in other words; they do not share their pools of Individual
- and Genome objects, however, as those are kept by the Population.  This is the simplest design, and seems to work
+ and Haplosome objects, however, as those are kept by the Population.  This is the simplest design; it seems to be
  fine.  It might provide greater memory locality benefits for each species to have its own pool, but that would be
  more than offset by the added complexity of having to walk up to the species to get the active pool.  This design
  means that mutaton indexes and gSLiM_next_mutation_id are shared across species; a given mutation index is unique
@@ -371,8 +372,8 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  globals used by all species, so a bulk operation can only be in progress for one species at a time.  Other shared
  globals include s_freed_sparse_vectors_ (which keeps freed SparseVector objects for reuse by InteractionType) and
  gSLiM_next_pedigree_id (which keeps the next pedigree ID to be used).  This implies that pedigree IDs are uniqued
- across species, like mutation IDs, which in turn implies that genome IDs used in tree-sequence recording are too,
- given the invariant relationship between pedigree and genome IDs.
+ across species also, which in turn implies that haplosome IDs used in tree-sequence recording are uniqued as well
+ given the invariant relationship between pedigree and haplosome IDs.
  
  */
 
@@ -387,11 +388,11 @@ typedef struct
 	size_t chromosomeRecombinationRateMaps;
 	size_t chromosomeAncestralSequence;
 	
-	int64_t genomeObjects_count;
-	size_t genomeObjects;
-	size_t genomeExternalBuffers;
-	size_t genomeUnusedPoolSpace;				// this pool is kept by Population, per-species
-	size_t genomeUnusedPoolBuffers;
+	int64_t haplosomeObjects_count;
+	size_t haplosomeObjects;
+	size_t haplosomeExternalBuffers;
+	size_t haplosomeUnusedPoolSpace;				// this pool is kept by Population, per-species
+	size_t haplosomeUnusedPoolBuffers;
 	
 	int64_t genomicElementObjects_count;
 	size_t genomicElementObjects;
@@ -401,6 +402,8 @@ typedef struct
 	
 	int64_t individualObjects_count;
 	size_t individualObjects;
+	size_t individualHaplosomeVectors;
+	size_t individualJunkyardAndHaplosomes;
 	size_t individualUnusedPoolSpace;			// this pool is kept by Population, per-species
 	
 	int64_t mutationObjects_count;
@@ -477,6 +480,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 #define DEBUG_SHUFFLE_BUFFER		1		// debug memory overruns with the shuffle buffer
 #define DEBUG_TICK_RANGES			0		// debug tick range parsing and evaluation
+#define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
 
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output
@@ -500,6 +504,15 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // If 1, and SLiM_verbosity_level >= 2, additional output will be generated regarding the mutation run count
 // experiments performed by Species.
 #define MUTRUN_EXPERIMENT_OUTPUT	0
+
+// If 1, debug output will be generated for mutation run count experiment timing information
+#define MUTRUN_EXPERIMENT_TIMING_OUTPUT		0
+
+// If 1, the MutationRun pointers inside Haplosome objects will be cleared to nullptr when the haplosome is
+// freed, or disposed of into a junkyard, or anything like that -- whenever it is no longer in use.  This
+// could be useful for debugging problems with dereferencing stale MutationRun pointers.  Otherwise it is
+// not necessary, and just slows SLiM down.
+#define SLIM_CLEAR_HAPLOSOMES	0
 
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 extern int64_t SLiM_verbosity_level;
@@ -528,8 +541,8 @@ enum class SLiMCycleStage
 	kWFStage0ExecuteFirstScripts = 1,
 	kWFStage1ExecuteEarlyScripts,
 	kWFStage2GenerateOffspring,
-	kWFStage3RemoveFixedMutations,
-	kWFStage4SwapGenerations,
+	kWFStage3SwapGenerations,
+	kWFStage4RemoveFixedMutations,
 	kWFStage5ExecuteLateScripts,
 	kWFStage6CalculateFitness,
 	kWFStage7AdvanceTickCounter,
@@ -550,17 +563,27 @@ enum class SLiMCycleStage
 
 std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
 
-// This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
-// separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
-// of the individual cannot be determined from its modeled genome.
-enum class GenomeType : uint8_t {
-	kAutosome = 0,
-	kXChromosome,
-	kYChromosome
+// This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
+// from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
+// of the individual, the sex of the individual does not follow the chromosomes.  See the initializeChromosome() doc.
+enum class ChromosomeType : uint8_t {
+	kA_DiploidAutosome = 0,
+	kH_HaploidAutosome,
+	kX_XSexChromosome,
+	kY_YSexChromosome,
+	kZ_ZSexChromosome,
+	kW_WSexChromosome,
+	kHF_HaploidFemaleInherited,
+	kFL_HaploidFemaleLine,
+	kHM_HaploidMaleInherited,
+	kML_HaploidMaleLine,
+	kHNull_HaploidAutosomeWithNull,
+	kNullY_YSexChromosomeWithNull
 };
 
-std::string StringForGenomeType(GenomeType p_genome_type);
-std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type);
+std::string StringForChromosomeType(ChromosomeType p_chromosome_type);
+ChromosomeType ChromosomeTypeForString(std::string type);				// raises if no match
+std::ostream& operator<<(std::ostream& p_out, ChromosomeType p_chromosome_type);
 
 
 // This enumeration represents the sex of an individual: hermaphrodite, female, or male.  It also includes an "unspecified"
@@ -600,6 +623,7 @@ enum class BoundaryCondition : char {
 	kStopping,
 	kReflecting,
 	kReprising,
+	kAbsorbing,
 	kPeriodic
 };
 
@@ -620,7 +644,7 @@ extern const std::string gSLiM_tsk_metadata_schema;
 extern const std::string gSLiM_tsk_edge_metadata_schema;
 extern const std::string gSLiM_tsk_site_metadata_schema;
 extern const std::string gSLiM_tsk_mutation_metadata_schema;
-extern const std::string gSLiM_tsk_node_metadata_schema;
+extern const std::string gSLiM_tsk_node_metadata_schema_FORMAT;
 extern const std::string gSLiM_tsk_individual_metadata_schema;
 extern const std::string gSLiM_tsk_population_metadata_schema_PREJSON;		// before SLiM 3.7
 extern const std::string gSLiM_tsk_population_metadata_schema;
@@ -714,6 +738,14 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 //	Additional global std::string objects.  See script_globals.h for details.
 //
 
+// first are ones with no corresponding ID; these are just std::string globals, not registered
+extern const std::string gStr_strand1;
+extern const std::string gStr_strand2;
+extern const std::string gStr_breaks1;
+extern const std::string gStr_strand3;
+extern const std::string gStr_strand4;
+extern const std::string gStr_breaks2;
+
 void SLiM_ConfigureContext(void);
 
 extern const std::string &gStr_initializeAncestralNucleotides;
@@ -721,6 +753,7 @@ extern const std::string &gStr_initializeGenomicElement;
 extern const std::string &gStr_initializeGenomicElementType;
 extern const std::string &gStr_initializeMutationType;
 extern const std::string &gStr_initializeMutationTypeNuc;
+extern const std::string &gStr_initializeChromosome;
 extern const std::string &gStr_initializeGeneConversion;
 extern const std::string &gStr_initializeMutationRate;
 extern const std::string &gStr_initializeHotspotMap;
@@ -740,6 +773,8 @@ extern const std::string &gStr_hotspotEndPositionsF;
 extern const std::string &gStr_hotspotMultipliers;
 extern const std::string &gStr_hotspotMultipliersM;
 extern const std::string &gStr_hotspotMultipliersF;
+extern const std::string &gStr_intrinsicPloidy;
+extern const std::string &gStr_isSexChromosome;
 extern const std::string &gStr_mutationEndPositions;
 extern const std::string &gStr_mutationEndPositionsM;
 extern const std::string &gStr_mutationEndPositionsF;
@@ -758,13 +793,13 @@ extern const std::string &gStr_recombinationEndPositionsF;
 extern const std::string &gStr_recombinationRates;
 extern const std::string &gStr_recombinationRatesM;
 extern const std::string &gStr_recombinationRatesF;
+extern const std::string &gStr_symbol;
 extern const std::string &gStr_geneConversionEnabled;
 extern const std::string &gStr_geneConversionGCBias;
 extern const std::string &gStr_geneConversionNonCrossoverFraction;
 extern const std::string &gStr_geneConversionMeanLength;
 extern const std::string &gStr_geneConversionSimpleConversionFraction;
-extern const std::string &gStr_genomeType;
-extern const std::string &gStr_isNullGenome;
+extern const std::string &gStr_isNullHaplosome;
 extern const std::string &gStr_mutations;
 extern const std::string &gStr_uniqueMutations;
 extern const std::string &gStr_genomicElementType;
@@ -787,7 +822,7 @@ extern const std::string &gStr_convertToSubstitution;
 extern const std::string &gStr_distributionType;
 extern const std::string &gStr_distributionParams;
 extern const std::string &gStr_dominanceCoeff;
-extern const std::string &gStr_haploidDominanceCoeff;
+extern const std::string &gStr_hemizygousDominanceCoeff;
 extern const std::string &gStr_mutationStackGroup;
 extern const std::string &gStr_mutationStackPolicy;
 //extern const std::string &gStr_start;		now gEidosStr_start
@@ -802,7 +837,7 @@ extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_allSubpopulations;
 extern const std::string &gStr_chromosome;
-extern const std::string &gStr_chromosomeType;
+extern const std::string &gStr_chromosomes;
 extern const std::string &gStr_genomicElementTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
 extern const std::string &gStr_lifetimeReproductiveOutputM;
@@ -810,6 +845,7 @@ extern const std::string &gStr_lifetimeReproductiveOutputF;
 extern const std::string &gStr_modelType;
 extern const std::string &gStr_nucleotideBased;
 extern const std::string &gStr_scriptBlocks;
+extern const std::string &gStr_sexChromosomes;
 extern const std::string &gStr_sexEnabled;
 extern const std::string &gStr_subpopulations;
 extern const std::string &gStr_substitutions;
@@ -828,8 +864,12 @@ extern const std::string &gStr_tagL4;
 extern const std::string &gStr_migrant;
 extern const std::string &gStr_fitnessScaling;
 extern const std::string &gStr_firstMaleIndex;
-extern const std::string &gStr_genomes;
-extern const std::string &gStr_genomesNonNull;
+extern const std::string &gStr_haplosomes;
+extern const std::string &gStr_haplosomesNonNull;
+extern const std::string &gStr_haploidGenome1;
+extern const std::string &gStr_haploidGenome2;
+extern const std::string &gStr_haploidGenome1NonNull;
+extern const std::string &gStr_haploidGenome2NonNull;
 extern const std::string &gStr_sex;
 extern const std::string &gStr_individuals;
 extern const std::string &gStr_subpopulation;
@@ -854,7 +894,7 @@ extern const std::string &gStr_pedigreeID;
 extern const std::string &gStr_pedigreeParentIDs;
 extern const std::string &gStr_pedigreeGrandparentIDs;
 extern const std::string &gStr_reproductiveOutput;
-extern const std::string &gStr_genomePedigreeID;
+extern const std::string &gStr_haplosomePedigreeID;
 extern const std::string &gStr_reciprocal;
 extern const std::string &gStr_sexSegregation;
 extern const std::string &gStr_dimensionality;
@@ -880,14 +920,20 @@ extern const std::string &gStr_containsMutations;
 extern const std::string &gStr_countOfMutationsOfType;
 extern const std::string &gStr_positionsOfMutationsOfType;
 extern const std::string &gStr_containsMarkerMutation;
+extern const std::string &gStr_haplosomesForChromosomes;
 extern const std::string &gStr_relatedness;
 extern const std::string &gStr_sharedParentCount;
 extern const std::string &gStr_mutationsOfType;
+extern const std::string &gStr_outputIndividuals;
+extern const std::string &gStr_outputIndividualsToVCF;
+extern const std::string &gStr_readIndividualsFromVCF;
 extern const std::string &gStr_setSpatialPosition;
+extern const std::string &gStr_substitutionsOfType;
 extern const std::string &gStr_sumOfMutationsOfType;
 extern const std::string &gStr_uniqueMutationsOfType;
-extern const std::string &gStr_readFromMS;
-extern const std::string &gStr_readFromVCF;
+extern const std::string &gStr_mutationsFromHaplosomes;
+extern const std::string &gStr_readHaplosomesFromMS;
+extern const std::string &gStr_readHaplosomesFromVCF;
 extern const std::string &gStr_removeMutations;
 extern const std::string &gStr_setGenomicElementType;
 extern const std::string &gStr_setMutationFractions;
@@ -896,8 +942,15 @@ extern const std::string &gStr_setSelectionCoeff;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawSelectionCoefficient;
 extern const std::string &gStr_setDistribution;
+extern const std::string &gStr_addPatternForClone;
+extern const std::string &gStr_addPatternForCross;
+extern const std::string &gStr_addPatternForNull;
+extern const std::string &gStr_addPatternForRecombinant;
 extern const std::string &gStr_addSubpop;
 extern const std::string &gStr_addSubpopSplit;
+extern const std::string &gStr_chromosomesOfType;
+extern const std::string &gStr_chromosomesWithIDs;
+extern const std::string &gStr_chromosomesWithSymbols;
 extern const std::string &gStr_estimatedLastTick;
 extern const std::string &gStr_deregisterScriptBlock;
 extern const std::string &gStr_genomicElementTypesWithIDs;
@@ -910,9 +963,9 @@ extern const std::string &gStr_subpopulationsWithNames;
 extern const std::string &gStr_individualsWithPedigreeIDs;
 extern const std::string &gStr_killIndividuals;
 extern const std::string &gStr_mutationCounts;
-extern const std::string &gStr_mutationCountsInGenomes;
+extern const std::string &gStr_mutationCountsInHaplosomes;
 extern const std::string &gStr_mutationFrequencies;
-extern const std::string &gStr_mutationFrequenciesInGenomes;
+extern const std::string &gStr_mutationFrequenciesInHaplosomes;
 //extern const std::string &gStr_mutationsOfType;
 //extern const std::string &gStr_countOfMutationsOfType;
 extern const std::string &gStr_outputFixedMutations;
@@ -944,12 +997,14 @@ extern const std::string &gStr_treeSeqOutput;
 extern const std::string &gStr__debug;	// internal
 extern const std::string &gStr_setMigrationRates;
 extern const std::string &gStr_deviatePositions;
+extern const std::string &gStr_deviatePositionsWithMap;
 extern const std::string &gStr_pointDeviated;
 extern const std::string &gStr_pointInBounds;
 extern const std::string &gStr_pointReflected;
 extern const std::string &gStr_pointStopped;
 extern const std::string &gStr_pointPeriodic;
 extern const std::string &gStr_pointUniform;
+extern const std::string &gStr_pointUniformWithMap;
 extern const std::string &gStr_setCloningRate;
 extern const std::string &gStr_setSelfingRate;
 extern const std::string &gStr_setSexRatio;
@@ -958,6 +1013,7 @@ extern const std::string &gStr_setSubpopulationSize;
 extern const std::string &gStr_addCloned;
 extern const std::string &gStr_addCrossed;
 extern const std::string &gStr_addEmpty;
+extern const std::string &gStr_addMultiRecombinant;
 extern const std::string &gStr_addRecombinant;
 extern const std::string &gStr_addSelfed;
 extern const std::string &gStr_takeMigrants;
@@ -991,9 +1047,9 @@ extern const std::string &gStr_smooth;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
 extern const std::string &gStr_outputSample;
-extern const std::string &gStr_outputMS;
-extern const std::string &gStr_outputVCF;
-extern const std::string &gStr_output;
+extern const std::string &gStr_outputHaplosomesToMS;
+extern const std::string &gStr_outputHaplosomesToVCF;
+extern const std::string &gStr_outputHaplosomes;
 extern const std::string &gStr_evaluate;
 extern const std::string &gStr_distance;
 extern const std::string &gStr_localPopulationDensity;
@@ -1019,9 +1075,9 @@ extern const std::string &gStr_sim;
 extern const std::string &gStr_self;
 extern const std::string &gStr_individual;
 extern const std::string &gStr_element;
-extern const std::string &gStr_genome;
-extern const std::string &gStr_genome1;
-extern const std::string &gStr_genome2;
+extern const std::string &gStr_haplosome;
+extern const std::string &gStr_haplosome1;
+extern const std::string &gStr_haplosome2;
 extern const std::string &gStr_subpop;
 extern const std::string &gStr_sourceSubpop;
 //extern const std::string &gStr_weights;		now gEidosStr_weights
@@ -1063,7 +1119,7 @@ extern const std::string &gStr_text;
 extern const std::string &gStr_title;
 
 extern const std::string &gStr_Chromosome;
-//extern const std::string &gStr_Genome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
+//extern const std::string &gStr_Haplosome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gStr_GenomicElement;
 extern const std::string &gStr_GenomicElementType;
 //extern const std::string &gStr_Mutation;		// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1102,12 +1158,21 @@ extern const std::string &gStr_setSuppliedValue;
 extern const std::string &gStr_willAutolog;
 extern const std::string &gStr_context;
 
-extern const std::string &gStr_A;
-extern const std::string gStr_C;	// these nucleotide strings are not registered, no need
+extern const std::string gStr_A;	// these nucleotide strings are not registered, no need
+extern const std::string gStr_C;
 extern const std::string gStr_G;
 extern const std::string gStr_T;
-extern const std::string &gStr_X;
-extern const std::string &gStr_Y;
+extern const std::string gStr_H;	// these chromosome type strings (and "A" above) are not registered, no need
+extern const std::string gStr_X;
+extern const std::string gStr_Y;
+extern const std::string gStr_Z;
+extern const std::string gStr_W;
+extern const std::string gStr_HF;
+extern const std::string gStr_FL;
+extern const std::string gStr_HM;
+extern const std::string gStr_ML;
+extern const std::string gStr_H_;
+extern const std::string gStr__Y;
 extern const std::string &gStr_f;
 extern const std::string &gStr_g;
 extern const std::string &gStr_e;
@@ -1141,6 +1206,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeMutationTypeNuc,
+	gID_initializeChromosome,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
 	gID_initializeHotspotMap,
@@ -1160,6 +1226,8 @@ enum _SLiMGlobalStringID : int {
 	gID_hotspotMultipliers,
 	gID_hotspotMultipliersM,
 	gID_hotspotMultipliersF,
+	gID_intrinsicPloidy,
+	gID_isSexChromosome,
 	gID_mutationEndPositions,
 	gID_mutationEndPositionsM,
 	gID_mutationEndPositionsF,
@@ -1178,13 +1246,13 @@ enum _SLiMGlobalStringID : int {
 	gID_recombinationRates,
 	gID_recombinationRatesM,
 	gID_recombinationRatesF,
+	gID_symbol,
 	gID_geneConversionEnabled,
 	gID_geneConversionGCBias,
 	gID_geneConversionNonCrossoverFraction,
 	gID_geneConversionMeanLength,
 	gID_geneConversionSimpleConversionFraction,
-	gID_genomeType,
-	gID_isNullGenome,
+	gID_isNullHaplosome,
 	gID_mutations,
 	gID_uniqueMutations,
 	gID_genomicElementType,
@@ -1207,7 +1275,7 @@ enum _SLiMGlobalStringID : int {
 	gID_distributionType,
 	gID_distributionParams,
 	gID_dominanceCoeff,
-	gID_haploidDominanceCoeff,
+	gID_hemizygousDominanceCoeff,
 	gID_mutationStackGroup,
 	gID_mutationStackPolicy,
 	//gID_start,	now gEidosID_start
@@ -1222,7 +1290,7 @@ enum _SLiMGlobalStringID : int {
 	gID_allSpecies,
 	gID_allSubpopulations,
 	gID_chromosome,
-	gID_chromosomeType,
+	gID_chromosomes,
 	gID_genomicElementTypes,
 	gID_lifetimeReproductiveOutput,
 	gID_lifetimeReproductiveOutputM,
@@ -1230,6 +1298,7 @@ enum _SLiMGlobalStringID : int {
 	gID_modelType,
 	gID_nucleotideBased,
 	gID_scriptBlocks,
+	gID_sexChromosomes,
 	gID_sexEnabled,
 	gID_subpopulations,
 	gID_substitutions,
@@ -1248,8 +1317,12 @@ enum _SLiMGlobalStringID : int {
 	gID_migrant,
 	gID_fitnessScaling,
 	gID_firstMaleIndex,
-	gID_genomes,
-	gID_genomesNonNull,
+	gID_haplosomes,
+	gID_haplosomesNonNull,
+	gID_haploidGenome1,
+	gID_haploidGenome2,
+	gID_haploidGenome1NonNull,
+	gID_haploidGenome2NonNull,
 	gID_sex,
 	gID_individuals,
 	gID_subpopulation,
@@ -1274,7 +1347,7 @@ enum _SLiMGlobalStringID : int {
 	gID_pedigreeParentIDs,
 	gID_pedigreeGrandparentIDs,
 	gID_reproductiveOutput,
-	gID_genomePedigreeID,
+	gID_haplosomePedigreeID,
 	gID_reciprocal,
 	gID_sexSegregation,
 	gID_dimensionality,
@@ -1300,14 +1373,20 @@ enum _SLiMGlobalStringID : int {
 	gID_countOfMutationsOfType,
 	gID_positionsOfMutationsOfType,
 	gID_containsMarkerMutation,
+	gID_haplosomesForChromosomes,
 	gID_relatedness,
 	gID_sharedParentCount,
 	gID_mutationsOfType,
+	gID_outputIndividuals,
+	gID_outputIndividualsToVCF,
+	gID_readIndividualsFromVCF,
 	gID_setSpatialPosition,
+	gID_substitutionsOfType,
 	gID_sumOfMutationsOfType,
 	gID_uniqueMutationsOfType,
-	gID_readFromMS,
-	gID_readFromVCF,
+	gID_mutationsFromHaplosomes,
+	gID_readHaplosomesFromMS,
+	gID_readHaplosomesFromVCF,
 	gID_removeMutations,
 	gID_setGenomicElementType,
 	gID_setMutationFractions,
@@ -1316,7 +1395,14 @@ enum _SLiMGlobalStringID : int {
 	gID_setMutationType,
 	gID_drawSelectionCoefficient,
 	gID_setDistribution,
+	gID_addPatternForClone,
+	gID_addPatternForCross,
+	gID_addPatternForNull,
+	gID_addPatternForRecombinant,
 	gID_addSubpop,
+	gID_chromosomesOfType,
+	gID_chromosomesWithIDs,
+	gID_chromosomesWithSymbols,
 	gID_addSubpopSplit,
 	gID_estimatedLastTick,
 	gID_deregisterScriptBlock,
@@ -1330,9 +1416,9 @@ enum _SLiMGlobalStringID : int {
 	gID_individualsWithPedigreeIDs,
 	gID_killIndividuals,
 	gID_mutationCounts,
-	gID_mutationCountsInGenomes,
+	gID_mutationCountsInHaplosomes,
 	gID_mutationFrequencies,
-	gID_mutationFrequenciesInGenomes,
+	gID_mutationFrequenciesInHaplosomes,
 	//gID_mutationsOfType,
 	//gID_countOfMutationsOfType,
 	gID_outputFixedMutations,
@@ -1364,12 +1450,14 @@ enum _SLiMGlobalStringID : int {
 	gID__debug,		// internal
 	gID_setMigrationRates,
 	gID_deviatePositions,
+	gID_deviatePositionsWithMap,
 	gID_pointDeviated,
 	gID_pointInBounds,
 	gID_pointReflected,
 	gID_pointStopped,
 	gID_pointPeriodic,
 	gID_pointUniform,
+	gID_pointUniformWithMap,
 	gID_setCloningRate,
 	gID_setSelfingRate,
 	gID_setSexRatio,
@@ -1378,6 +1466,7 @@ enum _SLiMGlobalStringID : int {
 	gID_addCloned,
 	gID_addCrossed,
 	gID_addEmpty,
+	gID_addMultiRecombinant,
 	gID_addRecombinant,
 	gID_addSelfed,
 	gID_takeMigrants,
@@ -1411,9 +1500,9 @@ enum _SLiMGlobalStringID : int {
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,
-	gID_outputMS,
-	gID_outputVCF,
-	gID_output,
+	gID_outputHaplosomesToMS,
+	gID_outputHaplosomesToVCF,
+	gID_outputHaplosomes,
 	gID_evaluate,
 	gID_distance,
 	gID_localPopulationDensity,
@@ -1439,9 +1528,9 @@ enum _SLiMGlobalStringID : int {
 	gID_self,
 	gID_individual,
 	gID_element,
-	gID_genome,
-	gID_genome1,
-	gID_genome2,
+	gID_haplosome,
+	gID_haplosome1,
+	gID_haplosome2,
 	gID_subpop,
 	gID_sourceSubpop,
 	//gID_weights,		now gEidosID_weights
@@ -1483,7 +1572,7 @@ enum _SLiMGlobalStringID : int {
 	gID_title,
 	
 	gID_Chromosome,
-	gID_Genome,
+	gID_Haplosome,
 	gID_GenomicElement,
 	gID_GenomicElementType,
 	//gID_Mutation,		// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1522,9 +1611,6 @@ enum _SLiMGlobalStringID : int {
 	gID_willAutolog,
 	gID_context,
 	
-	gID_A,
-	gID_X,
-	gID_Y,
 	gID_f,
 	gID_g,
 	gID_e,

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 7/28/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -40,6 +40,7 @@
 #include <QPalette>
 #include <QApplication>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QDebug>
 #include <cmath>
 
@@ -51,6 +52,70 @@
 
 #include "eidos_value.h"
 
+
+void QtSLiMMakeWindowVisibleAndExposed(QWidget *window)
+{
+    // we've had lots of problems in SLiMgui with windows not showing when the user expects them to show; this function
+    // is intended to mitigate those issues by doing EVERYTHING we can to make the window visible and exposed.
+    if (!window->isWindow())
+    {
+        qDebug() << "The widget" << window << "is not a window!";
+        return;
+    }
+    
+    // if there is a window other than us that is full-screen, we might have trouble getting in front of it
+    // I'm not sure how this is normally dealt with by operating systems, since I never use full-screen mode
+    // on macOS it seems to work OK; the new window goes full-screen also, in front of the other, which
+    // I assume is the standard behavior...?  I'll wait for reported bugs on this one, I don't know.  FIXME
+    
+    // un-miniaturize the window if it is miniaturized
+    if (window->windowState() & Qt::WindowMinimized)
+        window->setWindowState((window->windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+    
+    // the standard Qt litany for making a window rise to front: show, raise, activate
+    window->show();
+    window->raise();
+    window->activateWindow();
+    
+    // check the coordinates of the window and make sure it is actually visible on-screen
+    // This requires Qt 5.10 or later
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+    QScreen *screen1 = QGuiApplication::screenAt(window->frameGeometry().topLeft());
+    QScreen *screen2 = QGuiApplication::screenAt(window->frameGeometry().topRight());
+    QScreen *screen3 = QGuiApplication::screenAt(window->frameGeometry().bottomLeft());
+    QScreen *screen4 = QGuiApplication::screenAt(window->frameGeometry().bottomRight());
+    QScreen *screen5 = QGuiApplication::screenAt(window->frameGeometry().center());
+    int cornerCount = (!!screen1) + (!!screen2) + (!!screen3) + (!!screen4);
+    
+    if (!screen5)
+        cornerCount = 0;
+    
+    if (cornerCount >= 2)   // 2 corners plus the center are visible
+        return;
+    
+    // we're not very visible on-screen, so move ourselves so that we are; this is obviously ungraceful
+    // it would be nice to move the window to some concept of a "closest point to the current position
+    // that is fully visible", but I'm not sure how to do that, for the general case; (100, 100) seems ok
+    window->move(100, 100);
+#endif
+}
+
+void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets)
+{
+    // this code from https://stackoverflow.com/a/7077340/2752221
+    // thanks to stackoverflow user Darko Maksimovic
+    while (QLayoutItem *item = layout->takeAt(0))
+    {
+        if (deleteWidgets)
+        {
+            if (QWidget *widget = item->widget())
+                widget->deleteLater();
+        }
+        if (QLayout *childLayout = item->layout())
+            QtSLiMClearLayout(childLayout, deleteWidgets);
+        delete item;
+    }
+}
 
 void QtSLiMFrameRect(const QRect &p_rect, const QColor &p_color, QPainter &p_painter)
 {
@@ -486,7 +551,7 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
             
             if (arg_obj_class && (stripped_mask & kEidosValueMaskObject))
             {
-                int obj_type_name_len = QString::fromStdString(arg_obj_class->ClassName()).length();
+                int obj_type_name_len = QString::fromStdString(arg_obj_class->ClassNameForDisplay()).length();
                 
                 typeLength += (obj_type_name_len + 2);  // "<" obj_type_name ">"
             }

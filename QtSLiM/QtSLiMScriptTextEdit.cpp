@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 11/24/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -221,10 +221,14 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
 
 void QtSLiMTextEdit::selectErrorRange(EidosErrorContext &errorContext)
 {
-	// If there is error-tracking information set, and the error is not attributed to a runtime script
-	// such as a lambda or a callback, then we can highlight the error range
-	if (!errorContext.executingRuntimeScript && (errorContext.errorPosition.characterStartOfErrorUTF16 >= 0) && (errorContext.errorPosition.characterEndOfErrorUTF16 >= errorContext.errorPosition.characterStartOfErrorUTF16))
-        highlightError(errorContext.errorPosition.characterStartOfErrorUTF16, errorContext.errorPosition.characterEndOfErrorUTF16 + 1);
+    // If there is error-tracking information set, and the error is attributed to the user script,
+    // then we can highlight the error range
+    if ((!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0)) &&
+        (errorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+        (errorContext.errorPosition.characterEndOfErrorUTF16 >= errorContext.errorPosition.characterStartOfErrorUTF16))
+    {
+		highlightError(errorContext.errorPosition.characterStartOfErrorUTF16, errorContext.errorPosition.characterEndOfErrorUTF16 + 1);
+    }
 }
 
 QPalette QtSLiMTextEdit::qtslimStandardPalette(void)
@@ -288,8 +292,7 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
 {
 	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
-	QString currentScriptString = toPlainText();
-    QByteArray utf8bytes = currentScriptString.toUtf8();
+    QByteArray utf8bytes = toPlainText().toUtf8();
 	const char *cstr = utf8bytes.constData();
 	std::string errorDiagnostic;
 	
@@ -301,7 +304,7 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
 	{
         if (scriptType == EidosScriptType)
         {
-            EidosScript script(cstr, -1);
+            EidosScript script(cstr);
             
             try {
                 script.Tokenize();
@@ -342,7 +345,7 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
             
             EidosErrorContext errorContext = gEidosErrorContext;
             
-            gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+            ClearErrorContext();
             
             selectErrorRange(errorContext);
             
@@ -351,7 +354,11 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
             messageBox.setText("Script error");
             messageBox.setInformativeText(q_errorDiagnostic);
             messageBox.setIcon(QMessageBox::Warning);
-            messageBox.setWindowModality(Qt::WindowModal);
+            
+            // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+            // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+            // seems necessary so floating windows can't be on top of the message box
+            messageBox.setWindowModality(Qt::ApplicationModal);
             messageBox.setFixedWidth(700);      // seems to be ignored
             messageBox.exec();
             
@@ -373,7 +380,11 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
                 messageBox.setText("No script errors");
                 messageBox.setInformativeText("No errors found.");
                 messageBox.setIcon(QMessageBox::Information);
-                messageBox.setWindowModality(Qt::WindowModal);
+                
+                // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+                // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::ApplicationModal
+                // seems necessary so floating windows can't be on top of the message box
+                messageBox.setWindowModality(Qt::ApplicationModal);
                 messageBox.setCheckBox(new QCheckBox("Do not show this message again", nullptr));
                 messageBox.exec();
                 
@@ -398,10 +409,9 @@ void QtSLiMTextEdit::_prettyprint_reformat(bool p_reformat)
 		if (checkScriptSuppressSuccessResponse(true))
 		{
 			// We know the script is syntactically correct, so we can tokenize and parse it without worries
-            QString currentScriptString = toPlainText();
-            QByteArray utf8bytes = currentScriptString.toUtf8();
+            QByteArray utf8bytes = toPlainText().toUtf8();
             const char *cstr = utf8bytes.constData();
-			EidosScript script(cstr, -1);
+			EidosScript script(cstr);
             
 			script.Tokenize(false, true);	// get whitespace and comment tokens
 			
@@ -728,7 +738,7 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForScriptString(QString scriptStrin
 	// This returns a function map (owned by the caller) that reflects the best guess we can make, incorporating
 	// any functions known to our delegate, as well as all functions we can scrape from the script string.
 	std::string script_string = scriptString.toStdString();
-	EidosScript script(script_string, -1);
+	EidosScript script(script_string);
 	
 	// Tokenize
 	script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -817,7 +827,7 @@ EidosCallSignature_CSP QtSLiMTextEdit::signatureForScriptSelection(QString &call
     if (scriptString.length())
 	{
 		std::string script_string = scriptString.toStdString();
-		EidosScript script(script_string, -1);
+		EidosScript script(script_string);
 		
 		// Tokenize
 		script.Tokenize(true, false);	// make bad tokens as needed, don't keep nonsignificant tokens
@@ -989,7 +999,7 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
             else if (callName == "recombination")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
-                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("recombination", nullptr, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible)->AddIntString_OSN("chromosome", gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "survival")
@@ -2127,8 +2137,8 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             break;
                         case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_haplosome1,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_haplosome2,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_breakpoints,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
                             break;
@@ -2136,7 +2146,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_parent,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
                             (*typeTable)->SetTypeForSymbol(gID_element,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_GenomicElement_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_haplosome,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Haplosome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_originalNuc,		EidosTypeSpecifier{kEidosValueMaskInt, nullptr});
                             break;
@@ -2315,7 +2325,7 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 			delete definitive_function_map;
 			
 			// Next, add type table entries based on parsing and analysis of the user's code
-			EidosScript script(script_string, -1);
+			EidosScript script(script_string);
 			
 			script.Tokenize(true, false);					// make bad tokens as needed, do not keep nonsignificant tokens
 			script.ParseInterpreterBlockToAST(true, true);	// make bad nodes as needed (i.e. never raise, and produce a correct tree)
@@ -2326,7 +2336,7 @@ void QtSLiMTextEdit::_completionHandlerWithRangeForCompletion(NSRange *baseRange
 		}
 		
 		// Tokenize; we can't use the tokenization done above, as we want whitespace tokens here...
-		EidosScript script(script_string, -1);
+		EidosScript script(script_string);
 		script.Tokenize(true, true);	// make bad tokens as needed, keep nonsignificant tokens
 		
 		const std::vector<EidosToken> &tokens = script.Tokens();
@@ -2548,6 +2558,11 @@ void QtSLiMScriptTextEdit::sharedInit(void)
     setCenterOnScroll(true);
     
     initializeLineNumbers();
+    
+    // set up to listen to changes to page guide prefs
+    QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    
+    connect(&prefsNotifier, &QtSLiMPreferencesNotifier::pageGuidePrefsChanged, this, [this]() { viewport()->update(); });
 }
 
 void QtSLiMScriptTextEdit::initializeLineNumbers(void)
@@ -2745,6 +2760,36 @@ void QtSLiMScriptTextEdit::commentUncommentSelection(void)
 	{
 		qApp->beep();
 	}
+}
+
+void QtSLiMScriptTextEdit::insertFromMimeData(const QMimeData *source)
+{
+    // if the data pasted is text, we want to convert weird line breaks into newlines
+    // note that the substitution done here strips off any other mime types in source,
+    // but that seems fine; if there's text, we're going to paste text, so whatever.
+    if (source && source->hasText())
+    {
+        QString text = source->text();
+        
+        // Unknown characters can be identified with https://www.babelstone.co.uk/Unicode/whatisit.html
+        //qDebug() << "pasted:" << text;
+        
+        // Unicode "U+2028 : LINE SEPARATOR" is the one presently causing me problems,
+        // but U+2029 should be replaced as well; we want vanilla non-unicode line ends.
+        text.replace(QChar::LineSeparator, '\n');
+        text.replace(QChar::ParagraphSeparator, '\n');
+        
+        //qDebug() << "substituted:" << text;
+        
+        QMimeData substitute;
+        substitute.setText(text);
+        
+        QPlainTextEdit::insertFromMimeData(&substitute);
+        return;
+    }
+    
+    // call to super to do the work
+    QPlainTextEdit::insertFromMimeData(source);
 }
 
 // From here down is the machinery for providing line numbers with LineNumberArea
@@ -3390,6 +3435,58 @@ QString QtSLiMScriptTextEdit::exportAsHtml(void)
     
     return html;
 }
+
+void QtSLiMScriptTextEdit::paintEvent(QPaintEvent *event)
+{
+    // If the user wants a "page guide", show a slightly dimmed margin beyond a threshold column
+    // Note that Qt has already cleared to the white background of the QTextEdit
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    bool showPageGuide = prefs.showPageGuidePref();
+    
+    if (showPageGuide)
+    {
+        QFont displayFont = prefs.displayFontPref();
+        QFontMetricsF fm(displayFont);
+        double marginStart;
+        QString marginString(prefs.pageGuideColumnPref(), ' ');
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        marginStart = fm.width(marginString);                // deprecated in 5.11
+#else
+        marginStart = fm.horizontalAdvance(marginString);    // added in Qt 5.11
+#endif
+        
+        // adjust by the document margin, which is built into QTextDocument; this took a while to find!
+        // this is an inset of the QTextEdit's contents, on all four sides; it defaults to 4, which we do not change
+        QTextDocument *doc = document();
+        double docMargin = doc->documentMargin();
+        
+        marginStart += docMargin;
+        marginStart = round(marginStart);
+        
+        QRect bounds = rect();
+        
+        if (bounds.width() >= marginStart)
+        {
+            // Because QTextEdit's display lives inside a scrollable area, we use viewport()
+            QPainter painter(this->viewport());
+            
+            QRect margin = bounds.adjusted(marginStart, 0, 0, 0);
+            QRect marginEdge = margin;
+            
+            // draw a one-pixel darker line at the border
+            marginEdge.setWidth(1);
+            margin.adjust(1, 0, 0, 0);
+            
+            painter.fillRect(marginEdge, QtSLiMColorWithWhite(0.918, 1.0));
+            painter.fillRect(margin, QtSLiMColorWithWhite(0.980, 1.0));
+        }
+    }
+    
+    // call super to have it paint; this draws all the text and everything
+    QtSLiMTextEdit::paintEvent(event);
+}
+
 
 
 

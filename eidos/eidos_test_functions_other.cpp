@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 7/11/20.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -734,7 +734,7 @@ void _RunFunctionMiscTests_apply_sapply(void)
 void _RunFunctionMiscTests(const std::string &temp_path)
 {
 	// assert()
-	EidosAssertScriptRaise("assert();", 0, "missing required argument assertions");
+	EidosAssertScriptRaise("assert();", 0, "missing required argument 'assertions'");
 	EidosAssertScriptSuccess_VOID("assert(T);");
 	EidosAssertScriptRaise("assert(F);", 0, "assertion failed");
 	EidosAssertScriptSuccess_VOID("assert(c(T, T, T, T, T));");
@@ -1732,11 +1732,11 @@ void _RunUserDefinedFunctionTests(void)
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5.0);", 35, "argument 1 (x) cannot be type float");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo('foo');", 35, "argument 1 (x) cannot be type string");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(_Test(7));", 35, "argument 1 (x) cannot be type object");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument x");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo();", 35, "missing required argument 'x'");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(5, 6);", 35, "too many arguments supplied");
 	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5);", 35, "return value cannot be type integer");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument y skipped over required argument x");
-	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument y");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(y=5);", 35, "named argument 'y' skipped over required argument 'x'");
+	EidosAssertScriptRaise("function (s)foo(i x) { return x; } foo(x=5, y=5);", 35, "unrecognized named argument 'y'");
 	
 	// Mutual recursion
 	EidosAssertScriptSuccess_I("function (i)foo(i x) { return x + bar(x); } function (i)bar(i x) { if (x <= 1) return 1; else return foo(x - 1); } foo(5); ", 16);

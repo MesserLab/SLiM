@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -33,6 +33,10 @@
 #include <algorithm>
 #include <unordered_map>
 #include <cstdint>
+
+// Workaround for Xcode bug: when you want to debug build problems with a Release build related to profiling, uncomment this,
+// since the target-level definition of SLIMPROFILING doesn't seem to affect syntax highlighting and build errors correctly.
+//#define SLIMPROFILING 1
 
 #if defined(__APPLE__) && defined(__MACH__)
 // On macOS we use mach_absolute_time() for profiling and benchmarking
@@ -130,7 +134,8 @@ extern std::string gEidosContextCitation;
 // is a big reason why Eidos is not thread-safe at present, and it's one of the trickiest parts of the code,
 // for no very good reason except that I haven't yet figured out the right way to fix it.  FIXME
 
-// a small struct used for saving and restoring the error position in a stack-like manner
+// A small struct used for saving and restoring the error position in a stack-like manner.  Positions of -1
+// in this struct always mean "not a valid error position"; that is legal, but the error position is unknown.
 typedef struct
 {
 	int characterStartOfError;
@@ -139,11 +144,22 @@ typedef struct
 	int characterEndOfErrorUTF16;
 } EidosErrorPosition;
 
-// a bigger struct used when saving and restoring not only the error position but also the script context
+// A bigger struct used when saving and restoring not only the error position but also the script context.
+// When an occur occurs, currentScript will usually point to a script.  The state inside currentScript
+// tells us what's going on.  If its offsets (like user_script_offset_UTF16_) are -1, that means the script
+// is independent of the user's script, such as a lambda; there's no way to translate error positions back,
+// so any error we show must be within the context of currentScript itself (e.g., within the lambda string).
+// If its offsets are not -1, the script is in some way derived from the user script, and there are two
+// possibilities.  One is that the offsets are 0 and the user_script_ pointer inside currentScript is
+// nullptr; this says "I *am* the user script".  The offsets can be used; since they are zero, no harm will
+// occur.  The other is that the offsets are (probably) non-zero, and the user_script_ pointer is (certainly)
+// non-nullptr, pointing to the user script.  This says "I am a subset of the user script".  The offsets
+// will translate a given error position back into the corresponding position in the user script.  That
+// translation is done by operator<<(std::ostream& p_out, const EidosTerminate &p_terminator) when an error
+// is raised.  (I think currentScript is nullptr only when executing statements in the Eidos console.)
 typedef struct {
 	EidosErrorPosition errorPosition;
 	EidosScript *currentScript;
-	bool executingRuntimeScript;
 } EidosErrorContext;
 
 // this global struct contains the current error context
@@ -166,7 +182,16 @@ inline __attribute__((always_inline)) void ClearErrorPosition(void)
 	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
 }
 
-extern int gEidosErrorLine, gEidosErrorLineCharacter;	// set up by EidosTerminate()
+inline __attribute__((always_inline)) void ClearErrorContext(void)
+{
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("ClearErrorContext(): gEidosErrorContext change");
+	
+	// Note that this clears to an illegal state; an error cannot be thrown in this state.
+	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr};
+}
+
+// Attempt to translate an error position from the current script to the user script.
+void TranslateErrorContextToUserScript(const char *p_caller);
 
 // Warnings: consult this flag before emitting a warning
 extern bool gEidosSuppressWarnings;
@@ -182,6 +207,7 @@ extern bool gEidosSuppressWarnings;
 
 // Debugging #defines that can be turned on
 #define EIDOS_DEBUG_COMPLETION	0	// turn on to log information about symbol types whenever doing code completion
+#define EIDOS_DEBUG_ERROR_POSITIONS		0	// turn on to log information about error positions in scripts
 
 // Flags for various runtime checks that can be turned on or off; in SLiM, -x turns these off.
 extern bool eidos_do_memory_checks;
@@ -195,9 +221,9 @@ extern bool eidos_do_memory_checks;
 //	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
 //
 // To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
-#define SLIM_LEAK_CHECKING	0
 // keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
 // or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
+#define SLIM_LEAK_CHECKING	0
 
 #if SLIM_LEAK_CHECKING
 #warning SLIM_LEAK_CHECKING enabled!
@@ -240,10 +266,10 @@ void CheckLongTermBoundary();
 
 // *******************************************************************************************************************
 //
-//	Memory usage monitoring
+//	Memory usage and runtime monitoring
 //
 #pragma mark -
-#pragma mark Memory usage monitoring
+#pragma mark Memory usage and runtime monitoring
 #pragma mark -
 
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
@@ -258,6 +284,12 @@ size_t Eidos_GetMaxRSS(void);
 // p_message1 should be the name of the calling function/method; p_message2 can be any clarifying message.
 // It is a good idea to check eidos_do_memory_checks before calling this, to save calling overhead.
 void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &p_message2);
+
+// This provides the elapsed wall clock time, in seconds, since process startup.
+double Eidos_WallTimeSeconds(void);
+
+// This provides total process time usage in terms of user CPU time and system CPU time, not wall clock time.
+void Eidos_GetUserSysTime(double *p_user_time, double *p_sys_time);
 
 
 // *******************************************************************************************************************
@@ -331,7 +363,7 @@ typedef enum {
 	k_FITNESS_SEX_2,				// fitness calculation, sexual, with neither individual fitnessScaling nor non-neutral mutations
 	k_FITNESS_SEX_3,				// fitness calculation, sexual, with individual fitnessScaling values and non-neutral mutations
 	k_MIGRANT_CLEAR,				// clearing the migrant flag of individuals, at end of tick
-	k_PARENTS_CLEAR,				// clearing the genomes of parents at generation switch, in WF models
+	k_PARENTS_CLEAR,				// clearing the haplosomes of parents at generation switch, in WF models
 	k_UNIQUE_MUTRUNS,				// uniquing mutation runs (periodic bookkeeping)
 	k_SURVIVAL,						// evaluating survival in nonWF models (without callbacks)
 	
@@ -439,6 +471,29 @@ void Eidos_PrepareForProfiling(void);
 
 // *******************************************************************************************************************
 //
+//	CLI progress reporting
+//
+#pragma mark -
+#pragma mark CLI progress reporting
+#pragma mark -
+
+// This is a nice open-source project showing how to do a progress bar: https://github.com/htailor/cpp_progress_bar
+// I didn't end up directly using it -- the approach is pretty simple and obvious, and I wanted something much
+// simpler really -- but I found a couple of useful snippets for formatting the stream output and stuff.  So,
+// thanks to Hemant Tailor for the nice project!  I'll give credit here in case someone else finds it useful.
+
+extern std::ostream *gEidos_progress_outstream;		// the stream that progress lines are being written to
+extern int gEidos_progress_length;					// the length of the last progress line written (for erasing)
+
+void Eidos_StartProgress(std::ostream *p_progress_stream);							// tell Eidos you want to start writing
+inline bool Eidos_ShowingProgress(void) { return !!(gEidos_progress_outstream); }	// are we showing progress?
+void Eidos_WriteProgress(const std::string &p_progress_line);						// write a line out
+void Eidos_EraseProgress(void);														// erase the last line written
+inline int Eidos_ProgressLength(void) { return gEidos_progress_length; }			// the length of the visible progress line
+
+
+// *******************************************************************************************************************
+//
 //	Termination handling
 //
 #pragma mark -
@@ -449,7 +504,6 @@ void Eidos_PrepareForProfiling(void);
 void Eidos_PrintStacktrace(FILE *p_out = stderr, unsigned int p_max_frames = 63);
 
 // Print an offending line of script with carets indicating an error position
-void Eidos_ScriptErrorPosition(const EidosErrorContext &p_error_context);
 void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_context);
 
 // If gEidosTerminateThrows == 0, << EidosTerminate causes a call to exit().  In that mode, output
@@ -460,6 +514,9 @@ void Eidos_LogScriptError(std::ostream& p_out, const EidosErrorContext &p_error_
 extern bool gEidosTerminateThrows;
 extern std::ostringstream gEidosTermination;
 
+// BCH 3/9/2025: before starting error output, it would be nice to call Eidos_EraseProgress() to erase a
+// progress line, so the output doesn't get garbled; but that would complicate the flow a fair bit, and
+// probably it isn't really necessary since error output will almost always overwrite the progress completely.
 #define EIDOS_TERMINATION	(gEidosTerminateThrows ? gEidosTermination : std::cerr)
 
 // This little class is used as a stream manipulator that causes termination with EXIT_FAILURE, optionally
@@ -504,7 +561,19 @@ public:
 	SLiMUndefinedIdentifierException(const std::string &msg) : message(msg) {}
 	
 	const char* what() const noexcept { return message.c_str(); } 
-}; 
+};
+
+// Similarly, this custom exception subclass is used to allow tick range evaluation to tolerate
+// undefined function names during the initial attempt in Community::FinishInitialization(),
+// before initialize() callbacks have run and thus before user-defined functions are set up.
+// Unlike SLiMUndefinedIdentifierException, an error string is not needed.
+class SLiMUndefinedFunctionException : public std::exception
+{ 
+public: 
+	SLiMUndefinedFunctionException() {}
+	
+	const char* what() const noexcept { return ""; } 
+};
 
 
 // *******************************************************************************************************************
@@ -953,7 +1022,7 @@ extern const std::string &gEidosStr__increment;
 extern const std::string &gEidosStr__cubicYolk;
 extern const std::string &gEidosStr__squareTest;
 
-extern const std::string &gEidosStr_DictionaryBase;
+extern const std::string &gEidosStr_Dictionary;
 extern const std::string &gEidosStr_allKeys;
 extern const std::string &gEidosStr_addKeysAndValuesFrom;
 extern const std::string &gEidosStr_appendKeysAndValuesFrom;
@@ -964,8 +1033,9 @@ extern const std::string &gEidosStr_getValue;
 extern const std::string &gEidosStr_identicalContents;
 extern const std::string &gEidosStr_serialize;
 extern const std::string &gEidosStr_setValue;
+extern const std::string &gEidosStr_setValuesVectorized;
 
-extern const std::string &gEidosStr_Dictionary;
+extern const std::string &gEidosStr_DictionaryRetained;
 
 extern const std::string &gEidosStr_DataFrame;
 extern const std::string &gEidosStr_colNames;
@@ -1013,7 +1083,7 @@ extern const std::string &gEidosStr_color;
 extern const std::string &gEidosStr_filePath;
 
 extern const std::string &gEidosStr_Mutation;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
-extern const std::string &gEidosStr_Genome;		// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
+extern const std::string &gEidosStr_Haplosome;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gEidosStr_Individual;	// in Eidos for hack reasons; see EidosValue_Object::EidosValue_Object()
 
 // the compile-time-constant IDs associated with the above strings
@@ -1084,7 +1154,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__cubicYolk,
 	gEidosID__squareTest,
 
-	gEidosID_DictionaryBase,
+	gEidosID_Dictionary,
 	gEidosID_allKeys,
 	gEidosID_addKeysAndValuesFrom,
 	gEidosID_appendKeysAndValuesFrom,
@@ -1095,8 +1165,9 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_identicalContents,
 	gEidosID_serialize,
 	gEidosID_setValue,
+	gEidosID_setValuesVectorized,
 
-	gEidosID_Dictionary,
+	gEidosID_DictionaryRetained,
 
 	gEidosID_DataFrame,
 	gEidosID_colNames,
@@ -1144,11 +1215,11 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_filePath,
 
 	gEidosID_Mutation,
-	gEidosID_Genome,
+	gEidosID_Haplosome,
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 510		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 535		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN

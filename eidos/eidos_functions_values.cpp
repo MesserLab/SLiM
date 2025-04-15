@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/6/15; split from eidos_functions.cpp 09/26/2022
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -1176,6 +1176,9 @@ EidosValue_SP Eidos_ExecuteFunction_cat(const std::vector<EidosValue_SP> &p_argu
 	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
 		if (value_index > 0)
@@ -1202,6 +1205,9 @@ EidosValue_SP Eidos_ExecuteFunction_catn(const std::vector<EidosValue_SP> &p_arg
 	std::string separator = p_arguments[1]->StringAtIndex_NOCAST(0, nullptr);
 	eidos_logical_t use_error_stream = p_arguments[2]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
@@ -2196,6 +2202,9 @@ EidosValue_SP Eidos_ExecuteFunction_print(const std::vector<EidosValue_SP> &p_ar
 	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
 	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
+	
 	output_stream << *x_value << std::endl;
 	
 	return gStaticEidosValueVOID;
@@ -2533,6 +2542,9 @@ EidosValue_SP Eidos_ExecuteFunction_str(const std::vector<EidosValue_SP> &p_argu
 	EidosValue *x_value = p_arguments[0].get();
 	eidos_logical_t use_error_stream = p_arguments[1]->LogicalAtIndex_NOCAST(0, nullptr);
 	std::ostream &output_stream = (use_error_stream ? p_interpreter.ErrorOutputStream() : p_interpreter.ExecutionOutputStream());
+	
+	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
+	Eidos_EraseProgress();
 	
 	x_value->PrintStructure(output_stream, 2);
 	output_stream << std::endl;

@@ -12,5 +12,7 @@
         <file>help/TickCycle_WF.png</file>
         <file>help/TickCycle_nonWF_MS.png</file>
         <file>help/TickCycle_WF_MS.png</file>
+        <file>help/ColorChart.png</file>
+        <file>help/PlotSymbols.png</file>
     </qresource>
 </RCC>

@@ -1,0 +1,41 @@
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
+	source("init.slim");
+	initializeTreeSeq();
+	defineConstant("K", 20);	// carrying capacity
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	m1.convertToSubstitution = T;
+	
+	types = c("H-", "A", "H-", "H");
+	symbols = c("H1", "A", "H2", "H");
+	ids = 1 + seqAlong(types);
+   length = 1e4;
+	
+	for (id in ids, symbol in symbols, type in types)
+	{
+		initializeChromosome(id, length, type, symbol);
+		initializeMutationRate(1e-5);
+		initializeRecombinationRate(1e-5);
+		initializeGenomicElement(g1, 0, length-1);
+	}
+}
+reproduction(NULL) {
+	subpop.addCloned(individual, count=rpois(1, lambda=1.5));
+}
+1 early() {
+	sim.addSubpop("p1", K);
+}
+early() {
+	p1.fitnessScaling = K / p1.individualCount;
+}
+10 early() {
+	addAncestralSamples(5);
+}
+30 late() {
+	outputIndividuals();
+	outputMutationResult();
+   saveTreeSeq();
+}
+

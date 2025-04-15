@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/6/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -200,9 +200,7 @@ void QtSLiMEidosConsole::showBrowserClicked(void)
         }
     }
     
-    variableBrowser_->show();
-    variableBrowser_->raise();
-    variableBrowser_->activateWindow();
+    QtSLiMMakeWindowVisibleAndExposed(variableBrowser_);
 }
 
 QStatusBar *QtSLiMEidosConsole::statusBar(void)
@@ -282,7 +280,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
     scriptString.replace(QChar::LineSeparator, "\n");
     
     std::string script_string(scriptString.toStdString());
-	EidosScript script(script_string, -1);
+	EidosScript script(script_string);
 	std::string output;
 	
 	// Unfortunately, running readFromPopulationFile() is too much of a shock for SLiMgui.  It invalidates variables that are being displayed in

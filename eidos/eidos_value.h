@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 4/7/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -86,6 +86,7 @@ extern EidosValue_String_SP gStaticEidosValue_StringSpace;
 extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringComma;
+extern EidosValue_String_SP gStaticEidosValue_StringTab;
 extern EidosValue_String_SP gStaticEidosValue_StringPeriod;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleQuote;
 extern EidosValue_String_SP gStaticEidosValue_String_ECMAScript;

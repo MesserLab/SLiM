@@ -10,7 +10,7 @@ initialize() {
 }
 1 early() { sim.addSubpop("p1", 500); }
 1000 late() {
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 1000:100000 late() {

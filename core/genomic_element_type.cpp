@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 12/13/14.
-//  Copyright (c) 2014-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -242,7 +242,7 @@ const EidosClass *GenomicElementType::Class(void) const
 
 void GenomicElementType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<g" << genomic_element_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<g" << genomic_element_type_id_ << ">";
 }
 
 EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
@@ -435,9 +435,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	SetNucleotideMutationMatrix(EidosValue_Float_SP((EidosValue_Float *)(mutationMatrix_value)));
 	
 	// the change to the mutation matrix means everything downstream has to be recached
-	species_.CacheNucleotideMatrices();
-	species_.CreateNucleotideMutationRateMap();
-	species_.TheChromosome().InitializeDraws();
+	species_.MaxNucleotideMutationRateChanged();
 	
 	return gStaticEidosValueVOID;
 }

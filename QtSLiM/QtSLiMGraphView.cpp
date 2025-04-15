@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 3/27/2020.
-//  Copyright (c) 2020-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2020-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -46,7 +46,7 @@
 
 #include "species.h"
 #include "subpopulation.h"
-#include "genome.h"
+#include "haplosome.h"
 #include "mutation_run.h"
 
 
@@ -71,8 +71,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     controller_ = controller;
     setFocalDisplaySpecies(controller_->focalDisplaySpecies());
     
-    connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
-    connect(controller, &QtSLiMWindow::controllerChromosomeSelectionChanged, this, &QtSLiMGraphView::controllerChromosomeSelectionChanged);
+    connect(controller, &QtSLiMWindow::controllerFullUpdateAfterTick, this, &QtSLiMGraphView::updateAfterTick);
     connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMGraphView::controllerTickFinished);
     connect(controller, &QtSLiMWindow::controllerRecycled, this, &QtSLiMGraphView::controllerRecycled);
     
@@ -1279,10 +1278,6 @@ void QtSLiMGraphView::controllerRecycled(void)
     if (action) action->setEnabled(!controller_->invalidSimulation() && !missingFocalDisplaySpecies());
 }
 
-void QtSLiMGraphView::controllerChromosomeSelectionChanged(void)
-{
-}
-
 void QtSLiMGraphView::controllerTickFinished(void)
 {
 }
@@ -1493,6 +1488,10 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                 messageBox.setText(title);
                 messageBox.setInformativeText(about);
                 messageBox.setIcon(QMessageBox::Information);
+                
+                // see https://forum.qt.io/topic/160751/error-panel-goes-underneath-floating-window-causing-confusion
+                // regarding the choice between Qt::WindowModal and Qt::ApplicationModal; here Qt::WindowModal seems
+                // to be safe, I can't find a way to make this message box block the UI without doing it deliberately
                 messageBox.setWindowModality(Qt::WindowModal);
                 messageBox.exec();
             }
@@ -1698,15 +1697,15 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 
 void QtSLiMGraphView::setXAxisRangeFromTick(void)
 {
-	Community *community = controller_->community;
+    Community *community = controller_->community;
     
     // We can't get the estimated last tick until tick ranges are known
     if (!community || (community->Tick() < 1))
         return;
     
-	slim_tick_t lastTick = community->EstimatedLastTick();
-	
-	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+    slim_tick_t lastTick = community->EstimatedLastTick();
+    
+    // The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
 	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= lastTick, (2) have the axis
 	// max be == lastTick if lastTick is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
 	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
@@ -2422,7 +2421,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
         return 0;
     
     Population &population = graphSpecies->population_;
-    size_t subpop_total_genome_count = 0;
+    size_t subpop_total_haplosome_count = 0;
     
     Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     
@@ -2439,41 +2438,45 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     
     if (subpop)	// tally only within our chosen subpop
     {
-        slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-        std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+        int haplosome_count_per_individual = subpop->HaplosomeCountPerIndividual();
         
-        for (int i = 0; i < subpop_genome_count; i++)
+        for (Individual *ind : subpop->parent_individuals_)
         {
-            Genome &genome = *subpop_genomes[static_cast<size_t>(i)];
+            Haplosome **haplosomes = ind->haplosomes_;
             
-            if (!genome.IsNull())
+            for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
             {
-                int mutrun_count = genome.mutrun_count_;
+                Haplosome *haplosome = haplosomes[haplosome_index];
                 
-                for (int run_index = 0; run_index < mutrun_count; ++run_index)
+                if (!haplosome->IsNull())
                 {
-                    const MutationRun *mutrun = genome.mutruns_[run_index];
-                    const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-                    const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                    int mutrun_count = haplosome->mutrun_count_;
                     
-                    for (; genome_iter != genome_end_iter; ++genome_iter)
+                    for (int run_index = 0; run_index < mutrun_count; ++run_index)
                     {
-                        const Mutation *mutation = mut_block_ptr + *genome_iter;
+                        const MutationRun *mutrun = haplosome->mutruns_[run_index];
+                        const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+                        const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                         
-                        if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
-                            (mutation->gui_scratch_reference_count_)++;
+                        for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
+                        {
+                            const Mutation *mutation = mut_block_ptr + *haplosome_iter;
+                            
+                            if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
+                                (mutation->gui_scratch_reference_count_)++;
+                        }
                     }
+                    
+                    subpop_total_haplosome_count++;
                 }
-                
-                subpop_total_genome_count++;
             }
         }
     }
     
-    return subpop_total_genome_count;
+    return subpop_total_haplosome_count;
 }
 
-size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &genomes, int muttype_index)
+size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index)
 {
     //
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
@@ -2498,21 +2501,21 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-	for (const Genome *genome : genomes)
+	for (const Haplosome *haplosome : haplosomes)
 	{
-        if (!genome->IsNull())
+        if (!haplosome->IsNull())
         {
-            int mutrun_count = genome->mutrun_count_;
+            int mutrun_count = haplosome->mutrun_count_;
             
             for (int run_index = 0; run_index < mutrun_count; ++run_index)
             {
-                const MutationRun *mutrun = genome->mutruns_[run_index];
-                const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-                const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+                const MutationRun *mutrun = haplosome->mutruns_[run_index];
+                const MutationIndex *haplosome_iter = mutrun->begin_pointer_const();
+                const MutationIndex *haplosome_end_iter = mutrun->end_pointer_const();
                 
-                for (; genome_iter != genome_end_iter; ++genome_iter)
+                for (; haplosome_iter != haplosome_end_iter; ++haplosome_iter)
                 {
-                    const Mutation *mutation = mut_block_ptr + *genome_iter;
+                    const Mutation *mutation = mut_block_ptr + *haplosome_iter;
                     
                     if (mutation->mutation_type_ptr_->mutation_type_index_ == muttype_index)
                         (mutation->gui_scratch_reference_count_)++;
@@ -2521,7 +2524,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
         }
     }
     
-    return genomes.size();
+    return haplosomes.size();
 }
 
 

@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/14/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -64,8 +64,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new Community(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -86,8 +85,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		
 		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneTick(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
-		gEidosErrorContext.currentScript = nullptr;
-		gEidosErrorContext.executingRuntimeScript = false;
+		ClearErrorContext();
 		return;
 	}
 	
@@ -103,8 +101,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	
 	//std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << endl;
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
@@ -113,7 +110,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
-void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position)
+void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position, bool p_error_is_in_stop)
 {
 	{
 	Community *community = nullptr;
@@ -140,13 +137,12 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 		// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
 		std::string raise_message = Eidos_GetTrimmedRaiseMessage();
 		
-		if (raise_message.find("stop() called") == std::string::npos)
+		if (p_error_is_in_stop || (raise_message.find("stop() called") == std::string::npos))
 		{
 			if (raise_message.find(p_reason_snip) != std::string::npos)
 			{
 				if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
-					(gEidosErrorContext.errorPosition.characterEndOfError == -1) ||
-					!gEidosErrorContext.currentScript)
+					(gEidosErrorContext.errorPosition.characterEndOfError == -1))
 				{
 					if (!p_expect_error_position)
 					{
@@ -170,8 +166,6 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 				{
 					if (!p_expect_error_position)
 						std::cerr << p_script_string << " : " << EIDOS_OUTPUT_SUCCESS_TAG << " : raise expected, and error info is set; but error info was not expected!" << std::endl;
-					
-					Eidos_ScriptErrorPosition(gEidosErrorContext);
 					
 					gSLiMTestSuccessCount++;
 					
@@ -216,8 +210,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 	delete community;
 	InteractionType::DeleteSparseVectorFreeList();
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
@@ -264,10 +257,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 			std::cerr << "   raise message: " << raise_message << std::endl;
 			
 			if ((gEidosErrorContext.errorPosition.characterStartOfError != -1) &&
-				(gEidosErrorContext.errorPosition.characterEndOfError != -1) &&
-				gEidosErrorContext.currentScript)
+				(gEidosErrorContext.errorPosition.characterEndOfError != -1))
 			{
-				Eidos_ScriptErrorPosition(gEidosErrorContext);
 				Eidos_LogScriptError(std::cerr, gEidosErrorContext);
 			}
 			
@@ -288,11 +279,103 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	delete community;
 	InteractionType::DeleteSparseVectorFreeList();
 	
-	gEidosErrorContext.currentScript = nullptr;
-	gEidosErrorContext.executingRuntimeScript = false;
+	ClearErrorContext();
 	
 	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
 		std::cerr << "WARNING (SLiMAssertScriptStop): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+}
+
+void SLiMAssertScriptRaisePosition(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip, int p_lineNumber)
+{
+	{
+		Community *community = nullptr;
+		
+		try {
+			std::istringstream infile(p_script_string);
+			
+			community = new Community();
+			community->InitializeFromFile(infile);
+			community->InitializeRNGFromSeed(nullptr);
+			community->FinishInitialization();
+			
+			while (community->_RunOneTick());
+			
+			gSLiMTestFailureCount++;
+			
+			if (p_lineNumber != -1)
+				std::cerr << "[" << p_lineNumber << "] ";
+			
+			std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : no raise during SLiM execution (expected \"" << p_reason_snip << "\")." << std::endl;
+		}
+		catch (...)
+		{
+			// We need to call Eidos_GetTrimmedRaiseMessage() here to empty the error stringstream, even if we don't log the error
+			std::string raise_message = Eidos_GetTrimmedRaiseMessage();
+			
+			if (raise_message.find(p_reason_snip) != std::string::npos)
+			{
+				if ((gEidosErrorContext.errorPosition.characterStartOfError == -1) ||
+					(gEidosErrorContext.errorPosition.characterEndOfError == -1))
+				{
+					gSLiMTestFailureCount++;
+					
+					if (p_lineNumber != -1)
+						std::cerr << "[" << p_lineNumber << "] ";
+					
+					std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but no error info set" << std::endl;
+					std::cerr << "   raise message: " << raise_message << std::endl;
+					std::cerr << "--------------------" << std::endl << std::endl;
+				}
+				else if (gEidosErrorContext.errorPosition.characterStartOfError != p_bad_position)
+				{
+					gSLiMTestFailureCount++;
+					
+					std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise expected, but error position unexpected (" << gEidosErrorContext.errorPosition.characterStartOfError << ")" << std::endl;
+					std::cerr << p_script_string << "   raise message: " << raise_message << std::endl;
+					Eidos_LogScriptError(std::cerr, gEidosErrorContext);
+					std::cerr << "--------------------" << std::endl << std::endl;
+				}
+				else
+				{
+					gSLiMTestSuccessCount++;
+					
+					//std::cerr << p_script_string << " == (expected raise) : " << EIDOS_OUTPUT_SUCCESS_TAG << "\n   " << raise_message << endl;
+				}
+			}
+			else
+			{
+				gSLiMTestFailureCount++;
+				
+				if (p_lineNumber != -1)
+					std::cerr << "[" << p_lineNumber << "] ";
+				
+				std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise message mismatch (expected \"" << p_reason_snip << "\")." << std::endl;
+				std::cerr << "   raise message: " << raise_message << std::endl;
+				std::cerr << "--------------------" << std::endl << std::endl;
+			}
+			
+			// Error messages that say (internal error) should not be possible to trigger in script
+			if (raise_message.find("(internal error)") != std::string::npos)
+			{
+				std::cerr << p_script_string << " : error message contains (internal error) erroneously" << std::endl;
+				std::cerr << "   raise message: " << raise_message << std::endl;
+			}
+		}
+		
+		if (community)
+			for (Species *species : community->AllSpecies())
+				species->DeleteAllMutationRuns();
+		
+		delete community;
+		InteractionType::DeleteSparseVectorFreeList();
+		
+		ClearErrorContext();
+		
+		if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+			std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
 	}
 	
 	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
@@ -306,7 +389,7 @@ static void _RunSLiMTimingTests(void);
 
 // Test function shared strings
 std::string gen1_setup("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
-std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('X'); } ");
+std::string gen1_setup_sex("initialize() { initializeSex('X'); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } ");
 std::string gen2_stop(" 2 early() { stop(); } ");
 std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
 std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } 10 early() { sim.mutations[0].setSelectionCoeff(500.0); sim.recalculateFitness(); } ");
@@ -367,6 +450,7 @@ int RunSLiMTests(void)
 	
 	// Run tests
 	_RunBasicTests();
+	_RunErrorPositionTests();
 	_RunRelatednessTests();
 	_RunInitTests();
 	_RunCommunityTests();
@@ -376,7 +460,7 @@ int RunSLiMTests(void)
 	_RunGenomicElementTests();
 	_RunChromosomeTests();
 	_RunMutationTests();
-	_RunGenomeTests(temp_path);
+	_RunHaplosomeTests(temp_path);
 	_RunSubpopulationTests();
 	_RunIndividualTests();
 	_RunSubstitutionTests();
@@ -387,6 +471,7 @@ int RunSLiMTests(void)
 	_RunTreeSeqTests(temp_path);
 	_RunNucleotideFunctionTests();
 	_RunNucleotideMethodTests();
+	_RunPopGenFunctionTests();
 	_RunSLiMTimingTests();
 	
 #ifdef _OPENMP
@@ -509,19 +594,17 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("species fox mutationEffect(m1) {}", "no initialize() callback", __LINE__, false);
 	SLiMAssertScriptRaise("ticks fox mutationEffect(m1) {}", "may not be preceded", __LINE__);
 	
-	// Test no-genetics scripts; we just want to confirm that they can run without any null genome errors, consistency check errors, etc., especially in DEBUG
+	// Test no-genetics scripts; we just want to confirm that they can run without any null haplosome errors, consistency check errors, etc., especially in DEBUG
+	// BCH 9/20/2024: removing some tests here because it is no longer legal to declare a no-genetics model to be a model of the X or Y chromosome; that makes no sense
 	SLiMAssertScriptRaise("initialize() {initializeTreeSeq();} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot use tree-sequence recording", __LINE__, false);
 	SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(nucleotideBased=T);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot be nucleotide-based", __LINE__, false);
-	SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(mutationRuns=5);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot have a specified mutation run count", __LINE__, false);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setSelfingRate(0.5);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSex('A');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSex('A');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSex('X');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSex('X');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSex('Y');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSex('Y');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptRaise("initialize() {initializeSex('X');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "one mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("initialize() {initializeSex('Y');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "one mutation rate interval", __LINE__, false);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addCrossed(individual, subpop.sampleIndividuals(1));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addSelfed(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
@@ -529,12 +612,6 @@ void _RunBasicTests(void)
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
-	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	
 	// Test "long-term boundary" checks; note that Eidos has more complete checks in eidos_test_functions_other.cpp,
 	// so here we are only testing specifically that SLiM catches long-term boundary violations correctly
@@ -587,6 +664,168 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise(ltb3_script, "long-term reference has been kept", 0, false);	// sim.getValue('x') is not scoped, so there is a long-term reference
 }
 
+#pragma mark error position tracking
+void _RunErrorPositionTests(void)
+{
+	// test that errors are correctly located within the user's script (or their own script)
+	// error tracking is very complicated (at least with the faulty design we have right now),
+	// and so one of the tests here is known to fail and is commented out until things improve
+	// note that the tests here are also in the folder "error tracking tests" in my tests folder
+	
+	// 1_early.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			foo;
+		}
+	)V0G0N", 36, "undefined identifier foo", __LINE__);
+	
+	// 2_modifyChild.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+		}
+		modifyChild() {
+			foo;
+		}
+	)V0G0N", 87, "undefined identifier foo", __LINE__);
+	
+	// 3_userDef_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			foo;
+		}
+	)V0G0N", 79, "undefined identifier foo", __LINE__);
+	
+	// 4_userDef_function_nested.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			fn2();
+		}
+		function (void)fn2(void) {
+			foo;
+		}
+	)V0G0N", 122, "undefined identifier foo", __LINE__);
+	
+	// 5_lambda.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			executeLambda("foo;");
+		}
+	)V0G0N", 36, "undefined identifier foo", __LINE__);
+	
+	// 6_lambda_nested.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			fn1();
+		}
+		function (void)fn1(void) {
+			fn2();
+		}
+		function (void)fn2(void) {
+			executeLambda("foo;");
+		}
+	)V0G0N", 122, "undefined identifier foo", __LINE__);
+	
+	// 7_tokenize_error.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			$
+		}
+	)V0G0N", 36, "unexpected token '$'", __LINE__);
+	
+	// 8_parse_error.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			1 + ;
+		}
+	)V0G0N", 40, "unexpected token ';'", __LINE__);
+	
+	// 9_triggered_callback.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			sim.recalculateFitness();
+		}
+		fitnessEffect() {
+			foo;
+		}
+	)V0G0N", 118, "undefined identifier foo", __LINE__);
+	
+	// 10_triggered_callback_nested.slim
+	
+	// The error position is wrong for this test, for reasons that are well understood.
+	// The error context is foo() when the error is raised,because callbacks don't set
+	// up their own error context information, but rather rely on the assumption that
+	// they are executed in the user script context (which is almost always true).
+	// The error position is in the fitnessEffect() callback's coordinates, which are
+	// user script coordinates, but the context is set to foo(), so the error position
+	// gets translated to user space using the wrong offset.  I don't see an easy way
+	// to fix this, or even to catch that it has happened.  BCH 3/12/2025
+	
+	/*SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			foo();
+		}
+		function (void)foo(void) {
+			sim.recalculateFitness();
+		}
+		fitnessEffect() {
+			foo;
+		}
+	)V0G0N", 118, "undefined identifier foo", __LINE__);*/
+	
+	// 11_userDef_lambda.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sim.addSubpop("p1", 500);
+			executeLambda("foo();");
+		}
+		function (void)foo(void) {
+			bar;
+		}
+	)V0G0N", 126, "undefined identifier bar", __LINE__);
+	
+	// 12_builtin_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sum("a");
+		}
+	)V0G0N", 36, "cannot be type string", __LINE__);
+	
+	// 13_sapply_userDef_function.slim
+	SLiMAssertScriptRaisePosition(R"V0G0N(
+		initialize() {}
+		1 early() {
+			sapply(1:10, "foo(applyValue);");
+		}
+		function (void)foo(integer$ x) {
+			bar;
+		}
+	)V0G0N", 112, "undefined identifier bar", __LINE__);
+	
+	// there is a #14 and #15 in "error tracking tests", but they check that Unicode characters don't throw off
+	// the error range, and I don't want to deal with putting them here because Unicode.
+}
+
 #pragma mark Individual relatedness tests
 void _RunRelatednessTests(void)
 {
@@ -611,166 +850,166 @@ void _RunRelatednessTests(void)
 		slim_pedigreeid_t B_G4;
 		IndividualSex A_sex;
 		IndividualSex B_sex;
-		GenomeType type;
+		ChromosomeType type;
 		double expectedRelatedness;
 	} pedigree_test_info;
 	
 	pedigree_test_info test_pedigrees[] = {
 		// two individuals that are completely unrelated
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
 		
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
 
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 12, 13, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// completely unrelated individuals with missing information
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ -1, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ -1, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ -1, -1, -1, -1, -1, -1, -1, /* B */ -1, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ -1, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ -1, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ -1, -1, -1, -1, -1, -1, -1, /* B */ -1, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
 
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
 		
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
 
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 8, 9, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.0},
 		
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
 
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, -1, -1, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// the exact same individual
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 0, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 1.0},
 		
 		// products of cloning/selfing
-		{/* A */ 0, 1, 1, 3, 4, 3, 4, /* B */ 0, 1, 1, 3, 4, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 1, 3, 4, 3, 4, /* B */ 7, 1, 1, 3, 4, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 0, 1, 1, 2, 2, 2, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 7, 1, 1, 2, 2, 2, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 1, 2, 2, 3, 3, 3, 3, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 2, 3, 3, 4, 4, 4, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 3, 4, 3, 4, /* B */ 0, 1, 1, 3, 4, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 3, 4, 3, 4, /* B */ 7, 1, 1, 3, 4, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 0, 1, 1, 2, 2, 2, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 7, 1, 1, 2, 2, 2, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 1, 2, 2, 3, 3, 3, 3, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 1, 2, 2, 2, 2, /* B */ 2, 3, 3, 4, 4, 4, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 1.0},
 		
 		// siblings
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
 		
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
 		
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 2, 3, 4, 5, 6, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// siblings with missing information
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
 		
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
 		
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, -1, -1, -1, -1, /* B */ 7, 1, 2, -1, -1, -1, -1, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// parent-child (hermaphroditic)
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, 0, 8, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, 0, 8, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
 		
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, 8, 0, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, -1, -1, -1, -1, -1, -1, /* B */ 7, 8, 0, -1, -1, -1, -1, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
 		
 		// mother-daughter
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// mother-son
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 1.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 0, 8, 1, 2, 9, 10, /* other */ IndividualSex::kFemale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// father-daughter
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kXChromosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, GenomeType::kYChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kFemale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 0.0},
 		
 		// father-son
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kAutosome, /*expected */ 0.5},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.0},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kYChromosome, /*expected */ 1.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.0},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 0, 9, 10, 1, 2, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kNullY_YSexChromosomeWithNull, /*expected */ 1.0},
 		
 		// half-siblings (hermaphroditic)
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 8, 3, 4, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 2, 8, 5, 6, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 1, 9, 10, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 2, 9, 10, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 1, 8, 3, 4, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 2, 8, 5, 6, 9, 10, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 1, 9, 10, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 2, 9, 10, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
 		
 		// cousins (hermaphroditic)
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 3, 4, 10, 11, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.125},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.125},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 5, 6, 10, 11, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.125},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.125},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 3, 4, 10, 11, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.125},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 3, 4, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.125},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 5, 6, 10, 11, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.125},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 10, 11, 5, 6, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.125},
 		
 		// grandchild-grandparent (hermaphroditic)
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 3, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 4, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 5, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 6, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 3, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 4, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 5, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 6, 7, 8, 9, 10, 11, 12, /* other */ IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, /*expected */ 0.25},
 		
 		// random spot-checks; obviously there is a huge variety of set-ups we could check...
 		// male cousins sharing both of their maternal grandparents, modeling the X:
-		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 3, 4, 10, 11, /* other */ IndividualSex::kMale, IndividualSex::kMale, GenomeType::kXChromosome, /*expected */ 0.5},
+		{/* A */ 0, 1, 2, 3, 4, 5, 6, /* B */ 7, 8, 9, 3, 4, 10, 11, /* other */ IndividualSex::kMale, IndividualSex::kMale, ChromosomeType::kX_XSexChromosome, /*expected */ 0.5},
 		
-		/* end-of-array marker entry : DO NOT TOUCH */ {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, -1.0}
+		/* end-of-array marker entry : DO NOT TOUCH */ {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, ChromosomeType::kA_DiploidAutosome, -1.0}
 	};
 	
 	{
@@ -864,15 +1103,15 @@ void _RunSLiMTimingTests(void)
 	// Speed comparison of different signature lookup methods
 	// the conclusion is that std::unordered_map is faster than std::map or the old switch()-based scheme
 	{
-		EidosGlobalStringID genome_properties[4] = {gID_genomeType, gID_isNullGenome, gID_mutations, gID_tag};
-		std::map<EidosGlobalStringID, const EidosPropertySignature *> genome_map;
-		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> genome_unordered_map;
+		EidosGlobalStringID haplosome_properties[4] = {gID_haplosomeType, gID_isNullHaplosome, gID_mutations, gID_tag};
+		std::map<EidosGlobalStringID, const EidosPropertySignature *> haplosome_map;
+		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> haplosome_unordered_map;
 		
 		for (int i = 0; i < 4; ++i)
-			genome_map.emplace(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i]));
+			haplosome_map.emplace(haplosome_properties[i], gSLiM_Haplosome_Class->_SignatureForProperty(haplosome_properties[i]));
 		
 		for (int i = 0; i < 4; ++i)
-			genome_unordered_map.emplace(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i]));
+			haplosome_unordered_map.emplace(haplosome_properties[i], gSLiM_Haplosome_Class->_SignatureForProperty(haplosome_properties[i]));
 		
 		{
 			std::clock_t begin = std::clock();
@@ -880,15 +1119,15 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
+				EidosGlobalStringID property_id = haplosome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
-				total += (int64_t)(gSLiM_Genome_Class->_SignatureForProperty(property_id));
+				total += (int64_t)(gSLiM_Haplosome_Class->_SignatureForProperty(property_id));
 			}
 			
 			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
-			std::cout << "Time for Genome_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
+			std::cout << "Time for Haplosome_Class::_SignatureForProperty() calls: " << time_spent << std::endl;
 		}
 		{
 			std::clock_t begin = std::clock();
@@ -896,10 +1135,10 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
+				EidosGlobalStringID property_id = haplosome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
-				auto found_iter = genome_map.find(property_id);
-				if (found_iter != genome_map.end())
+				auto found_iter = haplosome_map.find(property_id);
+				if (found_iter != haplosome_map.end())
 				{
 					const EidosPropertySignature *sig = found_iter->second;
 					total += (int64_t)sig;
@@ -909,7 +1148,7 @@ void _RunSLiMTimingTests(void)
 			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
-			std::cout << "Time for genome_map calls: " << time_spent << std::endl;
+			std::cout << "Time for haplosome_map calls: " << time_spent << std::endl;
 		}
 		{
 			std::clock_t begin = std::clock();
@@ -917,10 +1156,10 @@ void _RunSLiMTimingTests(void)
 			
 			for (int64_t i = 0; i < 100000000; i++)
 			{
-				EidosGlobalStringID property_id = genome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
+				EidosGlobalStringID property_id = haplosome_properties[Eidos_rng_uniform_int(EIDOS_GSL_RNG, 4)];
 				
-				auto found_iter = genome_unordered_map.find(property_id);
-				if (found_iter != genome_unordered_map.end())
+				auto found_iter = haplosome_unordered_map.find(property_id);
+				if (found_iter != haplosome_unordered_map.end())
 				{
 					const EidosPropertySignature *sig = found_iter->second;
 					total += (int64_t)sig;
@@ -930,12 +1169,12 @@ void _RunSLiMTimingTests(void)
 			std::clock_t end = std::clock();
 			double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 			
-			std::cout << "Time for genome_unordered_map calls: " << time_spent << std::endl << std::endl;
+			std::cout << "Time for haplosome_unordered_map calls: " << time_spent << std::endl << std::endl;
 		}
 	}
 	
 	{
-		EidosGlobalStringID individual_properties[17] = {gID_subpopulation, gID_index, gID_genomes, gID_sex, gID_tag, gID_tagF, gID_fitnessScaling, gEidosID_x, gEidosID_y, gEidosID_z, gID_age, gID_pedigreeID, gID_pedigreeParentIDs, gID_pedigreeGrandparentIDs, gID_spatialPosition, gID_uniqueMutations, gEidosID_color};
+		EidosGlobalStringID individual_properties[17] = {gID_subpopulation, gID_index, gID_haplosomes, gID_sex, gID_tag, gID_tagF, gID_fitnessScaling, gEidosID_x, gEidosID_y, gEidosID_z, gID_age, gID_pedigreeID, gID_pedigreeParentIDs, gID_pedigreeGrandparentIDs, gID_spatialPosition, gID_uniqueMutations, gEidosID_color};
 		std::map<EidosGlobalStringID, const EidosPropertySignature *> individual_map;
 		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> individual_unordered_map;
 		

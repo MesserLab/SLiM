@@ -74,7 +74,7 @@ jobs:
         run: |
           mkdir Debug && \
           cd Debug && \
-          cmake -D CMAKE_BUILD_TYPE=Debug .. && \
+          cmake -DCMAKE_BUILD_TYPE=Debug .. && \
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
@@ -82,7 +82,7 @@ jobs:
         run: |
           mkdir Release && \
           cd Release && \
-          cmake -D CMAKE_BUILD_TYPE=Release .. && \
+          cmake -DCMAKE_BUILD_TYPE=Release .. && \
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test
@@ -234,7 +234,7 @@ jobs:
         run: |
           mkdir Release && \
           cd Release  && \
-          cmake -D BUILD_SLIMGUI=ON -D CMAKE_BUILD_TYPE=Release ..  && \
+          cmake -D BUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release ..  && \
           make -j 2 && \
           # Show any output from the test program whenever the test fails
           env CTEST_OUTPUT_ON_FAILURE=1 make test

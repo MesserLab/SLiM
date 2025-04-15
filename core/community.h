@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/28/2022.
-//  Copyright (c) 2022-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2022-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -123,7 +123,7 @@ private:
 	
 	// these ivars track top-level simulation state: the tick, cycle stage, etc.
 	slim_tick_t tick_start_ = 0;													// the first tick number for which the simulation will run
-	slim_tick_t tick_ = 0;															// the current tick reached in simulation
+	slim_tick_t tick_ = -1;															// the current tick reached in simulation
 	EidosValue_SP cached_value_tick_;												// a cached value for tick_; invalidates automatically when used
 	
 	SLiMCycleStage cycle_stage_ = SLiMCycleStage::kStagePreCycle;					// the within-cycle stage currently being executed
@@ -205,7 +205,7 @@ public:
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each cycle stage that calls out to script
 	void ValidateScriptBlockCaches(void);
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, Species *p_species);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, int64_t p_chromosome_id, Species *p_species);
 	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
 	std::vector<SLiMEidosBlock*> AllScriptBlocksForSpecies(Species *p_species);
 	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);
@@ -245,8 +245,8 @@ public:
 	static Species *SpeciesForIndividualsVector(const Individual * const *individuals, int value_count);
 	static Species *SpeciesForIndividuals(EidosValue *value);
 	
-	static Species *SpeciesForGenomesVector(const Genome * const *genomes, int value_count);
-	static Species *SpeciesForGenomes(EidosValue *value);
+	static Species *SpeciesForHaplosomesVector(const Haplosome * const *haplosomes, int value_count);
+	static Species *SpeciesForHaplosomes(EidosValue *value);
 	
 	static Species *SpeciesForMutationsVector(const Mutation * const *mutations, int value_count);
 	static Species *SpeciesForMutations(EidosValue *value);
@@ -264,6 +264,8 @@ public:
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
 	
 	EidosValue_SP _EvaluateTickRangeNode(const EidosASTNode *p_node, std::string &p_error_string);	// evaluate a node that represents a tick range expression
+	SLiMCycleStage CycleStageForScriptBlockType(SLiMEidosBlockType p_block_type);	// look up the cycle stage a block executes in
+	bool IsPastOrPresent(slim_tick_t p_block_tick, SLiMEidosBlockType p_block_type); // is the given tick/cycle stage past/present (true) or future (false)?
 	void EvaluateScriptBlockTickRanges(void);										// evaluate tick range expressions to find when a block is scheduled
 	void FlagUnevaluatedScriptBlockTickRanges(void);								// error for script blocks whose tick range is unevaluated
 	slim_tick_t FirstTick(void);													// derived from the first tick in which an Eidos block is registered
@@ -291,6 +293,7 @@ public:
 	
 	inline __attribute__((always_inline)) SLiMCycleStage CycleStage(void) const												{ return cycle_stage_; }
 	
+	inline __attribute__((always_inline)) SLiMEidosScript *Script(void) { return script_; }
 	inline __attribute__((always_inline)) std::string ScriptString(void) { return script_->String(); }
 	
 	

@@ -1199,6 +1199,13 @@ x = sample(-10:10, 210000, replace=T);
 x = sapply(-10:10, "sum(x == applyValue);");
 if (any(abs(x - 10000) > 500)) stop('Mismatch in expectation vs. realization of sample() - could be random chance (but very unlikely), rerun test');
 
+// ***********************************************************************************************
+
+setSeed(asInteger(clock() * 100000));
+m = mean(rztpois(10000, 3));
+expected = 3 / (1 - exp(-3));	// ~= 3.15719
+if (abs(m - expected) > 0.07) stop('Mismatch in expectation vs. realization of rztpois() - could be random chance (but very unlikely), rerun test');
+
 )V0G0N"
 
 

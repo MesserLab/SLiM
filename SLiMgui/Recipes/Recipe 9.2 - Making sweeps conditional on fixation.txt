@@ -19,7 +19,7 @@ initialize() {
 	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 	
 	// introduce the sweep mutation
-	target = sample(p1.genomes, 1);
+	target = sample(p1.haplosomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 1000:100000 late() {
@@ -43,7 +43,7 @@ initialize() {
 			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
 			
 			// re-introduce the sweep mutation
-			target = sample(p1.genomes, 1);
+			target = sample(p1.haplosomes, 1);
 			target.addNewDrawnMutation(m2, 10000);
 		}
 	}

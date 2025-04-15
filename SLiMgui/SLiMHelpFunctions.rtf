@@ -48,7 +48,251 @@ A utility function,
 \f3\i \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf2 (void)initializeGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00], [logical$\'a0redrawLengthsOnFailure\'a0=\'a0F])\
+\f1\i0\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<Chromosome>$)initializeChromosome(integer$\'a0id, [Ni$\'a0length\'a0=\'a0NULL], [string$\'a0type\'a0=\'a0"A"], [Ns$\'a0symbol\'a0=\'a0NULL], [Ns$\'a0name\'a0=\'a0NULL], [integer$\'a0mutationRuns\'a0=\'a00])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calling this function, added in SLiM\'a05, initiates the configuration of a chromosome in the species being initialized.  The new 
+\f1\fs18 Chromosome
+\f2\fs20  object is returned, but it is still under construction and will error if used; see below for details.  That chromosome is then the \'93focal chromosome\'94 for subsequent genetic initialization functions \'96 specifically, for 
+\f1\fs18 initializeAncestralNucleotides()
+\f2\fs20 , 
+\f1\fs18 initializeGeneConversion()
+\f2\fs20 , 
+\f1\fs18 initializeGenomicElement()
+\f2\fs20 , 
+\f1\fs18 initializeHotspotMap()
+\f2\fs20 , 
+\f1\fs18 initializeMutationRate()
+\f2\fs20 , and 
+\f1\fs18 initializeRecombinationRate()
+\f2\fs20 .  If you wish to call 
+\f1\fs18 initializeChromosome()
+\f2\fs20  at all (which is not required), you must call it 
+\f3\i before
+\f2\i0  calling any of those genetic initialization functions, so that the focal chromosome is created 
+\f3\i before
+\f2\i0  being configured further; otherwise, SLiM will assume that you want a default single-chromosome model, and when 
+\f1\fs18 initializeChromosome()
+\f2\fs20  is called later (contradicting that assumption), an error will result.\
+Furthermore, there are some other initialization functions must be called before 
+\f1\fs18 initializeChromosome()
+\f2\fs20  if they are called at all \'96 specifically, 
+\f1\fs18 initializeSex()
+\f2\fs20 , 
+\f1\fs18 initializeTreeSeq()
+\f2\fs20 , 
+\f1\fs18 initializeSpecies()
+\f2\fs20 , and 
+\f1\fs18 initializeSLiMOptions()
+\f2\fs20 .  This is so that 
+\f1\fs18 initializeChromosome()
+\f2\fs20  knows the context within which the new chromosome is to be created; if these methods have not been called when 
+\f1\fs18 initializeChromosome()
+\f2\fs20  is called, the default context is assumed (non-sexual, no tree-sequence recording, single-species, non-nucleotide-based), and an error will result downstream if one of those functions is later called (indicating that those assumptions might be incorrect).\
+The parameters to 
+\f1\fs18 initializeChromosome()
+\f2\fs20  configure the chromosome created.  They will be discussed out of order here, because that order of presentation will, I hope, be clearer.\
+There are three parameters that in some way identify the chromosome.  First, the required 
+\f1\fs18 id
+\f2\fs20  parameter provides an 
+\f1\fs18 integer
+\f2\fs20  identifier for the chromosome, which can be used to look up the chromosome later in the simulation; it can be any non-negative 
+\f1\fs18 integer
+\f2\fs20  value, but must be unique within the species (two chromosomes in the same species cannot have the same 
+\f1\fs18 id
+\f2\fs20 ).  Often it is an empirical chromosome number, for convenience and clarity; if modeling human chromosome 7, for example, you might provide 
+\f1\fs18 7
+\f2\fs20 .  Second, the 
+\f1\fs18 symbol
+\f2\fs20  parameter provides a 
+\f1\fs18 string
+\f2\fs20  identifier for the chromosome, which can also be used to look up the chromosome later in the simulation.  If 
+\f1\fs18 NULL
+\f2\fs20  (the default) is passed for 
+\f1\fs18 symbol
+\f2\fs20 , the chromosome\'92s default 
+\f1\fs18 symbol
+\f2\fs20  value will be the 
+\f1\fs18 string
+\f2\fs20  version of its 
+\f1\fs18 id
+\f2\fs20  (
+\f1\fs18 "7"
+\f2\fs20  for an 
+\f1\fs18 id
+\f2\fs20  of 
+\f1\fs18 7
+\f2\fs20 , for example).  The chromosome\'92s 
+\f1\fs18 symbol
+\f2\fs20  value will be used to identify the chromosome in output \'96 in VCF output, for example, and in SLiMgui.  It must be non-empty (not 
+\f1\fs18 ""
+\f2\fs20 ), no more than five characters long, and unique within the species.  Third, the 
+\f1\fs18 name
+\f2\fs20  parameter can be any 
+\f1\fs18 string
+\f2\fs20  value; if 
+\f1\fs18 NULL
+\f2\fs20  (the default) is passed, the 
+\f1\fs18 name
+\f2\fs20  value will be 
+\f1\fs18 ""
+\f2\fs20 .  The 
+\f1\fs18 name
+\f2\fs20  is not used by SLiM, and can be used in any way you wish.\
+The 
+\f1\fs18 length
+\f2\fs20  parameter sets the length, in base positions, of the chromosome, and must either be 
+\f1\fs18 NULL
+\f2\fs20 , or an 
+\f1\fs18 integer
+\f2\fs20  greater than or equal to 
+\f1\fs18 1
+\f2\fs20 .  If 
+\f1\fs18 length
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , the length of the chromosome will be calculated after all 
+\f1\fs18 initialize()
+\f2\fs20  callbacks have been called, as the maximum position referenced by the chromosome\'92s genomic elements, recombination map, mutation rate map, and (in nucleotide-based models) hotspot map; in other words, the chromosome will be sized to encompass all of the things it contains (which is also the behavior of the implicitly defined chromosome if 
+\f1\fs18 initializeChromosome()
+\f2\fs20  is not called).  Otherwise \'96 if 
+\f1\fs18 length
+\f2\fs20  is specified with an 
+\f1\fs18 integer
+\f2\fs20  value \'96 the chromosome\'92s length will be fixed at that value, and the last valid base position in the chromosome will be 
+\f1\fs18 length-1
+\f2\fs20 .  Attempting to add a genomic element or a mutation after the last position will raise an error.  Similarly, the last position of the chromosome must match the last position specified for recombination, mutation, and hotspot maps for that chromosome, but not all positions on a chromosome have to actually be used in the model (i.e., not all positions must be covered by a genomic element).\
+The 
+\f1\fs18 type
+\f2\fs20  parameter specifies the type of chromosome to be created.  There are numerous options, and they are somewhat complex.  They are discussed in more detail in the documentation for class 
+\f1\fs18 Chromosome
+\f2\fs20 , particularly their specific patterns of inheritance; but they are briefly summarized here for quick reference.  Note that \'93\'96\'93 below indicates a null haplosome.  First of all, in hermaphroditic models 
+\f1\fs18 type
+\f2\fs20  will generally be one of:\
+\pard\pardeftab720\li907\ri360\sa60\partightenfactor0
+
+\f1\fs18 \cf2 "A"
+\f2\fs20  (autosome), the default, specifying a diploid autosomal chromosome.\
+
+\f1\fs18 "H"
+\f2\fs20  (haploid), specifying a haploid autosomal chromosome that recombines in biparental crosses.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Some sex-chromosome types are supported only in sexual models:\
+\pard\pardeftab720\li907\ri360\sa60\partightenfactor0
+
+\f1\fs18 \cf2 "X"
+\f2\fs20  (X), specifying an X chromosome that is diploid (XX) in females, haploid (X\'96) in males.\
+
+\f1\fs18 "Y"
+\f2\fs20  (Y), specifying a Y chromosome that is haploid (Y) in males, absent (\'96) in females.\
+
+\f1\fs18 "Z"
+\f2\fs20  (Z), specifying a Z chromosome that is diploid (ZZ) in males, haploid (\'96Z) in females.\
+
+\f1\fs18 "W"
+\f2\fs20  (W), specifying a W chromosome that is haploid (W) in females, absent (\'96) in males.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 And there are some haploid chromosome types that are also supported only in sexual models:\
+\pard\pardeftab720\li907\ri360\sa60\partightenfactor0
+
+\f1\fs18 \cf2 "HF"
+\f2\fs20  (haploid female-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the first (female) parent in biparental crosses.\
+
+\f1\fs18 "FL"
+\f2\fs20  (female line), specifying a haploid autosomal chromosome that is inherited only by females, from the female parent, and is represented by a null haplosome in males.\
+
+\f1\fs18 "HM"
+\f2\fs20  (haploid male-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the second (male) parent in biparental crosses.\
+
+\f1\fs18 "ML"
+\f2\fs20  (male line), specifying a haploid autosomal chromosome that is inherited only by males, from the male parent, and is represented by a null haplosome in females.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Finally, two additional values of 
+\f1\fs18 type
+\f2\fs20 , 
+\f1\fs18 "H-"
+\f2\fs20  and 
+\f1\fs18 "-Y"
+\f2\fs20 , are supported for backward compatibility (not intended for use in new models).  They are discussed in the 
+\f1\fs18 Chromosome
+\f2\fs20  documentation.\
+The 
+\f1\fs18 mutationRuns
+\f2\fs20  parameter specifies how many mutation runs the chromosome should use.  Internally, SLiM divides haplosomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally optimal.  The optimal number of mutation runs will depend on the model\'92s details, and may also depend upon the machine and even the compiler used to build SLiM.  If the 
+\f1\fs18 mutationRuns
+\f2\fs20  parameter is not 
+\f1\fs18 0
+\f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
+\f1\fs18 Haplosome
+\f2\fs20  objects for the chromosome.  If 
+\f1\fs18 mutationRuns
+\f2\fs20  is 
+\f1\fs18 0
+\f2\fs20  (the default), then the behavior depends upon a parameter to the 
+\f1\fs18 initializeSLiMOptions()
+\f2\fs20  function, 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20 .  If that flag is 
+\f1\fs18 F
+\f2\fs20 , the behavior here is as if 
+\f1\fs18 mutationRuns=1
+\f2\fs20  had been passed: one mutation run will be used, and mutation run experiments will not be conducted.  If that flag is 
+\f1\fs18 T
+\f2\fs20  (the default), then for 
+\f1\fs18 mutationRuns=0
+\f2\fs20  SLiM will conduct experiments at runtime, using different mutation run counts, to try to determine the number of mutation runs that produces the best performance.  The value that SLiM\'92s experiments determine may not be optimal, however, and in any case there is some overhead associated with conducting these experiments; for maximal performance it can thus be beneficial to determine the true optimal value for the simulation yourself, and set it explicitly using this parameter. Specifying the number of mutation runs is an advanced technique, but in some cases it can improve performance significantly.\
+The order in which 
+\f1\fs18 initializeChromosome()
+\f2\fs20  calls are made is generally unimportant, since the chromosomes assort independently of each other anyway, but SLiM will preserve the order in which they were defined for you (for the 
+\f1\fs18 chromosomes
+\f2\fs20  property of Species, for display in SLiMgui, for writing out to VCF, and so forth).  All of the above types of chromosomes can be defined any number of times; you can have any number of autosomal chromosomes, for example.  In a sexual model you could even have multiple defined sex chromosomes \'96 not in the sense of a female being XX, but in the sense of a female being X
+\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub X
+\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub X
+\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub X
+\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub , where X
+\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub  and X
+\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub  are two different kinds of X chromosome.  Similarly, you could define both an X and a Z for a species, if you wish; each would segregate correctly according to the sex of the offspring.  In sexual models in SLiM the sex of an offspring is determined randomly or given by the user in script; it is not a function of the sex chromosomes present in the individual, although the sex chromosomes present in the individual will correlate with sex.  In other words, SLiM does not know and does not care what sex-determination system the species is using; the chromosomes follow the sex, rather than the sex following the chromosomes.  This should allow any sex-determination system to be modeled, even if it is unusual, non-genetic, etc.\
+As stated above, the new 
+\f1\fs18 Chromosome
+\f2\fs20  object is returned by this call, but it is still under construction so most of its methods and properties will error.  It will remain in this state until 
+\f1\fs18 initialize()
+\f2\fs20  callbacks have completed, and will then become active and usable.  Until that point, there are only a handful of uses that are guaranteed to be allowed: storing it in a variable; remembering it with 
+\f1\fs18 defineConstant()
+\f2\fs20 ; using the methods and properties of its superclasses, notably 
+\f1\fs18 Dictionary
+\f2\fs20 ; setting SLiMgui display-related properties such as 
+\f1\fs18 colorSubstitution
+\f2\fs20 ; getting and setting its 
+\f1\fs18 tag
+\f2\fs20  property; and accessing those of its properties that were passed to the 
+\f1\fs18 initializeChromosome()
+\f2\fs20  call, specifically 
+\f1\fs18 id
+\f2\fs20 , 
+\f1\fs18 symbol
+\f2\fs20 , 
+\f1\fs18 name
+\f2\fs20 , 
+\f1\fs18 type
+\f2\fs20 , 
+\f1\fs18 length
+\f2\fs20 , and 
+\f1\fs18 lastPosition
+\f2\fs20 .  Its other properties, and all 
+\f1\fs18 Chromosome
+\f2\fs20  methods, will raise an error while in this state.  This safeguard protects the new 
+\f1\fs18 Chromosome
+\f2\fs20  object from being used while still in an inconsistent state.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(void)initializeGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00], [logical$\'a0redrawLengthsOnFailure\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function switches the recombination model from a \'93simple crossover\'94 model to a \'93double-stranded break (DSB)\'94 model, and configures the details of the gene conversion tracts that will therefore be modeled.  The fraction of DSBs that will be modeled as non-crossover events is given by 
@@ -102,8 +346,7 @@ A utility function,
 \f2\fs20  may mitigate this problem, at the price of biasing the mean tract length downward as discussed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
-\f4 \
+\f1\fs18 \cf2 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, [Ni\'a0start\'a0=\'a0NULL], [Ni\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
@@ -141,6 +384,36 @@ Beginning in SLiM 3.3, this function is vectorized: the
 \f2\fs20  and 
 \f1\fs18 end
 \f2\fs20 , providing an independent genomic element type for each new element.  When adding a large number of genomic elements, it will be much faster to add them in order of ascending position with a vectorized call.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 5, passing 
+\f1\fs18 NULL
+\f2\fs20  for 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  is allowed by 
+\f1\fs18 initializeGenomicElement()
+\f2\fs20 , but only in one specific case: if the focal chromosome being configured was explicitly defined with 
+\f1\fs18 initializeChromosome()
+\f2\fs20 , and that focal chromosome was given an explicit length (rather than a length of 
+\f1\fs18 NULL
+\f2\fs20 ).  In that case, 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  may be 
+\f1\fs18 NULL
+\f2\fs20  (
+\f3\i both
+\f2\i0  of them, not just one of them), indicating that the genomic element created should span the entire length of the focal chromosome.  Since 
+\f1\fs18 NULL
+\f2\fs20  is now the default value for 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20 , this makes this common configuration very simple to set up.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 The return value provides the genomic element(s) created by the call, in the order in which they were specified in the parameters to 
 \f1\fs18 initializeGenomicElement()
 \f2\fs20 .\
@@ -455,10 +728,11 @@ The global symbol for the new interaction type is immediately available; the ret
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
+\f2\fs20 \cf2 Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
 \f1\fs18 initializeRecombinationRate()
-\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring genome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
+\f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring haplosome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 There are two ways to call this function.  If the optional 
 \f1\fs18 ends
 \f2\fs20  parameter is 
@@ -531,9 +805,70 @@ If the optional
 \f1\fs18 initializeHotspotMap()
 \f2\fs20  should be used.
 \f3\i \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\i0 \cf2 \kerning1\expnd0\expndtw0 The 
+\f1\fs18 initializeMutationRateFromFile()
+\f2\fs20  function is a useful convenience function if you wish to read the mutation rate map from a file.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
+\f1\fs18 \cf2 (void)initializeMutationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Set a mutation rate map from data read from the file at 
+\f1\fs18 path
+\f2\fs20 .  This function is essentially a wrapper for 
+\f1\fs18 initializeMutationRate()
+\f2\fs20  that uses 
+\f1\fs18 readCSV()
+\f2\fs20  and passes the data through.  The file is expected to contain two columns of data.  The first column must be 
+\f1\fs18 integer
+\f2\fs20  start positions for rate map regions; the first region should start at position 
+\f1\fs18 0
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 0
+\f2\fs20 -based, or at position 
+\f1\fs18 1
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 1
+\f2\fs20 -based; in the latter case, 
+\f1\fs18 1
+\f2\fs20  will be subtracted from every position since SLiM uses 
+\f1\fs18 0
+\f2\fs20 -based positions.  The second column must be 
+\f1\fs18 float
+\f2\fs20  rates, relative to the scaling factor specified in 
+\f1\fs18 scale
+\f2\fs20 ; for example, if a given rate is 
+\f1\fs18 1.2
+\f2\fs20  and 
+\f1\fs18 scale
+\f2\fs20  is 
+\f1\fs18 1e-8
+\f2\fs20  (the default), the rate used will be 
+\f1\fs18 1.2e-8
+\f2\fs20 .  No column header line should be present; the file should start immediately with numerical data.  The expected separator between columns is a tab character by default, but may be passed in 
+\f1\fs18 sep
+\f2\fs20 ; the expected decimal separator is a period by default, but may be passed in 
+\f1\fs18 dec
+\f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
+\f1\fs18 lastPosition
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+See 
+\f1\fs18 readCSV()
+\f2\fs20  for further details on 
+\f1\fs18 sep
+\f2\fs20  and 
+\f1\fs18 dec
+\f2\fs20 , which are passed through to it; and see 
+\f1\fs18 initializeMutationRate()
+\f2\fs20  for details on how the rate map is validated and used.\
+This function is written in Eidos, and its source code can be viewed with 
+\f1\fs18 functionSource()
+\f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (object<MutationType>$)initializeMutationType(is$\'a0id, numeric$\'a0dominanceCoeff, string$\'a0distributionType, ...)
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -596,7 +931,8 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -658,7 +994,7 @@ See the documentation for
 \f1\fs18 0.5
 \f2\fs20 ].  A rate of 
 \f1\fs18 0.5
-\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
+\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement unlinked loci.  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/haplosome), and a supplied rate of 
 \f1\fs18 0.5
 \f2\fs20  will therefore result in an actual probability of 
 \f1\fs18 0.5
@@ -690,59 +1026,6 @@ There are two ways to call this function.  If the optional
 \f2\fs20  taken together specify the recombination rates to be used along successive contiguous stretches of the chromosome, from beginning to end; the last position specified in 
 \f1\fs18 ends
 \f2\fs20  should extend to the end of the chromosome (i.e. at least to the end of the last genomic element, if not further).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-For example, if the following call is made:\
-\pard\pardeftab720\ri720\partightenfactor0
-
-\f4 \cf0 \kerning1\expnd0\expndtw0 	
-\f1\fs18 initializeRecombinationRate(c(0, 0.5, 0), c(5000, 5001, 9999));\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-then the result is that the recombination rates between bases 
-\f1\fs18 0
-\f2\fs20 \'a0/\'a0
-\f1\fs18 1
-\f2\fs20 , 
-\f1\fs18 1
-\f2\fs20 \'a0/\'a0
-\f1\fs18 2
-\f2\fs20 , ..., 
-\f1\fs18 4999
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5000
-\f2\fs20  will be 
-\f1\fs18 0
-\f2\fs20 , the rate between bases 
-\f1\fs18 5000
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5001
-\f2\fs20  will be 
-\f1\fs18 0.5
-\f2\fs20 , and the rate between bases 
-\f1\fs18 5001
-\f2\fs20 \'a0/\'a0
-\f1\fs18 5002
-\f2\fs20  onward (up to 
-\f1\fs18 9998
-\f2\fs20 \'a0/\'a0
-\f1\fs18 9999
-\f2\fs20 ) will again be 
-\f1\fs18 0
-\f2\fs20 .  Setting the recombination rate between one specific pair of bases to 
-\f1\fs18 0.5
-\f2\fs20  forces recombination to occur with a probability of 
-\f1\fs18 0.5
-\f2\fs20  between those bases, which effectively breaks the simulated locus into separate chromosomes at that point; this example effectively has one simulated chromosome from base position 
-\f1\fs18 0
-\f2\fs20  to 
-\f1\fs18 5000
-\f2\fs20 , and another from 
-\f1\fs18 5001
-\f2\fs20  to 
-\f1\fs18 9999
-\f2\fs20 .\
 If the optional 
 \f1\fs18 sex
 \f2\fs20  parameter is 
@@ -756,29 +1039,127 @@ If the optional
 \f2\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
 \f1\fs18 initializeRecombinationRate()
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
+The 
+\f1\fs18 initializeRecombinationRateFromFile()
+\f2\fs20  function is a useful convenience function if you wish to read the recombination rate map from a file.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeSex(string$\'a0chromosomeType)\
+\f1\fs18 \cf2 (void)initializeRecombinationRateFromFile(string$\'a0path, integer$\'a0lastPosition, [float$\'a0scale\'a0=\'a01.0e-08], [string$\'a0sep\'a0=\'a0"\\t"], [string$\'a0dec\'a0=\'a0"."])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Enable and configure sex in the simulation.  The argument 
+\f2\fs20 \cf2 Set a recombination rate map from data read from the file at 
+\f1\fs18 path
+\f2\fs20 .  This function is essentially a wrapper for 
+\f1\fs18 initializeRecombinationRate()
+\f2\fs20  that uses 
+\f1\fs18 readCSV()
+\f2\fs20  and passes the data through.  The file is expected to contain two columns of data.  The first column must be 
+\f1\fs18 integer
+\f2\fs20  start positions for rate map regions; the first region should start at position 
+\f1\fs18 0
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 0
+\f2\fs20 -based, or at position 
+\f1\fs18 1
+\f2\fs20  if the map\'92s positions are 
+\f1\fs18 1
+\f2\fs20 -based; in the latter case, 
+\f1\fs18 1
+\f2\fs20  will be subtracted from every position since SLiM uses 
+\f1\fs18 0
+\f2\fs20 -based positions.  The second column must be 
+\f1\fs18 float
+\f2\fs20  rates, relative to the scaling factor specified in 
+\f1\fs18 scale
+\f2\fs20 ; for example, if a given rate is 
+\f1\fs18 1.2
+\f2\fs20  and 
+\f1\fs18 scale
+\f2\fs20  is 
+\f1\fs18 1e-8
+\f2\fs20  (the default), the rate used will be 
+\f1\fs18 1.2e-8
+\f2\fs20 .  No column header line should be present; the file should start immediately with numerical data.  The expected separator between columns is a tab character by default, but may be passed in 
+\f1\fs18 sep
+\f2\fs20 ; the expected decimal separator is a period by default, but may be passed in 
+\f1\fs18 dec
+\f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
+\f1\fs18 lastPosition
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+See 
+\f1\fs18 readCSV()
+\f2\fs20  for further details on 
+\f1\fs18 sep
+\f2\fs20  and 
+\f1\fs18 dec
+\f2\fs20 , which are passed through to it; and see 
+\f1\fs18 initializeRecombinationRate()
+\f2\fs20  for details on how the rate map is validated and used.\
+This function is written in Eidos, and its source code can be viewed with 
+\f1\fs18 functionSource()
+\f2\fs20 , so you can copy and modify its code if you need to modify its functionality.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)initializeSex([Ns$\'a0chromosomeType\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Enable sex in the simulation.  Beginning in SLiM 5, this method should generally be passed 
+\f1\fs18 NULL
+\f2\fs20 , simply indicating that sex should be enabled: individuals will then be male and female (rather than hermaphroditic), biparental crosses will be required to be between a female first parent and a male second parent, and selfing will not be allowed.  In this new configuration style, if a sexual simulation involving sex chromosomes is desired, the new 
+\f1\fs18 initializeChromosome()
+\f2\fs20  call should be used to configure the chromosome setup for the simulation.\
+For backward compatibility, the old style of configuring a sexual simulation is still supported, however.  This implicitly defines a single chromosome, without a call to 
+\f1\fs18 initializeChromosome()
+\f2\fs20 .  With this old configuration approach, the 
 \f1\fs18 chromosomeType
-\f2\fs20  gives the type of chromosome to be simulated; this should be 
+\f2\fs20  parameter to 
+\f1\fs18 initializeSex()
+\f2\fs20  gives the type of chromosome that should be simulated; this should be 
 \f1\fs18 "A"
 \f2\fs20 , 
 \f1\fs18 "X"
 \f2\fs20 , or 
 \f1\fs18 "Y"
-\f2\fs20 .  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
+\f2\fs20 , and this 
 \f1\fs18 chromosomeType
-\f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f2\fs20  value will be used as the symbol (
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "X"
+\f2\fs20 , or 
+\f1\fs18 "Y"
+\f2\fs20 ) for the implicit chromosome.  These legacy chromosome types correspond to the new chromosome types 
+\f1\fs18 "A"
+\f2\fs20 , 
+\f1\fs18 "X"
+\f2\fs20 , and 
+\f1\fs18 "-Y"
+\f2\fs20  respectively (note that it is 
+\f3\i not
+\f2\i0  
+\f1\fs18 "Y"
+\f2\fs20 ), when using 
+\f1\fs18 initializeChromosome()
+\f2\fs20 .  The implicit chromosome\'92s 
+\f1\fs18 id
+\f2\fs20  property is always 
+\f1\fs18 1
+\f2\fs20 .  This old style of chromosome configuration is much less flexible, however, allowing only these three chromosome types, and only allowing a single chromosome to be set up.  This backward compatibility mode may be removed for SLiM in the future, and should be considered deprecated; new models should call 
+\f1\fs18 initializeChromosome()
+\f2\fs20  explicitly instead.\
+There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.  If you require more flexibility with mating types and reproductive strategies than SLiM\'92s built-in support for sex provides, do not call 
+\f1\fs18 initializeSex()
+\f2\fs20 ; instead, track the sex or mating type of individuals yourself in script (with the 
+\f1\fs18 tag
+\f2\fs20  property of 
+\f1\fs18 Individual
+\f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
 
-\f0\b \cf2 The 
+\f0\b The 
 \f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
-\f2\b0   In SLiM 3.7 and later, use the 
-\f1\fs18 haploidDominanceCoeff
+\f2\b0   In SLiM 5 and later, use the 
+\f1\fs18 hemizygousDominanceCoeff
 \f2\fs20  property of 
 \f1\fs18 MutationType
 \f2\fs20  instead.  \cf3 If the 
@@ -811,7 +1192,7 @@ If
 \f2\fs20  is called at all then it must be called before any other initialization function, so that SLiM knows from the outset which features are enabled and which are not.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
+\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [logical$\'a0doMutationRunExperiments\'a0=\'a0T], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
 , [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -848,9 +1229,9 @@ Configure options for the simulation.  If
 \f2\fs20  properties of 
 \f1\fs18 Individual
 \f2\fs20  will have defined values, as will the 
-\f1\fs18 genomePedigreeID
+\f1\fs18 haplosomePedigreeID
 \f2\fs20  property of 
-\f1\fs18 Genome
+\f1\fs18 Haplosome
 \f2\fs20 .  Note that pedigree-based relatedness doesn\'92t necessarily correspond to genetic relatedness, due to effects such as assortment and recombination.  Beginning in SLiM 3.5, 
 \f1\fs18 keepPedigrees=T
 \f2\fs20  also enables tracking of individual reproductive output, available through the 
@@ -925,21 +1306,27 @@ If
 \f2\fs20  method of 
 \f1\fs18 Subpopulation
 \f2\fs20  is typically used in conjunction with this option, to actually implement the periodic boundary condition for the specified dimensions.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 If 
-\f1\fs18 mutationRuns
-\f2\fs20  is not 
-\f1\fs18 0
-\f2\fs20 , SLiM will use the value given as the number of mutation runs inside 
-\f1\fs18 Genome
-\f2\fs20  objects; if it is 
-\f1\fs18 0
-\f2\fs20  (the default), SLiM will calculate a number of mutation runs that it estimates will work well.  Internally, SLiM divides genomes into a sequence of consecutive mutation runs, allowing more efficient internal computations.  The optimal mutation run length is short enough that each mutation run is relatively unlikely to be modified by mutation/recombination events when inherited, but long enough that each mutation run is likely to contain a relatively large number of mutations; these priorities are in tension, so an intermediate balance between them is generally desirable.  The optimal number of mutation runs will depend upon the machine and even the compiler used to build SLiM, so SLiM\'92s default value may not be optimal; for maximal performance it can thus be beneficial to experiment with different values and find the optimal value for the simulation.  Specifying the number of mutation runs is an advanced technique, but in certain cases it can improve performance significantly; in particular, if a simulation involves a very long chromosome but only a small portion of that chromosome is actually used by the simulation, it may be beneficial to specify that a single mutation run be used with 
-\f1\fs18 mutationRuns=1
-\f4\fs20 .\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f2 \cf0 If 
+\cf2 \kerning1\expnd0\expndtw0 The 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  parameter specifies whether SLiM should attempt to conduct experiments at runtime to determine the optimal number of mutation runs used in the model.  This is a performance optimization.  If 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), this optimization is enabled for all chromosomes that do not have an explicitly specified mutation run count; this is generally desirable and may significantly improve performance.  If 
+\f1\fs18 doMutationRunExperiments
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , this optimization is disabled and chromosomes that do not have an explicitly specified mutation run count will simply use a single mutation run.  See the documentation for 
+\f1\fs18 initializeChromosome()
+\f2\fs20  for further discussion.  Note that this parameter used to be 
+\f1\fs18 [integer$\'a0mutationRuns\'a0=\'a00]
+\f2\fs20 , specifying the mutation run count directly.  That parameter has been moved to 
+\f1\fs18 initializeChromosome()
+\f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
 \f1\fs18 T
@@ -1077,8 +1464,10 @@ The
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function. Note that tree-sequence recording internally uses SLiM\'92s \'93pedigree tracking\'94 feature to uniquely identify individuals and genomes; however, if you want to use pedigree tracking in your script you must still enable it yourself with 
+\f2\fs20 \cf2 Configure options for tree sequence recording.  Calling this function turns on tree sequence recording, as a side effect, for later reconstruction of the simulation\'92s evolutionary dynamics; if you do not want tree sequence recording to be enabled, do not call this function.  Note that tree-sequence recording internally uses SLiM\'92s \'93pedigree tracking\'94 feature to uniquely identify individuals and haplosomes; however, if you want to use pedigree tracking in your script you must still enable it yourself with 
 \f1\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f2\fs20 .  A separate tree sequence will be recorded for each chromosome in the simulation, as configured with 
+\f1\fs18 initializeChromosome()
 \f2\fs20 .\
 The 
 \f1\fs18 recordMutations
@@ -1157,14 +1546,16 @@ The
 \f2\fs20  is preferable otherwise.  See the documentation for 
 \f1\fs18 treeSeqCoalesced()
 \f2\fs20  for further discussion.\
-The 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 runCrosschecks
-\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in genomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
-The 
+\f2\fs20  parameter controls whether cross-checks between SLiM\'92s internal data structures and the tree-sequence recording data structures will be conducted.  These two sets of data structures record much the same thing (mutations in haplosomes), but using completely different representations, so such cross-checks can be useful to confirm that the two data structures do indeed represent the same conceptual state.  This slows down the model considerably, however, and would normally be turned on only for debugging purposes, so it is turned off by default.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The 
 \f1\fs18 retainCoalescentOnly
 \f2\fs20  parameter controls how, exactly, simplification of the tree-sequence data is performed in SLiM (both for auto-simplification and for calls to 
 \f1\fs18 treeSeqSimplify()
-\f2\fs20 ).  More specifically, this parameter controls the behavior of simplification for individuals and genomes that have been \'93retained\'94 by calling 
+\f2\fs20 ).  More specifically, this parameter controls the behavior of simplification for individuals and haplosomes that have been \'93retained\'94 by calling 
 \f1\fs18 treeSeqRememberIndividuals()
 \f2\fs20  with the parameter 
 \f1\fs18 permanent=F
@@ -1699,15 +2090,15 @@ The
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Genome>\'a0genomes1, object<Genome>\'a0genomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates the 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  between two 
-\f1\fs18 Genome
-\f2\fs20  vectors \'96 typically, but not necessarily, the genomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
+\f1\fs18 Haplosome
+\f2\fs20  vectors \'96 typically, but not necessarily, the haplosomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  indicates greater genetic divergence between subpopulations.\
@@ -1733,7 +2124,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the genome-wide 
+\f2\fs20 , provides the haplosome-wide 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
@@ -1762,7 +2153,7 @@ The code for
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
 \f3\i H
 \fs13\fsmilli6667 \sub T 
-\f2\i0\fs20 \nosupersub is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.  In SLiM 3, the implementation followed Wright\'92s definition closely, and returned the 
+\f2\i0\fs20 \nosupersub is the total heterozygosity when both subpopulations are combined.  In this implementation, the two haplosome vectors are weighted equally, not weighted by their size.  In SLiM 3, the implementation followed Wright\'92s definition closely, and returned the 
 \f3\i average of ratios
 \f2\i0 : 
 \f1\fs18 mean(1.0 - H_s/H_t)
@@ -1773,13 +2164,26 @@ The code for
 \f2\fs20 .  In other words, the 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  value reported by SLiM 4 is an average across the specified mutations in the two sets of genomes, where 
+\fs20 \nosupersub  value reported by SLiM 4 is an average across the specified mutations in the two sets of haplosomes, where 
 \f1\fs18 H_s
 \f2\fs20  and 
 \f1\fs18 H_t
 \f2\fs20  are first averaged across all specified mutations prior to taking the ratio of the two.  This ratio of averages is less biased than the average of ratios, and and is generally considered to be best practice (see, e.g., Bhatia et al., 2013).  This means that the behavior of 
 \f1\fs18 calcFST()
 \f2\fs20  differs between SLiM 3 and SLiM 4.\
+As can be seen from its equation, the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  is undefined if 
+\f3\i H
+\fs13\fsmilli6667 \sub T
+\f2\i0\fs20 \nosupersub  is zero, which occurs if no mutations are present in the haplosomes provided (given the optionally specified window and set of mutations).  In that case, 
+\f1\fs18 calcFST()
+\f2\fs20  will return 
+\f1\fs18 NAN
+\f2\fs20 .  It is up to the caller to detect this with 
+\f1\fs18 isNAN()
+\f2\fs20  and handle it as necessary.\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
@@ -1792,27 +2196,36 @@ The implementation of
 \f3\i by site
 \f2\i0 .  Similarly, if multiple 
 \f1\fs18 Mutation
-\f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f2\fs20  objects exist in different haplosomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
 \f1\fs18 Mutation
 \f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcHeterozygosity(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float$)calcHeterozygosity(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the heterozygosity for a vector of genomes, based upon the frequencies of mutations in the genomes.  The result is the 
+\f2\fs20 \cf2 Calculates the heterozygosity for a vector of haplosomes (containing at least one element), based upon the frequencies of mutations in the haplosomes.  The result is the 
 \f3\i expected
-\f2\i0  heterozygosity, for the individuals to which the genomes belong, assuming that they are under Hardy-Weinberg equilibrium; this can be compared to the 
+\f2\i0  heterozygosity, for the individuals to which the haplosomes belong, assuming that they are under Hardy-Weinberg equilibrium; this can be compared to the 
 \f3\i observed
 \f2\i0  heterozygosity of an individual, as calculated by 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20 .  Often 
-\f1\fs18 genomes
-\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
+\f1\fs18 haplosomes
+\f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
 \f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
 \f1\fs18 muts
 \f2\fs20 .\
+In multi-chromosome models, all of the haplosomes and mutations passed in 
+\f1\fs18 haplosomes
+\f2\fs20  and 
+\f1\fs18 muts
+\f2\fs20  must all be associated with the same single chromosome.  If you wish to calculate heterozygosity across multiple chromosomes, you can simply write a 
+\f1\fs18 for
+\f2\fs20  loop that calculates it for each chromosome and combines the results; but it is not entirely clear how to weight the chromosomes to produce a single number, especially when sex chromosomes and other chromosomes of variable ploidy might be represented in 
+\f1\fs18 haplosomes
+\f2\fs20 , so it is not done automatically by this function.\
 The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 
@@ -1823,7 +2236,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the genome-wide heterozygosity.\
+\f2\fs20 , provides the haplosome-wide heterozygosity.\
 The implementation of 
 \f1\fs18 calcHeterozygosity()
 \f2\fs20 , viewable with 
@@ -1833,16 +2246,20 @@ The implementation of
 \f2\fs20  for further discussion.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcInbreedingLoad(object<Genome>\'a0genomes, [No<MutationType>$\'a0mutType\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float$)calcInbreedingLoad(object<Haplosome>\'a0haplosomes, [Nio<MutationType>$\'a0mutType\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates inbreeding load (the haploid number of lethal equivalents, or 
 \f3\i B
-\f2\i0 ) for a vector of genomes passed in 
-\f1\fs18 genomes
+\f2\i0 ) for a vector of haplosomes (containing at least one element) passed in 
+\f1\fs18 haplosomes
 \f2\fs20 .  The calculation can be limited to a focal mutation type passed in 
 \f1\fs18 mutType
-\f2\fs20 ; if 
+\f2\fs20  (which may be either an 
+\f1\fs18 integer
+\f2\fs20  representing the ID of the desired mutation type, or a 
+\f1\fs18 MutationType
+\f2\fs20  object specified directly); if 
 \f1\fs18 mutType
 \f2\fs20  is 
 \f1\fs18 NULL
@@ -1872,7 +2289,9 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i s
 \f2\i0  is the absolute value of the selection coefficient, and 
 \f3\i h
-\f2\i0  is its dominance coefficient.  Note that the implementation sets a maximum |
+\f2\i0  is its dominance coefficient.  Note that the implementation, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , sets a maximum |
 \f3\i s
 \f2\i0 | of 
 \f1\fs18 1.0
@@ -1902,14 +2321,66 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 This function was contributed by Chris Kyriazis; thanks, Chris!\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Genome>$\'a0genome1, object<Genome>$\'a0genome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
+\f1\fs18 \cf2 (float$)calcMeanFroh(object<Individual>\'a0individuals, [integer$\'a0minimumLength\'a0=\'a01000000], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf2 Calculates the heterozygosity for a pair of genomes; these will typically be the two genomes of a diploid individual (
-\f1\fs18 individual.genome1
-\f2\fs20  and 
-\f1\fs18 individual.genome2
-\f2\fs20 ), but any two genomes may be supplied.\
+\f2\fs20 \cf2 Calculates the mean value of the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  statistic across the individuals passed in 
+\f1\fs18 individuals
+\f2\fs20 .  This statistic is a measure of individual autozygosity, likely resulting from inbreeding, and is calculated based upon \'93runs of homozygosity\'94, or ROH, in the genome of an individual.  Broadly speaking, 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  is the proportion of an individual\'92s genome that is spanned by ROH longer than a given threshold length.  However, it should be noted that there are many different ways of calculating 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub , producing different results.  For example, the threshold length might be a given constant, or might be determined statistically from the characteristics of the population.  Furthermore, some heterozygous sites might be discarded (to compensate for genotyping errors), a minimum SNP density might be required within a sliding window for an ROH to be diagnosed, and so forth \'96 it can get quite complex, as seen in the software PLINK (Purcell et al., 2007) and GARLIC (Szpiech, Blant and Pemberton, 2017).  The method used by 
+\f1\fs18 calcMeanFroh()
+\f2\fs20  is the simplest possible method, assessing ROH for each individual directly from the simulated mutations without filtering or modification, and applying a given constant threshold length.  If a more sophisticated 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  algorithm is desired, one could modify the implementation of 
+\f1\fs18 calcMeanFroh()
+\f2\fs20 , which is viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , or one could output VCF data from SLiM and analyze it with other tools, perhaps calling out from the running SLiM script with 
+\f1\fs18 system()
+\f2\fs20 .\
+The threshold ROH length used by 
+\f1\fs18 calcMeanFroh()
+\f2\fs20  is supplied by the parameter 
+\f1\fs18 minimumLength
+\f2\fs20 .  It defaults to 
+\f1\fs18 1e6
+\f2\fs20 , or 1 Mbp, since that is a length commonly used in the literature, but can be adjusted as desired.\
+The 
+\f1\fs18 chromosome
+\f2\fs20  parameter can be supplied to focus the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation on a specific chromosome; otherwise, the calculation spans all chromosomes for which the individual is actually diploid (without a null haplosome).  If 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  cannot be calculated for an individual (due to the presence of null haplosomes for every intrinsically diploid chromosome being analyzed), that individual is omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation; for example, if an X chromosome is the focal chromosome being analyzed, all males will be omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation.  If all individuals are omitted from the mean 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub roh
+\fs20 \nosupersub  calculation for this reason, 
+\f1\fs18 NAN
+\f2\fs20  is returned.\
+This function was developed with advice from Ryan Chaffee.  Thanks, Ryan!\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Haplosome>$\'a0haplosome1, object<Haplosome>$\'a0haplosome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the heterozygosity for a pair of haplosomes; these will typically be two homologous haplosomes of the same diploid individual, but any two haplosomes associated with the same chromosome may be supplied.\
 The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 
@@ -1920,8 +2391,8 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the genome-wide heterozygosity.\
-The implementation of 
+\f2\fs20 , provides the haplosome-wide heterozygosity.\
+The implementation 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
@@ -1933,7 +2404,7 @@ The implementation of
 \f3\i differing sites
 \f2\i0 .  Similarly, if multiple 
 \f1\fs18 Mutation
-\f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f2\fs20  objects exist in different haplosomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
 \f1\fs18 Mutation
 \f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this choice will be negligible; however, in some models this distinction may be important.  The behavior of 
 \f1\fs18 calcPairHeterozygosity()
@@ -1942,17 +2413,19 @@ The implementation of
 \f2\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcPi(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (float$)calcPi(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
 \f7\i \uc0\u960 
-\f2\i0  (a metric of genetic diversity based on pairwise sequence differences) for a vector of genomes, based upon the mutations in the genomes.  The mathematical formulation (as an estimator of the population parameter 
+\f2\i0  (nucleotide diversity, a metric of genetic diversity) for a vector of haplosomes (containing at least two elements), based upon the mutations in the haplosomes.  
+\f7\i \uc0\u960 
+\f2\i0  is computed by calculating the mean number of pairwise differences at each site, summing across all sites, and dividing by the number of sites.  Therefore, it is interpretable as the number of differences per site expected between two randomly chosen sequences.  The mathematical formulation (as an estimator of the population parameter 
 \f7\i \uc0\u952 
-\f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).  This value is averaged by the number of sites.\
+\f2\i0 ) is based on work in Nei and Li (1979), Nei and Tajima (1981), and Tajima (1983; equation A3).  The exact formula used here is common in textbooks (e.g., equations 9.1\'969.5 in Li 1997, equation 3.3 in Hahn 2018, or equation 2.2 in Coop 2020).\
 Often 
-\f1\fs18 genomes
-\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
+\f1\fs18 haplosomes
+\f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
 \f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
 \f1\fs18 muts
@@ -1967,7 +2440,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the genome-wide value of 
+\f2\fs20 , provides the haplosome-wide value of 
 \f7\i \uc0\u960 
 \f2\i0 .\
 The implementation of 
@@ -1980,17 +2453,141 @@ The implementation of
 \f7\i \uc0\u960 
 \f2\i0  have been derived (Tajima 1996) though are not used here.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
-\f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\
+\f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph and Chase Nelson.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcTajimasD(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (numeric)calcSFS([Ni$\'a0binCount\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL], [No<Mutation>\'a0muts\'a0=\'a0NULL], [string$\'a0metric\'a0=\'a0"density"], [logical$\'a0fold\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the site frequency spectrum, or SFS, for the mutations specified by 
+\f1\fs18 muts
+\f2\fs20 , within the haplosomes specified by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The site frequency spectrum or SFS (sometimes called the allele frequency spectrum, although some authors distinguish between the two) is essentially a histogram of the frequencies of the mutations within the haplosomes; the first bin spans the lowest range of frequencies (down to a frequency of 
+\f1\fs18 0.0
+\f2\fs20 , or a count of 
+\f1\fs18 1
+\f2\fs20 ), whereas the last bin spans the highest range of frequencies (up to a frequency of 
+\f1\fs18 1.0
+\f2\fs20 , or a count equal to number of haplosomes minus one).  The idea was introduced by Watterson (1975), and will be discussed in any population genetics textbook (e.g., A. Cutter, 2019, pp. 50\'9652).  This histogram can be returned as a 
+\f1\fs18 float
+\f2\fs20  vector of density values for each bin by specifying 
+\f1\fs18 "density"
+\f2\fs20  for 
+\f1\fs18 metric
+\f2\fs20  (the default), or as an 
+\f1\fs18 integer
+\f2\fs20  vector of count values for each bin by specifying 
+\f1\fs18 "count"
+\f2\fs20 .\
+There are two modes of operation for 
+\f1\fs18 calcSFS()
+\f2\fs20 .  If a specific number of bins is passed for 
+\f1\fs18 binCount
+\f2\fs20 , then the frequency range 
+\f1\fs18 [0.0, 1.0]
+\f2\fs20  is subdivided into 
+\f1\fs18 binCount
+\f2\fs20  intervals of equal width, and the mutations are tallied into those bins according to their frequencies within the haplosomes to produce the histogram.  In this mode, there will be exactly 
+\f1\fs18 binCount
+\f2\fs20  elements in the returned vector.  Note that either 
+\f1\fs18 "density"
+\f2\fs20  or 
+\f1\fs18 "count"
+\f2\fs20  can be chosen in this mode; you can return the frequency bin tallies as either densities or counts.\
+In the other mode of operation, chosen with a 
+\f1\fs18 binCount
+\f2\fs20  value of 
+\f1\fs18 NULL
+\f2\fs20 , the bins instead represent the count of the number of occurrences for each mutation, and range from a count of 
+\f1\fs18 1
+\f2\fs20  (the bin for mutations that occur only once in the haplosomes, sometimes called \'93singletons\'94) up to a count of 
+\f1\fs18 N-1
+\f2\fs20  where 
+\f1\fs18 N
+\f2\fs20  is the number of haplosomes.  (Note that mutations occurring in all 
+\f1\fs18 N
+\f2\fs20  haplosomes are not included in the tally, since they would not be empirically observable.)  In this mode, there will be exactly 
+\f1\fs18 N-1
+\f2\fs20  elements in the returned vector.  Again, either 
+\f1\fs18 "density"
+\f2\fs20  or 
+\f1\fs18 "count"
+\f2\fs20  can be chosen in this mode; you can return the count bin tallies as either densities or counts (it\'92s a bit confusing, but we\'92re talking about two different kinds of \'93counts\'94, the count of the number of times a mutation occurs in the haplosomes versus the count of the number of mutations that were tallied into a particular count bin).\
+The 
+\f1\fs18 haplosomes
+\f2\fs20  parameter can be either a vector of 
+\f1\fs18 Haplosome
+\f2\fs20  objects or 
+\f1\fs18 NULL
+\f2\fs20 .  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, 
+\f1\fs18 calcSFS()
+\f2\fs20  will calculate the SFS across the whole species, using all non-null haplosomes present (and thus there must be only a single species in the model, since an SFS cannot be calculated across multiple species).  Otherwise, 
+\f1\fs18 haplosomes
+\f2\fs20  can contain any set of haplosomes desired, such as from the individuals of one subpopulation, several subpopulations, or an entire species.  However, they must all belong to the same species, and null haplosomes will be automatically and silently excluded from the set.\
+The 
+\f1\fs18 muts
+\f2\fs20  parameter can be either a vector of 
+\f1\fs18 Mutation
+\f2\fs20  objects or 
+\f1\fs18 NULL
+\f2\fs20 .  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, 
+\f1\fs18 calcSFS()
+\f2\fs20  will calculate the SFS across all mutations belonging to the focal species (as determined from the species of the haplosomes).  Otherwise, 
+\f1\fs18 muts
+\f2\fs20  can contain any set of mutations desired, such as mutations belonging to a specific mutation type, mutations within a specific range of positions along the chromosome, or all of the mutations in the focal species.\
+The 
+\f1\fs18 binCount
+\f2\fs20  and 
+\f1\fs18 metric
+\f2\fs20  parameters have already been discussed.  Finally, the 
+\f1\fs18 fold
+\f2\fs20  parameter, if 
+\f1\fs18 T
+\f2\fs20 , \'93folds\'94 the calculated SFS, adding the first and last bins, the second and next-to-last bins, etc., until the center is reached.  Folding is common when working with empirical data, where one often doesn\'92t know the \'93polarity\'94 \'96 which allele at a site is ancestral and which is derived.  Folding solves this problem, because the polarity then doesn\'92t matter; the tally for a given mutation ends up in the same bin regardless.  If the number of bins is even, folding can be performed without ambiguity; the final number of bins is exactly half the original number of bins, and each final bin is the sum of two original bins.  If the number of bins is odd, the correct treatment of the central bin is somewhat ambiguous.  In 
+\f1\fs18 calcFST()
+\f2\fs20 , the central bin is added to itself \'96 doubled \'96 and the number of bins is equal to half the original number of bins rounded up.  If you would prefer to exclude the central bin altogether \'96 another population treatment \'96 then when the original number of bins is odd, you can simply discard the final value in the returned vector (and, if you wish to work with densities rather than counts, re-normalize the result to sum to 1.0).\
+The implementation of 
+\f1\fs18 calcSFS()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , tallies each mutation separately, even if more than one mutation occurs at the same position (or is even stacked with another mutation).  One could regard this choice as embodying an infinite-sites interpretation of the SFS, perhaps; in any case, it follows SLiM\'92s behavior in other population-genetics utility functions.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.\
+This function is compatible with multi-chromosome models, in the following sense.  When 
+\f1\fs18 binCount
+\f2\fs20  is specified with an 
+\f1\fs18 integer
+\f2\fs20  value, mutations are binned according to their frequencies, as described above.  In a multi-chromosome model, the haplosomes and mutations used by 
+\f1\fs18 calcSFS()
+\f2\fs20  may be associated with more than one chromosome, and the frequency assessed for each mutation is its frequency specifically within the haplosomes associated with its chromosome (as you would expect).  Mutations occurring in different chromosomes can therefore be tallied together into the same frequency bins, and combined into a single SFS; this produces a meaningful.  (If you want an SFS for just a single chromosome, then of course you can pass just those haplosomes and mutations to 
+\f1\fs18 calcSFS()
+\f2\fs20 .)  When 
+\f1\fs18 binCount
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , on the other hand, mutations are binned according to their counts, as described above.  In a multi-chromosome model, it would not make sense to bin counts together from different chromosomes, since those counts might not be on the same scale \'96 the number of haplosomes associated with the various chromosomes might not be equal.  In this case, 
+\f1\fs18 calcSFS()
+\f2\fs20  will raise an error if haplosomes from more than one chromosome are supplied, or if haplosomes is 
+\f1\fs18 NULL
+\f2\fs20  (since it doesn\'92t know which chromosome to choose).  If you wish to tally according to counts, with 
+\f1\fs18 binCount=NULL
+\f2\fs20 , you must pass in a vector of haplosomes associated with a single chromosome.  (If you know what you are doing and wish to combine counts across multiple chromosomes, you can simply call 
+\f1\fs18 calcSFS()
+\f2\fs20  once per chromosome, and combine the resulting vectors by adding them together.)\
+Thanks to Ryan Chaffee and Chase Nelson for helpful input.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcTajimasD(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates Tajima\'92s 
 \f3\i D
-\f2\i0  (a test of neutrality based on the allele frequency spectrum) for a vector of genomes, based upon the mutations in the genomes.  The mathematical formulation is given in Tajima 1989 (equation 38) and remains unchanged (e.g., equations 2.30 in Durrett 2008, 8.4 in Hahn 2018, and 4.44 in Coop 2020).  Often 
-\f1\fs18 genomes
-\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
+\f2\i0  (a test of neutrality based on the allele frequency spectrum) for a vector of haplosomes (containing at least four elements), based upon the mutations in the haplosomes.  The mathematical formulation is given in Tajima 1989 (equation 38) and remains unchanged (e.g., equations 2.30 in Durrett 2008, 8.4 in Hahn 2018, and 4.44 in Coop 2020).  Often 
+\f1\fs18 haplosomes
+\f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
 \f1\fs18 muts=NULL
 \f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
 \f1\fs18 muts
@@ -2005,9 +2602,16 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the genome-wide Tajima\'92s 
+\f2\fs20 , provides the haplosome-wide Tajima\'92s 
 \f3\i D
 \f2\i0 .\
+If the genetic diversity contained within the haplosomes is insufficient for the calculation, 
+\f1\fs18 calcTajimasD()
+\f2\fs20  may return 
+\f1\fs18 NAN
+\f2\fs20 .  It is up to the caller to detect this with 
+\f1\fs18 isNAN()
+\f2\fs20  and handle it as necessary.\
 The implementation of 
 \f1\fs18 calcTajimasD()
 \f2\fs20 , viewable with 
@@ -2025,45 +2629,13 @@ The implementation of
 \f2\fs20  for further discussion.  This function was written by Nick Bailey (currently affiliated with CNRS and the Laboratory of Biometry and Evolutionary Biology at University Lyon 1), with helpful input from Peter Ralph.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)calcWattersonsTheta(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f2\fs20 \cf2 Calculates Watterson\'92s theta (a metric of genetic diversity comparable to heterozygosity) for a vector of genomes, based upon the mutations in the genomes.  Often 
-\f1\fs18 genomes
-\f2\fs20  will be all of the genomes in a subpopulation, or in the entire population, but any genome vector may be used.  By default, with 
-\f1\fs18 muts=NULL
-\f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
-\f1\fs18 muts
-\f2\fs20 .\
-The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
-\f1\fs18 start
-\f2\fs20 , 
-\f1\fs18 end
-\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
-\f1\fs18 start
-\f2\fs20  and 
-\f1\fs18 end
-\f2\fs20  of 
-\f1\fs18 NULL
-\f2\fs20 , provides the genome-wide Watterson\'92s theta.\
-The implementation of 
-\f1\fs18 calcWattersonsTheta()
-\f2\fs20 , viewable with 
-\f1\fs18 functionSource()
-\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations, as with 
-\f1\fs18 calcHeterozygosity()
-\f2\fs20 .  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
-\f1\fs18 calcPairHeterozygosity()
-\f2\fs20  for further discussion.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
 \f1\fs18 \cf2 (float$)calcVA(object<Individual>\'a0individuals, io<MutationType>$\'a0mutType)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates 
 \f3\i V
 \f2\i0\fs13\fsmilli6667 \sub A
-\fs20 \nosupersub , the additive genetic variance, among a vector 
+\fs20 \nosupersub , the additive genetic variance, among a vector of individuals (containing at least two elements) passed in 
 \f1\fs18 individuals
 \f2\fs20 , in a particular mutation type 
 \f1\fs18 mutType
@@ -2087,6 +2659,38 @@ This function assumes that mutations of type
 \f2\fs20 ), a new user-defined function following the pattern of 
 \f1\fs18 calcVA()
 \f2\fs20  can easily be written.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcWattersonsTheta(object<Haplosome>\'a0haplosomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates Watterson\'92s theta (a metric of genetic diversity comparable to heterozygosity) for a vector of haplosomes (containing at least one element), based upon the mutations in the haplosomes.  Often 
+\f1\fs18 haplosomes
+\f2\fs20  will be all of the haplosomes in a subpopulation, or in the entire population, but any haplosome vector may be used.  By default, with 
+\f1\fs18 muts=NULL
+\f2\fs20 , the calculation is based upon all mutations in the simulation; the calculation can instead be based upon a subset of mutations, such as mutations of a specific mutation type, by passing the desired vector of mutations for 
+\f1\fs18 muts
+\f2\fs20 .\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the haplosome-wide Watterson\'92s theta.\
+The implementation of 
+\f1\fs18 calcWattersonsTheta()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations, as with 
+\f1\fs18 calcHeterozygosity()
+\f2\fs20 .  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this assumption will be negligible; however, in some models this distinction may be important.  See 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  for further discussion.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.4.  Other utilities

@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 10/10/21.
-//  Copyright (c) 2021-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2021-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -42,7 +42,7 @@ protected:
 	// We keep a user-defined order for our keys, overriding Dictionary's sorted key order
 	std::vector<std::string> sorted_keys_;
 	
-	virtual void Raise_UsesStringKeys() const override;
+	virtual void Raise_UsesStringKeys() const override __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 public:
 	EidosDataFrame(const EidosDataFrame &p_original) = delete;		// no copy-construct

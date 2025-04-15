@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 2/25/17.
-//  Copyright (c) 2017-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2017-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -216,7 +216,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 		subpop_data->kd_node_count_EXERTERS_ = 0;
 		
 		// Free the interaction() callbacks that were cached
-		subpop_data->evaluation_interaction_callbacks_.clear();
+		subpop_data->evaluation_interaction_callbacks_.resize(0);
 	}
 	
 	// At this point, positions_ is guaranteed to be nullptr, as are the k-d tree buffers.
@@ -513,7 +513,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	// Note that interaction() callbacks are non-species-specific, so we fetch from the Community with species nullptr.
 	// Callbacks used depend upon the exerter subpopulation, so this is snapping the callbacks for subpop as exerters;
 	// the subpopulation of receivers does not influence the choice of which callbacks are used.
-	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, nullptr);
+	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, -1, nullptr);
 	
 	// Note that we do not create the k-d tree here.  Non-spatial models will never have a k-d tree; spatial models may or
 	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.
@@ -610,7 +610,7 @@ void InteractionType::_InvalidateData(InteractionsData &data)
 	data.kd_root_EXERTERS_ = nullptr;
 	data.kd_node_count_EXERTERS_ = 0;
 	
-	data.evaluation_interaction_callbacks_.clear();
+	data.evaluation_interaction_callbacks_.resize(0);
 }
 
 void InteractionType::Invalidate(void)
@@ -3460,7 +3460,7 @@ const EidosClass *InteractionType::Class(void) const
 
 void InteractionType::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<i" << interaction_type_id_ << ">";
+	p_ostream << Class()->ClassNameForDisplay() << "<i" << interaction_type_id_ << ">";
 }
 
 EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
@@ -6595,7 +6595,7 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source) noexcept
 	kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 	
 	p_source.evaluated_ = false;
-	p_source.evaluation_interaction_callbacks_.clear();
+	p_source.evaluation_interaction_callbacks_.resize(0);
 	p_source.individual_count_ = 0;
 	p_source.first_male_index_ = 0;
 	p_source.periodic_x_ = false;
@@ -6647,7 +6647,7 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source) no
 		kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 		
 		p_source.evaluated_ = false;
-		p_source.evaluation_interaction_callbacks_.clear();
+		p_source.evaluation_interaction_callbacks_.resize(0);
 		p_source.individual_count_ = 0;
 		p_source.first_male_index_ = 0;
 		p_source.periodic_x_ = false;
@@ -6707,7 +6707,7 @@ _InteractionsData::~_InteractionsData(void)
 	kd_node_count_EXERTERS_ = 0;
 	
 	// Unnecessary since it's about to be destroyed anyway
-	//evaluation_interaction_callbacks_.clear();
+	//evaluation_interaction_callbacks_.resize(0);
 }
 
 

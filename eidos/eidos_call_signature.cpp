@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 5/16/15.
-//  Copyright (c) 2015-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -149,7 +149,7 @@ EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_m
 							if ((argument_class == gEidosObject_Class) && (argument->Count() == 0))
 								break;
 							
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddArgWithDefault): (internal error) default argument cannot be object element type " << argument->ElementType() << "; expected object element type " << signature_class->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 						}
 					}
 					break;
@@ -276,6 +276,7 @@ EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argum
 
 EidosCallSignature *EidosCallSignature::MarkDeprecated(void)
 {
+	// At present, the only consequence of deprecation is that the property/method is not listed in the documentation
 	deprecated_ = true;
 	return this;
 }
@@ -330,7 +331,7 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 							break;
 						
 						if (!argument_class->IsSubclassOfClass(signature_class))
-							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ClassName() << "." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " cannot be object element type " << p_argument->ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << signature_class->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 					}
 				}
 				break;
@@ -350,6 +351,10 @@ void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_i
 				 ((p_signature_index == 3) && ((arg_type == EidosValueType::kValueFloat) || (arg_type == EidosValueType::kValueInt))) ||
 				 ((p_signature_index == 4) && (arg_type == EidosValueType::kValueLogical))))
 				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The defineSpatialMap() method was changed in SLiM 3.5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
+			
+			// Special error-handling for initializeSLiMOptions() because its mutationRuns parameter changed to doMutationRunExperiments, and changed from integer to logical
+			if ((call_name_ == "initializeSLiMOptions") && (p_signature_index == 3) && (arg_type == EidosValueType::kValueInt))
+				EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << std::endl << "NOTE: The mutationRuns parameter to initializeSLiMOptions() was changed in SLiM 5, breaking backward compatibility.  Please see the manual for guidance on updating your code." << EidosTerminate(nullptr);
 			
 			EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckArgument): argument " << p_signature_index + 1 << " (" << arg_names_[p_signature_index] << ") cannot be type " << arg_type << " for " << CallType() << " " << call_name_ << "()." << EidosTerminate(nullptr);
 		}
@@ -433,7 +438,7 @@ void EidosCallSignature::CheckReturn(const EidosValue &p_result) const
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -491,7 +496,7 @@ void EidosCallSignature::CheckAggregateReturn(const EidosValue &p_result, size_t
 			if (return_type_ok && return_class_ && (((EidosValue_Object &)p_result).Class() != return_class_))
 			{
 				if (!((EidosValue_Object &)p_result).Class()->IsSubclassOfClass(return_class_))
-					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassName() << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosCallSignature::CheckAggregateReturn): object return value cannot be element type " << p_result.ElementType() << " for " << CallType() << " " << call_name_ << "(); expected object element type " << return_class_->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 			}
 			break;
 	}
@@ -634,7 +639,7 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 void EidosFunctionSignature::ProcessEidosScript(const std::string &p_script_string)
 {
 	// This method is for built-in functions implemented in Eidos; they have no position in the user's script string
-	EidosScript *source_script = new EidosScript(p_script_string, -1);
+	EidosScript *source_script = new EidosScript(p_script_string);
 	
 	source_script->Tokenize();
 	source_script->ParseInterpreterBlockToAST(false);

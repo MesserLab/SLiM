@@ -2128,6 +2128,41 @@ Returns a vector of
 \f2\i0 )
 \f8\i \super k
 \f2\i0 \nosupersub ).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer)rztpois(integer$\'a0n, numeric\'a0lambda)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random draws from a zero-truncated Poisson distribution
+\f3\b0  with parameter 
+\f1\fs18 lambda
+\f3\fs20  (not to be confused with the language concept of a \'93lambda\'94; 
+\f1\fs18 lambda
+\f3\fs20  here is just the name of a parameter, because the symbol typically used for the parameter of a Poisson distribution is the Greek letter 
+\f8\i \uc0\u955 
+\f3\i0 ).  The zero-truncated Poisson distribution is the conditional probability distribution of a Poisson-distributed random variable, given that the value of the random variable is not zero.  The values returned by 
+\f1\fs18 rztpois()
+\f3\fs20  will therefore never be zero.\
+The 
+\f1\fs18 lambda
+\f3\fs20  parameter, 
+\f8\i \uc0\u955 
+\f3\i0 , may either be a singleton, specifying a single value to be used for all of the draws, or it may be a vector of length 
+\f1\fs18 n
+\f3\fs20 , specifying a value for each draw.  It is important to note that for 
+\f1\fs18 rpois()
+\f3\fs20  the expected mean of the distribution is 
+\f8\i \uc0\u955 
+\f3\i0 , but for 
+\f1\fs18 rztpois()
+\f3\fs20  the expected mean of the distribution is 
+\f8\i \uc0\u955 
+\f3\i0 \'a0/\'a0(1\'a0\uc0\u8722 \'a0exp(\u8722 
+\f8\i \uc0\u955 
+\f3\i0 )), precisely because the zero-truncated Poisson distribution is conditional upon being non-zero.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.4.  Vector construction functions\
@@ -4735,8 +4770,18 @@ Returns the transpose
 \f1\fs18 T
 \f3\fs20 ) or failed (
 \f1\fs18 F
-\f3\fs20 ).
-\f2 \
+\f3\fs20 ).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This function might also be able to delete a directory at 
+\f1\fs18 filePath
+\f3\fs20 , but only if it is empty (apart from the 
+\f1\fs18 .
+\f3\fs20  and 
+\f1\fs18 ..
+\f3\fs20  directory entries that exist on Un*x filesystems).  If other files (including invisible files) exist in the directory, 
+\f1\fs18 deleteFile()
+\f3\fs20  will probably fail as a safety measure, in which case the contained files must be deleted individually first.  This is vague because the actual policy regarding deletion of directories will depend upon the operating system, since Eidos achieves the deletion by calling an operating-system function.
+\f2 \cf0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -5137,7 +5182,6 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -6010,7 +6054,7 @@ Note that the number of threads requested here overrides any per-task request se
 \f3\fs20 .  Also, if the task size is below a certain task-specific threshold the task will not be executed in parallel regardless of these settings.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (void)parallelSetTaskThreadCounts(No$\'a0dict)\
+\f1\fs18 \cf2 (void)parallelSetTaskThreadCounts(No<Dictionary>$\'a0dict)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Sets the number of threads
@@ -6146,7 +6190,7 @@ The task keys recognized, and the tasks they govern, are:\
 \f7\i N
 \f3\i0  points, 3D case
 \f1\fs18 \uc0\u8232 "SPATIAL_MAP_VALUE"	spatialMapValue()\
-"CONTAINS_MARKER_MUT"	containsMarkerMutation(returnMutation = F)\uc0\u8232 "I_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Individual)\u8232 "G_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Genome)\u8232 "INDS_W_PEDIGREE_IDS"	individualsWithPedigreeIDs()\u8232 "RELATEDNESS"	relatedness()\u8232 "SAMPLE_INDIVIDUALS_1"	sampleIndividuals()
+"CONTAINS_MARKER_MUT"	containsMarkerMutation(returnMutation = F)\uc0\u8232 "I_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Individual)\u8232 "H_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Haplosome)\u8232 "INDS_W_PEDIGREE_IDS"	individualsWithPedigreeIDs()\u8232 "RELATEDNESS"	relatedness()\u8232 "SAMPLE_INDIVIDUALS_1"	sampleIndividuals()
 \f3\fs20  simple case with replace=T
 \f1\fs18 \uc0\u8232 "SAMPLE_INDIVIDUALS_2"	sampleIndividuals()
 \f3\fs20  base case with replace=T
@@ -6195,7 +6239,7 @@ The task keys recognized, and the tasks they govern, are:\
 \f1\fs18 \uc0\u8232 "SIMPLIFY_SORT_POST"	
 \f3\fs20 cleanup after simplification sorting (internal)
 \f1\fs18 \uc0\u8232 "PARENTS_CLEAR"	
-\f3\fs20 clearing parental genomes at tick end in WF models
+\f3\fs20 clearing parental haplosomes at tick end in WF models
 \f1\fs18 \uc0\u8232 "UNIQUE_MUTRUNS"	
 \f3\fs20 uniquing mutation runs (internal bookkeeping)
 \f1\fs18 \uc0\u8232 "SURVIVAL"	
@@ -6268,9 +6312,8 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

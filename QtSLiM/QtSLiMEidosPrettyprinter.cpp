@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 8/1/2019.
-//  Copyright (c) 2019-2024 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2019-2025 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -759,7 +759,7 @@ bool Eidos_reformatTokensFromScript(const std::vector<EidosToken> &tokens, Eidos
     // We're done reformatting; now we need to generate a new script and a new token stream, and fix the indentation of our
     // reformatted string by calling Eidos_prettyprintTokensFromScript(); this avoids duplicating a bunch of logic
     try {
-        EidosScript indentScript(pretty, -1);
+        EidosScript indentScript(pretty);
         
         indentScript.Tokenize(false, true);	// get whitespace and comment tokens
         
