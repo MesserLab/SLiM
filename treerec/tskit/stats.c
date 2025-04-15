@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2018-2022 Tskit Developers
+ * Copyright (c) 2018-2025 Tskit Developers
  * Copyright (c) 2016-2017 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -53,6 +53,7 @@ tsk_ld_calc_init(tsk_ld_calc_t *self, const tsk_treeseq_t *tree_sequence)
 
     self->sample_buffer = tsk_malloc(self->total_samples * sizeof(*self->sample_buffer));
     if (self->sample_buffer == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
 out:
@@ -75,14 +76,14 @@ tsk_ld_calc_check_site(tsk_ld_calc_t *TSK_UNUSED(self), const tsk_site_t *site)
     /* These are both limitations in the current implementation, there's no
      * fundamental reason why we can't support them */
     if (site->mutations_length != 1) {
-        ret = TSK_ERR_ONLY_INFINITE_SITES;
+        ret = tsk_trace_error(TSK_ERR_ONLY_INFINITE_SITES);
         goto out;
     }
     if (site->ancestral_state_length == site->mutations[0].derived_state_length
         && tsk_memcmp(site->ancestral_state, site->mutations[0].derived_state,
                site->ancestral_state_length)
                == 0) {
-        ret = TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED;
+        ret = tsk_trace_error(TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED);
         goto out;
     }
 out:
@@ -294,7 +295,7 @@ tsk_ld_calc_get_r2_array(tsk_ld_calc_t *self, tsk_id_t a, int direction,
     } else if (direction == TSK_DIR_REVERSE) {
         ret = tsk_ld_calc_run_reverse(self);
     } else {
-        ret = TSK_ERR_BAD_PARAM_VALUE;
+        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
     }
     if (ret != 0) {
         goto out;

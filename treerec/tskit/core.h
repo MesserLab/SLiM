@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2023 Tskit Developers
+ * Copyright (c) 2019-2025 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -152,7 +152,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   2
+#define TSK_VERSION_PATCH   4
 /** @} */
 
 /*
@@ -370,6 +370,11 @@ One of the rows in the retained table refers to a row that has been
 deleted.
 */
 #define TSK_ERR_KEEP_ROWS_MAP_TO_DELETED                            -212
+/**
+A genomic position was less than zero or greater equal to the sequence
+length
+*/
+#define TSK_ERR_POSITION_OUT_OF_BOUNDS                              -213
 
 /** @} */
 
@@ -500,6 +505,11 @@ the edge on which it occurs, and wasn't TSK_UNKNOWN_TIME.
 A single site had a mixture of known mutation times and TSK_UNKNOWN_TIME
 */
 #define TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN            -509
+/**
+Some mutations have TSK_UNKNOWN_TIME in an algorithm where that's
+disallowed (use compute_mutation_times?).
+*/
+#define TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME                    -510
 /** @} */
 
 /**
@@ -675,6 +685,68 @@ Statistics based on branch lengths were attempted when the ``time_units``
 were ``uncalibrated``.
 */
 #define TSK_ERR_TIME_UNCALIBRATED                                   -910
+/**
+The TSK_STAT_POLARISED option was passed to a statistic that does
+not support it.
+*/
+#define TSK_ERR_STAT_POLARISED_UNSUPPORTED                          -911
+/**
+The TSK_STAT_SPAN_NORMALISE option was passed to a statistic that does
+not support it.
+*/
+#define TSK_ERR_STAT_SPAN_NORMALISE_UNSUPPORTED                     -912
+/**
+Insufficient weights were provided.
+*/
+#define TSK_ERR_INSUFFICIENT_WEIGHTS                                -913
+/**
+The node bin map contains a value less than TSK_NULL.
+*/
+#define TSK_ERR_BAD_NODE_BIN_MAP                                    -914
+/**
+Maximum index in node bin map is greater than output dimension.
+*/
+#define TSK_ERR_BAD_NODE_BIN_MAP_DIM                                -915
+/**
+The vector of quantiles is out of bounds or in nonascending order.
+*/
+#define TSK_ERR_BAD_QUANTILES                                       -916
+/**
+Times are not in ascending order
+*/
+#define TSK_ERR_UNSORTED_TIMES                                      -917
+/*
+The provided positions are not provided in strictly increasing order
+*/
+#define TSK_ERR_STAT_UNSORTED_POSITIONS                             -918
+/**
+The provided positions are not unique
+*/
+#define TSK_ERR_STAT_DUPLICATE_POSITIONS                            -919
+/**
+The provided sites are not provided in strictly increasing position order
+*/
+#define TSK_ERR_STAT_UNSORTED_SITES                                 -920
+/**
+The provided sites are not unique
+*/
+#define TSK_ERR_STAT_DUPLICATE_SITES                                -921
+/**
+The number of time windows is zero
+*/
+#define TSK_ERR_BAD_TIME_WINDOWS_DIM                                -922
+/**
+Sample times do not all equal the start of first time window
+*/
+#define TSK_ERR_BAD_SAMPLE_PAIR_TIMES                               -923
+/**
+Time windows are not strictly increasing ending at infinity
+*/
+#define TSK_ERR_BAD_TIME_WINDOWS                                    -924
+/**
+Node time does not fall within assigned time window
+*/
+#define TSK_ERR_BAD_NODE_TIME_WINDOW                                -925
 /** @} */
 
 /**
@@ -851,6 +923,16 @@ An individual had nodes from more than one time
 */
 #define TSK_ERR_INDIVIDUAL_TIME_MISMATCH                           -1704
 /** @} */
+
+/**
+@defgroup EXTEND_EDGES_ERROR_GROUP Extend edges errors.
+@{
+*/
+/**
+Maximum iteration number (max_iter) must be positive.
+*/
+#define TSK_ERR_EXTEND_EDGES_BAD_MAXITER                          -1800
+/** @} */
 // clang-format on
 
 /* This bit is 0 for any errors originating from kastore */
@@ -870,6 +952,21 @@ not be freed by client code.
 @return A description of the error.
 */
 const char *tsk_strerror(int err);
+
+#ifdef TSK_TRACE_ERRORS
+
+static inline int
+_tsk_trace_error(int err, int line, const char *file)
+{
+    fprintf(stderr, "tskit-trace-error: %d='%s' at line %d in %s\n", err,
+        tsk_strerror(err), line, file);
+    return err;
+}
+
+#define tsk_trace_error(err) (_tsk_trace_error(err, __LINE__, __FILE__))
+#else
+#define tsk_trace_error(err) (err)
+#endif
 
 #ifndef TSK_BUG_ASSERT_MESSAGE
 #define TSK_BUG_ASSERT_MESSAGE                                                          \
@@ -994,6 +1091,32 @@ int tsk_memcmp(const void *s1, const void *s2, tsk_size_t size);
 /* Developer debug utilities. These are **not** threadsafe */
 void tsk_set_debug_stream(FILE *f);
 FILE *tsk_get_debug_stream(void);
+
+/* Bit Array functionality */
+
+typedef uint32_t tsk_bit_array_value_t;
+typedef struct {
+    tsk_size_t size;             // Number of chunks per row
+    tsk_bit_array_value_t *data; // Array data
+} tsk_bit_array_t;
+
+#define TSK_BIT_ARRAY_CHUNK 5U
+#define TSK_BIT_ARRAY_NUM_BITS (1U << TSK_BIT_ARRAY_CHUNK)
+
+int tsk_bit_array_init(tsk_bit_array_t *self, tsk_size_t num_bits, tsk_size_t length);
+void tsk_bit_array_free(tsk_bit_array_t *self);
+void tsk_bit_array_get_row(
+    const tsk_bit_array_t *self, tsk_size_t row, tsk_bit_array_t *out);
+void tsk_bit_array_intersect(
+    const tsk_bit_array_t *self, const tsk_bit_array_t *other, tsk_bit_array_t *out);
+void tsk_bit_array_subtract(tsk_bit_array_t *self, const tsk_bit_array_t *other);
+void tsk_bit_array_add(tsk_bit_array_t *self, const tsk_bit_array_t *other);
+void tsk_bit_array_add_bit(tsk_bit_array_t *self, const tsk_bit_array_value_t bit);
+bool tsk_bit_array_contains(
+    const tsk_bit_array_t *self, const tsk_bit_array_value_t bit);
+tsk_size_t tsk_bit_array_count(const tsk_bit_array_t *self);
+void tsk_bit_array_get_items(
+    const tsk_bit_array_t *self, tsk_id_t *items, tsk_size_t *n_items);
 
 #ifdef __cplusplus
 }
