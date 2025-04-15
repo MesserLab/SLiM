@@ -5304,6 +5304,9 @@ void Species::SimplifyAllTreeSequences(void)
 #endif
 		}
 		
+		free(keep_individuals);
+		free(individual_id_map);
+		
 		// remake our hash table of pedigree ids to tsk_ids, since we have reordered the (shared) individuals table
 		BuildTabledIndividualsHash(&main_tables, &tabled_individuals_hash_);
 	}
