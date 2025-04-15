@@ -1582,9 +1582,10 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	
 	// determine the templated version of FitnessOfParent() that we will call out to for fitness evaluation
 	// see Population::EvolveSubpopulation() for further comments on this optimization technique
+	bool mutrun_exp_timing_per_individual = species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() > 1);
 	double (Subpopulation::*FitnessOfParent_TEMPLATED)(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	
-	if (species_.DoingAnyMutationRunExperiments())
+	if (mutrun_exp_timing_per_individual)
 	{
 		// If *any* chromosome is doing mutrun experiments, we can't template them out
 		if (!mutationEffect_callbacks_exist)
@@ -1603,6 +1604,47 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		else
 			FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent<false, true, false>;
 	}
+	
+	// refine the above choice with a custom version of optimizations for simple cases
+	if (!mutrun_exp_timing_per_individual && !mutationEffect_callbacks_exist)
+	{
+		Chromosome *chromosome = species_.Chromosomes()[0];
+		ChromosomeType chromosome_type = chromosome->Type();
+		
+		switch (chromosome->Type())
+		{
+				// diploid, possibly with one or both being null haplosomes
+			case ChromosomeType::kA_DiploidAutosome:
+			case ChromosomeType::kX_XSexChromosome:
+			case ChromosomeType::kZ_ZSexChromosome:
+				FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent_1CH_Diploid;
+				break;
+				
+				// haploid, possibly null
+			case ChromosomeType::kH_HaploidAutosome:
+			case ChromosomeType::kY_YSexChromosome:
+			case ChromosomeType::kW_WSexChromosome:
+			case ChromosomeType::kHF_HaploidFemaleInherited:
+			case ChromosomeType::kFL_HaploidFemaleLine:
+			case ChromosomeType::kHM_HaploidMaleInherited:
+			case ChromosomeType::kML_HaploidMaleLine:
+				FitnessOfParent_TEMPLATED = &Subpopulation::FitnessOfParent_1CH_Haploid;
+				break;
+				
+			default:
+				break;
+		}
+	}
+	
+	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
+	// To avoid that overhead, in single-chromosome models we just time across the whole round of fitness evals
+	// instead.  Note that in this case we chose a template above for FitnessOfParent() that does not time.
+	// FIXME 4/14/2025: It remains true that in multi-chrom models the timing overhead will be very high.  There
+	// are various ways that could potentially be cut down.  (a) not measure in every tick, (b) stop measuring
+	// once you've settled down into stasis, (c) measure a subset of all fitness evals.  This should be done in
+	// future, but we're out of time for now.
+	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+		species_.Chromosomes()[0]->StartMutationRunExperimentClock();
 	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
@@ -2276,6 +2318,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		}
 	}
 	
+	// Mutrun experiment timing can be per-individual, per-chromosome, but that entails a lot of timing overhead.
+	// To avoid that overhead, in single-chromosome models we just time across the whole round of fitness evals
+	// instead.  Note that in this case we chose a template above for FitnessOfParent() that does not time.
+	if (species_.DoingAnyMutationRunExperiments() && (species_.Chromosomes().size() == 1))
+		species_.Chromosomes()[0]->StopMutationRunExperimentClock("UpdateFitness()");
+	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		UpdateWFFitnessBuffers(pure_neutral && !Individual::s_any_individual_fitness_scaling_set_);
 }
@@ -2841,6 +2889,43 @@ template double Subpopulation::FitnessOfParent<false, true, true>(slim_popsize_t
 template double Subpopulation::FitnessOfParent<true, false, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 template double Subpopulation::FitnessOfParent<true, true, false>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 template double Subpopulation::FitnessOfParent<true, true, true>(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+
+double Subpopulation::FitnessOfParent_1CH_Diploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+	// calculate the fitness of the individual at index p_individual_index in the parent population
+	// this loops through all chromosomes, handling ploidy and callbacks as needed
+	double w = 1.0;
+	Individual *individual = parent_individuals_[p_individual_index];
+	const int haplosome_index = 0;
+	
+	// diploid, possibly with one or both being null haplosomes
+	Haplosome *haplosome1 = individual->haplosomes_[haplosome_index];
+	Haplosome *haplosome2 = individual->haplosomes_[haplosome_index+1];
+	
+	w *= _Fitness_DiploidChromosome<false, false>(haplosome1, haplosome2, p_mutationEffect_callbacks);
+	if (w <= 0.0)
+		return 0.0;
+	
+	return w;
+}
+
+double Subpopulation::FitnessOfParent_1CH_Haploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
+{
+	// calculate the fitness of the individual at index p_individual_index in the parent population
+	// this loops through all chromosomes, handling ploidy and callbacks as needed
+	double w = 1.0;
+	Individual *individual = parent_individuals_[p_individual_index];
+	const int haplosome_index = 0;
+	
+	// haploid, possibly null
+	Haplosome *haplosome = individual->haplosomes_[haplosome_index];
+	
+	w *= _Fitness_HaploidChromosome<false, false>(haplosome, p_mutationEffect_callbacks);
+	if (w <= 0.0)
+		return 0.0;
+	
+	return w;
+}
 
 template <const bool f_callbacks, const bool f_singlecallback>
 double Subpopulation::_Fitness_DiploidChromosome(Haplosome *haplosome1, Haplosome *haplosome2, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)

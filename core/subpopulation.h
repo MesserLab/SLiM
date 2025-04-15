@@ -369,6 +369,9 @@ public:
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled
 	template <const bool f_mutrunexps, const bool f_callbacks, const bool f_singlecallback>
 	double FitnessOfParent(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	double FitnessOfParent_1CH_Diploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	double FitnessOfParent_1CH_Haploid(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
+	
 	template <const bool f_callbacks, const bool f_singlecallback>
 	double _Fitness_HaploidChromosome(Haplosome *haplosome, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks);
 	template <const bool f_callbacks, const bool f_singlecallback>
