@@ -480,6 +480,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 #define DEBUG_BLOCK_REG_DEREG		0		// turn on to get logging about script block registration/deregistration
 #define DEBUG_SHUFFLE_BUFFER		1		// debug memory overruns with the shuffle buffer
 #define DEBUG_TICK_RANGES			0		// debug tick range parsing and evaluation
+#define DEBUG_LESS_INTENSIVE		0		// decrease the frequency of some very intensive DEBUG checks
 
 
 // In SLiMgui we want to emit only a reasonably limited number of lines of input debugging; for big models, this output

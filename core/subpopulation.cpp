@@ -439,6 +439,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
 	}
 	
+#if DEBUG_LESS_INTENSIVE
+	// These tests are extremely intensive, so sometimes it's useful to dial them down...
+	if ((community_.Tick() % 20) != 5)
+		return;
+#endif
+	
 	// below we will use this map to check that every mutation run in use is used at only one mutrun index
 	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
 	

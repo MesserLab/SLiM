@@ -7736,6 +7736,12 @@ void Population::CheckMutationRegistry(bool p_check_haplosomes)
 			EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): A mutation was found in the mutation registry with a state other than MutationState::kInRegistry (" << (int)mut_state << ").  This may be the result of calling removeMutations(substitute=T) without actually removing the mutation from all haplosomes." << EidosTerminate();
 	}
 	
+#if DEBUG_LESS_INTENSIVE
+	// These tests are extremely intensive, so sometimes it's useful to dial them down...
+	if ((community_.Tick() % 10) != 5)
+		return;
+#endif
+	
 	if (p_check_haplosomes)
 	{
 		// then check that we don't have any zombies in any haplosomes

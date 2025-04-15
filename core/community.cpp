@@ -2521,6 +2521,12 @@ void Community::AllSpecies_CheckIntegrity(void)
 #endif
 	
 #if DEBUG
+#if DEBUG_LESS_INTENSIVE
+	// These tests are extremely intensive, so sometimes it's useful to dial them down...
+	if ((Tick() % 10) != 5)
+		return;
+#endif
+	
 	// Check the integrity of the mutation registry; all MutationIndex values should be in range
 	for (Species *species : all_species_)
 	{
