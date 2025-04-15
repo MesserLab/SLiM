@@ -1606,10 +1606,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 	}
 	
 	// refine the above choice with a custom version of optimizations for simple cases
-	if (!mutrun_exp_timing_per_individual && !mutationEffect_callbacks_exist)
+	if (!mutrun_exp_timing_per_individual && !mutationEffect_callbacks_exist && (species_.Chromosomes().size() == 1))
 	{
 		Chromosome *chromosome = species_.Chromosomes()[0];
-		ChromosomeType chromosome_type = chromosome->Type();
 		
 		switch (chromosome->Type())
 		{
