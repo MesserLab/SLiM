@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2023 Tskit Developers
+ * Copyright (c) 2019-2025 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,22 +43,24 @@ static int TSK_WARN_UNUSED
 get_random_bytes(uint8_t *buf)
 {
     /* Based on CPython's code in bootstrap_hash.c */
-    int ret = TSK_ERR_GENERATE_UUID;
+    int ret = 0;
     HCRYPTPROV hCryptProv = (HCRYPTPROV) NULL;
 
     if (!CryptAcquireContext(
             &hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
     if (!CryptGenRandom(hCryptProv, (DWORD) UUID_NUM_BYTES, buf)) {
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
     if (!CryptReleaseContext(hCryptProv, 0)) {
         hCryptProv = (HCRYPTPROV) NULL;
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
     hCryptProv = (HCRYPTPROV) NULL;
-    ret = 0;
 out:
     if (hCryptProv != (HCRYPTPROV) NULL) {
         CryptReleaseContext(hCryptProv, 0);
@@ -72,19 +74,21 @@ out:
 static int TSK_WARN_UNUSED
 get_random_bytes(uint8_t *buf)
 {
-    int ret = TSK_ERR_GENERATE_UUID;
+    int ret = 0;
     FILE *f = fopen("/dev/urandom", "r");
 
     if (f == NULL) {
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
     if (fread(buf, UUID_NUM_BYTES, 1, f) != 1) {
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
     if (fclose(f) != 0) {
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
-    ret = 0;
 out:
     return ret;
 }
@@ -111,7 +115,7 @@ tsk_generate_uuid(char *dest, int TSK_UNUSED(flags))
             buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], buf[10], buf[11], buf[12],
             buf[13], buf[14], buf[15])
         < 0) {
-        ret = TSK_ERR_GENERATE_UUID;
+        ret = tsk_trace_error(TSK_ERR_GENERATE_UUID);
         goto out;
     }
 out:
@@ -226,13 +230,16 @@ tsk_strerror_internal(int err)
             ret = "One of the kept rows in the table refers to a deleted row. "
                   "(TSK_ERR_KEEP_ROWS_MAP_TO_DELETED)";
             break;
+        case TSK_ERR_POSITION_OUT_OF_BOUNDS:
+            ret = "Position out of bounds. (TSK_ERR_POSITION_OUT_OF_BOUNDS)";
+            break;
 
         /* Edge errors */
         case TSK_ERR_NULL_PARENT:
-            ret = "Edge in parent is null. (TSK_ERR_NULL_PARENT)";
+            ret = "Edge parent is null. (TSK_ERR_NULL_PARENT)";
             break;
         case TSK_ERR_NULL_CHILD:
-            ret = "Edge in parent is null. (TSK_ERR_NULL_CHILD)";
+            ret = "Edge child is null. (TSK_ERR_NULL_CHILD)";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_PARENT_TIME:
             ret = "Edges must be listed in (time[parent], child, left) order;"
@@ -274,7 +281,10 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA:
             ret = "Can't squash, flush, simplify or link ancestors with edges that have "
-                  "non-empty metadata. (TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA)";
+                  "non-empty metadata. Removing the metadata from the edges will allow "
+                  "these operations to proceed. For example using "
+                  "tables.edges.drop_metadata() in the tskit Python API. "
+                  "(TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA)";
             break;
 
         /* Site errors */
@@ -329,6 +339,11 @@ tsk_strerror_internal(int err)
             ret = "Mutation times must either be all marked 'unknown', or all be known "
                   "values for any single site. "
                   "(TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN)";
+            break;
+        case TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME:
+            ret = "Some mutation times are marked 'unknown' for a method that requires "
+                  "no unknown times. (Use compute_mutation_times to add times?) "
+                  "(TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME)";
             break;
 
         /* Migration errors */
@@ -466,6 +481,69 @@ tsk_strerror_internal(int err)
             ret = "Statistics using branch lengths cannot be calculated when time_units "
                   "is 'uncalibrated'. (TSK_ERR_TIME_UNCALIBRATED)";
             break;
+        case TSK_ERR_STAT_POLARISED_UNSUPPORTED:
+            ret = "The TSK_STAT_POLARISED option is not supported by this statistic. "
+                  "(TSK_ERR_STAT_POLARISED_UNSUPPORTED)";
+            break;
+        case TSK_ERR_STAT_SPAN_NORMALISE_UNSUPPORTED:
+            ret = "The TSK_STAT_SPAN_NORMALISE option is not supported by this "
+                  "statistic. "
+                  "(TSK_ERR_STAT_SPAN_NORMALISE_UNSUPPORTED)";
+            break;
+        case TSK_ERR_INSUFFICIENT_WEIGHTS:
+            ret = "Insufficient weights provided (at least 1 required). "
+                  "(TSK_ERR_INSUFFICIENT_WEIGHTS)";
+            break;
+
+        /* Pair coalescence errors */
+        case TSK_ERR_BAD_NODE_BIN_MAP:
+            ret = "Node-to-bin map contains values less than TSK_NULL. "
+                  "(TSK_ERR_BAD_NODE_BIN_MAP)";
+            break;
+        case TSK_ERR_BAD_NODE_BIN_MAP_DIM:
+            ret = "Maximum index in node-to-bin map is greater than the "
+                  "output dimension. (TSK_ERR_BAD_NODE_BIN_MAP_DIM)";
+            break;
+        case TSK_ERR_BAD_QUANTILES:
+            ret = "Quantiles must be between 0 and 1 (inclusive) "
+                  "and strictly increasing. (TSK_ERR_BAD_QUANTILES)";
+            break;
+        case TSK_ERR_UNSORTED_TIMES:
+            ret = "Times must be strictly increasing. (TSK_ERR_UNSORTED_TIMES)";
+            break;
+        case TSK_ERR_BAD_TIME_WINDOWS_DIM:
+            ret = "Must have at least one time window. (TSK_ERR_BAD_TIME_WINDOWS_DIM)";
+            break;
+        case TSK_ERR_BAD_SAMPLE_PAIR_TIMES:
+            ret = "All sample times must be equal to the start of first time window. "
+                  "(TSK_ERR_BAD_SAMPLE_PAIR_TIMES)";
+            break;
+        case TSK_ERR_BAD_TIME_WINDOWS:
+            ret = "Time windows must be strictly increasing and end at infinity. "
+                  "(TSK_ERR_BAD_TIME_WINDOWS)";
+            break;
+        case TSK_ERR_BAD_NODE_TIME_WINDOW:
+            ret = "Node time does not fall within assigned time window. "
+                  "(TSK_ERR_BAD_NODE_TIME_WINDOW)";
+            break;
+
+        /* Two locus errors */
+        case TSK_ERR_STAT_UNSORTED_POSITIONS:
+            ret = "The provided positions are not sorted in strictly increasing "
+                  "order. (TSK_ERR_STAT_UNSORTED_POSITIONS)";
+            break;
+        case TSK_ERR_STAT_DUPLICATE_POSITIONS:
+            ret = "The provided positions contain duplicates. "
+                  "(TSK_ERR_STAT_DUPLICATE_POSITIONS)";
+            break;
+        case TSK_ERR_STAT_UNSORTED_SITES:
+            ret = "The provided sites are not sorted in strictly increasing position "
+                  "order. (TSK_ERR_STAT_UNSORTED_SITES)";
+            break;
+        case TSK_ERR_STAT_DUPLICATE_SITES:
+            ret = "The provided sites contain duplicated entries. "
+                  "(TSK_ERR_STAT_DUPLICATE_SITES)";
+            break;
 
         /* Mutation mapping errors */
         case TSK_ERR_GENOTYPES_ALL_MISSING:
@@ -602,6 +680,11 @@ tsk_strerror_internal(int err)
                   "if an individual has nodes from more than one time. "
                   "(TSK_ERR_INDIVIDUAL_TIME_MISMATCH)";
             break;
+
+        case TSK_ERR_EXTEND_EDGES_BAD_MAXITER:
+            ret = "Maximum number of iterations must be positive. "
+                  "(TSK_ERR_EXTEND_EDGES_BAD_MAXITER)";
+            break;
     }
     return ret;
 }
@@ -685,7 +768,7 @@ tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size)
 
     tsk_memset(self, 0, sizeof(tsk_blkalloc_t));
     if (chunk_size < 1) {
-        ret = TSK_ERR_BAD_PARAM_VALUE;
+        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
         goto out;
     }
     self->chunk_size = chunk_size;
@@ -696,12 +779,12 @@ tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size)
     self->num_chunks = 0;
     self->mem_chunks = malloc(sizeof(char *));
     if (self->mem_chunks == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     self->mem_chunks[0] = malloc(chunk_size);
     if (self->mem_chunks[0] == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
     self->num_chunks = 1;
@@ -1163,4 +1246,131 @@ tsk_avl_tree_int_ordered_nodes(const tsk_avl_tree_int_t *self, tsk_avl_node_int_
 {
     ordered_nodes_traverse(self->head.rlink, 0, out);
     return 0;
+}
+
+// Bit Array implementation. Allows us to store unsigned integers in a compact manner.
+// Currently implemented as an array of 32-bit unsigned integers for ease of counting.
+
+int
+tsk_bit_array_init(tsk_bit_array_t *self, tsk_size_t num_bits, tsk_size_t length)
+{
+    int ret = 0;
+
+    self->size = (num_bits >> TSK_BIT_ARRAY_CHUNK)
+                 + (num_bits % TSK_BIT_ARRAY_NUM_BITS ? 1 : 0);
+    self->data = tsk_calloc(self->size * length, sizeof(*self->data));
+    if (self->data == NULL) {
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
+        goto out;
+    }
+out:
+    return ret;
+}
+
+void
+tsk_bit_array_get_row(const tsk_bit_array_t *self, tsk_size_t row, tsk_bit_array_t *out)
+{
+    out->size = self->size;
+    out->data = self->data + (row * self->size);
+}
+
+void
+tsk_bit_array_intersect(
+    const tsk_bit_array_t *self, const tsk_bit_array_t *other, tsk_bit_array_t *out)
+{
+    for (tsk_size_t i = 0; i < self->size; i++) {
+        out->data[i] = self->data[i] & other->data[i];
+    }
+}
+
+void
+tsk_bit_array_subtract(tsk_bit_array_t *self, const tsk_bit_array_t *other)
+{
+    for (tsk_size_t i = 0; i < self->size; i++) {
+        self->data[i] &= ~(other->data[i]);
+    }
+}
+
+void
+tsk_bit_array_add(tsk_bit_array_t *self, const tsk_bit_array_t *other)
+{
+    for (tsk_size_t i = 0; i < self->size; i++) {
+        self->data[i] |= other->data[i];
+    }
+}
+
+void
+tsk_bit_array_add_bit(tsk_bit_array_t *self, const tsk_bit_array_value_t bit)
+{
+    tsk_bit_array_value_t i = bit >> TSK_BIT_ARRAY_CHUNK;
+    self->data[i] |= (tsk_bit_array_value_t) 1 << (bit - (TSK_BIT_ARRAY_NUM_BITS * i));
+}
+
+bool
+tsk_bit_array_contains(const tsk_bit_array_t *self, const tsk_bit_array_value_t bit)
+{
+    tsk_bit_array_value_t i = bit >> TSK_BIT_ARRAY_CHUNK;
+    return self->data[i]
+           & ((tsk_bit_array_value_t) 1 << (bit - (TSK_BIT_ARRAY_NUM_BITS * i)));
+}
+
+tsk_size_t
+tsk_bit_array_count(const tsk_bit_array_t *self)
+{
+    // Utilizes 12 operations per bit array. NB this only works on 32 bit integers.
+    // Taken from:
+    //   https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+    // There's a nice breakdown of this algorithm here:
+    //   https://stackoverflow.com/a/109025
+    // Could probably do better with explicit SIMD (instead of SWAR), but not as
+    // portable: https://arxiv.org/pdf/1611.07612.pdf
+    //
+    // There is one solution to explore further, which uses __builtin_popcountll.
+    // This option is relatively simple, but requires a 64 bit bit array and also
+    // involves some compiler flag plumbing (-mpopcnt)
+
+    tsk_bit_array_value_t tmp;
+    tsk_size_t i, count = 0;
+
+    for (i = 0; i < self->size; i++) {
+        tmp = self->data[i] - ((self->data[i] >> 1) & 0x55555555);
+        tmp = (tmp & 0x33333333) + ((tmp >> 2) & 0x33333333);
+        count += (((tmp + (tmp >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+    }
+    return count;
+}
+
+void
+tsk_bit_array_get_items(
+    const tsk_bit_array_t *self, tsk_id_t *items, tsk_size_t *n_items)
+{
+    // Get the items stored in the row of a bitset.
+    // Uses a de Bruijn sequence lookup table to determine the lowest bit set. See the
+    // wikipedia article for more info: https://w.wiki/BYiF
+
+    tsk_size_t i, n, off;
+    tsk_bit_array_value_t v, lsb; // least significant bit
+    static const tsk_id_t lookup[32] = { 0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25,
+        17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9 };
+
+    n = 0;
+    for (i = 0; i < self->size; i++) {
+        v = self->data[i];
+        off = i * ((tsk_size_t) TSK_BIT_ARRAY_NUM_BITS);
+        if (v == 0) {
+            continue;
+        }
+        while ((lsb = v & -v)) {
+            items[n] = lookup[(lsb * 0x077cb531U) >> 27] + (tsk_id_t) off;
+            n++;
+            v ^= lsb;
+        }
+    }
+    *n_items = n;
+}
+
+void
+tsk_bit_array_free(tsk_bit_array_t *self)
+{
+    tsk_safe_free(self->data);
 }

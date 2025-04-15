@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2018-2021 Tskit Developers
+ * Copyright (c) 2018-2025 Tskit Developers
  * Copyright (c) 2015-2017 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -68,11 +68,11 @@ tsk_newick_converter_run(
     const char *label_format = ms_labels ? "%d" : "n%d";
 
     if (root < 0 || root >= (tsk_id_t) self->tree->num_nodes) {
-        ret = TSK_ERR_NODE_OUT_OF_BOUNDS;
+        ret = tsk_trace_error(TSK_ERR_NODE_OUT_OF_BOUNDS);
         goto out;
     }
     if (buffer == NULL) {
-        ret = TSK_ERR_BAD_PARAM_VALUE;
+        ret = tsk_trace_error(TSK_ERR_BAD_PARAM_VALUE);
         goto out;
     }
     root_parent = tree->parent[root];
@@ -82,7 +82,7 @@ tsk_newick_converter_run(
         v = stack[stack_top];
         if (tree->left_child[v] != TSK_NULL && v != u) {
             if (s >= buffer_size) {
-                ret = TSK_ERR_BUFFER_OVERFLOW;
+                ret = tsk_trace_error(TSK_ERR_BUFFER_OVERFLOW);
                 goto out;
             }
             buffer[s] = '(';
@@ -104,17 +104,17 @@ tsk_newick_converter_run(
             }
             if (label != -1) {
                 if (s >= buffer_size) {
-                    ret = TSK_ERR_BUFFER_OVERFLOW;
+                    ret = tsk_trace_error(TSK_ERR_BUFFER_OVERFLOW);
                     goto out;
                 }
                 r = snprintf(buffer + s, buffer_size - s, label_format, label);
                 if (r < 0) {
-                    ret = TSK_ERR_IO;
+                    ret = tsk_trace_error(TSK_ERR_IO);
                     goto out;
                 }
                 s += (size_t) r;
                 if (s >= buffer_size) {
-                    ret = TSK_ERR_BUFFER_OVERFLOW;
+                    ret = tsk_trace_error(TSK_ERR_BUFFER_OVERFLOW);
                     goto out;
                 }
             }
@@ -123,12 +123,12 @@ tsk_newick_converter_run(
                 r = snprintf(buffer + s, buffer_size - s, ":%.*f", (int) self->precision,
                     branch_length);
                 if (r < 0) {
-                    ret = TSK_ERR_IO;
+                    ret = tsk_trace_error(TSK_ERR_IO);
                     goto out;
                 }
                 s += (size_t) r;
                 if (s >= buffer_size) {
-                    ret = TSK_ERR_BUFFER_OVERFLOW;
+                    ret = tsk_trace_error(TSK_ERR_BUFFER_OVERFLOW);
                     goto out;
                 }
                 if (v == tree->right_child[u]) {
@@ -141,7 +141,7 @@ tsk_newick_converter_run(
         }
     }
     if ((s + 1) >= buffer_size) {
-        ret = TSK_ERR_BUFFER_OVERFLOW;
+        ret = tsk_trace_error(TSK_ERR_BUFFER_OVERFLOW);
         goto out;
     }
     buffer[s] = ';';
@@ -164,7 +164,7 @@ tsk_newick_converter_init(tsk_newick_converter_t *self, const tsk_tree_t *tree,
     self->traversal_stack
         = tsk_malloc(tsk_tree_get_size_bound(tree) * sizeof(*self->traversal_stack));
     if (self->traversal_stack == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
+        ret = tsk_trace_error(TSK_ERR_NO_MEMORY);
         goto out;
     }
 out:
