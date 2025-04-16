@@ -23,6 +23,7 @@
 #include "eidos_globals.h"
 
 #include <string>
+#include <vector>
 
 
 #pragma mark InteractionType tests
