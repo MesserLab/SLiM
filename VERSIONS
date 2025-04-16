@@ -6,180 +6,187 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
-	fix the wiring for calcPi() and calcTajimasD() to call the correct code; they were broken in SLiM 4.3
-	add a "page guide at column" pref to SLiMgui, for those trying to lay out code to a maximum width
-	fix a SLiMgui bug where an error panel would not be visible because it was obscured by a floating window above it, appearing to lock up the whole app
+
+
+version 5.0 (Eidos version 4.0):
 	multi-chromosome transition:
-		API changes:
-		x	class Genome -> class Haplosome
-		x	Haplosome class (from Genome class):
-		x		property genomeType -> removed in favor of `chromosome.type`
-		x		property isNullGenome -> isNullHaplosome
-		x		property genomePedigreeID -> haplosomePedigreeID
-		x		method mutationCountsInGenomes -> mutationCountsInHaplosomes
-		x		method mutationFrequenciesInGenomes -> mutationFrequenciesInHaplosomes
-		x	Subpopulation class:
-		x		property genomes -> haplosomes
-		x		property genomesNonNull -> haplosomesNonNull
-		x	Individual class:
-		x		property genomes -> haplosomes
-		x		property genomesNonNull -> haplosomesNonNull
-		x		property genome1 -> haploidGenome1
-		x		property genome2 -> haploidGenome2
-		x	Species class:
-		x		property chromosome -> chromosomes
-		x		property chromosomeType -> removed in favor of `chromosomes.type`
-		x	MutationType class:
-		x		property haploidDominanceCoeff -> hemizygousDominanceCoeff (applies only facing a null haplosome, not in "true" haploid chromosomes!)
-		x	mutation() callbacks:
-		x		pseudo-parameter genome -> haplosome
-		x	recombination() callbacks:
-		x		pseudo-parameter genome1 -> haplosome1
-		x		pseudo-parameter genome2 -> haplosome2
-		x	parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
-		x	parameter name changes: addEmpty(), addRecombinant()
-		API additions:
-		x	(object<Chromosome>$)initializeChromosome(integer$ id, integer$ length, [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
-		x	initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
-		x	Haplosome class:
-		x		property: chromosome => (object<Chromosome>$)
-		x	Chromosome class:
-		x		property id => (integer$)
-		x		property length => (integer$)
-		x		property type => (string$)
-		x		property symbol => (string$)
-		x		property name <-> (string$)
-		x	Species class:
-		x		method: (object<Chromosome>)chromosomesOfType(string$ type)
-		x		method: (object<Chromosome>)chromosomesWithIDs(integer ids)
-		x		method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
-		x	Individual class:
-		x		method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
-		x	Mutation class:
-		x		property: chromosome => (object<Chromosome>$)
-		x	Subpopulation class:
-		x		method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
-		x		method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
+	--- main changes to existing APIs:
+			class Genome -> class Haplosome
+			Haplosome class (from Genome class):
+				property genomeType -> removed in favor of `chromosome.type`
+				property isNullGenome -> isNullHaplosome
+				property genomePedigreeID -> haplosomePedigreeID
+				method mutationCountsInGenomes -> mutationCountsInHaplosomes
+				method mutationFrequenciesInGenomes -> mutationFrequenciesInHaplosomes
+			Subpopulation class:
+				property genomes -> haplosomes
+				property genomesNonNull -> haplosomesNonNull
+			Individual class:
+				property genomes -> haplosomes
+				property genomesNonNull -> haplosomesNonNull
+				property genome1 -> haploidGenome1
+				property genome2 -> haploidGenome2
+			Species class:
+				property chromosome: now usable only in single-chromosome models
+				property chromosomeType -> removed in favor of `chromosome.type`
+			MutationType class:
+				property haploidDominanceCoeff -> hemizygousDominanceCoeff (applies only facing a null haplosome, not in "true" haploid chromosomes!)
+			mutation() callbacks:
+				pseudo-parameter genome -> haplosome
+			recombination() callbacks:
+				pseudo-parameter genome1 -> haplosome1
+				pseudo-parameter genome2 -> haplosome2
+			parameter name changes: calcFST(), calcPairHeterozygosity(), calcHeterozygosity(), calcWattersonsTheta(), calcInbreedingLoad(), calcPi(), calcTajimasD()
+			parameter name changes: addEmpty(), addRecombinant()
+	--- main additions to APIs:
+			(object<Chromosome>$)initializeChromosome(integer$ id, [Ni$ length = NULL], [string$ type = "A"], [Ns$ symbol = NULL], [Ns$ name = NULL], [integer$ mutationRuns = 0])
+			initializeSex(): should now allow, and default to, NULL which should be used for all new models; "A" / "X" / "Y" should still be allowed for backward compatibility
+			Haplosome class:
+				property: chromosome => (object<Chromosome>$)
+			Chromosome class:
+				property id => (integer$)
+				property length => (integer$)
+				property type => (string$)
+				property symbol => (string$)
+				property name <-> (string$)
+			Species class:
+				property chromosomes => (object<Chromosome>)
+				property sexChromosomes => (object<Chromosome>)
+				method: (object<Chromosome>)chromosomesOfType(string$ type)
+				method: (object<Chromosome>)chromosomesWithIDs(integer ids)
+				method: (object<Chromosome>)chromosomesWithSymbols(string symbols)
+			Individual class:
+				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
+			Mutation class:
+				property: chromosome => (object<Chromosome>$)
+			Subpopulation class:
+				method: (object<Haplosome>)haplosomesForChromosomes([Niso<Chromosome> chromosomes = NULL], [Ni index = NULL], [logical$ includeNulls = T])
+				method: (object<Individual>)addMultiRecombinant(object<Dictionary>$ pattern, [Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL],
 							[No<Individual>$ parent2 = NULL], [logical$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
-		add autofixes in SLiMgui for the above API changes
-		revise recipes for new terminology (but they will require more revision downstream)
-		fix calc...() functions for new terminology (but they will require more revision downstream)
-		policy change: the old "haplosome type" (A/X/Y) in the genome metadata is now a chromosome type (different) in the haplosome metadata
-		policy change: similarly, haplosome type A/X/Y in SLiM output (e.g., outputFull()) is now a chromosome type (different)
-		policy change: initialization order is a bit stricter; initializeSex() with "X" or "Y" must come earlier, before calls that would define an implicit "A" chromosome
-		add multichromosome display to SLiMgui
-		add a "chromosome display" window where you can view all the chromosomes simultaneously
-		policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
-		policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
-		add sexChromosomes property to Species
-		improved the accuracy of mutation run experiments, and the quality of the output generated by them, and extended them to be per-chromosome
-		policy change: mutationRuns= for initializeSLiMOptions() has been changed to [l$ doMutationRunExperiments=T]; pass mutationRuns= to initializeChromosome() instead
-		extend subsetMutations() (on Species) to allow the chromosome to also be specified
-		shift to a tree sequence for each chromosome, sharing the node, individual, and population tables across all tree sequences; new TreeSeqInfo struct for per-chromosome state
-		remembered_haplosomes_ is now remembered_nodes_; it retains nodes that are shared across the tree sequences, and that can represent multiple haplosomes
-		Haplosome no longer keeps its tskit node id; the individual keeps two tskit node ids for first and second position, used across all chromosomes in the shared node table
-		added a list of chromosomes to the top-level metadata (`chromosomes`), changed the top-level schema to describe this (optional) list
-		added a description of the focal chromosome to the top-level metadata (`this_chromosome`), changed the top-level schema to describe this (required) key
-		changed Genome metadata to Haplosome metadata, removed chromosome type, identical for all haplosomes of a given position in an individual
-			the way the is_null flags for haplosomes is handled is completely reworked and rather complex, of necessity; see comments in the code
-		bumped .trees version number to 0.9
-		treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a directory with .trees files inside for multichrom models
-		for addSubpop(), haploid=T now requests specifically that type "A" chromosomes be made with their second haplosome null (for haplodiploidy, and backward compatibility)
-		remove the SLiMguiLegacy haplotype plot; it would need to be fixed, and is no longer used by anybody (the one in SLiMgui remains, of course)
-		remove the SLiMguiLegacy chromosome view OpenGL code; again, it would need to be fixed, and maintaining it is an unnecessary headache
+	--- policy changes:
+			policy change: the old "haplosome type" (A/X/Y) in the genome metadata is now a chromosome type (different) in the haplosome metadata
+			policy change: similarly, haplosome type A/X/Y in SLiM output (e.g., outputFull()) is now a chromosome type (different)
+			policy change: initialization order is a bit stricter; initializeSex() with "X" or "Y" must come earlier, before calls that would define an implicit "A" chromosome
+			policy change: the 1D SFS graph and haplotype plot no longer depend upon the current chromosome range selection; that was weird, and doesn't work well in multichrom
+			policy change: the "remove fixed mutations" stage of the WF tick cycle is now after "offspring become parents" (no user-visible difference except WF tick cycle diagram)
+			policy change: mutationRuns= for initializeSLiMOptions() has been changed to [l$ doMutationRunExperiments=T]; pass mutationRuns= to initializeChromosome() instead
+			policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
+			policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
+				the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
+			policy change: fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F (a change in simplification behavior)
+			policy change: color variables on Individual now exist only under SLiMgui; at the command line there is now no memory backing them, so they cannot be used as scratch space
+	--- tree-sequence recording changes:
+			shift to a tree sequence for each chromosome, sharing the node, individual, and population tables across all tree sequences; new TreeSeqInfo struct for per-chromosome state
+			remembered_haplosomes_ is now remembered_nodes_; it retains nodes that are shared across the tree sequences, and that can represent multiple haplosomes
+			Haplosome no longer keeps its tskit node id; the individual keeps two tskit node ids for first and second position, used across all chromosomes in the shared node table
+			added a list of chromosomes to the top-level metadata (`chromosomes`), changed the top-level schema to describe this (optional) list
+			added a description of the focal chromosome to the top-level metadata (`this_chromosome`), changed the top-level schema to describe this (required) key
+			changed Genome metadata to Haplosome metadata, removed chromosome type, identical for all haplosomes of a given position in an individual
+				the way the is_null flags for haplosomes is handled is completely reworked and rather complex, of necessity; see comments in the code
+			bumped .trees version number to 0.9
+			treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a directory with .trees files inside for multichrom models
+			relative to original multichrom design, changed node metadata from `is_null` to `is_vacant` to reflect semantic shift; now it indicates non-null (0) versus unused/null (1); changed schema
+	--- input/output formats and methods:
+			the default symbol for implicit chromosomes are "A", "X", or "Y", so output formats don't change for legacy models
+			fix built-in mutation/substitution output methods for multiple chromosomes:
+				Species method outputMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
+				Species method outputFixedMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
+			fix built-in MS input/output methods for multiple chromosomes:
+				Haplosome method outputMS(): check that all haplosomes belong to a single chromosome, output MS based on that
+				Subpopulation method outputMSSample(): add a [Niso<Chromosome>$ chromosome = NULL] parameter to identify the chromosome to sample with
+				Haplosome method readFromMS(): check that all haplosomes belong to a single chromosome, input MS based on that
+			fix built-in SLiM-format partial input/output methods for multiple chromosomes:
+				Haplosome method output(): check that all haplosomes belong to a single chromosome; output the chromosome symbol in the header if multi-chrom
+				Subpopulation method outputSample(): check that all haplosomes belong to a single chromosome
+			fix built-in VCF input/output methods for multiple chromosomes:
+				Haplosome method outputVCF(): check that all haplosomes belong to a single chromosome; pairs haplosomes as appropriate
+				Subpopulation method outputVCFSample(): check that all haplosomes belong to a single chromosome; use chromosome symbols for the CHROM column
+				add [l$ groupAsIndividuals = T] parameter; if F, each haplosome is emitted as a haploid call rather than forming diploids, regardless of the chromosome's ploidy
+				Haplosome_Class::ExecuteMethod_readFromVCF(): require VCF data that is single-chromosome, as with output
+			fix built-in SLiM-format full input/output methods for multiple chromosomes:
+				Species method outputFull(): allow multi-chromosome output with a new sectioned format, for both text and binary
+				Species method readFromPopulationFile(): support reading multi-chromosome output, for both text and binary
+				policy change: readFromPopulationFile() breaks backward compatibility with old file formats, for both text and binary; too much has changed
+			change file format codes for class Haplosome from GS/GM/GV to HS/HM/HV, matching the rename from Genome to Haplosome
+			add support for writing/reading Individual tag values in outputFull(), readFromPopulationFile()
+			add Individual output method +outputIndividuals(), for writing out a sample of individuals in SLiM format with optional metadata
+			add Individual output method +outputIndividualsToVCF(), for writing out a sample of individuals in VCF format with optional metadata
+			add recipe 8.3.6, output from multi-chromosome models
+			add Individual method readIndividualsFromVCF(), allowing reading of multi-chromosome data from VCF into a vector of individuals
+			fix a bug in the neutral-sim tracking logic in readFromVCF() that I don't think anybody ever actually hit (reading a non-neutral mutation for a neutral mutation type)
+			rename the Haplosome method readFromVCF() to readHaplosomesFromVCF(), and readFromMS() to readHaplosomesFromMS(), for naming consistency; add SLiMgui autofix; revise recipe 18.12 for this rename
+			rename Haplosome methods output(), outputMS(), and outputVCF() to outputHaplosomes(), outputHaplosomesToMS(), and outputHaplosomesToVCF(), to parallel the new Individual output methods
+			extend outputFull() to support saving out substitutions, in a table at the end in the same format as outputFixedMutations()
+			change outputFull() individualTags parameter to objectTags, persist tags for individual, mutation, substitution, haplosome, subpopulation, and chromosome
+			extend readFromPopulationFile() to support restoring substitutions and tag values, but only for output in binary format; parsing text is too annoying
+			add [l$ objectTags=F] flag to outputIndividuals(), outputHaplosomes(), outputFixedMutations(), and outputMutations(), mirroring the work done for outputFull()
+	--- other multi-chromosome related changes:
+			add autofixes in SLiMgui for the above API changes
+			revise recipes for new terminology/APIs
+			add multichromosome display to SLiMgui
+			add a "chromosome display" window where you can view all the chromosomes simultaneously
+			improved the accuracy of mutation run experiments, and the quality of the output generated by them, and extended them to be per-chromosome
+			extend subsetMutations() (on Species) to allow the chromosome to also be specified
+			for addSubpop(), haploid=T now requests specifically that type "A" chromosomes be made with their second haplosome null (for haplodiploidy, and backward compatibility)
+			remove the SLiMguiLegacy haplotype plot; it would need to be fixed, and is no longer used by anybody (the one in SLiMgui remains, of course)
+			remove the SLiMguiLegacy chromosome view OpenGL code; again, it would need to be fixed, and maintaining it is an unnecessary headache
+			add templating of GenerateIndividualX() for speed, as was done before for the MungeIndividualX() and HaplosomeX() methods, for speed
+			implement addMultiRecombinant() for complete control over reproduction in multi-chromosome models
+			extend addRecombinant() and addMultiRecombinant() to allow NULL as a breaks vector with two strands, meaning "draw breakpoints for me", to avoid needing drawBreakpoints() in most cases
+				this new code path also allows gene conversion including heteroduplex mismatch repair and gBGC to work with addRecombinant() and addMultiRecombinant()
+				also change to allow a recombination rate to be set for haploid chromosomes; this is potentially useful with addRecombinant() etc.
+			add addPatternForClone(), addPatternForCross(), addPatternForNull(), and addPatternForRecombinant() methods to Species for use with addMultiRecombinant()
+			add recipe 15.22, "Complex multi-chromosome inheritance with addMultiRecombinant()", to illustrate addMultiRecombinant()
+			modified recipes 15.14 and 15.21 to illustrate that NULL can now be passed to addRecombinant() for breaks to get automatic breakpoint generation
+			allow the user to retain Chromosome objects with defineConstant()
+			new PAR (pseudo-autosomal region) recipe for section 15.23, replacing the old recipe in section 14.5 (which will be moved to SLiM-Extras for posterity)
+			new recipe 9.11 (Ne estimation) with a new multichrom-aware version of function estimateNe_Heterozygosity() that requires the chromosome to be supplied
+			recombination() callbacks can now be optionally declared with a chromosome specifier (id or symbol), to apply to just one chromosome
+				registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome (breaking backward API compatibility)
+			fix up the calc...() functions for multiple chromosomes, and to be robust to the case of zero mutations (existing at all, or within the supplied haplosomes), and to improve error-checking and documentation
+			add a [Niso<Chromosome]$ chromosome] parameter to relatedness(), to allow relatedness to be assessed for any model chromosome; extended to all chromosome types
+			add mutationsFromHaplosomes() method, deprecate uniqueMutationsOfType()
+			optimize mutrun experiment timing for reproduction and fitness calculation in single-chromosome models; no need for per-haplosome timings in that case!
+	
+	non-multichrom changes:
+		fix the wiring for calcPi() and calcTajimasD() to call the correct code; they were broken in SLiM 4.3
+		add a "page guide at column" pref to SLiMgui, for those trying to lay out code to a maximum width
+		fix a SLiMgui bug where an error panel would not be visible because it was obscured by a floating window above it, appearing to lock up the whole app
 		fixed a long-standing SLiMgui bug involving mutation frequencies and mutation run reuse when a subset of the subpopulations are selected in the GUI
 			as part of this, (1) cleaned up and improved the SLIM_CLEAR_HAPLOSOMES debugging code, (2) separated SLiMgui's refcounting more completely from
 			SLiM's, and (3) fixed unreleased bugs in mutationFrequencies()/mutationCounts()/mutationFrequenciesInHaplosomes()/mutationCountsInHaplosomes()
-		add templating of GenerateIndividualX() for speed, as was done before for the MungeIndividualX() and HaplosomeX() methods, for speed
-		policy change (slight): the haplosome1Null and haplosome2Null parameters to addEmpty() now apply only to type "A" chromosomes, causing a minor break in backward compatibility
-		policy change: randomizeStrands must now usually be explicitly specified for both addRecombinant() and addMultiRecombinant();
-			the default is now NULL, and NULL errors so that T or F must be explicitly given unless it does not matter (i.e., there is no recombination)
-		implement addMultiRecombinant() for complete control over reproduction in multi-chromosome models
-		extend addRecombinant() and addMultiRecombinant() to allow NULL as a breaks vector with two strands, meaning "draw breakpoints for me", to avoid needing drawBreakpoints() in most cases
-			this new code path also allows gene conversion including heteroduplex mismatch repair and gBGC to work with addRecombinant() and addMultiRecombinant()
-			also change to allow a recombination rate to be set for haploid chromosomes; this is potentially useful with addRecombinant() etc.
-		add addPatternForClone(), addPatternForCross(), addPatternForNull(), and addPatternForRecombinant() methods to Species for use with addMultiRecombinant()
-		add recipe 15.22, "Complex multi-chromosome inheritance with addMultiRecombinant()", to illustrate addMultiRecombinant()
-		modified recipes 15.14 and 15.21 to illustrate that NULL can now be passed to addRecombinant() for breaks to get automatic breakpoint generation
 		cleaned up the confusion around Dictionary vs. DictionaryBase; methods/functions can now use Dictionary in their signature without problems
 		fix a bug in treeSeqMetadata(); if no metadata was found, it would return object<Dictionary>(0), not an empty Dictionary object (and it leaked)
-		shift to returning a Chromosome object from initializeChromosome() and allowing the user to retain it with defineConstant()
 		renamed recipe 15.10 to "Recording a pedigree and following a pedigree in a nonWF model" so it is clearer what it does
-		new PAR (pseudo-autosomal region) recipe for section 15.23, replacing the old recipe in section 14.5 (which will be moved to SLiM-Extras for posterity)
-		new recipe 9.11 (Ne estimation) with a new multichrom-aware version of function estimateNe_Heterozygosity() that requires the chromosome to be supplied
-		recombination() callbacks can now be optionally declared with a chromosome specifier (id or symbol), to apply to just one chromosome
-			registerRecombinationCallback() now takes an optional chromosome parameter to specify that focal chromosome (breaking backward API compatibility)
-		fix up the calc...() functions for multiple chromosomes, and to be robust to the case of zero mutations (existing at all, or within the supplied haplosomes), and to improve error-checking and documentation
-		the default symbol for implicit chromosomes should be "A", "X", or "Y", so output formats don't change for legacy models
-		fix built-in mutation/substitution output methods for multiple chromosomes:
-			Species method outputMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
-			Species method outputFixedMutations(): in models with >1 chromosome, this now outputs the chromosome symbol after the position
-		fix built-in MS input/output methods for multiple chromosomes:
-			Haplosome method outputMS(): check that all haplosomes belong to a single chromosome, output MS based on that
-			Subpopulation method outputMSSample(): add a [Niso<Chromosome>$ chromosome = NULL] parameter to identify the chromosome to sample with
-			Haplosome method readFromMS(): check that all haplosomes belong to a single chromosome, input MS based on that
-		fix built-in SLiM-format partial input/output methods for multiple chromosomes:
-			Haplosome method output(): check that all haplosomes belong to a single chromosome; output the chromosome symbol in the header if multi-chrom
-			Subpopulation method outputSample(): check that all haplosomes belong to a single chromosome
-		fix built-in VCF input/output methods for multiple chromosomes:
-			Haplosome method outputVCF(): check that all haplosomes belong to a single chromosome; pairs haplosomes as appropriate
-			Subpopulation method outputVCFSample(): check that all haplosomes belong to a single chromosome; use chromosome symbols for the CHROM column
-			add [l$ groupAsIndividuals = T] parameter; if F, each haplosome is emitted as a haploid call rather than forming diploids, regardless of the chromosome's ploidy
-			Haplosome_Class::ExecuteMethod_readFromVCF(): require VCF data that is single-chromosome, as with output
-		fix built-in SLiM-format full input/output methods for multiple chromosomes:
-			Species method outputFull(): allow multi-chromosome output with a new sectioned format, for both text and binary
-			Species method readFromPopulationFile(): support reading multi-chromosome output, for both text and binary
-			policy change: readFromPopulationFile() breaks backward compatibility with old file formats, for both text and binary; too much has changed
-		change file format codes for class Haplosome from GS/GM/GV to HS/HM/HV, matching the rename from Genome to Haplosome
-		add support for writing/reading Individual tag values in outputFull(), readFromPopulationFile()
-		add Individual output method +outputIndividuals(), for writing out a sample of individuals in SLiM format with optional metadata
-		add Individual output method +outputIndividualsToVCF(), for writing out a sample of individuals in VCF format with optional metadata
-		add recipe 8.3.6, output from multi-chromosome models
-		add Individual method readIndividualsFromVCF(), allowing reading of multi-chromosome data from VCF into a vector of individuals
-		fix a bug in the neutral-sim tracking logic in readFromVCF() that I don't think anybody ever actually hit (reading a non-neutral mutation for a neutral mutation type)
-		rename the Haplosome method readFromVCF() to readHaplosomesFromVCF(), and readFromMS() to readHaplosomesFromMS(), for naming consistency; add SLiMgui autofix; revise recipe 18.12 for this rename
 		split chapter 15 (nonWF models) into two chapters, involving a great deal of renumbering, reorganizing, and rewriting
-		add a [Niso<Chromosome]$ chromosome] parameter to relatedness(), to allow relatedness to be assessed for any model chromosome; extended to all chromosome types
 		disable defer=T for all nonWF reproduction methods; it now does the same thing as defer=F (and is documented as having that possibility)
-		add a chromosome property back onto Species, accessible only in single-chromosome models; this makes porting models forward a little easier
+		add setValuesVectorized() method to EidosDictionaryUnretained, to set values 1:1 from a source vector into dictionary entries of objects; like vectorized property assignment, but for setValue()
+		fix error position tracking for errors inside user-defined functions, and in most nested situations
+		add "absorbing" boundary condition option for deviatePositions(), returning a vector of individuals to be killed because they moved out of bounds
+		add new Subpopulation method deviatePositionsWithMap(), similar to deviatePositions() but adding a spatial map that defines inside/outside bounds
+		disable OpenGL by default on Windows; the user can turn it on in the prefs; just too many people experiencing broken drawing and being confused
+		add a color chart and a plot symbols chart to the SLiMgui Help menu's list of quick-reference charts it can show
+		attempt to fix SLiMgui window visibility issues -- miniaturized windows not becoming visible, off-screen windows remaining offscreen, etc.
+		add calcSFS() function to the popgen utility functions suite, add recipe 9.12 to demonstrate it
+		add recipe 17.19, "Modeling indirect competition mediated by resource availability", demonstrating Sam's resource-explicit approach
+		add calcMeanFroh() function to the popgen utility functions suite, add recipe 14.15 to demonstrate it
+		extend deferred tick scheduling to allow scheduling to occur within a single tick, as long as it is for a later tick cycle stage
+		investigated and diagnosed a break in backward compatibility: models involving the Y use the MT RNG differently (less), and thus diverge from SLiM 4.3
+		add rztpois() function to Eidos, to draw from a zero-truncated Poisson distribution
+		extend initializeGenomicElement() to allow NULL,NULL for start,end, making it very easy to configure a single chromosome-length genomic element
+			tweak recipes 8.3.3, 8.3.4, 8.3.5, 8.3.6, 8.3.7, 16.3, 16.9, and 16.10 to show off this new functionality, since it's now the nicest way to handle this situation
+		add initializeRecombinationRateFromFile() and initializeMutationRateFromFile() built-in functions; tweak recipe 8.2.2 to utilize it
+	bug fixes:
 		fix #481, add a substitutionsOfType() method to Species, parallel to mutationsOfType()
 		fix #473, that tree-seq scripts with a subtle timing error in the addition of a new mutation would not generate a good error message from SLiM
 		fix #488, non-UTF-8 encoding causes poor error
 		fix #476, external editing causes SLiMgui to get confused
 		fix #479, CLI progress bar would be a nice option; this is now -p[rogress]
 		fix #478, record resource usage information in the tree sequence provenance; now we also print user/sys CPU usage for -t[ime], since we now have the information
-		add setValuesVectorized() method to EidosDictionaryUnretained, to set values 1:1 from a source vector into dictionary entries of objects; like vectorized property assignment, but for setValue()
-		fix error position tracking for errors inside user-defined functions, and in most nested situations
-		fix #487, changing TSK_SIMPLIFY_KEEP_UNARY to TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS for retainCoalescentOnly=F
-		rename Haplosome methods output(), outputMS(), and outputVCF() to outputHaplosomes(), outputHaplosomesToMS(), and outputHaplosomesToVCF(), to parallel the new Individual output methods
 		fix #494, adding a -c / -check command-line option to check the syntax of the input script
 		fix #496, calling addCustomColumn() or addMeanSDColumns() inside a for loop passing the loop index variable for custom= does bad things
 			also, we now require an object value for the context parameter to belong to a class that is under retain-release, since this is a long-term reference and could cause a crash otherwise
-		add "absorbing" boundary condition option for deviatePositions(), returning a vector of individuals to be killed because they moved out of bounds
-		add new Subpopulation method deviatePositionsWithMap(), similar to deviatePositions() but adding a spatial map that defines inside/outside bounds
-		disable OpenGL by default on Windows; the user can turn it on in the prefs; just too many people experiencing broken drawing and being confused
-		color variables on Individual now exist only under SLiMgui; at the command line there is now no memory backing them, so (policy change) they cannot be used as scratch space
-		add a color chart and a plot symbols chart to the SLiMgui Help menu's list of quick-reference charts it can show
-		attempt to fix SLiMgui window visibility issues -- miniaturized windows not becoming visible, off-screen windows remaining offscreen, etc.
-		add calcSFS() function to the popgen utility functions suite, add recipe 9.12 to demonstrate it
-		add recipe 17.19, "Modeling indirect competition mediated by resource availability", demonstrating Sam's resource-explicit approach
-		add mutationsFromHaplosomes() method, deprecate uniqueMutationsOfType()
-		add calcMeanFroh() function to the popgen utility functions suite, add recipe 14.15 to demonstrate it
-		extend outputFull() to support saving out substitutions, in a table at the end in the same format as outputFixedMutations()
-		change outputFull() individualTags parameter to objectTags, persist tags for individual, mutation, substitution, haplosome, subpopulation, and chromosome
-		extend readFromPopulationFile() to support restoring substitutions and tag values, but only for output in binary format; parsing text is too annoying
-		add [l$ objectTags=F] flag to outputIndividuals(), outputHaplosomes(), outputFixedMutations(), and outputMutations(), mirroring the work done for outputFull()
-		extend deferred tick scheduling to allow scheduling to occur within a single tick, as long as it is for a later tick cycle stage
-		change initializeChromosome() to allow a length of NULL, in which case the length is determined by the components of the chromosome (as for an implicitly defined chromosome)
-		investigated and diagnosed a break in backward compatibility: models involving the Y use the MT RNG differently (less), and thus diverge from SLiM 4.3
 		fix a bug with reloading pedigree IDs after outputFull(), using readFromPopulationFile()
-		change node metadata from `is_null` to `is_vacant` to reflect semantic shift; now it indicates non-null (0) versus unused/null (1); changed schema
-		add rztpois() function to Eidos, to draw from a zero-truncated Poisson distribution
-		extend initializeGenomicElement() to allow NULL,NULL for start,end, making it very easy to configure a single chromosome-length genomic element
-			tweak recipes 8.3.3, 8.3.4, 8.3.5, 8.3.6, 8.3.7, 16.3, 16.9, and 16.10 to show off this new functionality, since it's now the nicest way to handle this situation
-		add initializeRecombinationRateFromFile() and initializeMutationRateFromFile() built-in functions; tweak recipe 8.2.2 to utilize it
-		optimize mutrun experiment timing for reproduction in single-chromosome models; no need for per-haplosome timings in that case!
-
 
 version 4.3 (Eidos version 3.3):
 	fixed a bug in calcWattersonsTheta(): the value calculated would be incorrect if a window (start/end) was specified
