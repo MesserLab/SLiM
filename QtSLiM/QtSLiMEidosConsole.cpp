@@ -319,12 +319,23 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		}
 	}
 	catch (...)
-	{
-		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
-		*errorString = QString::fromStdString(error_string);
-		return nullptr;
-	}
-	
+    {
+        std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+        *errorString = QString::fromStdString(error_string);
+        
+        // move the error outside of the currentScript context if possible; the ranges
+        // should have already been moved by TranslateErrorContextToUserScript()
+        if (gEidosErrorContext.currentScript == &script)
+        {
+#if EIDOS_DEBUG_ERROR_POSITIONS
+            std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in tokenization." << std::endl;
+#endif
+            gEidosErrorContext.currentScript = nullptr;
+        }
+        
+        return nullptr;
+    }
+    
 	// Parse, an "interpreter block" bounded by an EOF rather than a "script block" that requires braces
 	try
 	{
@@ -341,12 +352,23 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		}
 	}
 	catch (...)
-	{
-		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
-		*errorString = QString::fromStdString(error_string);
-		return nullptr;
-	}
-	
+    {
+        std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+        *errorString = QString::fromStdString(error_string);
+        
+        // move the error outside of the currentScript context if possible; the ranges
+        // should have already been moved by TranslateErrorContextToUserScript()
+        if (gEidosErrorContext.currentScript == &script)
+        {
+#if EIDOS_DEBUG_ERROR_POSITIONS
+            std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in parsing." << std::endl;
+#endif
+            gEidosErrorContext.currentScript = nullptr;
+        }
+        
+        return nullptr;
+    }
+    
 	// Get a symbol table and let SLiM add symbols to it
 	if (!global_symbols)
 	{
@@ -422,17 +444,27 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		}
 	}
 	catch (...)
-	{
-		parentSLiMWindow->didExecuteScript();
-		
-		output = outstream.str();
-		
-		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
-		*errorString = QString::fromStdString(error_string);
-		
-		return QString::fromStdString(output);
-	}
-	
+    {
+        parentSLiMWindow->didExecuteScript();
+        
+        output = outstream.str();
+        
+        std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
+        *errorString = QString::fromStdString(error_string);
+        
+        // move the error outside of the currentScript context if possible; the ranges
+        // should have already been moved by TranslateErrorContextToUserScript()
+        if (gEidosErrorContext.currentScript == &script)
+        {
+#if EIDOS_DEBUG_ERROR_POSITIONS
+            std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in execution." << std::endl;
+#endif
+            gEidosErrorContext.currentScript = nullptr;
+        }
+        
+        return QString::fromStdString(output);
+    }
+    
 	parentSLiMWindow->didExecuteScript();
 	
 	// See comment on safeguardReferences above

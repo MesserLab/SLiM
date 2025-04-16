@@ -325,6 +325,17 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	{
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
+		
+		// move the error outside of the currentScript context if possible; the ranges
+		// should have already been moved by TranslateErrorContextToUserScript()
+		if (gEidosErrorContext.currentScript == &script)
+		{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in tokenization." << std::endl;
+#endif
+			gEidosErrorContext.currentScript = nullptr;
+		}
+		
 		return nil;
 	}
 	
@@ -347,6 +358,17 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	{
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
+		
+		// move the error outside of the currentScript context if possible; the ranges
+		// should have already been moved by TranslateErrorContextToUserScript()
+		if (gEidosErrorContext.currentScript == &script)
+		{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in parsing." << std::endl;
+#endif
+			gEidosErrorContext.currentScript = nullptr;
+		}
+		
 		return nil;
 	}
 	
@@ -436,6 +458,16 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		std::string &&error_string = Eidos_GetUntrimmedRaiseMessage();
 		*errorString = [NSString stringWithUTF8String:error_string.c_str()];
+		
+		// move the error outside of the currentScript context if possible; the ranges
+		// should have already been moved by TranslateErrorContextToUserScript()
+		if (gEidosErrorContext.currentScript == &script)
+		{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "-[EidosConsoleWindowController _executeScriptString:...]: clearing gEidosErrorContext.currentScript after error in execution." << std::endl;
+#endif
+			gEidosErrorContext.currentScript = nullptr;
+		}
 		
 		return [NSString stringWithUTF8String:output.c_str()];
 	}
@@ -533,19 +565,35 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		
 		// If we have an error, it is in the user script, and it has a valid position, then we can try to
 		// highlight it in the input.  Note that gEidosErrorContext.currentScript is nullptr in the console.
-		if (errorString &&
-			(!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0)) &&
-			(gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
-			(gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16) &&
-			(scriptRange.location != NSNotFound))
+		if (errorString)
 		{
-			int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + (int)scriptRange.location;
-			int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + (int)scriptRange.location;
-			
-			NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
-			
-			[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
-			[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
+			if (!gEidosErrorContext.currentScript || (gEidosErrorContext.currentScript->UserScriptUTF16Offset() == 0))
+			{
+				if ((gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) &&
+					(gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16) &&
+					(scriptRange.location != NSNotFound))
+				{
+					int errorTokenStart = gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 + (int)scriptRange.location;
+					int errorTokenEnd = gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + (int)scriptRange.location;
+					
+					NSRange charRange = NSMakeRange(errorTokenStart, errorTokenEnd - errorTokenStart + 1);
+					
+					[ts addAttribute:NSBackgroundColorAttributeName value:[NSColor redColor] range:charRange];
+					[ts addAttribute:NSForegroundColorAttributeName value:[NSColor whiteColor] range:charRange];
+				}
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				else
+				{
+					std::cout << "-[EidosConsoleWindowController executeScriptString:...]: an error occurred, but the error range is unusable" << std::endl;
+				}
+#endif
+			}
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			else
+			{
+				std::cout << "-[EidosConsoleWindowController executeScriptString:...]: an error occurred, but the script context is unusable" << std::endl;
+			}
+#endif
 		}
 		
 		[ts endEditing];
@@ -614,6 +662,16 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		{
 			std::string &&error_diagnostic = Eidos_GetTrimmedRaiseMessage();
 			errorDiagnostic = [[NSString stringWithUTF8String:error_diagnostic.c_str()] retain];
+			
+			// move the error outside of the currentScript context if possible; the ranges
+			// should have already been moved by TranslateErrorContextToUserScript()
+			if (gEidosErrorContext.currentScript == &script)
+			{
+#if EIDOS_DEBUG_ERROR_POSITIONS
+				std::cout << "-[EidosConsoleWindowController checkScriptSuppressSuccessResponse:]: clearing gEidosErrorContext.currentScript after error in tokenization or parsing." << std::endl;
+#endif
+				gEidosErrorContext.currentScript = nullptr;
+			}
 		}
 	}
 	
