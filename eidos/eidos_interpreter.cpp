@@ -6167,6 +6167,10 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 				script = new EidosScript(body_node->token_->token_string_);
 			}
 			
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "    script object for the user-defined function == " << script << "" << std::endl;
+#endif
+			
 			script->Tokenize();
 			script->ParseInterpreterBlockToAST(false);
 			

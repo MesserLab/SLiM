@@ -185,7 +185,28 @@ void TranslateErrorContextToUserScript(__attribute__ ((unused)) const char *p_ca
 			gEidosErrorContext.errorPosition.characterEndOfError += char_offset;
 			
 			gEidosErrorContext.currentScript = user_script;
+			
+#if EIDOS_DEBUG_ERROR_POSITIONS
+			std::cout << "    ==> translated error context to script " << user_script << " (UTF offset " << utf_offset << ")" << std::endl;
+			std::cout << "        new gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 << std::endl;
+			std::cout << "        new gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 == " << gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 << std::endl;
+			std::cout << "        new gEidosErrorContext.currentScript == " << gEidosErrorContext.currentScript << std::endl;
+			
+			if (user_script)
+			{
+				std::cout << "        new currentScript->UserScriptUTF16Offset() == " << user_script->UserScriptUTF16Offset() << std::endl;
+				std::cout << "        new currentScript->UserScriptCharOffset() == " << user_script->UserScriptCharOffset() << std::endl;
+				std::cout << "        new currentScript->String() == " << user_script->String().substr(0, 20) << "..." << std::endl;
+				std::cout << "        new currentScript->UserScript() == " << user_script->UserScript() << std::endl;
+			}
+#endif
 		}
+#if EIDOS_DEBUG_ERROR_POSITIONS
+		else
+		{
+			std::cout << "    ==> did not translate error context" << std::endl;
+		}
+#endif
 	}
 }
 
