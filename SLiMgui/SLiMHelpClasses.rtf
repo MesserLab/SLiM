@@ -4030,7 +4030,7 @@ The
 \f3\fs18 0.0
 \f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , this method will use the pedigree information described in section 26.7.1 to construct a relatedness estimate.  The relatedness is calculated based upon the type of the chromosome specified by 
+\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.  The relatedness is calculated based upon the type of the chromosome specified by 
 \f3\fs18 chromosome
 \f4\fs20  (as an 
 \f3\fs18 integer
@@ -5506,7 +5506,7 @@ Note that the
 \f3\fs18 addCustomColumn()
 \f4\fs20  will therefore raise an error, to safeguard against that possible crash.  The workaround for this limitation is to find a way to look up the desired object, such as the suggestion above of using the subpopulation\'92s 
 \f3\fs18 id
-\f4\fs20  to look it up.  See section 30.2 for further discussion of scoping rules, long-term references, and retain-release memory management in SLiM.\
+\f4\fs20  to look it up.\
 The use of 
 \f3\fs18 context
 \f4\fs20  is optional; if the default value of 
@@ -10114,7 +10114,7 @@ This method may only be called if tree sequence recording has been turned on wit
 \f4\fs20  to obtain up-to-date information.  However, the speed penalty of doing this in every tick would be large, and most models do not need this level of precision; usually it is sufficient to know that the model has coalesced, without knowing whether that happened in the current tick or in a recent preceding tick.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No<Dictionary>$\'a0metadata\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+\f3\fs18 \cf2 \'96\'a0(void)treeSeqOutput(string$\'a0path, [logical$\'a0simplify\'a0=\'a0T], [logical$\'a0includeModel\'a0=\'a0T], \kerning1\expnd0\expndtw0 [No<Dictionary>$\'a0metadata\'a0=\'a0NULL], [logical$\'a0overwriteDirectory\'a0=\'a0F]\expnd0\expndtw0\kerning0
 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -10158,8 +10158,6 @@ In a model of a single chromosome, a binary tree sequence file will be written t
 \f4\fs20  files and trees archives can be read by 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20 , as discussed in its documentation.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Normally, the full SLiM script used to generate the tree sequence is written out to the provenance entry of the tree sequence file, to the 
 \f3\fs18 model
 \f4\fs20  subkey of the 
@@ -10169,8 +10167,7 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f4\fs20  for 
 \f3\fs18 includeModel
 \f4\fs20  suppresses output of the full script.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 A 
+A 
 \f3\fs18 Dictionary
 \f4\fs20  object containing user-generated metadata may be supplied with the 
 \f3\fs18 metadata
@@ -10205,6 +10202,21 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f4\fs20  superclass state will be serialized into the metadata (properties of the subclass will be ignored).  This metadata dictionary can be recovered from the saved file using the 
 \f3\fs18 treeSeqMetadata()
 \f4\fs20  function.\
+When saving a single 
+\f3\fs18 .trees
+\f4\fs20  file, the standard behavior is to overwrite an existing file of the same name; the convenience of this generally outweighs the danger.  When saving a trees archive, however, that balance shifts; overwriting an entire directory is potentially quite dangerous.  For this reason, 
+\f3\fs18 overwriteDirectory=F
+\f4\fs20  (the default) specifies that 
+\f3\fs18 treeSeqOutput()
+\f4\fs20  should not overwrite an existing directory; it will instead raise an error.  If 
+\f3\fs18 overwriteDirectory
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , 
+\f3\fs18 treeSeqOutput()
+\f4\fs20  will overwrite an existing directory of the same name (if the existing directory can be deleted without permissions errors and so forth), but only if the existing directory is empty or contains only files with a 
+\f3\fs18 .trees
+\f4\fs20  suffix, for safety; if other files are present, an error will still be raised.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0

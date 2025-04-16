@@ -7138,7 +7138,7 @@ void Species::ReadTreeSequenceMetadata(TreeSeqInfo &p_treeseq, slim_tick_t *p_ti
 	}
 }
 
-void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_path)
+void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_path, bool p_overwrite_directory)
 {
 	// Eidos_CreateDirectory() errors if the path already exists, but for WriteTreeSequence(),
 	// we want to replace an existing directory (but not a file); it would be too annoying
@@ -7156,6 +7156,9 @@ void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_pat
 		
 		if (is_directory)
 		{
+			if (!p_overwrite_directory)
+				EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", because a directory already exists at that path; you may pass overwriteDirectory=T to override this error and replace the existing directory, but note that this is quite a dangerous operation (treeSeqOutput() will still refuse to overwrite the existing directory if it contains any files besides .trees files, for additional safety)." << EidosTerminate();
+			
 			// remove() requires that the directory be empty, so we need to remove all files inside it.
 			// For safety, we first pass over all files and verify that they are not directories, and
 			// that their filenames all end in .trees.  If there is any other cruft inside the directory,
@@ -7211,7 +7214,8 @@ void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_pat
 				
 				(void)closedir(dp);
 				
-				// OK, everything in the directory seems eligible for removal; let's try
+				// OK, everything in the directory seems eligible for removal; let's try.  Note that the logic
+				// below duplicates the logic above, to avoid race conditions in which the filesystem changes.
 				dp = opendir(resolved_user_path.c_str());
 				
 				if (dp != NULL)
@@ -7297,7 +7301,7 @@ void Species::_CreateDirectoryForMultichromArchive(std::string resolved_user_pat
 		EIDOS_TERMINATION << "ERROR (Species::WriteTreeSequence): directory could not be created at path " << resolved_user_path << ", for unknown reasons." << EidosTerminate();
 }
 
-void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict)
+void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict, bool p_overwrite_directory)
 {
 	int ret = 0;
 	bool is_multichrom = (chromosomes_.size() > 1);
@@ -7316,7 +7320,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 	{
 		// For a multichromosome archive, we need to create the directory to hold it.  This call
 		// will raise if there are any problems in doing so.
-		_CreateDirectoryForMultichromArchive(resolved_user_path);
+		_CreateDirectoryForMultichromArchive(resolved_user_path, p_overwrite_directory);
 	}
 	
 	// Add a population (i.e., subpopulation) table to the table collection; subpopulation information

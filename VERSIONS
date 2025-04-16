@@ -83,9 +83,10 @@ version 5.0 (Eidos version 4.0):
 			added a description of the focal chromosome to the top-level metadata (`this_chromosome`), changed the top-level schema to describe this (required) key
 			changed Genome metadata to Haplosome metadata, removed chromosome type, identical for all haplosomes of a given position in an individual
 				the way the is_null flags for haplosomes is handled is completely reworked and rather complex, of necessity; see comments in the code
-			bumped .trees version number to 0.9
-			treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a directory with .trees files inside for multichrom models
 			relative to original multichrom design, changed node metadata from `is_null` to `is_vacant` to reflect semantic shift; now it indicates non-null (0) versus unused/null (1); changed schema
+			bumped .trees version number to 0.9
+			treeSeqOutput() writes a single .trees file for single-chromosome models (the existing behavior), but now creates a "trees archive" directory with .trees files inside for multichrom models
+			when saving a trees archive, [l$ overwriteDirectory=F] now controls whether an existing directory that looks like a trees archive will be overwritten (dangerous!)
 	--- input/output formats and methods:
 			the default symbol for implicit chromosomes are "A", "X", or "Y", so output formats don't change for legacy models
 			fix built-in mutation/substitution output methods for multiple chromosomes:

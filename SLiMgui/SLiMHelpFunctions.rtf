@@ -853,7 +853,7 @@ If the optional
 \f1\fs18 dec
 \f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
 \f1\fs18 lastPosition
-\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.\
 See 
 \f1\fs18 readCSV()
 \f2\fs20  for further details on 
@@ -931,8 +931,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1085,7 +1084,7 @@ The
 \f1\fs18 dec
 \f2\fs20 .  Once read, the map is converted into a rate map specified with end positions, rather than start positions, and the position given by 
 \f1\fs18 lastPosition
-\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.  See section 8.2.2 for an example of the input format expected.\
+\f2\fs20  is used as the end of the last rate region; it should be the last position of the chromosome.\
 See 
 \f1\fs18 readCSV()
 \f2\fs20  for further details on 
@@ -1154,8 +1153,9 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b The 
+\f0\b \cf2 The 
 \f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 5 and later, use the 
@@ -1325,7 +1325,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1392,7 +1391,6 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

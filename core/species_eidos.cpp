@@ -4170,7 +4170,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No<Dictionary>$ metadata = NULL])
+//	*********************	- (void)treeSeqOutput(string$ path, [logical$ simplify = T], [logical$ includeModel = T], [No<Dictionary>$ metadata = NULL], [logical$ overwriteDirectory = F])
 //
 EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4179,6 +4179,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	EidosValue *simplify_value = p_arguments[1].get();
 	EidosValue *includeModel_value = p_arguments[2].get();
 	EidosValue *metadata_value = p_arguments[3].get();
+	EidosValue *overwriteDirectory_value = p_arguments[4].get();
 	
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called when tree recording is enabled." << EidosTerminate();
@@ -4198,11 +4199,12 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	bool simplify = simplify_value->LogicalAtIndex_NOCAST(0, nullptr);
 	EidosDictionaryUnretained *metadata_dict = nullptr;
 	bool includeModel = includeModel_value->LogicalAtIndex_NOCAST(0, nullptr);
+	bool overwriteDirectory = overwriteDirectory_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (metadata_value->Type() == EidosValueType::kValueObject)
 		metadata_dict = (EidosDictionaryUnretained *)metadata_value->ObjectElementAtIndex_NOCAST(0, nullptr);
 	
-	WriteTreeSequence(path_string, simplify, includeModel, metadata_dict);
+	WriteTreeSequence(path_string, simplify, includeModel, metadata_dict, overwriteDirectory);
 	
 	return gStaticEidosValueVOID;
 }
@@ -4326,7 +4328,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqOutput, kEidosValueMaskVOID))->AddString_S("path")->AddLogical_OS("simplify", gStaticEidosValue_LogicalT)->AddLogical_OS("includeModel", gStaticEidosValue_LogicalT)->AddObject_OSN("metadata", gEidosDictionaryUnretained_Class, gStaticEidosValueNULL)->AddLogical_OS("overwriteDirectory", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr__debug, kEidosValueMaskVOID)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
