@@ -348,6 +348,12 @@ public:
 	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome1(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_haplosomesNonNull(EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism
 	static void SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size);

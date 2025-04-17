@@ -148,6 +148,7 @@ version 5.0 (Eidos version 4.0):
 			add a [Niso<Chromosome]$ chromosome] parameter to relatedness(), to allow relatedness to be assessed for any model chromosome; extended to all chromosome types
 			add mutationsFromHaplosomes() method, deprecate uniqueMutationsOfType()
 			optimize mutrun experiment timing for reproduction and fitness calculation in single-chromosome models; no need for per-haplosome timings in that case!
+			accelerate haplosome accessors on Individual: haploidGenome[1|2], haploidGenome[1|2]NonNull, haplosomes, haplosomesNonNull
 	
 	non-multichrom changes:
 		fix the wiring for calcPi() and calcTajimasD() to call the correct code; they were broken in SLiM 4.3

@@ -2180,7 +2180,8 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 		
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
 	}
-	else if (values_size == 1)
+	
+	if (values_size == 1)
 	{
 		// The singleton case is very common, so it should be special-cased for speed
 		EidosObject *value = values_[0];
@@ -2196,23 +2197,33 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 #endif
 		return result;
 	}
-	else if (signature->accelerated_get_)
+	
+	if (signature->accelerated_get_)
 	{
 		// Accelerated property access is enabled for this property, so the class will do all the work for us
 		// We put this case below the (values_size == 1) case so the accelerated getter can focus on the vectorized case
 		EidosValue_SP result = EidosValue_SP(signature->accelerated_getter(values_, values_size));
 		
-		// Access of singleton properties retains the matrix/array structure of the target
-		if (signature->value_mask_ & kEidosValueMaskSingleton)
-			result->CopyDimensionsFromValue(this);
-		
+		// BCH 4/16/2025: New in SLiM 5, an accelerated getter can return nullptr to say "I don't want to
+		// handle this case, send it down to GetProperty() and do it the slow way", so we fall through.
+		if (result)
+		{
+			// Access of singleton properties retains the matrix/array structure of the target
+			if (signature->value_mask_ & kEidosValueMaskSingleton)
+				result->CopyDimensionsFromValue(this);
+			
 #if DEBUG
-		// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
-		signature->CheckAggregateResultValue(*result, values_size);
+			// This is time-consuming, and will fail only due to internal bugs, so we should do it only in DEBUG
+			signature->CheckAggregateResultValue(*result, values_size);
 #endif
-		return result;
+			return result;
+		}
+		
+		// FALL THROUGH
 	}
-	else
+	
+	// Fall-through: this is reached for all cases not handled above, including if
+	// an accelerated getter returns nullptr to indicate it cannot handle the case
 	{
 		// get the value from all properties and collect the results
 		std::vector<EidosValue_SP> results;
