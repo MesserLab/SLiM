@@ -211,21 +211,14 @@ in the tree sequence already (and the associated keys in the schema).
 We've not done that yet because making things exactly match seems like a pain,
 and no-one else is using the top-level metadata yet.
 
-### Top-level metadata:
+## Reading in tree sequences
 
-*Note: this is out of date.* Here's an example of the top-level metadata:
-```
-{
- "SLiM" : {
-     "model_type" : "WF",
-     "generation" : 123,
-     "file_version" : "0.5",
-     "spatial_dimensionality" : "xy",
-     "spatial_periodicity" : "x",
-     "separate_sexes" : true,
-     "nucleotide_based" : false
- }
-}
-```
+In addition to the various things mentioned above,
+To read in a tree sequence, SLiM requires that:
 
-However, we're currently only using `model_type`, `generation`, and `file_version`.
+1. the two nodes corresponding to haplosomes of a given individual are adjacent in the node table,
+    and sorted by haplosome ID.
+
+This is because of how `__TabulateSubpopulationsFromTreeSequence` works;
+probably it could be made more general, but it isn't.
+
