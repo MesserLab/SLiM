@@ -1,0 +1,83 @@
+// Keywords: monogamy, monogamous mating, nonWF, non-Wright-Fisher
+
+initialize() {
+	defineConstant("K", 500);       // carrying capacity
+	defineConstant("R_AGE_M", 3);   // minimum age of reproduction (male)
+	defineConstant("R_AGE_F", 4);   // minimum age of reproduction (female)
+	defineConstant("FECUN", 0.2);   // mean fecundity per female per tick
+	
+	initializeSLiMModelType("nonWF");
+	initializeSex();
+}
+1 first() {
+	sim.addSubpop("p1", K);
+	p1.individuals.age = rdunif(K, min=0, max=15);   // initial variation in age
+	p1.individuals.tag = -1;        // mark all individuals as unmated
+}
+first() {
+	// find mated individuals whose mate has died, and mark them as unmated
+	mated_individuals = p1.individuals;
+	mated_individuals = mated_individuals[mated_individuals.tag >= 0];
+	
+	if (size(mated_individuals) > 0)
+	{
+		tags = mated_individuals.tag;
+		tag_counts = tabulate(tags, maxbin=size(mated_individuals)-1);
+		tags_to_fix = which(tag_counts == 1);
+		unmated_indices = match(tags_to_fix, tags);
+		mated_individuals[unmated_indices].tag = -1;
+	}
+	
+	// find the next tag value to use for new mating pairs
+	next_tag = max(p1.individuals.tag) + 1;
+	
+	// find unmated individuals that are of reproductive age
+	unmated_F = p1.subsetIndividuals(sex="F", tag=-1, minAge=R_AGE_F);
+	unmated_M = p1.subsetIndividuals(sex="M", tag=-1, minAge=R_AGE_M);
+	
+	// pair individuals randomly; some individuals may be left unpaired
+	pair_count = min(size(unmated_F), size(unmated_M));
+	unmated_F = sample(unmated_F, pair_count, replace=F);
+	unmated_M = sample(unmated_M, pair_count, replace=F);
+	
+	for (f in unmated_F, m in unmated_M, tag in seqLen(pair_count) + next_tag)
+	{
+		f.tag = tag;
+		m.tag = tag;
+	}
+}
+reproduction() {
+	// find the subset of individuals that have a mate
+	mated_F = p1.subsetIndividuals(sex="F");
+	mated_F = mated_F[mated_F.tag >= 0];
+	
+	mated_M = p1.subsetIndividuals(sex="M");
+	mated_M = mated_M[mated_M.tag >= 0];
+	
+	// look up the male for each female, by tag
+	male_indices = match(mated_F.tag, mated_M.tag);
+	mated_M = mated_M[male_indices];
+	
+	pair_count = size(mated_F);
+	
+	// produce offspring from each mated pair
+	for (f in mated_F,
+		  m in mated_M,
+		  c in rpois(pair_count, FECUN),
+		  new_tag in seqLen(pair_count))
+	{
+		// re-tag paired individuals to compact tags down
+		f.tag = new_tag;
+		m.tag = new_tag;
+		
+		offspring = p1.addCrossed(f, m, count=c);
+		offspring.tag = -1;	// mark offspring as unmated
+	}
+	
+	self.active = 0;		// deactivate for the rest of the tick ("big bang")	
+}
+early() {
+	// density-dependent population regulation
+	p1.fitnessScaling = K / p1.individualCount;
+}
+10000 late() { }
