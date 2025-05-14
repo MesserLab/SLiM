@@ -22,7 +22,7 @@ first() {
 	if (size(mated_individuals) > 0)
 	{
 		tags = mated_individuals.tag;
-		tag_counts = tabulate(tags, maxbin=size(mated_individuals)-1);
+		tag_counts = tabulate(tags);
 		tags_to_fix = which(tag_counts == 1);
 		unmated_indices = match(tags_to_fix, tags);
 		mated_individuals[unmated_indices].tag = -1;
