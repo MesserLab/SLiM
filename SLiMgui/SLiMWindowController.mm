@@ -3,7 +3,7 @@
 //  SLiM
 //
 //  Created by Ben Haller on 1/21/15.
-//  Copyright (c) 2015-2025 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2025 Benjamin C. Haller.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -3316,7 +3316,7 @@
 	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
 	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
 	NSAttributedString *launchString = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"Connected to SLiMguiLegacy simulation.\nSLiM version %@.\n", versionString] attributes:outputAttrs];	// SLIM VERSION
-	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n---------------------------------------------------------\n\n" attributes:outputAttrs];
+	NSAttributedString *dividerString = [[NSAttributedString alloc] initWithString:@"\n-----------------------------------------------------\n\n" attributes:outputAttrs];
 	
 	[ts beginEditing];
 	[ts replaceCharactersInRange:NSMakeRange([ts length], 0) withAttributedString:launchString];

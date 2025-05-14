@@ -98,7 +98,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2016–2025 Philipp Messer, http://messerlab.org/slim/. All rights reserved.</string>
+	<string>Copyright © 2016–2025 Benjamin C. Haller, http://messerlab.org/slim/. All rights reserved.</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
