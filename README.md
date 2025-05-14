@@ -22,7 +22,7 @@ GitHub Actions | Fedora Copr | Conda
 License
 ----------
 
-Copyright (c) 2016-2024 Philipp Messer.  All rights reserved.
+Copyright (c) 2016-2025 Benjamin C. Haller.  All rights reserved.
 
 SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -33,7 +33,7 @@ You should have received a copy of the GNU General Public License along with SLi
 Development & Feedback
 -----------------------------------
 
-SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Philipp Messer at [messer@cornell.edu](mailto:messer@cornell.edu). Please note that Philipp is also looking for graduate students and postdocs.
+SLiM is a product of the Messer Lab, [http://messerlab.org/](http://messerlab.org/), by Benjamin C. Haller and Philipp W. Messer.  SLiM is under active development, and our goal is to make it as broadly useful as possible.  If you have feedback or feature requests, or if you are interested in contributing to SLiM, please contact Ben Haller at [bhaller@mac.com](mailto:bhaller@mac.com). Please note that Philipp is also looking for graduate students and postdocs.
 
 Installation
 ------------

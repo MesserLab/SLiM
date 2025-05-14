@@ -99,7 +99,7 @@ void QtSLiMConsoleTextEdit::showWelcome(void)
     
     QString welcomeMessage;
     welcomeMessage = welcomeMessage + "Eidos version " + EIDOS_VERSION_STRING + NEWLINE + NEWLINE;		// EIDOS VERSION
-    welcomeMessage += "By Benjamin C. Haller (http://benhaller.com/)." + NEWLINE;
+    welcomeMessage += "By Benjamin C. Haller and Philipp W. Messer." + NEWLINE;
     welcomeMessage += "Copyright (c) 2016–2025 Benjamin C. Haller." + NEWLINE;
     welcomeMessage += "All rights reserved." + NEWLINE + NEWLINE;
     welcomeMessage += "Eidos is free software with ABSOLUTELY NO WARRANTY." + NEWLINE;
