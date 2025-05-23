@@ -76,6 +76,7 @@ private:
 	std::string user_file_path_;								// the one given by the user to us
 	std::string resolved_file_path_;							// the path we use internally, which must be an absolute path
 	
+	bool emit_header_ = true;									// true if we are supposed to emit a header line at the start
 	bool header_logged_ = false;								// true if the header has been written out (in which case our generators are locked)
 	
 	bool compress_;
@@ -127,7 +128,7 @@ public:
 	explicit LogFile(Community &p_community);
 	virtual ~LogFile(void) override;
 	
-	void ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_compress, const std::string &p_sep);
+	void ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_emitHeader, bool p_compress, const std::string &p_sep);
 	void SetLogInterval(bool p_autologging_enabled, int64_t p_logInterval);
 	void SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval);
 	

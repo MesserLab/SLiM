@@ -571,7 +571,7 @@ EidosValue_SP Community::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, 
 	}
 }
 
-//	*********************	– (object<LogFile>$)createLogFile(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [logical$ compress = F], [string$ sep = ","], [Ni$ logInterval = NULL], [Ni$ flushInterval = NULL])
+//	*********************	– (object<LogFile>$)createLogFile(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [logical$ compress = F], [string$ sep = ","], [Ni$ logInterval = NULL], [Ni$ flushInterval = NULL], [logical$ header = T])
 EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -584,6 +584,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	EidosValue_String *sep_value = (EidosValue_String *)p_arguments[4].get();
 	EidosValue *logInterval_value = p_arguments[5].get();
 	EidosValue *flushInterval_value = p_arguments[6].get();
+	EidosValue *header_value = p_arguments[7].get();
 	
 	// process parameters
 	const std::string &filePath = filePath_value->StringRefAtIndex_NOCAST(0, nullptr);
@@ -593,6 +594,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	const std::string &sep = sep_value->StringRefAtIndex_NOCAST(0, nullptr);
 	bool autologging = false, explicitFlushing = false;
 	int64_t logInterval = 0, flushInterval = 0;
+	bool emit_header = header_value->LogicalAtIndex_NOCAST(0, nullptr);
 	
 	if (initialContents_value->Type() != EidosValueType::kValueNULL)
 	{
@@ -637,7 +639,7 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	// Configure it
 	logfile->SetLogInterval(autologging, logInterval);
 	logfile->SetFlushInterval(explicitFlushing, flushInterval);
-	logfile->ConfigureFile(filePath, initialContents, append, do_compress, sep);
+	logfile->ConfigureFile(filePath, initialContents, append, emit_header, do_compress, sep);
 	
 	// Check for duplicate LogFiles using the same path; this is a common error so I'm making it illegal
 	const std::string &resolved_path = logfile->ResolvedFilePath();
@@ -1367,7 +1369,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL)->AddLogical_OS("header", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_estimatedLastTick, kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_deregisterScriptBlock, kEidosValueMaskVOID))->AddIntObject("scriptBlocks", gSLiM_SLiMEidosBlock_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_genomicElementTypesWithIDs, kEidosValueMaskObject, gSLiM_GenomicElementType_Class))->AddInt("ids"));

@@ -51,7 +51,7 @@ void LogFile::Raise_UsesStringKeys(void) const
 	EIDOS_TERMINATION << "ERROR (LogFile::Raise_UsesStringKeys): cannot use an integer key with the target LogFile object; LogFile always uses string keys." << EidosTerminate(nullptr);
 }
 
-void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_compress, const std::string &p_sep)
+void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_emitHeader, bool p_compress, const std::string &p_sep)
 {
 	user_file_path_ = p_filePath;
 	
@@ -64,6 +64,7 @@ void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std
 	
 	compress_ = p_compress;
 	sep_ = p_sep;
+	emit_header_ = p_emitHeader;
 	
 	// We always open the file for writing (or appending) synchronously and write out the initial contents, if any
 	Eidos_WriteToFile(resolved_file_path_, p_initialContents, p_append, p_compress, EidosFileFlush::kForceFlush);
@@ -351,33 +352,37 @@ void LogFile::AppendNewRow(void)
 	// Generate the header row if needed
 	if (!header_logged_)
 	{
-		std::ostringstream ss;
-		bool first_column = true;
-		
-#ifdef SLIMGUI
-		std::vector<std::string> gui_line;
-#endif
-		
-		for (const std::string &column_name : column_names_)
+		// skip emitting the header line if the user has requested that
+		if (emit_header_)
 		{
-			if (!first_column)
-				ss << sep_;
-			first_column = false;
-			ss << column_name;
+			std::ostringstream ss;
+			bool first_column = true;
 			
 #ifdef SLIMGUI
-			std::ostringstream gui_ss;
-			gui_ss << column_name;
-			gui_line.emplace_back(gui_ss.str());
+			std::vector<std::string> gui_line;
+#endif
+			
+			for (const std::string &column_name : column_names_)
+			{
+				if (!first_column)
+					ss << sep_;
+				first_column = false;
+				ss << column_name;
+				
+#ifdef SLIMGUI
+				std::ostringstream gui_ss;
+				gui_ss << column_name;
+				gui_line.emplace_back(gui_ss.str());
+#endif
+			}
+			
+			header_line = ss.str();
+			line_vec.emplace_back(&header_line);
+			
+#ifdef SLIMGUI
+			emitted_lines_.emplace_back(std::move(gui_line));
 #endif
 		}
-		
-		header_line = ss.str();
-		line_vec.emplace_back(&header_line);
-		
-#ifdef SLIMGUI
-		emitted_lines_.emplace_back(std::move(gui_line));
-#endif
 		
 		// Having emitted the header line, we lock ourselves to prevent inconsistencies in the emitted table
 		header_logged_ = true;
@@ -983,7 +988,7 @@ EidosValue_SP LogFile::ExecuteMethod_setLogInterval(EidosGlobalStringID p_method
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)setFilePath(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [Nl$ compress = NULL], [Ns$ sep = NULL])
+//	*********************	- (void)setFilePath(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [Nl$ compress = NULL], [Ns$ sep = NULL], [Nl$ header = NULL])
 EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
@@ -992,6 +997,15 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	EidosValue *append_value = p_arguments[2].get();
 	EidosValue *compress_value = p_arguments[3].get();
 	EidosValue_String *sep_value = (EidosValue_String *)p_arguments[4].get();
+	EidosValue *header_value = p_arguments[5].get();
+	
+	// BCH 5/23/2025: The documentation has always said "Any rows that have been buffered but not flushed
+	// will be written to the previous file first, as if flush() had been called."  It looks to me like
+	// that was not happening.  It seems best to just be explicit about it here, and maybe this fixes a bug.
+	// Note that in the present design, flushing only affects compressed output; without compression, output
+	// is always flushed immediately.  See Eidos_WriteToFile().
+	Eidos_FlushFile(resolved_file_path_);
+	unflushed_row_count_ = 0;
 	
 	// Note that the parameters and their interpretation is different from Community::ExecuteMethod_createLogFile();
 	// in particular, NULL here means "keep the existing value"
@@ -1000,6 +1014,7 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	bool append = append_value->LogicalAtIndex_NOCAST(0, nullptr);
 	bool do_compress = compress_;
 	std::string sep = sep_;
+	bool emit_header = emit_header_;
 	
 	if (initialContents_value->Type() != EidosValueType::kValueNULL)
 	{
@@ -1016,7 +1031,16 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	if (sep_value->Type() != EidosValueType::kValueNULL)
 		sep = sep_value->StringRefAtIndex_NOCAST(0, nullptr);
 	
-	ConfigureFile(filePath, initialContents, append, do_compress, sep);
+	if (header_value->Type() != EidosValueType::kValueNULL)
+		emit_header = header_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	ConfigureFile(filePath, initialContents, append, emit_header, do_compress, sep);
+	
+	// BCH 5/23/2025: I think there was probably a bug here before, that a new header line wouldn't be
+	// emitted into the new target file when using this method. By setting header_logged_ back to false,
+	// we not only cause a new header line to be emitted, but also again allow changes to the columns;
+	// I think that's OK, since we're going to a new file, why not?
+	header_logged_ = false;
 	
 	return gStaticEidosValueVOID;
 }
@@ -1146,7 +1170,7 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_flush, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logRow, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setLogInterval, kEidosValueMaskVOID))->AddInt_OSN("logInterval", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setFilePath, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OSN("compress", gStaticEidosValueNULL)->AddString_OSN("sep", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setFilePath, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OSN("compress", gStaticEidosValueNULL)->AddString_OSN("sep", gStaticEidosValueNULL)->AddLogical_OSN("header", gStaticEidosValueNULL));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSuppliedValue, kEidosValueMaskVOID))->AddString_S("columnName")->AddAnyBase_S("value")));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_willAutolog, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		

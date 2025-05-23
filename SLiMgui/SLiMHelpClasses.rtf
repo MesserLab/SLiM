@@ -1060,7 +1060,7 @@ The type of model being simulated, as specified in
 \f1\fs22  methods\
 \pard\pardeftab529\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(object<LogFile>$)createLogFile(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F], [string$\'a0sep\'a0=\'a0","], [Ni$\'a0logInterval\'a0=\'a0NULL], [Ni$\'a0flushInterval\'a0=\'a0NULL])\
+\f3\i0\fs18 \cf2 \'96\'a0(object<LogFile>$)createLogFile(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F], [string$\'a0sep\'a0=\'a0","], [Ni$\'a0logInterval\'a0=\'a0NULL], [Ni$\'a0flushInterval\'a0=\'a0NULL], [logical$\'a0header\'a0=\'a0T])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Creates and returns a new 
@@ -1143,6 +1143,15 @@ When compression is enabled,
 \f4\fs20  will effectively disable automatic flushing, except at the end of the simulation (but be aware that this may use a large amount of memory for large log files).  In any case, the log file will be created immediately, with its requested initial contents; the initial write is not buffered.  When compression is not enabled, the 
 \f3\fs18 flushInterval
 \f4\fs20  setting is ignored.\
+The 
+\f3\fs18 header
+\f4\fs20  parameter controls whether a header line is written out at the beginning of logging.  If it is 
+\f3\fs18 T
+\f4\fs20  (the default), a header line is written out; if 
+\f3\fs18 F
+\f4\fs20 , no header is written.  Suppressing the header output can be useful if you are using 
+\f3\fs18 LogFile
+\f4\fs20  to append data to an existing file that already has a header line.\
 The 
 \f3\fs18 LogFile
 \f4\fs20  documentation discusses how to configure and use 
@@ -5771,7 +5780,7 @@ You can get the
 \f4\fs20  was called.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setFilePath(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Nl$\'a0compress\'a0=\'a0NULL], [Ns$\'a0sep\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(void)setFilePath(string$\'a0filePath, [Ns\'a0initialContents\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F], [Nl$\'a0compress\'a0=\'a0NULL], [Ns$\'a0sep\'a0=\'a0NULL], [Nl$\'a0header\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Redirects the 
@@ -5786,8 +5795,10 @@ You can get the
 \f3\fs18 append
 \f4\fs20 .  New values may be supplied for 
 \f3\fs18 compress
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 sep
+\f4\fs20 , and 
+\f3\fs18 header
 \f4\fs20 ; the meaning of these parameters is identical to their meaning in 
 \f3\fs18 createLogFile()
 \f4\fs20 , except that a value of 
