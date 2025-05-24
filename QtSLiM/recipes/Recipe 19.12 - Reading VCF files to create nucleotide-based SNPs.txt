@@ -1,5 +1,7 @@
 // Keywords: nucleotide-based, nucleotide sequence, VCF file reading, empirical population, SNPs, 1000 Genomes Project
 
+// The input files used here can be downloaded from http://benhaller.com/slim/recipe_19_12_files.zip
+
 initialize() {
 	initializeSLiMOptions(nucleotideBased=T);
 	length = initializeAncestralNucleotides("hs37d5_chr22_patched.fa");
