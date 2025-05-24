@@ -6657,7 +6657,7 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		handle_error("tsk_node_table_set_metadata_schema", ret);
 }
 
-void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model)
+void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model, slim_chromosome_index_t p_chromosome_index)
 {
 	int ret = 0;
 	time_t timer;
@@ -6770,6 +6770,30 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 		}
 		j["parameters"]["separate_sexes"] = sex_enabled_ ? true : false;
 		j["parameters"]["nucleotide_based"] = nucleotide_based_ ? true : false;
+		
+		j["parameters"]["chromosomes"] = nlohmann::json::array();
+		for (Chromosome *chromosome : chromosomes_)
+		{
+			nlohmann::json chromosome_info;
+			
+			chromosome_info["index"] = chromosome->Index();
+			chromosome_info["id"] = chromosome->ID();
+			chromosome_info["symbol"] = chromosome->Symbol();
+			if (chromosome->Name().length() > 0)
+				chromosome_info["name"] = chromosome->Name();
+			chromosome_info["type"] = StringForChromosomeType(chromosome->Type());
+			
+			j["parameters"]["chromosomes"].push_back(chromosome_info);
+			
+			if (p_chromosome_index == chromosome->Index())		// true for the chromosome being written
+			{
+				// write out all the same information again in a key called "this_chromosome"; this way the
+				// user can trivially get the info for the chromosome represented by the file; note that a
+				// no-genetics model will have a chromosomes key with an empty array, and no this_chromosome,
+				// but a no-genetics model can't write a tree sequence anyway, so that is moot.
+				j["parameters"]["this_chromosome"] = chromosome_info;
+			}
+		}
 		
 		if (p_include_model)
 			j["parameters"]["model"] = scriptString;				// made model optional in file_version 0.4
@@ -7451,7 +7475,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_simpl
 		
 		// Add a row to the Provenance table to record current state; text format does not allow newlines in the entry,
 		// so we don't prettyprint the JSON when going to text, as a quick fix that avoids quoting the newlines etc.
-		WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model);
+		WriteProvenanceTable(&output_tables, /* p_use_newlines */ true, p_include_model, chromosome->Index());
 		
 		// Add top-level metadata and metadata schema
 		WriteTreeSequenceMetadata(&output_tables, p_metadata_dict, chromosome->Index());
