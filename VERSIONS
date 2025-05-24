@@ -10,6 +10,7 @@ development head (in the master branch):
 	add the ability to suppress the header line of a LogFile, with a new [logical$ header = T] parameter to createLogFile() (#516), and adding [Nl$ header = NULL] for setFilePath() (#516)
 	add [string$ sex = "*"] parameter to initializeRecombinationRateFromFile(), passed through to initializeRecombinationRate(); fixing an oversight (#524)
 	write "chromosomes" and "this_chromosome" keys out to provenance as well as metadata (#520)
+	fix an annoying autoindent cursor position bug that I suspect is a Qt 6 regression in QPlainTextEdit
 
 
 version 5.0 (Eidos version 4.0):

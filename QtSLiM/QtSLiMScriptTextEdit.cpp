@@ -1200,6 +1200,16 @@ void QtSLiMTextEdit::autoindentAfterNewline(void)
                 tc.joinPreviousEditBlock();
                 tc.insertText(whitespace);
                 tc.endEditBlock();
+                
+                // BCH 5/24/2025: Fix an autoindent bug that I'm surprised I didn't notice before; if
+                // you're at the end of an indented line, and press return and then press up-arrow,
+                // you move to the wrong position in the previous line, as if the auto-indent had not
+                // occurred.  It's weird, because the cursor shows visibly at the correct position,
+                // but then up-arrow reveals that in some way it was actually not in that position.
+                // Anyhow, explicitly setting the text cursor here seems to fix it.  Maybe I didn't
+                // notice it before because this is a new bug in Qt 6?  If so, this workaround should
+                // be safe on Qt 5.
+                setTextCursor(tc);
             }
         }
     }
