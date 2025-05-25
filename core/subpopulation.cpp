@@ -12253,12 +12253,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 	
 	if (map_iter != spatial_maps_.end())
 	{
-		static bool beenHere = false;
 		SpatialMap *map = map_iter->second;
 		
-		if (!beenHere && !gEidosSuppressWarnings) {
+		if (!community_.warned_spatial_map_color_deprecated_ && !gEidosSuppressWarnings) {
 			SLIM_ERRSTREAM << "#WARNING (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() has been deprecated; use the SpatialMap method mapColor() instead." << std::endl;
-			beenHere = true;
+			community_.warned_spatial_map_color_deprecated_ = true;
 		}
 		
 		// call out to SpatialMap::ExecuteMethod_mapValue() to do the work
@@ -12286,12 +12285,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapImage(EidosGlobalStringID p
 	
 	if (map_iter != spatial_maps_.end())
 	{
-		static bool beenHere = false;
 		SpatialMap *map = map_iter->second;
 		
-		if (!beenHere && !gEidosSuppressWarnings) {
+		if (!community_.warned_spatial_map_image_deprecated_ && !gEidosSuppressWarnings) {
 			SLIM_ERRSTREAM << "#WARNING (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() has been deprecated; use the SpatialMap method mapImage() instead." << std::endl;
-			beenHere = true;
+			community_.warned_spatial_map_image_deprecated_ = true;
 		}
 		
 		// call out to SpatialMap::ExecuteMethod_mapValue() to do the work

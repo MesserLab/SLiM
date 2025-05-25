@@ -151,6 +151,9 @@ public:
 	bool warned_no_max_distance_ = false;
 	bool warned_readFromVCF_mutIDs_unused_ = false;
 	bool warned_no_ancestry_read_ = false;
+	bool warned_experiment_run_clocks_ = false;
+	bool warned_spatial_map_color_deprecated_ = false;
+	bool warned_spatial_map_image_deprecated_ = false;
 	
 	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
 	// to make them easier to find, such checks should always be marked with a comment: // TIMING RESTRICTION

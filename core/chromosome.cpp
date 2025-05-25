@@ -2124,14 +2124,12 @@ void Chromosome::ZeroMutationRunExperimentClock(void)
 		{
 			// Clocks should only get logged in the interval within which they are used; if there are leftover counts
 			// at this point, somebody is logging counts that are not getting used in the total.  Warn once.
-			static bool beenHere = false;
-			
-			if (!beenHere)
+			if (!community_.warned_experiment_run_clocks_)
 			{
 				THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome::PrepareForCycle(): usage of statics");
 				
 				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!" << std::endl;
-				beenHere = true;
+				community_.warned_experiment_run_clocks_ = true;
 			}
 			
 			x_total_gen_clocks_ = 0;
