@@ -2200,6 +2200,9 @@ void _RunSLiMEidosBlockTests(void)
 	// Test callbacks; we don't attempt to test their functionality here, just their declaration and the fact that they get called
 	// Their actual functionality gets tested by the R test suite and the recipes; we want to probe error cases here, more
 	// Things to be careful of: declaration syntax, return value types, special optimized cases, pseudo-parameter definitions
+	static std::string gen1_setup_p1p2p3_nonWF(nonWF_prefix + "initialize() { initializeSex(); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } " + "1 early() { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } " + "late() { sim.subpopulations.fitnessScaling = 20 / sim.subpopulations.individualCount; } ");
+	static std::string gen1_setup_p1p2p3_nonWF_cross(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, 'F') { mate = subpop.sampleIndividuals(1, sex='M'); if (mate.size() == 1) subpop.addCrossed(individual, mate); } ");
+	static std::string gen1_setup_p1p2p3_nonWF_clone(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } ");
 	
 	// fitnessEffect() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect() { return 1.0; } 100 early() { stop(); }", __LINE__);
@@ -2210,6 +2213,10 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitnessEffect(p4) { stop(); } 100 early() { ; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitnessEffect(p1) { stop(); } 100 early() { ; }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitnessEffect(m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect(p1) { if (!isNULL(individual) & !isNULL(subpop)) return 1.0; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "fitnessEffect(p1) { if (!isNULL(individual) & !isNULL(subpop)) return 1.0; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "fitnessEffect(p1) { if (!isNULL(individual) & !isNULL(subpop)) return 1.0; } 100 early() { stop(); }", __LINE__);
 	
 	// mutationEffect() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { return effect; } 100 early() { stop(); }", __LINE__);
@@ -2246,7 +2253,9 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return mut; } 100 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; homozygous; individual; subpop; return effect; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { if (!isNULL(mut) & !isNULL(homozygous) & !isNULL(effect) & !isNULL(individual) & !isNULL(subpop)) return effect; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "mutationEffect(m1) { if (!isNULL(mut) & !isNULL(homozygous) & !isNULL(effect) & !isNULL(individual) & !isNULL(subpop)) return effect; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "mutationEffect(m1) { if (!isNULL(mut) & !isNULL(homozygous) & !isNULL(effect) & !isNULL(individual) & !isNULL(subpop)) return effect; } 100 early() { stop(); }", __LINE__);
 	
 	// mateChoice() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice() { return weights; } 10 early() { stop(); }", __LINE__);
@@ -2278,7 +2287,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return individual.haploidGenome1; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { individual; subpop; sourceSubpop; return weights; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { if (!isNULL(individual) & !isNULL(subpop) & !isNULL(sourceSubpop) & !isNULL(weights)) return weights; } 10 early() { stop(); }", __LINE__);
 	
 	// modifyChild() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild() { return T; } 10 early() { stop(); }", __LINE__);
@@ -2308,7 +2317,9 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return child; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { child; parent1; isCloning; isSelfing; parent2; subpop; sourceSubpop; return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { if (!isNULL(child) & !isNULL(isCloning) & !isNULL(isSelfing) & !isNULL(parent1) & !isNULL(parent2) & !isNULL(subpop) & !isNULL(sourceSubpop)) return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "modifyChild(p1) { if (!isNULL(child) & !isNULL(isCloning) & !isNULL(isSelfing) & !isNULL(parent1) & !isNULL(parent2) & !isNULL(subpop) & isNULL(sourceSubpop)) return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "modifyChild(p1) { if (!isNULL(child) & !isNULL(isCloning) & !isNULL(isSelfing) & !isNULL(parent1) & !isNULL(parent2) & !isNULL(subpop) & !isNULL(sourceSubpop)) return T; } 10 early() { stop(); }", __LINE__);
 	
 	// recombination() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination() { return F; } 10 early() { stop(); }", __LINE__);
@@ -2340,7 +2351,9 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { subpop; return subpop; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { individual; haplosome1; haplosome2; subpop; breakpoints; return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { if (!isNULL(individual) & !isNULL(haplosome1) & !isNULL(haplosome2) & !isNULL(subpop) & !isNULL(breakpoints)) return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "recombination(p1) { if (!isNULL(individual) & !isNULL(haplosome1) & !isNULL(haplosome2) & !isNULL(subpop) & !isNULL(breakpoints)) return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "recombination(p1) { if (!isNULL(individual) & !isNULL(haplosome1) & !isNULL(haplosome2) & !isNULL(subpop) & !isNULL(breakpoints)) return T; } 10 early() { stop(); }", __LINE__);
 	
 	// interaction() callbacks
 	static std::string gen1_setup_p1p2p3_i1(gen1_setup_p1p2p3 + "initialize() { initializeInteractionType('i1', ''); } early() { i1.evaluate(sim.subpopulations); i1.strength(p1.individuals[0]); } ");
@@ -2379,11 +2392,9 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return exerter; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { distance; strength; receiver; exerter; return 1.0; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { if (!isNULL(distance) & !isNULL(strength) & !isNULL(exerter) & !isNULL(receiver)) return 1.0; } 10 early() { stop(); }", __LINE__);
 	
 	// reproduction() callbacks
-	static std::string gen1_setup_p1p2p3_nonWF(nonWF_prefix + gen1_setup_sex_p1 + "1 early() { sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } " + "late() { sim.subpopulations.individuals.fitnessScaling = 0.0; } ");
-	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } 10 early() { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction() { stop(); } 10 early() { ; }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop.addCloned(individual); } 10 early() { stop(); }", __LINE__);
@@ -2421,7 +2432,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return 'a'; } 10 early() { ; }", "must return void", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return subpop; } 10 early() { ; }", "must return void", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { individual; subpop; subpop.addCloned(individual); } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { if (!isNULL(individual) & !isNULL(subpop)) subpop.addCloned(individual); else foo; } 10 early() { stop(); }", __LINE__);
 	
 	// mutation() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { return T; } 100 early() { stop(); }", __LINE__);
@@ -2467,41 +2478,42 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 1.0; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { mut; haplosome; element; originalNuc; parent; subpop; return T; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { if (!isNULL(mut) & !isNULL(haplosome) & !isNULL(element) & !isNULL(originalNuc) & !isNULL(parent) & !isNULL(subpop)) return T; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "mutation(m1) { if (!isNULL(mut) & !isNULL(haplosome) & !isNULL(element) & !isNULL(originalNuc) & !isNULL(parent) & !isNULL(subpop)) return T; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "mutation(m1) { if (!isNULL(mut) & !isNULL(haplosome) & !isNULL(element) & !isNULL(originalNuc) & !isNULL(parent) & !isNULL(subpop)) return T; } 100 early() { stop(); }", __LINE__);
 	
 	// survival() callbacks
-	static std::string gen1_setup_p1p2p3_nonWF_clonal(gen1_setup_p1p2p3_nonWF + "reproduction() { subpop.addCloned(individual); } ");
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival() { return F; } 10 early() { if (p1.individualCount == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival() { return T; } 10 early() { if (p1.individualCount == 5120) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival() { return NULL; } 10 early() { stop(); }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival() { if (subpop == p1) return p2; return NULL; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival() { stop(); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return F; } 10 early() { if (p1.individualCount == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return T; } 10 early() { if (p1.individualCount == 5120) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return NULL; } 10 early() { stop(); }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return p2; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return F; } 10 early() { if (p1.individualCount == 0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return T; } 10 early() { if (p1.individualCount == 5120) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { return NULL; } 10 early() { stop(); }", __LINE__);
-	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { if (subpop == p1) return p2; return NULL; } 10 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival() { stop(); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return F; } 10 early() { if (p1.individualCount == 0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return T; } 10 early() { if (p1.individualCount == 5120) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return NULL; } 10 early() { stop(); }", __LINE__);
-	//SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return p2; } 10 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { stop(); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clone + "survival(p4) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clonal + "survival(p4) { stop(); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clone + "early() { s1.active = 0; } s1 survival(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clonal + "early() { s1.active = 0; } s1 survival(p1) { stop(); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { ; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return 1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return 1.0; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { ; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 1; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 1.0; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 'a'; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { subpop; ; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { subpop; return 1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { subpop; return 1.0; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; ; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 1; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 1.0; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { individual; subpop; fitness; draw; return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_cross + "survival(p1) { if (!isNULL(individual) & !isNULL(subpop) & !isNULL(surviving) & !isNULL(fitness) & !isNULL(draw)) return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF_clone + "survival(p1) { if (!isNULL(individual) & !isNULL(subpop) & !isNULL(surviving) & !isNULL(fitness) & !isNULL(draw)) return T; } 10 early() { stop(); }", __LINE__);
 	
 	// Test tick range expressions
 	SLiMAssertScriptStop("initialize() { defineConstant('N', 5); } 1 early() {} early() { if (community.tick == 1) stop(); }", __LINE__);

@@ -12,6 +12,7 @@ development head (in the master branch):
 	write "chromosomes" and "this_chromosome" keys out to provenance as well as metadata (#520)
 	fix an annoying autoindent cursor position bug that I suspect is a Qt 6 regression in QPlainTextEdit
 	add a define of TSK_TRACE_ERRORS in Xcode for slim and SLiMguiLegacy, in DEBUG only, for easier tskit debugging; break on _tsk_trace_error()
+	fix a regression that caused the sourceSubpop pseudo-parameter to be NULL in modifyChild() clabbacks in all cases; add tests, improve documentation (#522)
 
 
 version 5.0 (Eidos version 4.0):

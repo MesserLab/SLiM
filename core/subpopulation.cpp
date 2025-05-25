@@ -3956,7 +3956,7 @@ Individual *Subpopulation::GenerateIndividualSelfed(Individual *p_parent)
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -4144,7 +4144,7 @@ Individual *Subpopulation::GenerateIndividualCloned(Individual *p_parent)
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -4769,7 +4769,7 @@ bool Subpopulation::MungeIndividualCrossed(Individual *individual, slim_pedigree
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent1, p_parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent1_subpop, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -5125,7 +5125,7 @@ bool Subpopulation::MungeIndividualSelfed(Individual *individual, slim_pedigreei
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
@@ -5412,7 +5412,7 @@ bool Subpopulation::MungeIndividualCloned(Individual *individual, slim_pedigreei
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	if (modify_child_callbacks_)
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, *modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, p_parent, p_parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, *modify_child_callbacks_);
 		
 		// If the child was rejected, un-record it and dispose of it
 		if (!proposed_child_accepted)
