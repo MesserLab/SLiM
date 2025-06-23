@@ -438,6 +438,7 @@ public:
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_haplosomePedigreeID(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_chromosomeSubposition(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_isNullHaplosome(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 	

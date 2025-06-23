@@ -423,6 +423,10 @@ EidosValue_SP Haplosome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(chromosome, gSLiM_Chromosome_Class));
 		}
+		case gID_chromosomeSubposition:		// ACCELERATED
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(chromosome_subposition_));
+		}
 		case gID_haplosomePedigreeID:		// ACCELERATED
 		{
 			if (!individual_->subpopulation_->species_.PedigreesEnabledByUser())
@@ -499,6 +503,21 @@ EidosValue *Haplosome::GetProperty_Accelerated_haplosomePedigreeID(EidosObject *
 		Haplosome *value = (Haplosome *)(p_values[value_index]);
 		
 		int_result->set_int_no_check(value->haplosome_id_, value_index);
+	}
+	
+	return int_result;
+}
+
+EidosValue *Haplosome::GetProperty_Accelerated_chromosomeSubposition(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Haplosome *value = (Haplosome *)(p_values[value_index]);
+		int64_t subposition_value = (uint64_t)(value->chromosome_subposition_);
+		
+		int_result->set_int_no_check(subposition_value, value_index);
 	}
 	
 	return int_result;
@@ -2167,6 +2186,7 @@ const std::vector<EidosPropertySignature_CSP> *Haplosome_Class::Properties(void)
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeSubposition,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_chromosomeSubposition));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_haplosomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_haplosomePedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individual,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_isNullHaplosome,	true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Haplosome::GetProperty_Accelerated_isNullHaplosome));

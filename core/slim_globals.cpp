@@ -1225,6 +1225,7 @@ const std::string &gStr_geneConversionGCBias = EidosRegisteredString("geneConver
 const std::string &gStr_geneConversionNonCrossoverFraction = EidosRegisteredString("geneConversionNonCrossoverFraction", gID_geneConversionNonCrossoverFraction);
 const std::string &gStr_geneConversionMeanLength = EidosRegisteredString("geneConversionMeanLength", gID_geneConversionMeanLength);
 const std::string &gStr_geneConversionSimpleConversionFraction = EidosRegisteredString("geneConversionSimpleConversionFraction", gID_geneConversionSimpleConversionFraction);
+const std::string &gStr_chromosomeSubposition = EidosRegisteredString("chromosomeSubposition", gID_chromosomeSubposition);
 const std::string &gStr_isNullHaplosome = EidosRegisteredString("isNullHaplosome", gID_isNullHaplosome);
 const std::string &gStr_mutations = EidosRegisteredString("mutations", gID_mutations);
 const std::string &gStr_uniqueMutations = EidosRegisteredString("uniqueMutations", gID_uniqueMutations);
