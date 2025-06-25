@@ -2327,6 +2327,63 @@ EidosValue_SP Eidos_ExecuteFunction_setUnion(const std::vector<EidosValue_SP> &p
 	return result_SP;
 }
 
+//	(numeric)sign(numeric x)
+EidosValue_SP Eidos_ExecuteFunction_sign(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
+	int x_count = x_value->Count();
+	
+	if (x_type == EidosValueType::kValueInt)
+	{
+		const int64_t *int_data = x_value->IntData();
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_count);
+		int64_t *int_result_data = int_result->data_mutable();
+		result_SP = EidosValue_SP(int_result);
+		
+		// PARALLELIZE ME
+		for (int value_index = 0; value_index < x_count; ++value_index)
+		{
+			int64_t element = int_data[value_index];
+			
+			if (element > 0)
+				int_result_data[value_index] = 1;
+			else if (element < 0)
+				int_result_data[value_index] = -1;
+			else
+				int_result_data[value_index] = 0;
+		}
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data_mutable();
+		result_SP = EidosValue_SP(float_result);
+		
+		// PARALLELIZE ME
+		for (int value_index = 0; value_index < x_count; ++value_index)
+		{
+			double element = float_data[value_index];
+			
+			if (element > 0)
+				float_result_data[value_index] = 1.0;
+			else if (element < 0)
+				float_result_data[value_index] = -1.0;
+			else if (std::isnan(element))
+				float_result_data[value_index] = std::numeric_limits<double>::quiet_NaN();
+			else
+				float_result_data[value_index] = 0.0;
+		}
+	}
+	
+	result_SP->CopyDimensionsFromValue(x_value);
+	
+	return result_SP;
+}
+
 //	(float)sin(numeric x)
 EidosValue_SP Eidos_ExecuteFunction_sin(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {

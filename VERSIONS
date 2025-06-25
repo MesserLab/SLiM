@@ -14,6 +14,7 @@ development head (in the master branch):
 	add a define of TSK_TRACE_ERRORS in Xcode for slim and SLiMguiLegacy, in DEBUG only, for easier tskit debugging; break on _tsk_trace_error()
 	fix a regression that caused the sourceSubpop pseudo-parameter to be NULL in modifyChild() callbacks in all cases; add tests, improve documentation (#522)
 	add chromosomeSubposition property to Haplosome, providing whether the haplosome is index 0 or 1 within its individual, within the set of haplosomes for its associated chromosome
+	add a (numeric)sign(numeric x) function that returns the sign (-1, 0, 1) of each element
 
 
 version 5.0 (Eidos version 4.0):

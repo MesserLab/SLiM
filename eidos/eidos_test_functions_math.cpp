@@ -1055,6 +1055,17 @@ void _RunFunctionMathTests_setDifferenceSymmetricDifference(void)
 
 void _RunFunctionMathTests_s_through_z(void)
 {
+	// sign()
+	EidosAssertScriptSuccess_L("identical(sign(-10), -1);", true);
+	EidosAssertScriptSuccess_L("identical(sign(10), 1);", true);
+	EidosAssertScriptSuccess_L("identical(sign(0), 0);", true);
+	EidosAssertScriptSuccess_L("identical(sign(-10.0), -1.0);", true);
+	EidosAssertScriptSuccess_L("identical(sign(10.0), 1.0);", true);
+	EidosAssertScriptSuccess_L("identical(sign(0.0), 0.0);", true);
+	EidosAssertScriptSuccess_L("identical(sign(NAN), NAN);", true);
+	EidosAssertScriptSuccess_L("identical(sign(INF), 1.0);", true);
+	EidosAssertScriptSuccess_L("identical(sign(-INF), -1.0);", true);
+	
 	// sin()
 	EidosAssertScriptSuccess_L("abs(sin(0) - 0) < 0.000001;", true);
 	EidosAssertScriptSuccess_L("abs(sin(0.0) - 0) < 0.000001;", true);
