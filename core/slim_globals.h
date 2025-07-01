@@ -563,6 +563,12 @@ enum class SLiMCycleStage
 
 std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
 
+// This enumeration represents the type of a trait: multiplicative or additive.
+enum class TraitType : uint8_t {
+	kMultiplicative = 0,
+	kAdditive
+};
+
 // This enumeration represents the type of a chromosome.  Note that the sex of an individual cannot always be inferred
 // from chromosomal state, and the user is allowed to play games with null haplosomes; the chromosomes follow the sex
 // of the individual, the sex of the individual does not follow the chromosomes.  See the initializeChromosome() doc.
@@ -753,6 +759,7 @@ extern const std::string &gStr_initializeGenomicElement;
 extern const std::string &gStr_initializeGenomicElementType;
 extern const std::string &gStr_initializeMutationType;
 extern const std::string &gStr_initializeMutationTypeNuc;
+extern const std::string &gStr_initializeTrait;
 extern const std::string &gStr_initializeChromosome;
 extern const std::string &gStr_initializeGeneConversion;
 extern const std::string &gStr_initializeMutationRate;
@@ -764,6 +771,12 @@ extern const std::string &gStr_initializeSpecies;
 extern const std::string &gStr_initializeTreeSeq;
 extern const std::string &gStr_initializeSLiMModelType;
 extern const std::string &gStr_initializeInteractionType;
+
+//extern const std::string &gStr_type;		now gEidosStr_type
+extern const std::string &gStr_baselineOffset;
+extern const std::string &gStr_individualOffsetMean;
+extern const std::string &gStr_individualOffsetSD;
+extern const std::string &gStr_directFitnessEffect;
 
 extern const std::string &gStr_genomicElements;
 extern const std::string &gStr_lastPosition;
@@ -837,6 +850,7 @@ extern const std::string &gStr_allMutationTypes;
 extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_allSubpopulations;
+extern const std::string &gStr_allTraits;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomes;
 extern const std::string &gStr_genomicElementTypes;
@@ -862,6 +876,7 @@ extern const std::string &gStr_tagL1;
 extern const std::string &gStr_tagL2;
 extern const std::string &gStr_tagL3;
 extern const std::string &gStr_tagL4;
+extern const std::string &gStr_traits;
 extern const std::string &gStr_migrant;
 extern const std::string &gStr_fitnessScaling;
 extern const std::string &gStr_firstMaleIndex;
@@ -952,6 +967,8 @@ extern const std::string &gStr_addSubpopSplit;
 extern const std::string &gStr_chromosomesOfType;
 extern const std::string &gStr_chromosomesWithIDs;
 extern const std::string &gStr_chromosomesWithSymbols;
+extern const std::string &gStr_traitsWithIndices;
+extern const std::string &gStr_traitsWithNames;
 extern const std::string &gStr_estimatedLastTick;
 extern const std::string &gStr_deregisterScriptBlock;
 extern const std::string &gStr_genomicElementTypesWithIDs;
@@ -1119,6 +1136,7 @@ extern const std::string &gStr_points;
 extern const std::string &gStr_text;
 extern const std::string &gStr_title;
 
+extern const std::string &gStr_Trait;
 extern const std::string &gStr_Chromosome;
 //extern const std::string &gStr_Haplosome;			// in Eidos; see EidosValue_Object::EidosValue_Object()
 extern const std::string &gStr_GenomicElement;
@@ -1207,6 +1225,7 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeGenomicElementType,
 	gID_initializeMutationType,
 	gID_initializeMutationTypeNuc,
+	gID_initializeTrait,
 	gID_initializeChromosome,
 	gID_initializeGeneConversion,
 	gID_initializeMutationRate,
@@ -1218,6 +1237,11 @@ enum _SLiMGlobalStringID : int {
 	gID_initializeTreeSeq,
 	gID_initializeSLiMModelType,
 	gID_initializeInteractionType,
+	
+	gID_baselineOffset,
+	gID_individualOffsetMean,
+	gID_individualOffsetSD,
+	gID_directFitnessEffect,
 	
 	gID_genomicElements,
 	gID_lastPosition,
@@ -1291,8 +1315,10 @@ enum _SLiMGlobalStringID : int {
 	gID_allScriptBlocks,
 	gID_allSpecies,
 	gID_allSubpopulations,
+	gID_allTraits,
 	gID_chromosome,
 	gID_chromosomes,
+	gID_traits,
 	gID_genomicElementTypes,
 	gID_lifetimeReproductiveOutput,
 	gID_lifetimeReproductiveOutputM,
@@ -1405,6 +1431,8 @@ enum _SLiMGlobalStringID : int {
 	gID_chromosomesOfType,
 	gID_chromosomesWithIDs,
 	gID_chromosomesWithSymbols,
+	gID_traitsWithIndices,
+	gID_traitsWithNames,
 	gID_addSubpopSplit,
 	gID_estimatedLastTick,
 	gID_deregisterScriptBlock,
@@ -1573,6 +1601,7 @@ enum _SLiMGlobalStringID : int {
 	gID_text,
 	gID_title,
 	
+	gID_Trait,
 	gID_Chromosome,
 	gID_Haplosome,
 	gID_GenomicElement,

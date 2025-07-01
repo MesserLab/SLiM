@@ -90,7 +90,7 @@ nlohmann::json EidosObject::JSONRepresentation(void) const
 EidosValue_SP EidosObject::GetProperty(EidosGlobalStringID p_property_id)
 {
 	// This is the backstop, called by subclasses
-	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty for " << Class()->ClassNameForDisplay() << "): attempt to get a value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " was not handled by subclass." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << Class()->ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 }
 
 void EidosObject::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value)
@@ -470,7 +470,7 @@ bool EidosClass::IsSubclassOfClass(const EidosClass *p_class_object) const
 
 void EidosClass::CacheDispatchTables(void)
 {
-	// This can be called more than once during startup, because Eidos warms up and the SLiM warms up
+	// This can be called more than once during startup, because Eidos warms up and then SLiM warms up
 	if (dispatches_cached_)
 		return;
 	
@@ -506,7 +506,7 @@ void EidosClass::CacheDispatchTables(void)
 		method_signatures_dispatch_capacity_ = last_id + 1;
 		
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
-		if (method_signatures_dispatch_capacity_ > 512)
+		if (method_signatures_dispatch_capacity_ > 600)
 			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
@@ -708,6 +708,19 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
+
+EidosValue_SP EidosClass::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size) const
+{
+	// This is the backstop, called by subclasses
+	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
+}
+
+void EidosClass::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_value) const
+{
+	// This is the backstop, called by subclasses
+	EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
+}
+
 
 
 

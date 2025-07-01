@@ -35,6 +35,7 @@
 #include "slim_globals.h"
 #include "population.h"
 #include "chromosome.h"
+#include "trait.h"
 #include "eidos_value.h"
 #include "mutation_run.h"
 
@@ -77,6 +78,9 @@ enum class SLiMFileFormat
 // We have a defined maximum number of chromosomes that we resize to immediately, so the chromosome vector never reallocs
 // There would be an upper limit of 256 anyway because Mutation uses uint8_t to keep the index of its chromosome
 #define SLIM_MAX_CHROMOSOMES	256
+
+// We have a defined maximum number of traits; it is not clear that this is necessary, however.  FIXME MULTITRAIT
+#define SLIM_MAX_TRAITS	256
 
 
 // TREE SEQUENCE RECORDING
@@ -202,6 +206,21 @@ private:
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	
+	// for multiple traits, we now have a vector of pointers to Trait objects, as well as hash tables for quick
+	// lookup by name and by string ID; the latter is to make using trait names as properties on Individual fast
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<std::string, Trait *> TRAIT_NAME_HASH;
+	typedef robin_hood::unordered_flat_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<std::string, Trait *> TRAIT_NAME_HASH;
+	typedef std::unordered_map<EidosGlobalStringID, Trait *> TRAIT_STRID_HASH;
+#endif
+	
+	// Trait state
+	std::vector<Trait *> traits_;						// OWNED (retained); all our traits, in the order in which they were defined
+	TRAIT_NAME_HASH trait_from_name;					// NOT OWNED; get a trait from a trait name quickly
+	TRAIT_STRID_HASH trait_from_string_id;				// NOT OWNED; get a trait from a string ID quickly
+	
 	bool mutation_stack_policy_changed_ = true;										// when set, the stacking policy settings need to be checked for consistency
 	
 	// SEX ONLY: sex-related instance variables
@@ -272,6 +291,8 @@ private:
 	int num_ge_type_inits_;				// number of calls to initializeGenomicElementType()
 	int num_sex_inits_;					// SEX ONLY: number of calls to initializeSex()
 	int num_treeseq_inits_;				// number of calls to initializeTreeSeq()
+	int num_trait_inits_;				// number of calls to initializeTrait()
+	bool has_implicit_trait_;			// true if the model implicitly defines a trait, with no initializeTrait() call
 	int num_chromosome_inits_;			// number of calls to initializeChromosome()
 	bool has_implicit_chromosome_;		// true if the model implicitly defines a chromosome, with no initializeChromosome() call
 	bool has_currently_initializing_chromosome_ = false;
@@ -417,6 +438,13 @@ public:
 	
 	Chromosome *GetChromosomeFromEidosValue(EidosValue *chromosome_value);																// with a singleton EidosValue
 	void GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_index_t> &chromosome_indices, EidosValue *chromosomes_value);	// with a vector EidosValue
+	
+	// Trait configuration and access
+	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
+	Trait *TraitFromName(const std::string &p_name);
+	Trait *TraitFromStringID(EidosGlobalStringID p_string_id);
+	void MakeImplicitTrait(void);
+	void AddTrait(Trait *p_trait);													// takes over a retain count from the caller
 	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
@@ -607,11 +635,12 @@ public:
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
 	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteContextFunction_initializeChromosome(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -637,6 +666,8 @@ public:
 	EidosValue_SP ExecuteMethod_chromosomesOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_traitsWithIndices(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_traitsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_killIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

@@ -21,6 +21,7 @@
 #include "species.h"
 
 #include "community.h"
+#include "trait.h"
 #include "haplosome.h"
 #include "individual.h"
 #include "subpopulation.h"
@@ -591,6 +592,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_interpreter)
+	// We allocate space that depends on the number of traits; so either traits must be explicitly defined
+	// already, or we implicitly define a single trait (the default behavior mirroring older SLiM versions)
+	if ((num_trait_inits_ == 0) && !has_implicit_trait_)
+		MakeImplicitTrait();
+	
 	// Figure out whether the mutation type is nucleotide-based
 	bool nucleotide_based = (p_function_name == "initializeMutationTypeNuc");
 	
@@ -1567,6 +1573,124 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	(object<Trait>$)initializeTrait(string$ name, string$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+//
+EidosValue_SP Species::ExecuteContextFunction_initializeTrait(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_interpreter)
+	// An implicit trait is not allowed to have already been defined.
+	if (has_implicit_trait_)
+	{
+		if (num_mutation_type_inits_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot be called to explicitly create a trait, because a trait has already been implicitly defined.  This occurred because initializeMutationType() was called.  To fix this error, call initializeTrait() first and then call initializeMutationType(), or don't call initializeTrait() at all if you do not need an explicitly defined trait." << EidosTerminate();
+		
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): (internal error) initializeTrait() was called with an implicitly defined trait.  However, the cause of this cannot be diagnosed, indicating an internal logic error." << EidosTerminate();
+	}
+	
+	if (traits_.size() >= SLIM_MAX_TRAITS)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() cannot make a new trait because the maximum number of traits allowed per species (" << SLIM_MAX_TRAITS << ") has already been reached." << EidosTerminate();
+	
+	// Get arguments
+	EidosValue *name_value = p_arguments[0].get();
+	EidosValue *type_value = p_arguments[1].get();
+	EidosValue *baselineOffset_value = p_arguments[2].get();
+	EidosValue *individualOffsetMean_value = p_arguments[3].get();
+	EidosValue *individualOffsetSD_value = p_arguments[4].get();
+	EidosValue *directFitnessEffect_value = p_arguments[5].get();
+	
+	// name
+	std::string name = name_value->StringAtIndex_NOCAST(0, nullptr);
+	bool name_problem = (name.length() == 0);
+	const std::vector<EidosPropertySignature_CSP> *individual_properties = gSLiM_Individual_Class->Properties();
+	
+	for (Trait *trait : traits_)
+		if (trait->Name() == name)
+			name_problem = true;
+	
+	for (EidosPropertySignature_CSP property_signature : *individual_properties)
+		if (property_signature->property_name_ == name)
+			name_problem = true;
+	
+	if (name_problem)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires a non-zero-length name that is unique within the species and does not conflict with any Individual property name." << EidosTerminate();
+	
+	// type
+	std::string type_string = type_value->StringAtIndex_NOCAST(0, nullptr);
+	TraitType type;
+	
+	if ((type_string == "multiplicative") || (type_string == "mul"))
+		type = TraitType::kMultiplicative;
+	else if ((type_string == "additive") || (type_string == "add"))
+		type = TraitType::kAdditive;
+	else
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires type to be either 'multiplicative' (or 'mul'), or 'additive' ('add')." << EidosTerminate();
+	
+	// baselineOffset
+	double baselineOffset;
+	
+	if (baselineOffset_value->Type() == EidosValueType::kValueNULL)
+		baselineOffset = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+	else
+		baselineOffset = baselineOffset_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(baselineOffset))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires baselineOffset to be a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// check that the default distribution is used or not used, in its entirety
+	if (individualOffsetMean_value->Type() != individualOffsetSD_value->Type())
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires that both individual offset parameters be NULL (to use the default distribution) or be non-NULL (to specify a distribution)." << EidosTerminate();
+	
+	// individualOffsetMean
+	double individualOffsetMean;
+	
+	if (individualOffsetMean_value->Type() == EidosValueType::kValueNULL)
+		individualOffsetMean = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+	else
+		individualOffsetMean = individualOffsetMean_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(individualOffsetMean))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetMean to be a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// individualOffsetSD
+	double individualOffsetSD;
+	
+	if (individualOffsetSD_value->Type() == EidosValueType::kValueNULL)
+		individualOffsetSD = (type == TraitType::kMultiplicative) ? 1.0 : 0.0;
+	else
+		individualOffsetSD = individualOffsetSD_value->FloatAtIndex_NOCAST(0, nullptr);
+	
+	if (!std::isfinite(individualOffsetSD))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeTrait): initializeTrait() requires individualOffsetSD to be a finite value (not NAN or INF)." << EidosTerminate();
+	
+	// directFitnessEffect
+	bool directFitnessEffect = directFitnessEffect_value->LogicalAtIndex_NOCAST(0, nullptr);
+	
+	// Set up the new trait object; it gets a retain count on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	Trait *trait = new Trait(*this, name, type, baselineOffset, individualOffsetMean, individualOffsetSD, directFitnessEffect);
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(trait, gSLiM_Trait_Class));
+	
+	// Add it to our registry; AddTrait() takes its retain count
+	AddTrait(trait);
+	num_trait_inits_++;
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+		
+		output_stream << "initializeTrait(name='" << name << "', type='" << type_string << "'";
+		if (baselineOffset != 0.0)
+			output_stream << ", baselineOffset=" << baselineOffset << "";
+		if (individualOffsetMean != 0.0)
+			output_stream << ", individualOffsetMean=" << individualOffsetMean << "";
+		if (individualOffsetSD != 0.0)
+			output_stream << ", individualOffsetSD=" << individualOffsetSD << "";
+		output_stream << ", directFitnessEffect=" << (directFitnessEffect ? "T" : "F") << "";
+		output_stream << ");" << std::endl;
+	}
+	
+	return result_SP;
+}
+
 // TREE SEQUENCE RECORDING
 //	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T], [Ns$ timeUnit = NULL])
 //
@@ -1767,6 +1891,16 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			for (Chromosome *chromosome : chromosomes_)
 				vec->push_object_element_RR(chromosome);
+			
+			return result_SP;
+		}
+		case gID_traits:
+		{
+			EidosValue_Object *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (Trait *trait : traits_)
+				vec->push_object_element_RR(trait);
 			
 			return result_SP;
 		}
@@ -2007,6 +2141,8 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_chromosomesOfType:					return ExecuteMethod_chromosomesOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithIDs:				return ExecuteMethod_chromosomesWithIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_chromosomesWithSymbols:			return ExecuteMethod_chromosomesWithSymbols(p_method_id, p_arguments, p_interpreter);
+		case gID_traitsWithIndices:					return ExecuteMethod_traitsWithIndices(p_method_id, p_arguments, p_interpreter);
+		case gID_traitsWithNames:					return ExecuteMethod_traitsWithNames(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:		return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
 		case gID_killIndividuals:					return ExecuteMethod_killIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
@@ -2610,7 +2746,7 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithIDs(EidosGlobalStringID p_me
 	return EidosValue_SP(result);
 }
 
-//  *********************	– chromosomesWithSymbols(string symbols)
+//  *********************	– (object<Chromosome>)chromosomesWithSymbols(string symbols)
 EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -2632,6 +2768,61 @@ EidosValue_SP Species::ExecuteMethod_chromosomesWithSymbols(EidosGlobalStringID 
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_chromosomesWithSymbols): chromosomesWithSymbols() could not find a chromosome with the given symbol (" << symbol << ")." << EidosTerminate();
 		
 		result->push_object_element_no_check_RR(chromosome);
+	}
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– (object<Trait>)traitsWithIndices(integer indices)
+EidosValue_SP Species::ExecuteMethod_traitsWithIndices(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *indices_value = p_arguments[0].get();
+	int indices_count = indices_value->Count();
+	
+	if (indices_value == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class));
+	
+	const int64_t *indices_data = indices_value->IntData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class))->reserve(indices_count);	// reserve enough space for all results
+	
+	for (int indices_index = 0; indices_index < indices_count; indices_index++)
+	{
+		int64_t index = indices_data[indices_index];
+		
+		if ((index < 0) || ((size_t)index >= traits_.size()))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_traitsWithIndices): out-of-range index (" << index << ") in traitsWithIndices()." << EidosTerminate();
+		
+		Trait *trait = traits_[index];
+		
+		result->push_object_element_no_check_RR(trait);
+	}
+	
+	return EidosValue_SP(result);
+}
+
+//  *********************	– (object<Trait>)traitsWithNames(string names)
+EidosValue_SP Species::ExecuteMethod_traitsWithNames(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *names_value = p_arguments[0].get();
+	int names_count = names_value->Count();
+	
+	if (names_count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class));
+	
+	const std::string *names_data = names_value->StringData();
+	EidosValue_Object *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_Trait_Class))->reserve(names_count);	// reserve enough space for all results
+	
+	for (int names_index = 0; names_index < names_count; names_index++)
+	{
+		const std::string &name = names_data[names_index];
+		Trait *trait = TraitFromName(name);
+		
+		if (!trait)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_traitsWithNames): traitsWithNames() could not find a trait with the given name (" << name << ")." << EidosTerminate();
+		
+		result->push_object_element_no_check_RR(trait);
 	}
 	
 	return EidosValue_SP(result);
@@ -4276,6 +4467,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cycle,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_traits,					true,	kEidosValueMaskObject, gSLiM_Trait_Class)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -4325,6 +4517,8 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_skipTick, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetMutations, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddObject_OSN("exclude", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddIntObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL)->AddInt_OSN("position", gStaticEidosValueNULL)->AddIntString_OSN("nucleotide", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("id", gStaticEidosValueNULL)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton, "chromosome", gSLiM_Chromosome_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_substitutionsOfType, kEidosValueMaskObject, gSLiM_Substitution_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithIndices, kEidosValueMaskObject, gSLiM_Trait_Class))->AddInt("indices"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_traitsWithNames, kEidosValueMaskObject, gSLiM_Trait_Class))->AddString("names"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqCoalesced, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqSimplify, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_treeSeqRememberIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class)->AddLogical_OS("permanent", gStaticEidosValue_LogicalT));

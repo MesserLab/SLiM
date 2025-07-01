@@ -16,6 +16,23 @@ development head (in the master branch):
 	add chromosomeSubposition property to Haplosome, providing whether the haplosome is index 0 or 1 within its individual, within the set of haplosomes for its associated chromosome
 	add a (numeric)sign(numeric x) function that returns the sign (-1, 0, 1) of each element
 
+multitrait branch:
+	add new Eidos SLiM class, Trait
+	add (object<Trait>$)initializeTrait(s$ name, s$ type, [Nf$ baselineOffset = NULL], [Nf$ individualOffsetMean = NULL], [Nf$ individualOffsetSD = NULL], [l$ directFitnessEffect = F])
+	add Species property traits => (object<Trait>) to simply get all traits defined for a species
+	add Species methods – (object<Trait>)traitsWithIndices(integer indices) and – (object<Trait>)traitsWithNames(string names)
+	add Trait properties:
+		baselineOffset <-> (float$)
+		directFitnessEffect <-> (logical$)
+		index => (integer$)
+		individualOffsetMean <-> (float$)
+		individualOffsetSD <-> (float$)
+		name => (string$)
+		species => (object<Species>$)
+		tag <-> (integer$)
+		type => (string$)
+	add Community property allTraits => (object<Trait>)
+
 
 version 5.0 (Eidos version 4.0):
 	multi-chromosome transition:

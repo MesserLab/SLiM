@@ -2149,8 +2149,24 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 	size_t values_size = count_;
 	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
+	// BCH 6/29/2025: To enable the special trait properties of Individual, we now allow
+	// property access to occur without a signature, and thus without type checks.  This
+	// goes through a special vectorized method, not through GetProperty()!
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+	{
+		const EidosClass *target_class = class_;
+		
+		if (values_size == 0)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::GetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " does not specify an unambiguous value type, and thus cannot be accessed on a zero-length vector." << EidosTerminate(nullptr);
+		
+		EidosValue_SP result = target_class->GetProperty_NO_SIGNATURE(p_property_id, values_, values_size);
+		
+		// Access of singleton properties retains the matrix/array structure of the target
+		if (signature->value_mask_ & kEidosValueMaskSingleton)
+			result->CopyDimensionsFromValue(this);
+		
+		return result;
+	}
 	
 	if (values_size == 0)
 	{
@@ -2280,12 +2296,28 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 
 void EidosValue_Object::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token)
 {
-	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
+	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
-	// BCH 9 Sept. 2022: if the property does not exist, raise an error on the token for the property name.
-	// Note that other errors stemming from this call will refer to whatever the current error range is.
+	// BCH 6/29/2025: To enable the special trait properties of Individual, we now allow
+	// property access to occur without a signature, and thus without type checks.  This
+	// goes through a special vectorized method, not through SetProperty()!
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(p_property_token);
+	{
+		// We have to check the count ourselves; the signature does not do that for us
+		const EidosClass *target_class = class_;
+		size_t p_value_count = p_value.Count();
+		size_t values_size = count_;
+		
+		// we have a multiplex assignment of one value to (maybe) more than one element: x.foo = 10
+		// OR, we have a one-to-one assignment of values to elements: x.foo = 1:5 (where x has 5 elements)
+		if ((p_value_count == 1) || (p_value_count == values_size))
+		{
+			if (p_value_count)
+				target_class->SetProperty_NO_SIGNATURE(p_property_id, values_, values_size, p_value);
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object::SetPropertyOfElements): assignment to a property requires an rvalue that is a singleton (multiplex assignment) or that has a .size() matching the .size of the lvalue." << EidosTerminate(nullptr);
+	}
 	
 	signature->CheckAssignedValue(p_value);		// will raise if the type being assigned in is not an exact match
 	

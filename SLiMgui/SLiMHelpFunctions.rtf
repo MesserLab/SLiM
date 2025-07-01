@@ -1460,6 +1460,94 @@ The
 \f2\fs20 , SLiMgui will choose a default color.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (object<Trait>$)initializeTrait(string$\'a0name, string$\'a0type, [Nf$\'a0baselineOffset\'a0=\'a0NULL], [Nf$\'a0individualOffsetMean\'a0=\'a0NULL], [Nf$\'a0individualOffsetSD\'a0=\'a0NULL], [logical$\'a0directFitnessEffect\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calling this function, added in SLiM 5.1, configures a phenotypic trait in the species being initialized.  The new 
+\f1\fs18 Trait
+\f2\fs20  object is returned.  For more details on the way that traits work in SLiM, beyond what is given below, see the 
+\f1\fs18 Trait
+\f2\fs20  class documentation.\
+The 
+\f1\fs18 name
+\f2\fs20  parameter gives the name of the new trait.  This may be any (non-empty) string, except that it must not conflict with any other trait in any species in the model, it must not conflict with any global variable or constant, and it must not conflict with the name of any existing property on the 
+\f1\fs18 Individual
+\f2\fs20  class.  The second requirement is because, after the new trait is created, a new global constant is defined that represents the trait\'92s index within the species, for quick reference to the trait in various contexts.  The third requirement is because, after the new trait is created, a new property is added to individuals of the species, with the same name as the new trait, that allows the trait values of individuals to be accessed directly as properties.  For example, if the new trait is named 
+\f1\fs18 myTrait
+\f2\fs20 , a new global constant 
+\f1\fs18 myTrait
+\f2\fs20  would be defined as 
+\f1\fs18 myTrait
+\f2\fs20 \'92s index in the species, and access to an individual\'92s trait value would be possible through the property 
+\f1\fs18 individual.myTrait
+\f2\fs20 .\
+The 
+\f1\fs18 type
+\f2\fs20  parameter gives the type of trait to be created, as a 
+\f1\fs18 string
+\f2\fs20  value.  This should be either 
+\f1\fs18 "multiplicative"
+\f2\fs20 , if the trait value should be the result of multiplying effects together (as in a typical population-genetics model), or 
+\f1\fs18 "additive"
+\f2\fs20 , if the trait value should be the result of adding effects together (as in a typical quantitative-genetics model).\
+The 
+\f1\fs18 baselineOffset
+\f2\fs20  parameter sets the baseline offset for the trait, incorporated (multiplicatively or additively) to the trait value of every individual.  If 
+\f1\fs18 NULL
+\f2\fs20  is passed, the default baseline offset is 
+\f1\fs18 1.0
+\f2\fs20  for multiplicative traits, 
+\f1\fs18 0.0
+\f2\fs20  for additive traits, such that the baseline offset has no effect upon the trait value.\
+The 
+\f1\fs18 individualOffsetMean
+\f2\fs20  and 
+\f1\fs18 individualOffsetSD
+\f2\fs20  parameters together define a normal distribution from which individual offsets are drawn to provide what is often called \'93environmental variance\'94 or \'93developmental noise\'94.  As for the baseline offset, the individual offset mean defaults (if 
+\f1\fs18 NULL
+\f2\fs20  is passed) to 
+\f1\fs18 1.0
+\f2\fs20  for multiplicative traits, 
+\f1\fs18 0.0
+\f2\fs20  for additive traits, to produce no effect.  The default standard deviation for the individual offset, if 
+\f1\fs18 NULL
+\f2\fs20  is passed, is 
+\f1\fs18 0.0
+\f2\fs20 .  If 
+\f1\fs18 NULL
+\f2\fs20  is passed for one of these parameters, it must be passed for both; either the default distribution is used, or it is not.\
+Finally, the 
+\f1\fs18 directFitnessEffect
+\f2\fs20  parameter specifies whether the final calculated trait value for an individual should be used directly as a fitness effect for that individual.  This will typically be 
+\f1\fs18 T
+\f2\fs20  (the default) in population-genetics models where the product of all mutation effects (
+\f1\fs18 1+s
+\f2\fs20  or 
+\f1\fs18 1+hs
+\f2\fs20  for each mutation) is used as the fitness of the individual, but will typically be 
+\f1\fs18 F
+\f2\fs20  in quantitative-genetics models where the sum of all mutation effects is a trait value that is then translated into a fitness effect through a fitness function.  It would also be 
+\f1\fs18 F
+\f2\fs20  for any trait that affects an aspect of the individual other than fitness \'96 dispersal distance, for example, or aggression.\
+The use of the 
+\f1\fs18 initializeTrait()
+\f2\fs20  function is optional.  If it is not called, a new 
+\f1\fs18 Trait
+\f2\fs20  object will be created automatically, with a name generated from the species name plus a 
+\f1\fs18 "T"
+\f2\fs20 ; typically, then, the name is 
+\f1\fs18 simT
+\f2\fs20 , except in multispecies models.  This default trait is configured to be multiplicative, with default values for the other parameters except 
+\f1\fs18 directFitnessEffect
+\f2\fs20 , which is 
+\f1\fs18 T
+\f2\fs20  for the default trait.  This provides the behavior of SLiM prior to the introduction of multiple traits in SLiM 5.1.  The creation of the default trait occurs as a side effect of the first call to 
+\f1\fs18 initializeMutationType()
+\f2\fs20 , if 
+\f1\fs18 initializeTrait()
+\f2\fs20  has not already been called.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F], [logical$\'a0\kerning1\expnd0\expndtw0 retainCoalescentOnly\expnd0\expndtw0\kerning0
 \'a0=\'a0T]\kerning1\expnd0\expndtw0 , [Ns$\'a0timeUnit\'a0=\'a0NULL]\expnd0\expndtw0\kerning0

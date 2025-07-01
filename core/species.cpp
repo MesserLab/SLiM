@@ -514,6 +514,63 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 	}
 }
 
+Trait *Species::TraitFromName(const std::string &p_name)
+{
+	auto iter = trait_from_name.find(p_name);
+	
+	if (iter == trait_from_name.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+Trait *Species::TraitFromStringID(EidosGlobalStringID p_string_id)
+{
+	// This is used for (hopefully) very fast lookup of a trait based on a string id in Eidos,
+	// so that the user can do "individual.trait" and get a trait value like a property access
+	auto iter = trait_from_string_id.find(p_string_id);
+	
+	if (iter == trait_from_string_id.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+void Species::MakeImplicitTrait(void)
+{
+	if (has_implicit_trait_)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) implicit trait already exists." << EidosTerminate();
+	if (num_trait_inits_ != 0)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) explicit trait already exists." << EidosTerminate();
+	
+	// Create an implicit Trait object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	// Mirroring SLiM versions prior to multi-trait support, the implicit trait is a multiplicative trait with
+	// no baselines (1.0, since it is multiplicative) and a direct effect from phenotype on fitness.
+	std::string trait_name = name_ + "T";
+	Trait *trait = new Trait(*this, trait_name, TraitType::kMultiplicative, 1.0, 1.0, 0.0, true);
+	
+	// Add it to our registry; AddTrait() takes its retain count
+	AddTrait(trait);
+	has_implicit_trait_ = true;
+}
+
+void Species::AddTrait(Trait *p_trait)
+{
+	if (p_trait->Index() != -1)
+		EIDOS_TERMINATION << "ERROR (Species::AddTrait): (internal error) attempt to add a trait with index != -1." << EidosTerminate();
+	
+	std::string name = p_trait->Name();
+	EidosGlobalStringID name_string_id = EidosStringRegistry::GlobalStringIDForString(name);
+	
+	// this is the main registry, and owns the retain count on every trait; it takes the caller's retain here
+	p_trait->SetIndex(traits_.size());
+	traits_.push_back(p_trait);
+	
+	// these are secondary indices that do not keep a retain on the traits
+	trait_from_name.emplace(name, p_trait);
+	trait_from_string_id.emplace(name_string_id, p_trait);
+}
+
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
 void GetInputLine(std::istream &p_input_file, std::string &p_line)
@@ -2448,12 +2505,14 @@ std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick,
 void Species::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
+	// FIXME: doing this here is error-prone; the species object should zero-initialize all of this stuff instead!
 	num_species_inits_ = 0;
 	num_slimoptions_inits_ = 0;
 	num_mutation_type_inits_ = 0;
 	num_ge_type_inits_ = 0;
 	num_sex_inits_ = 0;
 	num_treeseq_inits_ = 0;
+	num_trait_inits_ = 0;
 	num_chromosome_inits_ = 0;
 	
 	num_mutrate_inits_ = 0;
@@ -2463,6 +2522,7 @@ void Species::RunInitializeCallbacks(void)
 	num_ancseq_inits_ = 0;
 	num_hotmap_inits_ = 0;
 	
+	has_implicit_trait_ = false;
 	has_implicit_chromosome_ = false;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set

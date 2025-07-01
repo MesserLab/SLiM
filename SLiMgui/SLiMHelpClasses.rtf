@@ -942,6 +942,14 @@ The recombination intervals are normally a constant in simulations, so be sure y
 \f4\fs20  objects defined in the simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 allTraits => (object<Trait>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 All of the 
+\f3\fs18 Trait
+\f4\fs20  objects defined in the simulation (in species declaration order, primarily, and in order of their index within a species, secondarily).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 cycleStage => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1795,6 +1803,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1905,6 +1914,7 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -2562,9 +2572,8 @@ The
 \f4\fs20  subfield (or a generation of origin 
 \f3\fs18 GO
 \f4\fs20  field, which was the SLiM convention before SLiM 4), the current tick will be used.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs18 \cf2 REF
+\f3\fs18 REF
 \f4\fs20  and 
 \f3\fs18 ALT
 \f4\fs20  must always be comprised of simple nucleotides (
@@ -5409,7 +5418,8 @@ See
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()
@@ -8394,6 +8404,14 @@ The spatial periodicity of the simulation for this species, as specified in
 \f3\fs18 Dictionary
 \f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to the simulation.
 \f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 traits => (object<Trait>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 Trait
+\f4\fs20  objects defined in the species.  These are guaranteed to be in sorted order by their index (i.e., by the order in which they were defined).\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.16.2  
@@ -9312,7 +9330,8 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -9451,7 +9470,8 @@ Beginning with SLiM 5.0, the
 \f4\fs20 , etc.) will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.  Note that fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 In SLiM 2.3 and later when using the WF model, calling 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  from any context other than a 
@@ -9470,7 +9490,8 @@ In SLiM 3.0 when using the nonWF model, calling
 \f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the tick cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
-\kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
 \f3\fs18 community.tick
 \f4\fs20  and 
 \f3\fs18 sim.cycle
@@ -9491,12 +9512,14 @@ Any changes made to the structure of the species (mutation types, genomic elemen
 \f3\fs18 tag
 \f4\fs20  values of individuals; if a given option is enabled and the corresponding information is saved, then that information will be restored, otherwise it will not be.\
 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space.  If spatial positions are present in the output file but the species has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the species has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -10112,6 +10135,34 @@ This method is shorthand for getting the
 \f3\fs18 mutType
 \f4\fs20 , out of all of the substitutions that are currently present in the species.  This method is provided for speed; it is much faster than the corresponding Eidos code.  See also 
 \f3\fs18 mutationsOfType()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Trait>)traitsWithIndices(integer\'a0indices)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Trait
+\f4\fs20  objects corresponding to the trait indices supplied in 
+\f3\fs18 indices
+\f4\fs20 , in the same order.  If any index in 
+\f3\fs18 indices
+\f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
+\f3\fs18 traitsWithNames()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Trait>)traitsWithNames(string\'a0names)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of 
+\f3\fs18 Trait
+\f4\fs20  objects corresponding to the trait names supplied in 
+\f3\fs18 names
+\f4\fs20 , in the same order.  If any name in 
+\f3\fs18 names
+\f4\fs20  does not correspond to a trait in the target species, an error will be raised.  See also 
+\f3\fs18 traitsWithIndices()
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -13349,6 +13400,106 @@ nucleotide <\'96> (string$)\
 
 \f1\i\fs22 \cf0 5.18.2  
 \f2\fs18 Substitution
+\f1\fs22  methods\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f5\i0 \cf0 \
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b \cf0 5.19  Class Trait\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf0 5.19.1  
+\f2\fs18 Trait
+\f1\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 baselineOffset <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The baseline offset for the trait.  This value is combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This provides the baseline trait value, from which individuals will deviate due to mutations and other effects on the trait that they possess.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 directFitnessEffect <\'96> (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A 
+\f3\fs18 logical
+\f4\fs20  flag indicating whether the trait has a direct fitness effect or not.  If 
+\f3\fs18 T
+\f4\fs20 , the trait value for an individual is used as a fitness effect for that individual, implying that the trait should be considered a fitness component.  If 
+\f3\fs18 F
+\f4\fs20 , the trait value is not used directly as a fitness effect; in script, one might compute a fitness effect from the trait value (using a \'93fitness function\'94), or the trait might have other effects that are not obviously related to fitness at all.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 index => (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The index of the trait in the vector of traits kept by the species.  The first trait defined in a species is at index 
+\f3\fs18 0
+\f4\fs20 , and subsequent traits count upwards from there.  The index of a trait is often used to refer to the trait, so it is important.  A global constant is defined for every trait, using each trait\'92s name, that provides the index of each trait, so this property will probably rarely be needed.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualOffsetMean <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The mean for the normal distribution from which individual offsets are drawn.  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f3\fs18 individualOffsetSD
+\f4\fs20  property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 individualOffsetSD <\'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The standard deviation for the normal distribution from which individual offsets are drawn.  Individual offsets are combined \'96 multiplicatively for multiplicative traits, additively for additive traits \'96 with all other effects that influence the trait.  This typically provides random variance in trait values among genetically identical individuals that is often termed \'93environmental variance\'94 or \'93developmental noise\'94.  See also the 
+\f3\fs18 individualOffsetMean
+\f4\fs20  property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 name => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The name of the trait, as given to 
+\f3\fs18 initializeTrait()
+\f4\fs20 .  The default trait that is provided if no trait is explicitly defined has a name that is the name of the species plus a 
+\f3\fs18 T
+\f4\fs20 ; so for a single-species model, the default trait will generally be named 
+\f3\fs18 simT
+\f4\fs20 .  The name of a trait can sometimes be used to refer to the trait, and is visible in SLiMgui.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 species => (object<Species>$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The species to which the target object belongs.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
+\f3\fs18 integer
+\f4\fs20  value.  The value of 
+\f3\fs18 tag
+\f4\fs20  is initially undefined, and it is an error to try to read it; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f3\fs18 tag
+\f4\fs20  is not used by SLiM; it is free for you to use.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 type => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The type of the trait, as a 
+\f3\fs18 string
+\f4\fs20 .  In the present design, this will be either 
+\f3\fs18 "multiplicative"
+\f4\fs20  or 
+\f3\fs18 "additive"
+\f4\fs20 .\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf0 5.19.2  
+\f2\fs18 Trait
 \f1\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 

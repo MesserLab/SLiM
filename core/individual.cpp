@@ -5159,6 +5159,45 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	return gStaticEidosValueVOID;
 }			
 
+// In these methods we implement a special behavior: you can do individual.traitName to
+// access the value for a trait.  We do a dynamic lookup from the trait name here.
+
+EidosValue_SP Individual_Class::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const
+{
+	const Individual *const *individuals = (const Individual *const *)p_targets;
+	
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
+	Trait *trait = species->TraitFromStringID(p_property_id);
+	
+	if (trait)
+	{
+		// We got a hit, but don't know what to do with it for now
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+	}
+	
+	return super::GetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size);
+}
+
+void Individual_Class::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const
+{
+	const Individual *const *individuals = (const Individual *const *)p_targets;
+	
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
+	Trait *trait = species->TraitFromStringID(p_property_id);
+	
+	if (trait)
+	{
+		// Eidos did not type-check for us, because there is no signature!  We have to check it ourselves.
+		if (p_value.Type() != EidosValueType::kValueFloat)
+			EIDOS_TERMINATION << "ERROR (Individual_Class::SetProperty_NO_SIGNATURE): assigned value must be of type float for trait-value property " << trait->Name() << "." << EidosTerminate();
+		
+		// We got a hit, but don't know what to do with it for now
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+	}
+	
+	return super::SetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size, p_value);
+}
+
 
 
 

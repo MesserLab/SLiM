@@ -20,6 +20,7 @@
 
 #include "slim_globals.h"
 
+#include "trait.h"
 #include "chromosome.h"
 #include "individual.h"
 #include "interaction_type.h"
@@ -76,6 +77,7 @@ void SLiM_WarmUp(void)
 		// Create the global class objects for all SLiM Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,
 		// and so that the global string names for the classes have already been set up by C++'s static initialization
+		gSLiM_Trait_Class =					new Trait_Class(				gStr_Trait,					gEidosDictionaryRetained_Class);
 		gSLiM_Chromosome_Class =			new Chromosome_Class(			gStr_Chromosome,			gEidosDictionaryRetained_Class);
 		gSLiM_Individual_Class =			new Individual_Class(			gEidosStr_Individual,		gEidosDictionaryUnretained_Class);
 		gSLiM_InteractionType_Class =		new InteractionType_Class(		gStr_InteractionType,		gEidosDictionaryUnretained_Class);
@@ -1178,6 +1180,7 @@ const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initia
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
 const std::string &gStr_initializeMutationType = EidosRegisteredString("initializeMutationType", gID_initializeMutationType);
 const std::string &gStr_initializeMutationTypeNuc = EidosRegisteredString("initializeMutationTypeNuc", gID_initializeMutationTypeNuc);
+const std::string &gStr_initializeTrait = EidosRegisteredString("initializeTrait", gID_initializeTrait);
 const std::string &gStr_initializeChromosome = EidosRegisteredString("initializeChromosome", gID_initializeChromosome);
 const std::string &gStr_initializeGeneConversion = EidosRegisteredString("initializeGeneConversion", gID_initializeGeneConversion);
 const std::string &gStr_initializeMutationRate = EidosRegisteredString("initializeMutationRate", gID_initializeMutationRate);
@@ -1191,6 +1194,10 @@ const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initial
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
 
 // mostly property names
+const std::string &gStr_baselineOffset = EidosRegisteredString("baselineOffset", gID_baselineOffset);
+const std::string &gStr_individualOffsetMean = EidosRegisteredString("individualOffsetMean", gID_individualOffsetMean);
+const std::string &gStr_individualOffsetSD = EidosRegisteredString("individualOffsetSD", gID_individualOffsetSD);
+const std::string &gStr_directFitnessEffect = EidosRegisteredString("directFitnessEffect", gID_directFitnessEffect);
 const std::string &gStr_genomicElements = EidosRegisteredString("genomicElements", gID_genomicElements);
 const std::string &gStr_lastPosition = EidosRegisteredString("lastPosition", gID_lastPosition);
 const std::string &gStr_hotspotEndPositions = EidosRegisteredString("hotspotEndPositions", gID_hotspotEndPositions);
@@ -1263,8 +1270,10 @@ const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTyp
 const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
+const std::string &gStr_allTraits = EidosRegisteredString("allTraits", gID_allTraits);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomes = EidosRegisteredString("chromosomes", gID_chromosomes);
+const std::string &gStr_traits = EidosRegisteredString("traits", gID_traits);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1379,6 +1388,8 @@ const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit",
 const std::string &gStr_chromosomesOfType = EidosRegisteredString("chromosomesOfType", gID_chromosomesOfType);
 const std::string &gStr_chromosomesWithIDs = EidosRegisteredString("chromosomesWithIDs", gID_chromosomesWithIDs);
 const std::string &gStr_chromosomesWithSymbols = EidosRegisteredString("chromosomesWithSymbols", gID_chromosomesWithSymbols);
+const std::string &gStr_traitsWithIndices = EidosRegisteredString("traitsWithIndices", gID_traitsWithIndices);
+const std::string &gStr_traitsWithNames = EidosRegisteredString("traitsWithNames", gID_traitsWithNames);
 const std::string &gStr_estimatedLastTick = EidosRegisteredString("estimatedLastTick", gID_estimatedLastTick);
 const std::string &gStr_deregisterScriptBlock = EidosRegisteredString("deregisterScriptBlock", gID_deregisterScriptBlock);
 const std::string &gStr_genomicElementTypesWithIDs = EidosRegisteredString("genomicElementTypesWithIDs", gID_genomicElementTypesWithIDs);
@@ -1550,6 +1561,7 @@ const std::string &gStr_text = EidosRegisteredString("text", gID_text);
 const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 
 // mostly SLiM element types
+const std::string &gStr_Trait = EidosRegisteredString("Trait", gID_Trait);
 const std::string &gStr_Chromosome = EidosRegisteredString("Chromosome", gID_Chromosome);
 //const std::string &gStr_Haplosome = EidosRegisteredString("Haplosome", gID_Haplosome);				// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_GenomicElement = EidosRegisteredString("GenomicElement", gID_GenomicElement);
