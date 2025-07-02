@@ -955,6 +955,7 @@ extern const std::string &gStr_setGenomicElementType;
 extern const std::string &gStr_setMutationFractions;
 extern const std::string &gStr_setMutationMatrix;
 extern const std::string &gStr_setSelectionCoeff;
+extern const std::string &gStr_setDominanceCoeff;
 extern const std::string &gStr_setMutationType;
 extern const std::string &gStr_drawSelectionCoefficient;
 extern const std::string &gStr_setDistribution;
@@ -1420,6 +1421,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setMutationFractions,
 	gID_setMutationMatrix,
 	gID_setSelectionCoeff,
+	gID_setDominanceCoeff,
 	gID_setMutationType,
 	gID_drawSelectionCoefficient,
 	gID_setDistribution,

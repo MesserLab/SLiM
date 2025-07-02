@@ -76,7 +76,8 @@ public:
 	
 	MutationType *mutation_type_ptr_;					// mutation type identifier
 	const slim_position_t position_;					// position on the chromosome
-	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
+	slim_selcoeff_t selection_coeff_;					// selection coefficient (s)
+	slim_selcoeff_t dominance_coeff_;					// dominance coefficient (h), inherited from MutationType by default
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
 	const slim_tick_t origin_tick_;						// tick in which the mutation arose
 	slim_chromosome_index_t chromosome_index_;			// the (uint8_t) index of this mutation's chromosome
@@ -98,7 +99,6 @@ public:
 	slim_selcoeff_t cached_one_plus_sel_;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
 	slim_selcoeff_t cached_one_plus_dom_sel_;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
 	slim_selcoeff_t cached_one_plus_hemizygousdom_sel_;	// a cached value for (1 + hemizygous_dominance_coeff_ * selection_coeff_), clamped to 0.0 minimum
-	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	
 #if DEBUG
 	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
@@ -107,8 +107,8 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
-	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	Mutation(MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_selcoeff_t p_selection_coeff, slim_selcoeff_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_selcoeff_t p_selection_coeff, slim_selcoeff_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
@@ -134,6 +134,7 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setDominanceCoeff(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setMutationType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
@@ -147,6 +148,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_selectionCoeff(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size);
 	
 	// Accelerated property writing; see class EidosObject for comments on this mechanism

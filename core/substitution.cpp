@@ -35,15 +35,15 @@
 #pragma mark -
 
 Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
-	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), dominance_coeff_(p_mutation.dominance_coeff_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), chromosome_index_(p_mutation.chromosome_index_), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 	AddKeysAndValuesFrom(&p_mutation);
 	// No call to ContentsChanged() here; we know we use Dictionary not DataFrame, and Mutation already vetted the dictionary
 }
 
-Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_chromosome_index_t p_chromosome_index, slim_position_t p_position, slim_selcoeff_t p_selection_coeff, slim_selcoeff_t p_dominance_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), chromosome_index_(p_chromosome_index), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
 {
 }
 
@@ -64,7 +64,7 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	}
 	
 	// and then the remainder of the output line
-	p_out << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	p_out << " " << selection_coeff_ << " " << dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
 	
 	// output a nucleotide if available
 	if (mutation_type_ptr_->nucleotide_based_)
@@ -92,7 +92,7 @@ void Substitution::PrintForSLiMOutput_Tag(std::ostream &p_out) const
 	}
 	
 	// and then the remainder of the output line
-	p_out << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
+	p_out << " " << selection_coeff_ << " " << dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
 	
 	// output a nucleotide if available
 	if (mutation_type_ptr_->nucleotide_based_)
@@ -147,6 +147,8 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(position_));
 		case gID_selectionCoeff:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(selection_coeff_));
+		case gID_dominanceCoeff:		// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
 		case gID_originTick:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(origin_tick_));
 		case gID_fixationTick:		// ACCELERATED
@@ -346,6 +348,20 @@ EidosValue *Substitution::GetProperty_Accelerated_selectionCoeff(EidosObject **p
 	return float_result;
 }
 
+EidosValue *Substitution::GetProperty_Accelerated_dominanceCoeff(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Substitution *value = (Substitution *)(p_values[value_index]);
+		
+		float_result->set_float_no_check(value->dominance_coeff_, value_index);
+	}
+	
+	return float_result;
+}
+
 EidosValue *Substitution::GetProperty_Accelerated_mutationType(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Object *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object(gSLiM_MutationType_Class))->resize_no_initialize(p_values_size);
@@ -447,6 +463,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,			true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_selectionCoeff));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeff,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_dominanceCoeff));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));

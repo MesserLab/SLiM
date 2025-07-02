@@ -1376,6 +1376,7 @@ const std::string &gStr_setGenomicElementType = EidosRegisteredString("setGenomi
 const std::string &gStr_setMutationFractions = EidosRegisteredString("setMutationFractions", gID_setMutationFractions);
 const std::string &gStr_setMutationMatrix = EidosRegisteredString("setMutationMatrix", gID_setMutationMatrix);
 const std::string &gStr_setSelectionCoeff = EidosRegisteredString("setSelectionCoeff", gID_setSelectionCoeff);
+const std::string &gStr_setDominanceCoeff = EidosRegisteredString("setDominanceCoeff", gID_setDominanceCoeff);
 const std::string &gStr_setMutationType = EidosRegisteredString("setMutationType", gID_setMutationType);
 const std::string &gStr_drawSelectionCoefficient = EidosRegisteredString("drawSelectionCoefficient", gID_drawSelectionCoefficient);
 const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution", gID_setDistribution);

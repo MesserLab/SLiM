@@ -32,6 +32,9 @@ multitrait branch:
 		tag <-> (integer$)
 		type => (string$)
 	add Community property allTraits => (object<Trait>)
+	add a dominanceCoeff property to Mutation, with a value inherited from MutationType's property (which is now just the default value)
+	add dominanceCoeff properties to Mutation and Substitution
+	add a setDominanceCoeff() method to Mutation, yay!
 
 
 version 5.0 (Eidos version 4.0):

@@ -709,14 +709,18 @@ EidosValue_SP EidosClass::ExecuteMethod_size_length(EidosGlobalStringID p_method
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(p_target->Count()));
 }
 
-EidosValue_SP EidosClass::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size) const
+EidosValue_SP EidosClass::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const
 {
+#pragma unused (p_property_id, p_targets, p_targets_size)
+    
 	// This is the backstop, called by subclasses
 	EIDOS_TERMINATION << "ERROR (EidosObject::GetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 }
 
-void EidosClass::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_values, size_t p_values_size, const EidosValue &p_value) const
+void EidosClass::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const
 {
+#pragma unused (p_property_id, p_targets, p_targets_size, p_value)
+    
 	// This is the backstop, called by subclasses
 	EIDOS_TERMINATION << "ERROR (EidosObject::SetProperty_NO_SIGNATURE): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ClassNameForDisplay() << "." << EidosTerminate(nullptr);
 }

@@ -50,7 +50,7 @@ void Polymorphism::Print_ID_Tag(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->mutation_type_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
+	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
 	p_out << double_buf;
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
@@ -85,7 +85,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	
 	p_out << " ";
 	
-	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->mutation_type_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
+	snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
 	p_out << double_buf;
 	
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
@@ -116,7 +116,7 @@ void Polymorphism::Print_NoID_Tag(std::ostream &p_out) const
 	}
 	
 	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
@@ -152,7 +152,7 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 	}
 	
 	// and then the remainder of the output line
-	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
+	p_out << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)

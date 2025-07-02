@@ -61,7 +61,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), hemizygous_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(std::move(p_dfe_parameters)), dfe_strings_(std::move(p_dfe_strings)), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), default_dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), hemizygous_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(std::move(p_dfe_parameters)), dfe_strings_(std::move(p_dfe_strings)), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -377,7 +377,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 // This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const MutationType &p_mutation_type)
 {
-	p_outstream << "MutationType{dominance_coeff_ " << p_mutation_type.dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ <";
+	p_outstream << "MutationType{default_dominance_coeff_ " << p_mutation_type.default_dominance_coeff_ << ", dfe_type_ '" << p_mutation_type.dfe_type_ << "', dfe_parameters_ <";
 	
 	if (p_mutation_type.dfe_parameters_.size() > 0)
 	{
@@ -491,7 +491,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_convertToSubstitution:
 			return (convert_to_substitution_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_dominanceCoeff:			// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(dominance_coeff_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(default_dominance_coeff_));
 		case gID_hemizygousDominanceCoeff:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(hemizygous_dominance_coeff_));
 		case gID_mutationStackGroup:
@@ -580,7 +580,7 @@ EidosValue *MutationType::GetProperty_Accelerated_dominanceCoeff(EidosObject **p
 	{
 		MutationType *value = (MutationType *)(p_values[value_index]);
 		
-		float_result->set_float_no_check(value->dominance_coeff_, value_index);
+		float_result->set_float_no_check(value->default_dominance_coeff_, value_index);
 	}
 	
 	return float_result;
@@ -619,11 +619,13 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 		{
 			double value = p_value.FloatAtIndex_NOCAST(0, nullptr);
 			
-			dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
+			default_dominance_coeff_ = static_cast<slim_selcoeff_t>(value);		// intentionally no bounds check
 			
-			// Changing the dominance coefficient means that the cached fitness effects of all mutations using this type
-			// become invalid.  We set a flag here to indicate that values that depend on us need to be recached.
-			species_.any_dominance_coeff_changed_ = true;
+			// BCH 7/2/2025: Changing the default dominance coefficient no longer means that the cached fitness
+			// effects of all mutations using this type become invalid; it is now just the *default* coefficient,
+			// and changing it does not change the state of mutations that have already derived from it.  We do
+			// still want to let the community know that a mutation type has changed, though.
+			//species_.any_dominance_coeff_changed_ = true;
 			species_.community_.mutation_types_changed_ = true;
 			
 			return;

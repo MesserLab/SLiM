@@ -1262,10 +1262,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 			
 			iss >> sub;
-			double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
-			iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
-			double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			iss >> sub;
+			slim_selcoeff_t dominance_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
 			iss >> sub;
 			slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
@@ -1293,8 +1293,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -1306,7 +1305,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			mutations.emplace(polymorphism_id, new_mut_index);
@@ -2052,8 +2051,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -2065,7 +2063,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// read the tag value, if present
 			if (has_object_tags)
@@ -2357,8 +2355,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -2368,7 +2365,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new substitution
-			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
+			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
 			
 			// read its tag, if requested
 			if (has_object_tags)
@@ -9709,7 +9706,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
@@ -9722,7 +9720,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;
