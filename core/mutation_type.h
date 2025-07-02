@@ -85,7 +85,7 @@ public:
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
-	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
+	slim_selcoeff_t default_dominance_coeff_;	// the default dominance coefficient (h) inherited by mutations of this type
 	slim_selcoeff_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
 	
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)

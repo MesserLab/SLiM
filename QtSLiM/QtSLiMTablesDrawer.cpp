@@ -552,7 +552,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             }
             else if (p_index.column() == 1)
             {
-                return QVariant(QString("%1").arg(static_cast<double>(mutationType->dominance_coeff_), 0, 'f', 3));
+                return QVariant(QString("%1").arg(static_cast<double>(mutationType->default_dominance_coeff_), 0, 'f', 3));
             }
             else if (p_index.column() == 2)
             {

@@ -4419,7 +4419,7 @@
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
-					return [NSString stringWithFormat:@"%.3f", mutationType->dominance_coeff_];
+					return [NSString stringWithFormat:@"%.3f", mutationType->default_dominance_coeff_];
 				}
 				else if (aTableColumn == mutTypeDFETypeColumn)
 				{

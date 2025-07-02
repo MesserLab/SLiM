@@ -5165,7 +5165,7 @@ void Population::ValidateMutationFitnessCaches(void)
 		MutationIndex mut_index = (*registry_iter++);
 		Mutation *mut = mut_block_ptr + mut_index;
 		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
-		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
+		slim_selcoeff_t dom_coeff = mut->dominance_coeff_;
 		slim_selcoeff_t hemizygous_dom_coeff = mut->mutation_type_ptr_->hemizygous_dominance_coeff_;
 		
 		mut->cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
@@ -8100,7 +8100,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = mutation_ptr->position_;
 			slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			slim_selcoeff_t dominance_coeff = mutation_ptr->dominance_coeff_;
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved; too edge to be bothered...
 			slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 			slim_tick_t origin_tick = mutation_ptr->origin_tick_;
@@ -8257,7 +8257,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			slim_objectid_t mutation_type_id = mutation_type_ptr->mutation_type_id_;
 			slim_position_t position = substitution_ptr->position_;
 			slim_selcoeff_t selection_coeff = substitution_ptr->selection_coeff_;
-			slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+			slim_selcoeff_t dominance_coeff = substitution_ptr->dominance_coeff_;
 			slim_objectid_t subpop_index = substitution_ptr->subpop_index_;
 			slim_tick_t origin_tick = substitution_ptr->origin_tick_;
 			slim_tick_t fixation_tick = substitution_ptr->fixation_tick_;
