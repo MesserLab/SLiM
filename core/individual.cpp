@@ -4439,8 +4439,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 			// parse/validate the INFO fields that we recognize
 			std::vector<std::string> info_substrs = Eidos_string_split(info_str, ";");
 			std::vector<slim_mutationid_t> info_mutids;
-			std::vector<double> info_selcoeffs;
-			std::vector<double> info_domcoeffs;
+			std::vector<slim_selcoeff_t> info_selcoeffs;
+			std::vector<slim_selcoeff_t> info_domcoeffs;
 			std::vector<slim_objectid_t> info_poporigin;
 			std::vector<slim_tick_t> info_tickorigin;
 			std::vector<slim_objectid_t> info_muttype;
@@ -4564,20 +4564,21 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (!mutation_type_ptr)
 					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file MT field missing, but no default mutation type was supplied in the mutationType parameter." << EidosTerminate();
 				
-				// check the dominance coefficient of DOM against that of the mutation type
-				if (info_domcoeffs.size() > 0)
-				{
-					if (std::abs(info_domcoeffs[alt_allele_index] - mutation_type_ptr->dominance_coeff_) > 0.0001)
-						EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_readIndividualsFromVCF): VCF file DOM field specifies a dominance coefficient " << info_domcoeffs[alt_allele_index] << " that differs from the mutation type's dominance coefficient of " << mutation_type_ptr->dominance_coeff_ << "." << EidosTerminate();
-				}
+				// get the dominance coefficient from DOM, or use the default coefficient from the mutation type
+				slim_selcoeff_t dominance_coeff;
 				
-				// get the selection coefficient from S, or draw one
-				double selection_coeff;
+				if (info_domcoeffs.size() > 0)
+					dominance_coeff = info_domcoeffs[alt_allele_index];
+				else
+					dominance_coeff = mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_;	// FIXME MULTITRAIT
+				
+				// get the selection coefficient from S, or draw one from the mutation type
+				slim_selcoeff_t selection_coeff;
 				
 				if (info_selcoeffs.size() > 0)
 					selection_coeff = info_selcoeffs[alt_allele_index];
 				else
-					selection_coeff = mutation_type_ptr->DrawSelectionCoefficient();
+					selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
@@ -4659,12 +4660,12 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 					// a mutation ID was supplied; we use it blindly, having checked above that we are in the case where this is legal
 					slim_mutationid_t mut_mutid = info_mutids[alt_allele_index];
 					
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mut_mutid, mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				else
 				{
 					// no mutation ID supplied, so use whatever is next
-					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, subpop_index, origin_tick, nucleotide);
+					new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_type_ptr, chromosome->Index(), mut_position, selection_coeff, dominance_coeff, subpop_index, origin_tick, nucleotide);
 				}
 				
 				// This mutation type might not be used by any genomic element type (i.e. might not already be vetted), so we need to check and set pure_neutral_
@@ -5158,6 +5159,45 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 	
 	return gStaticEidosValueVOID;
 }			
+
+// In these methods we implement a special behavior: you can do individual.traitName to
+// access the value for a trait.  We do a dynamic lookup from the trait name here.
+
+EidosValue_SP Individual_Class::GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const
+{
+	const Individual *const *individuals = (const Individual *const *)p_targets;
+	
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
+	Trait *trait = species->TraitFromStringID(p_property_id);
+	
+	if (trait)
+	{
+		// We got a hit, but don't know what to do with it for now
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+	}
+	
+	return super::GetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size);
+}
+
+void Individual_Class::SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const
+{
+	const Individual *const *individuals = (const Individual *const *)p_targets;
+	
+	Species *species = Community::SpeciesForIndividualsVector(individuals, (int)p_targets_size);
+	Trait *trait = species->TraitFromStringID(p_property_id);
+	
+	if (trait)
+	{
+		// Eidos did not type-check for us, because there is no signature!  We have to check it ourselves.
+		if (p_value.Type() != EidosValueType::kValueFloat)
+			EIDOS_TERMINATION << "ERROR (Individual_Class::SetProperty_NO_SIGNATURE): assigned value must be of type float for trait-value property " << trait->Name() << "." << EidosTerminate();
+		
+		// We got a hit, but don't know what to do with it for now
+		EIDOS_TERMINATION << "ERROR (Individual_Class::GetProperty_NO_SIGNATURE): trait " << trait->Name() << " cannot be accessed (FIXME)." << EidosTerminate();
+	}
+	
+	return super::SetProperty_NO_SIGNATURE(p_property_id, p_targets, p_targets_size, p_value);
+}
 
 
 

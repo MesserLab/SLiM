@@ -206,6 +206,9 @@ public:
 	EidosValue_SP ExecuteMethod_propertySignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_methodSignature(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
 	EidosValue_SP ExecuteMethod_size_length(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const;
+	
+	virtual EidosValue_SP GetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size) const;
+	virtual void SetProperty_NO_SIGNATURE(EidosGlobalStringID p_property_id, EidosObject **p_targets, size_t p_targets_size, const EidosValue &p_value) const;
 };
 
 

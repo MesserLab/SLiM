@@ -510,7 +510,7 @@ R"V0G0N({
 	
 	// get h for each mutation; note that this will not work if changing
 	// h using mutationEffect() callbacks or other scripted approaches
-	h = muts.mutationType.dominanceCoeff;
+	h = muts.dominanceCoeff;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
