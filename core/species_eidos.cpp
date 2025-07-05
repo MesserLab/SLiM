@@ -528,11 +528,8 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 		mutation_fractions.emplace_back(proportion);
 		
 		// check whether we are using a mutation type that is non-neutral; check and set pure_neutral_
-		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-		{
+		if (!mutation_type_ptr->IsPureNeutralDFE())
 			pure_neutral_ = false;
-			// the mutation type's all_pure_neutral_DFE_ flag is presumably already set
-		}
 	}
 	
 	EidosValueType mm_type = mutationMatrix_value->Type();

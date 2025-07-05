@@ -1,8 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
-\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;\f8\fswiss\fcharset0 Helvetica-Oblique;
-\f9\fswiss\fcharset0 Helvetica;}
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
@@ -1803,7 +1802,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -1914,7 +1912,6 @@ Beginning in SLiM 2.1, this is a class method, not an instance method.  This mea
 \f4\fs20  method 
 \f3\fs18 recalculateFitness()
 \f4\fs20  \'96 but see the documentation of that method for caveats.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Note that in nonWF models that use tree-sequence recording, mutations cannot be added to an individual after the tick in which the individual is created (i.e., when the 
 \f3\fs18 age
 \f4\fs20  of the individual is greater than 
@@ -2572,8 +2569,9 @@ The
 \f4\fs20  subfield (or a generation of origin 
 \f3\fs18 GO
 \f4\fs20  field, which was the SLiM convention before SLiM 4), the current tick will be used.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs18 REF
+\f3\fs18 \cf2 REF
 \f4\fs20  and 
 \f3\fs18 ALT
 \f4\fs20  must always be comprised of simple nucleotides (
@@ -5418,8 +5416,7 @@ See
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()
@@ -6240,236 +6237,7 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f4\fs20  objects.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 distributionParams => (fs)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The parameters that configure the chosen distribution of fitness effects.  This will be of type 
-\f3\fs18 string
-\f4\fs20  for DFE type 
-\f3\fs18 "s"
-\f4\fs20 , and type 
-\f3\fs18 float
-\f4\fs20  for all other DFE types.
-\f5 \
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 distributionType => (string$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The type of distribution of fitness effects; one of 
-\f3\fs18 "f"
-\f4\fs20 , 
-\f3\fs18 "g"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "e"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "n"
-\f5\fs20 ,
-\f4  
-\f3\fs18 "w"
-\f5\fs20 ,
-\f4  or 
-\f3\fs18 "s"
-\f5\fs20 :\
-
-\f3\fs18 "f"
-\f4\fs22  \'96 A 
-\f0\b f
-\f4\b0 ixed fitness effect.  This DFE type has a single parameter, the selection coefficient 
-\f1\i s
-\f4\i0  to be used by all mutations of the mutation type.\
-
-\f3\fs18 "g"
-\f4\fs22  \'96 A 
-\f0\b g
-\f4\b0 amma-distributed fitness effect.  This DFE type is specified by two parameters, a shape parameter and a mean value.  The gamma distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u945 
-\f5\i0 ,
-\f8\i \uc0\u946 
-\f5\i0 )\'a0
-\f9 = [\uc0\u915 (
-\f8\i \uc0\u945 
-\f5\i0 )
-\f8\i \uc0\u946 \u945 
-\f5\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u946 
-\f5\i0 )
-\f4 , where 
-\f8\i \uc0\u945 
-\f4\i0  is the shape parameter, and the specified mean for the distribution is equal to 
-\f8\i \uc0\u945 \u946 
-\f4\i0 .  Note that this parameterization is the same as for the Eidos function 
-\f3\fs18 rgamma()
-\f4\fs22 .  A gamma distribution is often used to model deleterious mutations at functional sites.\
-
-\f3\fs18 "e"
-\f4\fs22  \'96 An 
-\f0\b e
-\f4\b0 xponentially-distributed fitness effect.  This DFE type is specified by a single parameter, the mean of the distribution.  The exponential distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u946 
-\f5\i0 )\'a0= 
-\f8\i \uc0\u946 
-\f5\i0 \super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u946 
-\f5\i0 )
-\f4 , where 
-\f8\i \uc0\u946 
-\f4\i0  is the specified mean for the distribution.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rexp()
-\f4\fs22 .  An exponential distribution is often used to model beneficial mutations.\
-
-\f3\fs18 "n"
-\f4\fs22  \'96 A 
-\f0\b n
-\f4\b0 ormally-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a standard deviation.  The normal distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u956 
-\f5\i0 ,
-\f8\i \uc0\u963 
-\f5\i0 )\'a0= (2
-\f9 \uc0\u960 
-\f8\i \uc0\u963 
-\f5\i0 \super 2\nosupersub )\super \uc0\u8722 1/2\nosupersub exp(\uc0\u8722 (
-\f6\i s
-\f5\i0 \uc0\u8722 
-\f8\i \uc0\u956 
-\f5\i0 )\super 2\nosupersub /2
-\f8\i \uc0\u963 
-\f5\i0 \super 2\nosupersub )
-\f4 , where 
-\f8\i \uc0\u956 
-\f4\i0  is the mean and 
-\f8\i \uc0\u963 
-\f4\i0  is the standard deviation.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rnorm()
-\f4\fs22 .  A normal distribution is often used to model mutations that can be either beneficial or deleterious, since both tails of the distribution are unbounded.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs18 \cf2 "p"
-\f4\fs22  \'96 A La
-\f0\b p
-\f4\b0 lace-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a scale.  The Laplace distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f6\i \uc0\u956 
-\f5\i0 ,
-\f6\i b
-\f5\i0 )\'a0= exp(\uc0\u8722 |
-\f6\i s
-\f5\i0 \uc0\u8722 
-\f6\i \uc0\u956 
-\f5\i0 |/
-\f6\i b
-\f5\i0 )/2
-\f6\i b
-\f4\i0 , where 
-\f6\i \uc0\u956 
-\f4\i0  is the mean and 
-\f6\i b
-\f4\i0  is the scale parameter.  A Laplace distribution is sometimes used to model a mix of both deleterious and beneficial mutations.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f3\fs18 \cf0 "w"
-\f4\fs22  \'96 A 
-\f0\b W
-\f4\b0 eibull-distributed fitness effect.  This DFE type is specified by a scale parameter and a shape parameter.  The Weibull distribution from which mutations are drawn is given by the probability density function 
-\f6\i P
-\f5\i0 (
-\f6\i s
-\f5\i0 \'a0|\'a0
-\f8\i \uc0\u955 
-\f5\i0 ,
-\f6\i k
-\f5\i0 )\'a0= (
-\f6\i k
-\f5\i0 /
-\f8\i \uc0\u955 
-\f6 \super k
-\f5\i0 \nosupersub )
-\f6\i s\super k
-\f5\i0 \uc0\u8722 1\nosupersub exp(\uc0\u8722 (
-\f6\i s
-\f5\i0 /
-\f8\i \uc0\u955 
-\f5\i0 )
-\f6\i \super k
-\f5\i0 \nosupersub )
-\f4 , where 
-\f8\i \uc0\u955 
-\f4\i0  is the scale parameter and 
-\f6\i k
-\f4\i0  is the shape parameter.  This parameterization is the same as for the Eidos function 
-\f3\fs18 rweibull()
-\f4\fs22 .  A Weibull distribution is often used to model mutations following extreme-value theory.\
-
-\f3\fs18 "s"
-\f4\fs22  \'96 A 
-\f0\b s
-\f4\b0 cript-based fitness effect.  This DFE type is specified by a script parameter of type 
-\f3\fs18 string
-\f4\fs22 , specifying an Eidos script to be executed to produce each new selection coefficient.  For example, the script 
-\f3\fs18 "return rbinom(1);"
-\f4\fs22  could be used to generate selection coefficients drawn from a binomial distribution, using the Eidos function 
-\f3\fs18 rbinom()
-\f4\fs22 , even though that mutational distribution is not supported by SLiM directly.  The script must return a singleton float or integer.\
-Note that these distributions can in principle produce selection coefficients smaller than 
-\f3\fs18 -1.0. 
-\f4\fs22 In that case
-\f5 ,
-\f4  the mutations will be evaluated as \'93lethal\'94 by SLiM, and the relative fitness of the individual will be set to 
-\f3\fs18 0.0
-\f5\fs22 .
-\fs20 \
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 dominanceCoeff <\'96> (float$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 The default dominance coefficient used for mutations of this type when heterozygous.  This default value is taken by new mutations of this mutation type when they are created, as the value of their 
-\f3\fs18 dominanceCoeff
-\f4\fs20  property, but that can be changed later with the 
-\f3\fs18 Mutation
-\f4\fs20  method 
-\f3\fs18 setDominanceCoeff()
-\f4\fs20 .\
-Note that the dominance coefficient is not bounded.  A dominance coefficient greater than 
-\f3\fs18 1.0
-\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
-Note that this property has a quirk: it is stored internally in SLiM using a single-precision float, not the double-precision float type normally used by Eidos.  This means that if you set a mutation type 
-\f3\fs18 muttype
-\f4\fs20 \'92s dominance coefficient to some number 
-\f3\fs18 x
-\f4\fs20 , 
-\f3\fs18 muttype.dominanceCoeff==x
-\f4\fs20  may be 
-\f3\fs18 F
-\f4\fs20  due to floating-point rounding error.  Comparisons of floating-point numbers for exact equality is often a bad idea, but this is one case where it may fail unexpectedly.  Instead, it is recommended to use the 
-\f3\fs18 id
-\f4\fs20  or 
-\f3\fs18 tag
-\f4\fs20  properties to identify particular mutation types.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 hemizygousDominanceCoeff <\'96> (float$)\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 hemizygousDominanceCoeff <\'96> (float$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null haplosome (as can occur in sex-chromosome models and models involving a mix of haploids and diploids).  This defaults to 
@@ -6603,24 +6371,125 @@ The species to which the target object belongs.\
 \f1\i\fs22 \cf0 5.11.2  
 \f2\fs18 MutationType
 \f1\fs22  methods\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(float)drawSelectionCoefficient([integer$\'a0n\'a0=\'a01])\
+\f3\i0\fs18 \cf2 \'96\'a0(float$)defaultDominanceForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the default dominance coefficient used for the specified trait or traits, for mutations of this type when heterozygous.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The default dominance coefficient is taken by new mutations of this mutation type when they are created, as the value of their 
+\f3\fs18 dominanceCoeff
+\f4\fs20  property, but that can be changed later with the 
+\f3\fs18 Mutation
+\f4\fs20  method 
+\f3\fs18 setDominanceCoeff()
+\f4\fs20 .\
+Note that dominance coefficients are not bounded.  A dominance coefficient greater than 
+\f3\fs18 1.0
+\f4\fs20  may be used to achieve an overdominance effect.  By making the selection coefficient very small and the dominance coefficient very large, an overdominance scenario in which both homozygotes have the same fitness may be approximated, to a nearly arbitrary degree of precision.\
+Also note that dominance coefficients have a quirk: they are stored internally in SLiM as a single-precision 
+\f3\fs18 float
+\f4\fs20 , not the double-precision 
+\f3\fs18 float
+\f4\fs20  type normally used by Eidos.  This means that comparisons of dominance coefficients for exact equality might fail unexpectedly, due to roundoff.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(fs)distributionParamsForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the parameters that configure the distribution of effects for the specified trait or traits.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The distribution parameters will be of type 
+\f3\fs18 string
+\f4\fs20  for DFE type 
+\f3\fs18 "s"
+\f4\fs20 , and type 
+\f3\fs18 float
+\f4\fs20  for all other DFE types.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(string$)distributionTypeForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the type of distribution of effects for the specified trait or traits.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The distribution type will be one of 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "g"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , 
+\f3\fs18 "p"
+\f4\fs20 , 
+\f3\fs18 "w"
+\f4\fs20 , or 
+\f3\fs18 "s"
+\f4\fs20  , as discussed in the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)drawEffectForTrait([Nio<Trait>\'a0trait\'a0=\'a0NULL], [integer$\'a0n\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Draws and returns a vector of 
 \f3\fs18 n
-\f4\fs20  selection coefficients using the currently defined distribution of fitness effects (DFE) for the target mutation type.  If the DFE is type 
+\f4\fs20  mutation effects using the distribution of effects for the specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  See the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation for discussion of the supported distributions and their uses.  If the distribution of effects is of type 
 \f3\fs18 "s"
-\f4\fs20 , this method will result in synchronous execution of the DFE\'92s script.\
+\f4\fs20 , this method will result in synchronous execution of the script associated with the distribution of effects.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)setDistribution(string$\'a0distributionType, ...)
-\f5 \
+\f3\fs18 \cf2 \'96\'a0(void)setDefaultDominanceForTrait(Nio<Trait>\'a0trait, float\'a0dominance)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Set the distribution of fitness effects for a mutation type.  The 
+\f4\fs20 \cf2 Set the default dominance coefficient for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.  The value of 
+\f3\fs18 defaultDominance
+\f4\fs20  must either be singleton (in which case it is set as the default dominance for all specified traits), or must match the number of specified traits (in which case one element of 
+\f3\fs18 defaultDominance
+\f4\fs20  is used for each corresponding trait).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setDistributionForTrait(Nio<Trait>\'a0trait, string$\'a0distributionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Set the distribution of effects for a specified trait or traits, for the target mutation type.  The traits can be specified as 
+\f3\fs18 integer
+\f4\fs20  indices of traits in the species, or directly as 
+\f3\fs18 Trait
+\f4\fs20  objects; 
+\f3\fs18 NULL
+\f4\fs20  represents all of the traits in the species.\
+The 
 \f3\fs18 distributionType
 \f4\fs20  may be 
 \f3\fs18 "f"
@@ -6662,7 +6531,9 @@ The species to which the target object belongs.\
 \f3\fs18 "s"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 string$
-\f4\fs20  Eidos script parameter.  The DFE for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
+\f4\fs20  Eidos script parameter.  See the 
+\f3\fs18 MutationType
+\f4\fs20  class documentation for discussion of these distributions and their uses.  The distribution of effects for a mutation type is normally a constant in simulations, so be sure you know what you are doing.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.12  Class Plot\
@@ -9378,8 +9249,7 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -9518,8 +9388,7 @@ Beginning with SLiM 5.0, the
 \f4\fs20 , etc.) will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.  Note that fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 In SLiM 2.3 and later when using the WF model, calling 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  from any context other than a 
@@ -9538,8 +9407,7 @@ In SLiM 3.0 when using the nonWF model, calling
 \f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the tick cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
+\kerning1\expnd0\expndtw0 This method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
 \f3\fs18 community.tick
 \f4\fs20  and 
 \f3\fs18 sim.cycle
@@ -9560,14 +9428,12 @@ Any changes made to the structure of the species (mutation types, genomic elemen
 \f3\fs18 tag
 \f4\fs20  values of individuals; if a given option is enabled and the corresponding information is saved, then that information will be restored, otherwise it will not be.\
 As of SLiM 2.3, this method will read and restore the spatial positions of individuals if that information is present in the output file and the species has enabled continuous space.  If spatial positions are present in the output file but the species has not enabled continuous space (or the number of spatial dimensions does not match), an error will result.  If the species has enabled continuous space but spatial positions are not present in the output file, the spatial positions of the individuals read will be undefined, but an error is not raised.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 As of SLiM 3.0, this method will read and restore the ages of individuals if that information is present in the output file and the simulation is based upon the nonWF model.  If ages are present but the simulation uses a WF model, an error will result; the WF model does not use age information.  If ages are not present but the simulation uses a nonWF model, an error will also result; the nonWF model requires age information.\
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
+\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and haplosomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and

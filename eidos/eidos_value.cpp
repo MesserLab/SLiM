@@ -2296,6 +2296,7 @@ EidosValue_SP EidosValue_Object::GetPropertyOfElements(EidosGlobalStringID p_pro
 
 void EidosValue_Object::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token)
 {
+#pragma unused(p_property_token)
 	const EidosPropertySignature *signature = class_->SignatureForProperty(p_property_id);
 	
 	// BCH 6/29/2025: To enable the special trait properties of Individual, we now allow

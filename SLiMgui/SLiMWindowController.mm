@@ -4407,6 +4407,7 @@
 				std::advance(mutTypeIter, rowIndex);
 				slim_objectid_t mutTypeID = mutTypeIter->first;
 				MutationType *mutationType = mutTypeIter->second;
+				EffectDistributionInfo &ed_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
@@ -4419,11 +4420,11 @@
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
-					return [NSString stringWithFormat:@"%.3f", mutationType->default_dominance_coeff_];
+					return [NSString stringWithFormat:@"%.3f", ed_info.default_dominance_coeff_];
 				}
 				else if (aTableColumn == mutTypeDFETypeColumn)
 				{
-					switch (mutationType->dfe_type_)
+					switch (ed_info.dfe_type_)
 					{
 						case DFEType::kFixed:			return @"fixed";
 						case DFEType::kGamma:			return @"gamma";
@@ -4438,28 +4439,28 @@
 				{
 					NSMutableString *paramString = [[NSMutableString alloc] init];
 					
-					if (mutationType->dfe_type_ == DFEType::kScript)
+					if (ed_info.dfe_type_ == DFEType::kScript)
 					{
 						// DFE type 's' has parameters of type string
-						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_strings_.size(); ++paramIndex)
+						for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_strings_.size(); ++paramIndex)
 						{
-							const char *dfe_string = mutationType->dfe_strings_[paramIndex].c_str();
+							const char *dfe_string = ed_info.dfe_strings_[paramIndex].c_str();
 							NSString *ns_dfe_string = [NSString stringWithUTF8String:dfe_string];
 							
 							[paramString appendFormat:@"\"%@\"", ns_dfe_string];
 							
-							if (paramIndex < mutationType->dfe_strings_.size() - 1)
+							if (paramIndex < ed_info.dfe_strings_.size() - 1)
 								[paramString appendString:@", "];
 						}
 					}
 					else
 					{
 						// All other DFEs have parameters of type double
-						for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+						for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_parameters_.size(); ++paramIndex)
 						{
 							NSString *paramSymbol = @"";
 							
-							switch (mutationType->dfe_type_)
+							switch (ed_info.dfe_type_)
 							{
 								case DFEType::kFixed:			paramSymbol = @"s"; break;
 								case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? @"s̄" : @"α"); break;
@@ -4470,9 +4471,9 @@
 								case DFEType::kScript:			break;
 							}
 							
-							[paramString appendFormat:@"%@=%.3f", paramSymbol, mutationType->dfe_parameters_[paramIndex]];
+							[paramString appendFormat:@"%@=%.3f", paramSymbol, ed_info.dfe_parameters_[paramIndex]];
 							
-							if (paramIndex < mutationType->dfe_parameters_.size() - 1)
+							if (paramIndex < ed_info.dfe_parameters_.size() - 1)
 								[paramString appendString:@", "];
 						}
 					}

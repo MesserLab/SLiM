@@ -59,6 +59,17 @@ enum class DFEType : char {
 
 std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type);
 
+
+// This struct holds information about a distribution of effects (including dominance) for one trait.
+// MutationEffect then keeps a vector of these structs, one for each trait.
+typedef struct _EffectDistributionInfo {
+	slim_selcoeff_t default_dominance_coeff_;	// the default dominance coefficient (h) inherited by mutations of this type
+	
+	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
+	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
+	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
+} EffectDistributionInfo;
+
 	
 class MutationType : public EidosDictionaryUnretained
 {
@@ -72,9 +83,9 @@ private:
 
 public:
 	
-	// a mutation type is specified by the DFE and the dominance coefficient
+	// a mutation type is specified by the distribution of effects (DE) and the default dominance coefficient
 	//
-	// DFE options: f: fixed (s) 
+	// DE options:  f: fixed (s) 
 	//              e: exponential (mean s)
 	//              g: gamma distribution (mean s,shape)
 	//
@@ -85,12 +96,9 @@ public:
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
-	slim_selcoeff_t default_dominance_coeff_;	// the default dominance coefficient (h) inherited by mutations of this type
-	slim_selcoeff_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
+	std::vector<EffectDistributionInfo> effect_distributions_;	// DEs for each trait in the species
 	
-	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
-	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)
-	std::vector<std::string> dfe_strings_;		// DFE parameters, of type std::string (originally string type)
+	slim_selcoeff_t hemizygous_dominance_coeff_;	// dominance coefficient (h) used when one haplosome is null
 	
 	bool nucleotide_based_;						// if true, the mutation type is nucleotide-based (i.e. mutations keep associated nucleotides)
 	
@@ -172,7 +180,9 @@ public:
 	static void ParseDFEParameters(std::string &p_dfe_type_string, const EidosValue_SP *const p_arguments, int p_argument_count,
 								   DFEType *p_dfe_type, std::vector<double> *p_dfe_parameters, std::vector<std::string> *p_dfe_strings);
 	
-	double DrawSelectionCoefficient(void) const;					// draw a selection coefficient from this mutation type's DFE
+	double DrawEffectForTrait(int64_t p_trait_index) const;		// draw a selection coefficient from the DE for a trait
+	
+	bool IsPureNeutralDFE(void) const { return all_pure_neutral_DFE_; }
 	
 	//
 	// Eidos support
@@ -186,8 +196,12 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
-	EidosValue_SP ExecuteMethod_drawSelectionCoefficient(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_setDistribution(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_defaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_distributionTypeForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_distributionParamsForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_drawEffectForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setDefaultDominanceForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setDistributionForTrait(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Accelerated property access; see class EidosObject for comments on this mechanism
 	static EidosValue *GetProperty_Accelerated_id(EidosObject **p_values, size_t p_values_size);

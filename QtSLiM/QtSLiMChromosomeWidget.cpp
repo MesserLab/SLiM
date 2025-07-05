@@ -480,7 +480,7 @@ void QtSLiMChromosomeWidgetController::runChromosomeContextMenuAtPoint(QPoint p_
                         MutationType *muttype = muttype_iter.second;
                         slim_objectid_t muttype_id = muttype->mutation_type_id_;
                         
-                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                        if (muttype->IsPureNeutralDFE())
                             displayMuttypes_.emplace_back(muttype_id);
                     }
                 }

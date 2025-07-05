@@ -112,7 +112,7 @@ paired with a null haplosome, and is thus hemizygous or haploid)</p>
 <span class="Apple-tab-span">	</span>if (homozygous)<br>
 <span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>return 1.0 + mut.selectionCoeff;<br>
 <span class="Apple-tab-span">	</span>else<br>
-<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;<br>
+<span class="Apple-tab-span">	</span><span class="Apple-tab-span">	</span>return 1.0 + mut.dominanceCoeff * mut.selectionCoeff;<br>
 }</p>
 <p class="p2">As mentioned above, a relative fitness of <span class="s1">1.0</span> is neutral (whereas a selection coefficient of <span class="s1">0.0</span> is neutral); the <span class="s1">1.0 +</span> in these calculations converts between the selection coefficient scale and the relative fitness scale, and is therefore essential.<span class="Apple-converted-space">  </span>However, the <span class="s1">effect</span> global variable mentioned above would already contain this value, precomputed by SLiM, so you could simply return <span class="s1">effect</span> to get that behavior when you want it:</p>
 <p class="p3">mutationEffect(m1) {<br>

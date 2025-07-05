@@ -571,6 +571,82 @@ void Species::AddTrait(Trait *p_trait)
 	trait_from_string_id.emplace(name_string_id, p_trait);
 }
 
+// This returns the trait index for a single trait, represented by an EidosValue with an integer index or a Trait object
+int64_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
+{
+	int64_t trait_index;
+	
+	if (trait_value->Type() == EidosValueType::kValueInt)
+	{
+		trait_index = trait_value->IntAtIndex_NOCAST(0, nullptr);
+	}
+	else
+	{
+		const Trait *trait = (const Trait *)trait_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		
+		if (&trait->species_ != this)
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+		
+		trait_index = trait->Index();
+	}
+	
+	if ((trait_index < 0) || (trait_index >= TraitCount()))
+		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+	
+	return trait_index;
+}
+
+// This returns trait indices, represented by an EidosValue with integer indices or Trait objects, or NULL for all traits
+void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
+{
+	EidosValueType traits_value_type = traits_value->Type();
+	int traits_value_count = traits_value->Count();
+	int64_t trait_count = TraitCount();
+	
+	switch (traits_value_type)
+	{
+			// NULL means "all traits", unlike for GetTraitIndexFromEidosValue()
+		case EidosValueType::kValueNULL:
+		{
+			for (int64_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				trait_indices.push_back(trait_index);
+			break;
+		}
+		case EidosValueType::kValueInt:
+		{
+			const int64_t *indices_data = traits_value->IntData();
+			
+			for (int indices_index = 0; indices_index < traits_value_count; indices_index++)
+			{
+				int64_t trait_index = indices_data[indices_index];
+				
+				if ((trait_index < 0) || (trait_index >= TraitCount()))
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait_index);
+			}
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			Trait * const *traits_data = (Trait * const *)traits_value->ObjectData();
+			
+			for (int traits_index = 0; traits_index < traits_value_count; ++traits_index)
+			{
+				Trait *trait = traits_data[traits_index];
+				
+				if (&trait->species_ != this)
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait->Index());
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): (internal error) unexpected type for parameter trait." << EidosTerminate();
+	}
+}
+
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
 void GetInputLine(std::istream &p_input_file, std::string &p_line)
@@ -2701,7 +2777,7 @@ void Species::RunInitializeCallbacks(void)
 				
 				for (auto muttype : getype->mutation_type_ptrs_)
 				{
-					if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
+					if (muttype->IsPureNeutralDFE())
 						using_neutral_muttype = true;
 				}
 			}
@@ -9707,7 +9783,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
 			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
@@ -9721,7 +9797,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
 			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;

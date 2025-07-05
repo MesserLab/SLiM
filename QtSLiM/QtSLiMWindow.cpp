@@ -1754,6 +1754,21 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
     QString beforeSelection4String = beforeSelection4.selectedText();
     
+    // get the one character after the selected error range, to recognize if the error is followed by "("
+    QTextCursor afterSelection1 = selection;
+    afterSelection1.setPosition(afterSelection1.selectionEnd(), QTextCursor::MoveAnchor);
+    afterSelection1.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    QString afterSelection1String = afterSelection1.selectedText();
+    
+    QTextCursor selectionPlus1After = selection;
+    selectionPlus1After.setPosition(selectionPlus1After.selectionStart(), QTextCursor::MoveAnchor);
+    selectionPlus1After.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, selection.selectionEnd() - selection.selectionStart() + 1);
+    QString selectionPlus1AfterString = selectionPlus1After.selectedText();
+    
+    //qDebug() << "selectionString ==" << selectionString;
+    //qDebug() << "afterSelection1String ==" << afterSelection1String;
+    //qDebug() << "selectionPlus1AfterString ==" << selectionPlus1AfterString;
+    
     //
     //  Changes for SLiM 4.0: multispecies SLiM, mostly, plus fitness() -> mutationEffect() and fitness(NULL) -> fitnessEffect()
     //
@@ -2113,6 +2128,31 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("method outputVCF() is not defined on object element type Haplosome") &&
             (selectionString == "outputVCF"))
         return offerAndExecuteAutofix(selection, "outputHaplosomesToVCF", "The `outputVCF()` method of Haplosome has been renamed to `outputHaplosomesToVCF()`.", terminationMessage);
+    
+    //
+    //  Shift from one trait to multitrait for SLiM 5.1
+    //
+    
+    if (terminationMessage.contains("property dominanceCoeff is not defined for object element type MutationType") &&
+            (selectionString == "dominanceCoeff"))
+        return offerAndExecuteAutofix(selection, "defaultDominanceForTrait()", "The `dominanceCoeff` property of MutationType has become the method `defaultDominanceForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property distributionType is not defined for object element type MutationType") &&
+            (selectionString == "distributionType"))
+        return offerAndExecuteAutofix(selection, "distributionTypeForTrait()", "The `distributionType` property of MutationType has become the method `distributionTypeForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("property distributionParams is not defined for object element type MutationType") &&
+            (selectionString == "distributionParams"))
+        return offerAndExecuteAutofix(selection, "distributionParamsForTrait()", "The `distributionParams` property of MutationType has become the method `distributionParamsForTrait()`.", terminationMessage);
+    
+    if ((afterSelection1String == "(") &&
+            terminationMessage.contains("method setDistribution() is not defined on object element type MutationType") &&
+            (selectionPlus1AfterString == "setDistribution("))
+        return offerAndExecuteAutofix(selectionPlus1After, "setDistributionForTrait(NULL, ", "The `setDistribution()` method of MutationType has become the method `setDistributionForTrait()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method drawSelectionCoefficient() is not defined on object element type MutationType") &&
+            (selectionString == "drawSelectionCoefficient"))
+        return offerAndExecuteAutofix(selection, "drawEffectForTrait", "The `drawSelectionCoefficient()` method of MutationType has become the method `drawEffectForTrait()`.", terminationMessage);
     
     return false;
 }

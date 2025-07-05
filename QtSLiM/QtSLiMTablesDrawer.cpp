@@ -87,8 +87,9 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
-		
-		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
+        
+		sample_size = (ed_info.dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
 		if (!rng_initialized)
@@ -99,7 +100,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		
 		_Eidos_SetOneRNGSeed(local_rng, 10);		// arbitrary seed, but the same seed every time
 		
-		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawSelectionCoefficient()
+		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawEffectForTrait()
 		
 		//std::clock_t start = std::clock();
 		
@@ -107,7 +108,7 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 		{
 			for (size_t sample_count = 0; sample_count < sample_size; ++sample_count)
 			{
-				double draw = mut_type->DrawSelectionCoefficient();
+				double draw = mut_type->DrawEffectForTrait(0);	// FIXME MULTITRAIT
 				
 				draws.emplace_back(draw);
 				
@@ -540,6 +541,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             std::advance(mutTypeIter, p_index.row());
             slim_objectid_t mutTypeID = mutTypeIter->first;
             MutationType *mutationType = mutTypeIter->second;
+            EffectDistributionInfo &ed_info = mutationType->effect_distributions_[0];	// FIXME MULTITRAIT
             
             if (p_index.column() == 0)
             {
@@ -552,11 +554,11 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             }
             else if (p_index.column() == 1)
             {
-                return QVariant(QString("%1").arg(static_cast<double>(mutationType->default_dominance_coeff_), 0, 'f', 3));
+                return QVariant(QString("%1").arg(static_cast<double>(ed_info.default_dominance_coeff_), 0, 'f', 3));
             }
             else if (p_index.column() == 2)
             {
-                switch (mutationType->dfe_type_)
+                switch (ed_info.dfe_type_)
                 {
                     case DFEType::kFixed:			return QVariant(QString("fixed"));
                     case DFEType::kGamma:			return QVariant(QString("gamma"));
@@ -571,27 +573,27 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             {
                 QString paramString;
                 
-                if (mutationType->dfe_type_ == DFEType::kScript)
+                if (ed_info.dfe_type_ == DFEType::kScript)
                 {
                     // DFE type 's' has parameters of type string
-                    for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_strings_.size(); ++paramIndex)
+                    for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_strings_.size(); ++paramIndex)
                     {
-                        QString dfe_string = QString::fromStdString(mutationType->dfe_strings_[paramIndex]);
+                        QString dfe_string = QString::fromStdString(ed_info.dfe_strings_[paramIndex]);
                         
                         paramString += ("\"" + dfe_string + "\"");
                         
-                        if (paramIndex < mutationType->dfe_strings_.size() - 1)
+                        if (paramIndex < ed_info.dfe_strings_.size() - 1)
                             paramString += ", ";
                     }
                 }
                 else
                 {
                     // All other DFEs have parameters of type double
-                    for (unsigned int paramIndex = 0; paramIndex < mutationType->dfe_parameters_.size(); ++paramIndex)
+                    for (unsigned int paramIndex = 0; paramIndex < ed_info.dfe_parameters_.size(); ++paramIndex)
                     {
                         QString paramSymbol;
                         
-                        switch (mutationType->dfe_type_)
+                        switch (ed_info.dfe_type_)
                         {
                             case DFEType::kFixed:			paramSymbol = "s"; break;
                             case DFEType::kGamma:			paramSymbol = (paramIndex == 0 ? "s̄" : "α"); break;
@@ -602,9 +604,9 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
                             case DFEType::kScript:			break;
                         }
                         
-                        paramString += QString("%1=%2").arg(paramSymbol).arg(mutationType->dfe_parameters_[paramIndex], 0, 'f', 3);
+                        paramString += QString("%1=%2").arg(paramSymbol).arg(ed_info.dfe_parameters_[paramIndex], 0, 'f', 3);
                         
-                        if (paramIndex < mutationType->dfe_parameters_.size() - 1)
+                        if (paramIndex < ed_info.dfe_parameters_.size() - 1)
                             paramString += ", ";
                     }
                 }

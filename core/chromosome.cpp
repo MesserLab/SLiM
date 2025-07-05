@@ -1035,7 +1035,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	const GenomicElementType &genomic_element_type = *(source_element.genomic_element_type_ptr_);
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawSelectionCoefficient());
+	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE, SINCE WE DO NOT KNOW WHAT HAPLOSOME WE WILL BE INSERTED INTO!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -1043,7 +1043,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 	// A nucleotide value of -1 is always used here; in nucleotide-based models this gets patched later, but that is sequence-dependent and background-dependent
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->default_dominance_coeff_, p_subpop_index, p_tick, -1);
+	new (mutation) Mutation(mutation_type_ptr, index_, p_position.first, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, -1);	// FIXME MULTITRAIT
 	
 	// addition to the main registry and the muttype registries will happen if the new mutation clears the stacking policy
 	
@@ -1401,13 +1401,13 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 	// Draw mutation type and selection coefficient, and create the new mutation
 	MutationType *mutation_type_ptr = genomic_element_type.DrawMutationType();
 	
-	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawSelectionCoefficient());
+	slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 	
 	// NOTE THAT THE STACKING POLICY IS NOT ENFORCED HERE!  THIS IS THE CALLER'S RESPONSIBILITY!
 	MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 	Mutation *mutation = gSLiM_Mutation_Block + new_mut_index;
 	
-	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->default_dominance_coeff_, p_subpop_index, p_tick, nucleotide);
+	new (mutation) Mutation(mutation_type_ptr, index_, position, selection_coeff, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_, p_subpop_index, p_tick, nucleotide);	// FIXME MULTITRAIT
 	
 	// Call mutation() callbacks if there are any
 	if (p_mutation_callbacks)

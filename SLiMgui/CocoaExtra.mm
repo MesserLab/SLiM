@@ -555,8 +555,9 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
 		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
+		EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
 		
-		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
+		sample_size = (ed_info.dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
 		if (!rng_initialized)
@@ -569,7 +570,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		
 		Eidos_RNG_State *slim_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 		
-		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawSelectionCoefficient()
+		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawEffectForTrait()
 		
 		//std::clock_t start = std::clock();
 		
@@ -577,7 +578,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		{
 			for (int sample_count = 0; sample_count < sample_size; ++sample_count)
 			{
-				double draw = mut_type->DrawSelectionCoefficient();
+				double draw = mut_type->DrawEffectForTrait(0);	// FIXME MULTITRAIT
 				
 				draws.emplace_back(draw);
 				

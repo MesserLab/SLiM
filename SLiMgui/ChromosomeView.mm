@@ -701,11 +701,12 @@ static const int spaceBetweenChromosomes = 5;
 			if (mut_type->mutation_type_displayed_)
 			{
 				bool mut_type_fixed_color = !mut_type->color_.empty();
+				EffectDistributionInfo &ed_info = mut_type->effect_distributions_[0];	// FIXME MULTITRAIT
 				
 				// We optimize fixed-DFE mutation types only, and those using a fixed color set by the user
-				if ((mut_type->dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
+				if ((ed_info.dfe_type_ == DFEType::kFixed) || mut_type_fixed_color)
 				{
-					slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)mut_type->dfe_parameters_[0]);
+					slim_selcoeff_t mut_type_selcoeff = (mut_type_fixed_color ? 0.0 : (slim_selcoeff_t)ed_info.dfe_parameters_[0]);
 					
 					EIDOS_BZERO(heightBuffer, displayPixelWidth * sizeof(int16_t));
 					
@@ -1011,7 +1012,7 @@ static const int spaceBetweenChromosomes = 5;
 			MutationType *muttype = muttype_iter.second;
 			slim_objectid_t muttype_id = muttype->mutation_type_id_;
 			
-			if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+			if (!muttype->IsPureNeutralDFE())
 				display_muttypes_.emplace_back(muttype_id);
 		}
 		

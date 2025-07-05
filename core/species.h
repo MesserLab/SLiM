@@ -442,10 +442,14 @@ public:
 	
 	// Trait configuration and access
 	inline __attribute__((always_inline)) const std::vector<Trait *> &Traits(void)	{ return traits_; }
+	inline __attribute__((always_inline)) int64_t TraitCount(void)	{ return (int64_t)traits_.size(); }
 	Trait *TraitFromName(const std::string &p_name);
 	Trait *TraitFromStringID(EidosGlobalStringID p_string_id);
 	void MakeImplicitTrait(void);
 	void AddTrait(Trait *p_trait);													// takes over a retain count from the caller
+	
+	int64_t GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name);											// with a singleton EidosValue
+	void GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name);
 	
 	// Memory usage
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling

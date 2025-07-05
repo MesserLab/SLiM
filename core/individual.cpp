@@ -4570,7 +4570,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_domcoeffs.size() > 0)
 					dominance_coeff = info_domcoeffs[alt_allele_index];
 				else
-					dominance_coeff = mutation_type_ptr->default_dominance_coeff_;
+					dominance_coeff = mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_;	// FIXME MULTITRAIT
 				
 				// get the selection coefficient from S, or draw one from the mutation type
 				slim_selcoeff_t selection_coeff;
@@ -4578,7 +4578,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_readIndividualsFromVCF(EidosGlobal
 				if (info_selcoeffs.size() > 0)
 					selection_coeff = info_selcoeffs[alt_allele_index];
 				else
-					selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawSelectionCoefficient());
+					selection_coeff = static_cast<slim_selcoeff_t>(mutation_type_ptr->DrawEffectForTrait(0));	// FIXME MULTITRAIT
 				
 				// get the subpop index from PO, or set to -1; no bounds checking on this
 				slim_objectid_t subpop_index = -1;
