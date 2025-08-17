@@ -2200,7 +2200,11 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			EidosSymbolTable constants(EidosSymbolTableType::kContextConstantsTable, &interpreter_symbols);
 			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &constants);	// add a variables symbol table on top, shared across all invocations
 			EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-			EidosInterpreter interpreter(*script, symbols, function_map, &community, p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+			EidosInterpreter interpreter(*script, symbols, function_map, &community, p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream()
+#ifdef SLIMGUI
+				, p_interpreter.check_infinite_loops_
+#endif
+				);
 			
 			// We set up a "constant" value for `individuals` that refers to the stack-allocated object vector made above
 			// For each grid cell we will munge the contents of that vector, without having to touch the symbol table again

@@ -123,12 +123,26 @@ private:
 	
 public:
 	
+#ifdef SLIMGUI
+	bool check_infinite_loops_ = true;								// check for infinite loops, only in SLiMgui
+#endif
+	
 	EidosInterpreter(const EidosInterpreter&) = delete;					// no copying
 	EidosInterpreter& operator=(const EidosInterpreter&) = delete;		// no copying
 	EidosInterpreter(void) = delete;										// no null construction
 	
-	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream);			// we use the passed symbol table but do not own it
-	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream);	// we use the passed symbol table but do not own it
+	// we use the symbol table passed in to these constructors, but do not own it
+	EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+		, bool p_check_infinite_loops
+#endif
+	);
+	
+	EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+		, bool p_check_infinite_loops
+#endif
+	);
 	
 	inline ~EidosInterpreter(void)
 	{

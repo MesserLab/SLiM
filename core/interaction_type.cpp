@@ -1343,7 +1343,11 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+						, community_.check_infinite_loops_
+#endif
+						);
 					
 					if (interaction_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(interaction_callback->SelfSymbolTableEntry());		// define "self"

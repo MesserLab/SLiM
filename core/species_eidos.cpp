@@ -1285,7 +1285,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [logical$ doMutationRunExperiments = T], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T], [logical$ checkInfiniteLoops = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1297,6 +1297,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
 	EidosValue *arg_randomizeCallbacks_value = p_arguments[6].get();
+#ifdef SLIMGUI
+	EidosValue *arg_checkInfiniteLoops_value = p_arguments[7].get();	// this exists outside SLiMgui, but we don't use it
+#endif
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_slimoptions_inits_ > 0)
@@ -1411,6 +1414,18 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		bool randomize_callbacks = arg_randomizeCallbacks_value->LogicalAtIndex_NOCAST(0, nullptr);
 		
 		shuffle_buf_is_enabled_ = randomize_callbacks;
+	}
+	
+	{
+		// [logical$ checkInfiniteLoops = T]
+#ifdef SLIMGUI
+		bool check_infinite_loops = arg_checkInfiniteLoops_value->LogicalAtIndex_NOCAST(0, nullptr);
+		
+		// set on the current interpreter and the community; if we're executing inside a nested
+		// interpreter, the interpreters above us will not get their flag set, so that is a bug...
+		p_interpreter.check_infinite_loops_ = check_infinite_loops;
+		community_.check_infinite_loops_ = check_infinite_loops;
+#endif
 	}
 	
 	if (SLiM_verbosity_level >= 1)

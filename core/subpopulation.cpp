@@ -2546,7 +2546,11 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 						EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 						EidosFunctionMap &function_map = community_.FunctionMap();
-						EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+						EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+							, community_.check_infinite_loops_
+#endif
+							);
 						
 						if (mutationEffect_callback->contains_self_)
 							callback_symbols.InitializeConstantSymbolEntry(mutationEffect_callback->SelfSymbolTableEntry());		// define "self"
@@ -2709,7 +2713,11 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(fitnessEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(fitnessEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+						, community_.check_infinite_loops_
+#endif
+						);
 					
 					if (fitnessEffect_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(fitnessEffect_callback->SelfSymbolTableEntry());		// define "self"
@@ -5683,7 +5691,11 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(reproduction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(reproduction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+						, community_.check_infinite_loops_
+#endif
+						);
 					
 					if (reproduction_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(reproduction_callback->SelfSymbolTableEntry());		// define "self"
@@ -5894,7 +5906,11 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(survival_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(survival_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+						, community_.check_infinite_loops_
+#endif
+						);
 					
 					if (survival_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(survival_callback->SelfSymbolTableEntry());		// define "self"

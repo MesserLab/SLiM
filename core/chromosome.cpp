@@ -1118,7 +1118,11 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Haplosome *p_haplo
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(mutation_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(mutation_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+						, community_.check_infinite_loops_
+#endif
+						);
 					
 					if (mutation_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(mutation_callback->SelfSymbolTableEntry());		// define "self"

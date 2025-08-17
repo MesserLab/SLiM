@@ -1196,7 +1196,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [logical$\'a0doMutationRunExperiments\'a0=\'a0T], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [logical$\'a0checkInfiniteLoops\'a0=\'a0T]\cf0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1395,6 +1395,19 @@ If
 \f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
 \f1\fs18 sample()
 \f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
+If 
+\f1\fs18 checkInfiniteLoops
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), SLiM and Eidos will check for infinite loops in various circumstances, such as 
+\f1\fs18 while
+\f2\fs20  and 
+\f1\fs18 do\'96while
+\f2\fs20  loops.  This check is conducted only when running in SLiMgui; at the command line, checks for infinite loops are never conducted regardless of the value of this flag.  When checking is enabled, an error will be raised if any loop executes more than 10 million times, preventing SLiMgui\'92s user interface from freezing.  Normally this is desirable, but if you actually want to execute a loop more than 10 million times, this checking will prove inconvenient.  In that case, you can pass 
+\f1\fs18 F
+\f2\fs20  for 
+\f1\fs18 checkInfiniteLoops
+\f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0

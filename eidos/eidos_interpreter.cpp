@@ -109,8 +109,15 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 #pragma mark EidosInterpreter
 #pragma mark -
 
-EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+	, bool p_check_infinite_loops
+#endif
+)
 	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
+#ifdef SLIMGUI
+		, check_infinite_loops_(p_check_infinite_loops)
+#endif
 {
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
@@ -119,8 +126,15 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 #endif
 }
 
-EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
+EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream
+#ifdef SLIMGUI
+	, bool p_check_infinite_loops
+#endif
+)
 	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
+#ifdef SLIMGUI
+		, check_infinite_loops_(p_check_infinite_loops)
+#endif
 {
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
@@ -1366,7 +1380,11 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 	// Execute inside try/catch so we can handle errors well
 	try
 	{
-		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_);
+		EidosInterpreter interpreter(*p_function_signature.body_script_, new_symbols, function_map_, Context(), execution_output_, error_output_
+#ifdef SLIMGUI
+			, check_infinite_loops_
+#endif
+			);
 		
 		// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 		// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
@@ -5276,8 +5294,20 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 	}
 #endif
 	
+#ifdef SLIMGUI
+	// BCH 17 August 2025: adding a SLiMgui-only check for infinite loops, triggered by looping 10 million times;
+	// note that this check can be turned off with the flag checkInfiniteLoops=F in initializeSLiMOptions()
+	int64_t loop_counter = 0;
+#endif
+	
 	do
 	{
+#ifdef SLIMGUI
+		if (check_infinite_loops_)
+			if (++loop_counter == 10000001)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Do): this do-while loop iterated 10 million times; it might be an infinite loop.  This check can be turned off with initializeSLiMOptions(checkInfiniteLoops=F) if you intend to loop such a large number of times.  This check is only active when running under SLiMgui." << EidosTerminate(p_node->token_);
+#endif
+		
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
 		EidosASTNode *statement_node = p_node->children_[0];
 		
@@ -5368,8 +5398,20 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 	EidosToken *operator_token = p_node->token_;
 	EidosValue_SP result_SP;
 	
+#ifdef SLIMGUI
+	// BCH 17 August 2025: adding a SLiMgui-only check for infinite loops, triggered by looping 10 million times;
+	// note that this check can be turned off with the flag checkInfiniteLoops=F in initializeSLiMOptions()
+	int64_t loop_counter = 0;
+#endif
+	
 	while (true)
 	{
+#ifdef SLIMGUI
+		if (check_infinite_loops_)
+			if (++loop_counter == 10000001)
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_While): this while loop iterated 10 million times; it might be an infinite loop.  This check can be turned off with initializeSLiMOptions(checkInfiniteLoops=F) if you intend to loop such a large number of times.  This check is only active when running under SLiMgui." << EidosTerminate(p_node->token_);
+#endif
+		
 		// test the loop condition
 		EidosASTNode *condition_node = p_node->children_[0];
 		EidosValue_SP condition_result = FastEvaluateNode(condition_node);

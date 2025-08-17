@@ -125,7 +125,11 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 	{
 		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
 		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream()
+#ifdef SLIMGUI
+			, p_interpreter.check_infinite_loops_
+#endif
+			);
 		bool consistent_return_length = true;	// consistent across all values, including NULLs?
 		int return_length = -1;					// what the consistent length is
 		

@@ -452,7 +452,11 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 		[delegate eidosConsoleWindowControllerWillExecuteScript:self];
 	
 	std::ostringstream outstream;	// in SLiMguiLegacy, one output stream for both types of output
-	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream);
+	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream
+#ifdef SLIMGUI
+			, true
+#endif
+			);
 	
 	try
 	{

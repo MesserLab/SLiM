@@ -1428,7 +1428,11 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kLocalVariablesTable, gEidosConstantsSymbolTable);
 	EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
-	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr);	// we're at the command line, so we assume we're using stdout/stderr
+	EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, std::cout, std::cerr
+#ifdef SLIMGUI
+		, false
+#endif
+		);	// we're at the command line, so we assume we're using stdout/stderr
 	
 	value = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 	value->MarkAsConstant();

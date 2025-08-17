@@ -323,7 +323,11 @@ double MutationType::DrawSelectionCoefficient(void) const
 				Community &community = species_.community_;
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &community.SymbolTable());
 				EidosFunctionMap &function_map = community.FunctionMap();
-				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, &community, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+					, community.check_infinite_loops_
+#endif
+					);
 				
 				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 				EidosValue *result = result_SP.get();

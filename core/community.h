@@ -155,6 +155,11 @@ public:
 	bool warned_spatial_map_color_deprecated_ = false;
 	bool warned_spatial_map_image_deprecated_ = false;
 	
+	// checking for infinite loops, configurable with initializeSLiMOptions()
+#ifdef SLIMGUI
+	bool check_infinite_loops_ = true;
+#endif
+	
 	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
 	// to make them easier to find, such checks should always be marked with a comment: // TIMING RESTRICTION
 	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now

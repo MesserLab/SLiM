@@ -1222,7 +1222,11 @@ void Community::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)
 	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &SymbolTable());
 	EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 	
-	EidosInterpreter interpreter(p_script_block->root_node_->children_[0], client_symbols, simulation_functions_, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+	EidosInterpreter interpreter(p_script_block->root_node_->children_[0], client_symbols, simulation_functions_, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+		, check_infinite_loops_
+#endif
+	);
 	
 	try
 	{
@@ -1540,7 +1544,11 @@ EidosValue_SP Community::_EvaluateTickRangeNode(const EidosASTNode *p_node, std:
 	}
 	
 	EidosFunctionMap &function_map = FunctionMap();
-	EidosInterpreter interpreter(p_node, *client_symbols, function_map, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+	EidosInterpreter interpreter(p_node, *client_symbols, function_map, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+		, check_infinite_loops_
+#endif
+		);
 	EidosValue_SP result_SP;
 	
 	// BCH 7/19/2024: Here we enable the use of a special exception, SLiMUndefinedIdentifierException,
@@ -2436,7 +2444,11 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 	EidosFunctionMap &function_map = FunctionMap();
 	
-	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, function_map, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, function_map, this, SLIM_OUTSTREAM, SLIM_ERRSTREAM
+#ifdef SLIMGUI
+		, check_infinite_loops_
+#endif
+		);
 	
 	if (p_script_block->contains_self_)
 		callback_symbols.InitializeConstantSymbolEntry(p_script_block->SelfSymbolTableEntry());		// define "self"

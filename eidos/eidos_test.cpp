@@ -88,7 +88,11 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosVal
 	try {
 		EidosFunctionMap function_map(*EidosInterpreter::BuiltInFunctionMap());
 		std::ostringstream black_hole;
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole
+#ifdef SLIMGUI
+			, true
+#endif
+			);
 		
 		result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 	}
@@ -210,7 +214,11 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 		script.ParseInterpreterBlockToAST(true);
 		
 		std::ostringstream black_hole;
-		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole);
+		EidosInterpreter interpreter(script, symbol_table, function_map, nullptr, black_hole, black_hole
+#ifdef SLIMGUI
+			, true
+#endif
+			);
 		
 		EidosValue_SP result = interpreter.EvaluateInterpreterBlock(true, true);		// print output, return the last statement value
 		

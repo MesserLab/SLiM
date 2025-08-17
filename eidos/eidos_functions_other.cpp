@@ -499,7 +499,11 @@ EidosValue_SP Eidos_ExecuteLambdaInternal(const std::vector<EidosValue_SP> &p_ar
 		if (p_execute_in_outer_scope)
 			symbols = symbols->ParentSymbolTable();
 		
-		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+		EidosInterpreter interpreter(*script, *symbols, p_interpreter.FunctionMap(), p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream()
+#ifdef SLIMGUI
+			, p_interpreter.check_infinite_loops_
+#endif
+			);
 		
 		if (timed)
 		{
@@ -1287,7 +1291,11 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	{
 		EidosSymbolTable &symbols = p_interpreter.SymbolTable();									// use our own symbol table
 		EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+		EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream()
+#ifdef SLIMGUI
+			, p_interpreter.check_infinite_loops_
+#endif
+			);
 		bool null_included = false;				// has a NULL been seen among the return values
 		bool consistent_return_length = true;	// consistent except for any NULLs returned
 		int return_length = -1;					// what the consistent length is
