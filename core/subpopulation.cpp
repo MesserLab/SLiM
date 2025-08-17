@@ -8852,7 +8852,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					Haplosome *haplosome = haplosomes[haplosome_index];
 					
 					if (haplosome->IsNull())
+					{
 						has_null_haplosomes_ = true;
+						break;
+					}
 				}
 			}
 			

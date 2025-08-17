@@ -120,7 +120,7 @@ public:
 	std::vector<Individual *> &individuals_junkyard_;	// NOT OWNED: individuals get put here when we're done with them, so we can reuse them quickly
 	
 	int haplosome_count_per_individual_;					// inherits its value from species_.haplosome_count_per_individual_
-	bool has_null_haplosomes_ = false;					// inherits its value from species_.chromosomes_use_null_haplosomes_ but can additionally be false; use CouldContainNullHaplosomes() to check this flag
+	bool has_null_haplosomes_ = false;					// inherits its value from species_.chromosomes_use_null_haplosomes_ but can additionally be true; use CouldContainNullHaplosomes() to check this flag
 	
 	slim_popsize_t parent_subpop_size_;				// parental subpopulation size
 	slim_popsize_t parent_first_male_index_ = INT_MAX;	// the index of the first male in the parental Haplosome vector (NOT premultiplied by 2!); equal to the number of females

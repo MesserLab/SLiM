@@ -17,6 +17,7 @@ development head (in the master branch):
 	add a (numeric)sign(numeric x) function that returns the sign (-1, 0, 1) of each element
 	calcFST() with a windowed range (start/end) would error; was missing a unit test (#548)
 	calcSFS() with an integer (non-NULL) binCount would error in multi-chromosome models if mutations from multiple chromosomes (or NULL) were given
+	survival() callback that moves individuals did not correctly update has_null_haplosomes_, leading to a crash or a DEBUG raise (#549)
 
 
 version 5.0 (Eidos version 4.0):

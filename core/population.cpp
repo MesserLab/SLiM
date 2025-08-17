@@ -477,6 +477,8 @@ void Population::ResolveSurvivalPhaseMovement(void)
 	}
 	
 	// loop through subpops and append individuals that are arriving; we do this using Subpopulation::MergeReproductionOffspring()
+	int haplosome_count_per_individual = species_.HaplosomeCountPerIndividual();
+	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
@@ -489,6 +491,23 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			// tally this as an incoming migrant for SLiMgui
 			++subpop->gui_migrants_[individual->subpopulation_->subpopulation_id_];
 #endif
+			
+			// has_null_haplosomes_ needs to reflect the presence of null haplosomes
+			if (!subpop->has_null_haplosomes_ && individual->subpopulation_->has_null_haplosomes_)
+			{
+				Haplosome **haplosomes = individual->haplosomes_;
+				
+				for (int haplosome_index = 0; haplosome_index < haplosome_count_per_individual; haplosome_index++)
+				{
+					Haplosome *haplosome = haplosomes[haplosome_index];
+					
+					if (haplosome->IsNull())
+					{
+						subpop->has_null_haplosomes_ = true;
+						break;
+					}
+				}
+			}
 			
 			individual->subpopulation_ = subpop;
 			individual->migrant_ = true;
