@@ -153,7 +153,7 @@ R"V0G0N({
 	{
 		if (start > end)
 			stop("ERROR (calcFST): start must be less than or equal to end.");
-		if ((start < 0) | (end >= length))
+		if ((start < 0) | (end >= chromosome.length))
 			stop("ERROR (calcFST): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
@@ -646,8 +646,9 @@ R"V0G0N({
 	// apart from the case above, we do not need to require a single chromosome;
 	// we work with all mutations in the model, even if the haplosomes supplied
 	// belong to a single chromosome.  this works because mutations that are not
-	// present in any of the supplied haplosomes will have a frequency of zero,
-	// and those will be filtered out below.
+	// present in any of the supplied haplosomes will have a frequency of zero
+	// (or NAN, if the mutation belongs to a different chromosome), and those
+	// will be filtered out below.
 	if (isNULL(muts))
 	{
 		muts = species.mutations;
@@ -666,8 +667,9 @@ R"V0G0N({
 		// the right thing even in multichrom models.
 		freqs = haplosomes.mutationFrequenciesInHaplosomes(muts);
 		
-		// filter out frequencies of zero; they should not influence the SFS.
+		// filter out frequencies of zero or NAN; they should not influence the SFS.
 		freqs = freqs[freqs != 0.0];
+		freqs = freqs[isFinite(freqs)];
 		
 		// discretize the frequencies into the specified number of bins
 		bins = pmin(asInteger(floor(freqs * binCount)), binCount - 1);

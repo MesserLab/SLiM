@@ -2882,6 +2882,9 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(2), p2.haplosomesForChromosomes(2)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(2), p2.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcHeterozygosity(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcHeterozygosity(sim.subpopulations.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
@@ -2890,6 +2893,9 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcHeterozygosity(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals, 2); }", "did not find a mutation type", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcVA(p1.individuals[integer(0)], m1); }", "at least two elements", __LINE__, true, /* p_error_is_in_stop */ true);
@@ -2902,6 +2908,12 @@ initialize() {
 	SLiMAssertScriptRaise(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p1_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch2, h_p2_ch2); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch2, h_p2_ch2, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1, infiniteSites=F); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch2, h_p2_ch2, infiniteSites=F); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch1, h_p2_ch1, 1e5, 2e5, infiniteSites=F); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPairHeterozygosity(h_p1_ch2, h_p2_ch2, 1e5, 2e5, infiniteSites=F); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcWattersonsTheta(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", __LINE__);
@@ -2910,6 +2922,9 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcWattersonsTheta(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcInbreedingLoad(h0); }", "haplosomes must be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcInbreedingLoad(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", __LINE__);
@@ -2928,6 +2943,9 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcPi(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcTajimasD(h0); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)[0]); }", "haplosomes must contain at least four elements", __LINE__, true, /* p_error_is_in_stop */ true);
@@ -2939,6 +2957,25 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(2), NULL, 1e5, 2e5); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcTajimasD(sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
+	
+	// (numeric)calcSFS([Ni$ binCount = NULL], [No<Haplosome> haplosomes = NULL], [No<Mutation> muts = NULL], [string$ metric = "density"], [logical$ fold = F])
+	SLiMAssertScriptRaise(base_script + "calcSFS(); }", "when binCount is NULL", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(2)); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), muts_ch1); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), metric='count'); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(2), metric='count'); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, metric='count'); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), fold=T); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(2), fold=T); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, fold=T); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), metric='count', fold=T); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(2), metric='count', fold=T); }", __LINE__);
+	SLiMAssertScriptSuccess(base_script + "calcSFS(10, sim.subpopulations.haplosomesForChromosomes(1), muts_ch1, metric='count', fold=T); }", __LINE__);
 }
 
 
