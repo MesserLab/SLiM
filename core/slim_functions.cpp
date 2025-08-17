@@ -261,13 +261,14 @@ R"V0G0N({
 		
 		for (chr in chromosomes)
 		{
-			// get the haplosomes we will operate over
+			// get the haplosomes we will operate over, for the focal chromosome
 			haplosomes = individual.haplosomesForChromosomes(chr, includeNulls=F);
 			
 			if (haplosomes.length() != 2)
 				next;
 			
-			het_pos = individual.mutationsFromHaplosomes("heterozygous").position;
+			// get the mutations that are heterozygous, for the focal chromosome
+			het_pos = individual.mutationsFromHaplosomes("heterozygous", chromosomes=chr).position;
 			het_pos_1 = c(-1, het_pos);
 			het_pos_2 = c(het_pos, chr.lastPosition + 1);
 			roh = (het_pos_2 - het_pos_1) - 1;
