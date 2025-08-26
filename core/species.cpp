@@ -514,6 +514,139 @@ void Species::GetChromosomeIndicesFromEidosValue(std::vector<slim_chromosome_ind
 	}
 }
 
+Trait *Species::TraitFromName(const std::string &p_name)
+{
+	auto iter = trait_from_name.find(p_name);
+	
+	if (iter == trait_from_name.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+Trait *Species::TraitFromStringID(EidosGlobalStringID p_string_id)
+{
+	// This is used for (hopefully) very fast lookup of a trait based on a string id in Eidos,
+	// so that the user can do "individual.trait" and get a trait value like a property access
+	auto iter = trait_from_string_id.find(p_string_id);
+	
+	if (iter == trait_from_string_id.end())
+		return nullptr;
+	
+	return (*iter).second;
+}
+
+void Species::MakeImplicitTrait(void)
+{
+	if (has_implicit_trait_)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) implicit trait already exists." << EidosTerminate();
+	if (num_trait_inits_ != 0)
+		EIDOS_TERMINATION << "ERROR (Species::MakeImplicitTrait): (internal error) explicit trait already exists." << EidosTerminate();
+	
+	// Create an implicit Trait object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
+	// Mirroring SLiM versions prior to multi-trait support, the implicit trait is a multiplicative trait with
+	// no baselines (1.0, since it is multiplicative) and a direct effect from phenotype on fitness.
+	std::string trait_name = name_ + "T";
+	Trait *trait = new Trait(*this, trait_name, TraitType::kMultiplicative, 1.0, 1.0, 0.0, true);
+	
+	// Add it to our registry; AddTrait() takes its retain count
+	AddTrait(trait);
+	has_implicit_trait_ = true;
+}
+
+void Species::AddTrait(Trait *p_trait)
+{
+	if (p_trait->Index() != -1)
+		EIDOS_TERMINATION << "ERROR (Species::AddTrait): (internal error) attempt to add a trait with index != -1." << EidosTerminate();
+	
+	std::string name = p_trait->Name();
+	EidosGlobalStringID name_string_id = EidosStringRegistry::GlobalStringIDForString(name);
+	
+	// this is the main registry, and owns the retain count on every trait; it takes the caller's retain here
+	p_trait->SetIndex(traits_.size());
+	traits_.push_back(p_trait);
+	
+	// these are secondary indices that do not keep a retain on the traits
+	trait_from_name.emplace(name, p_trait);
+	trait_from_string_id.emplace(name_string_id, p_trait);
+}
+
+// This returns the trait index for a single trait, represented by an EidosValue with an integer index or a Trait object
+int64_t Species::GetTraitIndexFromEidosValue(EidosValue *trait_value, const std::string &p_method_name)
+{
+	int64_t trait_index;
+	
+	if (trait_value->Type() == EidosValueType::kValueInt)
+	{
+		trait_index = trait_value->IntAtIndex_NOCAST(0, nullptr);
+	}
+	else
+	{
+		const Trait *trait = (const Trait *)trait_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+		
+		if (&trait->species_ != this)
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+		
+		trait_index = trait->Index();
+	}
+	
+	if ((trait_index < 0) || (trait_index >= TraitCount()))
+		EIDOS_TERMINATION << "ERROR (Species::GetTraitIndexFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+	
+	return trait_index;
+}
+
+// This returns trait indices, represented by an EidosValue with integer indices or Trait objects, or NULL for all traits
+void Species::GetTraitIndicesFromEidosValue(std::vector<int64_t> &trait_indices, EidosValue *traits_value, const std::string &p_method_name)
+{
+	EidosValueType traits_value_type = traits_value->Type();
+	int traits_value_count = traits_value->Count();
+	int64_t trait_count = TraitCount();
+	
+	switch (traits_value_type)
+	{
+			// NULL means "all traits", unlike for GetTraitIndexFromEidosValue()
+		case EidosValueType::kValueNULL:
+		{
+			for (int64_t trait_index = 0; trait_index < trait_count; ++trait_index)
+				trait_indices.push_back(trait_index);
+			break;
+		}
+		case EidosValueType::kValueInt:
+		{
+			const int64_t *indices_data = traits_value->IntData();
+			
+			for (int indices_index = 0; indices_index < traits_value_count; indices_index++)
+			{
+				int64_t trait_index = indices_data[indices_index];
+				
+				if ((trait_index < 0) || (trait_index >= TraitCount()))
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): out-of-range trait index in " << p_method_name << "(); trait index " << trait_index << " is outside the range [0, " << (TraitCount() - 1) << "] for the species." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait_index);
+			}
+			break;
+		}
+		case EidosValueType::kValueObject:
+		{
+			Trait * const *traits_data = (Trait * const *)traits_value->ObjectData();
+			
+			for (int traits_index = 0; traits_index < traits_value_count; ++traits_index)
+			{
+				Trait *trait = traits_data[traits_index];
+				
+				if (&trait->species_ != this)
+					EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): " << p_method_name << "() requires trait to belong to the same species as the target mutation type." << EidosTerminate(nullptr);
+				
+				trait_indices.push_back(trait->Index());
+			}
+			break;
+		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Species::GetTraitIndicesFromEidosValue): (internal error) unexpected type for parameter trait." << EidosTerminate();
+	}
+}
+
 // get one line of input, sanitizing by removing comments and whitespace; used only by Species::InitializePopulationFromTextFile
 void GetInputLine(std::istream &p_input_file, std::string &p_line);
 void GetInputLine(std::istream &p_input_file, std::string &p_line)
@@ -1205,10 +1338,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			slim_position_t position = SLiMCastToPositionTypeOrRaise(position_long);
 			
 			iss >> sub;
-			double selection_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			slim_selcoeff_t selection_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
-			iss >> sub;		// dominance coefficient, which is given in the mutation type; we check below that the value read matches the mutation type
-			double dominance_coeff = EidosInterpreter::FloatForString(sub, nullptr);
+			iss >> sub;
+			slim_selcoeff_t dominance_coeff = static_cast<slim_selcoeff_t>(EidosInterpreter::FloatForString(sub, nullptr));
 			
 			iss >> sub;
 			slim_objectid_t subpop_index = SLiMEidosScript::ExtractIDFromStringWithPrefix(sub, 'p', nullptr);
@@ -1236,8 +1369,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -1249,7 +1381,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			mutations.emplace(polymorphism_id, new_mut_index);
@@ -1995,8 +2127,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -2008,7 +2139,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, tick, nucleotide);
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, tick, nucleotide);
 			
 			// read the tag value, if present
 			if (has_object_tags)
@@ -2300,8 +2431,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			if (!mutation_type_ptr) 
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 			
-			if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
-				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+			// BCH 7/2/2025: We no longer check the dominance coefficient against the mutation type, because it is allowed to differ
 			
 			// BCH 9/22/2021: Note that mutation_type_ptr->hemizygous_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 			
@@ -2311,7 +2441,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " is not nucleotide-based, but a nucleotide value for a mutation of this type was supplied." << EidosTerminate();
 			
 			// construct the new substitution
-			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
+			Substitution *new_substitution = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, selection_coeff, dominance_coeff, subpop_index, origin_tick, fixation_tick, nucleotide);
 			
 			// read its tag, if requested
 			if (has_object_tags)
@@ -2448,12 +2578,14 @@ std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick,
 void Species::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
+	// FIXME: doing this here is error-prone; the species object should zero-initialize all of this stuff instead!
 	num_species_inits_ = 0;
 	num_slimoptions_inits_ = 0;
 	num_mutation_type_inits_ = 0;
 	num_ge_type_inits_ = 0;
 	num_sex_inits_ = 0;
 	num_treeseq_inits_ = 0;
+	num_trait_inits_ = 0;
 	num_chromosome_inits_ = 0;
 	
 	num_mutrate_inits_ = 0;
@@ -2463,6 +2595,7 @@ void Species::RunInitializeCallbacks(void)
 	num_ancseq_inits_ = 0;
 	num_hotmap_inits_ = 0;
 	
+	has_implicit_trait_ = false;
 	has_implicit_chromosome_ = false;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set
@@ -2644,7 +2777,7 @@ void Species::RunInitializeCallbacks(void)
 				
 				for (auto muttype : getype->mutation_type_ptrs_)
 				{
-					if ((muttype->dfe_type_ == DFEType::kFixed) && (muttype->dfe_parameters_.size() == 1) && (muttype->dfe_parameters_[0] == 0.0))
+					if (muttype->IsPureNeutralDFE())
 						using_neutral_muttype = true;
 				}
 			}
@@ -9649,7 +9782,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
-			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, community_.Tick(), metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
@@ -9662,7 +9796,8 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// construct the new mutation; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 			MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
 			
-			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);
+			// FIXME MULTITRAIT for now I assume the dominance coeff from the mutation type; needs to be added to MutationMetadataRec
+			Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, chromosome_index, position, metadata.selection_coeff_, mutation_type_ptr->effect_distributions_[0].default_dominance_coeff_ /* metadata.dominance_coeff_ */, metadata.subpop_index_, metadata.origin_tick_, metadata.nucleotide_);	// FIXME MULTITRAIT
 			
 			// add it to our local map, so we can find it when making haplosomes, and to the population's mutation registry
 			p_mutIndexMap[mutation_id] = new_mut_index;

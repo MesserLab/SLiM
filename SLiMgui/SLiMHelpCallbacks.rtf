@@ -438,7 +438,7 @@ In addition to the standard SLiM globals, a
 \f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null haplosomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 As mentioned above, a relative fitness of 
