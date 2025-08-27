@@ -6632,7 +6632,7 @@ The species to which the target object belongs.\
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)abline([Nif\'a0a\'a0=\'a0NULL], [Nif\'a0b\'a0=\'a0NULL], [Nif\'a0h\'a0=\'a0NULL], [Nif\'a0v\'a0=\'a0NULL], [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0])\
+\f3\i0\fs18 \cf2 \'96\'a0(void)abline([Nif\'a0a\'a0=\'a0NULL], [Nif\'a0b\'a0=\'a0NULL], [Nif\'a0h\'a0=\'a0NULL], [Nif\'a0v\'a0=\'a0NULL], [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds one or more straight lines to the plot.  There are three supported modes of operation for this method.  In the first mode, the lines are specified by 
@@ -6654,11 +6654,21 @@ The species to which the target object belongs.\
 \f4\i0 -values of vertical lines.  These modes are mutually exclusive and cannot be mixed within one call to 
 \f3\fs18 abline()
 \f4\fs20 .  The new lines will be plotted on top of any previously added data.\
-The lines will be drawn in colors and line widths specified by 
+The lines will be drawn in colors, line widths, and alpha (opacity) values specified by 
 \f3\fs18 color
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 lwd
-\f4\fs20 , each of which may be either a singleton (to provide one value used for all lines) or a vector equal in length to the number of lines plotted (to provide one value per line).\
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20 , each of which may be either a singleton (to provide one value used for all lines) or a vector equal in length to the number of lines plotted (to provide one value per line).  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.\
 See also 
 \f3\fs18 lines()
 \f4\fs20 , for a more common approach to line plotting.  The 
@@ -6816,7 +6826,7 @@ The
 \f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
+\f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0], [float$\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds line data given by 
@@ -6836,22 +6846,34 @@ The lines will be drawn in color
 \f3\fs18 color
 \f4\fs20 , using line width 
 \f3\fs18 lwd
-\f4\fs20 .  Unlike 
+\f4\fs20 , with opacity 
+\f3\fs18 alpha
+\f4\fs20 .  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  Unlike 
 \f3\fs18 points()
 \f4\fs20  and 
 \f3\fs18 text()
-\f4\fs20 , 
+\f4\fs20 , the parameters 
 \f3\fs18 color
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 lwd
-\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color and width for each line segment, separate calls to 
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color/width/opacity for each line segment, separate calls to 
 \f3\fs18 lines()
-\f4\fs20  are necessary.  See also 
+\f4\fs20  are necessary.   See also 
 \f3\fs18 abline()
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0])\
+\f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds point data given by 
@@ -6883,7 +6905,17 @@ The symbol plotted for each point depends upon the value of
 \f3\fs18 border
 \f4\fs20 , while the filled shape will use color 
 \f3\fs18 color
-\f4\fs20 .  All of these parameters (
+\f4\fs20 .  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  All of these parameters (
 \f3\fs18 symbol
 \f4\fs20 , 
 \f3\fs18 color
@@ -6891,12 +6923,14 @@ The symbol plotted for each point depends upon the value of
 \f3\fs18 border
 \f4\fs20 , 
 \f3\fs18 lwd
-\f4\fs20 , and 
+\f4\fs20 , 
 \f3\fs18 size
+\f4\fs20 , and 
+\f3\fs18 alpha
 \f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds text data given by 
@@ -6922,10 +6956,22 @@ The text will be drawn in color
 \f3\fs18 color
 \f4\fs20 , at the font size given by 
 \f3\fs18 size
-\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Both of these parameters (
+\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  All of these parameters (
 \f3\fs18 color
-\f4\fs20  and 
+\f4\fs20 , 
 \f3\fs18 size
+\f4\fs20 , and 
+\f3\fs18 alpha
 \f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
 The exact position of the text, relative to each point (
 \f1\i x

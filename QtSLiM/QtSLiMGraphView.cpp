@@ -1051,7 +1051,7 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         {
             drawPointSymbol(painter, graphicsBox.center().x(), graphicsBox.center().y(),
                             legendEntry.point_symbol, legendEntry.point_color, legendEntry.point_border,
-                            legendEntry.point_lwd, legendEntry.point_size);
+                            /* alpha */ 1.0, legendEntry.point_lwd, legendEntry.point_size);
             break;
         }
         default: break;
@@ -1866,9 +1866,15 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
     return legend_key;
 }
 
-void QtSLiMGraphView::drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size)
+void QtSLiMGraphView::drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double alpha, double lineWidth, double size)
 {
     size = size * 3.5;       // this scales what size=1 looks like
+    
+    if (alpha != 1.0)
+    {
+        symbolColor.setAlphaF(alpha);
+        borderColor.setAlphaF(alpha);
+    }
     
     switch (symbol)
     {

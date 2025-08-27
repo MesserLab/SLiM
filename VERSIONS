@@ -21,6 +21,7 @@ development head (in the master branch):
 	calcMeanFroh() did not focus on the specified chromosome correctly, in multi-species models, and thus produced incorrect results (#545)
 	add infinite loop checking in Eidos; add [logical$ checkInfiniteLoops = T] option to initializeSLiMOptions() to disable checking for infinite loops in Eidos
 	fix #539, crash reading malformed population file
+	fix #535, allow transparency in plots: added [float alpha = 1.0] to Plot methods abline(), lines(), points(), and text() (required to be singleton for lines())
 
 
 version 5.0 (Eidos version 4.0):

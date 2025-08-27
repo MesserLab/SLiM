@@ -65,14 +65,16 @@ public:
     
     void addABLineData(double *a_values, double *b_values,
                        double *h_values, double *v_values, int data_count,
-                       std::vector<QColor> *color, std::vector<double> *lwd);
+                       std::vector<QColor> *color, std::vector<double> *alpha,
+                       std::vector<double> *lwd);
     void addLineData(double *x_values, double *y_values, int data_count,
-                     std::vector<QColor> *color, std::vector<double> *lwd);
+                     std::vector<QColor> *color, std::vector<double> *alpha,
+                     std::vector<double> *lwd);
     void addPointData(double *x_values, double *y_values, int data_count,
                       std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border,
-                      std::vector<double> *lwd, std::vector<double> *size);
+                      std::vector<double> *alpha, std::vector<double> *lwd, std::vector<double> *size);
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
-                     std::vector<QColor> *color, std::vector<double> *size, double *adj);
+                     std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size, double *adj);
     
     void addLegend(QtSLiM_LegendPosition position, int inset, double labelSize, double lineHeight,
                    double graphicsWidth, double exteriorMargin, double interiorMargin);
@@ -109,6 +111,7 @@ private:
     std::vector<std::vector<int> *> symbol_;            // one symbol per point, OR one symbol for all points
     std::vector<std::vector<QColor> *> color_;          // one color per point, OR one color for all points
     std::vector<std::vector<QColor> *> border_;         // one border color per point, OR one for all points
+    std::vector<std::vector<double> *> alpha_;          // one alpha per point, OR one alpha for all points
     std::vector<std::vector<double> *> line_width_;     // one lwd per point, OR one lwd for all points
     std::vector<std::vector<double> *> size_;           // one size per point, OR one size for all points
     std::vector<double> xadj_;                          // one xadj for all points

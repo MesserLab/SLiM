@@ -255,7 +255,7 @@ protected:
 protected:
     int lineCountForLegend(QtSLiMLegendSpec &legend);
     double graphicsWidthForLegend(QtSLiMLegendSpec &legend, double legendLineHeight);
-    void drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double lineWidth, double size);
+    void drawPointSymbol(QPainter &painter, double x, double y, int symbol, QColor symbolColor, QColor borderColor, double alpha, double lineWidth, double size);
     
 private:
     virtual void paintEvent(QPaintEvent *p_paintEvent) override;

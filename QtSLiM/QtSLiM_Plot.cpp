@@ -113,7 +113,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 	}
 }
 
-//	*********************	– (void)abline([Nif a = NULL], [Nif b = NULL], [Nif h = NULL], [Nif v = NULL], [string color = "red"], [numeric lwd = 1.0])
+//	*********************	– (void)abline([Nif a = NULL], [Nif b = NULL], [Nif h = NULL], [Nif v = NULL], [string color = "red"], [numeric lwd = 1.0], [float alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_abline(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -124,6 +124,7 @@ EidosValue_SP Plot::ExecuteMethod_abline(EidosGlobalStringID p_method_id, const 
     EidosValue *v_value = p_arguments[3].get();
     EidosValue *color_value = p_arguments[4].get();
     EidosValue *lwd_value = p_arguments[5].get();
+    EidosValue *alpha_value = p_arguments[6].get();
     double *a = nullptr, *b = nullptr, *h = nullptr, *v = nullptr;
     int line_count;
     
@@ -225,7 +226,24 @@ EidosValue_SP Plot::ExecuteMethod_abline(EidosGlobalStringID p_method_id, const 
         lwds->push_back(lwd);
     }
     
-    plotview_->addABLineData(a, b, h, v, line_count, colors, lwds);       // takes ownership of buffers
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != line_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires alpha to match the number of lines, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_abline): abline() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    plotview_->addABLineData(a, b, h, v, line_count, colors, alphas, lwds);       // takes ownership of buffers
     
     return gStaticEidosValueVOID;
 }
@@ -553,7 +571,7 @@ EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method
     return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)lines(numeric x, numeric y, [string$ color = "red"], [numeric$ lwd = 1.0])
+//	*********************	– (void)lines(numeric x, numeric y, [string$ color = "red"], [numeric$ lwd = 1.0], [float$ alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -562,6 +580,7 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
     EidosValue *y_value = p_arguments[1].get();
     EidosValue *color_value = p_arguments[2].get();
     EidosValue *lwd_value = p_arguments[3].get();
+    EidosValue *alpha_value = p_arguments[4].get();
     
     // x and y
     int xcount = x_value->Count();
@@ -620,12 +639,22 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
     
     lineWidths->push_back(lwd);
     
-    plotview_->addLineData(x, y, xcount, colors, lineWidths);       // takes ownership of buffers
+    // alpha
+    double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
+    
+    if ((alpha < 0.0) || (alpha > 1.0))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_lines): lines() requires the line width alpha to be in [0, 1]." << EidosTerminate(nullptr);
+    
+    std::vector<double> *lineAlphas = new std::vector<double>;  // we only take a singleton alpha, but the API expects a buffer
+    
+    lineAlphas->push_back(alpha);
+    
+    plotview_->addLineData(x, y, xcount, colors, lineAlphas, lineWidths);       // takes ownership of buffers
     
     return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)points(numeric x, numeric y, [integer symbol = 0], [string color = "red"], [string border = "black"], [numeric lwd = 1.0], [numeric size = 1.0])
+//	*********************	– (void)points(numeric x, numeric y, [integer symbol = 0], [string color = "red"], [string border = "black"], [numeric lwd = 1.0], [numeric size = 1.0], [float alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -637,6 +666,7 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
     EidosValue *border_value = p_arguments[4].get();
     EidosValue *lwd_value = p_arguments[5].get();
     EidosValue *size_value = p_arguments[6].get();
+    EidosValue *alpha_value = p_arguments[7].get();
     
     // x and y
     int xcount = x_value->Count();
@@ -760,12 +790,29 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
         sizes->push_back(size);
     }
     
-    plotview_->addPointData(x, y, xcount, symbols, colors, borders, lwds, sizes);       // takes ownership of buffers
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_points): points() requires alpha to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_points): points() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    plotview_->addPointData(x, y, xcount, symbols, colors, borders, alphas, lwds, sizes);       // takes ownership of buffers
     
     return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)text(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL])
+//	*********************	– (void)text(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL], [float alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -776,6 +823,7 @@ EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const st
     EidosValue *color_value = p_arguments[3].get();
     EidosValue *size_value = p_arguments[4].get();
     EidosValue *adj_value = p_arguments[5].get();
+    EidosValue *alpha_value = p_arguments[6].get();
     
     // x and y
     int xcount = x_value->Count();
@@ -868,7 +916,24 @@ EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const st
         adj[1] = adj_value->NumericAtIndex_NOCAST(1, nullptr);
     }
     
-    plotview_->addTextData(x, y, labels, xcount, colors, sizes, adj);       // takes ownership of buffers
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_text): text() requires alpha to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_text): text() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    plotview_->addTextData(x, y, labels, xcount, colors, alphas, sizes, adj);       // takes ownership of buffers
     
     return gStaticEidosValueVOID;
 }
@@ -933,7 +998,7 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddNumeric_ON("a", gStaticEidosValueNULL)->AddNumeric_ON("b", gStaticEidosValueNULL)
                                   ->AddNumeric_ON("h", gStaticEidosValueNULL)->AddNumeric_ON("v", gStaticEidosValueNULL)
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)));
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_addLegend, kEidosValueMaskVOID))
                                   ->AddString_OSN("position", gStaticEidosValueNULL)->AddInt_OSN("inset", gStaticEidosValueNULL)
                                   ->AddNumeric_OSN("labelSize", gStaticEidosValueNULL)->AddNumeric_OSN("lineHeight", gStaticEidosValueNULL)
@@ -954,17 +1019,17 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_lines, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-                                  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)));
+                                  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_points, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddInt_O("symbol", gStaticEidosValue_Integer0)
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
-                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1)));
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_text, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
-                                  ->AddNumeric_ON("adj", gStaticEidosValueNULL)));
+                                  ->AddNumeric_ON("adj", gStaticEidosValueNULL)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gEidosStr_write, kEidosValueMaskVOID))
                                   ->AddString_S(gEidosStr_filePath)));
 		

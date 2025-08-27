@@ -70,6 +70,9 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     for (std::vector<QColor> *colorbuffer : color_)
         delete colorbuffer;
     
+    for (std::vector<double> *alphabuffer : alpha_)
+        delete alphabuffer;
+    
     for (std::vector<QColor> *borderbuffer : border_)
         delete borderbuffer;
     
@@ -86,6 +89,7 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     labels_.clear();
     symbol_.clear();
     color_.clear();
+    alpha_.clear();
     border_.clear();
     line_width_.clear();
     size_.clear();
@@ -349,7 +353,8 @@ void QtSLiMGraphView_CustomPlot::rescaleAxesForDataRange(void)
 
 void QtSLiMGraphView_CustomPlot::addABLineData(double *a_values, double *b_values,
                                                double *h_values, double *v_values, int data_count,
-                                               std::vector<QColor> *color, std::vector<double> *lwd)
+                                               std::vector<QColor> *color, std::vector<double> *alpha,
+                                               std::vector<double> *lwd)
 {
     if (a_values)
     {
@@ -375,6 +380,7 @@ void QtSLiMGraphView_CustomPlot::addABLineData(double *a_values, double *b_value
     symbol_.push_back(nullptr);             // unused for abline
     color_.push_back(color);
     border_.push_back(nullptr);             // unused for abline
+    alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for abline
     xadj_.push_back(-1);                    // unused for abline
@@ -385,7 +391,8 @@ void QtSLiMGraphView_CustomPlot::addABLineData(double *a_values, double *b_value
 }
 
 void QtSLiMGraphView_CustomPlot::addLineData(double *x_values, double *y_values, int data_count,
-                                             std::vector<QColor> *color, std::vector<double> *lwd)
+                                             std::vector<QColor> *color, std::vector<double> *alpha,
+                                             std::vector<double> *lwd)
 {
     plot_type_.push_back(QtSLiM_CustomPlotType::kLines);
     xdata_.push_back(x_values);
@@ -395,6 +402,7 @@ void QtSLiMGraphView_CustomPlot::addLineData(double *x_values, double *y_values,
     symbol_.push_back(nullptr);             // unused for lines
     color_.push_back(color);
     border_.push_back(nullptr);             // unused for lines
+    alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for lines
     xadj_.push_back(-1);                    // unused for lines
@@ -406,7 +414,7 @@ void QtSLiMGraphView_CustomPlot::addLineData(double *x_values, double *y_values,
 
 void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values, int data_count,
                                               std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border,
-                                              std::vector<double> *lwd, std::vector<double> *size)
+                                              std::vector<double> *alpha, std::vector<double> *lwd, std::vector<double> *size)
 {
     plot_type_.push_back(QtSLiM_CustomPlotType::kPoints);
     xdata_.push_back(x_values);
@@ -416,6 +424,7 @@ void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values
     symbol_.push_back(symbol);
     color_.push_back(color);
     border_.push_back(border);
+    alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(size);
     xadj_.push_back(-1);                    // unused for points
@@ -426,7 +435,8 @@ void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values
 }
 
 void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
-                                             std::vector<QColor> *color, std::vector<double> *size, double *adj)
+                                             std::vector<QColor> *color, std::vector<double> *alpha,
+                                             std::vector<double> *size, double *adj)
 {
     plot_type_.push_back(QtSLiM_CustomPlotType::kText);
     xdata_.push_back(x_values);
@@ -436,6 +446,7 @@ void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values,
     symbol_.push_back(nullptr);             // unused for text
     color_.push_back(color);
     border_.push_back(nullptr);             // unused for text
+    alpha_.push_back(alpha);
     line_width_.push_back(nullptr);         // unused for text
     size_.push_back(size);
     xadj_.push_back(adj[0]);
@@ -550,8 +561,9 @@ void QtSLiMGraphView_CustomPlot::drawABLines(QPainter &painter, QRect interiorRe
     double *adata = xdata_[dataIndex];
     double *bdata = ydata_[dataIndex];
     int lineCount = data_count_[dataIndex];
-    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value of N values
-    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value of N values
+    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineAlphas = *alpha_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value or N values
     
     for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
     {
@@ -569,10 +581,14 @@ void QtSLiMGraphView_CustomPlot::drawABLines(QPainter &painter, QRect interiorRe
             QPointF devicePoint1(plotToDeviceX(user_x1, interiorRect), plotToDeviceY(user_y1, interiorRect));
             QPointF devicePoint2(plotToDeviceX(user_x2, interiorRect), plotToDeviceY(user_y2, interiorRect));
             QColor lineColor = lineColors[lineIndex % lineColors.size()];
+            double lineAlpha = lineAlphas[lineIndex % lineAlphas.size()];
             double lineWidth = lineWidths[lineIndex % lineWidths.size()];
             
             linePath.moveTo(devicePoint1);
             linePath.lineTo(devicePoint2);
+            
+            if (lineAlpha != 1.0)
+                lineColor.setAlphaF(lineAlpha);
             
             painter.strokePath(linePath, QPen(lineColor, lineWidth));
         }
@@ -583,8 +599,9 @@ void QtSLiMGraphView_CustomPlot::drawHLines(QPainter &painter, QRect interiorRec
 {
     double *hdata = xdata_[dataIndex];
     int lineCount = data_count_[dataIndex];
-    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value of N values
-    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value of N values
+    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineAlphas = *alpha_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value or N values
     
     for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
     {
@@ -597,10 +614,14 @@ void QtSLiMGraphView_CustomPlot::drawHLines(QPainter &painter, QRect interiorRec
             QPointF devicePoint1(plotToDeviceX(x0_ - 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
             QPointF devicePoint2(plotToDeviceX(x1_ + 100000.0, interiorRect), roundPlotToDeviceY(user_h, interiorRect));
             QColor lineColor = lineColors[lineIndex % lineColors.size()];
+            double lineAlpha = lineAlphas[lineIndex % lineAlphas.size()];
             double lineWidth = lineWidths[lineIndex % lineWidths.size()];
             
             linePath.moveTo(devicePoint1);
             linePath.lineTo(devicePoint2);
+            
+            if (lineAlpha != 1.0)
+                lineColor.setAlphaF(lineAlpha);
             
             painter.strokePath(linePath, QPen(lineColor, lineWidth));
         }
@@ -611,8 +632,9 @@ void QtSLiMGraphView_CustomPlot::drawVLines(QPainter &painter, QRect interiorRec
 {
     double *vdata = xdata_[dataIndex];
     int lineCount = data_count_[dataIndex];
-    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value of N values
-    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value of N values
+    std::vector<QColor> &lineColors = *color_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineAlphas = *alpha_[dataIndex];           // might be one value or N values
+    std::vector<double> &lineWidths = *line_width_[dataIndex];      // might be one value or N values
     
     for (int lineIndex = 0; lineIndex < lineCount; ++lineIndex)
     {
@@ -625,10 +647,14 @@ void QtSLiMGraphView_CustomPlot::drawVLines(QPainter &painter, QRect interiorRec
             QPointF devicePoint1(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(y0_ - 100000.0, interiorRect));
             QPointF devicePoint2(roundPlotToDeviceX(user_v, interiorRect), plotToDeviceY(y1_ + 100000.0, interiorRect));
             QColor lineColor = lineColors[lineIndex % lineColors.size()];
+            double lineAlpha = lineAlphas[lineIndex % lineAlphas.size()];
             double lineWidth = lineWidths[lineIndex % lineWidths.size()];
             
             linePath.moveTo(devicePoint1);
             linePath.lineTo(devicePoint2);
+            
+            if (lineAlpha != 1.0)
+                lineColor.setAlphaF(lineAlpha);
             
             painter.strokePath(linePath, QPen(lineColor, lineWidth));
         }
@@ -640,34 +666,68 @@ void QtSLiMGraphView_CustomPlot::drawLines(QPainter &painter, QRect interiorRect
     double *xdata = xdata_[dataIndex];
     double *ydata = ydata_[dataIndex];
     int pointCount = data_count_[dataIndex];
-    QColor lineColor = (*color_[dataIndex])[0];         // guaranteed to be only one value, for plotLines()
-    double lineWidth = (*line_width_[dataIndex])[0];    // guaranteed to be only one value, for plotLines()
+    QColor lineColor = (*color_[dataIndex])[0];                 // guaranteed to be only one value, for plotLines()
+    double lineAlpha = (*alpha_[dataIndex])[0];                 // guaranteed to be only one value, for plotLines()
+    double lineWidth = (*line_width_[dataIndex])[0];            // guaranteed to be only one value, for plotLines()
     
-    QPainterPath linePath;
-    bool startedLine = false;
-    
-    for (int pointIndex = 0; pointIndex < pointCount; ++pointIndex)
+    if (lineAlpha != 1.0)
     {
-        double user_x = xdata[pointIndex];
-        double user_y = ydata[pointIndex];
+        // This strokes each line segment as a separate path, so that when successive line segments cross, the alpha
+        // value affects their area of overlap.  This is arguably more likely to be what the user expects.  However,
+        // it doesn't draw the line joins nicely, with bevels and such, so the line path as a whole might less pretty.
+        // We therefore use this drawing method only when alpha is not 1.0.
+        lineColor.setAlphaF(lineAlpha);
         
-        if (!std::isnan(user_x) && !std::isnan(user_y))
+        for (int lineIndex = 0; lineIndex < pointCount - 1; ++lineIndex)
         {
-            QPointF devicePoint(plotToDeviceX(user_x, interiorRect), plotToDeviceY(user_y, interiorRect));
+            QPainterPath linePath;
+            double user_x1 = xdata[lineIndex];
+            double user_y1 = ydata[lineIndex];
+            double user_x2 = xdata[lineIndex + 1];
+            double user_y2 = ydata[lineIndex + 1];
             
-            if (startedLine)    linePath.lineTo(devicePoint);
-            else                linePath.moveTo(devicePoint);
-            
-            startedLine = true;
-        }
-        else
-        {
-            // a NAN value for x or y interrupts the line being plotted; INF values are plotted, but don't affect axis ranges
-            startedLine = false;
+            if (!std::isnan(user_x1) && !std::isnan(user_y1) && !std::isnan(user_x2) && !std::isnan(user_y2))
+            {
+                QPointF devicePoint1(plotToDeviceX(user_x1, interiorRect), plotToDeviceY(user_y1, interiorRect));
+                QPointF devicePoint2(plotToDeviceX(user_x2, interiorRect), plotToDeviceY(user_y2, interiorRect));
+                
+                linePath.moveTo(devicePoint1);
+                linePath.lineTo(devicePoint2);
+                painter.strokePath(linePath, QPen(lineColor, lineWidth));
+            }
         }
     }
-    
-    painter.strokePath(linePath, QPen(lineColor, lineWidth));
+    else
+    {
+        QPainterPath linePath;
+        bool startedLine = false;
+        
+        for (int lineIndex = 0; lineIndex < pointCount; ++lineIndex)
+        {
+            double user_x = xdata[lineIndex];
+            double user_y = ydata[lineIndex];
+            
+            if (!std::isnan(user_x) && !std::isnan(user_y))
+            {
+                QPointF devicePoint(plotToDeviceX(user_x, interiorRect), plotToDeviceY(user_y, interiorRect));
+                
+                if (startedLine)    linePath.lineTo(devicePoint);
+                else                linePath.moveTo(devicePoint);
+                
+                startedLine = true;
+            }
+            else
+            {
+                // a NAN value for x or y interrupts the line being plotted; INF values are plotted, but don't affect axis ranges
+                startedLine = false;
+            }
+        }
+        
+        if (lineAlpha != 1.0)
+            lineColor.setAlphaF(lineAlpha);
+        
+        painter.strokePath(linePath, QPen(lineColor, lineWidth));
+    }
 }
 
 void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRect, int dataIndex)
@@ -678,6 +738,7 @@ void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRec
     std::vector<int> &symbols = *symbol_[dataIndex];
     std::vector<QColor> &symbolColors = *color_[dataIndex];
     std::vector<QColor> &borderColors = *border_[dataIndex];
+    std::vector<double> &alphas = *alpha_[dataIndex];
     std::vector<double> &lineWidths = *line_width_[dataIndex];
     std::vector<double> &sizes = *size_[dataIndex];
     
@@ -688,6 +749,7 @@ void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRec
         int symbol = symbols[pointIndex % symbols.size()];
         QColor symbolColor = symbolColors[pointIndex % symbolColors.size()];
         QColor borderColor = borderColors[pointIndex % borderColors.size()];
+        double alpha = alphas[pointIndex % alphas.size()];
         double lineWidth = lineWidths[pointIndex % lineWidths.size()];
         double size = sizes[pointIndex % sizes.size()];
         
@@ -697,7 +759,7 @@ void QtSLiMGraphView_CustomPlot::drawPoints(QPainter &painter, QRect interiorRec
             double x = plotToDeviceX(user_x, interiorRect);
             double y = plotToDeviceY(user_y, interiorRect);
             
-            drawPointSymbol(painter, x, y, symbol, symbolColor, borderColor, lineWidth, size);
+            drawPointSymbol(painter, x, y, symbol, symbolColor, borderColor, alpha, lineWidth, size);
         }
     }
 }
@@ -709,6 +771,7 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
     std::vector<QString> &labels = *labels_[dataIndex];
     int pointCount = data_count_[dataIndex];
     std::vector<QColor> &textColors = *color_[dataIndex];
+    std::vector<double> &textAlphas = *alpha_[dataIndex];
     std::vector<double> &pointSizes = *size_[dataIndex];
     double xadj = xadj_[dataIndex];
     double yadj = yadj_[dataIndex];
@@ -739,6 +802,10 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
             }
             
             QColor textColor = textColors[pointIndex % textColors.size()];
+            double alpha = textAlphas[pointIndex % textAlphas.size()];
+            
+            if (alpha != 1.0)
+                textColor.setAlphaF(alpha);
             
             painter.setPen(textColor);
             
