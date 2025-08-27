@@ -446,7 +446,11 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
     parentSLiMWindow->willExecuteScript();
 	
     std::ostringstream outstream;	// in the Eidos console, one output stream for both types of output
-	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream);
+	EidosInterpreter interpreter(script, *global_symbols, *global_function_map, eidos_context, outstream, outstream
+#ifdef SLIMGUI
+            , true
+#endif
+            );
 	
 	try
 	{
