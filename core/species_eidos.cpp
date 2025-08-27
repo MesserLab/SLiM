@@ -266,9 +266,9 @@ EidosValue_SP Species::ExecuteContextFunction_initializeChromosome(const std::st
 		 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
 		 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
 		 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
-		 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+		 //(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||	// now allowing; see issue #534
 		 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
-		 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+		 //(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||		// now allowing; see issue #534
 		 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
 		 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeChromosome): chromosome type '" << chromosome_type << "' is only allowed in sexual models; call initializeSex() to enable sex first." << EidosTerminate();
@@ -2292,7 +2292,7 @@ EidosValue_SP Species::ExecuteMethod_addPatternForNull(EidosGlobalStringID p_met
 		(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
 		(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
 		(chromosome_type == ChromosomeType::kHNull_HaploidAutosomeWithNull))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosomes for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addPatternForNull): addPatternForNull() cannot be used with chromosome type '" << chromosome_type << "', since all individuals must possess at least one non-null haplosome for that chromosome type.  For greater flexibility, use chromosome type 'A' or 'H'." << EidosTerminate();
 	
 	// check that the offspring sex is compatible with having all null haplosomes for this chromosome
 	if ((sex == IndividualSex::kUnspecified) || (sex == IndividualSex::kFemale))

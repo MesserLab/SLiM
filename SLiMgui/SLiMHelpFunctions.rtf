@@ -176,6 +176,12 @@ The
 
 \f1\fs18 "H"
 \f2\fs20  (haploid), specifying a haploid autosomal chromosome that recombines in biparental crosses.\
+
+\f1\fs18 "HF"
+\f2\fs20  (haploid female-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the first (female) parent in biparental crosses (also allowed in hermaphroditic models for inheritance that is always from the first parent).\
+
+\f1\fs18 "HM"
+\f2\fs20  (haploid male-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the second (male) parent in biparental crosses (also allowed in hermaphroditic models for inheritance that is always from the second parent).\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 Some sex-chromosome types are supported only in sexual models:\
 \pard\pardeftab720\li907\ri360\sa60\partightenfactor0
@@ -195,14 +201,8 @@ The
 \cf2 And there are some haploid chromosome types that are also supported only in sexual models:\
 \pard\pardeftab720\li907\ri360\sa60\partightenfactor0
 
-\f1\fs18 \cf2 "HF"
-\f2\fs20  (haploid female-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the first (female) parent in biparental crosses.\
-
-\f1\fs18 "FL"
+\f1\fs18 \cf2 "FL"
 \f2\fs20  (female line), specifying a haploid autosomal chromosome that is inherited only by females, from the female parent, and is represented by a null haplosome in males.\
-
-\f1\fs18 "HM"
-\f2\fs20  (haploid male-inherited), specifying a haploid autosomal chromosome that is inherited by both sexes from the second (male) parent in biparental crosses.\
 
 \f1\fs18 "ML"
 \f2\fs20  (male line), specifying a haploid autosomal chromosome that is inherited only by males, from the male parent, and is represented by a null haplosome in females.\
@@ -931,8 +931,7 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1328,7 +1327,6 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1408,7 +1406,6 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

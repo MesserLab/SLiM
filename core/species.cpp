@@ -3820,9 +3820,9 @@ void Species::Species_CheckIntegrity(void)
 			 (chromosome_type == ChromosomeType::kY_YSexChromosome) ||
 			 (chromosome_type == ChromosomeType::kZ_ZSexChromosome) ||
 			 (chromosome_type == ChromosomeType::kW_WSexChromosome) ||
-			 (chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||
+			 //(chromosome_type == ChromosomeType::kHF_HaploidFemaleInherited) ||		// now allowing; see issue #534
 			 (chromosome_type == ChromosomeType::kFL_HaploidFemaleLine) ||
-			 (chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||
+			 //(chromosome_type == ChromosomeType::kHM_HaploidMaleInherited) ||			// now allowing; see issue #534
 			 (chromosome_type == ChromosomeType::kML_HaploidMaleLine) ||
 			 (chromosome_type == ChromosomeType::kNullY_YSexChromosomeWithNull)))
 			EIDOS_TERMINATION << "ERROR (Species::Species_CheckIntegrity): (internal error) chromosome type '" << chromosome_type << "' not allowed in non-sexual models." << EidosTerminate();

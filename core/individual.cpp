@@ -361,6 +361,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		case ChromosomeType::kHM_HaploidMaleInherited:
 		{
 			// inherited from the male parent, so only the male (second) parents count
+			// BCH 27 August 2025: Note that HM is now legal in non-sexual models; "male" just means "second"
 			A_G3 = A_G4;
 			A_P1 = A_P2;
 			A_G1 = A_G3;
@@ -424,6 +425,7 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 		case ChromosomeType::kHF_HaploidFemaleInherited:
 		{
 			// inherited from the female parent, so only the female (first) parents count
+			// BCH 27 August 2025: Note that HF is now legal in non-sexual models; "female" just means "first"
 			A_G2 = A_G1;
 			A_P2 = A_P1;
 			A_G3 = A_G1;
