@@ -24,6 +24,7 @@ development head (in the master branch):
 	fix #535, allow transparency in plots: added [float alpha = 1.0] to Plot methods abline(), lines(), points(), and text() (required to be singleton for lines())
 	fix #547, mutation trajectories plot is confusing in the way it starts collecting data at the time it is opened
 	fix #534, support uniparentally-transmitted chromosomes in hermaphrodite populations
+	add new Plot legendTitleEntry() method for making a title line in a plot legend
 
 
 version 5.0 (Eidos version 4.0):

@@ -6826,6 +6826,16 @@ The
 \f4\fs20 .  If one or more other legend entries already exist with the same label, the new entry will be drawn on top of the previously set entries for that label (allowing legend entries that display both a line and a point, for example).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)legendTitleEntry(string$\'a0label)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a legend entry with text 
+\f3\fs18 label
+\f4\fs20  to the plot.  The entry will be displayed as a title, left-aligned with no graphical representation (no line, point, or swatch).  A label of 
+\f3\fs18 ""
+\f4\fs20 , the empty string, is allowed and will produce a blank line in the legend (for spacing).  Note that title entries always produce their own separate line in the legend; they do not participate in the overdrawing scheme used for other types of legend entries.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)lines(numeric\'a0x, numeric\'a0y, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0], [float$\'a0alpha\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

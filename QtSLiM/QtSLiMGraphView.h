@@ -43,7 +43,8 @@ class QPushButton;
 // Legend support
 enum class QtSLiM_LegendEntryType : int {
     kUninitialized = -1,
-    kSwatch = 0,
+    kTitle = 0,
+    kSwatch,
     kLine,
     kPoint
 };
@@ -81,6 +82,10 @@ public:
     // constructor for an entry that shows a point symbol
     QtSLiMLegendEntry(QString p_label, int p_point_symbol, QColor p_point_color, QColor p_point_border, double p_point_lwd, double p_point_size) :
         label(p_label), entry_type(QtSLiM_LegendEntryType::kPoint), point_symbol(p_point_symbol), point_color(p_point_color), point_border(p_point_border), point_lwd(p_point_lwd), point_size(p_point_size) {};
+    
+    // constructor for an entry that shows a title
+    QtSLiMLegendEntry(QString p_label) :
+        label(p_label), entry_type(QtSLiM_LegendEntryType::kTitle) {};
 };
 
 typedef std::vector<QtSLiMLegendEntry> QtSLiMLegendSpec;

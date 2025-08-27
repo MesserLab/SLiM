@@ -104,7 +104,8 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
         case gID_axis:                  return ExecuteMethod_axis(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:       return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:      return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_legendSwatchEntry:     return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
+        case gID_legendSwatchEntry:     return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
+        case gID_legendTitleEntry:      return ExecuteMethod_legendTitleEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
 		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
@@ -534,7 +535,7 @@ EidosValue_SP Plot::ExecuteMethod_legendPointEntry(EidosGlobalStringID p_method_
         EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendPointEntry): legendPointEntry() requires the elements of size to be in (0, 1000]." << EidosTerminate(nullptr);
     
     if (!plotview_->legendAdded())
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendLineEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendPointEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
     
     plotview_->addLegendPointEntry(label, symbol, color, border, lwd, size);
     
@@ -564,9 +565,27 @@ EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method
     QColor color(colorR, colorG, colorB, 255);
     
     if (!plotview_->legendAdded())
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendLineEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendSwatchEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
     
     plotview_->addLegendSwatchEntry(label, color);
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)legendTitleEntry(string$ label)
+//
+EidosValue_SP Plot::ExecuteMethod_legendTitleEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *label_value = p_arguments[0].get();
+    
+    // label
+    QString label = QString::fromStdString(label_value->StringAtIndex_NOCAST(0, nullptr));
+    
+    if (!plotview_->legendAdded())
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_legendTitleEntry): addLegend() must be called before adding legend entries." << EidosTerminate(nullptr);
+    
+    plotview_->addLegendTitleEntry(label);
     
     return gStaticEidosValueVOID;
 }
@@ -1017,6 +1036,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddNumeric_OS("size", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_legendSwatchEntry, kEidosValueMaskVOID))
                                   ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_legendTitleEntry, kEidosValueMaskVOID))
+                                  ->AddString_S("label")));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_lines, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));

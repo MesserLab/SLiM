@@ -489,6 +489,12 @@ void QtSLiMGraphView_CustomPlot::addLegendSwatchEntry(QString label, QColor colo
     update();
 }
 
+void QtSLiMGraphView_CustomPlot::addLegendTitleEntry(QString label)
+{
+    legend_entries_.emplace_back(label);
+    update();
+}
+
 QString QtSLiMGraphView_CustomPlot::graphTitle(void)
 {
     return title_;

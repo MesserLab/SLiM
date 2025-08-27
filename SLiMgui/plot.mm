@@ -100,6 +100,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gID_legendLineEntry:		return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:		return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendSwatchEntry:		return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
+		case gID_legendTitleEntry:		return ExecuteMethod_legendTitleEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
 		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
@@ -156,6 +157,15 @@ EidosValue_SP Plot::ExecuteMethod_legendPointEntry(EidosGlobalStringID p_method_
 //	*********************	– (void)legendSwatchEntry(...)
 //
 EidosValue_SP Plot::ExecuteMethod_legendSwatchEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)legendTitleEntry(...)
+//
+EidosValue_SP Plot::ExecuteMethod_legendTitleEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
@@ -256,6 +266,8 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddNumeric_OS("size", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_legendSwatchEntry, kEidosValueMaskVOID))
 							  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_legendTitleEntry, kEidosValueMaskVOID))
+							  ->AddString_S("label"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_lines, kEidosValueMaskVOID))
 							  ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_points, kEidosValueMaskVOID))

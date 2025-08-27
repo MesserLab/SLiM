@@ -856,14 +856,22 @@ int QtSLiMGraphView::lineCountForLegend(QtSLiMLegendSpec &legend)
     
     for (const QtSLiMLegendEntry &legendEntry : legend)
     {
-        QString labelString = legendEntry.label;
-        auto existingEntry = displayedLabels.find(labelString);
-        
-        if (existingEntry == displayedLabels.end())
+        if (legendEntry.entry_type == QtSLiM_LegendEntryType::kTitle)
         {
-            // not a duplicate
-            displayedLabels.insert(labelString, 0);
+            // title items do not participate in the duplicate process; they always stand alone
             lineCount++;
+        }
+        else
+        {
+            QString labelString = legendEntry.label;
+            auto existingEntry = displayedLabels.find(labelString);
+            
+            if (existingEntry == displayedLabels.end())
+            {
+                // not a duplicate
+                displayedLabels.insert(labelString, 0);
+                lineCount++;
+            }
         }
     }
     
@@ -922,7 +930,11 @@ QSizeF QtSLiMGraphView::legendSize(QPainter &painter)
         
         // incorporate the width of the label into the width of the legend
         QRectF labelBoundingBox = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelString);
-        double labelWidth = legendGraphicsWidth + legendInteriorMargin + labelBoundingBox.width();
+        double labelWidth = labelBoundingBox.width();
+        
+        // items other than title entries have a graphics box and an interior margin as well
+        if (legendEntry.entry_type != QtSLiM_LegendEntryType::kTitle)
+            labelWidth += legendGraphicsWidth + legendInteriorMargin;
         
         labelWidth = SLIM_SCREEN_ROUND(labelWidth);
         
@@ -983,18 +995,29 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         
         // check for duplicate labels, which get uniqued into a single line
         int positionIndex;
-        auto existingEntry = displayedLabels.find(labelString);
+        bool isDuplicate = false;
         
-        if (existingEntry == displayedLabels.end())
+        if (legendEntry.entry_type == QtSLiM_LegendEntryType::kTitle)
         {
-            // not a duplicate
+            // title items do not participate in the duplicate process; they always stand alone
             positionIndex = (nextLinePosition--);
-            displayedLabels.insert(labelString, positionIndex);
         }
         else
         {
-            // duplicate; use the previously determined position
-            positionIndex = existingEntry.value();
+            auto existingEntry = displayedLabels.find(labelString);
+            
+            if (existingEntry == displayedLabels.end())
+            {
+                // not a duplicate
+                positionIndex = (nextLinePosition--);
+                displayedLabels.insert(labelString, positionIndex);
+            }
+            else
+            {
+                // duplicate; use the previously determined position
+                positionIndex = existingEntry.value();
+                isDuplicate = true;
+            }
         }
         
         QRectF entryBox(legendRect.x(), legendRect.y() + positionIndex * (legendLineHeight + legendInteriorMargin), legendRect.width(), legendLineHeight);
@@ -1007,6 +1030,12 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         // draw the graphics in graphicsBox
         switch (legendEntry.entry_type)
         {
+        case QtSLiM_LegendEntryType::kTitle:
+        {
+            // use the full entry box for title items
+            labelBox = entryBox;
+            break;
+        }
         case QtSLiM_LegendEntryType::kSwatch:
         {
             QRectF swatchBox = graphicsBox;
@@ -1058,7 +1087,7 @@ void QtSLiMGraphView::drawLegend(QPainter &painter, QRectF legendRect)
         }
         
         // if the entry is not a duplicate, draw the text label
-        if (existingEntry == displayedLabels.end())
+        if (!isDuplicate)
         {
             double labelX = labelBox.x();
             double labelY = labelBox.y() + labelVerticalAdjust;

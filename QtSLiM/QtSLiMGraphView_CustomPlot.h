@@ -81,6 +81,7 @@ public:
     void addLegendLineEntry(QString label, QColor color, double lwd);
     void addLegendPointEntry(QString label, int symbol, QColor color, QColor border, double lwd, double size);
     void addLegendSwatchEntry(QString label, QColor color);
+    void addLegendTitleEntry(QString label);
     
     virtual QString graphTitle(void) override;
     virtual QString aboutString(void) override;
