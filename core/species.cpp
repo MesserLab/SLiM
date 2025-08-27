@@ -1312,7 +1312,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			if (!subpop)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced subpopulation p" << subpop_id << " not defined." << EidosTerminate();
 			
-			if (individual_index_long > subpop->parent_subpop_size_)
+			if (individual_index_long >= subpop->parent_subpop_size_)
 				EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): referenced individual i" << individual_index_long << " is out of range." << EidosTerminate();
 			slim_popsize_t individual_index = static_cast<slim_popsize_t>(individual_index_long);
 			

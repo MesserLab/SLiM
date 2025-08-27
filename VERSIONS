@@ -20,6 +20,7 @@ development head (in the master branch):
 	survival() callback that moves individuals did not correctly update has_null_haplosomes_, leading to a crash or a DEBUG raise (#549)
 	calcMeanFroh() did not focus on the specified chromosome correctly, in multi-species models, and thus produced incorrect results (#545)
 	add infinite loop checking in Eidos; add [logical$ checkInfiniteLoops = T] option to initializeSLiMOptions() to disable checking for infinite loops in Eidos
+	fix #539, crash reading malformed population file
 
 
 version 5.0 (Eidos version 4.0):
