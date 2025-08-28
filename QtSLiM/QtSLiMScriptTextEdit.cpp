@@ -101,6 +101,11 @@ void QtSLiMTextEdit::selfInit(void)
     connect(this, &QPlainTextEdit::selectionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     connect(this, &QPlainTextEdit::cursorPositionChanged, this, &QtSLiMTextEdit::updateStatusFieldFromSelection);
     
+    // BCH 28 August 2025: get rid of the annoying insertion point remnant shown briefly when the selection changes
+    // this is a dangerous change since it could, if there is a bug somewhere, make the insertion point disappear!
+    connect(this, &QPlainTextEdit::selectionChanged, this, [this]() { if (textCursor().hasSelection()) setCursorWidth(0); else setCursorWidth(1); });
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() { if (textCursor().hasSelection()) setCursorWidth(0); else setCursorWidth(1); });
+    
     // Wire up to change the font when the display font pref changes
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
     
@@ -2525,7 +2530,9 @@ public:
 protected:
     virtual bool event(QEvent *p_event) override;
     virtual void paintEvent(QPaintEvent *p_paintEvent) override { codeEditor->lineNumberAreaPaintEvent(p_paintEvent); }
-    virtual void mousePressEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseEvent(p_mouseEvent); }
+    virtual void mousePressEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMousePressEvent(p_mouseEvent); }
+    virtual void mouseMoveEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseMoveEvent(p_mouseEvent); }
+    virtual void mouseReleaseEvent(QMouseEvent *p_mouseEvent) override { codeEditor->lineNumberAreaMouseReleaseEvent(p_mouseEvent); }
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override { codeEditor->lineNumberAreaContextMenuEvent(p_event); }
     virtual void wheelEvent(QWheelEvent *p_wheelEvent) override { codeEditor->lineNumberAreaWheelEvent(p_wheelEvent); }
 
@@ -2583,8 +2590,10 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     connect(this->document(), SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
     connect(this->verticalScrollBar(), SIGNAL(valueChanged(int)), this, SLOT(updateLineNumberArea(int)));
     connect(this, SIGNAL(textChanged()), this, SLOT(updateLineNumberArea()));
+    connect(this, SIGNAL(selectionChanged()), this, SLOT(updateLineNumberArea()));
     connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(updateLineNumberArea()));
     
+    connect(this, &QtSLiMScriptTextEdit::selectionChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
     connect(this, &QtSLiMScriptTextEdit::cursorPositionChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMScriptTextEdit::highlightCurrentLine);
     
@@ -2938,6 +2947,43 @@ void QtSLiMScriptTextEdit::toggleDebuggingForLine(int lineNumber)
     updateDebugPoints();
 }
 
+void QtSLiMScriptTextEdit::trackLineSelection(int lineNumber, int anchorLineNumber)
+{
+    QTextDocument *doc = document();
+    QTextBlock block = doc->findBlockByNumber(lineNumber);
+    QTextCursor block_tc(block);
+    QTextBlock anchor_block = doc->findBlockByNumber(anchorLineNumber);
+    QTextCursor anchor_tc(anchor_block);
+    
+    block_tc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor, 1);
+    block_tc.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+    
+    int block_start = block_tc.selectionStart();
+    int block_end = block_tc.selectionEnd();
+    
+    anchor_tc.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor, 1);
+    anchor_tc.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+    
+    int anchor_start = anchor_tc.selectionStart();
+    int anchor_end = anchor_tc.selectionEnd();
+    
+    QTextCursor selection_tc(anchor_tc);
+    
+    if (anchor_start <= block_start)
+    {
+        // the anchor is above the final line, so select from the anchor start to the final end
+        selection_tc.setPosition(block_end, QTextCursor::KeepAnchor);
+    }
+    else
+    {
+        // the anchor is below the final line, so select from the anchor end to the final start
+        selection_tc.setPosition(anchor_end, QTextCursor::MoveAnchor);
+        selection_tc.setPosition(block_start, QTextCursor::KeepAnchor);
+    }
+    
+    setTextCursor(selection_tc);
+}
+
 void QtSLiMScriptTextEdit::updateDebugPoints(void)
 {
     // prevent re-entrancy
@@ -3066,7 +3112,22 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
         selection.format.setBackground(inDarkMode ? lineHighlightColor_DARK : lineHighlightColor);
         selection.format.setProperty(QTextFormat::FullWidthSelection, true);
         selection.cursor = textCursor();
-        selection.cursor.clearSelection();
+        
+        if (selection.cursor.hasSelection())
+        {
+            // with a selection, we want to try to highlight the appropriate range
+            // if the selection ends at a newline, we don't want to highlight the
+            // next line; want want to highlight the lines that contain visible text
+            int start = selection.cursor.selectionStart();
+            
+            selection.cursor.setPosition(start, QTextCursor::MoveAnchor);
+            
+            // still have a movement bug when the selection changes, the highlight doesn't update correctly in some cases
+            // check when/how the message is sent
+        }
+        
+        qDebug() << "highlightCurrentLine() with position" << selection.cursor.selectionStart();
+        
         extra_selections.append(selection);
     }
     
@@ -3272,28 +3333,11 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     painter.restore();
 }
 
-void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
+int QtSLiMScriptTextEdit::_blockNumberForLocalY(QPointF localPos)
 {
-    if (lineNumberAreaBugWidth == 0)
-        return;
-    
-    // For some reason, Qt calls mousePressEvent() first for control-clicks and right-clicks,
-    // and *then* calls contextMenuEvent(), so we need to detect the context menu situation
-    // and return without doing anything.  Note that Qt::RightButton is set for control-clicks!
-    if (p_mouseEvent->button() == Qt::RightButton)
-        return;
-        
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QPointF localPos = p_mouseEvent->localPos();
-#else
-    QPointF localPos = p_mouseEvent->position();
-#endif
     qreal localY = localPos.y();
     
     //qDebug() << "localY ==" << localY;
-    
-    if ((localPos.x() < 0) || (localPos.x() >= lineNumberAreaBugWidth + 2))     // +2 for a little slop
-            return;
     
     // Find the position of the click in the document.  We loop through the blocks manually.
     QTextBlock block = firstVisibleBlock();
@@ -3307,12 +3351,11 @@ void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
         {
             if ((localY >= top) && (localY <= bottom))
             {
-                toggleDebuggingForLine(blockNumber);
-                break;
+                return blockNumber;
             }
             else if (localY < top)
             {
-                break;
+                return -1;
             }
         }
         
@@ -3321,6 +3364,89 @@ void QtSLiMScriptTextEdit::lineNumberAreaMouseEvent(QMouseEvent *p_mouseEvent)
         bottom = top + qRound(blockBoundingRect(block).height());
         ++blockNumber;
     }
+    
+    return -1;
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaMousePressEvent(QMouseEvent *p_mouseEvent)
+{
+    if (lineNumberAreaBugWidth == 0)
+        return;
+    
+    // For some reason, Qt calls mousePressEvent() first for control-clicks and right-clicks,
+    // and *then* calls contextMenuEvent(), so we need to detect the context menu situation
+    // and return without doing anything.  Note that Qt::RightButton is set for control-clicks!
+    if (p_mouseEvent->button() == Qt::RightButton)
+        return;
+    
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    QPointF localPos = p_mouseEvent->localPos();
+#else
+    QPointF localPos = p_mouseEvent->position();
+#endif
+    
+    if (localPos.x() < 0)
+        return;
+    
+    int blockNumber = _blockNumberForLocalY(localPos);
+    
+    if (blockNumber != -1)
+    {
+        if (localPos.x() >= lineNumberAreaBugWidth)
+        {
+            // This is a click in the line number area, so select the line
+            trackingLineSelection = true;
+            trackingLineAnchor = blockNumber;
+            
+            trackLineSelection(blockNumber, trackingLineAnchor);
+        }
+        else
+        {
+            // This is a click in the debug point column, so toggle debugging
+            toggleDebuggingForLine(blockNumber);
+        }
+    }
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaMouseMoveEvent(QMouseEvent *p_mouseEvent)
+{
+    if (!trackingLineSelection)
+        return;
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    QPointF localPos = p_mouseEvent->localPos();
+#else
+    QPointF localPos = p_mouseEvent->position();
+#endif
+    
+    int blockNumber = _blockNumberForLocalY(localPos);
+    
+    if (blockNumber != -1)
+    {
+        trackLineSelection(blockNumber, trackingLineAnchor);
+    }
+}
+
+void QtSLiMScriptTextEdit::lineNumberAreaMouseReleaseEvent(QMouseEvent *p_mouseEvent)
+{
+    if (!trackingLineSelection)
+        return;
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+    QPointF localPos = p_mouseEvent->localPos();
+#else
+    QPointF localPos = p_mouseEvent->position();
+#endif
+    
+    int blockNumber = _blockNumberForLocalY(localPos);
+    
+    if (blockNumber != -1)
+    {
+        trackLineSelection(blockNumber, trackingLineAnchor);
+    }
+    
+    trackingLineSelection = false;
+    trackingLineAnchor = -1;
 }
 
 void QtSLiMScriptTextEdit::lineNumberAreaContextMenuEvent(QContextMenuEvent *p_event)
