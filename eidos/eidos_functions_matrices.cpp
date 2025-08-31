@@ -1245,6 +1245,42 @@ EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arg
 	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): diag() requires one of four specific input parameter patterns; see the documentation." << EidosTerminate(nullptr);
 }
 
+// (float$)tr(numeric x)
+EidosValue_SP Eidos_ExecuteFunction_tr(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tr): in function tr() x must be a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *x_dim = x_value->Dimensions();
+	int64_t x_nrow = x_dim[0];
+	int64_t x_ncol= x_dim[1];
+	
+	// The R psych package throws an error, which seems appropriate; this should not be called with a non-square matrix
+	if (x_nrow != x_ncol)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tr): in function tr() x must be a square matrix." << EidosTerminate(nullptr);
+	
+	double diag_sum = 0.0;
+	
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		const int64_t *x_data = x_value->IntData();
+		
+		for (int64_t diag_index = 0; diag_index < x_nrow; ++diag_index)
+			diag_sum += x_data[diag_index * x_nrow + diag_index];
+	}
+	else
+	{
+		const double *x_data = x_value->FloatData();
+		
+		for (int64_t diag_index = 0; diag_index < x_nrow; ++diag_index)
+			diag_sum += x_data[diag_index * x_nrow + diag_index];
+	}
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(diag_sum));
+}
+
 
 
 

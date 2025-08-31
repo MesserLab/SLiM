@@ -287,6 +287,17 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptRaise("t(array(1:24, c(2,3,4)));", 0, "is not a matrix");
 	EidosAssertScriptRaise("t(array(1:48, c(2,3,4,2)));", 0, "is not a matrix");
 	
+	// tr()
+	EidosAssertScriptRaise("tr(1);", 0, "must be a matrix");
+	EidosAssertScriptRaise("tr(1.5);", 0, "must be a matrix");
+	EidosAssertScriptRaise("tr(matrix(1:6, ncol=2));", 0, "must be a square matrix");
+	EidosAssertScriptSuccess_F("tr(matrix(7, ncol=1));", 7);
+	EidosAssertScriptSuccess_F("tr(matrix(7.0, ncol=1));", 7.0);
+	EidosAssertScriptSuccess_F("tr(matrix(1:9, ncol=3));", 1 + 5 + 9);
+	EidosAssertScriptSuccess_F("tr(matrix(1.0:9, ncol=3));", 1 + 5 + 9);
+	EidosAssertScriptSuccess_F("tr(matrix(c(1.25, -7.8, 3.4, 6.1, 4.75, 8.2, -0.3, 8.6, -1.5), ncol=3));", 1.25 + 4.75 + -1.5);
+	EidosAssertScriptSuccess_L("x = matrix(runif(100), ncol=10); identical(tr(x), sum(diag(x)));", true);
+	
 	// upperTri()
 	EidosAssertScriptRaise("ut = upperTri(0);", 5, "is not a matrix");
 	EidosAssertScriptSuccess_L("ut = upperTri(matrix(5)); identical(ut, matrix(F));", true);

@@ -4769,7 +4769,22 @@ Returns the transpose
 \f3\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (logical)upperTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)tr(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the trace
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square matrix (otherwise an error is raised).  The trace is the sum of the diagonal elements of the matrix.  Note that 
+\f1\fs18 x
+\f3\fs20  can be 
+\f1\fs18 integer
+\f3\fs20 , but the returned value is always 
+\f1\fs18 float
+\f3\fs20  to avoid overflow issues.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)upperTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the upper triangle
