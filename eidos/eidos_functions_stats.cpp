@@ -140,6 +140,141 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 	return result_SP;
 }
 
+//	(float)filter(numeric x, float filter)
+EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// this is patterned after the R function filter(), but only for method="convolution", sides=2, circular=F
+	// so for now we support only a centered filter convolved over x; values outside x are assumed to be NAN
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *filter_value = p_arguments[1].get();
+	int x_count = x_value->Count();
+	int filter_count = filter_value->Count();
+	
+	// the maximum filter length is arbitrary, but seems like a good idea to flag weird bugs?
+	if ((filter_count <= 0) | (filter_count > 999) | (filter_count % 2 == 0))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_filter): function filter() requires filter to have a length that is odd and within the interval [1, 999]." << EidosTerminate(nullptr);
+	
+	// half rounded down; e.g., for a filter of length 5, this is 2; this is the number of NANs at the
+	// start/end of the result, since the filter extends past the end of x for this many positions
+	int half_filter = filter_count / 2;
+	
+	// the result is the same length as x, in all cases
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_count);
+	EidosValue_SP result_SP(float_result);
+	double *result_data = float_result->FloatData_Mutable();
+	
+	if (x_count == 0)
+		return result_SP;
+	
+	if (x_count < filter_count)
+	{
+		for (int pos = 0; pos < x_count; ++pos)
+			result_data[pos] = std::numeric_limits<double>::quiet_NaN();
+	}
+	
+	// get x data and filter data
+	const double *filter_data = filter_value->FloatData();
+	
+	// we test here for a simple moving average, with equal weights summing to 1.0, to special-case it
+	bool is_simple_moving_average = true;
+	
+	for (int index = 0; index < filter_count; ++index)
+	{
+		if (std::abs(filter_data[index] - (1.0 / filter_count)) > 1e-15)	// 1e-15 is a roundoff epsilon
+		{
+			is_simple_moving_average = false;
+			break;
+		}
+	}
+	
+	// the half-filter length at the start fills with NAN
+	for (int pos = 0; pos < half_filter; ++pos)
+		result_data[pos] = std::numeric_limits<double>::quiet_NaN();
+	
+	// now we branch depending on whether x is integer or float
+	if (x_value->Type() == EidosValueType::kValueFloat)
+	{
+		const double *x_data = x_value->FloatData();
+		
+		if (is_simple_moving_average)
+		{
+			// the first position after the half-filter length sets up a moving total
+			double moving_total = 0.0;
+			
+			for (int pos = 0; pos < filter_count; ++pos)
+				moving_total += x_data[pos];
+			
+			result_data[half_filter] = moving_total / filter_count;
+			
+			// the remaining non-NAN positions modify the moving total
+			for (int pos = half_filter + 1; pos < x_count - half_filter; ++pos)
+			{
+				moving_total -= x_data[pos - half_filter - 1];
+				moving_total += x_data[pos + half_filter];
+				
+				result_data[pos] = moving_total / filter_count;
+			}
+		}
+		else
+		{
+			// we compute the filter over the appropriate range of x at each position
+			for (int pos = half_filter; pos < x_count - half_filter; ++pos)
+			{
+				double filter_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + pos - half_filter];
+				
+				result_data[pos] = filter_total;
+			}
+		}
+	}
+	else
+	{
+		const int64_t *x_data = x_value->IntData();
+		
+		if (is_simple_moving_average)
+		{
+			// the first position after the half-filter length sets up a moving total
+			double moving_total = 0.0;
+			
+			for (int pos = 0; pos < filter_count; ++pos)
+				moving_total += x_data[pos];
+			
+			result_data[half_filter] = moving_total / filter_count;
+			
+			// the remaining non-NAN positions modify the moving total
+			for (int pos = half_filter + 1; pos < x_count - half_filter; ++pos)
+			{
+				moving_total -= x_data[pos - half_filter - 1];
+				moving_total += x_data[pos + half_filter];
+				
+				result_data[pos] = moving_total / filter_count;
+			}
+		}
+		else
+		{
+			// we compute the filter over the appropriate range of x at each position
+			for (int pos = half_filter; pos < x_count - half_filter; ++pos)
+			{
+				double filter_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + pos - half_filter];
+				
+				result_data[pos] = filter_total;
+			}
+		}
+	}
+	
+	// the half-filter length at the end fills with NAN
+	for (int pos = x_count - half_filter; pos < x_count; ++pos)
+		result_data[pos] = std::numeric_limits<double>::quiet_NaN();
+	
+	return result_SP;
+}
+
 //	(+$)max(+ x, ...)
 EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {

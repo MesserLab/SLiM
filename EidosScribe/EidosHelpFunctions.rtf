@@ -915,7 +915,44 @@
 \f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (+$)max(+\'a0x, ...)\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)filter(numeric\'a0x, float\'a0filter)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the result of convolving 
+\f1\fs18 x
+\f3\fs20  with 
+\f1\fs18 filter
+\f3\fs20 .  The returned vector will be the same length as 
+\f1\fs18 x
+\f3\fs20 .  The convolution is performed by centering 
+\f1\fs18 filter
+\f3\fs20  on each position of 
+\f1\fs18 x
+\f3\fs20  to produce a corresponding result element that is the sum over the products of each 
+\f1\fs18 filter
+\f3\fs20  value with each 
+\f1\fs18 x
+\f3\fs20  value within the filter\'92s range.  If the filter, centered over a given value of 
+\f1\fs18 x
+\f3\fs20 , extends beyond the end of 
+\f1\fs18 x
+\f3\fs20  the corresponding result element will be 
+\f1\fs18 NAN
+\f3\fs20  since its value is undefined.  The length of 
+\f1\fs18 filter
+\f3\fs20  is required to be odd, so that the filter has a central value (and can thus be centered over each value of 
+\f1\fs18 x
+\f3\fs20 ).\
+This function is useful for computing running means and similar transformations of an input vector,.  For a simple running mean of width 
+\f1\fs18 w
+\f3\fs20 , pass r
+\f1\fs18 ep(1/w, w)
+\f3\fs20  for 
+\f1\fs18 filter
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (+$)max(+\'a0x, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf0 Returns the 

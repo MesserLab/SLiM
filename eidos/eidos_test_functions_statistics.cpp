@@ -78,6 +78,26 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_NULL("cov(float(0), float(0));");
 	EidosAssertScriptRaise("cov(string(0), string(0));", 0, "cannot be type");
 	
+	// filter()
+	EidosAssertScriptRaise("filter(1.0:10, float(0));", 0, "within the interval [1,");
+	EidosAssertScriptRaise("filter(1.0:10, 1.0:2);", 0, "length that is odd");
+	EidosAssertScriptSuccess_L("x = runif(100); identical(x, filter(x, 1.0));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); identical(x * 2.0, filter(x, 2.0));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); identical(x * -2.5, filter(x, -2.5));", true);
+	EidosAssertScriptSuccess_L("x = rep(NAN, 10); identical(x, filter(x, 1.0));", true);
+	EidosAssertScriptSuccess_FV("filter(1.0:10, rep(1/3, 3));", {std::numeric_limits<double>::quiet_NaN(), 2, 3, 4, 5, 6, 7, 8, 9, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("filter(1.0:10, rep(1/5, 5));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 3, 4, 5, 6, 7, 8, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("filter(1.0:10, rep(1.0, 5));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 15, 20, 25, 30, 35, 40, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	
+	EidosAssertScriptRaise("filter(1:10, float(0));", 0, "within the interval [1,");
+	EidosAssertScriptRaise("filter(1:10, 1.0:2);", 0, "length that is odd");
+	EidosAssertScriptSuccess_L("x = rdunif(100, -100, 100); identical(x * 1.0, filter(x, 1.0));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100, -100, 100); identical(x * 2.0, filter(x, 2.0));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100); identical(x * -2.5, filter(x, -2.5));", true);
+	EidosAssertScriptSuccess_FV("filter(1:10, rep(1/3, 3));", {std::numeric_limits<double>::quiet_NaN(), 2, 3, 4, 5, 6, 7, 8, 9, std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("filter(1:10, rep(1/5, 5));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 3, 4, 5, 6, 7, 8, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	EidosAssertScriptSuccess_FV("filter(1:10, rep(1.0, 5));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), 15, 20, 25, 30, 35, 40, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
+	
 	// max()
 	EidosAssertScriptSuccess_L("max(T);", true);
 	EidosAssertScriptSuccess_I("max(3);", 3);

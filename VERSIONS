@@ -26,6 +26,7 @@ development head (in the master branch):
 	fix #534, support uniparentally-transmitted chromosomes in hermaphrodite populations
 	add new Plot legendTitleEntry() method for making a title line in a plot legend
 	click-drag in the SLiMgui script view's line number area now drag-selects whole lines
+	add filter() function to Eidos, which is essentially a subset of R's filter(): (float)filter(numeric x, float filter)
 
 
 version 5.0 (Eidos version 4.0):
