@@ -1245,7 +1245,7 @@ EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arg
 	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): diag() requires one of four specific input parameter patterns; see the documentation." << EidosTerminate(nullptr);
 }
 
-// (float$)tr(numeric x)
+// (numeric$)tr(numeric x)
 EidosValue_SP Eidos_ExecuteFunction_tr(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *x_value = p_arguments[0].get();
@@ -1261,24 +1261,32 @@ EidosValue_SP Eidos_ExecuteFunction_tr(const std::vector<EidosValue_SP> &p_argum
 	if (x_nrow != x_ncol)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tr): in function tr() x must be a square matrix." << EidosTerminate(nullptr);
 	
-	double diag_sum = 0.0;
-	
 	if (x_value->Type() == EidosValueType::kValueInt)
 	{
+		int64_t diag_sum = 0;
 		const int64_t *x_data = x_value->IntData();
 		
 		for (int64_t diag_index = 0; diag_index < x_nrow; ++diag_index)
-			diag_sum += x_data[diag_index * x_nrow + diag_index];
+		{
+			int64_t diag_element = x_data[diag_index * x_nrow + diag_index];
+			bool overflow = Eidos_add_overflow(diag_sum, diag_element, &diag_sum);
+			
+			if (overflow)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tr): integer addition overflow in function tr(); you may wish to cast the matrix to float with asFloat() before calling this function." << EidosTerminate(nullptr);
+		}
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(diag_sum));
 	}
 	else
 	{
+		double diag_sum = 0.0;
 		const double *x_data = x_value->FloatData();
 		
 		for (int64_t diag_index = 0; diag_index < x_nrow; ++diag_index)
 			diag_sum += x_data[diag_index * x_nrow + diag_index];
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(diag_sum));
 	}
-	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(diag_sum));
 }
 
 
