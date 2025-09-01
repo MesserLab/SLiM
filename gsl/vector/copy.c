@@ -28,7 +28,7 @@
 
 #define BASE_DOUBLE
 #include "templates_on.h"
-#include "copy_source.c"
+#include "copy_source.inc"
 #include "templates_off.h"
 #undef  BASE_DOUBLE
 

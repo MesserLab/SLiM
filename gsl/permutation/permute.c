@@ -32,7 +32,7 @@
 
 #define BASE_DOUBLE
 #include "templates_on.h"
-#include "permute_source.c"
+#include "permute_source.inc"
 #include "templates_off.h"
 #undef  BASE_DOUBLE
 

@@ -35,7 +35,7 @@ linux-*: {
     QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter -Wno-unused-but-set-parameter
 }
 
-INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./interpolation ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
+INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./interpolation ./linalg ./matrix ./permutation ./randist ./rng ./specfunc ./sys ./vector
 
 
 # prevent link dependency cycles
@@ -45,6 +45,7 @@ QMAKE_LFLAGS += $$QMAKE_LFLAGS_NOUNDEF
 SOURCES += \
     blas/blas.c \
     block/init.c \
+    cblas/daxpy.c \
     cblas/ddot.c \
     cblas/dgemv.c \
     cblas/dtrmv.c \
@@ -70,6 +71,7 @@ SOURCES += \
     interpolation/spline.c \
     interpolation/spline2d.c \
     linalg/cholesky.c \
+    linalg/lu.c \
     linalg/tridiag.c \
     matrix/copy.c \
     matrix/init.c \
@@ -77,6 +79,9 @@ SOURCES += \
     matrix/rowcol.c \
     matrix/submatrix.c \
     matrix/swap.c \
+    permutation/init.c \
+    permutation/permutation.c \
+    permutation/permute.c \
     randist/beta.c \
     randist/binomial_tpe.c \
     randist/cauchy.c \
@@ -118,6 +123,7 @@ SOURCES += \
     sys/infnan.c \
     sys/minmax.c \
     sys/pow_int.c \
+    vector/copy.c \
     vector/init.c \
     vector/oper.c \
     vector/vector.c \
@@ -145,6 +151,7 @@ HEADERS += \
     cblas/error_cblas_l2.h \
     cblas/error_cblas.h \
     cblas/gsl_cblas.h \
+    cblas/source_axpy_r.h \
     cblas/source_dot_r.h \
     cblas/source_gemv_r.h \
     cblas/source_trmv_r.h \
@@ -164,6 +171,13 @@ HEADERS += \
     matrix/gsl_matrix_double.h \
     matrix/gsl_matrix.h \
     matrix/view.h \
+    permutation/gsl_permutation.h \
+    permutation/gsl_permute.h \
+    permutation/gsl_permute_double.h \
+    permutation/gsl_permute_matrix.h \
+    permutation/gsl_permute_matrix_double.h \
+    permutation/gsl_permute_vector.h \
+    permutation/gsl_permute_source.h \
     randist/gsl_randist.h \
     rng/gsl_rng.h \
     specfunc/chebyshev.h \

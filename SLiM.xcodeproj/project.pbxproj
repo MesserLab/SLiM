@@ -2246,13 +2246,13 @@
 		98EDB4ED2E65389600CC8798 /* init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = init.c; sourceTree = "<group>"; };
 		98EDB4F72E6538F200CC8798 /* permutation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = permutation.c; sourceTree = "<group>"; };
 		98EDB5012E65399600CC8798 /* permute.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = permute.c; sourceTree = "<group>"; };
-		98EDB50B2E6539A500CC8798 /* permute_source.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = permute_source.c; sourceTree = "<group>"; };
+		98EDB50B2E6539A500CC8798 /* permute_source.inc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.pascal; path = permute_source.inc; sourceTree = "<group>"; };
 		98EDB50C2E653A0300CC8798 /* gsl_permute.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gsl_permute.h; sourceTree = "<group>"; };
 		98EDB50D2E653A5300CC8798 /* gsl_permute_double.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gsl_permute_double.h; sourceTree = "<group>"; };
 		98EDB50E2E653BA400CC8798 /* gsl_permute_matrix_double.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gsl_permute_matrix_double.h; sourceTree = "<group>"; };
 		98EDB50F2E653BA400CC8798 /* gsl_permute_matrix.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gsl_permute_matrix.h; sourceTree = "<group>"; };
 		98EDB5102E65410C00CC8798 /* copy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = copy.c; path = vector/copy.c; sourceTree = "<group>"; };
-		98EDB51A2E65412C00CC8798 /* copy_source.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = copy_source.c; path = vector/copy_source.c; sourceTree = "<group>"; };
+		98EDB51A2E65412C00CC8798 /* copy_source.inc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.pascal; name = copy_source.inc; path = vector/copy_source.inc; sourceTree = "<group>"; };
 		98EF4AB41ECDA5EA00CCDB09 /* profile_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = profile_H.pdf; sourceTree = "<group>"; };
 		98EF4AB51ECDA5EA00CCDB09 /* profile.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = profile.pdf; sourceTree = "<group>"; };
 		98EFE62D1ADB611100CBEC78 /* eidos_symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_symbol_table.cpp; sourceTree = "<group>"; };
@@ -2585,7 +2585,7 @@
 				98332AA71FDB99AA00274FF0 /* gsl_vector.h */,
 				98332AA81FDB9B3F00274FF0 /* gsl_vector_double.h */,
 				98332AC61FDBA6B600274FF0 /* vector.c */,
-				98EDB51A2E65412C00CC8798 /* copy_source.c */,
+				98EDB51A2E65412C00CC8798 /* copy_source.inc */,
 				98EDB5102E65410C00CC8798 /* copy.c */,
 				98332B071FDBD00800274FF0 /* init_source.inc */,
 				98332B081FDBD00800274FF0 /* init.c */,
@@ -3183,7 +3183,7 @@
 				98EDB4DF2E65300500CC8798 /* gsl_permute_vector.h */,
 				98EDB4ED2E65389600CC8798 /* init.c */,
 				98EDB5012E65399600CC8798 /* permute.c */,
-				98EDB50B2E6539A500CC8798 /* permute_source.c */,
+				98EDB50B2E6539A500CC8798 /* permute_source.inc */,
 				98EDB4F72E6538F200CC8798 /* permutation.c */,
 			);
 			path = permutation;
