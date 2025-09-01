@@ -140,23 +140,55 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 	return result_SP;
 }
 
-//	(float)filter(numeric x, float filter)
+//	(float)filter(numeric x, float filter, [lif$ outside = F])
 EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// this is patterned after the R function filter(), but only for method="convolution", sides=2, circular=F
-	// so for now we support only a centered filter convolved over x; values outside x are assumed to be NAN
+	// so for now we support only a centered filter convolved over x with a non-circular buffer
+	// values where the filter extends beyond the range of x are handled according to the `outside` parameter
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *filter_value = p_arguments[1].get();
+	EidosValue *outside_value = p_arguments[2].get();
 	int x_count = x_value->Count();
 	int filter_count = filter_value->Count();
 	
-	// the maximum filter length is arbitrary, but seems like a good idea to flag weird bugs?
+	// the maximum filter length is arbitrary, but it seems like a good idea to flag weird bugs?
 	if ((filter_count <= 0) | (filter_count > 999) | (filter_count % 2 == 0))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_filter): function filter() requires filter to have a length that is odd and within the interval [1, 999]." << EidosTerminate(nullptr);
 	
-	// half rounded down; e.g., for a filter of length 5, this is 2; this is the number of NANs at the
-	// start/end of the result, since the filter extends past the end of x for this many positions
+	// decode the value of outside, which must be T (use NAN), F (exclude), or a numeric value (use constant)
+	typedef enum _OutsideValue {
+		kUseNAN = 0,
+		kExcludeOuter,
+		kUseConstant
+	} OutsideValue;
+	
+	OutsideValue outside;
+	double outsideConstant = 0.0;	// only used for OutsideValue::kUseConstant
+	
+	if (outside_value->Type() == EidosValueType::kValueLogical)
+	{
+		if (outside_value->LogicalAtIndex_NOCAST(0, nullptr) == false)
+		{
+			// outside=F is the default: use NAN for all positions where the filter extends beyond x
+			outside = OutsideValue::kUseNAN;
+		}
+		else
+		{
+			// outside=T: exclude positions where the filter extends beyond x, and rescale to compensate
+			outside = OutsideValue::kExcludeOuter;
+		}
+	}
+	else
+	{
+		// outside is integer or float: it gives the mean/expected value to be used for all values beyond x
+		outside = OutsideValue::kUseConstant;
+		outsideConstant = outside_value->NumericAtIndex_NOCAST(0, nullptr);
+	}
+	
+	// half rounded down; e.g., for a filter of length 5, this is 2; this is the number of
+	// positions at the start/end of the result where the filter extends past the end of x
 	int half_filter = filter_count / 2;
 	
 	// the result is the same length as x, in all cases
@@ -164,19 +196,8 @@ EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(float_result);
 	double *result_data = float_result->FloatData_Mutable();
 	
-	if (x_count == 0)
-		return result_SP;
-	
-	if (x_count < filter_count)
-	{
-		for (int pos = 0; pos < x_count; ++pos)
-			result_data[pos] = std::numeric_limits<double>::quiet_NaN();
-	}
-	
-	// get x data and filter data
+	// test for a simple moving average, with equal weights summing to 1.0, to special-case it
 	const double *filter_data = filter_value->FloatData();
-	
-	// we test here for a simple moving average, with equal weights summing to 1.0, to special-case it
 	bool is_simple_moving_average = true;
 	
 	for (int index = 0; index < filter_count; ++index)
@@ -188,11 +209,94 @@ EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_a
 		}
 	}
 	
-	// the half-filter length at the start fills with NAN
-	for (int pos = 0; pos < half_filter; ++pos)
-		result_data[pos] = std::numeric_limits<double>::quiet_NaN();
+	// if outside is kExcludeOuter, we need to know the sum of the filter's absolute values for scaling
+	double sum_abs_filter = 0.0;
 	
-	// now we branch depending on whether x is integer or float
+	if (outside == OutsideValue::kExcludeOuter)
+	{
+		for (int pos = 0; pos < filter_count; ++pos)
+		{
+			double filter_element = filter_data[pos];
+			
+			if ((filter_element == 0) && ((pos == 0) || (pos == filter_count - 1)))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_filter): when outside=T, function filter() requires the first and last values of filter to be non-zero to avoid numerical issues." << EidosTerminate(nullptr);
+			
+			sum_abs_filter += std::abs(filter_element);
+		}
+	}
+	
+	// now that we've checked all error cases, short-circuit for zero-length x
+	if (x_count == 0)
+		return result_SP;
+	
+	// now we start generating the result vector; we will use the variable result_pos to track the result
+	// position we are calculating throughout, and will handle it three sections, left/middle/right
+	int result_pos = 0;
+	
+	// handle the half-filter length at the start, where positions on the left lie outside x
+	// this section also handles cases where positions on the right are also outside, because x_count is small
+	switch (outside)
+	{
+		case OutsideValue::kUseNAN:			// use NAN for all positions where the filter extends beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+				result_data[result_pos] = std::numeric_limits<double>::quiet_NaN();
+			
+			break;
+		}
+		case OutsideValue::kExcludeOuter:	// exclude positions where the filter extends beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+			{
+				double filtered_total = 0.0;
+				double sum_abs_filter_inside = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					
+					if ((x_pos >= 0) && (x_pos < x_count))
+					{
+						double x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+						
+						filtered_total += filter_datum * x_datum;
+						sum_abs_filter_inside += std::abs(filter_datum);
+					}
+				}
+				
+				result_data[result_pos] = filtered_total * (sum_abs_filter / sum_abs_filter_inside);
+			}
+			break;
+		}
+		case OutsideValue::kUseConstant:	// use the given numeric value for values beyond x
+		{
+			for ( ; (result_pos < half_filter) && (result_pos < x_count); ++result_pos)
+			{
+				double filtered_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					double x_datum;
+					
+					if ((x_pos >= 0) && (x_pos < x_count))
+						x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+					else
+						x_datum = outsideConstant;
+					
+					filtered_total += filter_datum * x_datum;
+				}
+				
+				result_data[result_pos] = filtered_total;
+			}
+			break;
+		}
+	}
+	
+	// now we branch depending on whether x is integer or float, and special-case simple moving averages
+	// for this middle loop we don't need to worry about the x position being outside bounds
 	if (x_value->Type() == EidosValueType::kValueFloat)
 	{
 		const double *x_data = x_value->FloatData();
@@ -202,31 +306,35 @@ EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_a
 			// the first position after the half-filter length sets up a moving total
 			double moving_total = 0.0;
 			
-			for (int pos = 0; pos < filter_count; ++pos)
-				moving_total += x_data[pos];
-			
-			result_data[half_filter] = moving_total / filter_count;
-			
-			// the remaining non-NAN positions modify the moving total
-			for (int pos = half_filter + 1; pos < x_count - half_filter; ++pos)
+			if (result_pos < x_count - half_filter)
 			{
-				moving_total -= x_data[pos - half_filter - 1];
-				moving_total += x_data[pos + half_filter];
+				for (int filter_pos = 0; filter_pos < filter_count; ++filter_pos)
+					moving_total += x_data[filter_pos];
 				
-				result_data[pos] = moving_total / filter_count;
+				result_data[result_pos] = moving_total / filter_count;
+				++result_pos;
+			}
+			
+			// the remaining positions modify the moving total
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
+			{
+				moving_total -= x_data[result_pos - half_filter - 1];
+				moving_total += x_data[result_pos + half_filter];
+				
+				result_data[result_pos] = moving_total / filter_count;
 			}
 		}
 		else
 		{
 			// we compute the filter over the appropriate range of x at each position
-			for (int pos = half_filter; pos < x_count - half_filter; ++pos)
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
 			{
 				double filter_total = 0.0;
 				
 				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
-					filter_total += filter_data[filter_pos] * x_data[filter_pos + pos - half_filter];
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + result_pos - half_filter];
 				
-				result_data[pos] = filter_total;
+				result_data[result_pos] = filter_total;
 			}
 		}
 	}
@@ -239,38 +347,98 @@ EidosValue_SP Eidos_ExecuteFunction_filter(const std::vector<EidosValue_SP> &p_a
 			// the first position after the half-filter length sets up a moving total
 			double moving_total = 0.0;
 			
-			for (int pos = 0; pos < filter_count; ++pos)
-				moving_total += x_data[pos];
-			
-			result_data[half_filter] = moving_total / filter_count;
+			if (result_pos < x_count - half_filter)
+			{
+				for (int filter_pos = 0; filter_pos < filter_count; ++filter_pos)
+					moving_total += x_data[filter_pos];
+				
+				result_data[result_pos] = moving_total / filter_count;
+				++result_pos;
+			}
 			
 			// the remaining non-NAN positions modify the moving total
-			for (int pos = half_filter + 1; pos < x_count - half_filter; ++pos)
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
 			{
-				moving_total -= x_data[pos - half_filter - 1];
-				moving_total += x_data[pos + half_filter];
+				moving_total -= x_data[result_pos - half_filter - 1];
+				moving_total += x_data[result_pos + half_filter];
 				
-				result_data[pos] = moving_total / filter_count;
+				result_data[result_pos] = moving_total / filter_count;
 			}
 		}
 		else
 		{
 			// we compute the filter over the appropriate range of x at each position
-			for (int pos = half_filter; pos < x_count - half_filter; ++pos)
+			for ( ; result_pos < x_count - half_filter; ++result_pos)
 			{
 				double filter_total = 0.0;
 				
 				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
-					filter_total += filter_data[filter_pos] * x_data[filter_pos + pos - half_filter];
+					filter_total += filter_data[filter_pos] * x_data[filter_pos + result_pos - half_filter];
 				
-				result_data[pos] = filter_total;
+				result_data[result_pos] = filter_total;
 			}
 		}
 	}
 	
-	// the half-filter length at the end fills with NAN
-	for (int pos = x_count - half_filter; pos < x_count; ++pos)
-		result_data[pos] = std::numeric_limits<double>::quiet_NaN();
+	// the remaining positions at the end have positions outside x on the right, but never on the left
+	switch (outside)
+	{
+		case OutsideValue::kUseNAN:			// use NAN for all positions where the filter extends beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+				result_data[result_pos] = std::numeric_limits<double>::quiet_NaN();
+			break;
+		}
+		case OutsideValue::kExcludeOuter:	// exclude positions where the filter extends beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+			{
+				double filtered_total = 0.0;
+				double sum_abs_filter_inside = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					
+					if (x_pos < x_count)
+					{
+						double x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+						
+						filtered_total += filter_datum * x_datum;
+						sum_abs_filter_inside += std::abs(filter_datum);
+					}
+				}
+				
+				result_data[result_pos] = filtered_total * (sum_abs_filter / sum_abs_filter_inside);
+			}
+			break;
+		}
+		case OutsideValue::kUseConstant:	// use the given numeric value for values beyond x
+		{
+			for ( ; result_pos < x_count; ++result_pos)
+			{
+				double filtered_total = 0.0;
+				
+				for (int filter_pos = 0; filter_pos < filter_count; filter_pos++)
+				{
+					double filter_datum = filter_data[filter_pos];
+					int x_pos = result_pos + (filter_pos - half_filter);
+					double x_datum;
+					
+					if (x_pos < x_count)
+						x_datum = x_value->NumericAtIndex_NOCAST(x_pos, nullptr);
+					else
+						x_datum = outsideConstant;
+					
+					filtered_total += filter_datum * x_datum;
+				}
+				
+				result_data[result_pos] = filtered_total;
+			}
+			break;
+		}
+	}
 	
 	return result_SP;
 }
