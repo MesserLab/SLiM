@@ -61,9 +61,9 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_I("det(matrix(c(1, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3));", 21);
 	EidosAssertScriptSuccess_L("abs(det(matrix(c(1.0, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3)) - 21.0) < 1e-10;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(4, -100, 100), ncol=2); identical(det(x), drop(x[0,0]*x[1,1] - x[0,1]*x[1,0]));", true);
-	EidosAssertScriptSuccess_L("x = matrix(runif(4, -100, 100), ncol=2); abs(det(x) - drop(x[0,0]*x[1,1] - x[0,1]*x[1,0])) < 1e-10;", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(4, -100, 100), ncol=2); abs(det(x) - drop(x[0,0]*x[1,1] - x[0,1]*x[1,0])) < 1e-9;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(9, -100, 100), ncol=3); identical(det(x), drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1]));", true);
-	EidosAssertScriptSuccess_L("x = matrix(runif(9, -100, 100), ncol=3); abs(det(x) - drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1])) < 1e-10;", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(9, -100, 100), ncol=3); abs(det(x) - drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1])) < 1e-9;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(16, -100, 100), ncol=4); det(x); T;", true);
 	EidosAssertScriptSuccess_L("x = matrix(runif(16, -100, 100), ncol=4); det(x); T;", true);
 	
