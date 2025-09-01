@@ -31,6 +31,7 @@ development head (in the master branch):
 	partial fix for #530, add function (numeric)outerProduct(numeric x, numeric y) to obtain the outer product of vectors x and y
 	partial fix for #530, add function (numeric$)det(numeric x) to obtain the determinant of a square matrix
 	partial fix for #530, add function (float)inverse(numeric x) to obtain the inverse of a square non-singular matrix
+	partial fix for #530, add function (numeric)matrixPow(numeric x, integer$ power) to raise a matrix to an integer power
 
 
 version 5.0 (Eidos version 4.0):

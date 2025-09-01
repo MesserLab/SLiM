@@ -4736,7 +4736,26 @@ Both
 \f3\i0  matrix).  Vectors will not be promoted to matrices by this function, even if such promotion would lead to a conformable matrix.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer$)nrow(*\'a0x)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)matrixPow(numeric\'a0x, integer$\'a0power)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the result of raising matrix 
+\f11\fs18 x
+\f0\fs20  to an 
+\f11\fs18 integer
+\f0\fs20  
+\f11\fs18 power
+\f0\fs20 .
+\f3\b0   The parameter x must be a square matrix (or an error will be raised).  This operation is performed by repeated matrix multiplication with 
+\f1\fs18 matrixMult()
+\f3\fs20 , and uses 
+\f1\fs18 inverse()
+\f3\fs20  to compute the inverse of the matrix if 
+\f1\fs18 power
+\f3\fs20  is negative.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (integer$)nrow(*\'a0x)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

@@ -62,6 +62,29 @@ R"V0G0N({
 	return matrixMult(matrix(x), t(matrix(y)));
 })V0G0N";
 
+// - (numeric)matrixPow(numeric x, integer$ power)
+const char *gEidosSourceCode_matrixPow = 
+R"V0G0N({
+	d = dim(x);
+	
+	if (size(d) != 2)
+		stop("ERROR (matrixPow): matrixPow() requires x to be a matrix");
+	if (d[0] != d[1])
+		stop("ERROR (matrixPow): matrixPow() requires x to be a square matrix");
+	
+	if (power == 0)
+		return diag(d[0]);
+	else if (power == 1)
+		return x;
+	else if (power < 0) {
+		// check for singularity; we could just let inverse() raise an error, but it would be more confusing for the user
+		if (det(x) == 0)
+			stop("ERROR (matrixPow): in matrixPow() the vector x is singular and thus non-invertible, so it cannot be raised to a negative power.");
+		return matrixPow(inverse(x), -power);
+	} else // (power >= 2)
+		return matrixMult(x, matrixPow(x, power - 1));
+})V0G0N";
+
 
 //
 //	Construct our built-in function map
@@ -354,6 +377,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	built-in user-defined functions
 		//
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_source,	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddLogical_OS("chdir", gStaticEidosValue_LogicalF));
+		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("matrixPow",			gEidosSourceCode_matrixPow,	kEidosValueMaskNumeric))->AddNumeric("x")->AddInt_S("power"));
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("outerProduct",		gEidosSourceCode_outerProduct,	kEidosValueMaskNumeric))->AddNumeric("x")->AddNumeric("y"));
 		

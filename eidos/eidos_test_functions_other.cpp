@@ -61,9 +61,9 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_I("det(matrix(c(1, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3));", 21);
 	EidosAssertScriptSuccess_L("abs(det(matrix(c(1.0, 2, 3, 6, 5, 4, 8, 9, 7), nrow=3)) - 21.0) < 1e-10;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(4, -100, 100), ncol=2); identical(det(x), drop(x[0,0]*x[1,1] - x[0,1]*x[1,0]));", true);
-	EidosAssertScriptSuccess_L("x = matrix(runif(4, -100, 100), ncol=2); abs(det(x) - (x[0,0]*x[1,1] - x[0,1]*x[1,0])) < 1e-10;", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(4, -100, 100), ncol=2); abs(det(x) - drop(x[0,0]*x[1,1] - x[0,1]*x[1,0])) < 1e-10;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(9, -100, 100), ncol=3); identical(det(x), drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1]));", true);
-	EidosAssertScriptSuccess_L("x = matrix(runif(9, -100, 100), ncol=3); abs(det(x) - (x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1])) < 1e-10;", true);
+	EidosAssertScriptSuccess_L("x = matrix(runif(9, -100, 100), ncol=3); abs(det(x) - drop(x[0,0]*x[1,1]*x[2,2] + x[0,1]*x[1,2]*x[2,0] + x[0,2]*x[1,0]*x[2,1] - x[0,2]*x[1,1]*x[2,0] - x[0,1]*x[1,0]*x[2,2] - x[0,0]*x[1,2]*x[2,1])) < 1e-10;", true);
 	EidosAssertScriptSuccess_L("x = matrix(rdunif(16, -100, 100), ncol=4); det(x); T;", true);
 	EidosAssertScriptSuccess_L("x = matrix(runif(16, -100, 100), ncol=4); det(x); T;", true);
 	
@@ -235,6 +235,18 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("A = matrix(1.0:5.0, nrow=1); B = matrix(1.0:5.0, ncol=1); identical(matrixMult(A, B), matrix(55.0));", true);
 	EidosAssertScriptSuccess_L("A = matrix(1.0:6.0, nrow=2); B = matrix(1.0:6.0, ncol=2); identical(matrixMult(A, B), matrix(c(22.0, 28.0, 49.0, 64.0), nrow=2));", true);
 	EidosAssertScriptSuccess_L("A = matrix(1.0:6.0, ncol=2); B = matrix(1.0:6.0, nrow=2); identical(matrixMult(A, B), matrix(c(9.0, 12.0, 15.0, 19.0, 26.0, 33.0, 29.0, 40.0, 51.0), nrow=3));", true);
+	
+	// matrixPow()
+	EidosAssertScriptRaise("matrixPow(5.0, 3);", 0, "requires x to be a matrix");
+	EidosAssertScriptRaise("matrixPow(matrix(1:6, nrow=2), 3);", 0, "requires x to be a square matrix");
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 0); identical(B, diag(3));", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 1); identical(B, A);", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 2); identical(B, matrix(c(30, 36, 42, 66, 81, 96, 102, 126, 150), nrow=3));", true);
+	EidosAssertScriptSuccess_L("A = matrix(1:9, nrow=3); B = matrixPow(A, 3); identical(B, matrix(c(468, 576, 684, 1062, 1305, 1548, 1656, 2034, 2412), nrow=3));", true);
+	EidosAssertScriptRaise("A = matrix(1:9, nrow=3); B = matrixPow(A, -1);", 29, "singular and thus non-invertible");
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -1); identical(B, inverse(A));", true);
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -2); identical(B, matrixPow(inverse(A), 2));", true);
+	EidosAssertScriptSuccess_L("A = matrix(c(1, 3, 2, 6, 4, 5, 10, 2, 7), nrow=3); B = matrixPow(A, -3); identical(B, matrixPow(inverse(A), 3));", true);
 	
 	// ncol()
 	EidosAssertScriptSuccess_NULL("ncol(NULL);");
