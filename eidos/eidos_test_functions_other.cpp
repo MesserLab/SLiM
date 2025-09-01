@@ -256,6 +256,18 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("nrow(array(1.0:24, c(2,3,4)));", {2});
 	EidosAssertScriptSuccess_IV("nrow(array(1.0:48, c(2,3,4,2)));", {2});
 	
+	// outerProduct()
+	EidosAssertScriptRaise("outerProduct(1:3, integer(0));", 0, "dimensions equal to zero");
+	EidosAssertScriptRaise("outerProduct(integer(0), 1:3);", 0, "dimensions equal to zero");
+	EidosAssertScriptSuccess_L("x = 1:3; y = 5:6; identical(outerProduct(x, y), matrix(c(5, 10, 15, 6, 12, 18), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1:2; y = 5:7; identical(outerProduct(x, y), matrix(c(5, 10, 6, 12, 7, 14), nrow=2));", true);
+	EidosAssertScriptSuccess_L("x = 1:3; y = 5:7; identical(outerProduct(x, y), matrix(c(5, 10, 15, 6, 12, 18, 7, 14, 21), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:3; y = 5.0:6; identical(outerProduct(x, y), matrix(c(5.0, 10, 15, 6, 12, 18), nrow=3));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:2; y = 5.0:7; identical(outerProduct(x, y), matrix(c(5.0, 10, 6, 12, 7, 14), nrow=2));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:3; y = 5.0:7; identical(outerProduct(x, y), matrix(c(5.0, 10, 15, 6, 12, 18, 7, 14, 21), nrow=3));", true);
+	EidosAssertScriptRaise("outerProduct(1.0:3, 5:7);", 0, "the same type");
+	EidosAssertScriptRaise("x = matrix(1:3); outerProduct(x, x);", 17, "requires x and y to be vectors");
+	
 	// rbind()
 	EidosAssertScriptRaise("rbind(5, 5.5);", 0, "be the same type");
 	EidosAssertScriptRaise("rbind(5, array(5, c(1,1,1)));", 0, "all arguments be vectors or matrices");

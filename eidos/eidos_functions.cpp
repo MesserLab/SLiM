@@ -54,6 +54,14 @@ R"V0G0N({
 		setwd(_oldwd);
 })V0G0N";
 
+// - (numeric)outerProduct(numeric x, numeric y)
+const char *gEidosSourceCode_outerProduct =
+R"V0G0N({
+	if (!isNULL(dim(x)) | !isNULL(dim(y)))
+		stop("ERROR (outerProduct): outerProduct() requires x and y to be vectors, not matrices or arrays; use drop() to convert to a vector if desired.");
+	return matrixMult(matrix(x), t(matrix(y)));
+})V0G0N";
+
 
 //
 //	Construct our built-in function map
@@ -344,6 +352,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	built-in user-defined functions
 		//
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_source,	gEidosSourceCode_source,	kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddLogical_OS("chdir", gStaticEidosValue_LogicalF));
+		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("outerProduct",		gEidosSourceCode_outerProduct,	kEidosValueMaskNumeric))->AddNumeric("x")->AddNumeric("y"));
 		
 		
 		// ************************************************************************************

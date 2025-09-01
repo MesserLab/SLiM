@@ -4728,7 +4728,47 @@ Returns the number of columns
 \f3\fs20 -column matrices, is not provided but would be trivial to implement as a user-defined function.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)rbind(...)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)outerProduct(numeric\'a0x, numeric\'a0y)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the outer product
+\f3\b0  of vectors 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20 .  The outer product, 
+\f1\fs18 x
+\f3\fs20  
+\f6 \uc0\u8855 
+\f3  
+\f1\fs18 y
+\f3\fs20 , is the result of matrix multiplication of 
+\f1\fs18 x
+\f3\fs20  with the transpose of 
+\f1\fs18 y
+\f3\fs20 , or 
+\f1\fs18 xy
+\f3\fs13\fsmilli6667 \super T
+\fs20 \nosupersub .  It will be a matrix with a number of rows equal to the length of 
+\f1\fs18 x
+\f3\fs20 , and a number of columns equal to the length of 
+\f1\fs18 y
+\f3\fs20 .  It is required that 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20  be vectors, not matrices or arrays, that they have non-zero lengths, and that they be the same type \'96 both 
+\f1\fs18 integer
+\f3\fs20  or both 
+\f1\fs18 float
+\f3\fs20 .  The return value will be of the same type as 
+\f1\fs18 x
+\f3\fs20  and 
+\f1\fs18 y
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)rbind(...)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
