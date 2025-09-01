@@ -120,11 +120,11 @@ void cblas_saxpy(const int N, const float alpha, const float *X,
 void cblas_dswap(const int N, double *X, const int incX, 
                  double *Y, const int incY);
 void cblas_dcopy(const int N, const double *X, const int incX, 
-                 double *Y, const int incY);
+                 double *Y, const int incY);*/
 void cblas_daxpy(const int N, const double alpha, const double *X,
                  const int incX, double *Y, const int incY);
 
-void cblas_cswap(const int N, void *X, const int incX, 
+/*void cblas_cswap(const int N, void *X, const int incX, 
                  void *Y, const int incY);
 void cblas_ccopy(const int N, const void *X, const int incX, 
                  void *Y, const int incY);

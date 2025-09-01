@@ -29,6 +29,8 @@ development head (in the master branch):
 	fix #550, add filter() function to Eidos, which is essentially a subset of R's filter(): (float)filter(numeric x, float filter)
 	partial fix for #530, add function (numeric$)tr(numeric x) to obtain the trace of a square matrix
 	partial fix for #530, add function (numeric)outerProduct(numeric x, numeric y) to obtain the outer product of vectors x and y
+	partial fix for #530, add function (numeric$)det(numeric x) to obtain the determinant of a square matrix
+	partial fix for #530, add function (float)inverse(numeric x) to obtain the inverse of a square non-singular matrix
 
 
 version 5.0 (Eidos version 4.0):

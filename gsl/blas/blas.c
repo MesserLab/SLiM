@@ -59,6 +59,21 @@ gsl_blas_ddot (const gsl_vector * X, const gsl_vector * Y, double *result)
 }
 
 int
+gsl_blas_daxpy (double alpha, const gsl_vector * X, gsl_vector * Y)
+{
+  if (X->size == Y->size)
+	{
+	  cblas_daxpy (INT (X->size), alpha, X->data, INT (X->stride), Y->data,
+				   INT (Y->stride));
+	  return GSL_SUCCESS;
+	}
+  else
+	{
+	  GSL_ERROR ("invalid length", GSL_EBADLEN);
+	}
+}
+
+int
 gsl_blas_dgemv (CBLAS_TRANSPOSE_t TransA, double alpha, const gsl_matrix * A,
 				const gsl_vector * X, double beta, gsl_vector * Y)
 {

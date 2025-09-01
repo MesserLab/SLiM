@@ -4466,7 +4466,20 @@ To combine vectors or matrices by row instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)diag([*\'a0x\'a0=\'a01], [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric$)det(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the determinant
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square matrix (otherwise an error is raised).  The determinant is a scalar-valued function of the entries of the matrix, and characterizes some properties of the matrix.  In particular, the determinant is nonzero if and only if the matrix is invertible.  If the determinant is zero, the matrix does not have an inverse and is referred to as \'93singular\'94.  In Eidos the determinant is calculated from the 
+\f7\i LU
+\f3\i0  decomposition of the matrix.  The return type will match the type of 
+\f1\fs18 x
+\f3\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (*)diag([*\'a0x\'a0=\'a01], [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the diagonal
@@ -4566,7 +4579,48 @@ Returns the result of dropping redundant dimensions
 \f3\fs20  is not a matrix or array, it is returned unmodified.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (logical)lowerTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)inverse(numeric\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the (multiplicative) inverse
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a square non-singular matrix (otherwise an error is raised).  If matrix 
+\f0\b B
+\f3\b0  is the inverse of 
+\f7\i n
+\f3\i0 -by-
+\f7\i n
+\f3\i0  matrix 
+\f0\b A
+\f3\b0 , then 
+\f0\b AB
+\f3\b0  = 
+\f0\b BA
+\f3\b0  = 
+\f0\b I
+\f7\i\b0\fs13\fsmilli6667 \sub n
+\f3\i0\fs20 \nosupersub , where 
+\f0\b I
+\f7\i\b0\fs13\fsmilli6667 \sub n
+\f3\i0\fs20 \nosupersub  denotes the 
+\f7\i n
+\f3\i0 -by-
+\f7\i n
+\f3\i0  identity matrix and the multiplication used is ordinary matrix multiplication as performed by 
+\f1\fs18 matrixMult()
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  might be singular (and thus non-invertible), and you wish to avoid the possibility of an error, you can call 
+\f1\fs18 det()
+\f3\fs20  first to find the determinant of the matrix; if the determinant is zero, the matrix is singular and does not have an inverse, and so 
+\f1\fs18 inverse()
+\f3\fs20  should not be called.  In Eidos the inverse is calculated from the 
+\f7\i LU
+\f3\i0  decomposition of the matrix.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (logical)lowerTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the lower triangle

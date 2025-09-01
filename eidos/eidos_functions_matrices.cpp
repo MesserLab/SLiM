@@ -25,6 +25,10 @@
 #include <vector>
 #include <algorithm>
 
+#include "gsl_linalg.h"
+#include "gsl_matrix.h"
+#include "gsl_errno.h"
+
 
 // ************************************************************************************
 //
@@ -1289,6 +1293,221 @@ EidosValue_SP Eidos_ExecuteFunction_tr(const std::vector<EidosValue_SP> &p_argum
 	}
 }
 
+// (numeric$)det(numeric x)
+EidosValue_SP Eidos_ExecuteFunction_det(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): in function det() x must be a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *x_dim = x_value->Dimensions();
+	int64_t x_nrow = x_dim[0];
+	int64_t x_ncol= x_dim[1];
+	
+	// The R base package throws an error, which seems appropriate; this should not be called with a non-square matrix
+	if (x_nrow != x_ncol)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): in function det() x must be a square matrix." << EidosTerminate(nullptr);
+	
+	int64_t d = x_nrow;		// square matrix
+	
+	// Set up the input matrix and allocate a permutation object
+	gsl_matrix *A = gsl_matrix_alloc(d, d);
+	int signum;
+	
+	if (!A)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		const int64_t *x_data = x_value->IntData();
+		
+		for (int row_index = 0; row_index < d; ++row_index)
+		{
+			for (int col_index = 0; col_index < d; ++col_index)
+			{
+				int64_t value = x_data[row_index + col_index * d];
+				
+				gsl_matrix_set(A, row_index, col_index, value);
+			}
+		}
+	}
+	else
+	{
+		const double *x_data = x_value->FloatData();
+		
+		for (int row_index = 0; row_index < d; ++row_index)
+		{
+			for (int col_index = 0; col_index < d; ++col_index)
+			{
+				double value = x_data[row_index + col_index * d];
+				
+				if (std::isnan(value))
+				{
+					gsl_matrix_free(A);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): function det() does not allow x to contain NANs." << EidosTerminate(nullptr);
+				}
+				
+				gsl_matrix_set(A, row_index, col_index, value);
+			}
+		}
+	}
+	
+	// Perform LU decomposition
+	gsl_permutation *p = gsl_permutation_alloc(d);
+	
+	if (!p)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	int result = gsl_linalg_LU_decomp(A, p, &signum);
+	
+	if (result != GSL_SUCCESS)
+	{
+		// This indicates that the matrix is singular, and the determinant is zero.
+		if (x_value->Type() == EidosValueType::kValueInt)
+			return gStaticEidosValue_Integer0;
+		else
+			return gStaticEidosValue_Float0;
+	}
+	
+	// Calculate the determinant from the LU decomposition, since the matrix is not singular
+	double determinant = gsl_linalg_LU_det(A, signum);
+	
+	gsl_matrix_free(A);
+	gsl_permutation_free(p);
+	
+	// If the original matrix is of type integer, the determinant is also an integer.
+	// The conversion to integer might overflow, in which case we raise an error.
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		determinant = std::round(determinant);	// in case of numerical error
+		
+		if (!std::isfinite(determinant) || (determinant < INT64_MIN) || (determinant > INT64_MAX))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_det): integer overflow in function det(); you may wish to cast the matrix to float with asFloat() before calling this function." << EidosTerminate(nullptr);
+		
+		int64_t determinant_int = (int64_t)determinant;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int(determinant_int));
+	}
+	else
+	{
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(determinant));
+	}
+}
+
+// (float)inverse(numeric x)
+EidosValue_SP Eidos_ExecuteFunction_inverse(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must be a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *x_dim = x_value->Dimensions();
+	int64_t x_nrow = x_dim[0];
+	int64_t x_ncol= x_dim[1];
+	
+	// this should not be called with a non-square matrix
+	if (x_nrow != x_ncol)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must be a square matrix." << EidosTerminate(nullptr);
+	
+	int64_t d = x_nrow;		// square matrix
+	
+	// Set up the input matrix and allocate a permutation object
+	gsl_matrix *A = gsl_matrix_alloc(d, d);
+	int signum;
+	
+	if (!A)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		const int64_t *x_data = x_value->IntData();
+		
+		for (int row_index = 0; row_index < d; ++row_index)
+		{
+			for (int col_index = 0; col_index < d; ++col_index)
+			{
+				int64_t value = x_data[row_index + col_index * d];
+				
+				gsl_matrix_set(A, row_index, col_index, value);
+			}
+		}
+	}
+	else
+	{
+		const double *x_data = x_value->FloatData();
+		
+		for (int row_index = 0; row_index < d; ++row_index)
+		{
+			for (int col_index = 0; col_index < d; ++col_index)
+			{
+				double value = x_data[row_index + col_index * d];
+				
+				if (std::isnan(value))
+				{
+					gsl_matrix_free(A);
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): function inverse() does not allow x to contain NANs." << EidosTerminate(nullptr);
+				}
+				
+				gsl_matrix_set(A, row_index, col_index, value);
+			}
+		}
+	}
+	
+	// Perform LU decomposition
+	gsl_permutation *p = gsl_permutation_alloc(d);
+	
+	if (!p)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	int result = gsl_linalg_LU_decomp(A, p, &signum);
+	
+	if (result != GSL_SUCCESS)
+	{
+		// This indicates that the matrix is singular, and the determinant is zero; for inverse() this is an error
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must not be singular (i.e., must be invertible).  You can use det() to check for singularity prior to calling inverse()." << EidosTerminate(nullptr);
+	}
+	
+	// Calculate the inverse from the LU decomposition, since the matrix is not singular
+	gsl_matrix *inverse = gsl_matrix_calloc(d, d);
+	
+	if (!inverse)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
+	result = gsl_linalg_LU_invert(A, p, inverse);
+	gsl_set_error_handler(old_handler);
+	
+	if (result == GSL_EDOM)
+	{
+		// This indicates that the matrix is singular, and the determinant is zero; for inverse() this is an error
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must not be singular (i.e., must be invertible).  You can use det() to check for singularity prior to calling inverse()." << EidosTerminate(nullptr);
+	}
+	else if (result != GSL_SUCCESS)
+	{
+		// Some other error occurred
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() an internal GSL error occurred (code == " << result << ")." << EidosTerminate(nullptr);
+	}
+	
+	// Create a new EidosValue matrix from inverse
+	EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(d * d);
+	EidosValue_SP result_SP(float_result);
+	
+	for (int64_t col_index = 0; col_index < d; ++col_index)
+		for (int64_t row_index = 0; row_index < d; ++row_index)
+			float_result->set_float_no_check(gsl_matrix_get(inverse, row_index, col_index), col_index * d + row_index);
+	
+	const int64_t dim_buf[2] = {d, d};
+	
+	float_result->SetDimensions(2, dim_buf);
+	
+	gsl_matrix_free(A);
+	gsl_permutation_free(p);
+	gsl_matrix_free(inverse);
+	
+	return result_SP;
+}
 
 
 

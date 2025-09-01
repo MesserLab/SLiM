@@ -116,13 +116,13 @@ int  gsl_blas_dswap (gsl_vector * X,
                      gsl_vector * Y);
 
 int  gsl_blas_dcopy (const gsl_vector * X,
-                     gsl_vector * Y);
+                     gsl_vector * Y);*/
 
 int  gsl_blas_daxpy (double alpha,
                      const gsl_vector * X,
                      gsl_vector * Y);
 
-int  gsl_blas_cswap (gsl_vector_complex_float * X,
+/*int  gsl_blas_cswap (gsl_vector_complex_float * X,
                      gsl_vector_complex_float * Y);
 
 int  gsl_blas_ccopy (const gsl_vector_complex_float * X,
