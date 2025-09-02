@@ -145,8 +145,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	statistics functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cor",				Eidos_ExecuteFunction_cor,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x")->AddNumeric("y"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cov",				Eidos_ExecuteFunction_cov,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x")->AddNumeric("y"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cor",				Eidos_ExecuteFunction_cor,			kEidosValueMaskFloat))->AddNumeric("x")->AddNumeric_ON("y", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cov",				Eidos_ExecuteFunction_cov,			kEidosValueMaskFloat))->AddNumeric("x")->AddNumeric_ON("y", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("filter",			Eidos_ExecuteFunction_filter,		kEidosValueMaskFloat))->AddNumeric("x")->AddFloat("filter")->AddLogicalEquiv_OS("outside", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("max",				Eidos_ExecuteFunction_max,			kEidosValueMaskAnyBase | kEidosValueMaskSingleton))->AddAnyBase("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mean",				Eidos_ExecuteFunction_mean,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogicalEquiv("x"));

@@ -857,18 +857,33 @@
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
-(float$)cor(numeric\'a0x, numeric\'a0y)\
+(float)cor(numeric\'a0x, \kerning1\expnd0\expndtw0 [Nif\'a0y\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b sample Pearson\'92s correlation coefficient
-\f3\b0  between 
+\f3\b0  between vectors 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
 \f3\fs20 , usually denoted 
 \f7\i r
-\f3\i0 .  The sizes of 
+\f3\i0 .  If 
+\f1\fs18 y
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20 , it is considered to have the same value as 
+\f1\fs18 x
+\f3\fs20 ; for vector 
+\f1\fs18 x
+\f3\fs20  this is not very useful (since the correlation of 
+\f1\fs18 x
+\f3\fs20  with itself is 
+\f1\fs18 1.0
+\f3\fs20  by definition), but it is more useful for calculating a correlation matrix using the columns of 
+\f1\fs18 x
+\f3\fs20  (see below).  The sizes of 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
@@ -880,23 +895,68 @@
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , an error will be raised (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 ).  The return value will be a singleton 
+\f1\fs18 float
+\f3\fs20 .\
+It is also legal to call 
 \f1\fs18 cor()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with matrix 
+\f1\fs18 x
+\f3\fs20  and/or 
+\f1\fs18 y
+\f3\fs20 .  In this case the return value will be a correlation matrix between x and y.  Each column of 
+\f1\fs18 x
+\f3\fs20  will be represented by one row of the result (or if 
+\f1\fs18 x
+\f3\fs20  is a vector, the result will simply have one row representing 
+\f1\fs18 x
+\f3\fs20 ), and each column of 
+\f1\fs18 y
+\f3\fs20  will be represented by one column of the result (or if 
+\f1\fs18 y
+\f3\fs20  is a vector, the result will simply have one column representing 
+\f1\fs18 y
+\f3\fs20 ).  Each element in the result matrix will therefore represent the correlation between a column of matrix 
+\f1\fs18 x
+\f3\fs20  (or the entirety of vector 
+\f1\fs18 x
+\f3\fs20 ) and a column of matrix 
+\f1\fs18 y
+\f3\fs20  (or the entirety of vector y).  Calling 
+\f1\fs18 cor(x, x)
+\f3\fs20 , or equivalently 
+\f1\fs18 cor(x)
+\f3\fs20 , thus produces a symmetric correlation matrix among the columns of 
+\f1\fs18 x
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (float$)cov(numeric\'a0x, numeric\'a0y)\
+\f1\fs18 \cf2 \expnd0\expndtw0\kerning0
+(float)cov(numeric\'a0x, \kerning1\expnd0\expndtw0 [Nif\'a0y\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b corrected sample covariance
-\f3\b0  between 
+\f3\b0  between vectors 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
-\f3\fs20 .  The sizes of 
+\f3\fs20 .  If 
+\f1\fs18 y
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20 , it is considered to have the same value as 
+\f1\fs18 x
+\f3\fs20 ; for vector 
+\f1\fs18 x
+\f3\fs20  this is equivalent to calling 
+\f1\fs18 var(x)
+\f3\fs20 , but it is more useful for calculating a variance-covariance matrix using the columns of 
+\f1\fs18 x
+\f3\fs20  (see below).  The sizes of 
 \f1\fs18 x
 \f3\fs20  and 
 \f1\fs18 y
@@ -908,14 +968,45 @@
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , an error will be raised (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 ).  The return value will be a singleton 
+\f1\fs18 float
+\f3\fs20 .\
+It is also legal to call 
 \f1\fs18 cov()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with matrix 
+\f1\fs18 x
+\f3\fs20  and/or 
+\f1\fs18 y
+\f3\fs20 .  In this case the return value will be a covariance matrix between x and y.  Each column of 
+\f1\fs18 x
+\f3\fs20  will be represented by one row of the result (or if 
+\f1\fs18 x
+\f3\fs20  is a vector, the result will simply have one row representing 
+\f1\fs18 x
+\f3\fs20 ), and each column of 
+\f1\fs18 y
+\f3\fs20  will be represented by one column of the result (or if 
+\f1\fs18 y
+\f3\fs20  is a vector, the result will simply have one column representing 
+\f1\fs18 y
+\f3\fs20 ).  Each element in the result matrix will therefore represent the covariance between a column of matrix 
+\f1\fs18 x
+\f3\fs20  (or the entirety of vector 
+\f1\fs18 x
+\f3\fs20 ) and a column of matrix 
+\f1\fs18 y
+\f3\fs20  (or the entirety of vector y).  Calling 
+\f1\fs18 cov(x, x)
+\f3\fs20 , or equivalently 
+\f1\fs18 cov(x)
+\f3\fs20 , thus produces a symmetric variance-covariance matrix among the columns of 
+\f1\fs18 x
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)filter(numeric\'a0x, float\'a0filter, [lif$\'a0outside\'a0=\'a0F])\
+\f1\fs18 \cf2 (float)filter(numeric\'a0x, float\'a0filter, [lif$\'a0outside\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 Returns the result of convolving 
@@ -1338,23 +1429,25 @@ The result for all of these
 \f1\fs18 \cf0 (float$)sd(numeric
 \f2 \'a0
 \f1 x)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf0 Returns the 
+\f3\fs20 \cf2 Returns the 
 \f0\b corrected sample standard deviation
 \f3\b0  of 
 \f1\fs18 x
-\f2\fs20 .
-\f3   If 
+\f3\fs20 .  If 
 \f1\fs18 x
 \f3\fs20  has a size of 
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f2\fs20 ,
-\f3  the return value will be 
+\f3\fs20 , an error will be raised (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f2\fs20 .\
+\f3\fs20 ).  Matrix/array dimensions are ignored by 
+\f1\fs18 sd()
+\f3\fs20 ; it simply uses all of the elements of 
+\f1\fs18 x
+\f3\fs20  for its calculation.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float$)ttest(float
@@ -1412,7 +1505,7 @@ The result for all of these
 (float$)var(numeric\'a0x)\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
 \f0\b corrected sample variance
 \f3\b0  of 
 \f1\fs18 x
@@ -1422,16 +1515,18 @@ The result for all of these
 \f1\fs18 0
 \f3\fs20  or 
 \f1\fs18 1
-\f3\fs20 , the return value will be 
+\f3\fs20 , an error will be raised (a change in behavior from Eidos 4.0; it used to return 
 \f1\fs18 NULL
-\f3\fs20 .  This is the square of the standard deviation calculated by 
+\f3\fs20 ).  This is the square of the standard deviation calculated by 
 \f1\fs18 sd()
-\f3\fs20 .  At present it is illegal to call 
+\f3\fs20 .  It is illegal to call 
 \f1\fs18 var()
-\f3\fs20  with a matrix or array argument, because the desired behavior in that case has not yet been implemented.\
+\f3\fs20  with a matrix or array argument; use 
+\f1\fs18 cov()
+\f3\fs20  to calculate a variance-covariance matrix.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.3.  Distribution drawing and density functions\
+\f0\b\fs22 \cf0 3.3.  Distribution drawing and density functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -5406,6 +5501,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 

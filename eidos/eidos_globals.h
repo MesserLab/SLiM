@@ -650,6 +650,106 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 // see https://stackoverflow.com/a/17097978/2752221 for some justification
 #define EIDOS_BZERO(s, n) memset((s), 0, (n))
 
+// Correlation between two vectors x and y of equal length; int64_t or double are used, and can be mixed
+template <typename T1, typename T2>
+double Eidos_Correlation(T1 *x, T2 *y, size_t count)
+{
+	if ((void *)x == (void *)y)
+	{
+		// if x == y, we're being asked to calculate a self-correlation, which is simply 1.0
+		return 1.0;
+	}
+	else
+	{
+		// calculate means
+		double mean_x = 0, mean_y = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+		{
+			mean_x += x[value_index];
+			mean_y += y[value_index];
+		}
+		
+		mean_x /= count;
+		mean_y /= count;
+		
+		// calculate sums of squares and products of differences
+		double ss_x = 0, ss_y = 0, diff_prod = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+		{
+			double dx = x[value_index] - mean_x;
+			double dy = y[value_index] - mean_y;
+			
+			ss_x += dx * dx;
+			ss_y += dy * dy;
+			diff_prod += dx * dy;
+		}
+		
+		// calculate correlation
+		return (diff_prod / (sqrt(ss_x) * sqrt(ss_y)));
+	}
+}
+
+// Covariance between two vectors x and y of equal length; int64_t or double are used, and can be mixed
+template <typename T1, typename T2>
+double Eidos_Covariance(T1 *x, T2 *y, size_t count)
+{
+	if ((void *)x == (void *)y)
+	{
+		// if x == y, we're being asked to calculate variance, which can be done more efficiently
+		
+		// calculate mean
+		double mean = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+			mean += x[value_index];
+		
+		mean /= count;
+		
+		// calculate variance
+		double var = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+		{
+			double d = x[value_index] - mean;
+			
+			var += d * d;
+		}
+		
+		// calculate correlation
+		return (var / (count - 1));
+	}
+	else
+	{
+		// calculate means
+		double mean_x = 0, mean_y = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+		{
+			mean_x += x[value_index];
+			mean_y += y[value_index];
+		}
+		
+		mean_x /= count;
+		mean_y /= count;
+		
+		// calculate covariance
+		double cov = 0;
+		
+		for (size_t value_index = 0; value_index < count; ++value_index)
+		{
+			double dx = x[value_index] - mean_x;
+			double dy = y[value_index] - mean_y;
+			
+			cov += dx * dy;
+		}
+		
+		// calculate correlation
+		return (cov / (count - 1));
+	}
+}
+
 // Welch's t-test functions; sample means are returned in mean1 and mean2, which may be nullptr
 double Eidos_TTest_TwoSampleWelch(const double *p_set1, int p_count1, const double *p_set2, int p_count2, double *p_mean1, double *p_mean2);
 double Eidos_TTest_OneSample(const double *p_set1, int p_count1, double p_mu, double *p_mean1);

@@ -36,105 +36,253 @@
 #pragma mark Statistics functions
 #pragma mark -
 
+static double _Eidos_CalcCorrelation(size_t count, EidosValue *x_value, EidosValue *y_value, size_t x_offset, size_t y_offset)
+{
+	// A thin wrapper for Eidos_Correlation() that can be used with both integer and float EidosValues,
+	// and takes an offset for x and y that allow a particular column of a matrix to be selected
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Correlation<const int64_t, const int64_t>(x_value->IntData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Correlation<const int64_t, const double>(x_value->IntData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+	else					// EidosValueType::kValueFloat
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Correlation<const double, const int64_t>(x_value->FloatData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Correlation<const double, const double>(x_value->FloatData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+}
 
-//	(float$)cor(numeric x, numeric y)
+//	(float)cor(numeric x, [Nif y = NULL])
 EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
-	int count = x_value->Count();
+	bool x_is_matrix = x_value->IsMatrixOrArray();
+	bool y_is_matrix = y_value->IsMatrixOrArray();
 	
-	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
-	if (count != y_value->Count())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
-	
-	if (count > 1)
+	if (x_is_matrix || y_is_matrix)
 	{
-		// calculate means
-		double mean_x = 0, mean_y = 0;
-		
-		for (int value_index = 0; value_index < count; ++value_index)
+		// correlation involving at least one matrix (treated by column); y=NULL means do cor(x, x) for matrix x
+		if (y_value->Type() == EidosValueType::kValueNULL)
 		{
-			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			y_value = x_value;
+			y_is_matrix = x_is_matrix;
 		}
 		
-		mean_x /= count;
-		mean_y /= count;
+		// arrays are not allowed, just matrices and vectors
+		if ((x_value->DimensionCount() > 2) || (y_value->DimensionCount() > 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() does not allow x or y to be an array." << EidosTerminate(nullptr);
 		
-		// calculate sums of squares and products of differences
-		double ss_x = 0, ss_y = 0, diff_prod = 0;
+		// get the lengths of the vectors we're calculating correlation on: vector length or matrix row count
+		size_t x_vec_length = x_is_matrix ? x_value->Dimensions()[0] : x_value->Count();
+		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
-		for (int value_index = 0; value_index < count; ++value_index)
+		if (x_vec_length != y_vec_length)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires x and y to be conformable." << EidosTerminate(nullptr);
+		
+		size_t vec_length = x_vec_length;
+		
+		if (vec_length <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that the vectors being calculated upon are of length >= 2." << EidosTerminate(nullptr);
+		
+		// so we're making a correlation matrix; let's determine its size first
+		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
+		int64_t ncols = y_is_matrix ? y_value->Dimensions()[1] : 1;
+		
+		EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(nrows * ncols);
+		double *result_data = result->FloatData_Mutable();
+		result_SP = EidosValue_SP(result);
+		
+		if (x_value == y_value)
 		{
-			double dx = x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x;
-			double dy = y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y;
-			
-			ss_x += dx * dx;
-			ss_y += dy * dy;
-			diff_prod += dx * dy;
+			// if x_value and y_value are the same, we're making a correlation matrix for x_value with itself
+			// the result will be a symmetric matrix, so we can save time by calculating only one triangle
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					if (row == col)
+					{
+						result_data[col * nrows + row] = 1.0;
+					}
+					else if (row < col)
+					{
+						size_t x_offset = row * vec_length;
+						size_t y_offset = col * vec_length;
+						double cor = _Eidos_CalcCorrelation(vec_length, x_value, y_value, x_offset, y_offset);
+						
+						result_data[col * nrows + row] = cor;
+						result_data[row * nrows + col] = cor;
+					}
+				}
+			}
+		}
+		else
+		{
+			// general case: loop over the elements of the result and calculate each one
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					size_t x_offset = row * vec_length;
+					size_t y_offset = col * vec_length;
+					double cor = _Eidos_CalcCorrelation(vec_length, x_value, y_value, x_offset, y_offset);
+					
+					result_data[col * nrows + row] = cor;
+				}
+			}
 		}
 		
-		// calculate correlation
-		double cor = diff_prod / (sqrt(ss_x) * sqrt(ss_y));
-		
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cor));
+		const int64_t dim_buf[2] = {nrows, ncols};
+		result->SetDimensions(2, dim_buf);
 	}
 	else
 	{
-		result_SP = gStaticEidosValueNULL;
+		// correlation of two vectors x and y; in this case, y is not allowed to be NULL
+		if (y_value->Type() == EidosValueType::kValueNULL)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires both x and y to be supplied, or a matrix x." << EidosTerminate(nullptr);
+		
+		int count = x_value->Count();
+		
+		if (count != y_value->Count())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
+		if (count <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+		
+		// calculate correlation between x and y
+		double cor = _Eidos_CalcCorrelation(count, x_value, y_value, 0, 0);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cor));
 	}
 	
 	return result_SP;
 }
 
-//	(float$)cov(numeric x, numeric y)
+static double _Eidos_CalcCovariance(size_t count, EidosValue *x_value, EidosValue *y_value, size_t x_offset, size_t y_offset)
+{
+	// A thin wrapper for Eidos_Covariance() that can be used with both integer and float EidosValues,
+	// and takes an offset for x and y that allow a particular column of a matrix to be selected
+	if (x_value->Type() == EidosValueType::kValueInt)
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Covariance<const int64_t, const int64_t>(x_value->IntData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Covariance<const int64_t, const double>(x_value->IntData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+	else					// EidosValueType::kValueFloat
+	{
+		if (y_value->Type() == EidosValueType::kValueInt)
+			return Eidos_Covariance<const double, const int64_t>(x_value->FloatData() + x_offset, y_value->IntData() + y_offset, count);
+		else				// EidosValueType::kValueFloat
+			return Eidos_Covariance<const double, const double>(x_value->FloatData() + x_offset, y_value->FloatData() + y_offset, count);
+	}
+}
+
+//	(float)cov(numeric x, [Nif y = NULL])
 EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	EidosValue *y_value = p_arguments[1].get();
-	int count = x_value->Count();
+	bool x_is_matrix = x_value->IsMatrixOrArray();
+	bool y_is_matrix = y_value->IsMatrixOrArray();
 	
-	if (x_value->IsMatrixOrArray() || y_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not currently support matrix/array arguments." << EidosTerminate(nullptr);
-	if (count != y_value->Count())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
-	
-	if (count > 1)
+	if (x_is_matrix || y_is_matrix)
 	{
-		// calculate means
-		double mean_x = 0, mean_y = 0;
-		
-		for (int value_index = 0; value_index < count; ++value_index)
+		// covariance involving at least one matrix (treated by column); y=NULL means do cov(x, x) for matrix x
+		if (y_value->Type() == EidosValueType::kValueNULL)
 		{
-			mean_x += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-			mean_y += y_value->NumericAtIndex_NOCAST(value_index, nullptr);
+			y_value = x_value;
+			y_is_matrix = x_is_matrix;
 		}
 		
-		mean_x /= count;
-		mean_y /= count;
+		// arrays are not allowed, just matrices and vectors
+		if ((x_value->DimensionCount() > 2) || (y_value->DimensionCount() > 2))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() does not allow x or y to be an array." << EidosTerminate(nullptr);
 		
-		// calculate covariance
-		double cov = 0;
+		// get the lengths of the vectors we're calculating covariance on: vector length or matrix row count
+		size_t x_vec_length = x_is_matrix ? x_value->Dimensions()[0] : x_value->Count();
+		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
-		for (int value_index = 0; value_index < count; ++value_index)
+		if (x_vec_length != y_vec_length)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires x and y to be conformable." << EidosTerminate(nullptr);
+		
+		size_t vec_length = x_vec_length;
+		
+		if (vec_length <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that the vectors being calculated upon are of length >= 2." << EidosTerminate(nullptr);
+		
+		// so we're making a covariance matrix; let's determine its size first
+		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
+		int64_t ncols = y_is_matrix ? y_value->Dimensions()[1] : 1;
+		
+		EidosValue_Float *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(nrows * ncols);
+		double *result_data = result->FloatData_Mutable();
+		result_SP = EidosValue_SP(result);
+		
+		if (x_value == y_value)
 		{
-			double temp_x = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_x);
-			double temp_y = (y_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean_y);
-			cov += temp_x * temp_y;
+			// if x_value and y_value are the same, we're making a covariance matrix for x_value with itself
+			// the result will be a symmetric matrix, so we can save time by calculating only one triangle
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					if (row <= col)
+					{
+						size_t x_offset = row * vec_length;
+						size_t y_offset = col * vec_length;
+						double cov = _Eidos_CalcCovariance(vec_length, x_value, y_value, x_offset, y_offset);
+						
+						result_data[col * nrows + row] = cov;
+						result_data[row * nrows + col] = cov;
+					}
+				}
+			}
+		}
+		else
+		{
+			// general case: loop over the elements of the result and calculate each one
+			for (int64_t row = 0; row < nrows; ++row)
+			{
+				for (int64_t col = 0; col < ncols; ++col)
+				{
+					size_t x_offset = row * vec_length;
+					size_t y_offset = col * vec_length;
+					double cov = _Eidos_CalcCovariance(vec_length, x_value, y_value, x_offset, y_offset);
+					
+					result_data[col * nrows + row] = cov;
+				}
+			}
 		}
 		
-		cov = cov / (count - 1);
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
+		const int64_t dim_buf[2] = {nrows, ncols};
+		result->SetDimensions(2, dim_buf);
 	}
 	else
 	{
-		result_SP = gStaticEidosValueNULL;
+		// covariance of two vectors x and y; in this case, y is not allowed to be NULL
+		if (y_value->Type() == EidosValueType::kValueNULL)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires both x and y to be supplied, or a matrix x." << EidosTerminate(nullptr);
+		
+		int count = x_value->Count();
+		
+		if (count != y_value->Count())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
+		if (count <= 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+		
+		// calculate covariance between x and y
+		double cov = _Eidos_CalcCovariance(count, x_value, y_value, 0, 0);
+		
+		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
 	}
 	
 	return result_SP;
@@ -1400,35 +1548,31 @@ EidosValue_SP Eidos_ExecuteFunction_range(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
+	// This is different from the behavior of var(), cor(), and cov(), but follows R
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
 	int x_count = x_value->Count();
 	
-	if (x_count > 1)
+	if (x_count <= 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sd): function sd() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+	
+	double mean = 0;
+	double sd = 0;
+	
+	for (int value_index = 0; value_index < x_count; ++value_index)
+		mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
+	
+	mean /= x_count;
+	
+	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
-		double mean = 0;
-		double sd = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-		
-		mean /= x_count;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-		{
-			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
-			sd += temp * temp;
-		}
-		
-		sd = sqrt(sd / (x_count - 1));
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
+		double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
+		sd += temp * temp;
 	}
-	else
-	{
-		result_SP = gStaticEidosValueNULL;
-	}
+	
+	sd = sqrt(sd / (x_count - 1));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(sd));
 	
 	return result_SP;
 }
@@ -1486,42 +1630,20 @@ EidosValue_SP Eidos_ExecuteFunction_ttest(const std::vector<EidosValue_SP> &p_ar
 //	(float$)var(numeric x)
 EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	EidosValue_SP result_SP(nullptr);
-	
 	EidosValue *x_value = p_arguments[0].get();
-	int x_count = x_value->Count();
 	
 	if (x_value->IsMatrixOrArray())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not currently support a matrix/array argument." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() does not support a matrix/array argument; use cov() to calculate variance-covariance matrices." << EidosTerminate(nullptr);
 	
-	if (x_count > 1)
-	{
-		// calculate mean
-		double mean = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-			mean += x_value->NumericAtIndex_NOCAST(value_index, nullptr);
-		
-		mean /= x_count;
-		
-		// calculate variance
-		double var = 0;
-		
-		for (int value_index = 0; value_index < x_count; ++value_index)
-		{
-			double temp = (x_value->NumericAtIndex_NOCAST(value_index, nullptr) - mean);
-			var += temp * temp;
-		}
-		
-		var = var / (x_count - 1);
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(var));
-	}
-	else
-	{
-		result_SP = gStaticEidosValueNULL;
-	}
+	int x_count = x_value->Count();
 	
-	return result_SP;
+	if (x_count <= 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+	
+	// calculate variance of x (covariance between x and itself)
+	double cov = _Eidos_CalcCovariance(x_count, x_value, x_value, 0, 0);
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(cov));
 }
 
 

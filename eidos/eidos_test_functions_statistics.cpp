@@ -28,8 +28,8 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 {
 	// cor()
 	EidosAssertScriptRaise("cor(T, T);", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("cor(3, 3);");
-	EidosAssertScriptSuccess_NULL("cor(3.5, 3.5);");
+	EidosAssertScriptRaise("cor(3, 3);", 0, "of length >= 2");
+	EidosAssertScriptRaise("cor(3.5, 3.5);", 0, "of length >= 2");
 	EidosAssertScriptRaise("cor('foo', 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_L("abs(cor(1:5, 1:5) - 1) < 1e-10;", true);
@@ -48,14 +48,24 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("cor(_Test(7), _Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(NULL, NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("cor(logical(0), logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("cor(integer(0), integer(0));");
-	EidosAssertScriptSuccess_NULL("cor(float(0), float(0));");
+	EidosAssertScriptRaise("cor(integer(0), integer(0));", 0, "of length >= 2");
+	EidosAssertScriptRaise("cor(float(0), float(0));", 0, "of length >= 2");
 	EidosAssertScriptRaise("cor(string(0), string(0));", 0, "cannot be type");
+	
+	std::string matrices = "a = c(1,2,3,4); b = c(1,2,4,5); c = c(1,3,4,5); d = c(5,3,2,1); m1 = cbind(a,b); m2 = cbind(c,d); m3 = cbind(a,b,c,d); ";
+	
+	EidosAssertScriptSuccess_L(matrices + "r = cor(m1); all(abs(r - matrix(c(1, 0.9899495, 0.9899495, 1), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cor(m2); all(abs(r - matrix(c(1, -1, -1, 1), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cor(m1, m2); all(abs(r - matrix(c(0.9827076, 0.9621405, -0.9827076, -0.9621405), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cor(m1, c); (nrow(r) == 2) & all(abs(r - matrix(c(0.9827076, 0.9621405), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cor(c, m1); (nrow(r) == 1) & all(abs(r - matrix(c(0.9827076, 0.9621405), ncol=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cor(m3); all(abs(r - matrix(c(1, 0.9899495, 0.9827076, -0.9827076, 0.9899495, 1, 0.9621405, -0.9621405, 0.9827076, 0.9621405, 1, -1, -0.9827076, -0.9621405, -1, 1), nrow=4)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L("m4 = matrix(runif(36), nrow=6); r = cor(m4); identical(r, t(r));", true);
 	
 	// cov()
 	EidosAssertScriptRaise("cov(T, T);", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("cov(3, 3);");
-	EidosAssertScriptSuccess_NULL("cov(3.5, 3.5);");
+	EidosAssertScriptRaise("cov(3, 3);", 0, "of length >= 2");
+	EidosAssertScriptRaise("cov(3.5, 3.5);", 0, "of length >= 2");
 	EidosAssertScriptRaise("cov('foo', 'foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(c(F, F, T, F, T), c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_L("abs(cov(1:5, 1:5) - 2.5) < 1e-10;", true);
@@ -74,9 +84,17 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("cov(_Test(7), _Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(NULL, NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("cov(logical(0), logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("cov(integer(0), integer(0));");
-	EidosAssertScriptSuccess_NULL("cov(float(0), float(0));");
+	EidosAssertScriptRaise("cov(integer(0), integer(0));", 0, "of length >= 2");
+	EidosAssertScriptRaise("cov(float(0), float(0));", 0, "of length >= 2");
 	EidosAssertScriptRaise("cov(string(0), string(0));", 0, "cannot be type");
+	
+	EidosAssertScriptSuccess_L(matrices + "r = cov(m1); all(abs(r - matrix(c(1.666667, 2.333333, 2.333333, 3.333333), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cov(m2); all(abs(r - matrix(c(2.916667, -2.916667, -2.916667, 2.916667), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cov(m1, m2); all(abs(r - matrix(c(2.166667, 3.000000, -2.166667, -3.000000), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cov(m1, c); (nrow(r) == 2) & all(abs(r - matrix(c(2.166667, 3.000000), nrow=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cov(c, m1); (nrow(r) == 1) & all(abs(r - matrix(c(2.166667, 3.000000), ncol=2)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L(matrices + "r = cov(m3); all(abs(r - matrix(c(1.666667, 2.333333, 2.166667, -2.166667, 2.333333, 3.333333, 3.000000, -3.000000, 2.166667, 3.000000, 2.916667, -2.916667, -2.166667, -3.000000, -2.916667, 2.916667), nrow=4)) < 1e-5);", true);
+	EidosAssertScriptSuccess_L("m4 = matrix(runif(36), nrow=6); r = cov(m4); identical(r, t(r));", true);
 	
 	// filter()
 	EidosAssertScriptRaise("filter(1.0:10, float(0));", 0, "within the interval [1,");
@@ -472,8 +490,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	
 	// sd()
 	EidosAssertScriptRaise("sd(T);", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("sd(3);");
-	EidosAssertScriptSuccess_NULL("sd(3.5);");
+	EidosAssertScriptRaise("sd(3);", 0, "of length >= 2");
+	EidosAssertScriptRaise("sd(3.5);", 0, "of length >= 2");
 	EidosAssertScriptRaise("sd('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("sd(c(2, 3, 2, 8, 0));", 3);
@@ -483,8 +501,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptRaise("sd(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("sd(logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("sd(integer(0));");
-	EidosAssertScriptSuccess_NULL("sd(float(0));");
+	EidosAssertScriptRaise("sd(integer(0));", 0, "of length >= 2");
+	EidosAssertScriptRaise("sd(float(0));", 0, "of length >= 2");
 	EidosAssertScriptRaise("sd(string(0));", 0, "cannot be type");
 	
 	// ttest()
@@ -505,8 +523,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	
 	// var()
 	EidosAssertScriptRaise("var(T);", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("var(3);");
-	EidosAssertScriptSuccess_NULL("var(3.5);");
+	EidosAssertScriptRaise("var(3);", 0, "of length >= 2");
+	EidosAssertScriptRaise("var(3.5);", 0, "of length >= 2");
 	EidosAssertScriptRaise("var('foo');", 0, "cannot be type");
 	EidosAssertScriptRaise("var(c(F, F, T, F, T));", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("var(c(2, 3, 2, 8, 0));", 9);
@@ -516,8 +534,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptRaise("var(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("var(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("var(logical(0));", 0, "cannot be type");
-	EidosAssertScriptSuccess_NULL("var(integer(0));");
-	EidosAssertScriptSuccess_NULL("var(float(0));");
+	EidosAssertScriptRaise("var(integer(0));", 0, "of length >= 2");
+	EidosAssertScriptRaise("var(float(0));", 0, "of length >= 2");
 	EidosAssertScriptRaise("var(string(0));", 0, "cannot be type");
 }
 
