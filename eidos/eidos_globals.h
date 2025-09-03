@@ -654,6 +654,10 @@ void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const s
 template <typename T1, typename T2>
 double Eidos_Correlation(T1 *x, T2 *y, size_t count)
 {
+	// when the covariance is undefined because there are too few values, R returns NA; we return NAN
+	if (count <= 1)
+		return std::numeric_limits<double>::quiet_NaN();
+	
 	if ((void *)x == (void *)y)
 	{
 		// if x == y, we're being asked to calculate a self-correlation, which is simply 1.0
@@ -695,6 +699,10 @@ double Eidos_Correlation(T1 *x, T2 *y, size_t count)
 template <typename T1, typename T2>
 double Eidos_Covariance(T1 *x, T2 *y, size_t count)
 {
+	// when the covariance is undefined because there are too few values, R returns NA; we return NAN
+	if (count <= 1)
+		return std::numeric_limits<double>::quiet_NaN();
+	
 	if ((void *)x == (void *)y)
 	{
 		// if x == y, we're being asked to calculate variance, which can be done more efficiently

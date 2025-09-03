@@ -84,12 +84,12 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
 		if (x_vec_length != y_vec_length)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires x and y to be conformable." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): incompatible dimensions in cor()." << EidosTerminate(nullptr);
 		
 		size_t vec_length = x_vec_length;
 		
-		if (vec_length <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that the vectors being calculated upon are of length >= 2." << EidosTerminate(nullptr);
+		if (vec_length == 0)
+			return gStaticEidosValue_FloatNAN;
 		
 		// so we're making a correlation matrix; let's determine its size first
 		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
@@ -153,7 +153,7 @@ EidosValue_SP Eidos_ExecuteFunction_cor(const std::vector<EidosValue_SP> &p_argu
 		if (count != y_value->Count())
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that x and y be the same size." << EidosTerminate(nullptr);
 		if (count <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cor): function cor() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+			return gStaticEidosValue_FloatNAN;
 		
 		// calculate correlation between x and y
 		double cor = _Eidos_CalcCorrelation(count, x_value, y_value, 0, 0);
@@ -212,12 +212,12 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		size_t y_vec_length = y_is_matrix ? y_value->Dimensions()[0] : y_value->Count();
 		
 		if (x_vec_length != y_vec_length)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires x and y to be conformable." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): incompatible dimensions in cov()." << EidosTerminate(nullptr);
 		
 		size_t vec_length = x_vec_length;
 		
-		if (vec_length <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that the vectors being calculated upon are of length >= 2." << EidosTerminate(nullptr);
+		if (vec_length == 0)
+			return gStaticEidosValue_FloatNAN;
 		
 		// so we're making a covariance matrix; let's determine its size first
 		int64_t nrows = x_is_matrix ? x_value->Dimensions()[1] : 1;
@@ -277,7 +277,7 @@ EidosValue_SP Eidos_ExecuteFunction_cov(const std::vector<EidosValue_SP> &p_argu
 		if (count != y_value->Count())
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that x and y be the same size." << EidosTerminate(nullptr);
 		if (count <= 1)
-			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_cov): function cov() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+			return gStaticEidosValue_FloatNAN;
 		
 		// calculate covariance between x and y
 		double cov = _Eidos_CalcCovariance(count, x_value, y_value, 0, 0);
@@ -1555,7 +1555,7 @@ EidosValue_SP Eidos_ExecuteFunction_sd(const std::vector<EidosValue_SP> &p_argum
 	int x_count = x_value->Count();
 	
 	if (x_count <= 1)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sd): function sd() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+		return gStaticEidosValue_FloatNAN;
 	
 	double mean = 0;
 	double sd = 0;
@@ -1638,7 +1638,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 	int x_count = x_value->Count();
 	
 	if (x_count <= 1)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_var): function var() requires that the vectors being used are of length >= 2." << EidosTerminate(nullptr);
+		return gStaticEidosValue_FloatNAN;
 	
 	// calculate variance of x (covariance between x and itself)
 	double cov = _Eidos_CalcCovariance(x_count, x_value, x_value, 0, 0);
