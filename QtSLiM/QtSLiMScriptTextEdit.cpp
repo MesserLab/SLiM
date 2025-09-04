@@ -2675,6 +2675,34 @@ void QtSLiMScriptTextEdit::copyAsHTML(void)
     }
 }
 
+void QtSLiMScriptTextEdit::duplicateSelection(void)
+{
+    if (isEnabled() && !isReadOnly())
+    {
+        QTextCursor &&edit_cursor = textCursor();
+        QString selectedString = edit_cursor.selectedText();
+        int pasteStart = edit_cursor.selectionEnd();
+        
+        edit_cursor.beginEditBlock();
+        
+        edit_cursor.setPosition(pasteStart, QTextCursor::MoveAnchor);
+        edit_cursor.insertText(selectedString);
+        
+        int pasteEnd = edit_cursor.position();
+        
+        edit_cursor.setPosition(pasteStart, QTextCursor::MoveAnchor);
+        edit_cursor.setPosition(pasteEnd, QTextCursor::KeepAnchor);
+        
+        // end the editing block, producing one undo-able operation
+        edit_cursor.endEditBlock();
+        setTextCursor(edit_cursor);
+    }
+    else
+    {
+        qApp->beep();
+    }
+}
+
 void QtSLiMScriptTextEdit::shiftSelectionLeft(void)
 {
     if (isEnabled() && !isReadOnly())

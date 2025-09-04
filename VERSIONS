@@ -35,6 +35,7 @@ development head (in the master branch):
 	partial fix for #530, extend cor() and cov() to support correlation/covariance between the columns of a matrix (or matrices), as in R
 		policy change: cov(x, y), cor(x, y), var(x), and sd(x) with x and/or y of length 1 now returns NAN (used to return NULL);
 			this is because you can't make a matrix containing NULLs, and Eidos doesn't have NA (which is what R uses in this case)
+	add Duplicate command to the Edit command, command-D, useful for code editing; change Show Debugging Output to shift-command-D
 
 
 version 5.0 (Eidos version 4.0):

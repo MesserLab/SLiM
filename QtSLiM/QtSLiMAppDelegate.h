@@ -137,6 +137,7 @@ public slots:
     void dispatch_cut(void);
     void dispatch_copy(void);
     void dispatch_paste(void);
+    void dispatch_duplicate(void);
     void dispatch_delete(void);
     void dispatch_selectAll(void);
     

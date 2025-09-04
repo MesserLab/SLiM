@@ -1383,6 +1383,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="actionCopy"/>
     <addaction name="actionCopyAsHTML"/>
     <addaction name="actionPaste"/>
+    <addaction name="actionDuplicate"/>
     <addaction name="actionDelete"/>
     <addaction name="actionSelectAll"/>
     <addaction name="separator"/>
@@ -1918,7 +1919,7 @@ QSlider::handle:horizontal:disabled {
     <string>Show Debugging Output</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+D</string>
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
   <action name="actionClearDebug">
@@ -2100,6 +2101,14 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="toolTip">
     <string>Show a chart depicting the plot symbols used by Plot's points() method</string>
+   </property>
+  </action>
+  <action name="actionDuplicate">
+   <property name="text">
+    <string>Duplicate</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
  </widget>

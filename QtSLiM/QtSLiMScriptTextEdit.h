@@ -201,6 +201,7 @@ public:
     
 public slots:
     void copyAsHTML(void);
+    void duplicateSelection(void);
     void shiftSelectionLeft(void);
     void shiftSelectionRight(void);
     void commentUncommentSelection(void);

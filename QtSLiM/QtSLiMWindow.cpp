@@ -3325,6 +3325,7 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
     bool isScriptTextEdit = (!!scriptEdit);
     bool isModifiableScriptTextEdit = (isScriptTextEdit && !scriptEdit->isReadOnly());
     
+    ui->actionDuplicate->setEnabled(isModifiableScriptTextEdit);
     ui->actionCopyAsHTML->setEnabled(isScriptTextEdit);
     ui->actionShiftLeft->setEnabled(isModifiableScriptTextEdit);
     ui->actionShiftRight->setEnabled(isModifiableScriptTextEdit);

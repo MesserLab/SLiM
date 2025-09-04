@@ -229,6 +229,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionCut, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_cut);
     connect(ui->actionCopy, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_copy);
     connect(ui->actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
+    connect(ui->actionDuplicate, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_duplicate);
     connect(ui->actionDelete, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_delete);
     connect(ui->actionSelectAll, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_selectAll);
     

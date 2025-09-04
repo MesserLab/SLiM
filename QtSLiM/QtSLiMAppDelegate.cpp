@@ -1008,7 +1008,7 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     {
         QAction *actionShowDebuggingOutput = new QAction("Show Debugging Output", this);
-        actionShowDebuggingOutput->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_D));
+        actionShowDebuggingOutput->setShortcut(flagsAndKey(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_D));
         connect(actionShowDebuggingOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showDebuggingOutput);
         window->addAction(actionShowDebuggingOutput);
     }
@@ -1079,6 +1079,12 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         actionPaste->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_V));
         connect(actionPaste, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_paste);
         window->addAction(actionPaste);
+    }
+    {
+        QAction *actionDuplicate = new QAction("Duplicate", this);
+        actionDuplicate->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_D));
+        connect(actionDuplicate, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_duplicate);
+        window->addAction(actionDuplicate);
     }
     {
         QAction *actionDelete = new QAction("Delete", this);
@@ -1493,6 +1499,15 @@ void QtSLiMAppDelegate::dispatch_paste(void)
         textEdit->paste();
     else if (plainTextEdit && plainTextEdit->isEnabled() && !plainTextEdit->isReadOnly())
         plainTextEdit->paste();
+}
+
+void QtSLiMAppDelegate::dispatch_duplicate(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(focusWidget);
+    
+    if (scriptEdit && scriptEdit->isEnabled() && !scriptEdit->isReadOnly())
+        scriptEdit->duplicateSelection();
 }
 
 void QtSLiMAppDelegate::dispatch_delete(void)
