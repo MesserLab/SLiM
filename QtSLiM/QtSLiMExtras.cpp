@@ -957,7 +957,7 @@ QStringList QtSLiMRunLineEditArrayDialog(QWidget *p_parent, QString title, QStri
     {
         QStringList returnList;
         
-        for (QLineEdit *lineEdit : qAsConst(lineEdits))
+        for (QLineEdit *lineEdit : static_cast<const QVector<QLineEdit *> &>(lineEdits))
             returnList.append(lineEdit->text());
         
         delete dialog;
