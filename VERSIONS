@@ -37,6 +37,7 @@ development head (in the master branch):
 			this is because you can't make a matrix containing NULLs, and Eidos doesn't have NA (which is what R uses in this case)
 	add Duplicate command to the Edit command, command-D, useful for code editing; change Show Debugging Output to shift-command-D
 	add "Show SLiMgui Color Scales" command to the Help menu in SLiMgui
+	fix #553, an off-by-one bug in initializeRecombinationRateFromFile(); breaks backward compatibility, by fixing this bug
 
 
 version 5.0 (Eidos version 4.0):

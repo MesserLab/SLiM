@@ -869,10 +869,11 @@ R"V0G0N({
 	
 	// We expect the first column to be start positions, not end positions.
 	// The first value in that column therefore tells us whether the data
-	// is zero-based or one-based; we require one or the other.  There is
-	// another -1 applied to the positions because we convert them from
-	// start positions to end positions; each segment ends at the base
-	// previous to the start of the next segment.
+	// is zero-based or one-based; we require one or the other.  Unlike in
+	// initializeMutationRateFromFile(), there is no shift to translate from
+	// starts to ends; a start of 8 (beginning a rate to the right of pos 8)
+	// is the same as an end of 8 (ending the previous rate to the left of
+	// position 8); in-between positions are confusing.  See #553.
 	base = ends[0];
 	if ((base != 0) & (base != 1))
 		stop(errbase + "the first position in the file must be 0 (for 0-based positions) or 1 (for 1-based positions).");
@@ -880,7 +881,7 @@ R"V0G0N({
 	if (length(ends) == 1)
 		ends = lastPosition;		// only the first start position is present
 	else
-		ends = c(ends[1:(size(ends)-1)] - base - 1, lastPosition);
+		ends = c(ends[1:(size(ends)-1)] - base, lastPosition);
 	
 	initializeRecombinationRate(rates * scale, ends, sex);
 })V0G0N";
