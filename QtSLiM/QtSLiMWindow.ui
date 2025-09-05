@@ -75,7 +75,7 @@
              <item>
               <spacer name="speciesBarSpacer">
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
@@ -109,13 +109,13 @@
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="verticalScrollBarPolicy">
-             <enum>Qt::ScrollBarAlwaysOn</enum>
+             <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOn</enum>
             </property>
             <property name="editTriggers">
-             <set>QAbstractItemView::NoEditTriggers</set>
+             <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
             </property>
             <property name="tabKeyNavigation">
              <bool>false</bool>
@@ -124,10 +124,10 @@
              <bool>false</bool>
             </property>
             <property name="selectionMode">
-             <enum>QAbstractItemView::ExtendedSelection</enum>
+             <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
             </property>
             <property name="selectionBehavior">
-             <enum>QAbstractItemView::SelectRows</enum>
+             <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
             </property>
             <property name="showGrid">
              <bool>false</bool>
@@ -166,7 +166,7 @@
           <item>
            <layout class="QHBoxLayout" name="playControlsLayout">
             <property name="sizeConstraint">
-             <enum>QLayout::SetDefaultConstraint</enum>
+             <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
             </property>
             <item>
              <widget class="QtSLiMPushButton" name="playOneStepButton">
@@ -183,7 +183,7 @@
                </size>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::FocusPolicy::NoFocus</enum>
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;step one tick&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -219,7 +219,7 @@
                </size>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::FocusPolicy::NoFocus</enum>
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;play simulation continuously&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -258,7 +258,7 @@
                </size>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::FocusPolicy::NoFocus</enum>
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;profile simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -297,7 +297,7 @@
                </size>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::FocusPolicy::NoFocus</enum>
               </property>
               <property name="toolTip">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;recycle simulation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -320,7 +320,7 @@
             </item>
            </layout>
           </item>
-          <item alignment="Qt::AlignHCenter">
+          <item alignment="Qt::AlignmentFlag::AlignHCenter">
            <widget class="QSlider" name="playSpeedSlider">
             <property name="maximumSize">
              <size>
@@ -329,7 +329,7 @@
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;simulation playing speed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -373,7 +373,7 @@ QSlider::handle:horizontal:disabled {
              <number>100</number>
             </property>
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="invertedAppearance">
              <bool>false</bool>
@@ -383,10 +383,10 @@ QSlider::handle:horizontal:disabled {
           <item>
            <spacer name="playControlsSpacerFixed">
             <property name="orientation">
-             <enum>Qt::Vertical</enum>
+             <enum>Qt::Orientation::Vertical</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
+             <enum>QSizePolicy::Policy::Fixed</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -399,15 +399,15 @@ QSlider::handle:horizontal:disabled {
           <item>
            <layout class="QHBoxLayout" name="tickLayout">
             <property name="sizeConstraint">
-             <enum>QLayout::SetDefaultConstraint</enum>
+             <enum>QLayout::SizeConstraint::SetDefaultConstraint</enum>
             </property>
             <item>
              <spacer name="horizontalSpacer">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
+               <enum>QSizePolicy::Policy::Fixed</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -457,17 +457,17 @@ QSlider::handle:horizontal:disabled {
                <string>initialize()</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
               </property>
              </widget>
             </item>
             <item>
              <spacer name="horizontalSpacer_2">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
+               <enum>QSizePolicy::Policy::Fixed</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -484,10 +484,10 @@ QSlider::handle:horizontal:disabled {
             <item>
              <spacer name="horizontalSpacer_5">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
+               <enum>QSizePolicy::Policy::Fixed</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -531,7 +531,7 @@ QSlider::handle:horizontal:disabled {
                <string>initialize()</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
               </property>
               <property name="readOnly">
                <bool>true</bool>
@@ -541,10 +541,10 @@ QSlider::handle:horizontal:disabled {
             <item>
              <spacer name="horizontalSpacer_6">
               <property name="orientation">
-               <enum>Qt::Horizontal</enum>
+               <enum>Qt::Orientation::Horizontal</enum>
               </property>
               <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
+               <enum>QSizePolicy::Policy::Fixed</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -559,10 +559,10 @@ QSlider::handle:horizontal:disabled {
           <item>
            <spacer name="playControlsSpacerExpanding">
             <property name="orientation">
-             <enum>Qt::Vertical</enum>
+             <enum>Qt::Orientation::Vertical</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::MinimumExpanding</enum>
+             <enum>QSizePolicy::Policy::MinimumExpanding</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -643,7 +643,7 @@ QSlider::handle:horizontal:disabled {
           <property name="spacing">
            <number>5</number>
           </property>
-          <item alignment="Qt::AlignRight">
+          <item alignment="Qt::AlignmentFlag::AlignRight">
            <widget class="QtSLiMPushButton" name="toggleDrawerButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -664,7 +664,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;open object tables window&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -709,7 +709,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;chromosome view actions&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -754,7 +754,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;make a new chromosome display window&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -781,10 +781,10 @@ QSlider::handle:horizontal:disabled {
           <item>
            <spacer name="verticalSpacer_2">
             <property name="orientation">
-             <enum>Qt::Vertical</enum>
+             <enum>Qt::Orientation::Vertical</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Fixed</enum>
+             <enum>QSizePolicy::Policy::Fixed</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -803,7 +803,7 @@ QSlider::handle:horizontal:disabled {
     <item>
      <widget class="Line" name="topBottomDividerLine">
       <property name="orientation">
-       <enum>Qt::Horizontal</enum>
+       <enum>Qt::Orientation::Horizontal</enum>
       </property>
      </widget>
     </item>
@@ -828,7 +828,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear debug points (set a debug point by clicking below)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -864,7 +864,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;check script syntax&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -900,7 +900,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;prettyprint script; option-click/alt-click to do a full reformat&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -936,7 +936,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;scripting help&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -972,7 +972,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show Eidos console&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1011,7 +1011,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show Eidos variable browser&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1057,7 +1057,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;jump to an event or callback&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1117,7 +1117,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;clear output log&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1153,7 +1153,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;dump population state&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1196,7 +1196,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show the debugging output viewer&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1238,7 +1238,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show a graph&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1262,7 +1262,7 @@ QSlider::handle:horizontal:disabled {
           <item>
            <spacer name="horizontalSpacer_3">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -1287,7 +1287,7 @@ QSlider::handle:horizontal:disabled {
              </size>
             </property>
             <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
+             <enum>Qt::FocusPolicy::NoFocus</enum>
             </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;change working directory&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1329,7 +1329,7 @@ QSlider::handle:horizontal:disabled {
      <x>0</x>
      <y>0</y>
      <width>914</width>
-     <height>24</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -1472,6 +1472,7 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionShowColorChart"/>
     <addaction name="actionShowPlotSymbols"/>
+    <addaction name="actionShowColorScales"/>
     <addaction name="separator"/>
     <addaction name="actionQtSLiMHelp"/>
     <addaction name="actionSLiMWorkshops"/>
@@ -1760,7 +1761,7 @@ QSlider::handle:horizontal:disabled {
     <string>About the Messer Lab</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
   <action name="actionAboutBenHaller">
@@ -1768,7 +1769,7 @@ QSlider::handle:horizontal:disabled {
     <string>About Ben Haller</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
   <action name="actionAboutStickSoftware">
@@ -1776,7 +1777,7 @@ QSlider::handle:horizontal:disabled {
     <string>About Stick Software</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
   <action name="actionAboutQtSLiM">
@@ -1784,7 +1785,7 @@ QSlider::handle:horizontal:disabled {
     <string>About SLiMgui</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutRole</enum>
+    <enum>QAction::MenuRole::AboutRole</enum>
    </property>
   </action>
   <action name="actionQuitQtSLiM">
@@ -1795,7 +1796,7 @@ QSlider::handle:horizontal:disabled {
     <string>Ctrl+Q</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::QuitRole</enum>
+    <enum>QAction::MenuRole::QuitRole</enum>
    </property>
   </action>
   <action name="actionFindRecipe">
@@ -1814,7 +1815,7 @@ QSlider::handle:horizontal:disabled {
     <string>Ctrl+,</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::PreferencesRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionFindShow">
@@ -2109,6 +2110,14 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionShowColorScales">
+   <property name="text">
+    <string>Show SLiMgui Color Scales</string>
+   </property>
+   <property name="toolTip">
+    <string>Show a chart depicting the color scales used by SLiMgui for mutation effects and individual fitness</string>
    </property>
   </action>
  </widget>

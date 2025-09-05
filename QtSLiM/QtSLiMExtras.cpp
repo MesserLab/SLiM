@@ -277,6 +277,138 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	}
 }
 
+QtSLiMColorScaleWidget::QtSLiMColorScaleWidget(QWidget *p_parent) : QWidget(p_parent),
+    fitnessTicks({"0.0", "0.5", "1.0", "1.5", "2.0"}),
+    effectTicks({"-1.0", "-0.5", "0.0", "0.5", "1.0"})
+{
+    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+}
+
+void QtSLiMColorScaleWidget::paintEvent(QPaintEvent * /*p_paintEvent*/)
+{
+    // we're designed to fit in a fixed size of 301 x 197; see dispatch_showColorScales()
+    //QRect overallRect = contentsRect();
+    QPainter painter(this);
+    QRect stripe1 = QRect(15, 33, 271, 20);     // odd width so we have a central pixel of exactly yellow
+    QRect stripe2 = QRect(15, 105, 271, 20);    // odd width so we have a central pixel of exactly yellow
+    
+    static QFont *labelFont = nullptr;
+    
+    if (!labelFont)
+    {
+        labelFont = new QFont();
+#ifdef __linux__
+        labelFont->setPointSize(10);
+#else
+        labelFont->setPointSize(12);
+#endif
+        labelFont->setBold(true);
+    }
+    painter.setFont(*labelFont);
+    
+    const double labelYOffset = -8;
+    
+    // Fitness color scale
+    painter.drawText(stripe1.x(), stripe1.y() + labelYOffset, "Individual fitness scale:");
+    
+    for (int x = stripe1.left() + 1; x <= (stripe1.left() + 1) + (stripe1.width() - 3); ++x)
+    {
+        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
+        QRect sliver(x, stripe1.top() + 1, 1, stripe1.height() - 2);
+        double sliverFraction = (x - (stripe1.left() + 1)) / (stripe1.width() - 3.0);
+        double fitness = sliverFraction * 2.0;     // cover fitness values of 0.0 to 2.0
+        float r, g, b;
+        RGBForFitness(fitness, &r, &g, &b, scalingFactor);
+        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+    }
+    
+    QtSLiMFrameRect(stripe1, Qt::black, painter);
+    
+    // Mutation effect color scale
+    painter.drawText(stripe2.x(), stripe2.y() + labelYOffset, "Mutation effect scale:");
+    
+    for (int x = stripe2.left() + 1; x <= (stripe2.left() + 1) + (stripe2.width() - 3); ++x)
+    {
+        const double scalingFactor = 0.8;   // this is constant in QtSLiM; there used to be a slider
+        QRect sliver(x, stripe2.top() + 1, 1, stripe2.height() - 2);
+        double sliverFraction = (x - (stripe2.left() + 1)) / (stripe2.width() - 3.0);
+        double fitness = sliverFraction * 2.0 - 1;     // cover mutation effect values of -1.0 to 1.0
+        float r, g, b;
+        RGBForSelectionCoeff(fitness, &r, &g, &b, scalingFactor);
+        painter.fillRect(sliver, QColor(round(r * 255), round(g * 255), round(b * 255)));
+        
+        //qDebug() << "x =" << x << " << sliverFraction =" << sliverFraction << " fitness =" << fitness;
+    }
+    
+    QtSLiMFrameRect(stripe2, Qt::black, painter);
+    
+    // Draw axis scales
+    static QFont *tickFont = nullptr;
+    
+    if (!tickFont)
+    {
+        tickFont = new QFont();
+#ifdef __linux__
+        tickFont->setPointSize(8);
+#else
+        tickFont->setPointSize(10);
+#endif
+    }
+    painter.setFont(*tickFont);
+    
+    QFontMetricsF fontMetrics(*tickFont);
+    
+    for (int tickIndex = 0; tickIndex < 5; tickIndex++)
+    {
+        bool longTick = (tickIndex % 2 == 0);
+        int tickX = round(stripe1.left() + 1 + (tickIndex / 4.0) * (stripe1.width() - 3.0));
+        QString tickLabel;
+        double tickLabelWidth;
+        
+        // label stripe 1
+        tickLabel = fitnessTicks[tickIndex];
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        painter.fillRect(tickX, stripe1.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe1.bottom() + 16), tickLabel);
+        
+        // label stripe 2
+        tickLabel = effectTicks[tickIndex];
+        
+#if (QT_VERSION < QT_VERSION_CHECK(5, 11, 0))
+        tickLabelWidth = fontMetrics.width(tickLabel);               // deprecated in 5.11
+#else
+        tickLabelWidth = fontMetrics.horizontalAdvance(tickLabel);   // added in Qt 5.11
+#endif
+        
+        painter.fillRect(tickX, stripe2.bottom() + 1, 1, longTick ? 4 : 2, Qt::black);
+        painter.drawText(QPointF(tickX - tickLabelWidth / 2.0 + 1, stripe2.bottom() + 16), tickLabel);
+    }
+    
+    // add final notes in italic
+    static QFont *noteFont = nullptr;
+    
+    if (!noteFont)
+    {
+        noteFont = new QFont();
+#ifdef __linux__
+        noteFont->setPointSize(9);
+#else
+        noteFont->setPointSize(11);
+#endif
+        noteFont->setItalic(true);
+    }
+    painter.setFont(*noteFont);
+    
+    painter.drawText(stripe1.x(), stripe2.bottom() + 44, "Yellow indicates neutrality on both color scales.");
+    painter.drawText(stripe1.x(), stripe2.bottom() + 58, "Both scales fade out to white for large values.");
+}
+
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
 // thanks to https://stackoverflow.com/a/51807268/2752221
 QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(const QString &contents, QWidget *p_parent) : QLineEdit(contents, p_parent)

@@ -850,39 +850,45 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     {
         QAction *actionShowCycle_WF = new QAction("Show WF Tick Cycle", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_WF->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
         window->addAction(actionShowCycle_WF);
     }
     {
         QAction *actionShowCycle_nonWF = new QAction("Show nonWF Tick Cycle", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_nonWF->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
         window->addAction(actionShowCycle_nonWF);
     }
     {
         QAction *actionShowCycle_WF_MS = new QAction("Show WF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_WF_MS->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_WF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF_MS);
         window->addAction(actionShowCycle_WF_MS);
     }
     {
         QAction *actionShowCycle_nonWF_MS = new QAction("Show nonWF Tick Cycle (Multispecies)", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowCycle_nonWF_MS->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowCycle_nonWF_MS, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF_MS);
         window->addAction(actionShowCycle_nonWF_MS);
     }
     {
         QAction *actionShowColorChart = new QAction("Show Color Chart", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowColorChart->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowColorChart, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorChart);
         window->addAction(actionShowColorChart);
     }
     {
         QAction *actionShowPlotSymbols = new QAction("Show Plot Symbols", this);
-        //actionAbout->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        //actionShowPlotSymbols->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
         connect(actionShowPlotSymbols, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showPlotSymbols);
         window->addAction(actionShowPlotSymbols);
+    }
+    {
+        QAction *actionShowColorScales = new QAction("Show SLiMgui Color Scales", this);
+        //actionShowColorScales->setShortcut(flagsAndKey(Qt::ControlModifier, Qt::Key_Comma));
+        connect(actionShowColorScales, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showColorScales);
+        window->addAction(actionShowColorScales);
     }
     {
         QAction *actionHelp = new QAction("Help", this);
@@ -1309,6 +1315,43 @@ void QtSLiMAppDelegate::dispatch_showPlotSymbols(void)
     
     if (imageWindow)
         QtSLiMMakeWindowVisibleAndExposed(imageWindow);
+}
+
+void QtSLiMAppDelegate::dispatch_showColorScales(void)
+{
+    // This shows a global window that displays SLiMgui's color scales.  Unlike the above global image
+    // windows shown by globalImageWindowWithPath(), this window is drawn dynamically by a custom widget.
+    // This code is based on the code in globalImageWindowWithPath(), with that custom widget.
+    int window_width = round(301);
+    int window_height = round(197);
+    
+    QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
+    
+    image_window->setWindowTitle("SLiMgui Color Scales");
+    image_window->setFixedSize(window_width, window_height);
+    
+    // Make the custom widget
+    QtSLiMColorScaleWidget *colorScaleView = new QtSLiMColorScaleWidget(image_window);
+    
+    // Install imageView in the window
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    image_window->setLayout(topLayout);
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(colorScaleView);
+    
+    // Position the window nicely
+    //positionNewSubsidiaryWindow(image_window);
+    
+    // make window actions for all global menu items
+    // this does not seem to be necessary on macOS, but maybe it is on Linux; will need testing FIXME
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    image_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    if (image_window)
+        QtSLiMMakeWindowVisibleAndExposed(image_window);
 }
 
 void QtSLiMAppDelegate::dispatch_help(void)

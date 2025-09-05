@@ -3154,7 +3154,7 @@ void QtSLiMScriptTextEdit::highlightCurrentLine()
             // check when/how the message is sent
         }
         
-        qDebug() << "highlightCurrentLine() with position" << selection.cursor.selectionStart();
+        //qDebug() << "highlightCurrentLine() with position" << selection.cursor.selectionStart();
         
         extra_selections.append(selection);
     }
