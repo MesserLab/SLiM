@@ -24,6 +24,9 @@
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
+#include "eidos_class_Image.h"
+
+#include "spatial_map.h"
 
 #include <unistd.h>
 
@@ -102,15 +105,17 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
         case gID_abline:                return ExecuteMethod_abline(p_method_id, p_arguments, p_interpreter);
         case gID_addLegend:             return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
         case gID_axis:                  return ExecuteMethod_axis(p_method_id, p_arguments, p_interpreter);
-		case gID_legendLineEntry:       return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_legendPointEntry:      return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
+        case gID_image:                 return ExecuteMethod_image(p_method_id, p_arguments, p_interpreter);
+        case gID_legendLineEntry:       return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
+        case gID_legendPointEntry:      return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
         case gID_legendSwatchEntry:     return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
         case gID_legendTitleEntry:      return ExecuteMethod_legendTitleEntry(p_method_id, p_arguments, p_interpreter);
-		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
-		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
-		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
-		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
-		default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+        case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
+        case gID_matrix:                return ExecuteMethod_matrix(p_method_id, p_arguments, p_interpreter);
+        case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
+        case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
+        case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
+        default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
 
@@ -445,6 +450,181 @@ EidosValue_SP Plot::ExecuteMethod_axis(EidosGlobalStringID p_method_id, const st
     return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)image(object$ image, numeric$ x1, numeric$ y1, numeric$ x2, numeric$ y2, [logical$ flipped = F], [float$ alpha = 1.0])
+//
+EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *image_value = p_arguments[0].get();
+    EidosValue *x1_value = p_arguments[1].get();
+    EidosValue *y1_value = p_arguments[2].get();
+    EidosValue *x2_value = p_arguments[3].get();
+    EidosValue *y2_value = p_arguments[4].get();
+    EidosValue *flipped_value = p_arguments[5].get();
+    EidosValue *alpha_value = p_arguments[6].get();
+    
+    // flipped -- handled out of order because we need this to process image
+    bool flipped = flipped_value->LogicalAtIndex_NOCAST(0, nullptr);
+    
+    // image
+    EidosObject *image_object = image_value->ObjectElementAtIndex_NOCAST(0, nullptr);
+    QImage image;
+    
+    if (image_object->Class() == gSLiM_SpatialMap_Class)
+    {
+        // if image is a SpatialImage, plot the map's values; it must be a singleton and have 2D spatiality
+        if (image_value->Count() != 1)
+            EIDOS_TERMINATION << "ERROR (Plot::image): a SpatialMap value passed to image() must be a singleton." << EidosTerminate(nullptr);
+        
+        SpatialMap *spatial_map = (SpatialMap *)image_object;
+        
+        if (spatial_map->image_ && (spatial_map->image_flipped_ == flipped))
+        {
+            // we have a cached QImage for this SpatialMap, and it matches our flipped flag
+            image = *(QImage *)spatial_map->image_;  // make a copy with implicit sharing
+        }
+        else
+        {
+            // cache the spatial map's image if it doesn't already have a matching cache; first delete any existing (unmatching) cache
+            if (spatial_map->image_)
+            {
+                if (spatial_map->image_deleter_)
+                    spatial_map->image_deleter_(spatial_map->image_);
+                else
+                    std::cout << "Missing SpatialMap image_deleter_; leaking memory" << std::endl;
+                
+                spatial_map->image_ = nullptr;
+                spatial_map->image_deleter_ = nullptr;
+            }
+            
+            if (spatial_map->spatiality_ != 2)
+                EIDOS_TERMINATION << "ERROR (Plot::image): image() only supports plotting of spatial maps of spatiality 2 ('xy', 'xz', or 'yz' maps)." << EidosTerminate(nullptr);
+            
+            int64_t image_width = spatial_map->grid_size_[0];
+            int64_t image_height = spatial_map->grid_size_[1];
+            
+            if ((image_width <= 1) || (image_height <= 1))
+                EIDOS_TERMINATION << "ERROR (Plot::image): image() requires the plotted spatial map to be 2x2 or larger in its grid dimensions." << EidosTerminate(nullptr);
+            
+            // the edge rows/columns get one pixel; interior rows/edges get two pixels
+            // this gives us an image that correctly matches the spatial map in SLiM
+            image_width = image_width * 2 - 2;
+            image_height = image_height * 2 - 2;
+            
+            // make the image buffer to be used by QtSLiMGraphView_CustomPlot; note that it takes ownership of image_data and frees it for us
+            const int bytes_per_pixel = 3;  // RGB888 format
+            uint8_t *image_data = (uint8_t *)malloc(image_width * image_height * bytes_per_pixel * sizeof(uint8_t));
+            
+            // we never interpolate map values, since the correct resolution is ambiguous; we're generating vector graphics here
+            // FIXME: maybe the spatial map display in the individuals view should turn off interpolation too; let the user interpolate the map if they want interpolated display
+            spatial_map->FillRGBBuffer(image_data, image_width, image_height, flipped, /* no_interpolation */ false);
+            
+            QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
+            
+            // We give the cached image to the SpatialMap object.  Since it doesn't build against Qt, we give it a deletor function.
+            spatial_map->image_ = cached_image;
+            spatial_map->image_flipped_ = flipped;
+            spatial_map->image_deleter_ = Eidos_Deleter<QImage>;
+            
+            image = *cached_image;  // make a copy with implicit sharing
+        }
+    }
+    else if (image_object->Class() == gEidosImage_Class)
+    {
+        // if image is an Image, plot the image's values; it must be a singleton
+        if (image_value->Count() != 1)
+            EIDOS_TERMINATION << "ERROR (Plot::image): an Image value passed to image() must be a singleton." << EidosTerminate(nullptr);
+        
+        EidosImage *eidos_image = (EidosImage *)image_object;
+        
+        if (eidos_image->image_ && (eidos_image->image_flipped_ == flipped))
+        {
+            // we have a cached QImage for this Image, and it matches our flipped flag
+            image = *(QImage *)eidos_image->image_;  // make a copy with implicit sharing
+        }
+        else
+        {
+            // cache the Image's image if it doesn't already have a matching cache; first delete any existing (unmatching) cache
+            if (eidos_image->image_)
+            {
+                if (eidos_image->image_deleter_)
+                    eidos_image->image_deleter_(eidos_image->image_);
+                else
+                    std::cout << "Missing Image image_deleter_; leaking memory" << std::endl;
+                
+                eidos_image->image_ = nullptr;
+                eidos_image->image_deleter_ = nullptr;
+            }
+            
+            int64_t image_width = eidos_image->width_;
+            int64_t image_height = eidos_image->height_;
+            
+            // make the image buffer to be used by QtSLiMGraphView_CustomPlot; note that it takes ownership of image_data and frees it for us
+            const int bytes_per_pixel = (eidos_image->is_grayscale_ ? 1 : 3);  // Grayscale8 or RGB888 format
+            uint8_t *image_data = (uint8_t *)malloc(image_width * image_height * bytes_per_pixel * sizeof(uint8_t));
+            
+            // optionally flip the rows of the image buffer so it displays in the orientation we want; this could be an option
+            // note that here flipping is done by default, so flipped=true turns off this flip!
+            if (!flipped)
+            {
+                for (int y = 0; y < image_height; ++y)
+                    memcpy(image_data + y * (image_width * bytes_per_pixel * sizeof(uint8_t)),
+                           eidos_image->pixels_.data() + (image_height - y - 1) * (image_width * bytes_per_pixel * sizeof(uint8_t)),
+                           image_width * bytes_per_pixel * sizeof(uint8_t));
+            }
+            else
+            {
+                memcpy(image_data, eidos_image->pixels_.data(), image_width * image_height * bytes_per_pixel * sizeof(uint8_t));
+            }
+            
+            QImage *cached_image = new QImage(image_data, image_width, image_height, image_width * bytes_per_pixel,
+                                              (eidos_image->is_grayscale_ ? QImage::Format_Grayscale8 : QImage::Format_RGB888), free, image_data);
+            
+            // We give the cached image to the EidosImage object.  Since it doesn't build against Qt, we give it a deletor function.
+            eidos_image->image_ = cached_image;
+            eidos_image->image_flipped_ = flipped;
+            eidos_image->image_deleter_ = Eidos_Deleter<QImage>;
+            
+            image = *cached_image;  // make a copy with implicit sharing
+        }
+    }
+    else
+    {
+        EIDOS_TERMINATION << "ERROR (Plot::image): unsupported object class in image(); image must be of class SpatialMap or class Image." << EidosTerminate(nullptr);
+    }
+    
+    // x and y
+    double *x = (double *)malloc(2 * sizeof(double));
+    double *y = (double *)malloc(2 * sizeof(double));
+    
+    if (!x || !y)
+        EIDOS_TERMINATION << "ERROR (Plot::image): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+    
+    x[0] = x1_value->NumericAtIndex_NOCAST(0, nullptr);
+    y[0] = y1_value->NumericAtIndex_NOCAST(0, nullptr);
+    x[1] = x2_value->NumericAtIndex_NOCAST(0, nullptr);
+    y[1] = y2_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if (x[0] > x[1])
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires x1 <= x2." << EidosTerminate(nullptr);
+    if (y[0] > y[1])
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires y1 <= y2." << EidosTerminate(nullptr);
+    
+    // alpha
+    double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
+    
+    if ((alpha < 0.0) || (alpha > 1.0))
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires the image alpha to be in [0, 1]." << EidosTerminate(nullptr);
+    
+    std::vector<double> *imageAlphas = new std::vector<double>;  // we only take a singleton alpha, but the API expects a buffer
+    
+    imageAlphas->push_back(alpha);
+    
+    plotview_->addImageData(x, y, 2, image, imageAlphas);       // implicitly shares image; takes the x, y, and imageAlphas buffers from us
+    
+    return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)legendLineEntry(string$ label, [string$ color = "red"], [numeric$ lwd = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_legendLineEntry(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -669,6 +849,204 @@ EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const s
     lineAlphas->push_back(alpha);
     
     plotview_->addLineData(x, y, xcount, colors, lineAlphas, lineWidths);       // takes ownership of buffers
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)matrix(object$ image, numeric$ x1, numeric$ y1, numeric$ x2, numeric$ y2, [logical$ flipped = F],
+//                                          [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
+//
+EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *matrix_value = p_arguments[0].get();
+    EidosValue *x1_value = p_arguments[1].get();
+    EidosValue *y1_value = p_arguments[2].get();
+    EidosValue *x2_value = p_arguments[3].get();
+    EidosValue *y2_value = p_arguments[4].get();
+    EidosValue *flipped_value = p_arguments[5].get();
+    EidosValue *valueRange_value = p_arguments[6].get();
+    EidosValue *colors_value = p_arguments[7].get();
+    EidosValue *alpha_value = p_arguments[8].get();
+    
+    // flipped
+    bool flipped = flipped_value->LogicalAtIndex_NOCAST(0, nullptr);
+    
+    // valueRange
+    double range_min = 0.0, range_max = 0.0;
+    
+    if (valueRange_value->Type() == EidosValueType::kValueNULL)
+    {
+        range_min = 0.0;
+        range_max = 1.0;
+    }
+    else
+    {
+        if (valueRange_value->Count() != 2)
+            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to be a vector of length 2 providing a data range, or NULL to use the default data range of [0, 1]." << EidosTerminate(nullptr);
+        
+        range_min = valueRange_value->NumericAtIndex_NOCAST(0, nullptr);
+        range_max = valueRange_value->NumericAtIndex_NOCAST(1, nullptr);
+        
+        if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min == range_max))
+            EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires valueRange to contain finite, unequal values that define a data range." << EidosTerminate(nullptr);
+    }
+    
+    // colors
+    std::string colors_name;
+    
+    if (colors_value->Type() == EidosValueType::kValueNULL)
+    {
+        colors_name = "gray";
+        std::swap(range_min, range_max);
+    }
+    else
+    {
+        colors_name = colors_value->StringAtIndex_NOCAST(0, nullptr);
+    }
+    
+    EidosColorPalette palette = Eidos_PaletteForName(colors_name);
+    
+    if (palette == EidosColorPalette::kPalette_INVALID)
+        EIDOS_TERMINATION << "ERROR (Plot::matrix): unrecognized color palette name in matrix()." << EidosTerminate(nullptr);
+    
+    // figure out the rescaling factors in effect; note that colors=NULL might have reversed the rescaling range
+    bool rescaling = false;
+    double rescale_offset = 0.0;
+    double rescale_scaling = 1.0;
+    
+    if ((range_min != 0.0) || (range_max != 1.0))
+    {
+        rescaling = true;
+        rescale_offset = -range_min;
+        rescale_scaling = 1.0 / (range_max - range_min);
+    }
+    
+    // matrix
+    if ((matrix_value->DimensionCount() != 2))
+        EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires that parameter matrix is actually a matrix (not a vector or array)." << EidosTerminate(nullptr);
+    
+    const int64_t *dims = matrix_value->Dimensions();
+    int64_t matrix_rows = dims[0];
+    int64_t matrix_columns = dims[1];
+    
+    if ((matrix_value->DimensionCount() != 2) || (matrix_rows < 1) || (matrix_columns < 1))
+        EIDOS_TERMINATION << "ERROR (Plot::matrix): matrix() requires a matrix that is at least 1x1 in its dimensions." << EidosTerminate(nullptr);
+    
+    // make the image buffer to be used by QtSLiMGraphView_CustomPlot; note that it takes ownership of image_data and frees it for us
+    int64_t image_width = matrix_columns;
+    int64_t image_height = matrix_rows;
+    const int bytes_per_pixel = 3;  // RGB888 format
+    uint8_t *image_data = (uint8_t *)malloc(matrix_rows * matrix_columns * bytes_per_pixel * sizeof(uint8_t));
+    uint8_t *image_data_ptr = image_data;
+    
+    // optionally flip the rows of the image buffer so it displays in the orientation we want; this could be an option
+    // note that here flipping is done by default, so flipped=true turns off this flip!
+    if (matrix_value->Type() == EidosValueType::kValueInt)
+    {
+        const int64_t *matrix_data = matrix_value->IntData();
+        
+        for (int64_t matrix_row = 0; matrix_row < matrix_rows; ++matrix_row)
+        {
+            int64_t matrix_row_to_read = (flipped ? matrix_row : (matrix_rows - 1) - matrix_row);
+            
+            for (int64_t matrix_column = 0; matrix_column < matrix_columns; ++matrix_column)
+            {
+                double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
+                double value = original_value;
+                
+                if (rescaling)
+                    value = (value + rescale_offset) * rescale_scaling;
+                
+                if (value < 0.0)
+                    value = 0.0;
+                if (value > 1.0)
+                    value = 1.0;
+                
+                double red, green, blue;
+                
+                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+                
+                uint8_t r_i = round(red * 255.0);
+                uint8_t g_i = round(green * 255.0);
+                uint8_t b_i = round(blue * 255.0);
+                
+                *(image_data_ptr++) = r_i;
+                *(image_data_ptr++) = g_i;
+                *(image_data_ptr++) = b_i;
+                
+                //std::cout << "original_value " << original_value << " rescaled to value " << value << ", r " << (uint32_t)r_i << ", g " << (uint32_t)g_i << ", b " << (uint32_t)b_i << std::endl;
+            }
+        }
+    }
+    else
+    {
+        const double *matrix_data = matrix_value->FloatData();
+        
+        for (int64_t matrix_row = 0; matrix_row < matrix_rows; ++matrix_row)
+        {
+            int64_t matrix_row_to_read = (flipped ? matrix_row : (matrix_rows - 1) - matrix_row);
+            
+            for (int64_t matrix_column = 0; matrix_column < matrix_columns; ++matrix_column)
+            {
+                double original_value = matrix_data[matrix_row_to_read + matrix_column * matrix_rows];
+                double value = original_value;
+                
+                if (rescaling)
+                    value = (value + rescale_offset) * rescale_scaling;
+                
+                if (value < 0.0)
+                    value = 0.0;
+                if (value > 1.0)
+                    value = 1.0;
+                
+                double red, green, blue;
+                
+                Eidos_ColorPaletteLookup(value, palette, red, green, blue);
+                
+                uint8_t r_i = round(red * 255.0);
+                uint8_t g_i = round(green * 255.0);
+                uint8_t b_i = round(blue * 255.0);
+                
+                *(image_data_ptr++) = r_i;
+                *(image_data_ptr++) = g_i;
+                *(image_data_ptr++) = b_i;
+                
+                //std::cout << "original_value " << original_value << " rescaled to value " << value << ", r " << (uint32_t)r_i << ", g " << (uint32_t)g_i << ", b " << (uint32_t)b_i << std::endl;
+            }
+        }
+    }
+    
+    QImage image(image_data, image_width, image_height, image_width * bytes_per_pixel, QImage::Format_RGB888, free, image_data);
+    
+    // x and y
+    double *x = (double *)malloc(2 * sizeof(double));
+    double *y = (double *)malloc(2 * sizeof(double));
+    
+    if (!x || !y)
+        EIDOS_TERMINATION << "ERROR (Plot::image): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+    
+    x[0] = x1_value->NumericAtIndex_NOCAST(0, nullptr);
+    y[0] = y1_value->NumericAtIndex_NOCAST(0, nullptr);
+    x[1] = x2_value->NumericAtIndex_NOCAST(0, nullptr);
+    y[1] = y2_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if (x[0] > x[1])
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires x1 <= x2." << EidosTerminate(nullptr);
+    if (y[0] > y[1])
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires y1 <= y2." << EidosTerminate(nullptr);
+    
+    // alpha
+    double alpha = alpha_value->FloatAtIndex_NOCAST(0, nullptr);
+    
+    if ((alpha < 0.0) || (alpha > 1.0))
+        EIDOS_TERMINATION << "ERROR (Plot::image): image() requires the image alpha to be in [0, 1]." << EidosTerminate(nullptr);
+    
+    std::vector<double> *imageAlphas = new std::vector<double>;  // we only take a singleton alpha, but the API expects a buffer
+    
+    imageAlphas->push_back(alpha);
+    
+    plotview_->addImageData(x, y, 2, image, imageAlphas);       // implicitly shares image; takes the x, y, and imageAlphas buffers from us
     
     return gStaticEidosValueVOID;
 }
@@ -1026,6 +1404,9 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_axis, kEidosValueMaskVOID))
                                   ->AddInt_S("side")->AddNumeric_ON("at", gStaticEidosValueNULL)
                                   ->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "labels", nullptr, gStaticEidosValue_LogicalT)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_image, kEidosValueMaskVOID))
+                                  ->AddObject_S(gStr_image, nullptr)->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
+                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_legendLineEntry, kEidosValueMaskVOID))
                                   ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)));
@@ -1041,6 +1422,10 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_lines, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_matrix, kEidosValueMaskVOID))
+                                  ->AddNumeric("matrix")->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
+                                  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)
+                                  ->AddString_OSN("colors", gStaticEidosValueNULL)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_points, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddInt_O("symbol", gStaticEidosValue_Integer0)
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))

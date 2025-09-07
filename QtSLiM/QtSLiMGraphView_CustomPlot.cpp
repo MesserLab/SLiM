@@ -70,11 +70,11 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     for (std::vector<QColor> *colorbuffer : color_)
         delete colorbuffer;
     
-    for (std::vector<double> *alphabuffer : alpha_)
-        delete alphabuffer;
-    
     for (std::vector<QColor> *borderbuffer : border_)
         delete borderbuffer;
+    
+    for (std::vector<double> *alphabuffer : alpha_)
+        delete alphabuffer;
     
     for (std::vector<double> *lwdbuffer : line_width_)
         delete lwdbuffer;
@@ -89,12 +89,13 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     labels_.clear();
     symbol_.clear();
     color_.clear();
-    alpha_.clear();
     border_.clear();
+    alpha_.clear();
     line_width_.clear();
     size_.clear();
     xadj_.clear();
     yadj_.clear();
+    image_.clear();
     
     // reset the legend state
     legend_added_ = false;
@@ -385,6 +386,7 @@ void QtSLiMGraphView_CustomPlot::addABLineData(double *a_values, double *b_value
     size_.push_back(nullptr);               // unused for abline
     xadj_.push_back(-1);                    // unused for abline
     yadj_.push_back(-1);                    // unused for abline
+    image_.push_back(QImage());             // unused for abline
     
     //rescaleAxesForDataRange();            // not needed for abline
     update();
@@ -407,6 +409,7 @@ void QtSLiMGraphView_CustomPlot::addLineData(double *x_values, double *y_values,
     size_.push_back(nullptr);               // unused for lines
     xadj_.push_back(-1);                    // unused for lines
     yadj_.push_back(-1);                    // unused for lines
+    image_.push_back(QImage());             // unused for lines
     
     rescaleAxesForDataRange();
     update();
@@ -429,6 +432,7 @@ void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values
     size_.push_back(size);
     xadj_.push_back(-1);                    // unused for points
     yadj_.push_back(-1);                    // unused for points
+    image_.push_back(QImage());             // unused for points
     
     rescaleAxesForDataRange();
     update();
@@ -451,6 +455,29 @@ void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values,
     size_.push_back(size);
     xadj_.push_back(adj[0]);
     yadj_.push_back(adj[1]);
+    image_.push_back(QImage());             // unused for text
+    
+    rescaleAxesForDataRange();
+    update();
+}
+
+void QtSLiMGraphView_CustomPlot::addImageData(double *x_values, double *y_values, int data_count,
+                  QImage image, std::vector<double> *alpha)
+{
+    plot_type_.push_back(QtSLiM_CustomPlotType::kImage);
+    xdata_.push_back(x_values);
+    ydata_.push_back(y_values);
+    labels_.push_back(nullptr);             // unused for image
+    data_count_.push_back(data_count);
+    symbol_.push_back(nullptr);             // unused for image
+    color_.push_back(nullptr);              // unused for image
+    border_.push_back(nullptr);             // unused for image
+    alpha_.push_back(alpha);
+    line_width_.push_back(nullptr);         // unused for image
+    size_.push_back(nullptr);               // unused for image
+    xadj_.push_back(-1);                    // unused for image
+    yadj_.push_back(-1);                    // unused for image
+    image_.push_back(image);
     
     rescaleAxesForDataRange();
     update();
@@ -531,6 +558,9 @@ void QtSLiMGraphView_CustomPlot::drawGraph(QPainter &painter, QRect interiorRect
             break;
         case QtSLiM_CustomPlotType::kVLines:
             drawVLines(painter, interiorRect, i);
+            break;
+        case QtSLiM_CustomPlotType::kImage:
+            drawImage(painter, interiorRect, i);
             break;
         }
     }
@@ -848,6 +878,39 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
             // a NAN or INF value for x or y is not plotted
         }
     }
+}
+
+void QtSLiMGraphView_CustomPlot::drawImage(QPainter &painter, QRect interiorRect, int dataIndex)
+{
+    double *xdata = xdata_[dataIndex];
+    double *ydata = ydata_[dataIndex];
+    std::vector<double> &imageAlphas = *alpha_[dataIndex];
+    double alpha = imageAlphas[0];
+    
+    double user_x1 = xdata[0], user_y1 = ydata[0];
+    double user_x2 = xdata[1], user_y2 = ydata[1];
+    
+    double x1 = plotToDeviceX(user_x1, interiorRect);
+    double y1 = plotToDeviceY(user_y1, interiorRect);
+    double x2 = plotToDeviceX(user_x2, interiorRect);
+    double y2 = plotToDeviceY(user_y2, interiorRect);
+    
+    // the coordinates are absolute, but Qt wants them as width/height
+    double target_width = x2 - x1;
+    double target_height = y2 - y1;
+    
+    // get the image data
+    const QImage &image = image_[dataIndex];
+    
+    QRectF target(x1, y1, target_width, target_height);
+    
+    if (alpha != 1.0)
+        painter.setOpacity(alpha);
+    
+    painter.drawImage(target, image);
+    
+    if (alpha != 1.0)
+        painter.setOpacity(1.0);
 }
 
 

@@ -5142,6 +5142,24 @@ void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, doubl
 	*p_v = v;
 }
 
+EidosColorPalette Eidos_PaletteForName(const std::string &name)
+{
+	if (name == "cm")				return EidosColorPalette::kPalette_cm;
+	else if (name == "heat")		return EidosColorPalette::kPalette_heat;
+	else if (name == "terrain")		return EidosColorPalette::kPalette_terrain;
+	else if (name == "parula")		return EidosColorPalette::kPalette_parula;
+	else if (name == "hot")			return EidosColorPalette::kPalette_hot;
+	else if (name == "jet")			return EidosColorPalette::kPalette_jet;
+	else if (name == "turbo")		return EidosColorPalette::kPalette_turbo;
+	else if (name == "gray")		return EidosColorPalette::kPalette_gray;
+	else if (name == "magma")		return EidosColorPalette::kPalette_magma;
+	else if (name == "inferno")		return EidosColorPalette::kPalette_inferno;
+	else if (name == "plasma")		return EidosColorPalette::kPalette_plasma;
+	else if (name == "viridis")		return EidosColorPalette::kPalette_viridis;
+	else if (name == "cividis")		return EidosColorPalette::kPalette_cividis;
+	else							return EidosColorPalette::kPalette_INVALID;
+}
+
 void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b)
 {
 	if (fraction < 0.0) fraction = 0.0;
@@ -5258,6 +5276,8 @@ void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double
 			r = color.r(); g = color.g(); b = color.b();
 			break;
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Eidos_ColorPaletteLookup): unrecognized color palette in Eidos_ColorPaletteLookup()." << EidosTerminate(nullptr);
 	}
 }
 

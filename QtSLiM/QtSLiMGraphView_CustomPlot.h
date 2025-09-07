@@ -36,6 +36,7 @@ enum class QtSLiM_CustomPlotType : int {
     kABLines,   // from abline()
     kHLines,    // from abline()
     kVLines,    // from abline()
+    kImage,
 };
 
 class QtSLiMGraphView_CustomPlot : public QtSLiMGraphView
@@ -67,6 +68,8 @@ public:
                        double *h_values, double *v_values, int data_count,
                        std::vector<QColor> *color, std::vector<double> *alpha,
                        std::vector<double> *lwd);
+    void addImageData(double *x_values, double *y_values, int data_count,
+                      QImage image, std::vector<double> *alpha);
     void addLineData(double *x_values, double *y_values, int data_count,
                      std::vector<QColor> *color, std::vector<double> *alpha,
                      std::vector<double> *lwd);
@@ -117,6 +120,7 @@ private:
     std::vector<std::vector<double> *> size_;           // one size per point, OR one size for all points
     std::vector<double> xadj_;                          // one xadj for all points
     std::vector<double> yadj_;                          // one yadj for all points
+    std::vector<QImage> image_;                         // one QImage per image data; QImage() if unused
     
     void dataRange(std::vector<double *> &data, double *p_min, double *p_max);
     void rescaleAxesForDataRange(void);
@@ -126,6 +130,7 @@ private:
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawImage(QPainter &painter, QRect interiorRect, int dataIndex);
     
     bool legend_added_ = false;                         // set to true by addLegend()
     QtSLiMLegendSpec legend_entries_;                   // unlike most graph types, we keep our legend around

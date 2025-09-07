@@ -84,9 +84,15 @@ public:
 	float *blue_components_ = nullptr;	// OWNED POINTER: blue components, n_colors_ in size, from min to max value
 	
 #if defined(SLIMGUI)
+	// This cache is for SLiMgui's individuals display
 	uint8_t *display_buffer_ = nullptr;	// OWNED POINTER: used by SLiMgui, contains RGB values for pixels in the PopulationView
 	int buffer_width_, buffer_height_;	// the size of the buffer, in pixels, each of which is 3 x sizeof(uint8_t)
     bool buffer_flipped_;               // true if flipped (for Qt display) false if not (for GL display)
+	
+	// This cache is for Plot's image() method; unlike the cache above, it is never interpolated
+	void *image_ = nullptr;							// OWNED POINTER: a QImage* used by Plot
+	bool image_flipped_;							// true if the cached image was flipped
+	void (*image_deleter_)(void *ptr) = nullptr;	// a deleter function for image_ since we don't reference Qt
 #endif
 	
 	SpatialMap(const SpatialMap&) = delete;													// no copying
@@ -147,6 +153,8 @@ public:
 	void Convolve_S1(SpatialKernel &kernel);
 	void Convolve_S2(SpatialKernel &kernel);
 	void Convolve_S3(SpatialKernel &kernel);
+	
+	void FillRGBBuffer(uint8_t *buffer, int64_t width, int64_t height, bool flipped, bool no_interpolation);
 	
 	//
 	// Eidos support

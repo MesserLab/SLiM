@@ -635,7 +635,7 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 	// The sizing logic here is taken from drawRect:, assuming that we are not constrained in width.
 	
 	// By the way, it may occur to the reader to wonder why we keep the buffer as uint8_t values, given that we
-	// convert to and from uin8_t for the display code that uses float RGB components.  My rationale is that
+	// convert to and from uint_8 for the display code that uses float RGB components.  My rationale is that
 	// this drastically cuts the amount of memory that has to be accessed, and that the display code, in particular,
 	// is probably memory-bound since most of the work is done in the GPU.  I haven't done any speed tests to
 	// confirm that hunch, though.  In any case, it's plenty fast and I don't see significant display artifacts.
@@ -666,61 +666,8 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 		background_map->buffer_width_ = max_width;
         background_map->buffer_height_ = max_height;
         background_map->buffer_flipped_ = flipped;
-		
-		uint8_t *buf_ptr = display_buf;
-		int64_t xsize = background_map->grid_size_[0];
-		int64_t ysize = background_map->grid_size_[1];
-		double *values = background_map->values_;
-		bool interpolate = background_map->interpolate_;
-		
-		for (int yc = 0; yc < max_height; yc++)
-		{
-            double y_fraction = (flipped ? (((max_height - 1) - yc) + 0.5) / max_height : (yc + 0.5) / max_height);		// pixel center
-            
-			for (int xc = 0; xc < max_width; xc++)
-			{
-				// Look up the nearest map point and get its value; interpolate if requested
-				double x_fraction = (xc + 0.5) / max_width;		// pixel center
-				double value;
-				
-				if (interpolate)
-				{
-					double x_map = x_fraction * (xsize - 1);
-					double y_map = y_fraction * (ysize - 1);
-					int x1_map = static_cast<int>(floor(x_map));
-					int y1_map = static_cast<int>(floor(y_map));
-					int x2_map = static_cast<int>(ceil(x_map));
-					int y2_map = static_cast<int>(ceil(y_map));
-					double fraction_x2 = x_map - x1_map;
-					double fraction_x1 = 1.0 - fraction_x2;
-					double fraction_y2 = y_map - y1_map;
-					double fraction_y1 = 1.0 - fraction_y2;
-					double value_x1_y1 = values[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
-					double value_x2_y1 = values[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
-					double value_x1_y2 = values[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
-					double value_x2_y2 = values[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
-					
-					value = value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
-				}
-				else
-				{
-					int x_map = qRound(x_fraction * (xsize - 1));
-					int y_map = qRound(y_fraction * (ysize - 1));
-					
-					value = values[x_map + y_map * xsize];
-				}
-				
-				// Given the (interpolated?) value, look up the color, interpolating if necessary
-				double rgb[3];
-				
-				background_map->ColorForValue(value, rgb);
-				
-				// Write the color values to the buffer
-				*(buf_ptr++) = static_cast<uint8_t>(round(rgb[0] * 255.0));
-				*(buf_ptr++) = static_cast<uint8_t>(round(rgb[1] * 255.0));
-				*(buf_ptr++) = static_cast<uint8_t>(round(rgb[2] * 255.0));
-			}
-		}
+        
+        background_map->FillRGBBuffer(display_buf, max_width, max_height, flipped, /* no_interpolation */ false);
 	}
 }
 

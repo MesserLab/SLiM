@@ -51,6 +51,13 @@ private:
 	int64_t width_ = 0, height_ = 0;
 	bool is_grayscale_ = false;
 	
+#if defined(SLIMGUI)
+	// This cache is for Plot's image() method
+	void *image_ = nullptr;							// OWNED POINTER: a QImage* used by Plot
+	bool image_flipped_;							// true if the cached image was flipped
+	void (*image_deleter_)(void *ptr) = nullptr;	// a deleter function for image_ since we don't reference Qt
+#endif
+	
 	// cached channel data as EidosValues; these are constructed lazily
 	EidosValue_SP int_red_values_, int_green_values_, int_blue_values_, int_gray_values_;
 	EidosValue_SP float_red_values_, float_green_values_, float_blue_values_, float_gray_values_;
@@ -81,6 +88,8 @@ public:
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	
+	friend class Plot;	// in QtSLiM
 };
 
 class EidosImage_Class : public EidosDictionaryRetained_Class

@@ -1327,7 +1327,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 535		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 540		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
@@ -1359,6 +1359,7 @@ void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, doubl
 
 enum class EidosColorPalette : int
 {
+	kPalette_INVALID = -1,
 	kPalette_cm = 0,
 	kPalette_heat,
 	kPalette_terrain,
@@ -1373,6 +1374,8 @@ enum class EidosColorPalette : int
 	kPalette_viridis,
 	kPalette_cividis,
 };
+
+EidosColorPalette Eidos_PaletteForName(const std::string &name);
 
 void Eidos_ColorPaletteLookup(double fraction, EidosColorPalette palette, double &r, double &g, double &b);
 

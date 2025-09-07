@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;\f8\fswiss\fcharset0 Helvetica-Oblique;
@@ -6780,6 +6780,93 @@ The
 \f4\fs20 , some ticks may not receive a label for readability.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)image(object$\'a0image, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [float$\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds image data given by 
+\f3\fs18 image
+\f4\fs20  to the plot.  The data will be plotted as a raster (bitmap, pixel) image in the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20 , which must be sorted such that 
+\f3\fs18 x1\'a0<=\'a0x2
+\f4\fs20  and 
+\f3\fs18 y1\'a0<=\'a0y2
+\f4\fs20 .  When 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the plotted image is shown in a default orientation that is typically best given the source of the image; if 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  the image\'92s orientation is flipped vertically relative to that default.  The plotted image will use opacity 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The new image data will be plotted on top of any previously added data.\
+The image data may be specified in one of two ways.  First, 
+\f3\fs18 image
+\f4\fs20  may be a singleton 
+\f3\fs18 Image
+\f4\fs20  object.  In this case, the image is simply plotted inside the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 /
+\f3\fs18 y1
+\f4\fs20 /
+\f3\fs18 x2
+\f4\fs20 /
+\f3\fs18 y2
+\f4\fs20 , fully displaying all of its pixels (in contrast to how the grid values of a spatial map area displayed, as described below).  The image may be either RGB or grayscale.\
+Second, 
+\f3\fs18 image
+\f4\fs20  may be a singleton 
+\f3\fs18 SpatialMap
+\f4\fs20  object.  In this case, the grid values of the spatial map are plotted aligned to the corners of the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 /
+\f3\fs18 y1
+\f4\fs20 /
+\f3\fs18 x2
+\f4\fs20 /
+\f3\fs18 y2
+\f4\fs20 , as the map would be used by SLiM; the edge and corner grid points of the map are therefore only partially displayed.  (If desired, the 
+\f3\fs18 gridValues()
+\f4\fs20  or 
+\f3\fs18 mapImage()
+\f4\fs20  methods of 
+\f3\fs18 SpatialMap
+\f4\fs20  could be used to convert the map to a matrix or 
+\f3\fs18 Image
+\f4\fs20  representation that could be plotted differently.)  The spatial map\'92s display uses the color scheme that was specified for the map.  The map\'92s values are not interpolated, regardless of the map\'92s 
+\f3\fs18 interpolate
+\f4\fs20  property; only the raw grid data of the spatial map is displayed.  (If interpolated display is desired, the 
+\f3\fs18 interpolate()
+\f4\fs20  method of 
+\f3\fs18 SpatialMap
+\f4\fs20  can be used to increase the grid resolution of the map prior to display.)\
+This method caches the image data being plotted so that plotting the same 
+\f3\fs18 SpatialMap
+\f4\fs20  or 
+\f3\fs18 Image
+\f4\fs20  object multiple times is more efficient.  See the 
+\f3\fs18 matrix()
+\f4\fs20  method of 
+\f3\fs18 Plot
+\f4\fs20  for an alternative way of plotting raster data that may be more suitable in some situations, but that is less efficient because it does not provide such caching.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)legendLineEntry(string$\'a0label, [string$\'a0color\'a0=\'a0"red"], [numeric$\'a0lwd\'a0=\'a01.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6881,6 +6968,138 @@ The lines will be drawn in color
 \f4\fs20  are necessary.   See also 
 \f3\fs18 abline()
 \f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)matrix(numeric\'a0matrix, numeric$\'a0x1, numeric$\'a0y1, numeric$\'a0x2, numeric$\'a0y2, [logical$\'a0flipped\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns$\'a0colors\'a0=\'a0NULL], [float$\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds image data given by 
+\f3\fs18 matrix
+\f4\fs20  to the plot.  The image data must be specified as a 
+\f3\fs18 numeric
+\f4\fs20  (i.e., 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20 ) matrix, as for example produced by the 
+\f3\fs18 matrix()
+\f4\fs20  function in Eidos.  The data will be plotted as a raster (bitmap, pixel) image in the rectangle specified by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20 , which must be sorted such that 
+\f3\fs18 x1\'a0<=\'a0x2
+\f4\fs20  and 
+\f3\fs18 y1\'a0<=\'a0y2
+\f4\fs20 .  When 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the plotted image is shown in a default orientation that matches the orientation of the matrix (with row 
+\f3\fs18 0
+\f4\fs20  topmost); if 
+\f3\fs18 flipped
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  the image\'92s orientation is flipped vertically relative to that default (with row 
+\f3\fs18 0
+\f4\fs20  bottommost).\
+Prior to display, the values in the matrix will be rescaled according to the parameter 
+\f3\fs18 valueRange
+\f4\fs20 .  If 
+\f3\fs18 valueRange
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the values will be left unscaled; this is equivalent to passing 
+\f3\fs18 c(0,1)
+\f4\fs20  for 
+\f3\fs18 valueRange
+\f4\fs20 .  Otherwise, 
+\f3\fs18 valueRange
+\f4\fs20  should be a 
+\f3\fs18 numeric
+\f4\fs20  vector containing two elements that define the range of values that will be rescaled to span the interval [0, 1] \'96 the range to which the color scheme will then be applied.  After rescaling the given range to [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ], the resulting values are clamped to the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ].  It is legal for 
+\f3\fs18 valueRange[0]
+\f4\fs20  to be greater than 
+\f3\fs18 valueRange[1]
+\f4\fs20 ; in this case, the rescaling operation will, in effect, reverse the direction of the color scheme by reversing the ranks of the reordered values.\
+The rescaled and clamped values are then colored according to the color scheme named by 
+\f3\fs18 colors
+\f4\fs20 , which should be one of the named schemes supported by the Eidos function 
+\f3\fs18 colors()
+\f4\fs20 : 
+\f3\fs18 "cm"
+\f4\fs20 , 
+\f3\fs18 "heat"
+\f4\fs20 , 
+\f3\fs18 "terrain"
+\f4\fs20 , 
+\f3\fs18 "parula"
+\f4\fs20 , 
+\f3\fs18 "hot"
+\f4\fs20 , 
+\f3\fs18 "jet"
+\f4\fs20 , 
+\f3\fs18 "turbo"
+\f4\fs20 , 
+\f3\fs18 "gray"
+\f4\fs20 , 
+\f3\fs18 "magma"
+\f4\fs20 , 
+\f3\fs18 "inferno"
+\f4\fs20 , 
+\f3\fs18 "plasma"
+\f4\fs20 , 
+\f3\fs18 "viridis"
+\f4\fs20 , or 
+\f3\fs18 "cividis"
+\f4\fs20 .  If 
+\f3\fs18 colors
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), the color scheme used is the reverse of the 
+\f3\fs18 "gray"
+\f4\fs20  color scheme, shading from black for 
+\f3\fs18 0
+\f4\fs20  up to white for 
+\f3\fs18 1
+\f4\fs20 .  In all cases, the color scheme is applied across the range [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 1
+\f4\fs20 ] for the rescaled and clamped values.\
+The plotted image will use opacity 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The new image data will be plotted on top of any previously added data.\
+See the 
+\f3\fs18 image()
+\f4\fs20  method of 
+\f3\fs18 Plot
+\f4\fs20  for an alternative way of plotting raster data from 
+\f3\fs18 SpatialMap
+\f4\fs20  and 
+\f3\fs18 Image
+\f4\fs20  objects that may be more suitable in some situations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\

@@ -4279,6 +4279,8 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 #if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += (size_t)map.buffer_width_ * (size_t)map.buffer_height_ * sizeof(uint8_t) * 3;
+				
+				// FIXME: the usage due to image_ should be added here
 #endif
 			}
 		}

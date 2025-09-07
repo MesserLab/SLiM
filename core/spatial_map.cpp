@@ -206,6 +206,14 @@ SpatialMap::~SpatialMap(void)
 #if defined(SLIMGUI)
 	if (display_buffer_)
 		free(display_buffer_);
+	
+	if (image_)
+	{
+		if (image_deleter_)
+			image_deleter_(image_);
+		else
+			std::cout << "Missing SpatialMap image_deleter_; leaking memory" << std::endl;
+	}
 #endif
 }
 
@@ -217,6 +225,16 @@ void SpatialMap::_ValuesChanged(void)
 	{
 		free(display_buffer_);
 		display_buffer_ = nullptr;
+	}
+	if (image_)
+	{
+		if (image_deleter_)
+			image_deleter_(image_);
+		else
+			std::cout << "Missing SpatialMap image_deleter_; leaking memory" << std::endl;
+		
+		image_ = nullptr;
+		image_deleter_ = nullptr;
 	}
 #endif
 	
@@ -1044,6 +1062,91 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 	TakeOverMallocedValues(new_values, 3, grid_size_);	// takes new_values from us
 }
 
+void SpatialMap::FillRGBBuffer(uint8_t *buffer, int64_t width, int64_t height, bool flipped, bool no_interpolation)
+{
+    // This method requires spatiality 2; we just return otherwise
+    if (spatiality_ != 2)
+        return;
+    
+    int64_t xsize = grid_size_[0];
+    int64_t ysize = grid_size_[1];
+    double *values = values_;
+    bool interpolate = interpolate_ && !no_interpolation;	// no_interpolation==true forces interpolation off
+    
+	if (interpolate)
+	{
+		for (int yc = 0; yc < height; yc++)
+		{
+			double y_fraction = (flipped ? (((height - 1) - yc) + 0.5) / height : (yc + 0.5) / height);		// pixel center
+			
+			for (int xc = 0; xc < width; xc++)
+			{
+				// Look up the nearest map point and get its value; interpolate if requested
+				double x_fraction = (xc + 0.5) / width;		// pixel center
+				double value;
+				
+				// interpolation
+				double x_map = x_fraction * (xsize - 1);
+				double y_map = y_fraction * (ysize - 1);
+				int x1_map = static_cast<int>(floor(x_map));
+				int y1_map = static_cast<int>(floor(y_map));
+				int x2_map = static_cast<int>(ceil(x_map));
+				int y2_map = static_cast<int>(ceil(y_map));
+				double fraction_x2 = x_map - x1_map;
+				double fraction_x1 = 1.0 - fraction_x2;
+				double fraction_y2 = y_map - y1_map;
+				double fraction_y1 = 1.0 - fraction_y2;
+				double value_x1_y1 = values[x1_map + y1_map * xsize] * fraction_x1 * fraction_y1;
+				double value_x2_y1 = values[x2_map + y1_map * xsize] * fraction_x2 * fraction_y1;
+				double value_x1_y2 = values[x1_map + y2_map * xsize] * fraction_x1 * fraction_y2;
+				double value_x2_y2 = values[x2_map + y2_map * xsize] * fraction_x2 * fraction_y2;
+				
+				value = value_x1_y1 + value_x2_y1 + value_x1_y2 + value_x2_y2;
+				
+				// Given the interpolated value, look up the color, interpolating that if necessary
+				double rgb[3];
+				
+				ColorForValue(value, rgb);
+				
+				// Write the color values to the buffer
+				*(buffer++) = static_cast<uint8_t>(round(rgb[0] * 255.0));
+				*(buffer++) = static_cast<uint8_t>(round(rgb[1] * 255.0));
+				*(buffer++) = static_cast<uint8_t>(round(rgb[2] * 255.0));
+			}
+		}
+	}
+	else
+	{
+		for (int yc = 0; yc < height; yc++)
+		{
+			double y_fraction = (flipped ? (((height - 1) - yc) + 0.5) / height : (yc + 0.5) / height);		// pixel center
+			
+			for (int xc = 0; xc < width; xc++)
+			{
+				// Look up the nearest map point and get its value; interpolate if requested
+				double x_fraction = (xc + 0.5) / width;		// pixel center
+				double value;
+				
+				// no interpolation
+				int x_map = (int)std::round(x_fraction * (xsize - 1));
+				int y_map = (int)std::round(y_fraction * (ysize - 1));
+				
+				value = values[x_map + y_map * xsize];
+				
+				// Given the un-interpolated value, look up the color, interpolating that if necessary
+				double rgb[3];
+				
+				ColorForValue(value, rgb);
+				
+				// Write the color values to the buffer
+				*(buffer++) = static_cast<uint8_t>(round(rgb[0] * 255.0));
+				*(buffer++) = static_cast<uint8_t>(round(rgb[1] * 255.0));
+				*(buffer++) = static_cast<uint8_t>(round(rgb[2] * 255.0));
+			}
+		}
+	}
+}
+
 
 //
 //	Eidos support
@@ -1137,6 +1240,7 @@ void SpatialMap::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 				free(display_buffer_);
 				display_buffer_ = nullptr;
 			}
+			// image_ does not have interpolated data, so it is not invalidated here
 #endif
 			
 			return;

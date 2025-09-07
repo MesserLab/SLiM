@@ -264,6 +264,15 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 
 Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, Community *p_community, const char *p_method_name);		// NULL tries for a single-species default
 
+// This template provides a function pointer that will delete a void* pointing to a given type.
+// It thus allows us to hold on to a void* pointing to a Qt object, for example, without building
+// against Qt; SLiMgui will give us the void* and a deleter pointer, which we can cache for it
+// and invalidate the cache, deleting the object, when appropriate without ever knowing its type.
+template<typename T>
+void Eidos_Deleter(void *ptr) {
+	delete static_cast<T*>(ptr);
+}
+
 
 // *******************************************************************************************************************
 //
@@ -1111,11 +1120,13 @@ extern const std::string &gStr_plotWithTitle;
 extern const std::string &gStr_abline;
 extern const std::string &gStr_addLegend;
 extern const std::string &gStr_axis;
+extern const std::string &gStr_image;
 extern const std::string &gStr_legendLineEntry;
 extern const std::string &gStr_legendPointEntry;
 extern const std::string &gStr_legendSwatchEntry;
 extern const std::string &gStr_legendTitleEntry;
 extern const std::string &gStr_lines;
+extern const std::string &gStr_matrix;
 extern const std::string &gStr_points;
 extern const std::string &gStr_text;
 extern const std::string &gStr_title;
@@ -1566,11 +1577,13 @@ enum _SLiMGlobalStringID : int {
 	gID_abline,
 	gID_addLegend,
 	gID_axis,
+	gID_image,
 	gID_legendLineEntry,
 	gID_legendPointEntry,
 	gID_legendSwatchEntry,
 	gID_legendTitleEntry,
 	gID_lines,
+	gID_matrix,
 	gID_points,
 	gID_text,
 	gID_title,

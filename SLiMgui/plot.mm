@@ -97,11 +97,13 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
 		case gID_abline:				return ExecuteMethod_abline(p_method_id, p_arguments, p_interpreter);
 		case gID_addLegend:				return ExecuteMethod_addLegend(p_method_id, p_arguments, p_interpreter);
 		case gID_axis:					return ExecuteMethod_axis(p_method_id, p_arguments, p_interpreter);
+		case gID_image:					return ExecuteMethod_image(p_method_id, p_arguments, p_interpreter);
 		case gID_legendLineEntry:		return ExecuteMethod_legendLineEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendPointEntry:		return ExecuteMethod_legendPointEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendSwatchEntry:		return ExecuteMethod_legendSwatchEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_legendTitleEntry:		return ExecuteMethod_legendTitleEntry(p_method_id, p_arguments, p_interpreter);
 		case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
+		case gID_matrix:				return ExecuteMethod_matrix(p_method_id, p_arguments, p_interpreter);
 		case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
 		case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
@@ -130,6 +132,15 @@ EidosValue_SP Plot::ExecuteMethod_addLegend(EidosGlobalStringID p_method_id, con
 //	*********************	– (void)axis(...)
 //
 EidosValue_SP Plot::ExecuteMethod_axis(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)image(...)
+//
+EidosValue_SP Plot::ExecuteMethod_image(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
@@ -175,6 +186,15 @@ EidosValue_SP Plot::ExecuteMethod_legendTitleEntry(EidosGlobalStringID p_method_
 //	*********************	– (void)lines(...)
 //
 EidosValue_SP Plot::ExecuteMethod_lines(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)matrix(...)
+//
+EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// The user has no way to call this method in SLiMguiLegacy, since createPlot() does not return a Plot object.
@@ -256,6 +276,9 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_axis, kEidosValueMaskVOID))
 							  ->AddInt_S("side")->AddNumeric_ON("at", gStaticEidosValueNULL)
 							  ->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskString | kEidosValueMaskOptional, "labels", nullptr, gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_image, kEidosValueMaskVOID))
+							  ->AddObject_S(gStr_image, nullptr)->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
+							  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddFloat_OS("alpha", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_legendLineEntry, kEidosValueMaskVOID))
 							  ->AddString_S("label")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
 							  ->AddNumeric_OS("lwd", gStaticEidosValue_Float1));
@@ -270,6 +293,10 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
 							  ->AddString_S("label"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_lines, kEidosValueMaskVOID))
 							  ->AddNumeric("x")->AddNumeric("y")->AddString_OS("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))->AddNumeric_OS("lwd", gStaticEidosValue_Float1)->AddFloat_OS("alpha", gStaticEidosValue_Float1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_matrix, kEidosValueMaskVOID))
+							  ->AddNumeric("matrix")->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
+							  ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)
+							  ->AddString_OSN("colors", gStaticEidosValueNULL)->AddFloat_OS("alpha", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_points, kEidosValueMaskVOID))
 							  ->AddNumeric("x")->AddNumeric("y")->AddInt_O("symbol", gStaticEidosValue_Integer0)
 							  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
