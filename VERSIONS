@@ -40,6 +40,7 @@ development head (in the master branch):
 	fix #553, an off-by-one bug in initializeRecombinationRateFromFile(); breaks backward compatibility, by fixing this bug
 	add image() method to Plot to add a SpatialMap or Image to a plot: (void)image(object$ image, numeric$ x1, numeric$ x2, numeric$ y1, numeric$ y2, [logical$ flipped = F], [float$ alpha = 1.0])
 	add matrix() method to Plot to add a matrix-based image to a plot: (void)matrix(numeric matrix, numeric$ x1, numeric$ x2, numeric$ y1, numeric$ y2, [logical$ flipped = F], [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
+	fix #538, check for unique SLiM ids only for alive individuals when loading a tree sequence
 
 
 version 5.0 (Eidos version 4.0):
