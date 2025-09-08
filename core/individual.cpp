@@ -2098,6 +2098,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1(EidosObject **p_v
 			return object_result;	// zero-length return
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObject **p_values, size_t p_values_size)
@@ -2167,6 +2170,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome1NonNull(EidosObjec
 			return object_result;	// zero-length return
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome1NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_values, size_t p_values_size)
@@ -2232,6 +2238,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2(EidosObject **p_v
 			return object_result;
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObject **p_values, size_t p_values_size)
@@ -2301,6 +2310,9 @@ EidosValue *Individual::GetProperty_Accelerated_haploidGenome2NonNull(EidosObjec
 			return object_result;
 		}
 	}
+	
+	// some compilers warn if this is not here, even though the switch above handles all ChromosomeType values
+	EIDOS_TERMINATION << "ERROR (Individual::GetProperty_Accelerated_haploidGenome2NonNull): (internal error) chromosome type not handled." << EidosTerminate();
 }
 
 EidosValue *Individual::GetProperty_Accelerated_haplosomes(EidosObject **p_values, size_t p_values_size)
