@@ -183,7 +183,7 @@ if(ASAN)
 	message(STATUS "ASAN is ${ASAN}")
 	add_compile_options(-fsanitize=address -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
 	add_link_options(-fsanitize=address)
-	add_compile_options(-param=max-vartrack-size=1500000) # ASan seems to push this limit, slowing compiles
+	add_compile_options(--param=max-vartrack-size=1500000) # ASan seems to push this limit, slowing compiles
 else()
 	message(STATUS "ASAN is ${ASAN}; use -DASAN=ON to enable ASan run-time checking")
 endif(ASAN)
@@ -193,7 +193,7 @@ if(UBSAN)
 	message(STATUS "UBSAN is ${UBSAN}")
 	add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
 	add_link_options(-fsanitize=undefined)
-	add_compile_options(-param=max-vartrack-size=1500000) # UBSan seems to push this limit, slowing compiles
+	add_compile_options(--param=max-vartrack-size=1500000) # UBSan seems to push this limit, slowing compiles
 else()
 	message(STATUS "UBSAN is ${UBSAN}; use -DUBSAN=ON to enable UBSan run-time checking")
 endif(UBSAN)
