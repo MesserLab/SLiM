@@ -98,6 +98,9 @@ option(BUILD_SLIMGUI "Build the Qt-based GUI for SLiM" OFF)
 # Add "-D ASAN=ON" to the CMake command to build with ASan runtime checking
 option(ASAN "Build with ASan runtime checking" OFF)
 
+# Add "-D UBSAN=ON" to the CMake command to build with ASan runtime checking
+option(UBSAN "Build with UBSan runtime checking" OFF)
+
 # Add "-D PARALLEL=ON" to the CMake command to make a parallel (multi-threaded) build
 # This is supported only for the command-line tools, not for SLiMgui; do not set BUILD_SLIMGUI
 option(PARALLEL "Build parallel versions of eidos and slim" OFF)
@@ -180,6 +183,13 @@ if (ASAN)
 	message(STATUS "ASAN is ${ASAN}")
 	add_compile_options(-fsanitize=address -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
 	add_link_options(-fsanitize=address)
+endif(ASAN)
+
+# Build with UBSan enabled if requested
+if (ASAN)
+	message(STATUS "UBSAN is ${UBSAN}")
+	add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
+	add_link_options(-fsanitize=undefined)
 endif(ASAN)
 
 # Report whether the build is parallel or not
