@@ -95,6 +95,9 @@ endif(NOT CMAKE_BUILD_TYPE)
 # This requires that Qt, a widget framework, is installed
 option(BUILD_SLIMGUI "Build the Qt-based GUI for SLiM" OFF)
 
+# Add "-D ASAN=ON" to the CMake command to build with ASan runtime checking
+option(ASAN "Build with ASan runtime checking" OFF)
+
 # Add "-D PARALLEL=ON" to the CMake command to make a parallel (multi-threaded) build
 # This is supported only for the command-line tools, not for SLiMgui; do not set BUILD_SLIMGUI
 option(PARALLEL "Build parallel versions of eidos and slim" OFF)
@@ -171,6 +174,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+# Build with ASan enabled if requested
+if (ASAN)
+	message(STATUS "ASAN is ${ASAN}")
+	add_compile_options(-fsanitize=address -fno-omit-frame-pointer) # -fno-omit-frame-pointer for better stack traces
+	add_link_options(-fsanitize=address)
+endif(ASAN)
 
 # Report whether the build is parallel or not
 if(PARALLEL)
