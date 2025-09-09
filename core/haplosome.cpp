@@ -1212,7 +1212,7 @@ EidosValue_SP Haplosome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_
 		else
 		{
 			// vector case: replace the appropriate element in char_value
-			std::string &char_vec = char_value->StringData_Mutable()[0];
+			std::string *char_vec = char_value->StringData_Mutable();
 			HaplosomeWalker walker(this);
 			
 			walker.MoveToPosition(start);
