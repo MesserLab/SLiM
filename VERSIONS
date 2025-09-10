@@ -42,6 +42,7 @@ development head (in the master branch):
 	add matrix() method to Plot to add a matrix-based image to a plot: (void)matrix(numeric matrix, numeric$ x1, numeric$ x2, numeric$ y1, numeric$ y2, [logical$ flipped = F], [Nif valueRange = NULL], [Ns$ colors = NULL], [float$ alpha = 1.0])
 	fix #538, check for unique SLiM ids only for alive individuals when loading a tree sequence
 	fix #533, memory smasher in Haplosome method nucleotides(format="char"); besides causing random crashes, this also caused this method to return incorrect results
+	fix #527, add calcLD_D() and calcLD_Rsquared() popgen functions, contributed by Vitor Sudbrack
 
 
 version 5.0 (Eidos version 4.0):

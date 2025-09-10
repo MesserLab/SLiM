@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2709
+{\rtf1\ansi\ansicpg1252\cocoartf2761
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 Menlo-Bold;
 \f6\fnil\fcharset0 AppleColorEmoji;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;}
@@ -931,7 +931,8 @@ This function is written in Eidos, and its source code can be viewed with
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\expnd0\expndtw0\kerning0
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -1155,9 +1156,8 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b \cf2 The 
+\f0\b The 
 \f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 5 and later, use the 
@@ -1327,6 +1327,7 @@ If
 \f1\fs18 initializeChromosome()
 \f2\fs20 , allowing a different mutation run count to be specified for each chromosome in multi-chromosome models.\expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 If 
 \f1\fs18 preventIncidentalSelfing
 \f2\fs20  is 
@@ -1406,6 +1407,7 @@ If
 \f2\fs20  for 
 \f1\fs18 checkInfiniteLoops
 \f2\fs20  to disable these checks.  There is no way to turn these checks on or off for individual loops; it is a global setting.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -2147,8 +2149,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -2160,7 +2163,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
@@ -2332,6 +2336,151 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i B
 \f2\i0 ), the result from this function can simply be multiplied by two.\
 This function was contributed by Chris Kyriazis; thanks, Chris!\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)calcLD_D(object<Mutation>$\'a0mut1, [No<Mutation>\'a0mut2\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the linkage disequilibrium (LD) coefficient 
+\f3\i D
+\f2\i0  between a focal mutation 
+\f1\fs18 mut1
+\f2\fs20  and one or more mutations in 
+\f1\fs18 mut2
+\f2\fs20 , evaluated across a set of haplosomes given by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The result is a 
+\f1\fs18 float
+\f2\fs20  vector that matches the size and order of 
+\f1\fs18 mut2
+\f2\fs20 .  The implementation of this function, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , calculates 
+\f3\i D
+\f2\i0  as defined by Hill and Robertson (1968, p. 226).  The coefficient 
+\f3\i D
+\f2\i0  is within [\uc0\u8722 
+\f3\i p
+\f2\i0 (1\uc0\u8722 
+\f3\i p
+\f2\i0 ), 
+\f3\i p
+\f2\i0 (1\uc0\u8722 
+\f3\i p
+\f2\i0 )], where 
+\f3\i p
+\f2\i0  is the frequency of the more common mutation (that is, 
+\f3\i p
+\f2\i0 \'a0=\'a0max(
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub , 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub ) where 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 1
+\fs20 \nosupersub  and 
+\f3\i f
+\f2\i0\fs13\fsmilli6667 \sub 2
+\fs20 \nosupersub  are the frequencies of the two mutations for which 
+\f3\i D
+\f2\i0  is being calculated); for the normalized LD metric 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub , which is within [0, 1], see 
+\f1\fs18 calcLD_Rsquared()
+\f2\fs20 .  Departures of 
+\f3\i D
+\f2\i0  from zero indicate LD; more specifically, 
+\f3\i D
+\f2\i0 \'a0>\'a00 indicates that the mutations occur together more often than expected by chance (positive linkage), whereas 
+\f3\i D
+\f2\i0 \'a0<\'a00 indicates they occur together less often than expected by chance (negative linkage).\
+All mutations in 
+\f1\fs18 mut2
+\f2\fs20  must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 ; this function does not currently calculate LD between mutations associated with different chromosomes.  If 
+\f1\fs18 mut2
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such mutations in the population (including 
+\f1\fs18 mut1
+\f2\fs20  itself) will be used.  Similarly, all haplosomes must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 .  If the 
+\f1\fs18 haplosomes
+\f2\fs20  parameter is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such haplosomes in the population will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float)calcLD_Rsquared(object<Mutation>$\'a0mut1, [No<Mutation>\'a0mut2\'a0=\'a0NULL], [No<Haplosome>\'a0haplosomes\'a0=\'a0NULL], [logical$\'a0squared\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the linkage disequilibrium (LD) squared correlation coefficient 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  between a focal mutation 
+\f1\fs18 mut1
+\f2\fs20  and one or more mutations in 
+\f1\fs18 mut2
+\f2\fs20 , evaluated across a set of haplosomes given by 
+\f1\fs18 haplosomes
+\f2\fs20 .  The result is a 
+\f1\fs18 float
+\f2\fs20  vector that matches the size and order of 
+\f1\fs18 mut2
+\f2\fs20 .  The implementation of this function, viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , calculates 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  as defined by Hill and Robertson (1968, p. 227).  The squared correlation coefficient 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub  is a normalized measure of LD within [0, 1] (for the unnormalized LD coefficient 
+\f3\i D
+\f2\i0 , see 
+\f1\fs18 calcLD_D()
+\f2\fs20 ).  When 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub \'a0=\'a00, there is no statistical association between the mutations; they co-occur as expected by chance.  A value of 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub \'a0=\'a01 indicates complete correlation: the mutations either always appear together or never appear together, depending on the sign of the underlying correlation coefficient 
+\f3\i r
+\f2\i0 .  To obtain the raw (signed) 
+\f3\i r
+\f2\i0  value instead of 
+\f3\i r
+\f2\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub , you can pass 
+\f1\fs18 squared=F
+\f2\fs20  instead of the default of 
+\f1\fs18 T
+\f2\fs20 .\
+All mutations in 
+\f1\fs18 mut2
+\f2\fs20  must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 ; this function does not currently calculate LD between mutations associated with different chromosomes.  If 
+\f1\fs18 mut2
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such mutations in the population (including 
+\f1\fs18 mut1
+\f2\fs20  itself) will be used.  Similarly, all haplosomes must be associated with the same chromosome as 
+\f1\fs18 mut1
+\f2\fs20 .  If the 
+\f1\fs18 haplosomes
+\f2\fs20  parameter is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all such haplosomes in the population will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcMeanFroh(object<Individual>\'a0individuals, [integer$\'a0minimumLength\'a0=\'a01000000], [Niso<Chromosome>$\'a0chromosome\'a0=\'a0NULL])\
