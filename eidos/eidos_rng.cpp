@@ -21,9 +21,18 @@
 #include "eidos_rng.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/time.h>
+#include <stdlib.h>
+
+#ifdef _WIN32
+	// --- These are the required includes for the new Windows RNG code ---
+	#include <windows.h>  // Main header for Windows data types like PBYTE
+	#include <bcrypt.h>   // Header for the Cryptography API where BCryptGenRandom is declared
+#else
+	// --- These are the other headers, now only used for non-Windows systems ---
+	#include <unistd.h>
+	#include <fcntl.h>
+	#include <sys/time.h>
+#endif
 
 
 bool gEidos_RNG_Initialized = false;
@@ -38,25 +47,26 @@ std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 static unsigned long int _Eidos_GenerateRNGSeed(void)
 {
 #ifdef _WIN32
-	// on Windows, we continue to hash together the PID and the time; I think there is a
-	// Windows API for cryptographic random numbers, though.  FIXME
-	static long int hereCounter = 0;
-	long long milliseconds;
-	
+	// On Windows, use the Cryptography API: Next Generation (CNG) to get a
+	// cryptographically secure random number for use as a seed.
+	unsigned long int seed;
+
+	// Ensure this section is thread-safe. If multiple threads request a seed
+	// simultaneously, they must take turns to avoid corrupting system resources.
 #pragma omp critical (Eidos_GenerateRNGSeed)
 	{
-		pid_t pid = getpid();
-		struct timeval te;
-		
-		gettimeofday(&te, NULL); // get current time
-		
-		milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
-		milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
-		milliseconds += (hereCounter * (long long)100000);	// make successive calls to this function be widely separated in their seeds
-		hereCounter++;
+		// Ask Windows to fill our seed variable with random bytes.
+		NTSTATUS status = BCryptGenRandom(NULL, (PBYTE)&seed, sizeof(seed), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+
+		// A failure here indicates a system-level problem with Windows. 
+		if (!BCRYPT_SUCCESS(status))
+		{
+			fprintf(stderr, "ERROR: Failed to generate a random seed using BCryptGenRandom. Status: 0x%X\n", (unsigned int)status);
+			exit(EXIT_FAILURE);
+		}	
 	}
 	
-	return (unsigned long int)milliseconds;
+	return seed;
 #else
 	// on other platforms, we now use /dev/urandom as a source of seeds, which is more reliably random
 	// thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code
