@@ -37,6 +37,8 @@
 #include "QtSLiMExtras.h"
 
 #include <QApplication>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QOpenGLWidget>
 #include <QSurfaceFormat>
 #include <QMenu>
@@ -122,6 +124,18 @@ void QtSLiM_MessageHandler(QtMsgType type, const QMessageLogContext &context, co
     // Test for a specific message so you can break on it when it occurs
     //if (msg.contains("Using QCharRef with an index"))
     //    qDebug() << "HIT WATCH MESSAGE; SET A BREAKPOINT HERE!";
+    
+    // Filter known benign Windows QPA spam when displays change
+#ifdef _WIN32
+    {
+        QByteArray category = context.category ? QByteArray(context.category) : QByteArray();
+        if (category == "qwindows")
+        {
+            if (msg.startsWith("Unable to get device information for"))
+                return;
+        }
+    }
+#endif
     
     // useful behavior, from https://doc.qt.io/qt-5/qtglobal.html#qInstallMessageHandler
     {
@@ -224,6 +238,49 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     
     // We assume we are the global instance; FIXME singleton pattern would be good
     qtSLiMAppDelegate = this;
+
+    // Ensure windows stay on-screen when displays change (added, removed, or modified)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 10, 0))
+
+    // This lambda (1) ensures that visible top-level windows remain on screen;
+    // (2) raises the active window to the front on the appropriate screen, if appropriate.
+    auto ensureOnScreen = [this]() {
+        const auto topLevels = QApplication::topLevelWidgets();
+        QWidget *active = qApp->activeWindow();
+        for (QWidget *w : topLevels)
+        {
+            if (!w || !w->isWindow())
+                continue;
+            // Do not affect hidden or minimized windows; only adjust currently visible ones
+            if (!w->isVisible())
+                continue;
+            if (w->windowState() & Qt::WindowMinimized)
+                continue;
+
+            // If the window is largely off-screen after a display change, move it without forcing it to the front
+            if (QtSLiMIsMostlyOnScreen(w))
+                continue;
+
+            if (w == active)
+            {
+                // For the active window, fully expose it (bring to front)
+                QtSLiMMakeWindowVisibleAndExposed(w);
+            }
+            else
+            {
+                // For other visible windows, adjust quietly without raising
+                QtSLiMRelocateQuietly(w);
+            }
+        }
+    };
+
+    // Connect to the screenAdded, screenRemoved, and geometryChanged signals
+    // to ensure that all top-level windows are visible and exposed
+    connect(app, &QGuiApplication::screenAdded,   this, [ensureOnScreen](QScreen *) { ensureOnScreen(); });
+    connect(app, &QGuiApplication::screenRemoved, this, [ensureOnScreen](QScreen *) { ensureOnScreen(); });
+    for (QScreen *screen : QGuiApplication::screens())
+        connect(screen, &QScreen::geometryChanged, this, [ensureOnScreen](const QRect &) { ensureOnScreen(); });
+#endif
     
     // Cache app-wide icons
     slimDocumentIcon_.addFile(":/icons/DocIcon16.png");
