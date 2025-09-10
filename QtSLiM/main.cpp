@@ -1,6 +1,7 @@
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMPreferences.h"
+#include "QtSLiMExtras.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -319,7 +320,12 @@ int main(int argc, char *argv[])
     }
     
     if (mainWin)
+    {
         mainWin->show();
+
+        // Ensures the main window is visible and exposed on startup
+        QtSLiMMakeWindowVisibleAndExposed(mainWin);
+    }
     
     appDelegate.appDidFinishLaunching(mainWin);
     

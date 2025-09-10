@@ -55,6 +55,10 @@ typedef enum {
     kBottomRight
 } QtSLiM_LegendPosition;
 
+// Utility helpers for window visibility/relocation
+bool QtSLiMIsMostlyOnScreen(QWidget *window);
+void QtSLiMRelocateQuietly(QWidget *window);
+
 void QtSLiMMakeWindowVisibleAndExposed(QWidget *window);
 
 void QtSLiMClearLayout(QLayout *layout, bool deleteWidgets = true);
