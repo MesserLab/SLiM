@@ -44,9 +44,9 @@ development head (in the master branch):
 	fix #533, memory smasher in Haplosome method nucleotides(format="char"); besides causing random crashes, this also caused this method to return incorrect results
 	fix #527, add calcLD_D() and calcLD_Rsquared() popgen functions, contributed by Vitor Sudbrack
 	fix apparently new STL check that double comparators for std::sort() must induce a strict weak ordering, including with NAN values; self-tests started raising
-	add new ways of subsetting matrices/arrays with A[B], or assigning into subsets of matrices/arrays with A[B] = ... : with a conformable logical matrix/array, or with an integer matrix that selects elements of the target
+	fix #558, add new ways of subsetting matrices/arrays with A[B], or assigning into subsets of matrices/arrays with A[B] = ... : with a conformable logical matrix/array, or with an integer matrix that selects elements of the target
 	add asVector() method to strip off dimension attributes; this can be done with c() or x[] also, but it's nice to have the function, since R has it...
-	add a calcDxy() popgen utility function to SLiM that calculates Nei's Dxy genetic divergence statistic, contributed by Vitor Sudbrack
+	fix #526, add a calcDxy() popgen utility function to SLiM that calculates Nei's Dxy genetic divergence statistic, contributed by Vitor Sudbrack
 
 
 version 5.0 (Eidos version 4.0):
