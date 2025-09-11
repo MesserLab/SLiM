@@ -296,6 +296,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("tr",				Eidos_ExecuteFunction_tr,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("det",				Eidos_ExecuteFunction_det,			kEidosValueMaskNumeric | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("inverse",			Eidos_ExecuteFunction_inverse,		kEidosValueMaskFloat))->AddNumeric("x"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("asVector",			Eidos_ExecuteFunction_asVector,		kEidosValueMaskAny))->AddAny("x"));
 
 		
 		// ************************************************************************************

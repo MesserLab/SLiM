@@ -1509,6 +1509,25 @@ EidosValue_SP Eidos_ExecuteFunction_inverse(const std::vector<EidosValue_SP> &p_
 	return result_SP;
 }
 
+//	(*)asVector(* x)
+EidosValue_SP Eidos_ExecuteFunction_asVector(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP result_SP(nullptr);
+	
+	if (x_value->DimensionCount() == 1)
+	{
+		result_SP.reset(x_value);
+	}
+	else
+	{
+		result_SP = x_value->CopyValues();
+		
+		result_SP->SetDimensions(1, nullptr);
+	}
+	
+	return result_SP;
+}
 
 
 

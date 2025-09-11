@@ -363,6 +363,13 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = upperTri(x, T); x[c(ut)];", {1, 4, 5, 7, 8, 9, 10, 11, 12});
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x); x[c(ut)];", {5, 9, 10});
 	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x, T); x[c(ut)];", {1, 5, 6, 9, 10, 11});
+	
+	// asVector()
+	EidosAssertScriptRaise("x = NULL; y = matrix(x); identical(asVector(y), x);", 14, "zero elements");
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(12, 1, 0.5) == 1); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	EidosAssertScriptSuccess_L("x = c('a','b','c','d','e','f','g','h','i','j','k','l'); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
 }
 
 #pragma mark filesystem access
