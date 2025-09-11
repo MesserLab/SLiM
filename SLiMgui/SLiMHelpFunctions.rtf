@@ -1156,8 +1156,9 @@ There is no way to disable sex once it has been enabled; if you don\'92t want to
 \f2\fs20  property of 
 \f1\fs18 Individual
 \f2\fs20 , for example), and manage the consequences of that in your script yourself, in terms of which individuals can mate with which, and exactly how the offspring is produced.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b The 
+\f0\b \cf2 The 
 \f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 5 and later, use the 
@@ -2105,7 +2106,92 @@ The
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcFST(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float$)calcDxy(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0normalize\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates the estimated 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  between two 
+\f1\fs18 Haplosome
+\f2\fs20  vectors for the set of mutations given in 
+\f1\fs18 muts
+\f2\fs20 .  
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  is the expected number of differences between two sequences, typically drawn from two different subpopulations whose haplosomes are given in 
+\f1\fs18 haplosomes1
+\f2\fs20  and 
+\f1\fs18 haplosomes2
+\f2\fs20 .  It is therefore a metric of genetic divergence, comparable in some respects to 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub ; see Cruickshank and Hahn (2014, Molecular Ecology) for a discussion of 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  versus 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub .  This method implements 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  as defined by Nei (1987) in Molecular Evolutionary Genomics (eq. 10.20), with optimizations for computational efficiency based upon an assumption that that multiallelic loci are rare (this is compatible with the infinite-sites model).\
+The calculation can be narrowed to apply to only a window \'96 a subrange of the full haplosomes \'96 by passing the interval bounds [
+\f1\fs18 start
+\f2\fs20 , 
+\f1\fs18 end
+\f2\fs20 ] for the desired window.  In this case, the vector of mutations used for the calculation will be subset to include only mutations within the specified window.  The default behavior, with 
+\f1\fs18 start
+\f2\fs20  and 
+\f1\fs18 end
+\f2\fs20  of 
+\f1\fs18 NULL
+\f2\fs20 , provides the haplosome-wide 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub .\
+If 
+\f1\fs18 normalize
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20  (the default), the returned 
+\f1\fs18 float
+\f2\fs20  value is simply the expected number of differences, following Nei.  Often, however, it will be desirable to normalize that value by dividing by the length of the sequence considered, yielding the expected number of differences 
+\f3\i per site
+\f2\i0 , a metric that then does not depend upon the sequence length; passing 
+\f1\fs18 normalize=T
+\f2\fs20  will return that normalized value, and that is probably what most users of this function will want.\
+The implementation of 
+\f1\fs18 calcDxy()
+\f2\fs20 , viewable with 
+\f1\fs18 functionSource()
+\f2\fs20 , treats every mutation in 
+\f1\fs18 muts
+\f2\fs20  as independent in its calculations (similar to 
+\f1\fs18 calcPi()
+\f2\fs20 ); in other words, if mutations are stacked, the 
+\f3\i D
+\f2\i0\fs13\fsmilli6667 \sub xy
+\fs20 \nosupersub  value calculated is 
+\f3\i by mutation
+\f2\i0 , not 
+\f3\i by site
+\f2\i0 .  Similarly, if multiple 
+\f1\fs18 Mutation
+\f2\fs20  objects exist in different haplosomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
+\f1\fs18 Mutation
+\f2\fs20  object is treated separately for purposes of the calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.  See 
+\f1\fs18 calcPairHeterozygosity()
+\f2\fs20  for further discussion.\
+All haplosomes and mutations must be associated with the same chromosome.  If 
+\f1\fs18 muts
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all mutations in the population associated with the same chromosome as the given haplosomes will be used.\
+This function was written by Vitor Sudbrack (currently affiliated with University of Lausanne).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcFST(object<Haplosome>\'a0haplosomes1, object<Haplosome>\'a0haplosomes2, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calculates the 
@@ -2149,9 +2235,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -2163,8 +2248,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
