@@ -43,6 +43,7 @@ development head (in the master branch):
 	fix #538, check for unique SLiM ids only for alive individuals when loading a tree sequence
 	fix #533, memory smasher in Haplosome method nucleotides(format="char"); besides causing random crashes, this also caused this method to return incorrect results
 	fix #527, add calcLD_D() and calcLD_Rsquared() popgen functions, contributed by Vitor Sudbrack
+	fix apparently new STL check that double comparators for std::sort() must induce a strict weak ordering, including with NAN values; self-tests started raising
 
 
 version 5.0 (Eidos version 4.0):

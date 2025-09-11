@@ -892,10 +892,23 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_preserve_orde
 			std::vector<double> dup_vec(float_data, float_data + x_count);
 			
 			// sort NANs to the end
-			std::sort(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) { return std::isnan(b) || (a < b); });
+			std::sort(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) {
+				// If a is NaN and b is not NaN, a should come after b
+				if (std::isnan(a) && !std::isnan(b))
+					return false;
+				
+				// If b is NaN and a is not NaN, b should come after a
+				if (!std::isnan(a) && std::isnan(b))
+					return true;
+				
+				// If both are NaN or both are non-NaN, sort numerically (ascending)
+				return a < b;
+			});
 			
 			// Remove duplicates, including duplicate NANs
-			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) { return (std::isnan(a) && std::isnan(b)) || (a == b); });
+			auto unique_iter = std::unique(dup_vec.begin(), dup_vec.end(), [](const double& a, const double& b) {
+				return (std::isnan(a) && std::isnan(b)) || (a == b);
+			});
 			size_t unique_count = unique_iter - dup_vec.begin();
 			double *dup_ptr = dup_vec.data();
 			
