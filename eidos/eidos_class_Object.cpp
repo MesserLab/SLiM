@@ -618,8 +618,8 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool has_match_string = (p_arguments[0]->Type() == EidosValueType::kValueString);
-	EidosValue_String *propertyName_value = (EidosValue_String *)p_arguments[0].get();
-	const std::string &match_string = (has_match_string ? propertyName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
+	EidosValue *propertyName_value = (EidosValue *)p_arguments[0].get();
+	const std::string &match_string = (has_match_string ? ((EidosValue_String *)propertyName_value)->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosPropertySignature_CSP> *properties = Properties();
 	bool signature_found = false;
 	
