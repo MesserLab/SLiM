@@ -6,6 +6,9 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+
+
+version 5.1 (Eidos version 4.1):
 	add recipe 16.11, life-long monogamous mating
 	add the ability to suppress the header line of a LogFile, with a new [logical$ header = T] parameter to createLogFile() (#516), and adding [Nl$ header = NULL] for setFilePath() (#516)
 	add [string$ sex = "*"] parameter to initializeRecombinationRateFromFile(), passed through to initializeRecombinationRate(); fixing an oversight (#524)
