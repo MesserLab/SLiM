@@ -229,25 +229,29 @@ R"V0G0N({
 				stop("ERROR (calcFST): all mutations must belong to the same species as the haplosomes.");
 	}
 	
-	chromosome = haplosomes1[0].chromosome;
+	chromosomes = haplosomes1[0].chromosome;
 	if (species.chromosomes.length() > 1)
 	{
-		if (any(c(haplosomes1, haplosomes2).chromosome != chromosome))
-			stop("ERROR (calcFST): all haplosomes must be associated with the same chromosome.");
+		chromosomes = sortBy(unique(haplosomes1.chromosome, preserveOrder=F), "id");
+		chromosomes2 = sortBy(unique(haplosomes2.chromosome, preserveOrder=F), "id");
+		if (!identical(chromosomes, chromosomes2))
+			stop("ERROR (calcFST): both haplosomes must be associated with the same set of chromosomes.");
 		if (!isNULL(muts))
-			if (any(muts.chromosome != chromosome))
-				stop("ERROR (calcFST): all mutations must be associated with the same chromosome as the haplosomes.");
+			if (any(match(unique(muts.chromosome), chromosomes) == -1))
+				stop("ERROR (calcFST): all mutations must be associated with the same chromosomes as the haplosomes.");
 	}
 	
 	if (isNULL(muts))
-		muts = species.subsetMutations(chromosome=chromosome);
+		muts = species.subsetMutations(chromosome=chromosomes);
 	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
+		if (chromosomes.length() > 1)
+			stop("ERROR (calcFST): start/end cannot be specified with more than one chromosome.");
 		if (start > end)
 			stop("ERROR (calcFST): start must be less than or equal to end.");
-		if ((start < 0) | (end >= chromosome.length))
+		if ((start < 0) | (end >= chromosomes.length))
 			stop("ERROR (calcFST): start and end must be within the bounds of the focal chromosome");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];

@@ -2202,20 +2202,26 @@ This function was written by Vitor Sudbrack (currently affiliated with Universit
 \f2\fs20  vectors \'96 typically, but not necessarily, the haplosomes that constitute two different subpopulations (which we will assume for the purposes of this discussion).  In general, higher 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  indicates greater genetic divergence between subpopulations.\
+\fs20 \nosupersub  indicates greater genetic divergence between subpopulations.  The haplosomes may be associated with more than one chromosome, in a multi-chromosome model; if so, 
+\f1\fs18 haplosomes1
+\f2\fs20  and 
+\f1\fs18 haplosomes2
+\f2\fs20  must be associated with the same set of chromosomes, defining the focal set of chromosomes for the calculation.\
 The calculation is done using only the mutations in 
 \f1\fs18 muts
 \f2\fs20 ; if 
 \f1\fs18 muts
 \f2\fs20  is 
 \f1\fs18 NULL
-\f2\fs20 , all mutations are used.  The 
+\f2\fs20 , all mutations associated with the focal chromosomes are used.  The 
 \f1\fs18 muts
-\f2\fs20  parameter can therefore be used to calculate the 
+\f2\fs20  parameter can be used to calculate the 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub  only for a particular mutation type (by passing only mutations of that type).\
-The calculation can be narrowed to apply to only a window \'96 a subrange of the full chromosome \'96 by passing the interval bounds [
+\fs20 \nosupersub  only for a particular mutation type (by passing only mutations of that type), for example; it can focus the calculation on particular mutations of interest.  The mutations in 
+\f1\fs18 muts
+\f2\fs20  must always be associated with the focal chromosomes.\
+If there is a single focal chromosome, the calculation can be narrowed to apply to only a window \'96 a subrange of the focal chromosome \'96 by passing the interval bounds [
 \f1\fs18 start
 \f2\fs20 , 
 \f1\fs18 end
@@ -2225,7 +2231,7 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \f1\fs18 end
 \f2\fs20  of 
 \f1\fs18 NULL
-\f2\fs20 , provides the haplosome-wide 
+\f2\fs20 , provides the chromosome-wide 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\

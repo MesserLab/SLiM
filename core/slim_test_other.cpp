@@ -2887,7 +2887,8 @@ initialize() {
 	SLiMAssertScriptSuccess(base_script + "calcDxy(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch1, 1e5, 2e5); }", __LINE__);
 	
 	SLiMAssertScriptRaise(base_script + "calcFST(h0, h0); }", "must both be non-empty", __LINE__, true, /* p_error_is_in_stop */ true);
-	SLiMAssertScriptRaise(base_script + "calcFST(p1.haplosomes, p2.haplosomes); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
+	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomes, p2.haplosomes); }", __LINE__);
+	SLiMAssertScriptRaise(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(2)); }", "same set of chromosomes", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptRaise(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1), muts_ch2); }", "same chromosome", __LINE__, true, /* p_error_is_in_stop */ true);
 	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1)[0], p2.haplosomesForChromosomes(1)[0]); }", __LINE__);
 	SLiMAssertScriptSuccess(base_script + "calcFST(p1.haplosomesForChromosomes(1), p2.haplosomesForChromosomes(1)); }", __LINE__);
