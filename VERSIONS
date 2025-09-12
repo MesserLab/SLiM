@@ -49,6 +49,7 @@ development head (in the master branch):
 	fix #526, add a calcDxy() popgen utility function to SLiM that calculates Nei's Dxy genetic divergence statistic, contributed by Vitor Sudbrack
 	fix #529, extend calcFST() to support multiple chromosomes
 	extend subsetMutations() to support subsetting mutations belonging to more than one chromosome
+	fix #560, add recipe 14.16 "Visualizing linkage disequilibrium" to demonstrate the new calcLD_D() and calcLD_Rsquared() functions
 
 
 version 5.0 (Eidos version 4.0):
