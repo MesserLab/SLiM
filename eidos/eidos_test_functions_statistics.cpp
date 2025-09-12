@@ -21,6 +21,7 @@
 #include "eidos_test.h"
 
 #include <limits>
+#include <string>
 
 
 #pragma mark statistics

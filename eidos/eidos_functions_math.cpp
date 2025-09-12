@@ -23,6 +23,7 @@
 #include <utility>
 #include <string>
 #include <vector>
+#include <limits>
 
 // BCH 20 October 2016: continuing to try to fix problems with gcc 5.4.0 on Linux without breaking other
 // builds.  We will switch to including <cmath> and using the std:: namespace math functions, since on
