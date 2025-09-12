@@ -650,10 +650,10 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 	// before writing anything, erase a progress line if we've got one up, to try to make a clean slate
 	Eidos_EraseProgress();
 	
-	EidosValue_String *methodName_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue *methodName_value = p_arguments[0].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	bool method_name_specified = (methodName_value->Type() == EidosValueType::kValueString);
-	const std::string &match_string = (method_name_specified ? methodName_value->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
+	const std::string &match_string = (method_name_specified ? ((EidosValue_String *)methodName_value)->StringRefAtIndex_NOCAST(0, nullptr) : gEidosStr_empty_string);
 	const std::vector<EidosMethodSignature_CSP> *methods = Methods();
 	bool signature_found = false;
 	
