@@ -1466,6 +1466,8 @@ EidosValue_SP Eidos_ExecuteFunction_inverse(const std::vector<EidosValue_SP> &p_
 	if (result != GSL_SUCCESS)
 	{
 		// This indicates that the matrix is singular, and the determinant is zero; for inverse() this is an error
+		gsl_matrix_free(A);
+		gsl_permutation_free(p);
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must not be singular (i.e., must be invertible).  You can use det() to check for singularity prior to calling inverse()." << EidosTerminate(nullptr);
 	}
 	
@@ -1482,11 +1484,17 @@ EidosValue_SP Eidos_ExecuteFunction_inverse(const std::vector<EidosValue_SP> &p_
 	if (result == GSL_EDOM)
 	{
 		// This indicates that the matrix is singular, and the determinant is zero; for inverse() this is an error
+		gsl_matrix_free(A);
+		gsl_permutation_free(p);
+		gsl_matrix_free(inverse);
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() x must not be singular (i.e., must be invertible).  You can use det() to check for singularity prior to calling inverse()." << EidosTerminate(nullptr);
 	}
 	else if (result != GSL_SUCCESS)
 	{
 		// Some other error occurred
+		gsl_matrix_free(A);
+		gsl_permutation_free(p);
+		gsl_matrix_free(inverse);
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_inverse): in function inverse() an internal GSL error occurred (code == " << result << ")." << EidosTerminate(nullptr);
 	}
 	
