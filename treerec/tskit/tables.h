@@ -158,6 +158,10 @@ typedef struct {
     /** @brief The ID of the edge that this mutation lies on, or TSK_NULL
       if there is no corresponding edge.*/
     tsk_id_t edge;
+    /** @brief Inherited state. */
+    const char *inherited_state;
+    /** @brief Size of the inherited state in bytes. */
+    tsk_size_t inherited_state_length;
 } tsk_mutation_t;
 
 /**
@@ -682,18 +686,6 @@ typedef struct {
     tsk_edge_list_node_t *tail;
 } tsk_edge_list_t;
 
-typedef struct {
-    tsk_size_t num_nodes;
-    tsk_size_t num_edges;
-    double tree_left;
-    const tsk_table_collection_t *tables;
-    tsk_id_t insertion_index;
-    tsk_id_t removal_index;
-    tsk_id_t tree_index;
-    tsk_id_t last_index;
-    tsk_edge_list_node_t *edge_list_nodes;
-} tsk_diff_iter_t;
-
 /****************************************************************************/
 /* Common function options */
 /****************************************************************************/
@@ -797,6 +789,11 @@ All checks needed to define a valid tree sequence. Note that
 this implies all of the above checks.
 */
 #define TSK_CHECK_TREES (1 << 7)
+/**
+Check mutation parents are consistent with topology.
+Implies TSK_CHECK_TREES.
+*/
+#define TSK_CHECK_MUTATION_PARENTS (1 << 8)
 
 /* Leave room for more positive check flags */
 /**
@@ -4770,19 +4767,6 @@ int tsk_identity_segments_get(const tsk_identity_segments_t *self, tsk_id_t a,
     tsk_id_t b, tsk_identity_segment_list_t **ret_list);
 void tsk_identity_segments_print_state(tsk_identity_segments_t *self, FILE *out);
 int tsk_identity_segments_free(tsk_identity_segments_t *self);
-
-/* Edge differences */
-
-/* Internal API - currently used in a few places, but a better API is envisaged
- * at some point.
- * IMPORTANT: tskit-rust uses this API, so don't break without discussing!
- */
-int tsk_diff_iter_init(tsk_diff_iter_t *self, const tsk_table_collection_t *tables,
-    tsk_id_t num_trees, tsk_flags_t options);
-int tsk_diff_iter_free(tsk_diff_iter_t *self);
-int tsk_diff_iter_next(tsk_diff_iter_t *self, double *left, double *right,
-    tsk_edge_list_t *edges_out, tsk_edge_list_t *edges_in);
-void tsk_diff_iter_print_state(const tsk_diff_iter_t *self, FILE *out);
 
 #ifdef __cplusplus
 }
