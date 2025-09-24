@@ -147,12 +147,12 @@ sizes and types of externally visible structs.
 The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define TSK_VERSION_MINOR   1
+#define TSK_VERSION_MINOR   2
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   4
+#define TSK_VERSION_PATCH   0
 /** @} */
 
 /*
@@ -283,7 +283,7 @@ A file could not be read because it is in the wrong format
 /**
 The file is in tskit format, but the version is too old for the
 library to read. The file should be upgraded to the latest version
-using the ``tskit upgrade`` command line utility.
+using the ``tskit upgrade`` command line utility from tskit version<0.6.2.
 */
 #define TSK_ERR_FILE_VERSION_TOO_OLD                                -101
 /**
@@ -510,6 +510,12 @@ Some mutations have TSK_UNKNOWN_TIME in an algorithm where that's
 disallowed (use compute_mutation_times?).
 */
 #define TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME                    -510
+
+/** 
+A mutation's parent was not consistent with the topology of the tree.
+ */
+#define TSK_ERR_BAD_MUTATION_PARENT                                 -511
+
 /** @} */
 
 /**
@@ -740,13 +746,17 @@ Sample times do not all equal the start of first time window
 */
 #define TSK_ERR_BAD_SAMPLE_PAIR_TIMES                               -923
 /**
-Time windows are not strictly increasing ending at infinity
+Time windows are not strictly increasing
 */
 #define TSK_ERR_BAD_TIME_WINDOWS                                    -924
 /**
+Time windows do not end at infinity
+*/
+#define TSK_ERR_BAD_TIME_WINDOWS_END                                -925
+/**
 Node time does not fall within assigned time window
 */
-#define TSK_ERR_BAD_NODE_TIME_WINDOW                                -925
+#define TSK_ERR_BAD_NODE_TIME_WINDOW                                -926
 /** @} */
 
 /**
