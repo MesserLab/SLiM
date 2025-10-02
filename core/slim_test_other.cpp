@@ -354,7 +354,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 		}
 		
 		// Test InteractionType – (float)totalOfNeighborStrengths(object<Individual> individuals)
-		if (!sex_seg_on)
+		if (!sex_seg_on)	// cppcheck-suppress duplicateCondition
 		{
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.totalOfNeighborStrengths(ind[integer(0)]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.totalOfNeighborStrengths(ind[0]), 9.0)) stop(); }", __LINE__);
@@ -587,7 +587,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 		}
 		
 		// Test InteractionType – (float)totalOfNeighborStrengths(object<Individual> individuals)
-		if (!sex_seg_on)
+		if (!sex_seg_on)	// cppcheck-suppress duplicateCondition
 		{
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.totalOfNeighborStrengths(ind[integer(0)]), float(0))) stop(); }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.totalOfNeighborStrengths(ind[0]), 9.0)) stop(); }", __LINE__);
@@ -774,7 +774,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	}
 	
 	// Test InteractionType – (float)totalOfNeighborStrengths(object<Individual> individuals)
-	if (!sex_seg_on)
+	if (!sex_seg_on)	// cppcheck-suppress duplicateCondition
 	{
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.totalOfNeighborStrengths(ind[integer(0)]), float(0))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.totalOfNeighborStrengths(ind[0]), 9.0)) stop(); }", __LINE__);
@@ -914,7 +914,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	}
 	
 	// Test InteractionType – (float)totalOfNeighborStrengths(object<Individual> individuals)
-	if (!sex_seg_on)
+	if (!sex_seg_on)	// cppcheck-suppress duplicateCondition
 	{
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.totalOfNeighborStrengths(ind[0]), 9.0)) stop(); }", __LINE__);
 		

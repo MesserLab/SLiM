@@ -168,7 +168,7 @@ extern EidosErrorContext gEidosErrorContext;
 // declared in eidos_token.h due to EidosToken dependency:
 // inline __attribute__((always_inline)) EidosErrorPosition PushErrorPositionFromToken(const EidosToken *p_naughty_token_)
 
-inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
+inline __attribute__((always_inline)) void RestoreErrorPosition(const EidosErrorPosition &p_saved_position)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("RestoreErrorPosition(): gEidosErrorContext change");
 	
@@ -557,8 +557,8 @@ private:
 	std::string message;
 	
 public: 
-	SLiMUndefinedIdentifierException(const char* msg) : message(msg) {}
-	SLiMUndefinedIdentifierException(const std::string &msg) : message(msg) {}
+	explicit SLiMUndefinedIdentifierException(const char* msg) : message(msg) {}
+	explicit SLiMUndefinedIdentifierException(const std::string &msg) : message(msg) {}
 	
 	const char* what() const noexcept { return message.c_str(); } 
 };
@@ -658,7 +658,7 @@ double Eidos_Correlation(T1 *x, T2 *y, size_t count)
 	if (count <= 1)
 		return std::numeric_limits<double>::quiet_NaN();
 	
-	if ((void *)x == (void *)y)
+	if (static_cast<const void *>(x) == static_cast<const void *>(y))
 	{
 		// if x == y, we're being asked to calculate a self-correlation, which is simply 1.0
 		return 1.0;
@@ -703,7 +703,7 @@ double Eidos_Covariance(T1 *x, T2 *y, size_t count)
 	if (count <= 1)
 		return std::numeric_limits<double>::quiet_NaN();
 	
-	if ((void *)x == (void *)y)
+	if (static_cast<const void *>(x) == static_cast<const void *>(y))
 	{
 		// if x == y, we're being asked to calculate variance, which can be done more efficiently
 		
@@ -860,8 +860,8 @@ private:
 	bool& mLock;
 	
 public:
-	Eidos_simple_lock(bool& pLock) : mLock(pLock)	{	mLock = true;	}
-	~Eidos_simple_lock(void)						{	mLock = false;	}
+	explicit Eidos_simple_lock(bool& pLock) : mLock(pLock)	{	mLock = true;	}
+	~Eidos_simple_lock(void)								{	mLock = false;	}
 };
 
 

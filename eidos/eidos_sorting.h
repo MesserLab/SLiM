@@ -169,8 +169,9 @@ void Sriram_parallel_omp_sort(std::vector<T> &data, Compare comparator)
 		size_t start = tid * chunk_size;
 		size_t end = (tid + 1) * chunk_size;
 		
-		if (tid == num_threads - 1)
-			end = size;
+		// cppcheck is confused here when building single-threaded
+		if (tid == num_threads - 1)		// cppcheck-suppress knownConditionTrueFalse
+			end = size;					// cppcheck-suppress redundantAssignment
 		
 		// sort sub-array using comparator
 		std::sort(data.begin() + start, data.begin() + end, comparator);
