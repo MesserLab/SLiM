@@ -76,6 +76,29 @@ if(TIDY)
 endif()
 
 
+# cppcheck support (for internal development)
+# for now this processes one file at a time; there is an alternative approach that
+# outputs a project file with CMAKE_EXPORT_COMPILE_COMMANDS and then runs cppcheck
+# on that, but I'm not sure how to do it within cmake so for now I'm punting on it
+option(CPPCHECK "Run cppcheck on SLiM (for development)" OFF)
+
+if(CPPCHECK)
+  if(CMAKE_VERSION VERSION_LESS "3.10")
+    message(FATAL_ERROR "To use the cppcheck wrapper CPPCHECK in this project you will need a version of CMake at least as new as 3.10.")
+  endif()
+  
+  find_program(CPPCHECK_EXECUTABLE cppcheck)
+  if (CPPCHECK_EXECUTABLE)
+    message(STATUS "CPPCHECK is ${CPPCHECK}; building with cppcheck (for development)")
+    set(CPPCHECK_COMMAND "${CPPCHECK_EXECUTABLE}" "--enable=all;--suppress=missingIncludeSystem;--suppress=syntaxError;--suppress=unmatchedSuppression;--inline-suppr;--std=c++11;--quiet;--suppress=*:robin_hood.h;--suppress=*:lodepng.cpp;--suppress=checkersReport;--suppress=*:eidos_openmp.h;--suppress=unusedFunction")
+    message(STATUS "+++ cppcheck is at ${CPPCHECK_EXECUTABLE}")
+    message(STATUS "+++ CPPCHECK_COMMAND is ${CPPCHECK_COMMAND}")
+  else()
+    message(FATAL_ERROR "The CPPCHECK option could be enabled because the cppcheck command could not be found.")
+  endif()
+endif()
+
+
 project(SLiM)
 if(WIN32)
     include(ExternalProject)
@@ -484,6 +507,20 @@ if(TIDY)
 	endif(PARALLEL)
 	if(BUILD_SLIMGUI)
 		set_target_properties(SLiMgui PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+	endif(BUILD_SLIMGUI)
+endif()
+
+# implement cppcheck for all end-user targets (not for gsl, zlib, kastore, tskit)
+if(CPPCHECK)
+	if(PARALLEL)
+		set_target_properties(eidos_multi PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+		set_target_properties(slim_multi PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+	else()
+		set_target_properties(eidos PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+		set_target_properties(slim PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
+	endif(PARALLEL)
+	if(BUILD_SLIMGUI)
+		set_target_properties(SLiMgui PROPERTIES CXX_CPPCHECK "${CPPCHECK_COMMAND}")
 	endif(BUILD_SLIMGUI)
 endif()
 
