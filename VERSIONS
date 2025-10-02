@@ -6,6 +6,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 
 development head (in the master branch):
+	add cppcheck support in our cmake config, for development testing purposes
+	speed up the SpatialMap smooth() method in 2D without periodicity, since this is important for the Chevy et al. competition algorithm
 
 
 version 5.1 (Eidos version 4.1):
