@@ -168,7 +168,8 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_FILE_VERSION_TOO_OLD:
             ret = "tskit file version too old. Please upgrade using the "
-                  "'tskit upgrade' command. (TSK_ERR_FILE_VERSION_TOO_OLD)";
+                  "'tskit upgrade' command from tskit version<0.6.2. "
+                  "(TSK_ERR_FILE_VERSION_TOO_OLD)";
             break;
         case TSK_ERR_FILE_VERSION_TOO_NEW:
             ret = "tskit file version is too new for this instance. "
@@ -346,6 +347,12 @@ tsk_strerror_internal(int err)
                   "(TSK_ERR_DISALLOWED_UNKNOWN_MUTATION_TIME)";
             break;
 
+        case TSK_ERR_BAD_MUTATION_PARENT:
+            ret = "A mutation's parent is not consistent with the topology of the tree. "
+                  "Use compute_mutation_parents to set the parents correctly."
+                  "(TSK_ERR_BAD_MUTATION_PARENT)";
+            break;
+
         /* Migration errors */
         case TSK_ERR_UNSORTED_MIGRATIONS:
             ret = "Migrations must be sorted by time. (TSK_ERR_UNSORTED_MIGRATIONS)";
@@ -519,8 +526,12 @@ tsk_strerror_internal(int err)
                   "(TSK_ERR_BAD_SAMPLE_PAIR_TIMES)";
             break;
         case TSK_ERR_BAD_TIME_WINDOWS:
-            ret = "Time windows must be strictly increasing and end at infinity. "
+            ret = "Time windows must start at zero and be strictly increasing. "
                   "(TSK_ERR_BAD_TIME_WINDOWS)";
+            break;
+        case TSK_ERR_BAD_TIME_WINDOWS_END:
+            ret = "Time windows must end at infinity for this method. "
+                  "(TSK_ERR_BAD_TIME_WINDOWS_END)";
             break;
         case TSK_ERR_BAD_NODE_TIME_WINDOW:
             ret = "Node time does not fall within assigned time window. "
