@@ -4942,7 +4942,9 @@ QtSLiMGraphView_CustomPlot *QtSLiMWindow::eidos_createPlot(QString title, double
     
     if (customPlot && graphWindow)
     {
+        // calling createPlot() resets the plot's state, creating it afresh even if it already exists
         customPlot->controllerRecycled();
+        customPlot->setBorderless(false, 0, 0, 0, 0);
         customPlot->setTitle(title);
         customPlot->setXLabel(x_label);
         customPlot->setYLabel(y_label);

@@ -193,32 +193,46 @@ void QtSLiMGraphView_CustomPlot::setDataRanges(double *x_range, double *y_range)
     // otherwise, we set up the min and max values for the axis from the given (two-valued) range buffer
     if (x_range)
     {
-        x0_ = x_range[0];
-        x1_ = x_range[1];
+        original_x0_ = x_range[0];
+        original_x1_ = x_range[1];
+        
+        x0_ = original_x0_;
+        x1_ = original_x1_;
         
         configureAxisForRange(x0_, x1_, xAxisMin_, xAxisMax_,
                               xAxisMajorTickInterval_, xAxisMinorTickInterval_,
                               xAxisMajorTickModulus_, xAxisTickValuePrecision_);
         xAxisIsUserRescaled_ = true;
+        xAxisIsUIRescaled_ = false;
     }
     else
     {
-        // leave the axis as it was, so that any user configuration persists through a recycle
+        // allow any user configuration in the UI to persist through a recycle
+        // if a range was set by createPlot(), though, we want to reset that
+        if (!xAxisIsUIRescaled_)
+            xAxisIsUserRescaled_ = false;
     }
     
     if (y_range)
     {
-        y0_ = y_range[0];
-        y1_ = y_range[1];
+        original_y0_ = y_range[0];
+        original_y1_ = y_range[1];
+        
+        y0_ = original_y0_;
+        y1_ = original_y1_;
         
         configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_,
                               yAxisMajorTickInterval_, yAxisMinorTickInterval_,
                               yAxisMajorTickModulus_, yAxisTickValuePrecision_);
         yAxisIsUserRescaled_ = true;
+        yAxisIsUIRescaled_ = false;
     }
     else
     {
-        // leave the axis as it was, so that any user configuration persists through a recycle
+        // allow any user configuration in the UI to persist through a recycle
+        // if a range was set by createPlot(), though, we want to reset that
+        if (!yAxisIsUIRescaled_)
+            yAxisIsUserRescaled_ = false;
     }
 }
 
@@ -332,8 +346,11 @@ void QtSLiMGraphView_CustomPlot::rescaleAxesForDataRange(void)
     {
         if (!xAxisIsUserRescaled_)
         {
-            x0_ = xmin;
-            x1_ = xmax;
+            original_x0_ = xmin;
+            original_x1_ = xmax;
+            
+            x0_ = original_x0_;
+            x1_ = original_x1_;
             
             configureAxisForRange(x0_, x1_, xAxisMin_, xAxisMax_, xAxisMajorTickInterval_, xAxisMinorTickInterval_,
                                   xAxisMajorTickModulus_, xAxisTickValuePrecision_);
@@ -341,8 +358,11 @@ void QtSLiMGraphView_CustomPlot::rescaleAxesForDataRange(void)
         
         if (!yAxisIsUserRescaled_)
         {
-            y0_ = ymin;
-            y1_ = ymax;
+            original_y0_ = ymin;
+            original_y1_ = ymax;
+            
+            y0_ = original_y0_;
+            y1_ = original_y1_;
             
             configureAxisForRange(y0_, y1_, yAxisMin_, yAxisMax_, yAxisMajorTickInterval_, yAxisMinorTickInterval_,
                                   yAxisMajorTickModulus_, yAxisTickValuePrecision_);
@@ -890,10 +910,17 @@ void QtSLiMGraphView_CustomPlot::drawImage(QPainter &painter, QRect interiorRect
     double user_x1 = xdata[0], user_y1 = ydata[0];
     double user_x2 = xdata[1], user_y2 = ydata[1];
     
+    // for image() we always want to use pixel edges, as in PDF, not pixel centers, so that the plotted image
+    // uses up the full pixels at the edges of the plot area if the image fills the whole plot area
+    bool old_generatingPDF_ = generatingPDF_;
+    generatingPDF_ = true;
+    
     double x1 = plotToDeviceX(user_x1, interiorRect);
     double y1 = plotToDeviceY(user_y1, interiorRect);
     double x2 = plotToDeviceX(user_x2, interiorRect);
     double y2 = plotToDeviceY(user_y2, interiorRect);
+    
+    generatingPDF_ = old_generatingPDF_;
     
     // the coordinates are absolute, but Qt wants them as width/height
     double target_width = x2 - x1;
@@ -907,7 +934,27 @@ void QtSLiMGraphView_CustomPlot::drawImage(QPainter &painter, QRect interiorRect
     if (alpha != 1.0)
         painter.setOpacity(alpha);
     
-    painter.drawImage(target, image);
+    // we do not want antialiasing of images drawn here; unfortunately that is difficult, because Qt ignores its render hints
+    // in some cases and still gives us an interpolated image, so we also have to scale the image itself sometimes
+    bool old_antialiasing = painter.testRenderHint(QPainter::Antialiasing);
+    bool old_smoothpixmap = painter.testRenderHint(QPainter::SmoothPixmapTransform);
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+    
+    if (generatingPDF_)
+    {
+        const QImage scaledImage = image.scaled(target_width, target_height, Qt::IgnoreAspectRatio, Qt::FastTransformation);
+        
+        painter.drawImage(target, scaledImage);
+    }
+    else
+    {
+        // for on-screen display I have not seen it smooth the rescale, and I don't want the overhead of making a new image every time...
+        painter.drawImage(target, image);
+    }
+    
+    painter.setRenderHint(QPainter::Antialiasing, old_antialiasing);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, old_smoothpixmap);
     
     if (alpha != 1.0)
         painter.setOpacity(1.0);

@@ -1549,6 +1549,7 @@ const std::string &gStr_legendTitleEntry = EidosRegisteredString("legendTitleEnt
 const std::string &gStr_lines = EidosRegisteredString("lines", gID_lines);
 const std::string &gStr_matrix = EidosRegisteredString("matrix", gID_matrix);
 const std::string &gStr_points = EidosRegisteredString("points", gID_points);
+const std::string &gStr_setBorderless = EidosRegisteredString("setBorderless", gID_setBorderless);
 const std::string &gStr_text = EidosRegisteredString("text", gID_text);
 const std::string &gStr_title = EidosRegisteredString("title", gID_title);
 

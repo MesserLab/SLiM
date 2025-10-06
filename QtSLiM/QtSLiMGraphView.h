@@ -106,6 +106,8 @@ public:
     virtual QString aboutString(void) = 0;
     virtual void drawGraph(QPainter &painter, QRect interiorRect);
     
+    void setBorderless(bool isBorderless, double marginLeft, double marginTop, double marginRight, double marginBottom);
+    
     bool writeToFile(QString fileName);
     
 public slots:
@@ -186,9 +188,16 @@ protected:
     size_t tallyGUIMutationReferences(const std::vector<Haplosome *> &haplosomes, int muttype_index);
     
     // Properties; initialized in the constructor, these defaults are just zero-fill
-    // Note that the bounds in user coordinates (x0_/x1_/y0_/y1_) are now separate from
-    // the axis limits (xAxisMin_, ...), but at present they are always the same except
-    // for custom plots.  That may change, going forward, to improve axis behavior.
+    // The bounds in user coordinates (x0_/x1_/y0_/y1_) are the actual extents of the
+    // axes; this is somewhat unrelated to the positions at which tick and labels are
+    // drawn, which are prettified.  The axis limits (xAxisMin_, xAxisMax_, ...) express
+    // the limits of tick marks; they are the conceptual limits of the axes, but
+    // typically there are margins of 4% or so outside of that range so the data isn't
+    // right up against the edges of the plot.  The original axis limits provided
+    // by the user are kept in original_x0_ etc., since x0_ and xAxisMin_ do not
+    // necessarily reflect the original values; they can get changed for aesthetics.
+    // See QtSLiMGraphView::setBorderless() for the reason we need the original values.
+    double original_x0_ = 0.0, original_x1_ = 0.0, original_y0_ = 0.0, original_y1_ = 0.0;
     double x0_ = 0.0, x1_ = 0.0, y0_ = 0.0, y1_ = 0.0;  // coordinate space bounds
     
     double axisLabelSize_ = 15;
@@ -196,7 +205,8 @@ protected:
     
     bool showXAxis_ = false;
     bool allowXAxisUserRescale_ = false;
-    bool xAxisIsUserRescaled_ = false;
+    bool xAxisIsUserRescaled_ = false;      // the user gave a custom axis scale in any way (such as in createPlot())
+    bool xAxisIsUIRescaled_ = false;        // the user gave a custom axis scale in the QtSLiM UI, which has precedence
     bool showXAxisTicks_ = false;
     double xAxisMin_ = 0.0, xAxisMax_ = 0.0;
     double xAxisMajorTickInterval_ = 0.0, xAxisMinorTickInterval_ = 0.0;
@@ -210,7 +220,8 @@ protected:
     
     bool showYAxis_ = false;
     bool allowYAxisUserRescale_ = false;
-    bool yAxisIsUserRescaled_ = false;
+    bool yAxisIsUserRescaled_ = false;      // the user gave a custom axis scale in any way (such as in createPlot())
+    bool yAxisIsUIRescaled_ = false;        // the user gave a custom axis scale in the QtSLiM UI, which has precedence
     bool showYAxisTicks_ = false;
     double yAxisMin_ = 0.0, yAxisMax_ = 0.0;
     double yAxisMajorTickInterval_ = 0.0, yAxisMinorTickInterval_ = 0.0;
@@ -241,6 +252,15 @@ protected:
     bool allowFullBoxChange_ = false;
     
     bool tweakXAxisTickLabelAlignment_ = false;
+    
+    // borderless plots show no axes, no ticks, no labels; this feature is used only for custom plots
+    // for borderless plots, the plot region is the whole window area, and the data range fills the plot
+    // that is inset by the margins given here, measured in pixels, to allow a bit of overflow
+    bool is_borderless_ = false;
+    double borderless_margin_left_ = 0.0;
+    double borderless_margin_right_ = 0.0;
+    double borderless_margin_top_ = 0.0;
+    double borderless_margin_bottom_ = 0.0;
     
     // Prefab additions properties
     int histogramBinCount_ = 0;

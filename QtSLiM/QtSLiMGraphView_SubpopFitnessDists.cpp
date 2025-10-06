@@ -35,7 +35,8 @@ QtSLiMGraphView_SubpopFitnessDists::QtSLiMGraphView_SubpopFitnessDists(QWidget *
     histogramBinCount_ = 50;
     allowBinCountRescale_ = true;
     
-    x1_ = 2.0;
+    original_x1_ = 2.0;
+    x1_ = original_x1_;
     
     xAxisMax_ = x1_;
     xAxisMajorTickInterval_ = 1.0;

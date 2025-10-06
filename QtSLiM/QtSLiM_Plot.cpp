@@ -113,6 +113,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
         case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
         case gID_matrix:                return ExecuteMethod_matrix(p_method_id, p_arguments, p_interpreter);
         case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
+        case gID_setBorderless:			return ExecuteMethod_setBorderless(p_method_id, p_arguments, p_interpreter);
         case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
         case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
         default:                        return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
@@ -1209,6 +1210,29 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
     return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)setBorderless([numeric marginLeft = 0.0], [numeric marginTop = 0.0], [numeric marginRight = 0.0], [numeric marginBottom = 0.0])
+//
+EidosValue_SP Plot::ExecuteMethod_setBorderless(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+    EidosValue *marginLeft_value = p_arguments[0].get();
+    EidosValue *marginTop_value = p_arguments[1].get();
+    EidosValue *marginRight_value = p_arguments[2].get();
+    EidosValue *marginBottom_value = p_arguments[3].get();
+    
+    double marginLeft = marginLeft_value->NumericAtIndex_NOCAST(0, nullptr);
+    double marginTop = marginTop_value->NumericAtIndex_NOCAST(0, nullptr);
+    double marginRight = marginRight_value->NumericAtIndex_NOCAST(0, nullptr);
+    double marginBottom = marginBottom_value->NumericAtIndex_NOCAST(0, nullptr);
+    
+    if ((marginLeft < 0.0) || (marginTop < 0.0) || (marginRight < 0.0) || (marginBottom < 0.0))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_setBorderless): setBorderless() requires all margins to be >= 0." << EidosTerminate(nullptr);
+    
+    plotview_->setBorderless(true, marginLeft, marginTop, marginRight, marginBottom);
+    
+    return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)text(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL], [float alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1431,6 +1455,9 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setBorderless, kEidosValueMaskVOID))
+                                  ->AddNumeric_OS("marginLeft", gStaticEidosValue_Float0)->AddNumeric_OS("marginTop", gStaticEidosValue_Float0)
+                                  ->AddNumeric_OS("marginRight", gStaticEidosValue_Float0)->AddNumeric_OS("marginBottom", gStaticEidosValue_Float0));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_text, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))

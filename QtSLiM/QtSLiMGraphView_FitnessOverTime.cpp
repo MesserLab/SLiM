@@ -54,8 +54,11 @@ QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_pare
 
 void QtSLiMGraphView_FitnessOverTime::setDefaultYAxisRange(void)
 {
-    y0_ = 0.9;
-    y1_ = 1.1;		// dynamic
+    original_y0_ = 0.9;
+    original_y1_ = 1.1;		// dynamic
+    
+    y0_ = original_y0_;
+    y1_ = original_y1_;
     
     yAxisMin_ = y0_;
     yAxisMax_ = y1_;
@@ -164,9 +167,11 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
                 if ((fabs(axisMin - yAxisMin_) > 0.0000001) || (fabs(axisMax - yAxisMax_) > 0.0000001))
                 {
                     yAxisMin_ = axisMin;
-                    y0_ = yAxisMin_;               // the same as yAxisMin_, for base plots
+                    original_y0_ = yAxisMin_;               // the same as yAxisMin_, for base plots
+                    y0_ = original_y0_;
                     yAxisMax_ = axisMax;
-                    y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+                    original_y1_ = yAxisMax_;               // the same as yAxisMax_, for base plots
+                    y1_ = original_y1_;
                     yAxisMajorTickInterval_ = 0.5;
                     yAxisMinorTickInterval_ = 0.25;
                     yAxisMajorTickModulus_ = 2;

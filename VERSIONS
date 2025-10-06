@@ -8,6 +8,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 development head (in the master branch):
 	add cppcheck support in our cmake config, for development testing purposes
 	speed up the SpatialMap smooth() method in 2D without periodicity, since this is important for the Chevy et al. competition algorithm
+	add Plot method setBorderless() for making plots without border annotations -- no axes, ticks, labels
+	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 
 
 version 5.1 (Eidos version 4.1):

@@ -506,7 +506,7 @@ void EidosClass::CacheDispatchTables(void)
 		method_signatures_dispatch_capacity_ = last_id + 1;
 		
 		// this limit may need to be lifted someday, but for now it's a sanity check if the uniquing code changes
-		if (method_signatures_dispatch_capacity_ > 512)
+		if (method_signatures_dispatch_capacity_ > 640)
 			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
