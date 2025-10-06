@@ -113,6 +113,8 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
         case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
         case gID_matrix:                return ExecuteMethod_matrix(p_method_id, p_arguments, p_interpreter);
         case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
+        case gID_rects:					return ExecuteMethod_rects(p_method_id, p_arguments, p_interpreter);
+        case gID_segments:				return ExecuteMethod_segments(p_method_id, p_arguments, p_interpreter);
         case gID_setBorderless:			return ExecuteMethod_setBorderless(p_method_id, p_arguments, p_interpreter);
         case gID_text:					return ExecuteMethod_text(p_method_id, p_arguments, p_interpreter);
         case gEidosID_write:			return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
@@ -1210,6 +1212,310 @@ EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const 
     return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)rects(numeric x1, numeric y1, numeric x2, numeric y2, [string color = "red"], [string border = "black"], [numeric lwd = 1.0], [float alpha = 1.0])
+//
+EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+    EidosValue *x1_value = p_arguments[0].get();
+    EidosValue *y1_value = p_arguments[1].get();
+    EidosValue *x2_value = p_arguments[2].get();
+    EidosValue *y2_value = p_arguments[3].get();
+    EidosValue *color_value = p_arguments[4].get();
+    EidosValue *border_value = p_arguments[5].get();
+    EidosValue *lwd_value = p_arguments[6].get();
+    EidosValue *alpha_value = p_arguments[7].get();
+    
+    // x1, y1, x2, y2
+    int segment_count = x1_value->Count();
+    int y1count = y1_value->Count();
+    int x2count = x2_value->Count();
+    int y2count = y2_value->Count();
+    
+    if ((segment_count != y1count) || (segment_count != x2count) || (segment_count != y2count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires x1, y1, x2, and y2 to be the same length." << EidosTerminate();
+    
+    double *x1 = (double *)malloc(segment_count * sizeof(double));
+    double *y1 = (double *)malloc(segment_count * sizeof(double));
+    double *x2 = (double *)malloc(segment_count * sizeof(double));
+    double *y2 = (double *)malloc(segment_count * sizeof(double));
+    
+    if (!x1 || !y1 || !x2 || !y2)
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+    
+    if (x1_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(x1, x1_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = x1_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            x1[index] = int_data[index];
+    }
+    
+    if (y1_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(y1, y1_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = y1_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            y1[index] = int_data[index];
+    }
+    
+    if (x2_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(x2, x2_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = x2_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            x2[index] = int_data[index];
+    }
+    
+    if (y2_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(y2, y2_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = y2_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            y2[index] = int_data[index];
+    }
+    
+    // color
+    std::vector<QColor> *colors = new std::vector<QColor>;
+    int color_count = color_value->Count();
+    
+    if ((color_count != 1) && (color_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires color to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < color_count; ++index)
+    {
+        std::string color_string = color_value->StringAtIndex_NOCAST(index, nullptr);
+        
+        if (color_string == "none")
+        {
+            // "none" is a special named color provided by rects() to say you don't want a frame or fill
+            colors->emplace_back(Qt::transparent);
+        }
+        else
+        {
+            uint8_t colorR, colorG, colorB;
+            
+            Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+            
+            colors->emplace_back(colorR, colorG, colorB, 255);
+        }
+    }
+    
+    // border
+    std::vector<QColor> *borders = new std::vector<QColor>;
+    int border_count = border_value->Count();
+    
+    if ((border_count != 1) && (border_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_points): points() requires border to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < border_count; ++index)
+    {
+        std::string border_string = border_value->StringAtIndex_NOCAST(index, nullptr);
+        
+        if (border_string == "none")
+        {
+            // "none" is a special named color provided by rects() to say you don't want a frame or fill
+            borders->emplace_back(Qt::transparent);
+        }
+        else
+        {
+            uint8_t borderR, borderG, borderB;
+            
+            Eidos_GetColorComponents(border_string, &borderR, &borderG, &borderB);
+            
+            borders->emplace_back(borderR, borderG, borderB, 255);
+        }
+    }
+    
+    // lwd
+    std::vector<double> *lwds = new std::vector<double>;
+    int lwd_count = lwd_value->Count();
+    
+    if ((lwd_count != 1) && (lwd_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires lwd to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < lwd_count; ++index)
+    {
+        double lwd = lwd_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if ((lwd < 0.0) || (lwd > 100.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
+        
+        lwds->push_back(lwd);
+    }
+    
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires alpha to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    plotview_->addRectData(x1, y1, x2, y2, segment_count, colors, borders, alphas, lwds);       // takes ownership of buffers
+    
+    return gStaticEidosValueVOID;
+}
+
+//	*********************	– (void)segments(numeric x1, numeric y1, numeric x2, numeric y2, [string color = "red"], [numeric lwd = 1.0], [float alpha = 1.0])
+//
+EidosValue_SP Plot::ExecuteMethod_segments(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+    EidosValue *x1_value = p_arguments[0].get();
+    EidosValue *y1_value = p_arguments[1].get();
+    EidosValue *x2_value = p_arguments[2].get();
+    EidosValue *y2_value = p_arguments[3].get();
+    EidosValue *color_value = p_arguments[4].get();
+    EidosValue *lwd_value = p_arguments[5].get();
+    EidosValue *alpha_value = p_arguments[6].get();
+    
+    // x1, y1, x2, y2
+    int segment_count = x1_value->Count();
+    int y1count = y1_value->Count();
+    int x2count = x2_value->Count();
+    int y2count = y2_value->Count();
+    
+    if ((segment_count != y1count) || (segment_count != x2count) || (segment_count != y2count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires x1, y1, x2, and y2 to be the same length." << EidosTerminate();
+    
+    double *x1 = (double *)malloc(segment_count * sizeof(double));
+    double *y1 = (double *)malloc(segment_count * sizeof(double));
+    double *x2 = (double *)malloc(segment_count * sizeof(double));
+    double *y2 = (double *)malloc(segment_count * sizeof(double));
+    
+    if (!x1 || !y1 || !x2 || !y2)
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+    
+    if (x1_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(x1, x1_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = x1_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            x1[index] = int_data[index];
+    }
+    
+    if (y1_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(y1, y1_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = y1_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            y1[index] = int_data[index];
+    }
+    
+    if (x2_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(x2, x2_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = x2_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            x2[index] = int_data[index];
+    }
+    
+    if (y2_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(y2, y2_value->FloatData(), segment_count * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = y2_value->IntData();
+        
+        for (int index = 0; index < segment_count; ++index)
+            y2[index] = int_data[index];
+    }
+    
+    // color
+    std::vector<QColor> *colors = new std::vector<QColor>;
+    int color_count = color_value->Count();
+    
+    if ((color_count != 1) && (color_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires color to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < color_count; ++index)
+    {
+        std::string color_string = color_value->StringAtIndex_NOCAST(index, nullptr);
+        uint8_t colorR, colorG, colorB;
+        
+        Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+        
+        colors->emplace_back(colorR, colorG, colorB, 255);
+    }
+    
+    // lwd
+    std::vector<double> *lwds = new std::vector<double>;
+    int lwd_count = lwd_value->Count();
+    
+    if ((lwd_count != 1) && (lwd_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires lwd to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < lwd_count; ++index)
+    {
+        double lwd = lwd_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if ((lwd < 0.0) || (lwd > 100.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
+        
+        lwds->push_back(lwd);
+    }
+    
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != segment_count))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires alpha to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    plotview_->addSegmentData(x1, y1, x2, y2, segment_count, colors, alphas, lwds);       // takes ownership of buffers
+    
+    return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)setBorderless([numeric marginLeft = 0.0], [numeric marginTop = 0.0], [numeric marginRight = 0.0], [numeric marginBottom = 0.0])
 //
 EidosValue_SP Plot::ExecuteMethod_setBorderless(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1455,6 +1761,15 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rects, kEidosValueMaskVOID))
+                                  ->AddNumeric("x1")->AddNumeric("y1")->AddNumeric("x2")->AddNumeric("y2")
+                                  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+                                  ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1));
+        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_segments, kEidosValueMaskVOID))
+                                  ->AddNumeric("x1")->AddNumeric("y1")->AddNumeric("x2")->AddNumeric("y2")
+                                  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1));
         methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setBorderless, kEidosValueMaskVOID))
                                   ->AddNumeric_OS("marginLeft", gStaticEidosValue_Float0)->AddNumeric_OS("marginTop", gStaticEidosValue_Float0)
                                   ->AddNumeric_OS("marginRight", gStaticEidosValue_Float0)->AddNumeric_OS("marginBottom", gStaticEidosValue_Float0));

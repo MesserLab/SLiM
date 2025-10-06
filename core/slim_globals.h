@@ -1128,6 +1128,8 @@ extern const std::string &gStr_legendTitleEntry;
 extern const std::string &gStr_lines;
 extern const std::string &gStr_matrix;
 extern const std::string &gStr_points;
+extern const std::string &gStr_rects;
+extern const std::string &gStr_segments;
 extern const std::string &gStr_setBorderless;
 extern const std::string &gStr_text;
 extern const std::string &gStr_title;
@@ -1586,6 +1588,8 @@ enum _SLiMGlobalStringID : int {
 	gID_lines,
 	gID_matrix,
 	gID_points,
+	gID_rects,
+	gID_segments,
 	gID_setBorderless,
 	gID_text,
 	gID_title,

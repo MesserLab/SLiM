@@ -6669,9 +6669,12 @@ The lines will be drawn in colors, line widths, and alpha (opacity) values speci
 \f4\fs20  is fully transparent and 
 \f3\fs18 1.0
 \f4\fs20  is fully opaque.\
-See also 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 See also 
 \f3\fs18 lines()
-\f4\fs20 , for a more common approach to line plotting.  The 
+\f4\fs20  and 
+\f3\fs18 segments()
+\f4\fs20 , for a more common approaches to line plotting.  The 
 \f3\fs18 abline()
 \f4\fs20  method is different, and more specialized; the lines plotted by it span the full extent of the plot area, and their coordinates are not considered when dynamically resizing the axes of the plot (i.e., when 
 \f3\fs18 createPlot()
@@ -6939,7 +6942,8 @@ This method caches the image data being plotted so that plotting the same
 \f4\fs20  and 
 \f3\fs18 y
 \f4\fs20  vectors must be the same length.  The new line data will be plotted on top of any previously added data.\
-The lines will be drawn in color 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The lines will be drawn in color 
 \f3\fs18 color
 \f4\fs20 , using line width 
 \f3\fs18 lwd
@@ -6965,8 +6969,12 @@ The lines will be drawn in color
 \f3\fs18 alpha
 \f4\fs20  must be singletons, since each point (except the two ends) is shared by two line segments; if you wish to vary the color/width/opacity for each line segment, separate calls to 
 \f3\fs18 lines()
-\f4\fs20  are necessary.   See also 
+\f4\fs20  are necessary, or the 
+\f3\fs18 segments()
+\f4\fs20  method may be useful.   See also 
 \f3\fs18 abline()
+\f4\fs20  and 
+\f3\fs18 segments()
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -7157,6 +7165,116 @@ The symbol plotted for each point depends upon the value of
 \f4\fs20 , and 
 \f3\fs18 alpha
 \f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)rects(numeric\'a0x1, numeric\'a0y1, numeric\'a0x2, numeric\'a0y2, [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds rectangle data given by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20  to the plot; note that these four vectors must all be the same length.  The data will be plotted as a series of rectangles, defined by each (
+\f1\i x1
+\f4\i0 , 
+\f1\i y1
+\f4\i0 , 
+\f1\i x2
+\f4\i0 , 
+\f1\i y2
+\f4\i0 ) quadret providing the left, right, top and bottom of each rectangle.  The coordinates of each rectangle do not need to be sorted; in other words, it is not required that 
+\f3\fs18 x1[i] <= x2[i]
+\f4\fs20 , or that 
+\f3\fs18 y1[i] <= y2[i]
+\f4\fs20 , and different sorting orders for the coordinates of a given rectangle will draw identically.  The fill of a each rectangle is contained within its coordinates, but the frame of each rectangle is composed of lines of some width, drawn between the vertices of the rectangle, and will therefore extend beyond the coordinates of the rectangle by one-half of the line width; if this is not desired, inset the rectangle coordinates by one-half of the line width to compensate.  The new rectangle data will be plotted on top of any previously added data.\
+The rectangles will be drawn in fill colors 
+\f3\fs18 color
+\f4\fs20 , with border colors 
+\f3\fs18 border
+\f4\fs20 , using line widths 
+\f3\fs18 lwd
+\f4\fs20 , with opacities 
+\f3\fs18 alpha
+\f4\fs20  applied to both the fill and the border.  The 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 border
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20  parameters may each be either a singleton value (applying to all rectangles) or a vector with one value per rectangle.  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  If a filled rectangle with no border is desired, a 
+\f3\fs18 border
+\f4\fs20  value of 
+\f3\fs18 "none"
+\f4\fs20  can be used; similarly, if a framed rectangle with no fill is desired, a 
+\f3\fs18 color
+\f4\fs20  value of 
+\f3\fs18 "none"
+\f4\fs20  can be used.  Note that that 
+\f3\fs18 "none"
+\f4\fs20  a special color value supported only by 
+\f3\fs18 rects()
+\f4\fs20 ; it is not part of the standard set of named colors in Eidos.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)segments(numeric\'a0x1, numeric\'a0y1, numeric\'a0x2, numeric\'a0y2, [string\'a0color\'a0=\'a0"red"], [numeric\'a0lwd\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds line segment data given by 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 y1
+\f4\fs20 , 
+\f3\fs18 x2
+\f4\fs20 , and 
+\f3\fs18 y2
+\f4\fs20  to the plot; note that these four vectors must all be the same length.  The data will be plotted as a series of unconnected line segments, from each (
+\f1\i x1
+\f4\i0 , 
+\f1\i y1
+\f4\i0 ) position to the corresponding (
+\f1\i x2
+\f4\i0 , 
+\f1\i y2
+\f4\i0 ) position.  The new line segment data will be plotted on top of any previously added data.\
+The line segments will be drawn in colors 
+\f3\fs18 color
+\f4\fs20 , using line widths 
+\f3\fs18 lwd
+\f4\fs20 , with opacities 
+\f3\fs18 alpha
+\f4\fs20 .  The 
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 lwd
+\f4\fs20 , and 
+\f3\fs18 alpha
+\f4\fs20  parameters may each be either a singleton value (applying to all line segments) or a vector with one value per line segment.  Alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.   See also 
+\f3\fs18 lines()
+\f4\fs20  and 
+\f3\fs18 abline()
+\f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setBorderless([numeric$\'a0marginLeft\'a0=\'a00.0], [numeric$\'a0marginTop\'a0=\'a00.0], [numeric$\'a0marginRight\'a0=\'a00.0], [numeric$\'a0marginBottom\'a0=\'a00.0])\

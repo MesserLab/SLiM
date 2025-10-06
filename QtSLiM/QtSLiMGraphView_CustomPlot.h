@@ -31,6 +31,8 @@ class Plot;
 
 enum class QtSLiM_CustomPlotType : int {
     kLines,
+    kSegments,
+    kRects,
     kPoints,
     kText,
     kABLines,   // from abline()
@@ -76,6 +78,12 @@ public:
     void addPointData(double *x_values, double *y_values, int data_count,
                       std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border,
                       std::vector<double> *alpha, std::vector<double> *lwd, std::vector<double> *size);
+    void addRectData(double *x1_values, double *y1_values, double *x2_values, double *y2_values,
+                     int data_count, std::vector<QColor> *color, std::vector<QColor> *border,
+                     std::vector<double> *alpha, std::vector<double> *lwd);
+    void addSegmentData(double *x1_values, double *y1_values, double *x2_values, double *y2_values,
+                        int data_count, std::vector<QColor> *color,
+                        std::vector<double> *alpha, std::vector<double> *lwd);
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
                      std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size, double *adj);
     
@@ -108,8 +116,10 @@ private:
     bool has_finite_data_;
     
     std::vector<QtSLiM_CustomPlotType> plot_type_;
-    std::vector<double *> xdata_;
-    std::vector<double *> ydata_;
+    std::vector<double *> x1data_;
+    std::vector<double *> y1data_;
+    std::vector<double *> x2data_;
+    std::vector<double *> y2data_;
     std::vector<int> data_count_;                       // the count for the xdata / ydata buffers
     std::vector<std::vector<QString> *> labels_;        // one label per point
     std::vector<std::vector<int> *> symbol_;            // one symbol per point, OR one symbol for all points
@@ -128,6 +138,8 @@ private:
     void drawHLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawVLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawSegments(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawRects(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawText(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawImage(QPainter &painter, QRect interiorRect, int dataIndex);

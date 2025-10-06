@@ -10,6 +10,8 @@ development head (in the master branch):
 	speed up the SpatialMap smooth() method in 2D without periodicity, since this is important for the Chevy et al. competition algorithm
 	add Plot method setBorderless() for making plots without border annotations -- no axes, ticks, labels
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
+	add segments() call to Plot, for plotting a set of unconnected line segments
+	add rects() call to Plot, for plotting a set of rectangles
 
 
 version 5.1 (Eidos version 4.1):
