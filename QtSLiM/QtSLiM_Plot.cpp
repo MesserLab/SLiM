@@ -1233,7 +1233,7 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     int y2count = y2_value->Count();
     
     if ((segment_count != y1count) || (segment_count != x2count) || (segment_count != y2count))
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires x1, y1, x2, and y2 to be the same length." << EidosTerminate();
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires x1, y1, x2, and y2 to be the same length." << EidosTerminate();
     
     double *x1 = (double *)malloc(segment_count * sizeof(double));
     double *y1 = (double *)malloc(segment_count * sizeof(double));
@@ -1241,7 +1241,7 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     double *y2 = (double *)malloc(segment_count * sizeof(double));
     
     if (!x1 || !y1 || !x2 || !y2)
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
     
     if (x1_value->Type() == EidosValueType::kValueFloat)
     {
@@ -1296,7 +1296,7 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     int color_count = color_value->Count();
     
     if ((color_count != 1) && (color_count != segment_count))
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires color to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires color to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
     
     for (int index = 0; index < color_count; ++index)
     {
@@ -1322,7 +1322,7 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     int border_count = border_value->Count();
     
     if ((border_count != 1) && (border_count != segment_count))
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_points): points() requires border to match the length of x and y, or be singleton." << EidosTerminate();
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires border to match the length of x and y, or be singleton." << EidosTerminate();
     
     for (int index = 0; index < border_count; ++index)
     {
@@ -1348,14 +1348,14 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     int lwd_count = lwd_value->Count();
     
     if ((lwd_count != 1) && (lwd_count != segment_count))
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires lwd to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires lwd to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
     
     for (int index = 0; index < lwd_count; ++index)
     {
         double lwd = lwd_value->NumericAtIndex_NOCAST(index, nullptr);
         
         if ((lwd < 0.0) || (lwd > 100.0))
-            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires the elements of lwd to be in [0, 100]." << EidosTerminate(nullptr);
         
         lwds->push_back(lwd);
     }
@@ -1365,14 +1365,14 @@ EidosValue_SP Plot::ExecuteMethod_rects(EidosGlobalStringID p_method_id, const s
     int alpha_count = alpha_value->Count();
     
     if ((alpha_count != 1) && (alpha_count != segment_count))
-        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires alpha to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires alpha to match the length of x1/y1/x2/y2, or be singleton." << EidosTerminate();
     
     for (int index = 0; index < alpha_count; ++index)
     {
         double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
         
         if ((alpha < 0.0) || (alpha > 1.0))
-            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_segments): segments() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_rects): rects() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
         
         alphas->push_back(alpha);
     }
