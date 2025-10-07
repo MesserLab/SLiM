@@ -6669,8 +6669,7 @@ The lines will be drawn in colors, line widths, and alpha (opacity) values speci
 \f4\fs20  is fully transparent and 
 \f3\fs18 1.0
 \f4\fs20  is fully opaque.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 See also 
+See also 
 \f3\fs18 lines()
 \f4\fs20  and 
 \f3\fs18 segments()
@@ -6942,8 +6941,7 @@ This method caches the image data being plotted so that plotting the same
 \f4\fs20  and 
 \f3\fs18 y
 \f4\fs20  vectors must be the same length.  The new line data will be plotted on top of any previously added data.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The lines will be drawn in color 
+The lines will be drawn in color 
 \f3\fs18 color
 \f4\fs20 , using line width 
 \f3\fs18 lwd
@@ -7108,6 +7106,118 @@ See the
 \f4\fs20  and 
 \f3\fs18 Image
 \f4\fs20  objects that may be more suitable in some situations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)mtext(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0], [numeric\'a0angle\'a0=\'a00.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds marginal text data given by 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  to the plot.  The string values in 
+\f3\fs18 labels
+\f4\fs20  will be plotted at the (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) positions given; note that 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 labels
+\f4\fs20  must all be the same length.  This method differs from the 
+\f3\fs18 text()
+\f4\fs20  method in two respects.  The first \'96 the reason that this method draws \'93marginal\'94 text \'96 is that the text drawn is not clipped to the plot area, allowing text to be drawn in the axis and border areas outside the plot itself.  The second is that the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  coordinates are interpreted differently than other 
+\f3\fs18 Plot
+\f4\fs20  methods; rather than being in the coordinate system of the plot, they are in a coordinate system in which the plot area spans [0,1] on both axes.  This is intended to make positioning text outside of the plot area not depend upon the axis ranges of the plot; those axis ranges might vary, but the positions at which 
+\f3\fs18 mtext()
+\f4\fs20  draws, relative to the plot area, will remain fixed.  The new marginal text data will be plotted on top of any previously added data.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The text will be drawn in color 
+\f3\fs18 color
+\f4\fs20 , at the font size given by 
+\f3\fs18 size
+\f4\fs20  (measured in \'93points\'94, the standard metric of font sizes); the font family and style cannot be controlled at this time.  Opacity values may be supplied with 
+\f3\fs18 alpha
+\f4\fs20 ; alpha values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], where 
+\f3\fs18 0.0
+\f4\fs20  is fully transparent and 
+\f3\fs18 1.0
+\f4\fs20  is fully opaque.  The angle at which the text is drawn can be specified with 
+\f3\fs18 angle
+\f4\fs20 ; angles are measured in degrees, clockwise.  All of these parameters (
+\f3\fs18 color
+\f4\fs20 , 
+\f3\fs18 size
+\f4\fs20 , 
+\f3\fs18 alpha
+\f4\fs20 , and 
+\f3\fs18 angle
+\f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The exact position of the text, relative to each point (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ), is adjusted by the optional parameter 
+\f3\fs18 adj
+\f4\fs20 .  The value of 
+\f3\fs18 adj
+\f4\fs20 , if specified, must be a vector of length 
+\f3\fs18 2
+\f4\fs20 , where 
+\f3\fs18 adj[0]
+\f4\fs20  adjusts the 
+\f1\i x
+\f4\i0  position and 
+\f3\fs18 adj[1]
+\f4\fs20  adjusts the 
+\f1\i y
+\f4\i0  position of the text.  Relative to a given 
+\f1\i x
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the left edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the right edge of the text to it.  Similarly, relative to a given 
+\f1\i y
+\f4\i0  position, a value of 
+\f3\fs18 0.0
+\f4\fs20  aligns the bottom edge of the text to it; a value of 
+\f3\fs18 0.5
+\f4\fs20  aligns the center of the text to it; and a value of 
+\f3\fs18 1.0
+\f4\fs20  aligns the top edge of the text to it.  Intermediate values will produce intermediate alignments, and values of 
+\f3\fs18 adj
+\f4\fs20  outside of [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ] are also allowed.  The default value of 
+\f3\fs18 adj
+\f4\fs20 , 
+\f3\fs18 NULL
+\f4\fs20 , is equivalent to 
+\f3\fs18 c(0.5,\'a00.5)
+\f4\fs20 , aligning the center of the text to (
+\f1\i x
+\f4\i0 , 
+\f1\i y
+\f4\i0 ) both horizontally and vertically.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)points(numeric\'a0x, numeric\'a0y, [integer\'a0symbol\'a0=\'a00], [string\'a0color\'a0=\'a0"red"], [string\'a0border\'a0=\'a0"black"], [numeric\'a0lwd\'a0=\'a01.0], [numeric\'a0size\'a0=\'a01.0], [float\'a0alpha\'a0=\'a01.0])\
@@ -7312,7 +7422,7 @@ Note that the
 \f4\fs20  (or greater), to provide a pixel of margin space within which the box will be drawn without impinging upon the plotted data.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0])\
+\f3\fs18 \cf2 \'96\'a0(void)text(numeric\'a0x, numeric\'a0y, string\'a0labels, [string\'a0color\'a0=\'a0"black"], [numeric\'a0size\'a0=\'a010.0], [Nif\'a0adj\'a0=\'a0NULL], [float\'a0alpha\'a0=\'a01.0], [numeric\'a0angle\'a0=\'a00.0])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds text data given by 
@@ -7334,7 +7444,8 @@ Note that the
 \f4\fs20 , and 
 \f3\fs18 labels
 \f4\fs20  must all be the same length.  The new text data will be plotted on top of any previously added data.\
-The text will be drawn in color 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The text will be drawn in color 
 \f3\fs18 color
 \f4\fs20 , at the font size given by 
 \f3\fs18 size
@@ -7348,14 +7459,19 @@ The text will be drawn in color
 \f3\fs18 0.0
 \f4\fs20  is fully transparent and 
 \f3\fs18 1.0
-\f4\fs20  is fully opaque.  All of these parameters (
+\f4\fs20  is fully opaque.  The angle at which the text is drawn can be specified with 
+\f3\fs18 angle
+\f4\fs20 ; angles are measured in degrees, clockwise.  All of these parameters (
 \f3\fs18 color
 \f4\fs20 , 
 \f3\fs18 size
-\f4\fs20 , and 
+\f4\fs20 , 
 \f3\fs18 alpha
+\f4\fs20 , and 
+\f3\fs18 angle
 \f4\fs20 ) may either be a singleton value applied to all points, or a vector with one value per corresponding point.\
-The exact position of the text, relative to each point (
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The exact position of the text, relative to each point (
 \f1\i x
 \f4\i0 , 
 \f1\i y
@@ -7406,6 +7522,9 @@ The exact position of the text, relative to each point (
 \f4\i0 , 
 \f1\i y
 \f4\i0 ) both horizontally and vertically.\
+See also the 
+\f3\fs18 mtext()
+\f4\fs20  method, for drawing text outside of the plot area.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)write(string$\'a0filePath)\

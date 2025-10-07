@@ -1548,6 +1548,7 @@ const std::string &gStr_legendSwatchEntry = EidosRegisteredString("legendSwatchE
 const std::string &gStr_legendTitleEntry = EidosRegisteredString("legendTitleEntry", gID_legendTitleEntry);
 const std::string &gStr_lines = EidosRegisteredString("lines", gID_lines);
 const std::string &gStr_matrix = EidosRegisteredString("matrix", gID_matrix);
+const std::string &gStr_mtext = EidosRegisteredString("mtext", gID_mtext);
 const std::string &gStr_points = EidosRegisteredString("points", gID_points);
 const std::string &gStr_rects = EidosRegisteredString("rects", gID_rects);
 const std::string &gStr_segments = EidosRegisteredString("segments", gID_segments);

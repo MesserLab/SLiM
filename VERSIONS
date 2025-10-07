@@ -12,6 +12,8 @@ development head (in the master branch):
 	fix display of images in Plot; it was antialiasing in some cases (such as PDF generation), which is not desirable
 	add segments() call to Plot, for plotting a set of unconnected line segments
 	add rects() call to Plot, for plotting a set of rectangles
+	extend text() to support drawing text and an angle, with new [float angle = 0.0] parameter
+	add mtext() call to Plot, for drawing text in the margins outside the plot area
 
 
 version 5.1 (Eidos version 4.1):

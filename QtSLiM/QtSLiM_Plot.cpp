@@ -112,6 +112,7 @@ EidosValue_SP Plot::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const
         case gID_legendTitleEntry:      return ExecuteMethod_legendTitleEntry(p_method_id, p_arguments, p_interpreter);
         case gID_lines:					return ExecuteMethod_lines(p_method_id, p_arguments, p_interpreter);
         case gID_matrix:                return ExecuteMethod_matrix(p_method_id, p_arguments, p_interpreter);
+        case gID_mtext:                 return ExecuteMethod_mtext(p_method_id, p_arguments, p_interpreter);
         case gID_points:				return ExecuteMethod_points(p_method_id, p_arguments, p_interpreter);
         case gID_rects:					return ExecuteMethod_rects(p_method_id, p_arguments, p_interpreter);
         case gID_segments:				return ExecuteMethod_segments(p_method_id, p_arguments, p_interpreter);
@@ -1054,6 +1055,150 @@ EidosValue_SP Plot::ExecuteMethod_matrix(EidosGlobalStringID p_method_id, const 
     return gStaticEidosValueVOID;
 }
 
+//	*********************	– (void)mtext(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL], [float alpha = 1.0], [numeric angle = 0.0])
+//
+EidosValue_SP Plot::ExecuteMethod_mtext(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+    EidosValue *x_value = p_arguments[0].get();
+    EidosValue *y_value = p_arguments[1].get();
+    EidosValue *labels_value = p_arguments[2].get();
+    EidosValue *color_value = p_arguments[3].get();
+    EidosValue *size_value = p_arguments[4].get();
+    EidosValue *adj_value = p_arguments[5].get();
+    EidosValue *alpha_value = p_arguments[6].get();
+    EidosValue *angle_value = p_arguments[7].get();
+    
+    // x and y
+    int xcount = x_value->Count();
+    int ycount = y_value->Count();
+    int labelscount = labels_value->Count();
+    
+    if ((xcount != ycount) || (xcount != labelscount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires x, y, and labels to be the same length." << EidosTerminate();
+    
+    double *x = (double *)malloc(xcount * sizeof(double));
+    double *y = (double *)malloc(ycount * sizeof(double));
+    
+    if (!x || !y)
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+    
+    if (x_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(x, x_value->FloatData(), xcount * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = x_value->IntData();
+        
+        for (int index = 0; index < xcount; ++index)
+            x[index] = int_data[index];
+    }
+    
+    if (y_value->Type() == EidosValueType::kValueFloat)
+    {
+        memcpy(y, y_value->FloatData(), ycount * sizeof(double));
+    }
+    else
+    {
+        const int64_t *int_data = y_value->IntData();
+        
+        for (int index = 0; index < ycount; ++index)
+            y[index] = int_data[index];
+    }
+    
+    // labels
+    std::vector<QString> *labels = new std::vector<QString>;
+    const std::string *string_data = labels_value->StringData();
+    
+    for (int index = 0; index < labelscount; ++index)
+        labels->emplace_back(QString::fromStdString(string_data[index]));
+    
+    // color
+    std::vector<QColor> *colors = new std::vector<QColor>;
+    int color_count = color_value->Count();
+    
+    if ((color_count != 1) && (color_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires color to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < color_count; ++index)
+    {
+        std::string color_string = color_value->StringAtIndex_NOCAST(index, nullptr);
+        uint8_t colorR, colorG, colorB;
+        
+        Eidos_GetColorComponents(color_string, &colorR, &colorG, &colorB);
+        
+        colors->emplace_back(colorR, colorG, colorB, 255);
+    }
+    
+    // size
+    std::vector<double> *sizes = new std::vector<double>;
+    int size_count = size_value->Count();
+    
+    if ((size_count != 1) && (size_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires size to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < size_count; ++index)
+    {
+        double size = size_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if ((size <= 0.0) || (size > 1000.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires the elements of size to be in (0, 1000]." << EidosTerminate(nullptr);
+        
+        sizes->push_back(size);
+    }
+    
+    // adj
+    double adj[2] = {0.5, 0.5};
+    
+    if (adj_value->Type() != EidosValueType::kValueNULL)
+    {
+        if (adj_value->Count() != 2)
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires adj to be a numeric vector of length 2, or NULL." << EidosTerminate();
+        
+        adj[0] = adj_value->NumericAtIndex_NOCAST(0, nullptr);
+        adj[1] = adj_value->NumericAtIndex_NOCAST(1, nullptr);
+    }
+    
+    // alpha
+    std::vector<double> *alphas = new std::vector<double>;
+    int alpha_count = alpha_value->Count();
+    
+    if ((alpha_count != 1) && (alpha_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires alpha to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < alpha_count; ++index)
+    {
+        double alpha = alpha_value->FloatAtIndex_NOCAST(index, nullptr);
+        
+        if ((alpha < 0.0) || (alpha > 1.0))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires the elements of alpha to be in [0, 1]." << EidosTerminate(nullptr);
+        
+        alphas->push_back(alpha);
+    }
+    
+    // angle
+    std::vector<double> *angles = new std::vector<double>;
+    int angle_count = angle_value->Count();
+    
+    if ((angle_count != 1) && (angle_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires angle to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < angle_count; ++index)
+    {
+        double angle = angle_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if (!std::isfinite(angle))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): mtext() requires the elements of angle to be finite." << EidosTerminate(nullptr);
+        
+        angles->push_back(angle);
+    }
+    
+    plotview_->addMarginTextData(x, y, labels, xcount, colors, alphas, sizes, adj, angles);       // takes ownership of buffers
+    
+    return gStaticEidosValueVOID;
+}
+
 //	*********************	– (void)points(numeric x, numeric y, [integer symbol = 0], [string color = "red"], [string border = "black"], [numeric lwd = 1.0], [numeric size = 1.0], [float alpha = 1.0])
 //
 EidosValue_SP Plot::ExecuteMethod_points(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1539,7 +1684,7 @@ EidosValue_SP Plot::ExecuteMethod_setBorderless(EidosGlobalStringID p_method_id,
     return gStaticEidosValueVOID;
 }
 
-//	*********************	– (void)text(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL], [float alpha = 1.0])
+//	*********************	– (void)text(numeric x, numeric y, string labels, [string color = "black"], [numeric size = 10.0], [Nif adj = NULL], [float alpha = 1.0], [numeric angle = 0.0])
 //
 EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1551,6 +1696,7 @@ EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const st
     EidosValue *size_value = p_arguments[4].get();
     EidosValue *adj_value = p_arguments[5].get();
     EidosValue *alpha_value = p_arguments[6].get();
+    EidosValue *angle_value = p_arguments[7].get();
     
     // x and y
     int xcount = x_value->Count();
@@ -1660,7 +1806,24 @@ EidosValue_SP Plot::ExecuteMethod_text(EidosGlobalStringID p_method_id, const st
         alphas->push_back(alpha);
     }
     
-    plotview_->addTextData(x, y, labels, xcount, colors, alphas, sizes, adj);       // takes ownership of buffers
+    // angle
+    std::vector<double> *angles = new std::vector<double>;
+    int angle_count = angle_value->Count();
+    
+    if ((angle_count != 1) && (angle_count != xcount))
+        EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): text() requires angle to match the length of x and y, or be singleton." << EidosTerminate();
+    
+    for (int index = 0; index < angle_count; ++index)
+    {
+        double angle = angle_value->NumericAtIndex_NOCAST(index, nullptr);
+        
+        if (!std::isfinite(angle))
+            EIDOS_TERMINATION << "ERROR (Plot::ExecuteMethod_mtext): text() requires the elements of angle to be finite." << EidosTerminate(nullptr);
+        
+        angles->push_back(angle);
+    }
+    
+    plotview_->addTextData(x, y, labels, xcount, colors, alphas, sizes, adj, angles);       // takes ownership of buffers
     
     return gStaticEidosValueVOID;
 }
@@ -1756,28 +1919,35 @@ const std::vector<EidosMethodSignature_CSP> *Plot_Class::Methods(void) const
                                   ->AddNumeric("matrix")->AddNumeric_S("x1")->AddNumeric_S("y1")->AddNumeric_S("x2")->AddNumeric_S("y2")
                                   ->AddLogical_OS("flipped", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)
                                   ->AddString_OSN("colors", gStaticEidosValueNULL)->AddFloat_OS("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_mtext, kEidosValueMaskVOID))
+                                  ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
+                                  ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
+                                  ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
+                                  ->AddNumeric_ON("adj", gStaticEidosValueNULL)->AddFloat_O("alpha", gStaticEidosValue_Float1)
+                                  ->AddNumeric_O("angle", gStaticEidosValue_Float0)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_points, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddInt_O("symbol", gStaticEidosValue_Integer0)
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddNumeric_O("size", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
-        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rects, kEidosValueMaskVOID))
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_rects, kEidosValueMaskVOID))
                                   ->AddNumeric("x1")->AddNumeric("y1")->AddNumeric("x2")->AddNumeric("y2")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
                                   ->AddString_O("border", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
-                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1));
-        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_segments, kEidosValueMaskVOID))
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_segments, kEidosValueMaskVOID))
                                   ->AddNumeric("x1")->AddNumeric("y1")->AddNumeric("x2")->AddNumeric("y2")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("red")))
-                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1));
-        methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setBorderless, kEidosValueMaskVOID))
+                                  ->AddNumeric_O("lwd", gStaticEidosValue_Float1)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
+        methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_setBorderless, kEidosValueMaskVOID))
                                   ->AddNumeric_OS("marginLeft", gStaticEidosValue_Float0)->AddNumeric_OS("marginTop", gStaticEidosValue_Float0)
-                                  ->AddNumeric_OS("marginRight", gStaticEidosValue_Float0)->AddNumeric_OS("marginBottom", gStaticEidosValue_Float0));
+                                  ->AddNumeric_OS("marginRight", gStaticEidosValue_Float0)->AddNumeric_OS("marginBottom", gStaticEidosValue_Float0)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gStr_text, kEidosValueMaskVOID))
                                   ->AddNumeric("x")->AddNumeric("y")->AddString("labels")
                                   ->AddString_O("color", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String("black")))
                                   ->AddNumeric_O("size", EidosValue_Float_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float(10)))
-                                  ->AddNumeric_ON("adj", gStaticEidosValueNULL)->AddFloat_O("alpha", gStaticEidosValue_Float1)));
+                                  ->AddNumeric_ON("adj", gStaticEidosValueNULL)->AddFloat_O("alpha", gStaticEidosValue_Float1)
+                                  ->AddNumeric_O("angle", gStaticEidosValue_Float0)));
         methods->emplace_back(static_cast<EidosInstanceMethodSignature *>((new EidosInstanceMethodSignature(gEidosStr_write, kEidosValueMaskVOID))
                                   ->AddString_S(gEidosStr_filePath)));
 		

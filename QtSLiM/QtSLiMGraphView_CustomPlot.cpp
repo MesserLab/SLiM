@@ -88,6 +88,9 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     for (std::vector<double> *sizebuffer : size_)
         delete sizebuffer;
     
+    for (std::vector<double> *anglebuffer : angle_)
+        delete anglebuffer;
+    
     plot_type_.clear();
     x1data_.clear();
     y1data_.clear();
@@ -101,6 +104,7 @@ void QtSLiMGraphView_CustomPlot::freeData(void)
     alpha_.clear();
     line_width_.clear();
     size_.clear();
+    angle_.clear();
     xadj_.clear();
     yadj_.clear();
     image_.clear();
@@ -431,6 +435,7 @@ void QtSLiMGraphView_CustomPlot::addABLineData(double *a_values, double *b_value
     alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for abline
+    angle_.push_back(nullptr);              // unused for abline
     xadj_.push_back(-1);                    // unused for abline
     yadj_.push_back(-1);                    // unused for abline
     image_.push_back(QImage());             // unused for abline
@@ -456,6 +461,7 @@ void QtSLiMGraphView_CustomPlot::addLineData(double *x_values, double *y_values,
     alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for lines
+    angle_.push_back(nullptr);              // unused for lines
     xadj_.push_back(-1);                    // unused for lines
     yadj_.push_back(-1);                    // unused for lines
     image_.push_back(QImage());             // unused for lines
@@ -481,6 +487,7 @@ void QtSLiMGraphView_CustomPlot::addRectData(double *x1_values, double *y1_value
     alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for rects
+    angle_.push_back(nullptr);              // unused for rects
     xadj_.push_back(-1);                    // unused for rects
     yadj_.push_back(-1);                    // unused for rects
     image_.push_back(QImage());             // unused for rects
@@ -506,9 +513,36 @@ void QtSLiMGraphView_CustomPlot::addSegmentData(double *x1_values, double *y1_va
     alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(nullptr);               // unused for segments
+    angle_.push_back(nullptr);              // unused for segments
     xadj_.push_back(-1);                    // unused for segments
     yadj_.push_back(-1);                    // unused for segments
     image_.push_back(QImage());             // unused for segments
+    
+    rescaleAxesForDataRange();
+    update();
+}
+
+void QtSLiMGraphView_CustomPlot::addMarginTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
+                                                   std::vector<QColor> *color, std::vector<double> *alpha,
+                                                   std::vector<double> *size, double *adj, std::vector<double> *angle)
+{
+    plot_type_.push_back(QtSLiM_CustomPlotType::kMarginText);
+    x1data_.push_back(x_values);
+    y1data_.push_back(y_values);
+    x2data_.push_back(nullptr);             // unused for text
+    y2data_.push_back(nullptr);             // unused for text
+    labels_.push_back(labels);
+    data_count_.push_back(data_count);
+    symbol_.push_back(nullptr);             // unused for text
+    color_.push_back(color);
+    border_.push_back(nullptr);             // unused for text
+    alpha_.push_back(alpha);
+    line_width_.push_back(nullptr);         // unused for text
+    size_.push_back(size);
+    angle_.push_back(angle);                // unused for text
+    xadj_.push_back(adj[0]);
+    yadj_.push_back(adj[1]);
+    image_.push_back(QImage());             // unused for text
     
     rescaleAxesForDataRange();
     update();
@@ -531,6 +565,7 @@ void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values
     alpha_.push_back(alpha);
     line_width_.push_back(lwd);
     size_.push_back(size);
+    angle_.push_back(nullptr);              // unused for points
     xadj_.push_back(-1);                    // unused for points
     yadj_.push_back(-1);                    // unused for points
     image_.push_back(QImage());             // unused for points
@@ -541,7 +576,7 @@ void QtSLiMGraphView_CustomPlot::addPointData(double *x_values, double *y_values
 
 void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
                                              std::vector<QColor> *color, std::vector<double> *alpha,
-                                             std::vector<double> *size, double *adj)
+                                             std::vector<double> *size, double *adj, std::vector<double> *angle)
 {
     plot_type_.push_back(QtSLiM_CustomPlotType::kText);
     x1data_.push_back(x_values);
@@ -556,6 +591,7 @@ void QtSLiMGraphView_CustomPlot::addTextData(double *x_values, double *y_values,
     alpha_.push_back(alpha);
     line_width_.push_back(nullptr);         // unused for text
     size_.push_back(size);
+    angle_.push_back(angle);                // unused for text
     xadj_.push_back(adj[0]);
     yadj_.push_back(adj[1]);
     image_.push_back(QImage());             // unused for text
@@ -580,6 +616,7 @@ void QtSLiMGraphView_CustomPlot::addImageData(double *x_values, double *y_values
     alpha_.push_back(alpha);
     line_width_.push_back(nullptr);         // unused for image
     size_.push_back(nullptr);               // unused for image
+    angle_.push_back(nullptr);              // unused for image
     xadj_.push_back(-1);                    // unused for image
     yadj_.push_back(-1);                    // unused for image
     image_.push_back(image);
@@ -654,6 +691,9 @@ void QtSLiMGraphView_CustomPlot::drawGraph(QPainter &painter, QRect interiorRect
             break;
         case QtSLiM_CustomPlotType::kRects:
             drawRects(painter, interiorRect, i);
+            break;
+        case QtSLiM_CustomPlotType::kMarginText:
+            drawMarginText(painter, interiorRect, i);
             break;
         case QtSLiM_CustomPlotType::kPoints:
             drawPoints(painter, interiorRect, i);
@@ -877,6 +917,117 @@ void QtSLiMGraphView_CustomPlot::drawLines(QPainter &painter, QRect interiorRect
     }
 }
 
+void QtSLiMGraphView_CustomPlot::drawMarginText(QPainter &painter, QRect interiorRect, int dataIndex)
+{
+    double *xdata = x1data_[dataIndex];
+    double *ydata = y1data_[dataIndex];
+    std::vector<QString> &labels = *labels_[dataIndex];
+    int pointCount = data_count_[dataIndex];
+    std::vector<QColor> &textColors = *color_[dataIndex];
+    std::vector<double> &textAlphas = *alpha_[dataIndex];
+    std::vector<double> &textAngles = *angle_[dataIndex];
+    std::vector<double> &pointSizes = *size_[dataIndex];
+    double xadj = xadj_[dataIndex];
+    double yadj = yadj_[dataIndex];
+    
+    // move clipping area outward to encompass our entire parent widget
+    QRect bounds = rect();
+    
+    painter.save();
+    painter.setClipRect(bounds, Qt::ReplaceClip);
+    
+    //QtSLiMFrameRect(interiorRect, Qt::green, painter);
+    
+    // set up to get the font and font info
+    double lastPointSize = -1;
+    QFont labelFont;
+    double capHeight = 0;
+    
+    for (int pointIndex = 0; pointIndex < pointCount; ++pointIndex)
+    {
+        double user_x = xdata[pointIndex];
+        double user_y = ydata[pointIndex];
+        
+        if (std::isfinite(user_x) && std::isfinite(user_y))
+        {
+            // for mtext(), coordinates inside the plot area are in [0,1]
+            QString &labelText = labels[pointIndex];
+            double x = user_x * interiorRect.width() + interiorRect.x();
+            double y = user_y * interiorRect.height() + interiorRect.y();
+            
+            //qDebug() << "labelText ==" << labelText << ", user_x ==" << user_x << ", user_y ==" << user_y << ", x ==" << x << ", y ==" << y;
+            
+            // translate the painter so (x, y) is at (0, 0)
+            painter.save();
+            painter.translate(x, y);
+            x = 0;
+            y = 0;
+            
+            double pointSize = pointSizes[pointIndex % pointSizes.size()];
+            
+            if (pointSize != lastPointSize)
+            {
+                labelFont = QtSLiMGraphView::labelFontOfPointSize(pointSize);
+                capHeight = QFontMetricsF(labelFont).capHeight();
+                painter.setFont(labelFont);
+                
+                lastPointSize = pointSize;
+            }
+            
+            QColor textColor = textColors[pointIndex % textColors.size()];
+            double alpha = textAlphas[pointIndex % textAlphas.size()];
+            
+            if (alpha != 1.0)
+                textColor.setAlphaF(alpha);
+            
+            painter.setPen(textColor);
+            
+            QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
+            
+            // labelBoundingRect is useful for its width, which seems to be calculated correctly; its height, however, is oddly large, and
+            // is not useful, so we use the capHeight from the font metrics instead.  This means that vertically centered (yadj == 0.5) is
+            // the midpoint between the baseline and the capHeight, which I think is probably the best behavior.
+            double labelWidth = labelBoundingRect.width();
+            double labelHeight = capHeight;
+            double labelX = x - SLIM_SCREEN_ROUND(labelWidth * xadj);
+            double labelY = y - SLIM_SCREEN_ROUND(labelHeight * yadj);
+            
+            //qDebug() << "   labelBoundingRect ==" << labelBoundingRect << ", labelWidth ==" << labelWidth << ", labelHeight ==" << labelHeight << ", capHeight ==" << capHeight;
+            //qDebug() << "   labelX ==" << labelX << ", labelY ==" << labelY;
+            
+            // rotate the coordinate system around (x, y); for example, -10.0 is 10 degrees clockwise
+            double textAngle = textAngles[pointIndex];
+            
+            if (textAngle != 0.0)
+                painter.rotate(-textAngles[pointIndex]);
+            
+#if 0
+            // draw the axes for the text around the pivot point
+            QPainterPath linePath;
+            
+            linePath.moveTo(-50, 0);
+            linePath.lineTo(50, 0);
+            linePath.moveTo(0, -50);
+            linePath.lineTo(0, 50);
+            painter.strokePath(linePath, QPen(Qt::green, 1.0));
+#endif
+            
+            // flip vertically so the text is upright, and then use -labelY since we're flipped
+            painter.scale(1.0, -1.0);
+            
+            painter.drawText(QPointF(labelX, -labelY), labelText);
+            
+            painter.restore();
+        }
+        else
+        {
+            // a NAN or INF value for x or y is not plotted
+        }
+    }
+    
+    painter.restore();
+}
+
 void QtSLiMGraphView_CustomPlot::drawRects(QPainter &painter, QRect interiorRect, int dataIndex)
 {
     double *x1data = x1data_[dataIndex];
@@ -1016,6 +1167,7 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
     int pointCount = data_count_[dataIndex];
     std::vector<QColor> &textColors = *color_[dataIndex];
     std::vector<double> &textAlphas = *alpha_[dataIndex];
+    std::vector<double> &textAngles = *angle_[dataIndex];
     std::vector<double> &pointSizes = *size_[dataIndex];
     double xadj = xadj_[dataIndex];
     double yadj = yadj_[dataIndex];
@@ -1032,8 +1184,18 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
         
         if (std::isfinite(user_x) && std::isfinite(user_y))
         {
+            QString &labelText = labels[pointIndex];
             double x = plotToDeviceX(user_x, interiorRect);
             double y = plotToDeviceY(user_y, interiorRect);
+            
+            //qDebug() << "labelText ==" << labelText << ", user_x ==" << user_x << ", user_y ==" << user_y << ", x ==" << x << ", y ==" << y;
+            
+            // translate the painter so (x, y) is at (0, 0)
+            painter.save();
+            painter.translate(x, y);
+            x = 0;
+            y = 0;
+            
             double pointSize = pointSizes[pointIndex % pointSizes.size()];
             
             if (pointSize != lastPointSize)
@@ -1053,7 +1215,6 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
             
             painter.setPen(textColor);
             
-            QString &labelText = labels[pointIndex];
             QRect labelBoundingRect = painter.boundingRect(QRect(), Qt::TextDontClip | Qt::TextSingleLine, labelText);
             
             // labelBoundingRect is useful for its width, which seems to be calculated correctly; its height, however, is oddly large, and
@@ -1064,22 +1225,32 @@ void QtSLiMGraphView_CustomPlot::drawText(QPainter &painter, QRect interiorRect,
             double labelX = x - SLIM_SCREEN_ROUND(labelWidth * xadj);
             double labelY = y - SLIM_SCREEN_ROUND(labelHeight * yadj);
             
-            //qDebug() << "labelText ==" << labelText << ", user_x ==" << user_x << ", user_y ==" << user_y << ", x ==" << x << ", y ==" << y;
             //qDebug() << "   labelBoundingRect ==" << labelBoundingRect << ", labelWidth ==" << labelWidth << ", labelHeight ==" << labelHeight << ", capHeight ==" << capHeight;
             //qDebug() << "   labelX ==" << labelX << ", labelY ==" << labelY;
             
-            // we need to correct for the fact that the coordinate system is flipped; text would draw upside-down
-            // we do that by transforming labelY and then turning off the world matrix, to turn off the flipping
-            // note that labelX transformed is unchanged, since the device coordinate origin is 0 anyway
-            QPointF transformedPoint = painter.transform().map(QPointF(labelX, labelY));
+            // rotate the coordinate system around (x, y); for example, -10.0 is 10 degrees clockwise
+            double textAngle = textAngles[pointIndex];
             
-            labelY = transformedPoint.y();
+            if (textAngle != 0.0)
+                painter.rotate(-textAngles[pointIndex]);
+                
+#if 0
+            // draw the axes for the text around the pivot point
+            QPainterPath linePath;
             
-            //qDebug() << "   transformedPoint ==" << transformedPoint << ", labelY ==" << labelY;
+            linePath.moveTo(-50, 0);
+            linePath.lineTo(50, 0);
+            linePath.moveTo(0, -50);
+            linePath.lineTo(0, 50);
+            painter.strokePath(linePath, QPen(Qt::green, 1.0));
+#endif
             
-            painter.setWorldMatrixEnabled(false);
-            painter.drawText(QPointF(labelX, labelY), labelText);
-            painter.setWorldMatrixEnabled(true);
+            // flip vertically so the text is upright, and then use -labelY since we're flipped
+            painter.scale(1.0, -1.0);
+            
+            painter.drawText(QPointF(labelX, -labelY), labelText);
+            
+            painter.restore();
         }
         else
         {

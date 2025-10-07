@@ -34,6 +34,7 @@ enum class QtSLiM_CustomPlotType : int {
     kSegments,
     kRects,
     kPoints,
+    kMarginText,
     kText,
     kABLines,   // from abline()
     kHLines,    // from abline()
@@ -75,6 +76,9 @@ public:
     void addLineData(double *x_values, double *y_values, int data_count,
                      std::vector<QColor> *color, std::vector<double> *alpha,
                      std::vector<double> *lwd);
+    void addMarginTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
+                           std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size,
+                           double *adj, std::vector<double> *angle);
     void addPointData(double *x_values, double *y_values, int data_count,
                       std::vector<int> *symbol, std::vector<QColor> *color, std::vector<QColor> *border,
                       std::vector<double> *alpha, std::vector<double> *lwd, std::vector<double> *size);
@@ -85,7 +89,8 @@ public:
                         int data_count, std::vector<QColor> *color,
                         std::vector<double> *alpha, std::vector<double> *lwd);
     void addTextData(double *x_values, double *y_values, std::vector<QString> *labels, int data_count,
-                     std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size, double *adj);
+                     std::vector<QColor> *color, std::vector<double> *alpha, std::vector<double> *size,
+                     double *adj, std::vector<double> *angle);
     
     void addLegend(QtSLiM_LegendPosition position, int inset, double labelSize, double lineHeight,
                    double graphicsWidth, double exteriorMargin, double interiorMargin);
@@ -128,6 +133,7 @@ private:
     std::vector<std::vector<double> *> alpha_;          // one alpha per point, OR one alpha for all points
     std::vector<std::vector<double> *> line_width_;     // one lwd per point, OR one lwd for all points
     std::vector<std::vector<double> *> size_;           // one size per point, OR one size for all points
+    std::vector<std::vector<double> *> angle_;          // one angle per point, OR one angle for all points
     std::vector<double> xadj_;                          // one xadj for all points
     std::vector<double> yadj_;                          // one yadj for all points
     std::vector<QImage> image_;                         // one QImage per image data; QImage() if unused
@@ -138,6 +144,7 @@ private:
     void drawHLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawVLines(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawLines(QPainter &painter, QRect interiorRect, int dataIndex);
+    void drawMarginText(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawSegments(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawRects(QPainter &painter, QRect interiorRect, int dataIndex);
     void drawPoints(QPainter &painter, QRect interiorRect, int dataIndex);
