@@ -4544,9 +4544,15 @@ The above explanation may not be entirely clear, so let\'92s look at an example.
 \f3\fs20 , 2\'966, in the second column.  Although visualization becomes more difficult, these same patterns extend to higher dimensions and arbitrary margins of 
 \f1\fs18 x
 \f3\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 For efficiently obtaining the sums of the rows or columns of a matrix, see 
+\f1\fs18 rowSums()
+\f3\fs20  and 
+\f1\fs18 colSums()
+\f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)array(*\'a0data, integer\'a0dim)
+\f1\fs18 \cf0 (*)array(*\'a0data, integer\'a0dim)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4621,7 +4627,48 @@ To combine vectors or matrices by row instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric$)det(numeric\'a0x)\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)colSums(lif\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the sums of the columns
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The result is a vector of elements, each providing the sum of the corresponding column of 
+\f1\fs18 x
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 logical
+\f3\fs20  or 
+\f1\fs18 integer
+\f3\fs20  the result will be of type 
+\f1\fs18 integer
+\f3\fs20 ; unlike the 
+\f1\fs18 sum()
+\f3\fs20  function, 
+\f1\fs18 colSums()
+\f3\fs20  does not promote the return type to 
+\f1\fs18 float
+\f3\fs20  if 
+\f1\fs18 integer
+\f3\fs20  overflow occurs, but instead throws an error.  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 float
+\f3\fs20  the result will be of type 
+\f1\fs18 float
+\f3\fs20 .  Except for the change in the treatment of 
+\f1\fs18 integer
+\f3\fs20  overflow noted above, this is equivalent to using 
+\f1\fs18 apply()
+\f3\fs20  with 
+\f1\fs18 sum()
+\f3\fs20  to sum the columns of 
+\f1\fs18 x
+\f3\fs20 , but is much faster.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (numeric$)det(numeric\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Returns the determinant
@@ -5029,7 +5076,48 @@ To combine vectors or matrices by column instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)t(*\'a0x)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (numeric)rowSums(lif\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the sums of the rows
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The result is a vector of elements, each providing the sum of the corresponding row of 
+\f1\fs18 x
+\f3\fs20 .  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 logical
+\f3\fs20  or 
+\f1\fs18 integer
+\f3\fs20  the result will be of type 
+\f1\fs18 integer
+\f3\fs20 ; unlike the 
+\f1\fs18 sum()
+\f3\fs20  function, 
+\f1\fs18 rowSums()
+\f3\fs20  does not promote the return type to 
+\f1\fs18 float
+\f3\fs20  if 
+\f1\fs18 integer
+\f3\fs20  overflow occurs, but instead throws an error.  If 
+\f1\fs18 x
+\f3\fs20  is of type 
+\f1\fs18 float
+\f3\fs20  the result will be of type 
+\f1\fs18 float
+\f3\fs20 .  Except for the change in the treatment of 
+\f1\fs18 integer
+\f3\fs20  overflow noted above, this is equivalent to using 
+\f1\fs18 apply()
+\f3\fs20  with 
+\f1\fs18 sum()
+\f3\fs20  to sum the rows of 
+\f1\fs18 x
+\f3\fs20 , but is much faster.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)t(*\'a0x)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

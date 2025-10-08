@@ -1537,6 +1537,178 @@ EidosValue_SP Eidos_ExecuteFunction_asVector(const std::vector<EidosValue_SP> &p
 	return result_SP;
 }
 
+//	(numeric)rowSums(lif x)
+EidosValue_SP Eidos_ExecuteFunction_rowSums(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rowSums): in function rowSums() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim_values = x_value->Dimensions();
+	size_t x_rowcount = (size_t)dim_values[0];
+	size_t x_colcount = (size_t)dim_values[1];
+	
+	if (x_type == EidosValueType::kValueInt)
+	{
+		const int64_t *int_data = x_value->IntData();
+		
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_rowcount);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (size_t value_index = 0; value_index < x_rowcount; ++value_index)
+		{
+			int64_t sum = 0;
+			const int64_t *series_ptr = int_data + value_index;
+			
+			for (size_t col_index = 0; col_index < x_colcount; ++col_index)
+			{
+				// do sum += *series_ptr but check for overflow
+				int64_t old_sum = sum;
+				int64_t temp = *series_ptr;
+				bool overflow = Eidos_add_overflow(old_sum, temp, &sum);
+				
+				if (overflow)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rowSums): integer overflow in rowSums(); you might wish to convert to float before calling rowSums()." << EidosTerminate(nullptr);
+				
+				series_ptr += x_rowcount;
+			}
+			
+			int_result->set_int_no_check(sum, value_index);
+		}
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_rowcount);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (size_t value_index = 0; value_index < x_rowcount; ++value_index)
+		{
+			double sum = 0;
+			const double *series_ptr = float_data + value_index;
+			
+			for (size_t col_index = 0; col_index < x_colcount; ++col_index)
+			{
+				sum += *series_ptr;
+				series_ptr += x_rowcount;
+			}
+			
+			float_result->set_float_no_check(sum, value_index);
+		}
+	}
+	else if (x_type == EidosValueType::kValueLogical)
+	{
+		const eidos_logical_t *logical_data = x_value->LogicalData();
+		
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_rowcount);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (size_t value_index = 0; value_index < x_rowcount; ++value_index)
+		{
+			int64_t sum = 0;
+			const eidos_logical_t *series_ptr = logical_data + value_index;
+			
+			for (size_t col_index = 0; col_index < x_colcount; ++col_index)
+			{
+				sum += *series_ptr;
+				series_ptr += x_rowcount;
+			}
+			
+			int_result->set_int_no_check(sum, value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
+//	(numeric)colSums(lif x)
+EidosValue_SP Eidos_ExecuteFunction_colSums(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colSums): in function colSums() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim_values = x_value->Dimensions();
+	size_t x_rowcount = (size_t)dim_values[0];
+	size_t x_colcount = (size_t)dim_values[1];
+	
+	if (x_type == EidosValueType::kValueInt)
+	{
+		const int64_t *int_data = x_value->IntData();
+		
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_colcount);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (size_t value_index = 0; value_index < x_colcount; ++value_index)
+		{
+			int64_t sum = 0;
+			const int64_t *series_ptr = int_data + value_index * x_rowcount;
+			
+			for (size_t row_index = 0; row_index < x_rowcount; ++row_index)
+			{
+				// do sum += *series_ptr but check for overflow
+				int64_t old_sum = sum;
+				int64_t temp = *series_ptr;
+				bool overflow = Eidos_add_overflow(old_sum, temp, &sum);
+				
+				if (overflow)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_colSums): integer overflow in colSums(); you might wish to convert to float before calling colSums()." << EidosTerminate(nullptr);
+				
+				series_ptr++;
+			}
+			
+			int_result->set_int_no_check(sum, value_index);
+		}
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatData();
+		
+		EidosValue_Float *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float())->resize_no_initialize(x_colcount);
+		result_SP = EidosValue_SP(float_result);
+		
+		for (size_t value_index = 0; value_index < x_colcount; ++value_index)
+		{
+			double sum = 0;
+			const double *series_ptr = float_data + value_index * x_rowcount;
+			
+			for (size_t row_index = 0; row_index < x_rowcount; ++row_index)
+				sum += *(series_ptr++);
+			
+			float_result->set_float_no_check(sum, value_index);
+		}
+	}
+	else if (x_type == EidosValueType::kValueLogical)
+	{
+		const eidos_logical_t *logical_data = x_value->LogicalData();
+		
+		EidosValue_Int *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int())->resize_no_initialize(x_colcount);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (size_t value_index = 0; value_index < x_colcount; ++value_index)
+		{
+			int64_t sum = 0;
+			const eidos_logical_t *series_ptr = logical_data + value_index * x_rowcount;
+			
+			for (size_t row_index = 0; row_index < x_rowcount; ++row_index)
+				sum += *(series_ptr++);
+			
+			int_result->set_int_no_check(sum, value_index);
+		}
+	}
+	
+	return result_SP;
+}
+
 
 
 

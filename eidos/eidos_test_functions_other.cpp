@@ -370,6 +370,22 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(asVector(y), x);", true);
 	EidosAssertScriptSuccess_L("x = (rbinom(12, 1, 0.5) == 1); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
 	EidosAssertScriptSuccess_L("x = c('a','b','c','d','e','f','g','h','i','j','k','l'); y = matrix(x, nrow=3); identical(asVector(y), x);", true);
+	
+	// rowSums()
+	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(rowSums(y), c(1, 3, 2));", true);
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(rowSums(y), c(22, 26, 30));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(rowSums(y), c(22.0, 26, 30));", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(rowSums(y), apply(y, 0, 'sum(applyValue);'));", true);
+	
+	// colSums()
+	EidosAssertScriptSuccess_L("x = c(T,T,F,F,T,F,F,T,T,F,F,T); y = matrix(x, nrow=3); identical(colSums(y), c(2, 1, 2, 1));", true);
+	EidosAssertScriptSuccess_L("x = 1:12; y = matrix(x, nrow=3); identical(colSums(y), c(6, 15, 24, 33));", true);
+	EidosAssertScriptSuccess_L("x = 1.0:12; y = matrix(x, nrow=3); identical(colSums(y), c(6.0, 15, 24, 33));", true);
+	EidosAssertScriptSuccess_L("x = (rbinom(100, 1, 0.4) == 1); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = rdunif(100, -1000, 1000); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
+	EidosAssertScriptSuccess_L("x = runif(100); y = matrix(x, nrow=10); identical(colSums(y), apply(y, 1, 'sum(applyValue);'));", true);
 }
 
 #pragma mark filesystem access
